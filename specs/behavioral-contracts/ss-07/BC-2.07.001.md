@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,9 @@ modified:
   - "v1.4: Wave 16 Pass-4 (F-W16-S052-P4-002) — add VP table rows for invariant 2 (version_counts / ja3_counts bounded at MAX_MAP_ENTRIES) citing discriminating tests at tests/tls_analyzer_tests.rs:2747 and :2811 — 2026-05-28"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale test-file line anchors: tls_analyzer_tests.rs:2747 → 4476 (test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries), :2811 → 4540 (test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries); verified against HEAD cfe0112a — 2026-06-01"
   - "v1.6: PG-ARP-F2-007 ss-07 full re-anchor — handle_client_hello range 379-540→389-580 (fn sig 389-394, body 395-580); handshakes_seen++ at 395; version count at 398; JA3 compute at 519; SNI extraction 413-515; weak-cipher 530-556; deprecated 559-579 — 2026-06-13"
+  - "v1.7: fix-tls-clienthello-frag F2 scope expansion — 'complete' now includes ClientHello assembled across multiple TLS records via BC-2.07.038 carry-buffer reassembly; Precondition 2 updated to include fragmented-then-assembled path; Invariant 5 added (single-record fast path preserved); EC-007 added (fragmented ClientHello); Related BCs extended (+BC-2.07.038); TLS-CLIENTHELLO-FRAG-001 cross-reference added — 2026-06-29"
+  - "v1.8: Pass-1 adversarial reconciliation (SR-008 MED) — Postcondition 8 rewritten to name both drain operations explicitly: (a) record bytes drained from client_buf at the record layer; (b) assembled handshake message exact-consumed (4+body_len) from client_hs_carry at the carry layer; disambiguates which buffer is 'drained' — 2026-06-29"
+  - "v1.9: Pass-2 adversarial reconciliation (F-F2-006 MEDIUM — priority inversion documented) — Related BCs: add explicit note that BC-2.07.001 is P0 (single-record fast path) and depends on P1 BC-2.07.038 (fragmented path); the SINGLE-RECORD ClientHello guarantee is P0; the FRAGMENTED-path guarantee is P1; this inversion is a deliberate design choice — P0 cannot wait for a P1 bug to be fixed since the single-record path is independent of the carry layer — 2026-06-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,20 +34,31 @@ removal_reason: null
 
 ## Description
 
-When a complete TLS ClientHello record arrives on a flow, `TlsAnalyzer` extracts the
-protocol version, cipher suite list, and extensions. From extensions it derives the SNI
-hostname (classified via `extract_sni`) and computes the JA3 MD5 fingerprint. The JA3
-hash is counted in `ja3_counts`; the SNI is counted in `sni_counts`; the version is
-counted in `version_counts`. `handshakes_seen` is incremented once per ClientHello
-processed.
+When a complete TLS ClientHello is present for a flow — whether delivered in a single
+TLS record or assembled from multiple fragmented records via the carry-buffer
+reassembly layer (BC-2.07.038) — `TlsAnalyzer` extracts the protocol version, cipher
+suite list, and extensions. From extensions it derives the SNI hostname (classified via
+`extract_sni`) and computes the JA3 MD5 fingerprint. The JA3 hash is counted in
+`ja3_counts`; the SNI is counted in `sni_counts`; the version is counted in
+`version_counts`. `handshakes_seen` is incremented once per ClientHello processed.
+
+**Scope expansion (v1.7 — fix-tls-clienthello-frag):** "complete ClientHello" now
+encompasses both the single-record path (common case, no behavioral change) and the
+multi-record reassembled path (new capability; see BC-2.07.038). The single-record
+fast path is preserved: a ClientHello that arrives complete in one 0x16 record is
+dispatched via the same carry drain loop and produces identical output (the carry
+buffer is populated then immediately consumed in one pass). See TLS-CLIENTHELLO-FRAG-001.
 
 ## Preconditions
 
 1. `TlsAnalyzer::on_data` has been called with bytes for the client direction.
-2. The accumulated client-direction buffer contains a complete TLS record with
-   `record_type == 0x16` (Handshake) and a complete ClientHello message.
-3. `payload_len <= MAX_RECORD_PAYLOAD` (18,432 bytes); oversized records are rejected
-   before parsing (see BC-2.07.004).
+2. The carry buffer for the client direction (`client_hs_carry`) contains a complete
+   ClientHello handshake message — either because a single 0x16 record payload was
+   sufficient (single-record fast path), or because bytes from multiple records have
+   been accumulated by BC-2.07.038 reassembly (fragmented path). In both cases
+   `handle_client_hello` receives the same fully assembled bytes.
+3. `payload_len <= MAX_RECORD_PAYLOAD` (18,432 bytes) for every contributing record;
+   oversized individual records are rejected before the carry buffer (see BC-2.07.004).
 4. The flow has not yet been marked `done()` (both hellos already seen).
 
 ## Postconditions
@@ -62,17 +76,28 @@ processed.
    Finding is pushed to `all_findings` (see BC-2.07.009).
 7. If the version is <= 0x0300 (SSL 3.0), a Finding is pushed to `all_findings`
    (see BC-2.07.011).
-8. The consumed record bytes are drained from `client_buf`.
+8. Two distinct drain operations occur when a complete ClientHello is dispatched:
+   (a) the TLS record bytes are drained from `client_buf` at the record layer as the
+   full TLS record payload is consumed by `try_parse_records`; and (b) exactly
+   `4 + body_len` bytes of the assembled ClientHello are exact-consumed from
+   `client_hs_carry` at the carry layer (the exact-consume step in BC-2.07.038
+   Postcondition 4 and Invariant 2). Both drains are required and occur in this order.
 
 ## Invariants
 
 1. `handshakes_seen` increments exactly once per ClientHello, regardless of how
-   many SNI entries or weak ciphers are present.
+   many SNI entries or weak ciphers are present — and regardless of whether the
+   ClientHello arrived in one record or was reassembled from fragments.
 2. All counter maps are bounded at `MAX_MAP_ENTRIES`; new keys are silently dropped
    when the map is full.
 3. Raw SNI bytes are not escaped at this layer (ADR 0003 / INV-4).
 4. GREASE cipher/extension/group values are filtered before JA3 computation (INV-2
    of JA3 spec; see BC-2.07.006).
+5. The single-record fast path is preserved: the carry drain loop dispatches a
+   complete single-record ClientHello in one pass with no observable behavioral
+   difference from the pre-fix path. The carry buffer is populated (append) then
+   immediately consumed (exact-consume) within the same `try_parse_records` call.
+   No regression to existing single-record test coverage.
 
 ## Edge Cases
 
@@ -84,6 +109,7 @@ processed.
 | EC-004 | ClientHello with all GREASE ciphers | JA3 cipher field is empty string after filtering; no weak-cipher finding |
 | EC-005 | ClientHello version = 0x0303 (TLS 1.2) | Version counted; no deprecated-protocol finding |
 | EC-006 | ClientHello when `ja3_counts` is at MAX_MAP_ENTRIES with a new JA3 hash | New hash silently dropped; count unchanged |
+| EC-007 | ClientHello fragmented across two 0x16 records (RFC 5246 §6.2.1) — new in v1.7 | Bytes accumulated via BC-2.07.038 carry reassembly; `handle_client_hello` called with fully assembled bytes after second record arrives; SNI and JA3 populated; `parse_errors=0` |
 
 ## Canonical Test Vectors
 
@@ -123,6 +149,9 @@ processed.
 - BC-2.07.007 -- composes with (JA3 string format)
 - BC-2.07.009 -- composes with (weak cipher detection)
 - BC-2.07.011 -- composes with (deprecated version detection)
+- BC-2.07.038 -- depends on (carry-buffer reassembly that delivers the assembled ClientHello bytes to handle_client_hello; this BC's Precondition 2 expanded to include the reassembled path)
+
+> **Priority-Inversion Note (F-F2-006, deliberate design):** BC-2.07.001 is **P0** but depends on BC-2.07.038 which is **P1**. This inversion is intentional and documented. The **single-record ClientHello path** (the common case, no fragmentation) is the P0 guarantee — it does not require the carry layer to exist; a single-record ClientHello passes through the carry drain loop even if the carry-buffer implementation is minimal. The **fragmented ClientHello path** (requiring carry accumulation across multiple records) is the P1 guarantee (BC-2.07.038). P0 and P1 are independently deliverable because a broken or absent carry layer does not break the single-record path — it only breaks fragmented-ClientHello reassembly. Reviewers must not raise this inversion as an unintentional inconsistency; it is a deliberate scope-split between the common P0 path and the evasion-resistance P1 enhancement.
 
 ## Architecture Anchors
 

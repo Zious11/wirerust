@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,8 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: correct EC-004 to document tls-parser 0.12 SSL2 ServerHello parse-rejection (F-S054-P6-001); resolves cross-BC contradiction with BC-2.07.012 — 2026-05-29"
   - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — handle_server_hello 542-604→586-651; JA3S compute 563→607; cipher tracking 566-568→611-612 — 2026-06-13"
+  - "v1.5: fix-tls-clienthello-frag F2 scope expansion — 'complete ServerHello' now includes ServerHello assembled across multiple TLS records via BC-2.07.038 carry-buffer reassembly (server direction); Precondition 2 updated; Invariant 4 added (single-record fast path preserved); EC-005 added (fragmented ServerHello); Related BCs extended (+BC-2.07.038); TLS-CLIENTHELLO-FRAG-001 cross-reference added — 2026-06-29"
+  - "v1.6: Pass-1 adversarial reconciliation (SR-008 MED) — add Postcondition 7 naming both drain operations explicitly: (a) record bytes drained from server_buf at the record layer; (b) assembled handshake message exact-consumed (4+body_len) from server_hs_carry at the carry layer; symmetric with BC-2.07.001 v1.8 Postcondition 8 — 2026-06-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -29,14 +31,22 @@ removal_reason: null
 
 ## Description
 
-When a complete TLS ServerHello record arrives on the server direction of a flow,
-`TlsAnalyzer` extracts the negotiated protocol version, selected cipher suite, and
-extensions. It computes the JA3S MD5 fingerprint from `version,cipher,extensions`,
-stores it in `ja3s_counts`, and tracks the cipher name in `cipher_counts`. If the
-negotiated cipher is weak, an Anomaly/Likely/Medium finding is emitted. If the version
-is SSL 3.0 (0x0300) or lower and reachable under tls-parser, an Anomaly/Likely/High
-finding is emitted (see postcondition 6 and BC-2.07.012 for tls-parser 0.12 reachability
+When a complete TLS ServerHello is present for the server direction of a flow —
+whether delivered in a single TLS record or assembled from multiple fragmented records
+via the carry-buffer reassembly layer (BC-2.07.038, server direction) — `TlsAnalyzer`
+extracts the negotiated protocol version, selected cipher suite, and extensions. It
+computes the JA3S MD5 fingerprint from `version,cipher,extensions`, stores it in
+`ja3s_counts`, and tracks the cipher name in `cipher_counts`. If the negotiated cipher
+is weak, an Anomaly/Likely/Medium finding is emitted. If the version is SSL 3.0
+(0x0300) or lower and reachable under tls-parser, an Anomaly/Likely/High finding is
+emitted (see postcondition 6 and BC-2.07.012 for tls-parser 0.12 reachability
 constraints). The flow's `server_hello_seen` flag is set to true.
+
+**Scope expansion (v1.5 — fix-tls-clienthello-frag):** "complete ServerHello" now
+encompasses both the single-record path and the multi-record reassembled path. The
+symmetric carry-buffer mechanism (`server_hs_carry`) applies to the ServerHello
+exactly as `client_hs_carry` applies to the ClientHello (BC-2.07.038 applies to
+both directions). See TLS-CLIENTHELLO-FRAG-001.
 
 **tls-parser 0.12 reachability constraint (F-S054-P1-002):** A ServerHello record with
 version `0x0200` (SSL 2.0) or lower is rejected at the tls-parser record layer before
@@ -47,9 +57,11 @@ See EC-004 and BC-2.07.012 EC-004.
 ## Preconditions
 
 1. `TlsAnalyzer::on_data` has been called with bytes for the server direction.
-2. The accumulated server-direction buffer contains a complete TLS Handshake record
-   (`record_type == 0x16`) with a complete ServerHello message.
-3. `payload_len <= MAX_RECORD_PAYLOAD` (18,432 bytes).
+2. The carry buffer for the server direction (`server_hs_carry`) contains a complete
+   ServerHello handshake message — either because a single 0x16 record payload was
+   sufficient, or because bytes from multiple records have been accumulated via
+   BC-2.07.038 reassembly.
+3. `payload_len <= MAX_RECORD_PAYLOAD` (18,432 bytes) for every contributing record.
 4. The flow's `server_hello_seen` is currently false (first ServerHello only; once
    both hellos are seen the flow is done and subsequent data is ignored).
 
@@ -67,7 +79,14 @@ See EC-004 and BC-2.07.012 EC-004.
    was reached), one `Anomaly/Likely/High` finding is pushed to `all_findings` (see
    BC-2.07.012). Under tls-parser 0.12 this is only reachable for `version == 0x0300`
    (SSL 3.0); a ServerHello with version `0x0200` or lower is rejected at the record layer
-   before this handler is invoked — no finding is produced (see EC-004).
+   before this handler is invoked -- no finding is produced (see EC-004).
+7. Two distinct drain operations occur when a complete ServerHello is dispatched:
+   (a) the TLS record bytes are drained from `server_buf` at the record layer as the
+   full TLS record payload is consumed by `try_parse_records`; and (b) exactly
+   `4 + body_len` bytes of the assembled ServerHello are exact-consumed from
+   `server_hs_carry` at the carry layer (the exact-consume step in BC-2.07.038
+   Postcondition 4 and Invariant 2). Both drains are required and occur in this order.
+   Symmetric counterpart to BC-2.07.001 v1.8 Postcondition 8.
 
 ## Invariants
 
@@ -76,6 +95,10 @@ See EC-004 and BC-2.07.012 EC-004.
 2. Unknown cipher IDs render as `0xNNNN` lowercase hex (see BC-2.07.036).
 3. `version_counts` receives the ServerHello version independently of any prior
    ClientHello version count.
+4. The single-record fast path is preserved: a ServerHello delivered complete in one
+   0x16 record is dispatched via the carry drain loop and produces identical output
+   to the pre-fix path. No regression to existing ServerHello single-record test
+   coverage (mirrors BC-2.07.001 Invariant 5).
 
 ## Edge Cases
 
@@ -87,6 +110,7 @@ See EC-004 and BC-2.07.012 EC-004.
 | EC-004 | ServerHello version = 0x0200 (SSL 2.0) — PARSE-REJECTION under tls-parser 0.12 | tls-parser rejects the record at the record layer before `handle_server_hello` is reached; `parse_errors` is incremented; `version_counts[0x0200]` remains 0; `ja3s_counts` is not updated; NO deprecated-protocol finding is produced. Pinned by `test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned` (asserts parse_errors==1, version_counts[0x0200]==0, no finding). This mirrors BC-2.07.012 EC-004. If tls-parser is upgraded to accept SSL 2.0 ServerHello records, this behavior transitions to a positive Anomaly/Likely/High finding — see BC-2.07.012 EC-004 upgrade guard. |
 | EC-005 | ServerHello version = 0x0301 (TLS 1.0) | No deprecated-protocol finding; version counted only |
 | EC-006 | ServerHello when `ja3s_counts` at MAX_MAP_ENTRIES with a new hash | New hash silently dropped |
+| EC-007 | ServerHello fragmented across two 0x16 records (RFC 5246 §6.2.1) — new in v1.5 | Bytes accumulated via BC-2.07.038 carry reassembly on server direction; `handle_server_hello` called with fully assembled bytes after second record arrives; JA3S populated; `parse_errors=0` |
 
 ## Canonical Test Vectors
 
@@ -122,6 +146,7 @@ See EC-004 and BC-2.07.012 EC-004.
 - BC-2.07.008 -- composes with (JA3S string format)
 - BC-2.07.010 -- composes with (weak server cipher detection)
 - BC-2.07.012 -- composes with (deprecated server version detection)
+- BC-2.07.038 -- depends on (carry-buffer reassembly that delivers assembled ServerHello bytes to handle_server_hello; this BC's Precondition 2 expanded to include the reassembled path)
 
 ## Architecture Anchors
 

@@ -53,9 +53,9 @@ Maintenance sweeps PAUSED for duration of this cycle.
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| F1 — Delta Analysis | PENDING | Not started |
-| F2 — Spec Evolution | PENDING | |
-| F3 — Incremental Stories | PENDING | |
+| F1 — Delta Analysis | DONE | delta-analysis.md committed; architect completed |
+| F2 — Spec Evolution | **CONVERGED 2026-06-29 — AWAITING HUMAN GATE** | 5 new BCs (BC-2.07.038-042) + 2 amended + VP-039 (17 harnesses) + ADR-011; 12 fix bursts; 3+ clean adversary passes (consistency + implementer + completeness + holistic/attacker lenses). BC-INDEX v1.98, VP-INDEX v2.21, ARCH-INDEX v2.3, PRD v1.43. |
+| F3 — Incremental Stories | PENDING | Awaiting human F2 approval |
 | F4 — TDD Delta Implementation | PENDING | |
 | F5 — Scoped Adversarial Review | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
@@ -76,7 +76,23 @@ Maintenance sweeps PAUSED for duration of this cycle.
 
 ## Spec Changes
 
-*Populated at cycle close.*
+*F2 delta (2026-06-29 — converged, awaiting human gate):*
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| BC-2.07.038 | NEW — reassembly across records | v2.7 |
+| BC-2.07.039 | NEW — bounded carry clear-and-recover overflow | v2.4 |
+| BC-2.07.040 | NEW — truncation-safety | v1.3 |
+| BC-2.07.041 | NEW — per-flow+per-direction isolation | v1.2 |
+| BC-2.07.042 | NEW — coalesced dispatch | v1.4 |
+| BC-2.07.001 | AMENDED — scope expansion to fragmented-then-assembled | v1.9 |
+| BC-2.07.002 | AMENDED — scope expansion to fragmented-then-assembled | v1.6 |
+| VP-039 | NEW — proptest+unit; 17 harnesses (4 proptest + 13 unit) | — |
+| ADR-011 | NEW — TLS handshake reassembly design decisions | — |
+| BC-INDEX | UPDATED | v1.98 |
+| VP-INDEX | UPDATED (39 VPs total) | v2.21 |
+| ARCH-INDEX | UPDATED | v2.3 |
+| PRD | UPDATED | v1.43 |
 
 ## Tech Debt Created
 

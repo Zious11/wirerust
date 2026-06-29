@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.36"
+version: "1.43"
 status: draft
 producer: product-owner
-timestamp: 2026-06-24T00:00:00Z
+timestamp: 2026-06-29T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -425,6 +425,77 @@ supplements:
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
 >
+> **Version 1.43 delta (2026-06-29 — fix-tls-clienthello-frag Fix Burst 9 — F-IMPL-001/F-IMPL-002/F-EV-002 BC reconciliation):**
+> **Drain-loop exit list exhaustive (F-IMPL-001 MEDIUM):** BC-2.07.042 Inv-1 updated — the two permitted partial-drain exits previously enumerated (a) `carry_buf.len() < 4` and (b) next body incomplete were not exhaustive. A third exit (c) body_len-spoof guard (declared `body_len > MAX_BUF`, per BC-2.07.038 Inv-5) clears the entire carry and breaks the drain loop. The body_len-spoof break is a total-clear followed by break, semantically equivalent to continue since the carry is empty. Two new edge cases added to BC-2.07.042: EC-006 (complete valid message coalesced with trailing body_len-spoof header — valid dispatched first, spoof-only carry cleared, no valid data lost) and EC-007 (spoof header precedes valid bytes — entire carry cleared; accepted adversarial input; recovery on next well-formed record). BC-2.07.042 v1.3→v1.4. Also EC-010 added to BC-2.07.038: same coalesced-valid-then-spoof scenario described from the reassembly-BC perspective.
+> **AC-CANONICAL-FRAME expanded to 3-frame spec (F-IMPL-002 MEDIUM):** BC-2.07.038 AC-CANONICAL-FRAME previously described one canonical frame. Updated to enumerate three independently-specified frames: Frame A (degenerate `body_len=5`, 5-byte body — exercises PC-9 malformed-body parse_errors+1); Frame B (bytes `[0x01, 0x01, 0x05, 0x00]` — BE decode gives `66,816 > MAX_BUF`, fires body_len-spoof clear-and-recover; LE decode gives `1,281`, no guard — discriminates the two encodings); Frame C (`body_len=256`, all-zero body — exercises PC-9: parse_errors+1, exact-consume 260 bytes, client_hello_seen=false). The test `test_BC_2_07_038_canonical_frame_rfc8446_s4` legitimately bundles BE-decode verification (Frame A), clear-and-recover triggered by the BE→LE discriminator (Frame B), and PC-9 malformed-body (Frame C). The parse_errors+1 assertion for Frame C is now explicitly backed by a documented BC behavior (PC-9), resolving the assertion's previously implicit justification. BC-2.07.038 v2.4→v2.5.
+> **Mid-assembly-clear residual risk traced (F-EV-002 MEDIUM):** BC-2.07.039 EC-009 added — an overflow-clear (buffer-fill overflow or body_len-spoof guard) that fires while a legitimate ClientHello is being assembled mid-flight discards the in-progress bytes; a real TLS client will not re-send individual record fragments (handshake layer is not a per-record request-response protocol); consequently the SNI and JA3 of that flow may be permanently missed. This is the accepted bounded residual risk of Policy A (clear-and-recover), explicitly acknowledged in `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` §Q2 and §Q5. The policy was chosen because sticky-abandon (Policy B) gives the attacker permanent per-flow direction blinding with one adversarial packet; clear-and-recover bounds and denies permanence. The `handshake_reassembly_overflows` counter signals that mid-assembly loss may have occurred. BC-2.07.039 v2.3→v2.4.
+> Amended BCs: BC-2.07.038 v2.4→v2.5; BC-2.07.039 v2.3→v2.4; BC-2.07.042 v1.3→v1.4. No BC count change (336 on disk; 335 active). SS-07 stays 42. VP total stays 39. BC-INDEX v1.95→v1.96. See `spec-changelog.md` §[tls-frag-fix-burst-9-bc-2026-06-29].
+>
+> **Version 1.42 delta (2026-06-29 — fix-tls-clienthello-frag Fix Burst 8 — propagation fixes F-ADV-002/F-ADV-003):**
+> **VP-039 sub-property count corrected (F-ADV-002 MEDIUM):** §2.7.1 live body prose stated "5 sub-properties covering Sub-A/B/C/D/E" — stale; VP-039 has SIX sub-properties (Sub-A..Sub-F; Sub-F = BC-2.07.039 Inv-1 bounded-carry proptest, added in Pass-1). Corrected to "six sub-properties covering Sub-A..Sub-F". Dated changelog/version-history blocks are correct historical provenance and were NOT changed.
+> **Dangling VP citations re-pointed (F-ADV-003 MEDIUM):** BC-2.07.038 Verification Properties table had two citations to non-existent test names: (1) `test_BC_2_07_038_single_record_regression` — re-pointed to VP-039 Sub-A `proptest_vp039_carry_reassembly_two_record` (the two-record proptest asserts single-vs-fragmented equivalence baseline); (2) `test_BC_2_07_038_non_hello_type_consumed` — re-pointed to `test_BC_2_07_042_exact_consume_no_double_dispatch` (BC-2.07.042 asserts coalesced message consumed exactly, `parse_errors==0`). No new tests invented. 14-harness count unchanged. BC-2.07.038 v2.3→v2.4.
+> Amended BCs: BC-2.07.038 v2.3→v2.4. No BC count change (336 on disk; 335 active). SS-07 stays 42. VP total stays 39. BC-INDEX v1.94→v1.95. See `spec-changelog.md` §[tls-frag-fix-burst-8-2026-06-29].
+>
+> **Version 1.41 delta (2026-06-29 — fix-tls-clienthello-frag Fix Burst 6 — parse boundary + malformed-body + residue-ceiling + carry-fate + work-amplification):**
+> Fix burst 6 BC-side findings resolved (F-FRESH-001 CRITICAL, F-FRESH-003 MEDIUM, F-FRESH-004 MEDIUM, F-FRESH-005 MEDIUM, F-F2P-IMP-002 MEDIUM):
+> **Parse boundary + malformed-body (F-FRESH-001 CRITICAL):** BC-2.07.038 PC-9 added — assembled carry bytes MUST be parsed via `parse_tls_message_handshake` (not `parse_tls_plaintext`, which requires a 5-byte TLS record header not present in the carry); a malformed-but-complete assembled body (length-complete, inner structure fails) MUST increment `parse_errors` by exactly 1, exact-consume `4+body_len` bytes, emit no finding, and not panic (parity with single-record path per ADR-011 Decision 4). The distinction from BC-2.07.040 Inv-1 is now stated explicitly in PC-9: carry overflow/truncation does NOT touch `parse_errors`; malformed-complete body DOES. Red-Gate test `test_BC_2_07_038_malformed_assembled_body` added. BC-2.07.038 v2.3.
+> **Residue-ceiling qualified (F-FRESH-003 MEDIUM):** BC-2.07.039 Inv-2 4×MAX_BUF ceiling qualified as a POST-`on_data`-return residue bound (mirrors BC-2.07.005 Observability Note). The in-call peak is transiently higher: the `record_bytes` clone is simultaneously live alongside `client_buf` + `client_hs_carry`; the clone is freed before `on_data` returns. The overstated "256 KiB hard peak" claim is removed. BC-2.07.039 v2.3.
+> **Carry fate when BC-2.07.004 guard fires (F-FRESH-005 MEDIUM):** BC-2.07.038 EC-008 added — when BC-2.07.004 record-layer oversize guard fires mid-reassembly, `client_hs_carry` is NOT touched; the orphaned partial carry persists bounded by `MAX_BUF`, is silently dropped at `on_flow_close` per BC-2.07.040, and emits no finding (accepted-risk: bounded + harmless). BC-2.07.038 v2.3.
+> **Work-amplification bound (F-FRESH-004 MEDIUM):** BC-2.07.038 EC-009 added — `MAX_BUF`/`MAX_RECORD_PAYLOAD` bounds record SIZE not record COUNT; per-record CPU work is O(MAX_RECORD_PAYLOAD) per clone, bounded by upstream TCP-reassembly stream reassembler; references research doc §Q5 fragmentation-control note. Accepted-risk rationale documented. BC-2.07.038 v2.3.
+> **Stale PRD pointer updated (F-F2P-IMP-002 MEDIUM):** §2.7.1 subsection header updated from "v1.38" to "v1.41" (current PRD version). BC-2.07.039 v2.2 pointer updated to v2.3.
+> Amended BCs: BC-2.07.038 v2.2→v2.3; BC-2.07.039 v2.2→v2.3. No BC count change (336 on disk; 335 active). BC-INDEX v1.92→v1.93. See `spec-changelog.md` §[tls-frag-fix-burst-6-2026-06-29].
+>
+> **Version 1.40 delta (2026-06-29 — fix-tls-clienthello-frag Pass-3 adversarial reconciliation):**
+> Pass-3 BC-side findings resolved (F-P3-001 HIGH, F-P3-004 MEDIUM, F-P3-007 MEDIUM, F-P3-LOW):
+> **Counter type corrected u32→u64 (F-P3-001 HIGH):** `handshake_reassembly_overflows` type is `u64` in `TlsAnalyzer`, NOT `u32`. This mirrors `truncated_records: u64` at `tls.rs:319`. The u32 annotation in BC-2.07.038 Architecture Anchors, BC-2.07.039 Architecture Anchors, and PRD §2.7 implementation scope prose was inconsistent. All occurrences corrected. BC-2.07.038 v2.2; BC-2.07.039 v2.2.
+> **summarize() surfacing required (F-P3-004 MEDIUM):** BC-2.07.039 PC-7 added — `handshake_reassembly_overflows` MUST appear as key `"handshake_reassembly_overflows"` in the `detail` map returned by `TlsAnalyzer::summarize()`, mirroring how `"truncated_records"` is inserted at `tls.rs:888-889`. This backs ADR-011 Decision 5 observability rationale. Red-Gate test added: `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key`. BC-2.07.039 v2.2.
+> **EC-001 orphan reference removed (F-P3-007 MEDIUM):** BC-2.07.042 EC-001 previously claimed "second ClientHello overrides first per BC-2.07.001 (duplicate ClientHello semantics)". BC-2.07.001 specifies NO override postcondition — it only increments `handshakes_seen` and updates the count maps for each ClientHello. EC-001 rewritten to describe only what is specified. BC-2.07.042 v1.3.
+> **Stale 'abandoned' wording removed (F-P3-LOW):** BC-2.07.040 Related-BCs phrase "abandoned carry is already empty" replaced with "overflow-cleared carry is already empty". No abandoned-direction concept exists in the clear-and-recover design. BC-2.07.040 v1.3.
+> Amended BCs: BC-2.07.038 v2.1→v2.2; BC-2.07.039 v2.1→v2.2; BC-2.07.040 v1.2→v1.3; BC-2.07.042 v1.2→v1.3. No BC count change (336 on disk; 335 active). BC-INDEX v1.91→v1.92. See `spec-changelog.md` §[tls-frag-pass3-reconciliation-2026-06-29].
+>
+> **Version 1.39 delta (2026-06-29 — fix-tls-clienthello-frag Pass-2 adversarial reconciliation):**
+> Pass-2 adversarial findings resolved (F-F2-002 HIGH, F-F2-003 HIGH, F-F2-005 MEDIUM, F-F2-006 MEDIUM, F-F2-008 MEDIUM/MISMATCH-POST-001, F-F2-009 MEDIUM, F-F2-010 CRITICAL/DF-CANONICAL-FRAME-HOLDOUT-001):
+> **Counter home (F-F2-002):** `handshake_reassembly_overflows` is `TlsAnalyzer`-level aggregate (across all flows), mirroring `truncated_records` and surfaced in `summarize()`. It is NOT a per-`TlsFlowState` field and NOT reset at flow close. BC-2.07.039 v2.1, BC-2.07.038 v2.1 Architecture Anchors, BC-2.07.041 PC-3 (already correct) all consistent.
+> **EC-002 rewritten (F-F2-003):** A single 0x16 record with payload > MAX_RECORD_PAYLOAD (18,432) CANNOT reach the carry — BC-2.07.004 / BC-2.07.038 PC-3 reject it at the record layer first. Overflow is ACCUMULATION across multiple individually-valid records (e.g., carry at 49,200 + 4th record 16,400 = 65,600 > MAX_BUF). Separate EC-008 covers the body_len-spoof path (declared length > MAX_BUF, not actual payload). BC-2.07.039 v2.1.
+> **Priority-inversion documented (F-F2-006):** BC-2.07.001 (P0) depends on BC-2.07.038 (P1). This is deliberate. The single-record ClientHello path is P0; it does not require the carry layer to be present. The fragmented-ClientHello path is P1. Both are independently deliverable. See §2.7.1 note below and BC-2.07.001 Related-BCs.
+> **Residual abandon clause removed (F-F2-008):** BC-2.07.042 PC-4 'and the direction's carry is not abandoned' deleted — the abandoned-direction concept was removed in Pass-1 and this was a stale residual. BC-2.07.042 v1.2.
+> **Flow-close counter semantics (F-F2-009):** BC-2.07.040 PC-4 tightened — flow close produces NO additional `handshake_reassembly_overflows` increment; a prior overflow may already have incremented the aggregate counter; the prior increment is preserved. BC-2.07.040 v1.2.
+> **Canonical-frame AC (F-F2-010):** AC-CANONICAL-FRAME added to BC-2.07.038 — requires at least one test authored independently of project's `build_client_hello`/`build_server_hello` helpers that decodes a raw RFC 8446 §4 handshake header byte sequence (msg_type || uint24 length). Red-Gate test name: `test_BC_2_07_038_canonical_frame_rfc8446_s4`. Architect authors the test in VP-039. BC-2.07.038 v2.1.
+> Amended BCs: BC-2.07.038 v2.0→v2.1; BC-2.07.039 v2.0→v2.1; BC-2.07.040 v1.1→v1.2; BC-2.07.042 v1.1→v1.2; BC-2.07.001 v1.8→v1.9. No BC count change (336 on disk; 335 active). BC-INDEX v1.90→v1.91. See `spec-changelog.md` §[tls-frag-pass2-reconciliation-2026-06-29].
+>
+> **Version 1.38 delta (2026-06-29 — fix-tls-clienthello-frag Pass-1 adversarial reconciliation):**
+> Pass-1 adversarial findings routed to product-owner resolved (F-P1-001/SR-001 CRITICAL, F-P1-004/SR-005 HIGH, F-P1-005/SR-006 MED, F-P1-006 MED, SR-008 MED, F-P1-010 LOW, MISMATCH-1/2):
+> **Overflow policy changed to clear-and-recover (Policy A):** `hs_carry_abandoned` flag and sticky-abandon-direction semantics REMOVED. On carry overflow: clear that direction's carry buffer, increment `handshake_reassembly_overflows`, continue. Recovery permitted. Evidence: `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` (Ptacek/Newsham evasion analysis; Suricata CVE-2019-18792; Wireshark/Suricata norms; consistency with tls.rs L689-698 existing handler).
+> **Per-message body_len cap raised 18432 → 65536 (MAX_BUF):** Legitimate large ClientHellos (ECH/PQ ~1.5-2.5 KiB) reassembled correctly. Rationale: Go crypto/tls maxHandshake=65536 is strictest real-world ceiling; 18,432 cap wrongly dropped legal multi-record messages.
+> **Per-flow memory ceiling clarified:** 4×MAX_BUF ≈ 256 KiB (carry cap ADDITIVE to stream buffer cap, not replacement). See ADR-011.
+> **EC-005 in BC-2.07.042 resolved:** ClientHello (0x01) and ServerHello (0x02) travel in OPPOSITE directions; done() cannot flip mid-drain within one direction's record. Structurally impossible, not an acceptable hand-wave.
+> **Drain ambiguity resolved (SR-008):** Both drain sites named explicitly in BC-2.07.001 PC-8, BC-2.07.002 PC-7, BC-2.07.038 PC-8.
+> **§7 RTM updated:** 5 missing rows added (BC-2.07.038–042).
+> **§2.7 table updated:** BC-2.07.038 P0→P1 (consistent with sibling BCs); BC-2.07.039 title updated to clear-and-recover.
+> Amended BCs: BC-2.07.038 v1.0→v2.0; BC-2.07.039 v1.0→v2.0; BC-2.07.040 v1.0→v1.1; BC-2.07.041 v1.0→v1.1; BC-2.07.042 v1.0→v1.1; BC-2.07.001 v1.7→v1.8; BC-2.07.002 v1.5→v1.6. No BC count change (336 on disk; 335 active). BC-INDEX v1.89→v1.90. See `spec-changelog.md` §[tls-frag-pass1-reconciliation-2026-06-29].
+>
+> **Version 1.37 delta (2026-06-29 — fix-tls-clienthello-frag F2 spec evolution — TLS handshake reassembly):**
+> 5 new BCs added to SS-07 (CAP-07) for handshake-message reassembly across TLS record boundaries
+> (finding TLS-CLIENTHELLO-FRAG-001, validated; RFC 5246 §6.2.1; RFC 8446 §5.1; SNI/JA3 evasion
+> classification HIGH):
+> BC-2.07.038 v1.0 — TLS Handshake-Message Reassembly Across Record Boundaries (carry buffer
+> accumulation + exact-consume dispatch; ClientHello and ServerHello; P0; F3 STORY-A).
+> BC-2.07.039 v1.0 — Handshake Carry Buffer Bounded at MAX_BUF with Abandon-Direction Overflow
+> Policy (MAX_BUF=65536; abandon-direction policy per F1 §8 Q1; body_len>MAX_RECORD_PAYLOAD guard
+> per F1 §8 Q2; P1; F3 STORY-A).
+> BC-2.07.040 v1.0 — Truncated Handshake at Flow Close Yields No Finding and No parse_errors
+> Increment (truncation-safety; READER cand-05 interaction; P1; F3 STORY-A).
+> BC-2.07.041 v1.0 — Handshake Carry Buffers Are Per-Flow and Per-Direction Isolated (VP-014 TLS
+> analog; FlowKey keying; direction param; P1; F3 STORY-B).
+> BC-2.07.042 v1.0 — Coalesced Handshake Messages in One Record Are Each Dispatched Independently
+> (RFC 5246 §6.2.1 coalescing; exact-consume loop; P1; F3 STORY-A).
+> Amended BCs: BC-2.07.001 v1.6→v1.7 (scope expansion — fragmented ClientHello included);
+> BC-2.07.002 v1.4→v1.5 (scope expansion — fragmented ServerHello included).
+> New VP proposed: VP-039 (proptest; P1; 5 sub-properties; architect assigns VP-INDEX entry).
+> §2.7 TLS section updated with 5 new rows and handshake-reassembly sub-section.
+> SS-07 count: 37→42. Total on disk: 331→336; active: 330→335. BC-INDEX v1.88→v1.89.
+> See `spec-changelog.md` §[tls-frag-f2-2026-06-29].
+>
 > **Version 1.36 F2 addendum (2026-06-24 — --enip-error-burst-threshold CLI flag, D-230):**
 > BC-2.17.026 created (`--enip-error-burst-threshold` CLI flag, u32 default 5, strict `>`,
 > symmetric with BC-2.17.023 write-burst flag; human-approved at F2 gate D-230). §2.17 section
@@ -785,8 +856,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin BC |
 |-------|-------|----------|-----------|
-| BC-2.07.001 | Parse complete TLS ClientHello: version, ciphers, extensions, SNI, JA3 | P0 | BC-TLS-001 |
-| BC-2.07.002 | Parse complete TLS ServerHello: JA3S fingerprint computed | P0 | BC-TLS-002 |
+| BC-2.07.001 | Parse complete TLS ClientHello: version, ciphers, extensions, SNI, JA3 (including fragmented-then-assembled; see BC-2.07.038) | P0 | BC-TLS-001 |
+| BC-2.07.002 | Parse complete TLS ServerHello: JA3S fingerprint computed (including fragmented-then-assembled; see BC-2.07.038) | P0 | BC-TLS-002 |
 | BC-2.07.003 | After both hellos seen, subsequent records silently skipped | P0 | BC-TLS-003 |
 | BC-2.07.004 | TLS record payload > MAX_RECORD_PAYLOAD (18432) increments parse_errors and truncated_records | P0 | BC-TLS-004 |
 | BC-2.07.005 | Per-direction buffer capped at MAX_BUF=65536 bytes | P1 | BC-TLS-005 |
@@ -822,8 +893,89 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.07.035 | on_flow_close drops per-flow TlsFlowState | P1 | BC-TLS-035 |
 | BC-2.07.036 | Unknown cipher IDs render as hex 0xNNNN lowercase | P2 | BC-TLS-036 |
 | BC-2.07.037 | SNI with both non-ASCII and C0 control bytes fires arm 3 (NonAsciiUtf8), not arm 2 | P0 | BC-TLS-037 |
+| BC-2.07.038 | TLS handshake-message reassembly across record boundaries (carry buffer + exact-consume dispatch; RFC 5246 §6.2.1) | P1 | fix-tls-clienthello-frag |
+| BC-2.07.039 | Handshake carry buffer bounded at MAX_BUF=65536 with clear-and-recover overflow policy | P1 | fix-tls-clienthello-frag |
+| BC-2.07.040 | Truncated handshake at flow close yields no finding and no parse_errors increment (truncation-safety) | P1 | fix-tls-clienthello-frag |
+| BC-2.07.041 | Handshake carry buffers are per-flow and per-direction isolated (VP-014 TLS analog) | P1 | fix-tls-clienthello-frag |
+| BC-2.07.042 | Coalesced handshake messages in one record are each dispatched independently (RFC 5246 §6.2.1 coalescing) | P1 | fix-tls-clienthello-frag |
 
-> Full contracts: `behavioral-contracts/ss-07/BC-2.07.001.md` through `BC-2.07.037.md`
+> Full contracts: `behavioral-contracts/ss-07/BC-2.07.001.md` through `BC-2.07.042.md`
+
+#### 2.7.1 Handshake-Message Reassembly (fix-tls-clienthello-frag, v1.42)
+
+RFC 5246 §6.2.1 and RFC 8446 §5.1 explicitly permit a TLS handshake message (e.g.,
+ClientHello) to be fragmented across multiple consecutive TLS records of content type
+0x16. Prior to this enhancement, wirerust parsed one record at a time and required a
+complete ClientHello within a single record — a fragmented ClientHello silently produced
+no SNI and no JA3, enabling documented SNI/JA3 evasion (finding TLS-CLIENTHELLO-FRAG-001,
+severity HIGH; validated 2026-06-29 against RFC primary sources and academic evasion
+literature).
+
+The fix adds a thin per-direction carry-buffer layer (`client_hs_carry` /
+`server_hs_carry` in `TlsFlowState`, each bounded at `MAX_BUF = 65,536` bytes) that
+accumulates 0x16 record payloads and dispatches `ClientHello` / `ServerHello` only when
+the full handshake message body is present. The carry drain loop uses exact-consume
+semantics (BC-2.07.038 Inv-2), which simultaneously handles fragmentation (message
+arrives across records) and coalescing (multiple messages in one record — BC-2.07.042).
+
+Key design decisions (reconciled through adversarial review passes, v1.41):
+- **Overflow policy (Q1 — revised):** Clear-and-recover (Policy A). Once
+  `carry_buf.len() + incoming > MAX_BUF`, the carry for that direction is cleared and
+  `handshake_reassembly_overflows` is incremented — then processing continues. There is
+  NO `hs_carry_abandoned` sticky flag. A subsequent well-formed 0x16 record re-populates
+  the carry and can still be parsed. Rationale: sticky-abandon is a one-packet permanent
+  blinding primitive (Ptacek/Newsham desync; Suricata CVE-2019-18792 precedent);
+  clear-and-recover matches Wireshark/Suricata norms and wirerust's existing per-record
+  oversize handling (tls.rs L689-698). Evidence: `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md`.
+  See BC-2.07.039 v2.3.
+- **Per-message cap (Q2 — revised):** If the handshake length header declares `body_len >
+  MAX_BUF` (65,536 bytes), the carry is immediately cleared (clear-and-recover, no sticky
+  flag) — guards against length-field-spoofing attacks (BC-2.07.038 Inv-5). Cap raised from
+  MAX_RECORD_PAYLOAD (18,432) to MAX_BUF (65,536): Go crypto/tls maxHandshake=65536 is
+  the strictest real-world interoperable ceiling; legitimate large ClientHellos (ECH,
+  post-quantum ~1.5-2.5 KiB) are well within the 64 KiB cap.
+- **Per-flow memory ceiling:** 4 × MAX_BUF ≈ 256 KiB per flow (client_buf + server_buf +
+  client_hs_carry + server_hs_carry) as a POST-`on_data`-return residue ceiling. The
+  carry cap is ADDITIVE to the existing stream buffer cap — not a replacement. The in-call
+  peak is transiently higher (record_bytes clone simultaneously live). See BC-2.07.039
+  v2.3 Invariant 2 and ADR-011.
+- **Truncation safety (Q5):** Incomplete carry at `on_flow_close` is silently discarded
+  with no finding and no `parse_errors` increment — indistinguishable from a
+  snaplen-truncated capture (BC-2.07.040).
+- **Single-record fast path preserved:** A ClientHello delivered complete in one record
+  passes through the carry drain loop and produces identical output to the pre-fix path.
+  All 9391 lines of existing `tls_analyzer_tests.rs` must remain green (BC-2.07.001
+  Invariant 5; BC-2.07.002 Invariant 4).
+- **Parse boundary — assembled body (v1.41, F-FRESH-001):** The assembled carry bytes
+  are parsed via `parse_tls_message_handshake` (tls-parser 0.12.2), NOT
+  `parse_tls_plaintext`. The carry holds raw handshake-message bytes (type + uint24
+  length + body) with NO TLS record header; `parse_tls_plaintext` requires a 5-byte
+  record header that is absent. A malformed-but-complete assembled body
+  (`parse_tls_message_handshake` returns `Err(_)`) MUST increment `parse_errors` by
+  exactly 1, exact-consume the `4+body_len` bytes, emit no finding, and not panic.
+  This is parity with the single-record path. Distinct from carry overflow (which does
+  NOT touch `parse_errors`). See BC-2.07.038 v2.3 PC-9 and ADR-011 Decision 4.
+- **Counter home (v1.39 clarification):** `handshake_reassembly_overflows` is a
+  `TlsAnalyzer`-level aggregate counter (NOT a `TlsFlowState` field). It mirrors
+  `truncated_records`, is surfaced in `summarize()`, and is NOT reset when a flow closes.
+  See BC-2.07.039 v2.3 PC-2, BC-2.07.041 PC-3.
+- **Priority-inversion note (deliberate — F-F2-006, v1.39):** BC-2.07.001 and
+  BC-2.07.002 are **P0** but depend on the **P1** reassembly layer (BC-2.07.038).
+  This is an intentional scope-split: the **single-record ClientHello/ServerHello path**
+  (the common case, no fragmentation) is the P0 guarantee — it does not require the carry
+  layer to be complete. The **fragmented-ClientHello/ServerHello path** (carry
+  accumulation across multiple records) is the P1 guarantee. Both are independently
+  deliverable: a partial or absent carry layer does not break single-record parsing.
+  This inversion must NOT be raised as an unintentional inconsistency in future reviews.
+
+Implementation scope: `src/analyzer/tls.rs` only (`TlsFlowState` struct + `new()` +
+`try_parse_records` 0x16 drain path + `on_flow_close`). No other files changed.
+`TlsFlowState` adds `client_hs_carry: Vec<u8>`, `server_hs_carry: Vec<u8>`.
+`TlsAnalyzer` adds `handshake_reassembly_overflows: u64` (aggregate counter; NOT per-flow; mirrors `truncated_records: u64` at tls.rs:319).
+NO abandoned-flag fields.
+
+New VP proposed: VP-039 (proptest; P1; six sub-properties covering Sub-A..Sub-F;
+architect registers in VP-INDEX).
 
 ### 2.8 DNS Traffic Analysis (CAP-08)
 
@@ -1775,6 +1927,11 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.07.035 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | inferred |
 | BC-2.07.036 | CAP-07 | SS-07 (analyzer/tls.rs) | P2 | inferred |
 | BC-2.07.037 | CAP-07 | SS-07 (analyzer/tls.rs) | P0 | unit |
+| BC-2.07.038 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | proptest |
+| BC-2.07.039 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit+proptest |
+| BC-2.07.040 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit |
+| BC-2.07.041 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | proptest |
+| BC-2.07.042 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit+proptest |
 | BC-2.08.001 | CAP-08 | SS-08 (analyzer/dns.rs) | P0 | unit |
 | BC-2.08.002 | CAP-08 | SS-08 (analyzer/dns.rs) | P0 | unit |
 | BC-2.08.003 | CAP-08 | SS-08 (analyzer/dns.rs) | P1 | unit |

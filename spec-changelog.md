@@ -14,6 +14,516 @@ changes, invariant rewrites).
 
 ---
 
+## [tls-frag-fix-burst-11-bc-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 11 — F-COMP-001/F-COMP-002/F-COMP-003 VP Citation Fixes (product-owner)
+
+**Trigger:** Fix burst 11 consistency findings F-COMP-001, F-COMP-002, F-COMP-003 routed to
+product-owner for BC VP-table citation corrections. Architect authoring 3 new deterministic test
+skeletons in VP-039 in parallel (total harness count: 4 proptest + 13 unit = 17).
+
+**Findings resolved:**
+
+- **F-COMP-002 (MEDIUM) — BC-2.07.041 VP cross-flow row mis-cited `proptest_vp039_direction_isolation`
+  for cross-FLOW isolation, but that proptest only covers cross-DIRECTION isolation:**
+  The cross-flow VP row (PC-1/PC-4/Inv-1, and the "Two flows: Flow A complete / Flow B fragmented"
+  Canonical Test Vector) is now re-pointed to dedicated unit test
+  `test_BC_2_07_041_cross_flow_isolation` (architect authoring in VP-039). The proptest
+  `proptest_vp039_direction_isolation` is retained in the BC for the cross-DIRECTION property
+  (Sub-E, PC-2/Inv-2) where it correctly applies. Over-claim removed.
+
+- **F-COMP-001 / F-COMP-003 (VP rows specified but not yet cited in BC-2.07.038):**
+  BC-2.07.038 Verification Properties table gains two new rows:
+  1. `test_vp039_n_record_reassembly` — single valid ClientHello reassembled across >=3 records
+     (N-record drip-feed, including 4-byte handshake header split across two consecutive records):
+     `client_hello_seen=true`, `sni_counts` populated, `parse_errors=0`. Exercises PC-1/PC-2/PC-6
+     and EC-003 re-entrancy across >2 `on_data` calls.
+  2. `test_vp039_large_valid_hello_reassembly` — large valid ClientHello (body 18,433..65,536 bytes)
+     reassembles and dispatches: `client_hello_seen=true`, `parse_errors=0`, no finding dropped.
+     Positively verifies the Inv-5 cap raise from MAX_RECORD_PAYLOAD (18,432) to MAX_BUF (65,536);
+     this ClientHello is not dropped, not cleared as a body_len spoof.
+
+**Revised BCs:** BC-2.07.041 v1.1→v1.2 (VP cross-flow citation corrected, Architecture Anchors
+updated). BC-2.07.038 v2.6→v2.7 (two new VP rows added).
+
+**No BC count change** (336 on disk; 335 active). SS-07 stays 42. VP total stays 39.
+Harness count: 4 proptest + 13 unit = 17 (architect updates VP-039 and count docs).
+BC-INDEX v1.97→v1.98.
+
+---
+
+## [tls-frag-fix-burst-10-bc-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 10 — F-ADVF2-002/F-ADVF2-003 Frame B Prose + Citation Fix (product-owner)
+
+**Trigger:** Fix burst 10 adversary findings F-ADVF2-002 (MEDIUM) and F-ADVF2-003 (LOW)
+routed to product-owner for BC-2.07.038 AC-CANONICAL-FRAME correction.
+
+**Findings resolved:**
+
+- **F-ADVF2-002 (MEDIUM) — BC-2.07.038 AC-CANONICAL-FRAME Frame B stated "followed by
+  66,816 zero bytes" which is physically impossible:**
+  The body_len-spoof guard (Inv-5 / Decision-4) fires during the 4-byte header decode
+  when `body_len > MAX_BUF` — before any body bytes are appended to the carry. No body
+  is ever sent; 66,816 bytes could not be delivered in a single record anyway
+  (> MAX_RECORD_PAYLOAD 18,432, would trip BC-2.07.004 first). The misdescription has
+  been corrected: Frame B is now specified as the 4-byte header `[0x01, 0x01, 0x05, 0x00]`
+  ONLY with no body bytes following. The decoded values (66,816 big-endian, 1,281
+  little-endian) are unchanged and correct — only the erroneous "followed by N zero bytes"
+  phrasing is removed. Same correction applied to the fix-burst-9 entry in this changelog.
+
+- **F-ADVF2-003 (LOW) — Frame B AC backing citation conflated BC-2.07.038 Inv-5 and
+  BC-2.07.039 as co-equal triggers:**
+  The primary backing for `handshake_reassembly_overflows+1` in Frame B is
+  **BC-2.07.038 Inv-5 (Decision-4 body_len-spoof guard on header decode)**. BC-2.07.039
+  is the Decision-5 buffer-fill guard (a distinct trigger: fires when accumulating bytes
+  would exceed MAX_BUF, not on header decode); it shares only the clear-carry +
+  increment-counter outcome. The citation has been tightened to make Inv-5/Decision-4
+  primary and note BC-2.07.039 as sharing the outcome only.
+
+**Frame A semantics unchanged:** BC-2.07.038 v2.5 Frame A (PC-9 malformed, parse_errors+1)
+is correct and untouched. The architect is aligning VP-039 test to match the BC in parallel.
+
+**Artifacts changed:**
+
+| Artifact | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| BC-2.07.038 | v2.5 | v2.6 | Frame B prose: header-only (no body bytes); AC backing: Inv-5/Decision-4 primary, BC-2.07.039 outcome-only; modified[] entry added |
+| BC-INDEX | v1.96 | v1.97 | inline annotation updated for BC-2.07.038 v2.5→v2.6; v1.97 changelog block prepended |
+| spec-changelog | — | — | fix-burst-9 Frame B line corrected; this entry prepended |
+
+**Unchanged:** SS-07 subsystem total (42), VP total (39), harness count (14), BC count
+(336 on disk; 335 active).
+
+---
+
+## [tls-frag-fix-burst-9-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 9 — ADR-011 Decision 4 Body-Len-Spoof Guard Semantics Clarification
+
+**Trigger:** Adversarial finding F-IMPL-001 routed to architect for Decision 4 clarification.
+
+**Artifact changed:** `.factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md`
+
+**Changes:**
+
+- **ADR-011 Decision 4 — body_len-spoof guard: TOTAL-CLEAR SEMANTICS note added.**
+  Explicit statement that `carry_buf.clear()` removes ALL bytes from the direction carry
+  (including the 4-byte spoof header AND any bytes already in the carry from prior
+  accumulation or trailing coalesced bytes). This is an intentional total clear, not a
+  selective removal of the bad header.
+
+- **ADR-011 Decision 4 — WHY `break` IS SAFE note added (break ≡ continue).**
+  After `carry_buf.clear()`, the carry buffer length is 0. Whether the code executes
+  `break` or `continue`, the next drain-loop iteration would immediately hit `carry_buf.len() < 4`
+  and break anyway. `break` makes intent explicit: "nothing left to drain." The two
+  control-flow choices are behaviorally identical because the clear is total.
+
+- **ADR-011 Decision 4 — DISTINCTION FROM DECISION 5 note added.**
+  Decision 5 (buffer-fill guard) uses `continue` because it fires PRE-APPEND in the
+  outer 0x16 record loop — the incoming record would overflow, carry is cleared, loop
+  advances to the next record. Decision 4 (body_len guard) fires INSIDE the drain loop
+  after the spoof header is already in the carry — carry is cleared, drain loop exits
+  via `break`. Both produce clear-and-recover (carry cleared, counter++, no
+  parse_errors, no finding); only the loop control differs due to different firing
+  positions in the data flow.
+
+- **ADR-011 Decision 4 — ORDERING: valid message preceding spoof header note added.**
+  A valid complete handshake message preceding the spoof header in the same carry is
+  dispatched and exact-consumed (drain) in an earlier drain-loop iteration BEFORE the
+  spoof header is encountered. The total clear on the spoof header discards only the
+  remaining carry bytes — no already-dispatched data is affected. If a spoof header
+  PRECEDES valid bytes (adversarial coalescing), the total clear discards the trailing
+  valid bytes; this is the accepted tradeoff (adversarial input treated as fully
+  adversarial, recovery on next record).
+
+**No BC files touched.** PO reconciles BC-2.07.042 Inv-1 permitted-exit enumeration
+and BC-2.07.038 EC in a parallel burst.
+
+---
+
+## [tls-frag-fix-burst-9-bc-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 9 — F-IMPL-001/F-IMPL-002/F-EV-002 BC Reconciliation (product-owner)
+
+**Trigger:** Fix burst 9 in-scope adversary findings F-IMPL-001 (MEDIUM), F-IMPL-002
+(MEDIUM), and F-EV-002 (MEDIUM) routed to product-owner for BC reconciliation.
+(Parallel to `[tls-frag-fix-burst-9-2026-06-29]` which contains the architect ADR-011
+Decision 4 clarification for the same burst.)
+
+**Findings resolved:**
+
+- **F-IMPL-001 (MEDIUM) — BC-2.07.042 Inv-1 permitted-drain-exit list non-exhaustive:**
+  Inv-1 enumerated only two partial-drain exits:
+  (a) `carry_buf.len() < 4` and (b) next message body incomplete.
+  The body_len-spoof guard (BC-2.07.038 Inv-5: declared `body_len > MAX_BUF`) fires in
+  the drain loop, clears the entire carry, and breaks — a third distinct exit. The agreed
+  semantics: total-clear followed by break is equivalent to continue since the carry is
+  empty after clear. Two new ECs added to BC-2.07.042:
+  - EC-006: complete valid message coalesced with trailing body_len-spoof header — the
+    valid message dispatches first (exact-consume), then the spoof header clears the
+    remaining (spoof-only) carry; no valid data lost.
+  - EC-007: spoof header precedes valid bytes in the same carry — the entire carry is
+    cleared including the valid bytes; accepted adversarial input; recovery on next
+    well-formed record.
+  Also EC-010 added to BC-2.07.038 to document the same coalesced-valid-then-spoof
+  scenario from the reassembly-BC perspective.
+
+- **F-IMPL-002 (MEDIUM) — BC-2.07.038 AC-CANONICAL-FRAME single-frame spec predates
+  Frame C:**
+  AC-CANONICAL-FRAME previously described only the body_len big-endian decode with a
+  single example frame. Updated to enumerate three canonical frames:
+  - Frame A: bytes `[0x01, 0x00, 0x00, 0x05]` + 5 zero bytes — degenerate `body_len=5`;
+    msg_type=ClientHello; 5-byte body too short to be valid → exercises PC-9 malformed-body
+    path: `parse_errors` incremented by 1, exact-consume, `client_hello_seen=false`.
+  - Frame B: bytes `[0x01, 0x01, 0x05, 0x00]` (4-byte header ONLY; no body bytes follow;
+    guard fires on header decode before body) — big-endian decode gives
+    `body_len = 66,816 > MAX_BUF`, fires body_len-spoof guard (Inv-5) on header decode →
+    `handshake_reassembly_overflows += 1`, carry cleared; little-endian decode would give
+    1,281 (≤ MAX_BUF, no guard) — this frame discriminates BE from LE encoding.
+  - Frame C: bytes `[0x01, 0x00, 0x01, 0x00]` + 256 zero bytes — `body_len=256`;
+    all-zero body is length-complete but internally malformed → exercises PC-9:
+    `parse_errors += 1`, exact-consume 260 bytes, `client_hello_seen=false`.
+  The test `test_BC_2_07_038_canonical_frame_rfc8446_s4` legitimately bundles BE-decode
+  verification (Frame A), clear-and-recover triggered by the BE/LE discriminator
+  (Frame B), and PC-9 malformed-body (Frame C). The `parse_errors+1` assertion for
+  Frame C is now backed by an explicitly documented BC postcondition (PC-9) rather than
+  being asserted without a BC anchor.
+
+- **F-EV-002 (MEDIUM) — BC-2.07.039 residual risk of overflow-clear mid-legitimate-
+  assembly not explicitly traced:**
+  EC-009 added to BC-2.07.039 tracing the residual risk: an overflow-clear (buffer-fill
+  or body_len-spoof) that fires while a legitimate ClientHello is being assembled
+  mid-flight discards the in-progress bytes; a real TLS client will not re-send
+  individual handshake record fragments; consequently the SNI/JA3 of that flow may be
+  permanently missed for that flow. This is the accepted bounded outcome of the
+  clear-and-recover policy (Policy A), explicitly backed by
+  `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` §Q2 and §Q5. Policy A was chosen
+  because Policy B (sticky-abandon) gives the attacker permanent per-flow direction
+  blinding with one adversarial packet; clear-and-recover bounds and denies permanence.
+  The `handshake_reassembly_overflows` counter provides a detectable signal that
+  mid-assembly loss may have occurred.
+
+**Artifacts changed:**
+
+| Artifact | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| PRD | v1.42 | v1.43 | v1.43 delta block prepended; §version frontmatter bumped |
+| BC-2.07.038 | v2.4 | v2.5 | AC-CANONICAL-FRAME expanded: 3-frame spec (Frames A/B/C); EC-010 added; modified[] entry added |
+| BC-2.07.039 | v2.3 | v2.4 | EC-009 added: mid-assembly-clear residual risk with TLS-REASSEMBLY-OVERFLOW-POLICY.md citation; modified[] entry added |
+| BC-2.07.042 | v1.3 | v1.4 | Inv-1: third exit (c) body_len-spoof enumerated; EC-006 + EC-007 added; modified[] entry added |
+| BC-INDEX | v1.95 | v1.96 | v1.96 changelog entry prepended; inline annotations updated for all 3 BCs |
+
+**Unchanged:** SS-07 subsystem total (42), VP total (39), BC count (336 on disk; 335
+active), harness count (14).
+
+---
+
+## [tls-frag-fix-burst-8-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 8 — VP-039 Sub-Property Count + BC-2.07.038 Dangling Citation Fixes
+
+**Trigger:** Fix burst 8 adversarial findings F-ADV-002 (MEDIUM) and F-ADV-003 (MEDIUM)
+routed to product-owner for propagation correction.
+
+**Findings resolved:**
+
+- **F-ADV-002 (MEDIUM) — PRD §2.7.1 VP-039 sub-property count stale:** Live body prose
+  at PRD §2.7.1 stated "VP-039 (proptest; P1; 5 sub-properties covering Sub-A/B/C/D/E)".
+  VP-039 has SIX sub-properties (Sub-A..Sub-F; Sub-F = BC-2.07.039 Inv-1 bounded-carry
+  proptest, added in Pass-1). Corrected to "six sub-properties covering Sub-A..Sub-F".
+  Dated `>` changelog/version-history blocks were NOT touched — those are correct
+  historical provenance.
+
+- **F-ADV-003 (MEDIUM) — BC-2.07.038 Verification Properties: two dangling test citations:**
+  Two rows in the VP table cited test names that do not appear in the VP-039 14-harness
+  enumeration:
+  1. `test_BC_2_07_038_single_record_regression` — re-pointed to VP-039 Sub-A
+     `proptest_vp039_carry_reassembly_two_record`. The two-record proptest implicitly
+     asserts single-vs-fragmented equivalence as a baseline (split at k=1 with a
+     complete message in the first record produces the same output as a non-fragmented
+     delivery). Coverage is real; only the citation was wrong.
+  2. `test_BC_2_07_038_non_hello_type_consumed` — re-pointed to
+     `test_BC_2_07_042_exact_consume_no_double_dispatch` (BC-2.07.042). That test
+     asserts a coalesced non-ClientHello message is consumed exactly with
+     `parse_errors==0`, which is the behaviour described. No new tests invented.
+  14-harness count is unchanged.
+
+**Artifacts changed:**
+
+| Artifact | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| PRD | v1.41 | v1.42 | §2.7.1 sub-property count 5→six; §2.7.1 header v1.41→v1.42 |
+| BC-2.07.038 | v2.3 | v2.4 | Verification Properties: 2 dangling citations re-pointed; modified[] entry added |
+| BC-INDEX | v1.94 | v1.95 | v1.95 changelog entry prepended |
+
+**Unchanged:** SS-07 subsystem total (42), VP total (39), BC count (336 on disk; 335 active).
+
+---
+
+## [tls-frag-fix-burst-6-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Fix Burst 6 — Parse Boundary, Residue Ceiling, Carry Fate, Work Amplification
+
+**Trigger:** Post-pass-3 architect decision (ADR-011 Decision 4 finalized) and fresh-eye
+adversarial findings F-FRESH-001 through F-FRESH-005, plus implementation reviewer finding
+F-F2P-IMP-002, routed to product-owner for BC reconciliation.
+
+**Findings resolved:**
+
+| Finding | Severity | Resolution |
+|---------|----------|-----------|
+| F-FRESH-001 | CRITICAL | BC-2.07.038 PC-9 added: parse boundary specified — `parse_tls_message_handshake` (not `parse_tls_plaintext`) is the correct function for assembled carry bytes (no TLS record header in carry); malformed-but-complete assembled body MUST increment `parse_errors` by 1, exact-consume `4+body_len`, emit no finding, no panic (parity with single-record path per ADR-011 Decision 4); distinction from BC-2.07.040 Inv-1 (overflow/truncation does NOT touch `parse_errors`; malformed-complete body DOES) stated explicitly; Red-Gate test `test_BC_2_07_038_malformed_assembled_body` added |
+| F-FRESH-003 | MEDIUM | BC-2.07.039 Inv-2: 4×MAX_BUF ceiling qualified as POST-`on_data`-return residue bound (mirrors BC-2.07.005 Observability Note); transient in-call peak is higher (record_bytes clone simultaneously live with client_buf + client_hs_carry); "256 KiB hard peak" overstated claim removed |
+| F-FRESH-004 | MEDIUM | BC-2.07.038 EC-009 added: per-record work-amplification bound — `MAX_BUF`/`MAX_RECORD_PAYLOAD` bounds record SIZE not COUNT; per-record CPU work O(MAX_RECORD_PAYLOAD) per clone; upstream TCP-reassembly stream reassembler is primary rate-limiting bound; carry overflow clear is secondary; references `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` §Q5 fragmentation-control note |
+| F-FRESH-005 | MEDIUM | BC-2.07.038 EC-008 added: carry fate when BC-2.07.004 record-layer oversize guard fires mid-reassembly — `client_hs_carry` is NOT touched; orphaned partial carry persists bounded by `MAX_BUF`, silently dropped at `on_flow_close` per BC-2.07.040, emits no finding; accepted-risk per BC-2.07.040 (bounded + harmless) |
+| F-F2P-IMP-002 | MEDIUM | PRD §2.7.1 header updated from "v1.38" to "v1.41"; `BC-2.07.039 v2.0` prose pointers updated to `v2.3`; parse boundary note added to key-decisions list |
+
+**Revised BCs:**
+
+| BC | Change |
+|----|--------|
+| BC-2.07.038 v2.2→v2.3 | MINOR: PC-9 added (parse boundary + malformed-body semantics + parse_errors distinction); EC-008 added (carry fate when BC-2.07.004 guard fires); EC-009 added (per-record work-amplification); VP row `test_BC_2_07_038_malformed_assembled_body` added; Architecture Anchor test seam added |
+| BC-2.07.039 v2.2→v2.3 | PATCH: Inv-2 4×MAX_BUF ceiling qualified as post-return residue bound; transient in-call peak note added; "256 KiB hard peak" claim removed |
+
+**BC count impact:** No change (336 on disk; 335 active). SS-07 stays 42. VP total stays 39.
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| PRD | v1.40 | v1.41 |
+| BC-INDEX | v1.92 | v1.93 |
+| BC-2.07.038 | v2.2 | v2.3 |
+| BC-2.07.039 | v2.2 | v2.3 |
+
+---
+
+## [tls-frag-pass3-reconciliation-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Pass-3 Adversarial Reconciliation — Counter Type, summarize() Surfacing, EC-001 Orphan
+
+**Trigger:** Pass-3 adversarial review of BC-2.07.038–042 found three BC-side findings routed to
+product-owner: a type inconsistency (u32 vs u64), a missing observability postcondition, and an
+orphan cross-reference in EC-001.
+
+**Findings resolved:**
+
+| Finding | Severity | Resolution |
+|---------|----------|-----------|
+| F-P3-001 | HIGH | `handshake_reassembly_overflows` type corrected u32→u64 in BC-2.07.038 Architecture Anchors and BC-2.07.039 Architecture Anchors; mirrors `truncated_records: u64` at `tls.rs:319` |
+| F-P3-004 | MEDIUM | BC-2.07.039 PC-7 added: `handshake_reassembly_overflows` MUST be surfaced in `summarize()` JSON detail map as key `"handshake_reassembly_overflows"`, mirroring `"truncated_records"` at `tls.rs:888-889`; Red-Gate test `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key` added |
+| F-P3-007 | MEDIUM | BC-2.07.042 EC-001: orphan cross-reference "second ClientHello overrides first per BC-2.07.001 (duplicate ClientHello semantics)" removed; BC-2.07.001 specifies NO override postcondition; EC-001 rewritten to describe only what is specified (both dispatched; handshakes_seen incremented twice; sni/ja3/version_counts updated per each) |
+| F-P3-LOW | LOW | BC-2.07.040 Related-BCs: stale phrase "abandoned carry is already empty" replaced with "overflow-cleared carry is already empty"; no abandoned-direction concept exists in the clear-and-recover design |
+
+**Revised BCs:**
+
+| BC | Change |
+|----|--------|
+| BC-2.07.038 v2.1→v2.2 | PATCH: Architecture Anchors `handshake_reassembly_overflows: u32` → `u64` (mirrors truncated_records u64 at tls.rs:319) |
+| BC-2.07.039 v2.1→v2.2 | MINOR: Architecture Anchors u32→u64; PC-7 added (summarize() surfacing); VP-039 Sub-C row added; test seam `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key` registered |
+| BC-2.07.040 v1.2→v1.3 | PATCH: Related-BCs "abandoned carry" → "overflow-cleared carry" |
+| BC-2.07.042 v1.2→v1.3 | PATCH: EC-001 orphan BC-2.07.001 "override" reference removed; behavior rewritten to match BC-2.07.001's actual postconditions |
+
+**BC count impact:** No change (336 on disk; 335 active). SS-07 stays 42.
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| PRD | v1.39 | v1.40 |
+| BC-INDEX | v1.91 | v1.92 |
+| BC-2.07.038 | v2.1 | v2.2 |
+| BC-2.07.039 | v2.1 | v2.2 |
+| BC-2.07.040 | v1.2 | v1.3 |
+| BC-2.07.042 | v1.2 | v1.3 |
+
+**Documents updated:**
+
+- `.factory/specs/prd.md` — v1.40 (§2.7 implementation scope: `u32` → `u64`; v1.40 delta entry)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — v1.92 (v1.92 changelog entry; 4 inline table annotations updated; Pass-3 footer comment added)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.038.md` — v2.2
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.039.md` — v2.2
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.040.md` — v1.3
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.042.md` — v1.3
+- `.factory/spec-changelog.md` — this entry
+
+**Handoff notes:**
+
+- VP-039 (architect scope): PC-7 adds a new Sub-C test. The architect is responsible for authoring
+  `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key` in VP-039 as a Red-Gate
+  test verifying that `summarize()` exposes the `"handshake_reassembly_overflows"` key. The counter
+  type must be `u64` in the struct declaration. No VP numbering changes required.
+- ADR-011 (architect scope): architecture anchor already says "mirrors `truncated_records`"; the
+  architect should verify the ADR's counter type annotation is u64 consistent with this pass.
+- No story anchor changes (BC-2.07.038–042 Story Anchor: TBD pending F3 decomposition).
+
+---
+
+## [tls-frag-pass1-reconciliation-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Pass-1 Adversarial Reconciliation — Overflow Policy A (Clear-and-Recover)
+
+**Trigger:** Pass-1 adversarial review of BC-2.07.038–042 found CRITICAL evasion risk in the
+originally-authored sticky abandon-direction overflow policy. Human + research decision: adopt
+Policy A (clear-and-recover). Evidence basis: `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md`.
+
+**Findings resolved:**
+
+| Finding | Severity | Resolution |
+|---------|----------|-----------|
+| F-P1-001 / SR-001 | CRITICAL | Overflow policy changed to clear-and-recover (Policy A); `hs_carry_abandoned` flag and sticky-abandon semantics fully removed from all 5 new BCs and related BCs |
+| F-P1-004 / SR-005 | HIGH | BC-2.07.042 EC-005: resolved as structurally impossible — ClientHello (0x01) and ServerHello (0x02) travel in OPPOSITE directions; done() cannot flip mid-drain from coalescing within one direction |
+| F-P1-005 / SR-006 | MED | BC-2.07.039 Inv-2: carry cap is ADDITIVE to stream buffer cap; per-flow ceiling is 4×MAX_BUF ≈ 256 KiB (not 2×MAX_BUF); ADR-011 cross-reference added |
+| F-P1-006 | MED | Per-message body_len guard raised from MAX_RECORD_PAYLOAD (18,432) to MAX_BUF (65,536); rationale: Go crypto/tls maxHandshake=65536 is strictest real-world ceiling; legitimate ECH/PQ ClientHellos (~1.5-2.5 KiB) now correctly reassembled |
+| SR-008 | MED | BC-2.07.001 PC-8 and BC-2.07.002 PC-7: both drain operations named explicitly (record bytes from client_buf/server_buf at record layer; 4+body_len from client_hs_carry/server_hs_carry at carry layer) |
+| F-P1-010 | LOW | BC-2.07.038 priority downgraded P0→P1, consistent with sibling BCs (038-042 all P1) and VP-039 (P1) |
+| MISMATCH-1 | MINOR | BC-INDEX lookup table SS-07 row updated 37→42 BCs |
+| MISMATCH-2 | SIGNIFICANT | PRD §7 RTM: 5 missing rows BC-2.07.038–042 added |
+
+**Revised BCs:**
+
+| BC | Change |
+|----|--------|
+| BC-2.07.038 v1.0→v2.0 | BREAKING: remove hs_carry_abandoned precondition; raise body_len cap 18432→65536; add PC-8 (both drains); EC-005 updated to clear-and-recover; P0→P1 |
+| BC-2.07.039 v1.0→v2.0 | BREAKING: full clear-and-recover rewrite; no hs_carry_abandoned flag anywhere; handshake_reassembly_overflows counter added; Inv-2 corrected to 4×MAX_BUF additive ceiling; Inv-4 explicit no-flag statement; all ECs and test vectors rewritten |
+| BC-2.07.040 v1.0→v1.1 | MINOR: remove hs_carry_abandoned precondition; EC-006 rewritten (overflow-cleared carry = empty at close) |
+| BC-2.07.041 v1.0→v1.1 | MINOR: abandoned-flag references removed from PC-3, Inv-3, EC-002; replaced with clear-and-recover counter semantics |
+| BC-2.07.042 v1.0→v1.1 | MINOR: EC-005 resolved as structurally impossible with full directional argument |
+| BC-2.07.001 v1.7→v1.8 | MINOR: PC-8 names both drain operations explicitly (SR-008) |
+| BC-2.07.002 v1.5→v1.6 | MINOR: PC-7 added naming both drain operations for server direction (SR-008) |
+
+**Rationale for clear-and-recover vs sticky-abandon:**
+1. Sticky-abandon is a one-packet, permanent, attacker-triggered blinding primitive: one crafted
+   oversized fragment permanently blinds the analyzer for that direction's entire flow lifetime while
+   endpoints continue normally (Ptacek/Newsham desync; Suricata CVE-2019-18792 precedent).
+2. Clear-and-recover denies permanence: the attacker cannot convert a transient overflow into a
+   durable blind spot; continuous overflow attempts are observable via `handshake_reassembly_overflows`.
+3. Consistency: tls.rs L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize
+   records (`client_buf.clear()` / `server_buf.clear()` then `return`).
+4. Industry alignment: Wireshark marks malformed but never drops flows; Suricata depth-reached keeps
+   the flow; no major passive analyzer implements silent per-flow sticky blacklisting on byte overflow.
+
+**BC count impact:** No change (336 on disk; 335 active). SS-07 stays 42.
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| PRD | v1.37 | v1.38 |
+| BC-INDEX | v1.89 | v1.90 |
+| BC-2.07.038 | v1.0 | v2.0 |
+| BC-2.07.039 | v1.0 | v2.0 |
+| BC-2.07.040 | v1.0 | v1.1 |
+| BC-2.07.041 | v1.0 | v1.1 |
+| BC-2.07.042 | v1.0 | v1.1 |
+| BC-2.07.001 | v1.7 | v1.8 |
+| BC-2.07.002 | v1.5 | v1.6 |
+
+**Documents updated:**
+
+- `.factory/specs/prd.md` — v1.38 (§2.7 table BC-2.07.038 P0→P1, BC-2.07.039 title updated; §2.7.1 prose revised to clear-and-recover; §7 RTM rows BC-2.07.038–042 added; v1.38 delta entry)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — v1.90 (v1.90 changelog entry; SS-07 table updated; lookup table SS-07 row 37→42)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.038.md` — v2.0
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.039.md` — v2.0
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.040.md` — v1.1
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.041.md` — v1.1
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.042.md` — v1.1
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md` — v1.8
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md` — v1.6
+- `.factory/spec-changelog.md` — this entry
+
+**Handoff notes:**
+
+- VP-039 architect tasks: VP-039 Sub-C test name changes from `test_vp039_carry_overflow_silent_drop` to `test_vp039_carry_overflow_clear_and_recover` (and new `test_vp039_carry_overflow_recovery`); update VP-INDEX Sub-C description and test names accordingly; no VP numbering changes.
+- Architecture anchor changes: `TlsFlowState` NO abandoned-flag fields; ADD `handshake_reassembly_overflows: u32`. ADR-011 must cite the 4×MAX_BUF per-flow ceiling. Architect owns VP-039 and ADR-011 updates.
+- Stories affected by BC changes: BC-2.07.001 and BC-2.07.002 inputs to STORY-052 and STORY-053 (delivered; no frontmatter change needed). BCs 038–042 have Story Anchor: TBD pending F3 decomposition.
+
+---
+
+## [tls-frag-f2-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag F2 Spec Evolution — TLS Handshake Reassembly (BC-2.07.038–042)
+
+**Trigger:** Feature cycle `fix-tls-clienthello-frag`. Finding TLS-CLIENTHELLO-FRAG-001
+validated (severity HIGH): wirerust parsed one TLS record at a time and only matched a
+complete ClientHello/ServerHello within a single record. A handshake message fragmented
+across multiple TLS records (RFC 5246 §6.2.1; RFC 8446 §5.1) was missed, silently
+leaving SNI and JA3 absent — a documented evasion technique (GFW research; Kubernetes
+ingress-nginx issue #11424). F1 delta analysis produced BC-2.07.038–042 proposal;
+this F2 burst authors them and amends existing BCs.
+
+**New BCs:**
+
+| BC | Title | Priority | Story |
+|----|-------|----------|-------|
+| BC-2.07.038 v1.0 | TLS Handshake-Message Reassembly Across Record Boundaries | P0 | F3 STORY-A |
+| BC-2.07.039 v1.0 | Handshake Carry Buffer Bounded at MAX_BUF with Abandon-Direction Overflow Policy | P1 | F3 STORY-A |
+| BC-2.07.040 v1.0 | Truncated Handshake at Flow Close Yields No Finding and No parse_errors Increment | P1 | F3 STORY-A |
+| BC-2.07.041 v1.0 | Handshake Carry Buffers Are Per-Flow and Per-Direction Isolated | P1 | F3 STORY-B |
+| BC-2.07.042 v1.0 | Coalesced Handshake Messages in One Record Are Each Dispatched Independently | P1 | F3 STORY-A |
+
+**Amended BCs:**
+
+| BC | Change |
+|----|--------|
+| BC-2.07.001 v1.6→v1.7 | MINOR: scope expansion — "complete ClientHello" includes assembled-across-records path; Precondition 2 updated; Invariant 5 (single-record fast path preserved) added; EC-007 (fragmented ClientHello) added; Related BCs +BC-2.07.038 |
+| BC-2.07.002 v1.4→v1.5 | MINOR: scope expansion — "complete ServerHello" includes reassembled path on server direction; Precondition 2 updated; Invariant 4 (single-record fast path preserved) added; EC-007 (fragmented ServerHello) added; Related BCs +BC-2.07.038 |
+
+**Design decisions resolved (from F1 §8 open questions):**
+
+- **Q1 (overflow policy):** Abandon-direction adopted. Once carry exceeds MAX_BUF, that direction's carry is discarded and `hs_carry_abandoned` flag set; future 0x16 records for that direction are silently ignored. Matches existing record-level truncated_records discard pattern. See BC-2.07.039.
+- **Q2 (per-message cap):** `body_len > MAX_RECORD_PAYLOAD` (18,432) triggers abandon-direction immediately — guards against length-field-spoofing. See BC-2.07.038 Invariant 5.
+- **Q3 (ServerHello scope):** Yes — symmetric carry-buffer logic applied to ServerHello / server direction. Low additional cost; omitting it would leave JA3S subject to the same gap. See BC-2.07.002 v1.5 and BC-2.07.041.
+- **Q4 (partial header):** Explicit `if carry_buf.len() < 4 { break; }` guard in carry drain loop before `body_len` decode. See BC-2.07.038 Postcondition 6.
+- **Q5 (RFC 8446 TLS 1.3 / key change):** Structurally covered by `done()` short-circuit firing before carry buffer processing. See BC-2.07.038 Invariant 4.
+
+**New VP proposed:**
+
+VP-039 (proptest; P1; 5 sub-properties: Sub-A carry reassembly 2-record, Sub-B exact-consume coalesced, Sub-C carry overflow silent drop, Sub-D truncated carry no error, Sub-E direction isolation). Architect assigns VP-INDEX entry.
+
+**BC count impact:**
+
+| Metric | Before | After |
+|--------|--------|-------|
+| On disk | 331 | 336 |
+| Active | 330 | 335 |
+| SS-07 count | 37 | 42 |
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| PRD | v1.36 | v1.37 |
+| BC-INDEX | v1.88 | v1.89 |
+| BC-2.07.001 | v1.6 | v1.7 |
+| BC-2.07.002 | v1.4 | v1.5 |
+| BC-2.07.038 | (new) | v1.0 |
+| BC-2.07.039 | (new) | v1.0 |
+| BC-2.07.040 | (new) | v1.0 |
+| BC-2.07.041 | (new) | v1.0 |
+| BC-2.07.042 | (new) | v1.0 |
+
+**Documents updated:**
+
+- `.factory/specs/prd.md` — v1.37 (§2.7 table + §2.7.1 handshake-reassembly sub-section; version delta entry)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — v1.89 (v1.89 changelog entry; SS-07 table updated; 5 new rows added)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md` — v1.7
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md` — v1.5
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.038.md` — v1.0 (new)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.039.md` — v1.0 (new)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.040.md` — v1.0 (new)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.041.md` — v1.0 (new)
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.042.md` — v1.0 (new)
+- `.factory/spec-changelog.md` — this entry
+
+**Handoff notes:**
+
+- VP citations changed: BC-2.07.038 VP Anchors (VP-039 Sub-A, Sub-B), BC-2.07.039 VP Anchors (VP-039 Sub-C), BC-2.07.040 VP Anchors (VP-039 Sub-D), BC-2.07.041 VP Anchors (VP-039 Sub-E), BC-2.07.042 VP Anchors (VP-039 Sub-B). Architect must register VP-039 in VP-INDEX and update verification-architecture.md and verification-coverage-matrix.md under `vp_index_is_vp_catalog_source_of_truth` policy.
+- Stories affected by BC changes: none (BC-2.07.001 and BC-2.07.002 are inputs to existing stories STORY-052 and STORY-053 respectively; those stories are already in completed/delivered state — no frontmatter bcs: array update needed for delivered stories. New BCs 038–042 have Story Anchor: TBD pending F3 decomposition).
+
+---
+
 ## [arch-index-bc-count-reconciliation-maint-2026-06-22] — 2026-06-22
 
 ### ARCH-INDEX v1.5 → v1.6 — Maintenance BC-count reconciliation (F-MAJ-001)

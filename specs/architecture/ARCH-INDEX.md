@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.8"
+version: "2.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -60,6 +60,21 @@ modified:
   - date: 2026-06-24
     actor: architect
     reason: "F2 Pass-5 accounting corrections: ADR-010 row EMITTED 17→19 corrected to EMITTED 17→20 (3 new emits: T0858+T0816+T0846); O-04 debt row updated EMITTED 19=9 catalogue-only → EMITTED 20=8 catalogue-only; SS-17 BC count 24→25 (BC-2.17.025 session-handshake added in F2 Pass-1); MALFORMED_ANOMALY_THRESHOLD re-anchored from ADR-010 Decision 3 to architecture-delta §4.2; ADR-010 Decision 4 (MAX_ENIP_CARRY_BYTES Decision 3 anchor preserved). Version bump 1.7→1.8."
+  - date: 2026-06-29
+    actor: architect
+    reason: "fix-tls-clienthello-frag F2 spec evolution: SS-07 BC count updated 37→42 (BC-2.07.038..042 added; BC-2.07.001 v1.7 and BC-2.07.002 v1.5 amended — scope expansion for fragmented input class); ADR-011 added to Architecture Decisions table (TLS handshake-message reassembly across record boundaries; SS-07); Bounded-Resource Design note extended with SS-07 carry-buffer entry for client_hs_carry/server_hs_carry (MAX_BUF = 65,536); VP-039 registered (proptest; P1; draft; analyzer/tls.rs). Version bump 1.8→1.9."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-1 adversarial reconciliation (fix-tls-clienthello-frag F2): ADR-011 row updated — abandon-direction renamed clear-and-recover, handshake_reassembly_overflows counter added, per-message body_len > MAX_BUF guard noted (Decision 4), per-flow ceiling 4×MAX_BUF confirmed, VP-039 harness count updated (4 proptest + 4 unit tests, Sub-A..Sub-F). Bounded-Resource Design note updated — abandon-direction → clear-and-recover + counter. BC-2.07.001 v1.7→v1.8 and BC-2.07.002 v1.5→v1.6 version references corrected in ADR row (scope expansion already recorded; version stamps reflect reconciliation). Version bump 1.9→2.0."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-2 adversarial reconciliation (F-F2-001/F-F2-002/F-F2-005): SS-07 version stamps corrected BC-2.07.001 v1.8→v1.9 and BC-2.07.002 v1.5→v1.6 in Subsystem Registry comment (PO just bumped 001 v1.8→v1.9 in pass-2). ADR-011 Decision 1 updated: handshake_reassembly_overflows moved from TlsFlowState to TlsAnalyzer (aggregate counter, mirrors truncated_records). VP-039 harness inventory updated to 4 proptest + 6 unit tests (adds canonical-frame RFC 8446 §4 test + SNI-boundary deterministic test). Version bump 2.0→2.1."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-7 (F-FRESH2-001/F-FRESH2-003/F-FRESH2-004/O-1/residue-qualifier): ADR-011 row VP-039 harness count corrected from stale '4 proptest + 6 unit tests' to authoritative '4 proptest + 10 unit tests = 14 total harnesses'; Bounded-Resource Design SS-07 note extended with residue qualifier (4×MAX_BUF is POST-on_data-return residue ceiling; in-call transient peak is higher due to record_bytes clone, per BC-2.07.039 v2.3 Inv-2); ADR-011 Decision-4 Ok(_) arm annotated as unreachable given outer 0x01|0x02 msg_type guard (O-1, BC-2.07.038 PC-9). Version bump 2.1→2.2."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-11 (F-COMP-001/F-COMP-002/F-COMP-003/F-F2IMPL-001): ADR-011 row VP-039 harness count updated from stale '4 proptest + 10 unit tests = 14 total harnesses' to '4 proptest + 13 unit tests = 17 total harnesses'; adds test_BC_2_07_041_cross_flow_isolation (F-COMP-002, Sub-E-ext), test_vp039_n_record_reassembly (F-COMP-001, Sub-A-ext-N), test_vp039_large_valid_hello_reassembly (F-COMP-003, Sub-C-ext-large). Version bump 2.2→2.3."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -117,7 +132,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 55 |
 | SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 9 |
 | SS-06 | HTTP Analysis | CAP-06 | analyzer/http.rs | 26 |
-| SS-07 | TLS Analysis | CAP-07 | analyzer/tls.rs | 37 |
+| SS-07 | TLS Analysis | CAP-07 | analyzer/tls.rs | 42 | <!-- fix-tls-clienthello-frag F2: BC-2.07.038..042 added (5 new); BC-2.07.001 v1.9 + BC-2.07.002 v1.6 amended (scope expansion); ADR-011 --> |
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
 | SS-09 | Finding Emission | CAP-09 | findings.rs | 7 |
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
@@ -177,7 +192,7 @@ analyzer, the Finding struct, and all reporters.
 Three independent caps operate at different layers:
 - L2/SS-04: `MAX_FINDINGS = 10,000` on `TcpReassembler.findings` (with finalize bypass)
 - L3/SS-06: `MAX_HEADER_BUF = 65,536` bytes per direction in HTTP header buffer
-- L3/SS-07: `MAX_BUF = 65,536` bytes per direction in TLS buffer; `MAX_RECORD_PAYLOAD`
+- L3/SS-07: `MAX_BUF = 65,536` bytes per direction in TLS TCP segment buffer (`client_buf`/`server_buf`); `MAX_RECORD_PAYLOAD`; `client_hs_carry`/`server_hs_carry` handshake fragment carry buffers each independently capped at MAX_BUF (clear-and-recover on overflow — carry cleared, `handshake_reassembly_overflows` counter incremented, NO sticky abandon flag, recovery permitted; ADR-011 Decision 5); per-message body_len > MAX_BUF guard in consume loop (ADR-011 Decision 4); per-flow POST-on_data-return residue ceiling 4 × MAX_BUF ≈ 256 KiB (in-call transient peak is higher due to `record_bytes` clone during TCP-level carry drain; per BC-2.07.039 v2.3 Inv-2)
 - L3/SS-06+07: `MAX_MAP_ENTRIES` on aggregate counter maps; `MAX_URIS = 10,000`
 - L3/SS-14: `MAX_PENDING_TRANSACTIONS = 256` per Modbus flow (transaction correlation table); `MAX_FINDINGS = 10,000` shared constant
 - L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
@@ -211,6 +226,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0008 | 2026-06-12 | ARP link-layer integration: `DecodedFrame` enum from `decode_packet` (Ip/Arp variants), `ArpFrame` struct, etherparse 0.20 `NetSlice::Arp`/`LaxNetSlice::Arp` match fix, `ArpAnalyzer` binding table (MAX_ARP_BINDINGS=65536 LRU), 5 detections (D1 spoof/D2 GARP/D3 storm/D11 malformed/D12 L2/L3 mismatch), MITRE T0830+T1557.002, VP-007 SEEDED 23→25, BC-2.02.009 revised | SS-02, SS-10, SS-16 |
 | ADR 0009 | 2026-06-19 | pcapng capture-format reader support: magic-byte auto-detection (peek without consuming), Option A parser (pcap-file 2.0.0 PcapNgReader, +0 new crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper (if_tsresol/if_tsoffset), BC-2.01.004 retired/inverted. **Rev 12 (2026-06-21, D-188):** Decision 25 — `decode_epb_body` extracted as `pub #[doc(hidden)]` pure-core function (VP-027 Kani anchor; F-F5P1-001 fix, PR #287). Decision 26 — `PcapSource.is_pcapng: bool` discriminant field added; `format_zero_packet_notice` reads it instead of calling `read_magic` a second time (F-F5P1-003 fix; eliminates TOCTOU mislabel and redundant open). **Rev 13 (2026-06-22, D-192):** Decision 27 — 4 GiB file-size guard (MAX_PCAPNG_FILE_BYTES = 4_294_967_296) added to `from_file` before `read_to_end`; rejection surfaces as E-INP-014 (F6-SEC-A fix; PR #296 feddbd1). Decision 28 — `MAX_INTERFACE_TABLE_ENTRIES = 65535` cap added to IDB-parse loop; excess IDB rejected as E-INP-015 (F6-SEC-B fix; PR #296 feddbd1). Both guards apply only to the `from_file` / `from_pcap_reader` path; residual unbounded accumulation on `from_pcap_reader` STREAM path is latent debt (SEC-008, ADR-009 Decision 13 all-in-memory model scope). | SS-01 |
 | ADR 0010 | 2026-06-24 | EtherNet/IP + CIP TCP integration (Issue #316): port-44818 Rule 7 port-fallback classification, `DispatchTarget::Enip`, two-level ENIP→CPF→CIP manual binary parser, 600-byte carry buffer cap (MAX_ENIP_CARRY_BYTES = 600, justified in Decision 3), ForwardOpen connection-lifecycle tracking in-scope for v0.11.0, UDP/2222 implicit I/O deferred, corrected MITRE technique set (T0858+T0816+T1693.001 new; T0857/T0855/T0856 revoked in ics-attack-19.1), new `MitreTactic::IcsExecution` variant, ForwardOpen technique gap documented (no dedicated ICS technique — T1692.001 only when connection demonstrably carries unauthorized command), VP-004 oracle extension, VP-007 SEEDED 25→28 EMITTED 17→20 | SS-05, SS-10, SS-17 |
+| ADR 0011 | 2026-06-29 | TLS handshake-message reassembly across record boundaries (fix-tls-clienthello-frag): bounded per-direction carry buffer (`client_hs_carry` / `server_hs_carry` on TlsFlowState, MAX_BUF = 65,536 each) + `handshake_reassembly_overflows` AGGREGATE counter on TlsAnalyzer (mirrors `truncated_records`; NOT on TlsFlowState, NOT dropped at on_flow_close), content-type-0x16-only accumulation, exact-consume loop with 4+body_len drain, per-message body_len > MAX_BUF guard (65,536 — Go crypto/tls maxHandshake interop ceiling; Ok(_) arm in inner match is UNREACHABLE given outer 0x01|0x02 msg_type guard — grouped with Err(_) only for match exhaustiveness; BC-2.07.038 PC-9), clear-and-recover overflow policy (Policy A — clear carry, increment analyzer counter, no parse_errors, no finding, NO sticky abandon flag, recovery permitted), truncation-safety at flow close (partial carry silently discarded — indistinguishable from snaplen-truncated capture, resolves READER cand-05 interaction), single-record fast-path preserved, pre-`done()` epoch only, RFC 8446 §5.1 post-key-change exclusion automatic via existing `done()` gate. Per-flow residue ceiling: 4 × MAX_BUF ≈ 256 KiB (POST-on_data-return; in-call transient peak is higher due to record_bytes clone — see BC-2.07.039 v2.3 Inv-2). New BCs: BC-2.07.038..042. Amended: BC-2.07.001 v1.9, BC-2.07.002 v1.6. New VP: VP-039 (proptest, P1, draft; 4 proptest + 13 unit tests = 17 total harnesses (fix-burst-11 +3: test_BC_2_07_041_cross_flow_isolation/test_vp039_n_record_reassembly/test_vp039_large_valid_hello_reassembly); Sub-A..Sub-F + canonical-frame RFC 8446 §4 + SNI-boundary + malformed-assembled-body + 2 orphaned deterministic tests F-FRESH2-003 + 3 new F-COMP-001/F-COMP-002/F-COMP-003). DTU not required. | SS-07 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID

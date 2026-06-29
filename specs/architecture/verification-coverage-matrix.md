@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.23"
+version: "1.33"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -91,6 +91,36 @@ modified:
   - date: 2026-06-28
     actor: spec-steward
     reason: "RULING-MODBUS-SIBLING-001 (Modbus carry-direction splice + clock-backwards window reset): VP-037 and VP-038 added to VP-to-Module table (proptest; P1; draft; analyzer/modbus.rs). analyzer/modbus.rs Per-Module row proptest count 0→2; Total VPs 1→3. Totals row proptest 14→16, overall 36→38. Coverage note added for VP-037/VP-038. Version bump 1.22→1.23."
+  - date: 2026-06-29
+    actor: architect
+    reason: "fix-tls-clienthello-frag F2 spec evolution: VP-039 added to VP-to-Module table (proptest + 2 unit tests; P1; draft; analyzer/tls.rs). analyzer/tls.rs Per-Module row proptest count 1→2, Total VPs 2→3. Totals row proptest 16→17, overall 38→39. Coverage note added for VP-039. Version bump 1.23→1.24."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-1 adversarial reconciliation (fix-tls-clienthello-frag F2): VP-039 Property cell updated — Sub-C renamed clear-and-recover + 3 unit tests (overflow, recovery, body_len-spoof), Sub-D adds findings_count pre/post assertion (BC-2.07.040 PC3), Sub-E split range = function of actual message length, Sub-F (proptest_vp039_carry_bounded_invariant) added (BC-2.07.039 Inv-1 bounded-carry regression guard). Per-Module row and Totals row UNCHANGED (VP counts are per-VP; no new VPs added). Version bump 1.24→1.25."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-2 adversarial reconciliation (F-F2-001/F-F2-010/F-F2-011/F-F2-012): VP-039 Property cell updated — seam contract added (aggregate reads via TlsAnalyzer accessors; handshake_reassembly_overflows is TlsAnalyzer-level aggregate NOT TlsFlowState); Sub-B handshakes_seen==1 via analyzer.handshake_count() DIRECTLY; canonical-frame test (test_BC_2_07_038_canonical_frame_rfc8446_s4) and SNI-boundary deterministic test (test_vp039_sni_boundary_deterministic) added (6 total unit tests). Per-Module row and Totals row UNCHANGED (VP counts are per-VP; no new VPs). Version bump 1.25→1.26."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-3 adversarial reconciliation (F-P3-002/F-P3-003/F-P3-004/F-P3-005/F-P3-006/F-P3-LOW): VP-039 Property cell updated — (F-P3-002) body_len-spoof corrected to 65537; (F-P3-003) canonical-frame test Frame B anti-shared-assumption discriminator added; (F-P3-004) test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key NEW (BC-2.07.039 PC-7); Sub-C unit test count 3→4 (7 total unit tests); (F-P3-005) overflow + body_len-spoof tests: findings_count pre/post snapshot assertions added (was comment-only); (F-P3-006) SNI-boundary: runtime scan replaces blind n/2; (F-P3-LOW) Sub-D: parse_errors post==pre replaces pre==0. Per-Module row and Totals row UNCHANGED (VP counts are per-VP; no new VPs). Version bump 1.26→1.27."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Pass-4 adversarial reconciliation (F-A1/F-A2/F-A3): VP-039 coverage note corrected — (F-A1) Frame B BE body_len arithmetic corrected 65,792→66,816 (bytes [0x01,0x05,0x00]: (0x01<<16)|(0x05<<8)|0x00 = 65536+1280+0 = 66816; prior value was wrong); (F-A2) VP-039 harness count corrected 6 unit tests/10 total → 7 unit tests/11 total, enumerating all 7: carry_overflow_clear_and_recover, carry_overflow_recovery, body_len_spoof, summarize_exposes_handshake_reassembly_overflows_key, truncated_carry_no_error, canonical_frame_rfc8446_s4, sni_boundary_deterministic; (F-A3) SNI-boundary description corrected from 'splits at n/2 (SNI-extension region)' to runtime scan for [0x00,0x00] type marker at sni_ext_start+1 (provably inside SNI extension type field) per F-P3-006 fix. VP total (39), tool counts (proptest 17, Kani 15, fuzz 2, integration/unit 5), and P1 count (25) UNCHANGED. Version bump 1.27→1.28."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-5 stale-prose sync: VP-039 coverage note P1 list corrected — 'Sub-C, 3 unit tests' → 'Sub-C, 4 unit tests' to match the authoritative coverage-note block (which already correctly enumerates all 7 unit tests at 4 proptest + 7 unit tests = 11 total). No table-row or Totals-row changes (VP counts unchanged). Version bump 1.28→1.29."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-6 (F-FRESH-001/F-CRITICAL-2/F-F2P-IMP-001/F-FRESH-002): VP-039 table row and coverage note updated — (F-CRITICAL-2) Sub-C overflow fixture corrected: valid-header body_len=65,500 ([0x01,0x00,0xFF,0xDC]) + accumulation records triggers Decision-5 buffer-fill guard (NOT Decision-4 body_len-spoof path); counter==overflows_before+1 TRUE (prior 0xCC fill hit Decision-4 4×; counter==overflows_before+4; assertion was FALSE); (F-FRESH-001) test_BC_2_07_038_malformed_assembled_body NEW — assembled length-complete body fails inner parse → parse_errors+1, exact-consume, no finding, no panic (ADR-011 Decision-4 error semantics; parse_tls_message_handshake path; PO must add BC postcondition/EC); (F-F2P-IMP-001) Sub-F proptest generator restructured: valid-header prefix (body_len drawn from 0..=65_536) ensures genuine carry accumulation rather than near-vacuous Decision-4 bypass; (F-FRESH-002) Frame C added to canonical-frame test: [0x01,0x00,0x01,0x00] body_len=256 mid-range dispatch-lane pin; unit test count 7→9; proptest 17, total 39 UNCHANGED. Version bump 1.29→1.30."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-7 (F-FRESH2-001/F-FRESH2-003): VP-039 table row and coverage note updated — (F-FRESH2-003) 2 orphaned unit tests authored: test_BC_2_07_040_empty_carry_flow_close (Sub-D-ext: on_flow_close with EMPTY carry, BC-2.07.040 degenerate case) and test_BC_2_07_042_exact_consume_no_double_dispatch (Sub-B-ext: deterministic coalesced ClientHello+Certificate, asserts handshake_count()==1, BC-2.07.042); (F-FRESH2-001) harness count corrected 9 unit tests → 10 unit tests = 14 total harnesses; all 10 unit test names enumerated; (F-FRESH2-004) Sub-F Decision-5 path coverage note: Decision-5 exercised DETERMINISTICALLY by test_vp039_carry_overflow_clear_and_recover, not probabilistically by Sub-F. VP/tool counts unchanged (total 39, proptest 17, p1 25). Version bump 1.30→1.31."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-10 (F-ADVF2-001 CRITICAL): VP-039 coverage note updated — Frame A description corrected from stale 'carry drains to 0 (benign)' to PC-9 malformed-body path: body_len=5 is length-complete but too short for a valid ClientHello; parse_tls_message_handshake Err → parse_errors==errors_before+1, carry exact-consumed (carry_len=0), client_hello_seen==false, no panic; cites BC-2.07.038 AC-CANONICAL-FRAME v2.5. Harness count (14) and VP/tool totals (39 total, proptest 17, Kani 15, fuzz 2, integration/unit 5) UNCHANGED. Version bump 1.31→1.32."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-11 (F-COMP-001/F-COMP-002/F-COMP-003/F-F2IMPL-001): VP-039 table row and coverage note updated — 3 new unit test skeletons added (unit count 10→13; total harnesses 14→17): (F-COMP-002) test_BC_2_07_041_cross_flow_isolation (two distinct FlowKeys: Flow A complete single-record SNI=a.example, Flow B same-shaped fragmented SNI=b.example; asserts sni_counts.len()==2, no bleed, both client_hello_seen, parse_errors==0; BC-2.07.041 PC-1/PC-4/Inv-1); (F-COMP-001) test_vp039_n_record_reassembly (ONE ClientHello across >=3 records; two scenarios; BC-2.07.038 PC-1/PC-2/PC-6+EC-003); (F-COMP-003) test_vp039_large_valid_hello_reassembly (~40 KB valid ClientHello fragmented across <=MAX_RECORD_PAYLOAD records; positive verification of 18,432→65,536 cap raise; BC-2.07.038 Inv-5); (F-F2IMPL-001) summarize_key description tightened: 'asserts key present' → 'asserts detail[handshake_reassembly_overflows].as_u64()==1 (value-equality, not mere key presence)' to match BC-2.07.039 PC-7 and actual test body. VP/tool totals UNCHANGED (39 total, proptest 17, Kani 15, fuzz 2, integration/unit 5). ARCH-INDEX ADR-011 row flagged: harness count should update '4 proptest + 10 unit tests = 14' → '4 proptest + 13 unit tests = 17'. Version bump 1.32→1.33."
 ---
 
 # Verification Coverage Matrix
@@ -137,6 +167,7 @@ modified:
 | VP-036 | DNP3 window backwards-timestamp no-spurious-reset (DRIFT-DNP3-CLOCK-001): Sub-A T1692.001 60s backwards-ts no-reset (BC-2.15.010 v1.8 EC-012); Sub-B T1691.001 10s block-timeout backwards-ts no-spurious-fire (BC-2.15.014 v2.1 EC-009); Sub-C T0827/T0814 300s correlation-window backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin (elapsed==300 NOT > 300; BC-2.15.015 v2.0 EC-010); Sub-D genuine u32 rollover deterministic unit test (all three windows); traces BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0 | analyzer/dnp3.rs | proptest | P1 | draft |
 | VP-037 | Modbus carry-buffer direction isolation (DRIFT-MODBUS-DIRECTION-001): proptest_vp037_direction_isolation_fn_code_counts — interleaved c2s/s2c deliveries produce correct fn_code_counts with carry_c2s/carry_s2c never mixed; parse_errors==0; proptest_vp037_independent_run_equivalence — interleaved fn_code_counts equal those of independent same-direction runs; traces BC-2.14.002 v2.0 Inv-4 + EC-007 | analyzer/modbus.rs | proptest | P1 | draft |
 | VP-038 | Modbus window backwards-timestamp no-spurious-reset (DRIFT-MODBUS-CLOCK-001): Sub-A T0831 5s backwards-ts no-reset (BC-2.14.016 v2.3 EC-010/EC-011); Sub-B T0806 burst 1s backwards-ts no-reset (BC-2.14.017 v2.7 EC-010/EC-012); Sub-C T0806 sustained >=2s minimum-duration gate — >= INTENTIONALLY PRESERVED (RULING-MODBUS-SIBLING-001 §2.3 — fires AT 2s mark; not a pin); Sub-D T0888 exception 10s backwards-ts no-reset (BC-2.14.019 v1.5 EC-009); Sub-E genuine u32 rollover deterministic unit test (all four Modbus windows); traces BC-2.14.016 v2.3 / BC-2.14.017 v2.7 / BC-2.14.019 v1.5 | analyzer/modbus.rs | proptest | P1 | draft |
+| VP-039 | TLS handshake reassembly (fix-tls-clienthello-frag, F-P3/F-burst-6/F-burst-7 fixes): SEAM CONTRACT — aggregate reads (parse_errors, sni_counts, ja3_counts, handshakes_seen, handshake_reassembly_overflows) via TlsAnalyzer accessors ONLY; NEVER off TlsFlowState; (Sub-A) proptest_vp039_carry_reassembly_two_record — split range = function of actual hello length via prop_oneof![1..4, 4..n]; partial-header {1,2,3} reachable; SNI-region guaranteed by test_vp039_sni_boundary_deterministic; client_hello_seen==true, parse_errors==0 via analyzer.parse_error_count() (BC-2.07.038); (Sub-B) proptest_vp039_exact_consume_coalesced — two coalesced messages (second with NON-ZERO body_len), carry_len==0, handshakes_seen==1 asserted DIRECTLY via analyzer.handshake_count() (BC-2.07.042); (Sub-B-ext — F-FRESH2-003) test_BC_2_07_042_exact_consume_no_double_dispatch: deterministic coalesced ClientHello + Certificate (type=0x0B), asserts handshake_count()==1 (no double-dispatch), carry drained, parse_errors==0 (BC-2.07.042); (Sub-C, 4 unit tests — F-CRITICAL-2 fixture corrected) test_vp039_carry_overflow_clear_and_recover: valid-header body_len=65,500 ([0x01,0x00,0xFF,0xDC]) + accumulation records trigger Decision-5 buffer-fill guard once (carry.len()+payload>MAX_BUF), carry cleared to len==0, analyzer.handshake_reassembly_overflow_count()+1 [TlsAnalyzer aggregate; prior 0xCC fill hit Decision-4 body_len-spoof 4× — assertion was FALSE], parse_errors unchanged, findings_count pre==post [BC-2.07.039 PC-4; F-P3-005]; test_vp039_carry_overflow_recovery: post-overflow ClientHello dispatched normally, SNI+JA3 via analyzer.sni_counts()/ja3_counts() (BC-2.07.039 recovery assertion); test_vp039_body_len_spoof: body_len=65537>MAX_BUF [65536 would NOT trigger strict > guard; F-P3-002] triggers Decision-4 clear-and-recover, findings_count pre==post [BC-2.07.039 PC-4; F-P3-005]; test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key: triggers overflow, calls summarize(), asserts detail["handshake_reassembly_overflows"].as_u64()==1 — value-equality NOT mere key presence [BC-2.07.039 PC-7; F-P3-004; F-F2IMPL-001]; (Sub-D) test_vp039_truncated_carry_no_error — on_flow_close with partial carry: findings_count pre==post, parse_errors post==pre snapshot [NOT pre==0; F-P3-LOW] via analyzer.parse_error_count() (BC-2.07.040 PC3); (Sub-D-ext — F-FRESH2-003) test_BC_2_07_040_empty_carry_flow_close: on_flow_close with EMPTY carry (after full consume) has no observable effect beyond flow removal; parse_errors unchanged, findings unchanged, active_flows==0 (BC-2.07.040 degenerate case); (Sub-E) proptest_vp039_direction_isolation — interleaved c2s/s2c fragmented hellos == independent same-direction runs; parse_errors via analyzer.parse_error_count(); carry_c2s/carry_s2c never mixed (BC-2.07.041); (Sub-F — F-F2P-IMP-001 generator restructured; F-FRESH2-004 Decision-5 note) proptest_vp039_carry_bounded_invariant — generator draws body_len from 0..=65_536 (valid-header prefix via prop_flat_map) ensuring genuine carry accumulation; prior arbitrary-u8 generator was near-vacuous (Decision-4 fired on nearly every record); carry.len()≤MAX_BUF after every call (BC-2.07.039 Inv-1); NOTE: Decision-5 buffer-fill path exercised DETERMINISTICALLY by test_vp039_carry_overflow_clear_and_recover, not probabilistically by Sub-F; (Canonical-frame F-P3-003/F-FRESH-002) test_BC_2_07_038_canonical_frame_rfc8446_s4 — Frame A: [0x01,0x00,0x00,0x05] body_len=5; Frame B discriminator: [0x01,0x01,0x05,0x00] BE=66816>MAX_BUF→carry_len=0; LE=1281→carry_len=4; pins decode direction (DF-CANONICAL-FRAME-HOLDOUT-001); Frame C (F-FRESH-002): [0x01,0x00,0x01,0x00] body_len=256 mid-range dispatch-lane — asserts carry drains to 0, parse_errors+1 (malformed all-zeros body via ADR-011 Decision-4); pins BE decode in dispatch lane, not only at overflow boundary; (SNI-boundary F-P3-006) test_vp039_sni_boundary_deterministic — runtime scan for [0x00,0x00] SNI type marker; splits at sni_ext_start+1 (provably inside extension); asserts sni_ext_start>4 and split<n; replaces blind n/2; (Malformed-assembled-body F-FRESH-001) test_BC_2_07_038_malformed_assembled_body — assembled length-complete handshake body (body_len=6, header [0x01,0x00,0x00,0x06]) with malformed body (version OK but missing Random field) fails parse_tls_message_handshake → parse_errors+1, exact-consume 4+6=10 bytes, no finding, no panic; parity with single-record parse_errors discipline (ADR-011 Decision-4 error semantics); total 4 proptest + 13 unit tests = 17 harnesses (fix-burst-11 +3); the 13 unit tests: (1) test_vp039_carry_overflow_clear_and_recover; (2) test_vp039_carry_overflow_recovery; (3) test_vp039_body_len_spoof; (4) test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key; (5) test_vp039_truncated_carry_no_error; (6) test_BC_2_07_038_canonical_frame_rfc8446_s4; (7) test_vp039_sni_boundary_deterministic; (8) test_BC_2_07_038_malformed_assembled_body; (9) test_BC_2_07_040_empty_carry_flow_close (F-FRESH2-003: Sub-D-ext, BC-2.07.040 empty-carry degenerate); (10) test_BC_2_07_042_exact_consume_no_double_dispatch (F-FRESH2-003: Sub-B-ext, BC-2.07.042 deterministic coalesce); (11) test_BC_2_07_041_cross_flow_isolation (F-COMP-002: Sub-E-ext, two distinct FlowKeys, BC-2.07.041 PC-1/PC-4/Inv-1); (12) test_vp039_n_record_reassembly (F-COMP-001: Sub-A-ext-N, >=3-record re-entrancy, BC-2.07.038 PC-1/PC-2/PC-6+EC-003); (13) test_vp039_large_valid_hello_reassembly (F-COMP-003: Sub-C-ext-large, ~40 KB valid ClientHello, BC-2.07.038 Inv-5) | analyzer/tls.rs | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -147,7 +178,7 @@ modified:
 | reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
 | reassembly/mod.rs | 1 (VP-003) | 1 (VP-021) | 0 | 0 | 2 |
 | dispatcher.rs | 1 (VP-004) | 0 | 0 | 0 | 1 |
-| analyzer/tls.rs | 1 (VP-005) | 1 (VP-013) | 0 | 0 | 2 |
+| analyzer/tls.rs | 1 (VP-005) | 2 (VP-013, VP-039) | 0 | 0 | 3 |
 | analyzer/http.rs | 0 | 2 (VP-006, VP-014) | 0 | 0 | 2 |
 | mitre.rs | 1 (VP-007) | 0 | 0 | 0 | 1 |
 | decoder.rs | 0 | 0 | 1 (VP-008) | 0 | 1 |
@@ -161,7 +192,7 @@ modified:
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
 | analyzer/enip.rs | 1 (VP-032) | 2 (VP-033, VP-034) | 0 | 0 | 3 |
 | reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
-| **Totals** | **15** | **16** | **2** | **5** | **38** |
+| **Totals** | **15** | **17** | **2** | **5** | **39** |
 
 
 ## Coverage Notes
@@ -315,6 +346,82 @@ modified:
   Dnp3FlowState. The analyzer/dnp3.rs row now carries 1 Kani (VP-023) + 2 proptest
   (VP-035, VP-036) = 3 total VPs. Grand Totals: Kani(15) + proptest(14) + fuzz(2) +
   integration/unit(5) = 36.
+
+- VP-039 (analyzer/tls.rs / proptest + unit tests): draft; lock gate at F6. VP-039 was
+  authored as part of the fix-tls-clienthello-frag F2 spec evolution (AMENDED Pass-1 through
+  Pass-4 + Fix-burst-5 + Fix-burst-6 adversarial reconciliation). It covers reassembly
+  correctness (Sub-A), exact-consume (Sub-B), clear-and-recover overflow policy (Sub-C, 4
+  unit tests), truncation-safety (Sub-D), direction isolation (Sub-E), bounded-carry invariant
+  (Sub-F), canonical-frame RFC 8446 §4 decode correctness (including Frame C dispatch-lane
+  pin F-FRESH-002), SNI-boundary deterministic coverage (F-F2-011), and malformed-assembled-body
+  error semantics (F-FRESH-001).
+  SEAM CONTRACT (Pass-2 F-F2-001 fix): aggregate counters (parse_errors, sni_counts,
+  ja3_counts, handshakes_seen, handshake_reassembly_overflows) are TlsAnalyzer-level fields
+  and MUST be read via analyzer accessors (parse_error_count(), sni_counts(), ja3_counts(),
+  handshake_count(), handshake_reassembly_overflow_count()) — NEVER off TlsFlowState.
+  Sub-A (proptest_vp039_carry_reassembly_two_record) verifies BC-2.07.038: partial-header
+  splits {1,2,3} guaranteed via prop_oneof; SNI-region guaranteed deterministically by
+  test_vp039_sni_boundary_deterministic. Sub-B (proptest_vp039_exact_consume_coalesced)
+  verifies BC-2.07.042: coalesced messages in one record (non-zero body_len) each dispatched
+  independently; handshakes_seen==1 asserted DIRECTLY via analyzer.handshake_count() (F-F2-012
+  fix — not inferred from ja3_counts.len()==1). Sub-C verifies BC-2.07.039 clear-and-recover
+  policy (F-CRITICAL-2 fixture corrected): test_vp039_carry_overflow_clear_and_recover —
+  valid-header body_len=65,500 ([0x01,0x00,0xFF,0xDC]) followed by accumulation records until
+  carry.len()+next_payload>MAX_BUF triggers Decision-5 buffer-fill guard exactly once → carry
+  cleared to len==0, analyzer.handshake_reassembly_overflow_count()+1 [TlsAnalyzer aggregate,
+  NOT TlsFlowState field], parse_errors unchanged [prior 0xCC fill fixture decoded
+  body_len=0xCCCCCC>>MAX_BUF — hit Decision-4 body_len-spoof guard 4× making counter==
+  overflows_before+4; assertion ==overflows_before+1 was provably FALSE]; test_vp039_carry_overflow_recovery
+  (post-overflow ClientHello IS dispatched — distinguishes Policy A from rejected Policy B);
+  test_vp039_body_len_spoof (body_len=65537>MAX_BUF triggers Decision-4 clear-and-recover);
+  test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key (overflow + summarize()
+  asserts detail["handshake_reassembly_overflows"].as_u64()==1 — value-equality NOT mere key presence; BC-2.07.039 PC-7; F-P3-004; F-F2IMPL-001). Sub-D
+  (test_vp039_truncated_carry_no_error) verifies BC-2.07.040 PC3: on_flow_close with partial
+  carry produces no finding (findings_count pre==post) and no parse_errors increment. Sub-E
+  (proptest_vp039_direction_isolation) verifies BC-2.07.041: interleaved c2s/s2c deliveries
+  are direction-isolated, carry_c2s and carry_s2c never mixed, split range = function of
+  actual message length; parse_errors via analyzer.parse_error_count(). Sub-F
+  (proptest_vp039_carry_bounded_invariant — F-F2P-IMP-001 generator restructured): verifies
+  BC-2.07.039 Inv-1 — carry.len()≤MAX_BUF after every on_data call; generator now draws
+  body_len from 0..=65_536 (valid-header prefix via prop_flat_map) ensuring genuine carry
+  accumulation; prior arbitrary-u8 generator was near-vacuous (first 4 bytes decoded
+  body_len>MAX_BUF on ~99.6% of cases → Decision-4 fired immediately, carry never accumulated).
+  Canonical-frame test (test_BC_2_07_038_canonical_frame_rfc8446_s4 — F-FRESH-002 Frame C
+  added; fix-burst-10 Frame A corrected): Frame A [0x01,0x00,0x00,0x05] body_len=5 — pins
+  BE decode correctness AND PC-9 malformed-body path: body_len=5 is length-complete but too
+  short for a valid ClientHello; parse_tls_message_handshake Err → parse_errors==errors_before+1,
+  carry exact-consumed (carry_len=0), client_hello_seen==false, no panic (BC-2.07.038
+  AC-CANONICAL-FRAME v2.5); Frame B discriminator [0x01,0x01,0x05,0x00]
+  BE=66816>MAX_BUF→carry_len=0, LE=1281→carry_len=4, pins decode direction
+  (DF-CANONICAL-FRAME-HOLDOUT-001); Frame C NEW [0x01,0x00,0x01,0x00] body_len=256
+  mid-range dispatch-lane — carry drains to 0, parse_errors+1 (malformed all-zeros body),
+  pins BE decode in dispatch lane not only at overflow boundary. SNI-boundary deterministic
+  test (test_vp039_sni_boundary_deterministic): scans the built ClientHello bytes at runtime
+  for the [0x00,0x00] SNI extension type marker (after the compression block), splits at
+  sni_ext_start+1 (provably inside the SNI extension type field), and asserts the split offset
+  falls within the SNI extension byte range (sni_ext_start>4 and split<n); replaces blind n/2
+  (F-P3-006 fix); asserts SNI populated — deterministic guarantee, not probabilistic.
+  Malformed-assembled-body test (test_BC_2_07_038_malformed_assembled_body — F-FRESH-001 NEW):
+  delivers fragmented handshake with body_len=6 header consistent but body malformed (version
+  OK, missing Random field); assembled length-complete body fails parse_tls_message_handshake
+  → parse_errors+1 (parity with single-record parse_errors discipline), exact-consume 4+6=10
+  bytes, no finding, no panic; ADR-011 Decision-4 error semantics; PO must author matching BC
+  postcondition/EC for Red-Gate test name test_BC_2_07_038_malformed_assembled_body.
+  Total VP-039 harnesses: 4 proptest + 13 unit tests = 17 (fix-burst-7 corrected count; fix-burst-10 Frame A semantics corrected; fix-burst-11 +3 unit tests). The 13 unit tests are:
+  (1) test_vp039_carry_overflow_clear_and_recover; (2) test_vp039_carry_overflow_recovery;
+  (3) test_vp039_body_len_spoof; (4) test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key;
+  (5) test_vp039_truncated_carry_no_error; (6) test_BC_2_07_038_canonical_frame_rfc8446_s4;
+  (7) test_vp039_sni_boundary_deterministic; (8) test_BC_2_07_038_malformed_assembled_body;
+  (9) test_BC_2_07_040_empty_carry_flow_close (F-FRESH2-003: Sub-D-ext, BC-2.07.040 empty-carry degenerate);
+  (10) test_BC_2_07_042_exact_consume_no_double_dispatch (F-FRESH2-003: Sub-B-ext, BC-2.07.042 deterministic coalesce);
+  (11) test_BC_2_07_041_cross_flow_isolation (F-COMP-002: Sub-E-ext, two distinct FlowKeys, BC-2.07.041 PC-1/PC-4/Inv-1);
+  (12) test_vp039_n_record_reassembly (F-COMP-001: Sub-A-ext-N, >=3-record re-entrancy, BC-2.07.038 PC-1/PC-2/PC-6+EC-003);
+  (13) test_vp039_large_valid_hello_reassembly (F-COMP-003: Sub-C-ext-large, ~40 KB valid ClientHello, BC-2.07.038 Inv-5).
+  Sub-F (proptest_vp039_carry_bounded_invariant) confirms the bounded-carry invariant (carry.len()<=MAX_BUF)
+  generatively; Decision-5 buffer-fill path is exercised DETERMINISTICALLY by test (1) above, not
+  probabilistically by Sub-F (F-FRESH2-004). The analyzer/tls.rs row carries 1 Kani (VP-005) + 2
+  proptest (VP-013, VP-039) = 3 total VPs. Grand Totals:
+  Kani(15) + proptest(17) + fuzz(2) + integration/unit(5) = 39.
 
 - VP-037 and VP-038 (analyzer/modbus.rs / proptest): draft; lock gate at F6. These two VPs
   were authored as part of RULING-MODBUS-SIBLING-001 (DRIFT-MODBUS-DIRECTION-001 and
