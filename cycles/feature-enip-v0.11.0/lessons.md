@@ -526,3 +526,65 @@ are codified here as named lessons. DF-ADVERSARY-TOOLCHAIN-PAIRING-001 covers bo
 is needed. The recurring pattern across Waves 63 and 64 is noted for engine-improvement triage —
 if a third occurrence happens in Wave 65+, escalate to a named rule update in the policy or
 a new orchestrator prompt addition.
+
+---
+
+## [codified] [process-gap] RELEASE-CHANGELOG-FULL-RANGE-001 — Release changelog/notes MUST enumerate the full prev-tag..HEAD commit range (D-301, 2026-06-29)
+
+**Status:** CODIFIED — follow-up story STORY-143 (E-11, draft) created to harden the release-changelog step.
+**Found at:** v0.11.0 post-release correction (PRs #339, #340; develop ab0b388).
+**Decision:** D-301.
+
+**Observation:**
+
+The initial v0.11.0 CHANGELOG entry and GitHub release notes documented ONLY the EC-X1/EC-X2 bug
+fixes — the final wave that had most recently been worked. They omitted the headline feature of the
+release: the entire new EtherNet/IP (ENIP)/CIP protocol analyzer epic (Feature #316,
+STORY-130 through STORY-138) plus its MITRE ATT&CK for ICS detections (T0846, T0888, T0858,
+T0816, T0836, T0814), CLI flags, fuzz harnesses, and E2E pcap tests — all of which had merged
+into develop since v0.10.0.
+
+Corrected in two post-release PRs on develop:
+- PR #339 (develop 0b0af26): CHANGELOG footer comparison links corrected (Unreleased base bumped
+  v0.10.0→v0.11.0; missing [0.11.0] compare link added).
+- PR #340 (develop ab0b388): Complete [0.11.0] CHANGELOG entry authored and merged; green-doc-tense
+  gate passed (PR numbers verified against GitHub: STORY-131=#318, STORY-135=#324, analyzer PR
+  span #317–#334).
+
+GitHub v0.11.0 release notes also edited to mirror the complete CHANGELOG [0.11.0] section
+(verified: 40 ENIP/MITRE markers present, release still marked Latest). The release tag/commit
+are unchanged; this was a docs-only correction on develop — main's CHANGELOG will catch up on the
+next gitflow back-merge.
+
+**Root cause:**
+
+The release-branch prep was handed a hand-summarized "what shipped" list (focused on the most
+recent wave — EC-X1/EC-X2 fixes) instead of deriving release-note contents from the full
+`v0.10.0..HEAD` commit range. The ENIP analyzer epic (STORY-130..138) had merged earlier in the
+same release window but was not part of the recent-wave narrative, so it was invisible to the
+summary-based approach.
+
+**Mitigation (mandatory for all future releases):**
+
+Release prep MUST run the full commit-range enumeration before authoring the CHANGELOG entry:
+
+```bash
+git log <prev-tag>..HEAD --first-parent --oneline
+```
+
+Every merged PR in that range MUST be categorized and represented in the CHANGELOG. The resulting
+entry MUST be cross-checked against `git log <prev-tag>..<release-tip> --first-parent --oneline`
+before the release PR opens. A hand-summarized "what I remember" list is NOT a substitute.
+
+If the release prep agent cannot access `git log` output directly (e.g., restricted environment),
+the orchestrator MUST provide the enumerated PR list explicitly — not a recollection.
+
+**Recommended follow-up (STORY-143):**
+
+Harden the devops-engineer release workflow and/or add a policy (DF-RELEASE-CHANGELOG-RANGE-001)
+requiring:
+1. Release branch prep runs `git log <prev-tag>..HEAD --first-parent` to enumerate all merged PRs.
+2. The release CHANGELOG entry cites the PR range (e.g., "PRs #317–#338") as a completeness anchor.
+3. A cross-check step verifies the entry's PR span matches the actual log output.
+
+See STORY-143 (E-11, draft) for the engineering story to encode this into the release workflow.

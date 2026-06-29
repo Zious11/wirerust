@@ -4,7 +4,7 @@ phase: F7
 phase_status: "v0.11.0 RELEASED (D-300, 2026-06-29). Release PR #337 merged main (3072e828). Tag v0.11.0. develop synced via PR #338 (ecbcd268). Release hold D-260/D-278/D-299 LIFTED — explicit human go-ahead received. Cycle feature-enip-v0.11.0 CLOSED. Pipeline IDLE — next: v0.12.0 planning."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-29T00:00:00Z
+timestamp: 2026-06-29T12:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -61,7 +61,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 Latest release: v0.11.0 (main `3072e828`, tag `v0.11.0`). develop=`ecbcd268`. stories_delivered=91. GitHub release: https://github.com/Zious11/wirerust/releases/tag/v0.11.0. No crates.io publish.
 
-Spec versions: BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation DIM1-01 pre-merge). VP-INDEX v2.14 (38 VPs: VP-037 range corrected to 0..6 DIM3-01). ARCH-INDEX v1.8. PRD v1.36. STORY-INDEX v3.1 (95 stories / 64 waves). epics.md v1.8 (E-20 + E-14/E-15).
+Spec versions: BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation DIM1-01 pre-merge). VP-INDEX v2.14 (38 VPs: VP-037 range corrected to 0..6 DIM3-01). ARCH-INDEX v1.8. PRD v1.36. STORY-INDEX v3.2 (96 stories / 64 waves). epics.md v1.8 (E-20 + E-14/E-15).
 
 ### WARNING — DO NOT REDO (on resume)
 
@@ -94,6 +94,7 @@ Spec versions: BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation DIM
 - Wave-64 F7 CONVERGED + human-APPROVED — do NOT re-run F7 or re-request human gate. DIM1-01 + DIM3-01 non-blocking corrections applied pre-merge (D-298): RULING ADDENDUM-002 + BC-2.14.002 anchors → 1110/1162; VP-037 range → 0..6; BC-INDEX v1.88; VP-INDEX v2.14 changelog. Code PR squash-merge IN PROGRESS — do NOT re-open or re-author the bundled PR.
 - Do NOT re-merge Wave-64 PR — #336 MERGED (D-299, develop a13b5c5, 2026-06-28). STORY-141 + STORY-142 DONE (stories_delivered=91). Worktrees .worktrees/wave64-ec-fixes + .worktrees/modbus-ecx-verify REMOVED.
 - Do NOT re-cut v0.11.0 release — RELEASED (D-300). PR #337 squash-merged main 3072e828. Annotated tag v0.11.0 pushed. GitHub release published. develop synced PR #338 ecbcd268. crates.io publish declined by human (no publish).
+- Do NOT re-author the v0.11.0 CHANGELOG correction or re-edit the GitHub release notes (D-301). PRs #339 (0b0af26) + #340 (ab0b388) applied the complete [0.11.0] entry to develop; GitHub release notes confirmed 40 ENIP/MITRE markers present.
 - Do NOT re-open v0.11.0 release hold (D-260/D-278/D-299) — LIFTED (D-300). Explicit human go-ahead received and release completed.
 
 ### EXACT RESUME POINT — v0.11.0 RELEASED; Pipeline IDLE; Next: v0.12.0 planning
@@ -260,6 +261,7 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-298 | Wave-64 F7 CONVERGED + human-APPROVED. Consistency audit PASS. 2 non-blocking F7 audit items fixed pre-merge per human direction: DIM1-01 — RULING-MODBUS-SIBLING-001 ADDENDUM-002 + BC-2.14.002 v2.1 if-guard line anchors reconciled from 1104/1150 → 1110/1162 (post-errata, post-unreachable-comment lines); BC-INDEX bumped v1.87→v1.88. DIM3-01 — VP-037 proptest range corrected 1usize..7 → 0usize..6 (covers the 0-byte empty-carry base case; no new behavior); VP-INDEX v2.14 changelog entry added. All changes non-behavioral; no story/AC/ruling logic altered. factory-artifacts committed (this commit). Code PR squash-merge to develop dispatched to pr-manager. v0.11.0 release STILL HELD — separate explicit human go-ahead required. | 2026-06-28 |
 | D-299 | Wave 64 (STORY-141 Modbus EC-X1/EC-X2 + STORY-142 DNP3 desync-latch) MERGED to develop via PR #336 — squash merge commit `a13b5c5` (merged 2026-06-28T20:52:37Z). CI 10/10 applicable checks green (run 28335634278). stories_delivered 89→91. All four v0.11.0 EC-X1/EC-X2 fixes now on develop: STORY-139 (ENIP, PR #334), STORY-140 (DNP3 sibling, PR #335), STORY-141 (Modbus, PR #336), STORY-142 (DNP3 desync-latch, PR #336). Worktrees .worktrees/wave64-ec-fixes + .worktrees/modbus-ecx-verify removed; remote+local feature branches deleted. v0.11.0 release STILL HELD (D-260/D-278) — explicit human go-ahead required before release/0.11.0 branch cut. Wave-64 sub-cycle closed; factory-artifacts checkpoint committed. Two v0.12.0 non-blocking backlog items registered: DNP3-DOC-COMMENT-STALE-ACTIVE-CARRY (NIT) + MODBUS-DEBUG-ASSERT-CARRY-CLEAR (SEC-002 LOW), both DF-VALIDATION-001-gated. | 2026-06-28 |
 | D-300 | v0.11.0 RELEASED. Explicit human release go-ahead received — releases holds D-260/D-278/D-299. Release PR #337 (`chore: release v0.11.0`) squash-merged → main (HEAD 3072e828). Annotated tag `v0.11.0` created on main and pushed. GitHub release published at https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (marked latest). develop synced via PR #338 squash-merged (develop HEAD ecbcd268; Cargo.toml version 0.11.0 + CHANGELOG entry). main + develop in sync. All 11 CI checks green on both merge commits. crates.io publish declined by human — no publish. Contents: four EC-X1/EC-X2 fixes — ENIP (STORY-139, PR #334), DNP3 EC-X1/X2 (STORY-140, PR #335), Modbus EC-X1/X2 (STORY-141, PR #336), DNP3 desync-latch (STORY-142, PR #336). Version: 0.10.0→0.11.0. Cycle feature-enip-v0.11.0 CLOSED. SEC-001 (unsafe split-borrow enip.rs `on_data`, MEDIUM, pre-existing from PR #334) registered in backlog as v0.12.0 candidate. | 2026-06-29 |
+| D-301 | POST-RELEASE CORRECTION (docs-only, develop only). v0.11.0 CHANGELOG entry and GitHub release notes were initially scoped to only the EC-X1/EC-X2 fix wave, omitting the entire ENIP analyzer epic (STORY-130..138, PRs #317–#334). Corrections applied: PR #339 (develop 0b0af26) fixed CHANGELOG footer comparison links (Unreleased base v0.10.0→v0.11.0; missing [0.11.0] compare link). PR #340 (develop ab0b388) authored the complete [0.11.0] CHANGELOG entry (PR span #317–#338 verified against GitHub; green-doc-tense gate passed). GitHub v0.11.0 release notes edited to mirror the complete entry (40 ENIP/MITRE markers confirmed, still Latest). Release tag/commit unchanged. main CHANGELOG will catch up on next gitflow back-merge. Lesson codified: RELEASE-CHANGELOG-FULL-RANGE-001 in cycles/feature-enip-v0.11.0/lessons.md. Process-gap disposition: STORY-143 (E-11, draft, 3 pts) created to harden the release-changelog step for v0.12.0+. STORY-INDEX v3.2 (96 stories). | 2026-06-29 |
 
 ## Governance Policy
 
@@ -269,7 +271,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Closed cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316. CLOSED D-300.
-- STORY-INDEX.md authoritative (95 stories / 64 waves — v3.1). STORY-130..142 all MERGED. stories_delivered=91 (D-299).
+- STORY-INDEX.md authoritative (96 stories / 64 waves — v3.2). STORY-130..142 all MERGED. stories_delivered=91 (D-299). STORY-143 added draft (E-11, D-301).
 - v0.11.0 RELEASED (D-300, 2026-06-29). main=3072e828, develop=ecbcd268, tag v0.11.0. crates.io not published.
 - Repo squash-only policy set (D-289). Wave 64 worktrees removed (D-299).
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
