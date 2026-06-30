@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.6"
+version: "3.7"
 status: draft
 producer: story-writer
-timestamp: 2026-06-29T00:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 phase: f3
 total_stories: 99
 total_waves: 66
 total_points: 638  # = 622 pre-STORY-144/145/146 + 8 (STORY-144) + 5 (STORY-145) + 3 (STORY-146); wave-table scheduled: 630 (STORY-091+STORY-121+STORY-143 wave-TBD excluded); epic-table grand total: 641; stories: 96+3=99; waves: 64+2=66
 # ARITHMETIC: STORY-144=8 pts (E-5 TLS carry + ClientHello reassembly, wave 65); STORY-145=5 pts (E-5 ServerHello symmetry + isolation, wave 66); STORY-146=3 pts (E-5 buffer-saturation telemetry, wave 66, dep=STORY-144 per I6); total_points: 622+8+5+3=638; wave-table scheduled: 614+8+5+3=630; epic-table: 625+8+5+3=641; total_stories: 96+3=99; total_waves: 64+2=66 (STORY-145 and STORY-146 parallel in wave 66).
+# v3.7 (2026-06-30): F4 fix-tls-clienthello-frag wave 66 — STORY-144 status draft→merged (wave 65, PR #341 squash 0986e878); STORY-145 status draft→merged (wave 66, PR #343 squash d3d2e19); wave-65 delivery row: DELIVERED & CLOSED; wave-66 delivery row updated (STORY-145 DELIVERED, STORY-146 pending).
 # v3.6 (2026-06-29): F3 fix-tls-clienthello-frag cycle burst-F3-review-pass-3 — F-IMP-1: STORY-144 build_client_hello_with_sni and build_server_hello wrapper notes corrected to state the REAL builders return a COMPLETE TLS record (5-byte header + handshake); LOCAL wrappers MUST strip 5 bytes ([5..].to_vec()) to yield RAW handshake-message bytes; single-record full-record delivery path noted (no double-wrap). STORY-145 build_server_hello and build_client_hello_with_sni wrapper notes corrected with same strip-5-bytes contract. F-IMP-2: STORY-146 Test Helper / Seam Ownership table added (tls.rs seams: fill_buf_for_testing + buffer_saturation_drop_count; VP-040 pseudo-helper mapping: fill_to_capacity/deliver_one_more_byte/FlowKey::new → concrete symbols; local helpers: make_test_flow_key re-declared). F-IMP-3: STORY-146 AC-146-004 assertion form corrected from absolute ==1 to snapshot-delta (drops_before / drops_before+1 / drops_before+1 pattern). No numeric changes.
 # v3.5 (2026-06-29): F3 fix-tls-clienthello-frag cycle burst-F3-review-pass-2 — STORY-144 seam table reconciled to VP-039 sweep: client_hello_seen_for_testing (NEW seam, symmetric to existing server_hello_seen_for_testing) added; client_hs_carry_len_for_testing / server_hs_carry_len_for_testing / handshake_reassembly_overflow_count listed as NEW tls.rs seams; make_test_flow_key(seed:u8) listed as NEW LOCAL helper in mod story_144; build_client_hello_with_sni / build_server_hello noted as LOCAL wrappers (delegating to real build_client_hello/build_server_hello signatures) in mod story_144; table is now the complete symbol contract. STORY-144 AC-144-004: "active_flows_len_for_testing() decremented" corrected to "active_flows_len_for_testing() == 0 (single-flow test)". STORY-145: Test Helper note added — shared-vs-redeclared decision = re-declare per mod; build_server_hello(cipher_id:u16) / make_test_flow_key(seed:u8) usage clarified for Sub-E harnesses. No numeric changes.
 # v3.4 (2026-06-29): F3 fix-tls-clienthello-frag cycle burst-F3-review fixes — STORY-146 dep re-pointed from STORY-145 to STORY-144 (parallel with STORY-145 in wave 66); wave count corrected to 66; harness count corrected to 15 (3 proptest + 12 unit) in STORY-144; Sub-F sole-ownership in STORY-144; DF-TEST-NAMESPACE-001 mod-wrapper requirement added to all 3 stories; seam/helper ownership table added to STORY-144; BC Story-Anchor reverse-pointers back-filled for BC-2.07.038/039/040/041/042/043/001/002/005; "97" corrected to "99" in acyclicity note.
@@ -181,8 +182,8 @@ traces_to:
 | STORY-140 | DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) | E-15 | 63 | 8 | merged | STORY-139 |
 | STORY-141 | Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001) | E-14 | 64 | 8 | merged | — |
 | STORY-142 | Fix DNP3 is_non_dnp3 Desync-Latch Direction-Contamination (RULING-DNP3-DESYNC-001) | E-15 | 64 | 3 | merged | STORY-140 |
-| STORY-144 | TLS Carry Buffer + ClientHello Fragmentation Reassembly (TLS-CLIENTHELLO-FRAG-001 Part A) | E-5 | 65 | 8 | draft | — |
-| STORY-145 | TLS ServerHello Fragmentation Symmetry + Per-Direction Isolation (TLS-CLIENTHELLO-FRAG-001 Part B) | E-5 | 66 | 5 | draft | STORY-144 |
+| STORY-144 | TLS Carry Buffer + ClientHello Fragmentation Reassembly (TLS-CLIENTHELLO-FRAG-001 Part A) | E-5 | 65 | 8 | merged | — |
+| STORY-145 | TLS ServerHello Fragmentation Symmetry + Per-Direction Isolation (TLS-CLIENTHELLO-FRAG-001 Part B) | E-5 | 66 | 5 | merged | STORY-144 |
 | STORY-146 | TLS Buffer-Saturation Drop Telemetry — `buffer_saturation_drops` Counter (TLS-CLIENTHELLO-FRAG-001 Part C) | E-5 | 66 | 3 | draft | STORY-144 |
 
 ---
@@ -357,8 +358,8 @@ traces_to:
 | 62 | STORY-139 | **DELIVERED & CLOSED** | #334 | 99a06f4 | 2026-06-27 |
 | 63 | STORY-140 | **DELIVERED & CLOSED** | #335 | b6d7a01 | 2026-06-28 |
 | 64 | STORY-141, STORY-142 | **DELIVERED & CLOSED** | #336 | a13b5c5 | 2026-06-28 |
-| 65 | STORY-144 | draft | — | — | — |
-| 66 | STORY-145, STORY-146 | draft | — | — | — |
+| 65 | STORY-144 | **DELIVERED & CLOSED** | #341 | 0986e878 | 2026-06-29 |
+| 66 | STORY-145, STORY-146 | STORY-145 **DELIVERED**; STORY-146 pending | #343 | d3d2e19 | 2026-06-30 |
 
 ## Coverage Verification
 

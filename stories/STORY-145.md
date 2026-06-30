@@ -7,7 +7,7 @@ wave: 66
 points: 5
 phase: f3
 tdd_mode: strict
-status: draft
+status: merged
 feature_id: fix-tls-clienthello-frag
 github_issue: fix-tls-clienthello-frag
 subsystems: [SS-07]
@@ -137,7 +137,7 @@ Architecture compliance: SS-07 only. `server_hs_carry` was introduced as a struc
 
 ## Estimated Complexity
 
-**Story points: 5** (the server-direction carry path is structurally symmetric with the client-direction path delivered in STORY-144; the primary new work is VP-039 Sub-E: two new test harnesses covering interleaved direction isolation and cross-flow isolation)
+**Story points: 5** (the server-direction carry path is structurally symmetric with the client-direction path delivered in STORY-144; the primary new work is VP-039 Sub-E: 4 test functions — 2 AC-cited Red-Gate harnesses covering interleaved direction isolation and cross-flow isolation, plus 2 DoS-guard sibling-coverage tests per DF-SIBLING-SWEEP-001)
 
 ## Token Budget Estimate
 
@@ -191,7 +191,7 @@ Source: `architecture/module-decomposition.md` + ADR-011
 1. **Symmetric loop reuse:** The server-direction drain loop MUST be byte-for-byte equivalent to the client-direction loop delivered in STORY-144, differing only in the carry reference (`server_hs_carry` vs `client_hs_carry`) and dispatch target (`handle_server_hello` vs `handle_client_hello`). If STORY-144 implemented the direction-parameterized form (a single loop body with carry reference selected by a `match direction` arm), STORY-145 only needs to wire the `ServerToClient` arm.
 2. **No global carry state:** `TlsAnalyzer` holds only the aggregate `handshake_reassembly_overflows` counter; per-direction carry state lives exclusively in `TlsFlowState`.
 3. **HashMap keying enforces isolation:** No additional synchronization primitives are needed. The existing `HashMap<FlowKey, TlsFlowState>` keying is sufficient (BC-2.07.041 Postcondition 5).
-4. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL 2 new test functions added by STORY-145 MUST be placed inside a dedicated `mod story_145 { ... }` wrapper in `tests/tls_analyzer_tests.rs`. No new test function from this story may be added at the flat module root.
+4. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL 4 new test functions added by STORY-145 MUST be placed inside a dedicated `mod story_145 { ... }` wrapper in `tests/tls_analyzer_tests.rs`. No new test function from this story may be added at the flat module root.
 
 ## Library & Framework Requirements
 
@@ -209,7 +209,7 @@ No new dependencies. Same versions as STORY-144.
 | File | Change Type | Purpose |
 |------|------------|---------|
 | `src/analyzer/tls.rs` | Modify | Wire `ServerToClient` 0x16 carry drain path |
-| `tests/tls_analyzer_tests.rs` | Modify | Add VP-039 Sub-E harnesses (2 new: 1 proptest + 1 unit), all inside `mod story_145 { ... }` per DF-TEST-NAMESPACE-001 |
+| `tests/tls_analyzer_tests.rs` | Modify | Add VP-039 Sub-E harnesses (4 new: 1 proptest + 3 unit), all inside `mod story_145 { ... }` per DF-TEST-NAMESPACE-001 |
 
 No new files. STORY-145 is a narrow additive change on top of STORY-144.
 
@@ -235,12 +235,25 @@ Each `mod story_NNN { ... }` block is self-contained. `tests/tls_analyzer_tests.
 
 ## Red-Gate Test Set (VP-039 Sub-E scope)
 
+### AC-cited Red-Gate tests (TDD Step 1 — must fail before implementation)
+
 | Test name | Sub | BC | Type | Fails before? |
 |-----------|-----|----|------|--------------|
 | `proptest_vp039_direction_isolation` | Sub-E | BC-2.07.041 Invariant 2 | proptest | Yes |
 | `test_BC_2_07_041_cross_flow_isolation` | Sub-E-ext | BC-2.07.041 Invariants 1/4 | unit | Yes (until STORY-145) |
 
-These 2 new harnesses complete VP-039's full 17-harness set when combined with STORY-144's 15 (Sub-A/B/C/D/F) + STORY-146's 0 (VP-040 harnesses are in STORY-146). `proptest_vp039_carry_bounded_invariant` (Sub-F) is assigned to STORY-144 ONLY — it is NOT in STORY-145 scope.
+These 2 AC-cited harnesses complete VP-039's full 17-harness set when combined with STORY-144's 15 (Sub-A/B/C/D/F) + STORY-146's 0 (VP-040 harnesses are in STORY-146). `proptest_vp039_carry_bounded_invariant` (Sub-F) is assigned to STORY-144 ONLY — it is NOT in STORY-145 scope.
+
+### Additional sibling-sweep coverage (DF-SIBLING-SWEEP-001)
+
+The implementation also delivered 2 symmetric DoS-guard coverage tests required by DF-SIBLING-SWEEP-001 (ServerToClient direction must have the same overflow/body-len-spoof guards as the ClientToServer direction established in STORY-144). These are coverage tests — they are NOT cited by any AC and do NOT affect AC-to-BC traceability.
+
+| Test name | Guard exercised | Mirrors STORY-144 test |
+|-----------|----------------|----------------------|
+| `test_vp039_server_carry_overflow_clear_and_recover` | `ServerToClient` Step-1 pre-append overflow guard (clear-and-recover, `MAX_BUF=65536`) | `test_vp039_carry_overflow_clear_and_recover` |
+| `test_vp039_server_body_len_spoof` | `ServerToClient` Decision-4 `body_len`-spoof guard | `test_vp039_body_len_spoof` |
+
+Total `mod story_145` test count: **4** (1 proptest + 3 unit: 2 AC-cited Red-Gate + 2 DoS-guard sibling-coverage).
 
 ## Holdout Scenarios (F4)
 
@@ -248,3 +261,9 @@ STORY-145 specifically gates on:
 - **HS-F4-007**: interleaved fragmented ClientHello + ServerHello for same flow → both seen, done() fires, JA3 + JA3S populated, parse_errors==0
 - **HS-F4-008**: two concurrent flows (Flow A complete single-record, Flow B fragmented two-record) → sni_counts has both hostnames, no cross-flow bleed
 - **HS-F4-009**: fragmented ServerHello regression (single-record ServerHello unchanged) → server_hello_seen==true, JA3S computed, parse_errors==0
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| v1.1 | 2026-06-30 | story-writer | OBS-1 / DF-SIBLING-SWEEP-001 documentation update: added 2 DoS-guard sibling-coverage tests (`test_vp039_server_carry_overflow_clear_and_recover`, `test_vp039_server_body_len_spoof`) to the Red-Gate Test Set section under a dedicated "Additional sibling-sweep coverage" sub-table; updated test-count prose from "2 new test functions" to "4 test functions (2 AC-cited Red-Gate + 2 DoS-guard sibling-coverage)" in Architecture Compliance Rules, File Structure Requirements, and Estimated Complexity. No ACs were re-mapped; no inputs or BC references changed. |
