@@ -10419,3 +10419,322 @@ mod story_144 {
         }
     }
 }
+
+// ── STORY-145: ServerHello Carry Symmetry + Per-Flow / Per-Direction Isolation ──
+//
+// Wave 66. Behavioral Contracts: BC-2.07.041 v1.2, BC-2.07.002 v1.6.
+//
+// Red-Gate harnesses (VP-039 Sub-E scope — 2 new tests):
+//   1. proptest_vp039_direction_isolation   (Sub-E): interleaved C2S/S2C fragmented
+//      hellos for the same flow; assert both hellos seen, no cross-direction bleed.
+//   2. test_BC_2_07_041_cross_flow_isolation (Sub-E-ext): two distinct FlowKeys;
+//      Flow A complete single-record, Flow B fragmented; assert sni_counts contains
+//      both hostnames with no cross-flow bleed.
+//
+// Namespace isolation: DF-TEST-NAMESPACE-001 — all STORY-145 tests live inside
+// this `mod story_145` wrapper.  No new flat-root tests are added for this story.
+//
+// Test count: 2 (1 proptest + 1 unit).
+mod story_145 {
+    use proptest::prelude::*;
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{Direction, StreamHandler};
+
+    // ── Local test helpers ────────────────────────────────────────────────────
+    //
+    // DF-TEST-NAMESPACE-001 / STORY-145 helper note: helpers are re-declared
+    // locally per mod.  Before creating any helper below, the story note
+    // instructs grepping for the real name at the flat root.
+    //
+    // Reconciliation results (grep run during stub generation):
+    //   build_server_hello     → EXISTS at flat root (line 137)
+    //   build_client_hello     → EXISTS at flat root (line 16)
+    //   wrap_as_tls_record     → ONLY in mod story_144 (private) — re-declared here
+    //   make_test_flow_key     → ONLY in mod story_144 (private) — re-declared here
+    //
+    // GREEN-BY-DESIGN self-check (BC-5.38.005 invariant 1):
+    // "If I include this real implementation, will the test for this function
+    // pass trivially without any implementer work?"
+    // — No: helpers are pure construction utilities; no test assertions are
+    //   inside them.  They are ≤ 5 lines and contain no branching logic on
+    //   domain state beyond type construction.  Declared as real bodies under
+    //   GREEN-BY-DESIGN / WIRING-EXEMPT because they are builder helpers with
+    //   zero domain branching (constructors, not behaviors).
+
+    /// Create a `FlowKey` varied by `seed` so cross-flow and independent-flow
+    /// tests can use distinct keys without collision.
+    ///
+    /// Re-declared locally per DF-TEST-NAMESPACE-001 (identical to mod story_144 copy).
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 145, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 145, 1, seed]),
+            443,
+        )
+    }
+
+    /// Returns the RAW handshake-message bytes for a ServerHello (0x002f),
+    /// with NO TLS record header prefix (5 bytes stripped).
+    ///
+    /// `build_server_hello` at the flat root returns a COMPLETE TLS record
+    /// (5-byte header + handshake body).  This wrapper strips the header so
+    /// fragmentation tests can re-frame the bytes via `wrap_as_tls_record`.
+    ///
+    /// Reconciliation: `build_server_hello` exists at flat root; used here.
+    fn build_server_hello() -> Vec<u8> {
+        super::build_server_hello(0x002f)[5..].to_vec()
+    }
+
+    /// Returns the RAW handshake-message bytes for a ClientHello with the given
+    /// SNI, with NO TLS record header prefix (5 bytes stripped).
+    ///
+    /// Reconciliation: `build_client_hello` exists at flat root; used here.
+    fn build_client_hello_with_sni(sni: &str) -> Vec<u8> {
+        super::build_client_hello(sni, &[0x002f])[5..].to_vec()
+    }
+
+    /// Wrap `payload` bytes in a 5-byte TLS record header for the given content type.
+    ///
+    /// Reconciliation: `wrap_as_tls_record` does NOT exist at flat root; re-declared
+    /// locally here (identical to mod story_144 copy).
+    fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
+        let len = payload.len();
+        let len_hi = (len >> 8) as u8;
+        let len_lo = (len & 0xff) as u8;
+        let mut record = vec![content_type, 0x03, 0x03, len_hi, len_lo];
+        record.extend_from_slice(payload);
+        record
+    }
+
+    // ── VP-039 Sub-E: direction isolation ────────────────────────────────────
+
+    // VP-039 Sub-E (proptest): interleaved C2S and S2C fragmented hello
+    // deliveries must each accumulate into their own carry buffer, and both
+    // `client_hello_seen` and `server_hello_seen` must be true after all records
+    // are delivered.
+    //
+    // Red Gate: this FAILS until the `ServerToClient` carry drain path is wired
+    // in `try_parse_records`.  The current `parse_tls_plaintext` path only
+    // handles single-record ServerHellos; a fragmented ServerHello arrives as
+    // two partial 0x16 records and the second record alone is not a complete
+    // TLS plaintext record, so `server_hello_seen` remains false.
+    //
+    // Traces to: BC-2.07.041 v1.2 Invariant 2; BC-2.07.002 v1.6 Precondition 2;
+    //            AC-145-001, AC-145-002, AC-145-004.
+    proptest! {
+        #[test]
+        fn proptest_vp039_direction_isolation(
+            // Split point for the ClientHello fragmentation (C2S direction).
+            c2s_split in prop_oneof![1usize..4usize, 4usize..256usize],
+            // Split point for the ServerHello fragmentation (S2C direction).
+            s2c_split in prop_oneof![1usize..4usize, 4usize..256usize],
+        ) {
+            let client_hello = build_client_hello_with_sni("client.example.com");
+            let server_hello = build_server_hello();
+            let n_c = client_hello.len();
+            let n_s = server_hello.len();
+
+            prop_assume!(c2s_split < n_c);
+            prop_assume!(s2c_split < n_s);
+
+            let mut analyzer = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(1);
+            let ts: u32 = 200;
+
+            // Interleaved delivery: C2S frag 1, S2C frag 1, C2S frag 2, S2C frag 2.
+            let c2s_rec1 = wrap_as_tls_record(0x16, &client_hello[..c2s_split]);
+            let s2c_rec1 = wrap_as_tls_record(0x16, &server_hello[..s2c_split]);
+            let c2s_rec2 = wrap_as_tls_record(0x16, &client_hello[c2s_split..]);
+            let s2c_rec2 = wrap_as_tls_record(0x16, &server_hello[s2c_split..]);
+
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &c2s_rec1, 0u64, ts);
+            analyzer.on_data(&flow_key, Direction::ServerToClient, &s2c_rec1, 0u64, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &c2s_rec2, 0u64, ts);
+            analyzer.on_data(&flow_key, Direction::ServerToClient, &s2c_rec2, 0u64, ts);
+
+            // Red Gate assertion: both hellos must be seen after interleaved delivery.
+            // client_hello_seen via carry drain (STORY-144): already passes.
+            // server_hello_seen via carry drain (STORY-145): FAILS until server path wired.
+            prop_assert!(
+                analyzer.client_hello_seen_for_testing(&flow_key),
+                "client_hello_seen must be true after interleaved fragmented C2S delivery"
+            );
+            prop_assert!(
+                analyzer.server_hello_seen_for_testing(&flow_key),
+                "server_hello_seen must be true after interleaved fragmented S2C delivery \
+                 (Red Gate: fails until ServerToClient carry drain path is wired)"
+            );
+            // No parse errors from fragmented delivery.
+            prop_assert_eq!(
+                analyzer.parse_error_count(), 0u64,
+                "interleaved fragmented delivery must not produce parse errors"
+            );
+            // Both carries must be fully drained after complete delivery.
+            prop_assert_eq!(
+                analyzer.client_hs_carry_len_for_testing(&flow_key), 0,
+                "client_hs_carry must be empty after complete C2S reassembly"
+            );
+            prop_assert_eq!(
+                analyzer.server_hs_carry_len_for_testing(&flow_key), 0,
+                "server_hs_carry must be empty after complete S2C reassembly \
+                 (Red Gate: fails until ServerToClient carry drain path is wired)"
+            );
+        }
+    }
+
+    // ── VP-039 Sub-E-ext: cross-flow isolation ────────────────────────────────
+
+    // test_BC_2_07_041_cross_flow_isolation (unit): two distinct FlowKeys.
+    //   Flow A: complete single-record ClientHello (SNI = "a.example") +
+    //           complete single-record ServerHello (S2C).
+    //   Flow B: fragmented two-record ClientHello (SNI = "b.example") +
+    //           fragmented two-record ServerHello (S2C).
+    //
+    //   After delivery: sni_counts must have exactly 2 entries, one for each SNI;
+    //   both flow_a and flow_b must have server_hello_seen==true (ServerHello
+    //   carry drain applies to each flow independently).  No cross-flow bleed.
+    //
+    // Red Gate: FAILS until STORY-145 wires the ServerToClient carry drain path.
+    //   - Flow A's complete single-record ServerHello is handled by the existing
+    //     parse_tls_plaintext path → server_hello_seen == true for flow_a (passes today).
+    //   - Flow B's FRAGMENTED ServerHello requires the server_hs_carry drain loop
+    //     (STORY-145 scope) → server_hello_seen == false for flow_b (fails today).
+    //   - The assertion `server_hello_seen_for_testing(flow_b) == true` is the
+    //     failing Red Gate assertion.
+    //
+    // Traces to: BC-2.07.041 v1.2 Invariants 1, 4; Postconditions 1, 4–5;
+    //            BC-2.07.002 v1.6 Precondition 2; AC-145-003, AC-145-004.
+    #[test]
+    fn test_bc_2_07_041_cross_flow_isolation() {
+        let mut analyzer = TlsAnalyzer::new();
+        let flow_a = make_test_flow_key(10);
+        let flow_b = make_test_flow_key(20);
+        let ts: u32 = 300;
+
+        // ── Flow A ────────────────────────────────────────────────────────────
+        // C2S: complete single-record ClientHello (SNI = "a.example").
+        let a_client_hello = build_client_hello_with_sni("a.example");
+        let a_c2s_rec = wrap_as_tls_record(0x16, &a_client_hello);
+        analyzer.on_data(&flow_a, Direction::ClientToServer, &a_c2s_rec, 0u64, ts);
+
+        // S2C: complete single-record ServerHello (fast path — parse_tls_plaintext).
+        let a_server_hello = build_server_hello();
+        let a_s2c_rec = wrap_as_tls_record(0x16, &a_server_hello);
+        analyzer.on_data(&flow_a, Direction::ServerToClient, &a_s2c_rec, 0u64, ts);
+
+        // ── Flow B ────────────────────────────────────────────────────────────
+        // C2S: fragmented two-record ClientHello (SNI = "b.example").
+        let b_client_hello = build_client_hello_with_sni("b.example");
+        let c2s_split = b_client_hello.len() / 2;
+        let b_c2s_rec1 = wrap_as_tls_record(0x16, &b_client_hello[..c2s_split]);
+        let b_c2s_rec2 = wrap_as_tls_record(0x16, &b_client_hello[c2s_split..]);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, &b_c2s_rec1, 0u64, ts);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, &b_c2s_rec2, 0u64, ts);
+
+        // S2C: fragmented two-record ServerHello (requires server_hs_carry drain —
+        // the STORY-145 Red Gate path).
+        let b_server_hello = build_server_hello();
+        let s2c_split = b_server_hello.len() / 2;
+        let b_s2c_rec1 = wrap_as_tls_record(0x16, &b_server_hello[..s2c_split]);
+        let b_s2c_rec2 = wrap_as_tls_record(0x16, &b_server_hello[s2c_split..]);
+        analyzer.on_data(&flow_b, Direction::ServerToClient, &b_s2c_rec1, 0u64, ts);
+        analyzer.on_data(&flow_b, Direction::ServerToClient, &b_s2c_rec2, 0u64, ts);
+
+        // ── Assertions ────────────────────────────────────────────────────────
+
+        // Both flows must have client_hello_seen == true (STORY-144 carry drain).
+        assert!(
+            analyzer.client_hello_seen_for_testing(&flow_a),
+            "flow_a: client_hello_seen must be true after single-record C2S delivery"
+        );
+        assert!(
+            analyzer.client_hello_seen_for_testing(&flow_b),
+            "flow_b: client_hello_seen must be true after fragmented C2S delivery"
+        );
+
+        // flow_a: server_hello_seen must be true (single-record S2C, fast path).
+        assert!(
+            analyzer.server_hello_seen_for_testing(&flow_a),
+            "flow_a: server_hello_seen must be true after single-record S2C delivery"
+        );
+
+        // flow_b: server_hello_seen must be true (fragmented S2C, requires carry drain).
+        // Red Gate: FAILS until STORY-145 wires the ServerToClient carry drain path.
+        assert!(
+            analyzer.server_hello_seen_for_testing(&flow_b),
+            "flow_b: server_hello_seen must be true after fragmented S2C delivery \
+             (Red Gate: fails until ServerToClient carry drain path is wired in STORY-145)"
+        );
+
+        // No parse errors from any delivery path.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "cross-flow delivery must not produce parse errors"
+        );
+
+        // sni_counts: exactly 2 entries (one per flow); no cross-flow bleed.
+        let sni_counts = analyzer.sni_counts();
+        assert_eq!(
+            sni_counts.len(),
+            2,
+            "sni_counts must have exactly 2 entries (one per flow SNI); \
+             cross-flow bleed or missing dispatch would produce wrong count. \
+             got: {sni_counts:?}"
+        );
+        assert_eq!(
+            sni_counts.get("a.example").copied().unwrap_or(0),
+            1,
+            "a.example must appear exactly once in sni_counts"
+        );
+        assert_eq!(
+            sni_counts.get("b.example").copied().unwrap_or(0),
+            1,
+            "b.example must appear exactly once in sni_counts"
+        );
+
+        // ja3s_counts: both flows contributed a ServerHello → 1 or 2 entries
+        // (1 if both flows chose the same cipher fingerprint, 2 otherwise).
+        // The invariant is ja3s_counts.len() >= 1 (at least one JA3S was computed).
+        // Red Gate: 0 entries if server carry drain not wired (flow_b never dispatches).
+        let ja3s_counts = analyzer.ja3s_counts();
+        assert!(
+            !ja3s_counts.is_empty(),
+            "ja3s_counts must have at least 1 entry after ServerHello delivery to both flows \
+             (Red Gate: empty means flow_b's fragmented ServerHello was not dispatched)"
+        );
+
+        // Carries fully drained after complete delivery.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&flow_a),
+            0,
+            "flow_a client_hs_carry must be empty after single-record C2S delivery"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&flow_b),
+            0,
+            "flow_b client_hs_carry must be empty after complete fragmented C2S delivery"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&flow_a),
+            0,
+            "flow_a server_hs_carry must be empty after single-record S2C delivery"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&flow_b),
+            0,
+            "flow_b server_hs_carry must be empty after complete fragmented S2C delivery \
+             (Red Gate: non-zero if carry drain not wired)"
+        );
+
+        // Active flows: both remain in the map (neither closed).
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            2,
+            "both flows must remain active (on_flow_close not called)"
+        );
+    }
+}
