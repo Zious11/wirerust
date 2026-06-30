@@ -10527,9 +10527,10 @@ mod story_145 {
     //   (4) interleaved.parse_errors == c2s_only.parse_errors + s2c_only.parse_errors
     //   (5) SNI extracted, JA3S extracted (both == true after complete delivery)
     //
-    // Red Gate: FAILS until the `ServerToClient` carry drain path is wired.
-    //   Before STORY-145: s2c_only.server_hello_seen == false (no drain) AND
-    //   assertion (3) fires directly (interleaved.server_hello_seen == false != true).
+    // STORY-145 wired the `ServerToClient` carry drain path; all assertions pass.
+    //   The unified per-direction carry-buffer loop appends incoming bytes to the
+    //   server_hs_carry, then drains via `parse_tls_message_handshake` until the carry
+    //   is empty — single-record and fragmented S2C delivery share the same path.
     //
     // Saturating clamp (not prop_assume): prevents case discard for short ServerHello.
     //
@@ -10614,9 +10615,9 @@ mod story_145 {
                 "interleaved parse_errors must equal sum of independent parse_errors"
             );
 
-            // Explicit truth assertions — non-vacuous Red Gate guard.
-            // Without these, the equivalence checks above pass trivially when both
-            // sides return false (before STORY-145 wires the S2C carry drain).
+            // Explicit truth assertions — non-vacuous guards.
+            // Without these, the equivalence checks above would pass trivially if both
+            // sides returned false (regression guard for ServerToClient carry drain).
             // BC-2.07.041 Sub-E property: BOTH directions must succeed after complete
             // fragmented delivery.
             prop_assert!(
@@ -10626,7 +10627,7 @@ mod story_145 {
             prop_assert!(
                 interleaved.server_hello_seen_for_testing(&flow_key),
                 "server_hello_seen must be true after complete interleaved S2C delivery \
-                 (Red Gate: fails until ServerToClient carry drain path is wired)"
+                 (regression: ServerToClient carry-buffer drain loop not dispatching)"
             );
             // SNI (from ClientHello) and JA3S (from ServerHello) must be extracted.
             prop_assert!(
@@ -10636,7 +10637,7 @@ mod story_145 {
             prop_assert!(
                 !interleaved.ja3s_counts().is_empty(),
                 "ja3s_counts must be non-empty after S2C ServerHello reassembly \
-                 (Red Gate: empty until ServerToClient carry drain path is wired)"
+                 (regression: ServerToClient carry-buffer drain loop not dispatching)"
             );
             prop_assert_eq!(
                 interleaved.parse_error_count(), 0u64,
@@ -10657,13 +10658,13 @@ mod story_145 {
     //   both flow_a and flow_b must have server_hello_seen==true (ServerHello
     //   carry drain applies to each flow independently).  No cross-flow bleed.
     //
-    // Red Gate: FAILS until STORY-145 wires the ServerToClient carry drain path.
-    //   - Flow A's complete single-record ServerHello is handled by the existing
-    //     parse_tls_plaintext path → server_hello_seen == true for flow_a (passes today).
-    //   - Flow B's FRAGMENTED ServerHello requires the server_hs_carry drain loop
-    //     (STORY-145 scope) → server_hello_seen == false for flow_b (fails today).
-    //   - The assertion `server_hello_seen_for_testing(flow_b) == true` is the
-    //     failing Red Gate assertion.
+    // STORY-145 wired the ServerToClient carry drain path; both flows pass.
+    //   - Flow A's complete single-record ServerHello: the record payload is appended
+    //     to an empty server_hs_carry; the drain loop calls `parse_tls_message_handshake`
+    //     on the complete message and empties the carry → server_hello_seen == true.
+    //   - Flow B's FRAGMENTED ServerHello: two partial records accumulate in
+    //     server_hs_carry; the drain loop dispatches once the complete message arrives
+    //     → server_hello_seen == true.
     //
     // Traces to: BC-2.07.041 v1.2 Invariants 1, 4; Postconditions 1, 4–5;
     //            BC-2.07.002 v1.6 Precondition 2; AC-145-003, AC-145-004.
@@ -10681,7 +10682,7 @@ mod story_145 {
         let a_c2s_rec = wrap_as_tls_record(0x16, &a_client_hello);
         analyzer.on_data(&flow_a, Direction::ClientToServer, &a_c2s_rec, 0u64, ts);
 
-        // S2C: complete single-record ServerHello (fast path — parse_tls_plaintext).
+        // S2C: complete single-record ServerHello (unified carry-buffer drain loop).
         let a_server_hello = build_server_hello();
         let a_s2c_rec = wrap_as_tls_record(0x16, &a_server_hello);
         analyzer.on_data(&flow_a, Direction::ServerToClient, &a_s2c_rec, 0u64, ts);
@@ -10716,18 +10717,17 @@ mod story_145 {
             "flow_b: client_hello_seen must be true after fragmented C2S delivery"
         );
 
-        // flow_a: server_hello_seen must be true (single-record S2C, fast path).
+        // flow_a: server_hello_seen must be true (single-record S2C, carry drain loop).
         assert!(
             analyzer.server_hello_seen_for_testing(&flow_a),
             "flow_a: server_hello_seen must be true after single-record S2C delivery"
         );
 
-        // flow_b: server_hello_seen must be true (fragmented S2C, requires carry drain).
-        // Red Gate: FAILS until STORY-145 wires the ServerToClient carry drain path.
+        // flow_b: server_hello_seen must be true (fragmented S2C, carry drain loop).
         assert!(
             analyzer.server_hello_seen_for_testing(&flow_b),
             "flow_b: server_hello_seen must be true after fragmented S2C delivery \
-             (Red Gate: fails until ServerToClient carry drain path is wired in STORY-145)"
+             (regression: ServerToClient carry-buffer drain loop not dispatching)"
         );
 
         // No parse errors from any delivery path.
@@ -10760,12 +10760,12 @@ mod story_145 {
         // ja3s_counts: both flows contributed a ServerHello → 1 or 2 entries
         // (1 if both flows chose the same cipher fingerprint, 2 otherwise).
         // The invariant is ja3s_counts.len() >= 1 (at least one JA3S was computed).
-        // Red Gate: 0 entries if server carry drain not wired (flow_b never dispatches).
+        // Both flows delivered a complete ServerHello via the carry-buffer drain loop.
         let ja3s_counts = analyzer.ja3s_counts();
         assert!(
             !ja3s_counts.is_empty(),
             "ja3s_counts must have at least 1 entry after ServerHello delivery to both flows \
-             (Red Gate: empty means flow_b's fragmented ServerHello was not dispatched)"
+             (regression: carry-buffer drain loop not dispatching flow_b's fragmented ServerHello)"
         );
 
         // Carries fully drained after complete delivery.
@@ -10788,7 +10788,7 @@ mod story_145 {
             analyzer.server_hs_carry_len_for_testing(&flow_b),
             0,
             "flow_b server_hs_carry must be empty after complete fragmented S2C delivery \
-             (Red Gate: non-zero if carry drain not wired)"
+             (regression: carry-buffer drain loop not consuming all bytes)"
         );
 
         // Active flows: both remain in the map (neither closed).
