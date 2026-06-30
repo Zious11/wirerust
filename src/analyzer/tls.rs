@@ -347,6 +347,17 @@ pub struct TlsAnalyzer {
     /// existing `truncated_records` aggregate counter pattern.
     /// AC-144-001 / ADR-011 Decision 1 / BC-2.07.039 Invariant 5.
     handshake_reassembly_overflows: u64,
+    /// Aggregate count of per-direction TCP-segment buffer tail-drop events.
+    ///
+    /// Incremented each time `on_data` detects that the incoming data length
+    /// exceeds the remaining capacity of `client_buf` or `server_buf`
+    /// (`data.len() > remaining` where `remaining = MAX_BUF.saturating_sub(buf.len())`).
+    /// This is an AGGREGATE counter on `TlsAnalyzer` — NOT on `TlsFlowState` — and is
+    /// NOT reset at `on_flow_close`. Mirrors the `truncated_records` / `handshake_reassembly_overflows`
+    /// aggregate counter pattern.
+    /// AC-146-001 / BC-2.07.043 Invariants 1–3.
+    #[allow(dead_code)]
+    buffer_saturation_drops: u64,
     all_findings: Vec<Finding>,
 }
 
@@ -369,6 +380,7 @@ impl TlsAnalyzer {
             parse_errors: 0,
             truncated_records: 0,
             handshake_reassembly_overflows: 0,
+            buffer_saturation_drops: 0,
             all_findings: Vec::new(),
         }
     }
@@ -1388,6 +1400,51 @@ impl TlsAnalyzer {
     /// guard). Read-only; do not use for overflow-prevention decisions.
     pub fn handshake_reassembly_overflow_count(&self) -> u64 {
         self.handshake_reassembly_overflows
+    }
+
+    // ── STORY-146 accessor + test seam (AC-146-001) ───────────────────────────
+    //
+    // Self-check (BC-5.38.005 invariant 1) applied before including any body:
+    // "If I include this real implementation, will the test for this function
+    //  pass trivially without any implementer work?"
+    // — For `buffer_saturation_drop_count`: YES — returning `self.buffer_saturation_drops`
+    //   directly would make `test_BC_2_07_043_no_drop_no_counter` pass (counter==0 satisfies
+    //   drops_after==drops_before) and would make the accessors in all other VP-040 tests
+    //   observable. The counter increment wiring is not yet added; all tests that observe a
+    //   non-zero counter would fail for a different reason — but the no-drop test would pass
+    //   trivially. Therefore: `todo!()`.
+    // — For `fill_buf_for_testing`: YES — a real fill seam would make
+    //   `test_BC_2_07_043_buffer_saturation_full_drop` and
+    //   `test_BC_2_07_043_both_directions_increment_same_counter` able to set up the full-drop
+    //   state, enabling those test paths to exercise the (not-yet-wired) counter. Therefore: `todo!()`.
+
+    /// Public accessor: aggregate count of per-direction buffer saturation tail-drop events.
+    ///
+    /// Reads `self.buffer_saturation_drops` directly. Mirrors the existing
+    /// `truncated_record_count()` and `handshake_reassembly_overflow_count()` public
+    /// accessor pattern (AC-146-001 / BC-2.07.043 Invariants 1–3). Read-only; do not
+    /// use for drop-prevention decisions.
+    #[doc(hidden)]
+    pub fn buffer_saturation_drop_count(&self) -> u64 {
+        todo!("STORY-146: buffer_saturation_drop_count accessor")
+    }
+
+    /// Test-only seam: fill the per-direction TCP-segment buffer to exactly `n` bytes.
+    ///
+    /// Fills `client_buf` (for `Direction::ClientToServer`) or `server_buf`
+    /// (for `Direction::ServerToClient`) of the given flow to exactly `n` bytes,
+    /// creating the flow state entry if it does not yet exist.
+    ///
+    /// Precondition: `n <= MAX_BUF`. Required to exercise the full-drop path
+    /// (`remaining==0`, EC-002) since that state is not reachable via the public
+    /// `on_data` API alone without first filling the buffer with real TLS data.
+    ///
+    /// Signature uses `flow_key: &FlowKey` by reference, matching the convention
+    /// of all five sibling TLS test seams. AC-146-001 / BC-2.07.043 Architecture Anchor.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn fill_buf_for_testing(&mut self, _flow_key: &FlowKey, _direction: Direction, _n: usize) {
+        todo!("STORY-146: fill_buf_for_testing seam")
     }
 }
 
