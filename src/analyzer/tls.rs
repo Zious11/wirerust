@@ -17,9 +17,12 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use md5::{Digest, Md5};
+// `parse_tls_message_handshake` is used by the ClientToServer carry drain loop
+// (AC-144-002). The drain loop dispatches complete ClientHello messages via this
+// function once the carry buffer holds a full handshake message (ADR-011 Decision 4).
 use tls_parser::{
     Err as NomErr, TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
-    TlsMessageHandshake, parse_tls_extensions, parse_tls_plaintext,
+    TlsMessageHandshake, parse_tls_extensions, parse_tls_message_handshake, parse_tls_plaintext,
 };
 
 use crate::analyzer::AnalysisSummary;
@@ -281,6 +284,21 @@ struct TlsFlowState {
     /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
     /// isolation invariant).
     last_ts: u32,
+    /// Handshake-message carry buffer for the ClientToServer direction.
+    ///
+    /// Accumulates 0x16 record payloads across multiple `try_parse_records`
+    /// calls until a complete handshake message (4-byte header + body_len
+    /// body bytes) is available. Initialized to `Vec::new()` in
+    /// `TlsFlowState::new()`; dropped automatically when `on_flow_close`
+    /// removes the `TlsFlowState` from the `flows` map (BC-2.07.040).
+    /// NO `hs_carry_abandoned` flag exists anywhere (BC-2.07.039 Invariant 4).
+    /// AC-144-001 / ADR-011 Decision 1.
+    client_hs_carry: Vec<u8>,
+    /// Handshake-message carry buffer for the ServerToClient direction.
+    ///
+    /// Symmetric companion to `client_hs_carry`. Initialized to `Vec::new()`.
+    /// AC-144-001 / ADR-011 Decision 1.
+    server_hs_carry: Vec<u8>,
 }
 
 impl TlsFlowState {
@@ -291,6 +309,8 @@ impl TlsFlowState {
             client_hello_seen: false,
             server_hello_seen: false,
             last_ts: 0,
+            client_hs_carry: Vec::new(),
+            server_hs_carry: Vec::new(),
         }
     }
 
@@ -317,6 +337,16 @@ pub struct TlsAnalyzer {
     /// distinguishable from genuinely malformed records — see
     /// LESSON-P1.05 (CNV-PAT-002 follow-up).
     truncated_records: u64,
+    /// Aggregate count of handshake carry buffer overflow events.
+    ///
+    /// Incremented each time a 0x16 record payload would push a direction's
+    /// carry buffer past `MAX_BUF` (Decision 5 buffer-fill guard) OR when
+    /// `body_len > MAX_BUF` inside the drain loop (Decision 4 body_len-spoof
+    /// guard). This is an AGGREGATE counter on `TlsAnalyzer` — NOT on
+    /// `TlsFlowState` — and is NOT reset at `on_flow_close`. Mirrors the
+    /// existing `truncated_records` aggregate counter pattern.
+    /// AC-144-001 / ADR-011 Decision 1 / BC-2.07.039 Invariant 5.
+    handshake_reassembly_overflows: u64,
     all_findings: Vec<Finding>,
 }
 
@@ -338,6 +368,7 @@ impl TlsAnalyzer {
             handshakes_seen: 0,
             parse_errors: 0,
             truncated_records: 0,
+            handshake_reassembly_overflows: 0,
             all_findings: Vec::new(),
         }
     }
@@ -760,32 +791,210 @@ impl TlsAnalyzer {
             // the capture-relative timestamp to any emitted Findings.
             let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
 
-            match parse_tls_plaintext(&record_bytes) {
-                Ok((_rem, plaintext)) => {
-                    for msg in &plaintext.msg {
-                        match msg {
-                            TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ch)) => {
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.client_hello_seen = true;
-                                }
-                                self.handle_client_hello(ch, flow_key, last_ts);
-                            }
-                            TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) => {
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.server_hello_seen = true;
-                                }
-                                self.handle_server_hello(sh, flow_key, last_ts);
-                            }
-                            _ => {}
+            // AC-144-002 / BC-2.07.038: direction-parameterized handshake carry path.
+            //
+            // STORY-144 scope: ClientToServer direction only.
+            // STORY-145 scope: ServerToClient direction (adds `server_hs_carry` arm).
+            //
+            // For ClientToServer: the record payload (no 5-byte TLS record header)
+            // is appended to `client_hs_carry`; the drain loop dispatches complete
+            // ClientHello messages via `parse_tls_message_handshake` (ADR-011 Decision 4).
+            //
+            // For ServerToClient (STORY-144): the pre-existing `parse_tls_plaintext` path
+            // is retained verbatim until STORY-145 replaces it with `server_hs_carry`.
+            // This preserves all existing ServerHello tests (AC-144-005).
+            match direction {
+                Direction::ClientToServer => {
+                    // ── ClientToServer carry path (AC-144-002) ──────────────────────
+                    let record_payload = &record_bytes[5..];
+
+                    // Step 1: Overflow check BEFORE append (BC-2.07.039 Invariant 3 /
+                    // ADR-011 Decision 5). If carry + payload would exceed MAX_BUF,
+                    // clear carry and increment the aggregate overflow counter; do NOT
+                    // increment parse_errors; continue to the next record.
+                    let carry_len_before = self
+                        .flows
+                        .get(flow_key)
+                        .map(|s| s.client_hs_carry.len())
+                        .unwrap_or(0);
+
+                    if carry_len_before + record_payload.len() > MAX_BUF {
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.client_hs_carry.clear();
                         }
+                        // SEC-003: saturating_add to avoid theoretical overflow-check panic
+                        // under `overflow-checks = true` (release profile). This counter is
+                        // an aggregate diagnostic; saturation at u64::MAX is safe and intentional.
+                        self.handshake_reassembly_overflows =
+                            self.handshake_reassembly_overflows.saturating_add(1);
+                        continue;
+                    }
+
+                    // Step 2: Append payload to client_hs_carry.
+                    if let Some(state) = self.flows.get_mut(flow_key) {
+                        state.client_hs_carry.extend_from_slice(record_payload);
+                    }
+
+                    // Step 3: Drain loop — consume complete handshake messages from carry.
+                    //
+                    // SEC-001 (CWE-400/834): CURSOR-BASED drain to prevent quadratic CPU
+                    // amplification. The previous approach called `carry.drain(..k)` once
+                    // PER message, which is O(remaining-after-k) per call — O(N·L) total
+                    // for N coalesced messages in a carry of L bytes. An attacker packing
+                    // thousands of zero-body-length messages into a single MAX_RECORD_PAYLOAD
+                    // record could cause ~40 MB of memmove per `on_data` call.
+                    //
+                    // Fix: advance a local `consumed` cursor per message; perform EXACTLY
+                    // ONE `carry.drain(..consumed)` after the loop exits (O(carry_len) total).
+                    //
+                    // All slice reads use `&carry[consumed..]` during the loop; the single
+                    // drain is issued via a separate `get_mut` borrow after the loop to
+                    // satisfy Rust's borrow rules (immutable loop reads → mutable post-loop
+                    // drain).
+                    //
+                    // Semantics preserved:
+                    //   - Each message advances cursor by exactly 4 + body_len
+                    //     (BC-2.07.038 Postcondition 4 / Invariant 2).
+                    //   - Decision-4 body_len-spoof guard: carry.clear() + overflows+1 + break.
+                    //   - Decision-5 overflow guard (Step 1, before append): unchanged.
+                    //   - Partial trailing messages are NOT consumed (cursor not advanced);
+                    //     they remain in carry for the next on_data call.
+                    //   - Clone for dispatch: only msg_type==0x01 clones the message bytes
+                    //     (4 + body_len, bounded ≤ 65,540). Non-dispatched types advance the
+                    //     cursor without any heap allocation.
+                    //
+                    // BC-2.07.042: back-to-back coalesced messages are each dispatched.
+                    let mut consumed: usize = 0;
+                    // Track whether Decision-4 fired (body_len spoof) so we can clear the
+                    // carry and skip the normal single-drain after the loop.
+                    let mut decision4_fired = false;
+                    loop {
+                        // Read current carry state at the cursor position.
+                        let (carry_len, msg_type, body_len) = {
+                            let state = match self.flows.get(flow_key) {
+                                Some(s) => s,
+                                None => break,
+                            };
+                            let carry = &state.client_hs_carry;
+                            if carry.len() - consumed < 4 {
+                                break;
+                            }
+                            let mt = carry[consumed];
+                            let bl = ((carry[consumed + 1] as usize) << 16)
+                                | ((carry[consumed + 2] as usize) << 8)
+                                | (carry[consumed + 3] as usize);
+                            (carry.len(), mt, bl)
+                        };
+
+                        // Decision-4: body_len > MAX_BUF → body_len-spoof guard.
+                        // Clear carry, increment overflow counter, break (ADR-011 Decision 4).
+                        // Note: consumed bytes up to this point are discarded by the clear().
+                        if body_len > MAX_BUF {
+                            if let Some(state) = self.flows.get_mut(flow_key) {
+                                state.client_hs_carry.clear();
+                            }
+                            self.handshake_reassembly_overflows =
+                                self.handshake_reassembly_overflows.saturating_add(1);
+                            decision4_fired = true;
+                            break;
+                        }
+
+                        // Incomplete: body not yet fully arrived — wait for next record.
+                        if carry_len - consumed < 4 + body_len {
+                            break;
+                        }
+
+                        // Dispatch on msg_type:
+                        // 0x01 → ClientHello via parse_tls_message_handshake.
+                        //   Ok(ClientHello): set client_hello_seen, call handle_client_hello.
+                        //   Err or Ok(non-CH): parse_errors+1, no finding (PC-9).
+                        // 0x02 → STORY-145 scope (ServerHello on server direction).
+                        //   Not reachable here (ClientToServer direction).
+                        // Other: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
+                        // Clone only for msg_type==0x01 (the dispatch path). Non-dispatched
+                        // types advance the cursor without any heap allocation.
+                        match msg_type {
+                            0x01 => {
+                                // Clone the complete message bytes for parsing so we can
+                                // dispatch (which takes &mut self) without holding a borrow.
+                                let msg_bytes: Vec<u8> = {
+                                    let state = match self.flows.get(flow_key) {
+                                        Some(s) => s,
+                                        None => break,
+                                    };
+                                    state.client_hs_carry[consumed..consumed + 4 + body_len]
+                                        .to_vec()
+                                };
+                                match parse_tls_message_handshake(&msg_bytes) {
+                                    Ok((
+                                        _rem,
+                                        TlsMessage::Handshake(TlsMessageHandshake::ClientHello(
+                                            ref ch,
+                                        )),
+                                    )) => {
+                                        if let Some(state) = self.flows.get_mut(flow_key) {
+                                            state.client_hello_seen = true;
+                                        }
+                                        self.handle_client_hello(ch, flow_key, last_ts);
+                                    }
+                                    Ok(_) => {
+                                        // Unexpected non-ClientHello for msg_type 0x01.
+                                        self.parse_errors += 1;
+                                    }
+                                    Err(_) => {
+                                        // Malformed assembled body (PC-9).
+                                        self.parse_errors += 1;
+                                    }
+                                }
+                            }
+                            _ => {
+                                // Other handshake types (Certificate=0x0b, etc.):
+                                // consume silently; parse_errors NOT incremented
+                                // (BC-2.07.038 Invariant 1; BC-2.07.042 EC-002).
+                            }
+                        }
+
+                        // Advance cursor by exactly 4 + body_len regardless of parse outcome
+                        // (BC-2.07.038 Postcondition 4 / Invariant 2).
+                        consumed += 4 + body_len;
+                    }
+
+                    // Single drain after the loop: O(carry_len) total, not O(carry_len²).
+                    // Skipped when Decision-4 fired (carry was already cleared above).
+                    if !decision4_fired
+                        && consumed > 0
+                        && let Some(state) = self.flows.get_mut(flow_key)
+                    {
+                        state.client_hs_carry.drain(..consumed);
                     }
                 }
-                Err(NomErr::Incomplete(_)) => {
-                    // Should not happen since we verified length — count as error if it does.
-                    self.parse_errors += 1;
-                }
-                Err(_) => {
-                    self.parse_errors += 1;
+
+                Direction::ServerToClient => {
+                    // ── ServerToClient: pre-existing parse_tls_plaintext path ─────
+                    //
+                    // STORY-145 will replace this with the server_hs_carry drain loop.
+                    // Retained verbatim here to preserve all existing ServerHello tests
+                    // (AC-144-005; BC-2.07.001 v1.9 Invariant 5).
+                    match parse_tls_plaintext(&record_bytes) {
+                        Ok((_rem, plaintext)) => {
+                            for msg in &plaintext.msg {
+                                if let TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) =
+                                    msg
+                                {
+                                    if let Some(state) = self.flows.get_mut(flow_key) {
+                                        state.server_hello_seen = true;
+                                    }
+                                    self.handle_server_hello(sh, flow_key, last_ts);
+                                }
+                            }
+                        }
+                        Err(NomErr::Incomplete(_)) => {
+                            self.parse_errors += 1;
+                        }
+                        Err(_) => {
+                            self.parse_errors += 1;
+                        }
+                    }
                 }
             }
         }
@@ -887,6 +1096,12 @@ impl StreamAnalyzer for TlsAnalyzer {
         detail.insert(
             "truncated_records".to_string(),
             serde_json::json!(self.truncated_records),
+        );
+        // AC-144-003: surface `handshake_reassembly_overflows` in the detail map.
+        // Mirrors `truncated_records` above (BC-2.07.039 Postcondition 7).
+        detail.insert(
+            "handshake_reassembly_overflows".to_string(),
+            serde_json::json!(self.handshake_reassembly_overflows),
         );
 
         AnalysisSummary {
@@ -1007,6 +1222,79 @@ impl TlsAnalyzer {
     #[doc(hidden)]
     pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
         self.flows.get(flow_key).map(|s| s.last_ts)
+    }
+
+    // ── STORY-144 test seams (AC-144-001) ─────────────────────────────────────
+    //
+    // These seams expose the new STORY-144 carry-buffer fields and aggregate
+    // counter so that the VP-039 Red-Gate test suite can verify carry-buffer
+    // state directly.  All follow the `#[doc(hidden)] pub fn` convention
+    // established by the existing seams above.  MUST NOT be called from
+    // production code.
+
+    /// Test-only accessor: whether `client_hello_seen` is set for the given flow.
+    ///
+    /// Symmetric companion to the EXISTING `server_hello_seen_for_testing`
+    /// (tls.rs:991). Exposes `flow.client_hello_seen` so tests can directly
+    /// verify BC-2.07.001 postcondition 1 ("flow.client_hello_seen is set to
+    /// true") for the carry-reassembly path (AC-144-001 / STORY-144).
+    /// Returns `false` for absent flows.
+    /// MUST NOT be called from production code.
+    ///
+    /// Self-check (BC-5.38.005 invariant 1):
+    /// "If I include this real implementation, will the test for this function
+    /// pass trivially without any implementer work?"
+    /// — No: the test for this seam (`test_BC_2_07_038_canonical_frame_rfc8446_s4`
+    /// and others) asserts `client_hello_seen == true` only AFTER a fragmented
+    /// ClientHello is reassembled by the carry drain loop. The drain loop is not
+    /// yet implemented, so `client_hello_seen` is never set via the carry path;
+    /// the Red Gate holds.
+    #[doc(hidden)]
+    pub fn client_hello_seen_for_testing(&self, flow_key: &FlowKey) -> bool {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.client_hello_seen)
+            .unwrap_or(false)
+    }
+
+    /// Test-only accessor: byte length of `client_hs_carry` for the given flow.
+    ///
+    /// Exposes the carry-buffer length so tests can assert that the handshake
+    /// carry accumulates and drains correctly (AC-144-001 / BC-2.07.038 PC-6).
+    /// Returns 0 if the flow is absent or if the carry is empty.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn client_hs_carry_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.client_hs_carry.len())
+            .unwrap_or(0)
+    }
+
+    /// Test-only accessor: byte length of `server_hs_carry` for the given flow.
+    ///
+    /// Symmetric companion to `client_hs_carry_len_for_testing` for the
+    /// ServerToClient direction (AC-144-001 / BC-2.07.038 PC-6).
+    /// Returns 0 if the flow is absent or if the carry is empty.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn server_hs_carry_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.server_hs_carry.len())
+            .unwrap_or(0)
+    }
+
+    /// Public accessor: aggregate count of handshake carry overflow events.
+    ///
+    /// Reads `self.handshake_reassembly_overflows` directly. Mirrors the existing
+    /// `truncated_record_count()` public accessor pattern (AC-144-001 / ADR-011
+    /// Decision 1). The counter is incremented by the carry drain loop whenever
+    /// a record payload would push the carry buffer past MAX_BUF (Step 1 overflow
+    /// guard) or when a body_len > MAX_BUF header is detected (Decision-4 spoof
+    /// guard). Read-only; do not use for overflow-prevention decisions.
+    pub fn handshake_reassembly_overflow_count(&self) -> u64 {
+        self.handshake_reassembly_overflows
     }
 }
 

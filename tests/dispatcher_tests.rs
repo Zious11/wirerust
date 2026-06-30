@@ -222,13 +222,16 @@ fn test_port_fallback_443_to_tls() {
         0,
         "AC-007: HTTP analyzer must not attempt to parse bytes on port-443 fallback"
     );
-    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer triggers a
-    // parse/truncation event — proves TlsAnalyzer actually received the bytes.
+    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer creates a
+    // flow entry — proves TlsAnalyzer actually received the bytes.
+    // Updated in STORY-144: the carry-buffer path (AC-144-002) now accumulates
+    // short 0x16 payloads without immediately producing parse_errors; using
+    // active_flows_len_for_testing() > 0 as the discriminator instead.
     let tls = dispatcher.tls_analyzer().unwrap();
     assert!(
-        tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+        tls.active_flows_len_for_testing() > 0,
         "AC-007: port 443 fallback must route to Tls analyzer \
-         (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+         (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
     );
 }
 
@@ -264,13 +267,16 @@ fn test_port_fallback_8443_to_tls() {
         0,
         "AC-007: HTTP analyzer must not be called when port 8443 falls back to Tls"
     );
-    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer triggers a
-    // parse/truncation event — proves TlsAnalyzer actually received the bytes.
+    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer creates a
+    // flow entry — proves TlsAnalyzer actually received the bytes.
+    // Updated in STORY-144: the carry-buffer path (AC-144-002) now accumulates
+    // short 0x16 payloads without immediately producing parse_errors; using
+    // active_flows_len_for_testing() > 0 as the discriminator instead.
     let tls = dispatcher.tls_analyzer().unwrap();
     assert!(
-        tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+        tls.active_flows_len_for_testing() > 0,
         "AC-007: port 8443 fallback must route to Tls analyzer \
-         (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+         (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
     );
 }
 
@@ -748,12 +754,14 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         "AC-008: port 8443 canonical-ordering fallback must route to Tls (HTTP analyzer must not be invoked)"
     );
     // Positive TLS discriminator for 8443 sub-case.
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
     {
         let tls = dispatcher.tls_analyzer().unwrap();
         assert!(
-            tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+            tls.active_flows_len_for_testing() > 0,
             "AC-008: port 8443 canonical-ordering fallback must route to Tls analyzer \
-             (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+             (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
         );
     }
 
@@ -790,12 +798,14 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         "AC-008: port 443 canonical-ordering fallback must route to Tls (HTTP analyzer must not be invoked)"
     );
     // Positive TLS discriminator for 443-upper sub-case.
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
     {
         let tls = dispatcher.tls_analyzer().unwrap();
         assert!(
-            tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+            tls.active_flows_len_for_testing() > 0,
             "AC-008: port 443 canonical-ordering fallback must route to Tls analyzer \
-             (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+             (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
         );
     }
 
@@ -961,12 +971,17 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
     );
 
     // Proof of cache eviction: same FlowKey, TLS bytes. classify must run (not short-circuit),
-    // return Tls, and route data to TlsAnalyzer — producing at least one parse or truncation
-    // event. If the stale None were still present, TlsAnalyzer would remain silent.
+    // return Tls, and route data to TlsAnalyzer — creating a flow entry.
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
+    // If the stale None were still present, TlsAnalyzer would remain silent (no flow entry).
     dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
     assert!(
-        dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
-            || dispatcher.tls_analyzer().unwrap().truncated_record_count() > 0,
+        dispatcher
+            .tls_analyzer()
+            .unwrap()
+            .active_flows_len_for_testing()
+            > 0,
         "EC-008/reclassify: after close, same FlowKey with TLS bytes must re-run classify; \
          TlsAnalyzer must receive data (stale None route was evicted, not reused)"
     );
@@ -1049,12 +1064,17 @@ fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
     dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
     assert!(
-        dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
-            || dispatcher.tls_analyzer().unwrap().truncated_record_count() > 0,
+        dispatcher
+            .tls_analyzer()
+            .unwrap()
+            .active_flows_len_for_testing()
+            > 0,
         "AC-003/AC-006: None must NOT be cached after 7 attempts (cap=8); \
-         8th chunk with TLS bytes must re-run classify, route to TlsAnalyzer, \
-         and produce a parse/truncation event"
+         8th chunk with TLS bytes must re-run classify, route to TlsAnalyzer \
+         (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
     );
     // Flow closed as classified (Tls), not unclassified.
     dispatcher.on_flow_close(&fk, CloseReason::Fin);
@@ -1254,11 +1274,16 @@ fn test_BC_2_05_006_late_classification_after_nones() {
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
     dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
     assert!(
-        dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
-            || dispatcher.tls_analyzer().unwrap().truncated_record_count() > 0,
+        dispatcher
+            .tls_analyzer()
+            .unwrap()
+            .active_flows_len_for_testing()
+            > 0,
         "AC-009/EC-006: TLS bytes on 4th call (3 prior Nones, cap=8) must classify as Tls \
-         and route to TlsAnalyzer"
+         and route to TlsAnalyzer (TlsAnalyzer creates a flow entry on receipt of any on_data call)"
     );
     assert_eq!(
         dispatcher.http_analyzer().unwrap().parse_error_count(),
@@ -1313,9 +1338,10 @@ fn test_BC_2_05_006_late_classification_after_nones() {
     // 8th chunk: TLS bytes — attempt count was 7 (< cap=8); classify runs; returns Tls.
     d2.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0, 0);
 
+    // Updated in STORY-144: carry-buffer path accumulates short 0x16 payloads
+    // without parse_errors; active_flows_len_for_testing() > 0 proves routing.
     assert!(
-        d2.tls_analyzer().unwrap().parse_error_count() > 0
-            || d2.tls_analyzer().unwrap().truncated_record_count() > 0,
+        d2.tls_analyzer().unwrap().active_flows_len_for_testing() > 0,
         "EC-007: TLS bytes on 8th call (7 prior Nones, cap=8) must classify as Tls; \
          cap is not yet hit when TLS arrives (count=7 < 8 before this call's increment)"
     );
