@@ -929,11 +929,14 @@ fn test_summarize_output() {
 
     let detail = &summary.detail;
 
-    // AC-009 / BC-2.07.031 postconditions 3-9 + AC-144-003:
-    // EXACT 8-key set — no more, no fewer (BTreeMap ordering enforced below).
+    // AC-009 / BC-2.07.031 postconditions 3-9 + AC-144-003 + AC-146-005:
+    // EXACT 9-key set — no more, no fewer (BTreeMap ordering enforced below).
     // Updated from 7→8 in STORY-144 to include `handshake_reassembly_overflows`
     // (BC-2.07.039 Postcondition 7 / AC-144-003).
+    // Updated from 8→9 in STORY-146 to include `buffer_saturation_drops`
+    // (BC-2.07.043 Postcondition 4 / AC-146-005; key always present even when count==0).
     let required_keys = [
+        "buffer_saturation_drops",
         "cipher_suites",
         "handshake_reassembly_overflows",
         "ja3_hashes",
@@ -951,8 +954,9 @@ fn test_summarize_output() {
     }
     assert_eq!(
         detail.len(),
-        8,
-        "AC-009 (BC-2.07.031 pc3-9 + AC-144-003): detail must have EXACTLY 8 keys, got: {:?}",
+        9,
+        "AC-009 (BC-2.07.031 pc3-9 + AC-144-003 + AC-146-005): detail must have EXACTLY 9 keys, \
+         got: {:?}",
         detail.keys().collect::<Vec<_>>()
     );
 

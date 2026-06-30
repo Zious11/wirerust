@@ -356,7 +356,6 @@ pub struct TlsAnalyzer {
     /// NOT reset at `on_flow_close`. Mirrors the `truncated_records` / `handshake_reassembly_overflows`
     /// aggregate counter pattern.
     /// AC-146-001 / BC-2.07.043 Invariants 1–3.
-    #[allow(dead_code)]
     buffer_saturation_drops: u64,
     all_findings: Vec<Finding>,
 }
@@ -1123,6 +1122,10 @@ impl StreamHandler for TlsAnalyzer {
             return;
         }
 
+        // AC-146-002 / BC-2.07.043 Invariant 4: compute did_drop INSIDE the &mut state
+        // block (borrow-constraint mandated); increment self.buffer_saturation_drops
+        // AFTER the block closes (mutable borrow on self.flows released).
+        let did_drop;
         {
             let state = self
                 .flows
@@ -1134,6 +1137,12 @@ impl StreamHandler for TlsAnalyzer {
             match direction {
                 Direction::ClientToServer => {
                     let remaining = MAX_BUF.saturating_sub(state.client_buf.len());
+                    // AC-146-002: detect tail-drop condition (strictly greater, NOT >=).
+                    // data.len() > remaining covers both partial-drop (remaining>0, 1+
+                    // bytes truncated) and full-drop (remaining==0) paths. The form
+                    // `to_copy < data.len()` would miss the full-drop case because to_copy
+                    // is computed only inside the `if remaining > 0` arm (ADR-011 C-3).
+                    did_drop = data.len() > remaining;
                     if remaining > 0 {
                         let to_copy = data.len().min(remaining);
                         state.client_buf.extend_from_slice(&data[..to_copy]);
@@ -1141,12 +1150,21 @@ impl StreamHandler for TlsAnalyzer {
                 }
                 Direction::ServerToClient => {
                     let remaining = MAX_BUF.saturating_sub(state.server_buf.len());
+                    // AC-146-002: symmetric drop detection for the ServerToClient arm.
+                    // Same aggregate counter — BC-2.07.043 Postcondition 3.
+                    did_drop = data.len() > remaining;
                     if remaining > 0 {
                         let to_copy = data.len().min(remaining);
                         state.server_buf.extend_from_slice(&data[..to_copy]);
                     }
                 }
             }
+        }
+        // AC-146-002: increment AFTER the &mut state block closes (borrow released).
+        // Placement is between the buffer-append block and the try_parse_records call
+        // (ADR-011 Decision 1 / BC-2.07.043 Invariant 4). Byte-drop semantics unchanged.
+        if did_drop {
+            self.buffer_saturation_drops += 1;
         }
 
         self.try_parse_records(flow_key, direction);
@@ -1207,6 +1225,13 @@ impl StreamAnalyzer for TlsAnalyzer {
         detail.insert(
             "handshake_reassembly_overflows".to_string(),
             serde_json::json!(self.handshake_reassembly_overflows),
+        );
+        // AC-146-005: surface `buffer_saturation_drops` in the detail map.
+        // Key ALWAYS present even when count==0 (EC-008 / BC-2.07.043 Postcondition 4).
+        // Mirrors `truncated_records` and `handshake_reassembly_overflows` pattern above.
+        detail.insert(
+            "buffer_saturation_drops".to_string(),
+            serde_json::json!(self.buffer_saturation_drops),
         );
 
         AnalysisSummary {
@@ -1426,7 +1451,7 @@ impl TlsAnalyzer {
     /// use for drop-prevention decisions.
     #[doc(hidden)]
     pub fn buffer_saturation_drop_count(&self) -> u64 {
-        todo!("STORY-146: buffer_saturation_drop_count accessor")
+        self.buffer_saturation_drops
     }
 
     /// Test-only seam: fill the per-direction TCP-segment buffer to exactly `n` bytes.
@@ -1443,8 +1468,21 @@ impl TlsAnalyzer {
     /// of all five sibling TLS test seams. AC-146-001 / BC-2.07.043 Architecture Anchor.
     /// MUST NOT be called from production code.
     #[doc(hidden)]
-    pub fn fill_buf_for_testing(&mut self, _flow_key: &FlowKey, _direction: Direction, _n: usize) {
-        todo!("STORY-146: fill_buf_for_testing seam")
+    pub fn fill_buf_for_testing(&mut self, flow_key: &FlowKey, direction: Direction, n: usize) {
+        debug_assert!(
+            n <= MAX_BUF,
+            "fill_buf_for_testing: n={n} exceeds MAX_BUF={MAX_BUF}"
+        );
+        let state = self
+            .flows
+            .entry(flow_key.clone())
+            .or_insert_with(TlsFlowState::new);
+        let buf = match direction {
+            Direction::ClientToServer => &mut state.client_buf,
+            Direction::ServerToClient => &mut state.server_buf,
+        };
+        buf.clear();
+        buf.resize(n, 0u8);
     }
 }
 
