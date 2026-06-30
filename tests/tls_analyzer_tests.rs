@@ -10434,7 +10434,7 @@ mod story_144 {
 // Namespace isolation: DF-TEST-NAMESPACE-001 — all STORY-145 tests live inside
 // this `mod story_145` wrapper.  No new flat-root tests are added for this story.
 //
-// Test count: 2 (1 proptest + 1 unit).
+// Test count: 4 (1 proptest + 3 unit).
 mod story_145 {
     use proptest::prelude::*;
     use std::net::IpAddr;
@@ -10643,6 +10643,19 @@ mod story_145 {
                 interleaved.parse_error_count(), 0u64,
                 "interleaved fragmented delivery must produce zero parse errors"
             );
+
+            // AC-145-001 post-condition: both carry buffers must be drained empty
+            // after all records have been delivered.  A non-zero carry here means
+            // the drain loop consumed fewer bytes than it appended — regression
+            // against the server-direction carry path.
+            prop_assert_eq!(
+                interleaved.client_hs_carry_len_for_testing(&flow_key), 0,
+                "carry_len_client must be 0 after complete C2S delivery (AC-145-001)"
+            );
+            prop_assert_eq!(
+                interleaved.server_hs_carry_len_for_testing(&flow_key), 0,
+                "carry_len_server must be 0 after complete S2C delivery (AC-145-001)"
+            );
         }
     }
 
@@ -10796,6 +10809,148 @@ mod story_145 {
             analyzer.active_flows_len_for_testing(),
             2,
             "both flows must remain active (on_flow_close not called)"
+        );
+    }
+
+    // ── VP-039 Sub-C-S2C: server-direction Step-1 overflow guard ─────────────
+
+    /// VP-039 Sub-C-S2C (unit): accumulating ServerToClient records past MAX_BUF
+    /// triggers the Step-1 pre-append overflow guard, clears `server_hs_carry`,
+    /// increments `handshake_reassembly_overflows`, and leaves the flow in
+    /// clear-and-recover state — a subsequent complete ServerHello is dispatched.
+    ///
+    /// This mirrors `test_vp039_carry_overflow_clear_and_recover` in mod story_144
+    /// but drives `Direction::ServerToClient` with handshake msg_type `0x02`.
+    ///
+    /// Non-tautology argument: if the Step-1 guard at tls.rs:987-994 were removed,
+    /// `server_hs_carry` would grow past MAX_BUF=65536 without being cleared, the
+    /// overflow_count assertion would fail (counter stays at `overflows_before`),
+    /// and the `server_hs_carry_len == 0` assertion would fail (carry still holds
+    /// ~65504 bytes).
+    ///
+    /// Traces to: BC-2.07.039 v2.4 Postcondition 6 (clear-and-recover);
+    ///            BC-2.07.041 v1.2 Invariant 2; AC-145-001.
+    #[test]
+    fn test_vp039_server_carry_overflow_clear_and_recover() {
+        let fk = make_test_flow_key(50);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Record 1: send a 4-byte handshake header with body_len=65500 (< MAX_BUF).
+        // msg_type=0x02 (ServerHello), body_len = 65500 = 0x00FFDC.
+        // Carry after record 1: 4 bytes.
+        let header_only: Vec<u8> = vec![0x02, 0x00, 0xFF, 0xDC];
+        let record1 = wrap_as_tls_record(0x16, &header_only);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record1, 0, 0);
+
+        // Records 2–4: add 3 × 18,432 bytes (= 55,296 bytes) to server_hs_carry.
+        // After these records: carry = 4 + 55,296 = 55,300 bytes. No overflow yet.
+        for _ in 0..3 {
+            let chunk: Vec<u8> = vec![0xBB; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+        }
+
+        // Record 5: 10,240 bytes → carry = 55,300 + 10,240 = 65,540 > 65,536.
+        // Step-1 pre-append guard fires: server_hs_carry cleared, overflow_count+1.
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        let overflow_trigger: Vec<u8> = vec![0xCC; 10_240];
+        let record5 = wrap_as_tls_record(0x16, &overflow_trigger);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record5, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "server Step-1 guard: overflow_count must increment by exactly 1"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "server Step-1 guard: server_hs_carry must be cleared (len==0) after overflow"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "server Step-1 guard: parse_errors must NOT change on carry overflow"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "server Step-1 guard: findings must NOT change on carry overflow"
+        );
+
+        // Clear-and-recover: a subsequent complete single-record ServerHello must
+        // be dispatched normally (carry was cleared, not sticky-abandoned).
+        let sh_bytes = build_server_hello();
+        let record_sh = wrap_as_tls_record(0x16, &sh_bytes);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record_sh, 0, 0);
+
+        assert!(
+            analyzer.server_hello_seen_for_testing(&fk),
+            "clear-and-recover: server_hello_seen must be true after post-overflow ServerHello"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "clear-and-recover: server_hs_carry must be empty after fully consumed ServerHello"
+        );
+    }
+
+    // ── VP-039 Sub-C-S2C: server-direction Decision-4 body_len-spoof guard ────
+
+    /// VP-039 Sub-C-S2C (unit): a ServerToClient handshake header whose declared
+    /// `body_len > MAX_BUF` triggers Decision-4, clears `server_hs_carry`, and
+    /// increments `handshake_reassembly_overflows` without inflating `parse_errors`.
+    ///
+    /// This mirrors `test_vp039_body_len_spoof` in mod story_144 but drives
+    /// `Direction::ServerToClient` with handshake msg_type `0x02` (ServerHello).
+    ///
+    /// Non-tautology argument: if the Decision-4 guard at tls.rs:1025-1033 were
+    /// removed, the drain loop would not clear on a spoofed body_len; it would
+    /// instead fall through to the "incomplete" check (`carry_len - consumed <
+    /// 4 + body_len`) and break without incrementing the counter.  The
+    /// overflow_count assertion would fail (counter stays at `overflows_before`).
+    ///
+    /// Traces to: BC-2.07.038 v2.7 Invariant 5 / ADR-011 Decision 4;
+    ///            BC-2.07.041 v1.2 Invariant 2; AC-145-001.
+    #[test]
+    fn test_vp039_server_body_len_spoof() {
+        let fk = make_test_flow_key(51);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // A 0x16 record whose ServerHello handshake header declares body_len=65537
+        // (> MAX_BUF=65536).  65537 = 0x010001 → 3-byte BE: [0x01, 0x00, 0x01].
+        // msg_type=0x02 (ServerHello).
+        let spoof_header: Vec<u8> = vec![0x02, 0x01, 0x00, 0x01]; // body_len = 65537
+        let record = wrap_as_tls_record(0x16, &spoof_header);
+
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &record, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "server body_len spoof: Decision-4 must fire, overflow_count+1"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "server body_len spoof: server_hs_carry must be cleared after Decision-4"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "server body_len spoof: parse_errors must NOT change (Decision-4)"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "server body_len spoof: findings must NOT change (Decision-4)"
         );
     }
 }
