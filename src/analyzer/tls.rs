@@ -17,12 +17,12 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use md5::{Digest, Md5};
-// `parse_tls_message_handshake` is used by the ClientToServer carry drain loop
-// (AC-144-002). The drain loop dispatches complete ClientHello messages via this
-// function once the carry buffer holds a full handshake message (ADR-011 Decision 4).
+// `parse_tls_message_handshake` is used by both direction carry drain loops
+// (AC-144-002 / AC-145-001).  ClientToServer dispatches ClientHello (0x01);
+// ServerToClient dispatches ServerHello (0x02) (ADR-011 Decision 4).
 use tls_parser::{
-    Err as NomErr, TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
-    TlsMessageHandshake, parse_tls_extensions, parse_tls_message_handshake, parse_tls_plaintext,
+    TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
+    TlsMessageHandshake, parse_tls_extensions, parse_tls_message_handshake,
 };
 
 use crate::analyzer::AnalysisSummary;
@@ -791,18 +791,15 @@ impl TlsAnalyzer {
             // the capture-relative timestamp to any emitted Findings.
             let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
 
-            // AC-144-002 / BC-2.07.038: direction-parameterized handshake carry path.
+            // AC-144-002 / AC-145-001 / BC-2.07.038 / BC-2.07.041: direction-parameterized
+            // handshake carry path.
             //
-            // STORY-144 scope: ClientToServer direction only.
-            // STORY-145 scope: ServerToClient direction (adds `server_hs_carry` arm).
-            //
-            // For ClientToServer: the record payload (no 5-byte TLS record header)
-            // is appended to `client_hs_carry`; the drain loop dispatches complete
-            // ClientHello messages via `parse_tls_message_handshake` (ADR-011 Decision 4).
-            //
-            // For ServerToClient (STORY-144): the pre-existing `parse_tls_plaintext` path
-            // is retained verbatim until STORY-145 replaces it with `server_hs_carry`.
-            // This preserves all existing ServerHello tests (AC-144-005).
+            // Both ClientToServer and ServerToClient use the same cursor-based drain loop
+            // design (SEC-001 O(carry_len) guarantee).  ClientToServer accumulates into
+            // `client_hs_carry` and dispatches ClientHello (msg_type 0x01); ServerToClient
+            // accumulates into `server_hs_carry` and dispatches ServerHello (msg_type 0x02).
+            // Overflow/spoof-guard invariants are identical for both directions
+            // (BC-2.07.041 v1.2 Invariant 2; ADR-011 Decision 4/5).
             match direction {
                 Direction::ClientToServer => {
                     // ── ClientToServer carry path (AC-144-002) ──────────────────────
@@ -970,30 +967,126 @@ impl TlsAnalyzer {
                 }
 
                 Direction::ServerToClient => {
-                    // ── ServerToClient: pre-existing parse_tls_plaintext path ─────
+                    // ── ServerToClient carry path (AC-145-001) ──────────────────────
                     //
-                    // STORY-145 will replace this with the server_hs_carry drain loop.
-                    // Retained verbatim here to preserve all existing ServerHello tests
-                    // (AC-144-005; BC-2.07.001 v1.9 Invariant 5).
-                    match parse_tls_plaintext(&record_bytes) {
-                        Ok((_rem, plaintext)) => {
-                            for msg in &plaintext.msg {
-                                if let TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) =
-                                    msg
-                                {
-                                    if let Some(state) = self.flows.get_mut(flow_key) {
-                                        state.server_hello_seen = true;
+                    // Symmetric to the ClientToServer carry path above.  The record
+                    // payload is appended to `server_hs_carry`; the drain loop
+                    // dispatches complete ServerHello messages (msg_type 0x02) via
+                    // `parse_tls_message_handshake` (ADR-011 Decision 4).  All
+                    // overflow and spoof-guard invariants are identical to the
+                    // ClientToServer direction (BC-2.07.041 v1.2 Invariant 2).
+                    let record_payload = &record_bytes[5..];
+
+                    // Step 1: Overflow check BEFORE append.
+                    let carry_len_before = self
+                        .flows
+                        .get(flow_key)
+                        .map(|s| s.server_hs_carry.len())
+                        .unwrap_or(0);
+
+                    if carry_len_before + record_payload.len() > MAX_BUF {
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.server_hs_carry.clear();
+                        }
+                        self.handshake_reassembly_overflows =
+                            self.handshake_reassembly_overflows.saturating_add(1);
+                        continue;
+                    }
+
+                    // Step 2: Append payload to server_hs_carry.
+                    if let Some(state) = self.flows.get_mut(flow_key) {
+                        state.server_hs_carry.extend_from_slice(record_payload);
+                    }
+
+                    // Step 3: Drain loop — consume complete handshake messages.
+                    //
+                    // Same SEC-001 cursor-based O(carry_len) design as the
+                    // ClientToServer direction above.
+                    let mut consumed: usize = 0;
+                    let mut decision4_fired = false;
+                    loop {
+                        let (carry_len, msg_type, body_len) = {
+                            let state = match self.flows.get(flow_key) {
+                                Some(s) => s,
+                                None => break,
+                            };
+                            let carry = &state.server_hs_carry;
+                            if carry.len() - consumed < 4 {
+                                break;
+                            }
+                            let mt = carry[consumed];
+                            let bl = ((carry[consumed + 1] as usize) << 16)
+                                | ((carry[consumed + 2] as usize) << 8)
+                                | (carry[consumed + 3] as usize);
+                            (carry.len(), mt, bl)
+                        };
+
+                        // Decision-4: body_len > MAX_BUF → body_len-spoof guard.
+                        if body_len > MAX_BUF {
+                            if let Some(state) = self.flows.get_mut(flow_key) {
+                                state.server_hs_carry.clear();
+                            }
+                            self.handshake_reassembly_overflows =
+                                self.handshake_reassembly_overflows.saturating_add(1);
+                            decision4_fired = true;
+                            break;
+                        }
+
+                        // Incomplete: body not yet fully arrived.
+                        if carry_len - consumed < 4 + body_len {
+                            break;
+                        }
+
+                        // Dispatch on msg_type:
+                        // 0x02 → ServerHello via parse_tls_message_handshake.
+                        //   Ok(ServerHello): set server_hello_seen, call handle_server_hello.
+                        //   Err or Ok(non-SH): parse_errors+1.
+                        // Other: consume silently (BC-2.07.038 Inv-1).
+                        match msg_type {
+                            0x02 => {
+                                let msg_bytes: Vec<u8> = {
+                                    let state = match self.flows.get(flow_key) {
+                                        Some(s) => s,
+                                        None => break,
+                                    };
+                                    state.server_hs_carry[consumed..consumed + 4 + body_len]
+                                        .to_vec()
+                                };
+                                match parse_tls_message_handshake(&msg_bytes) {
+                                    Ok((
+                                        _rem,
+                                        TlsMessage::Handshake(TlsMessageHandshake::ServerHello(
+                                            ref sh,
+                                        )),
+                                    )) => {
+                                        if let Some(state) = self.flows.get_mut(flow_key) {
+                                            state.server_hello_seen = true;
+                                        }
+                                        self.handle_server_hello(sh, flow_key, last_ts);
                                     }
-                                    self.handle_server_hello(sh, flow_key, last_ts);
+                                    Ok(_) => {
+                                        self.parse_errors += 1;
+                                    }
+                                    Err(_) => {
+                                        self.parse_errors += 1;
+                                    }
                                 }
                             }
+                            _ => {
+                                // Other handshake types: consume silently
+                                // (BC-2.07.038 Invariant 1).
+                            }
                         }
-                        Err(NomErr::Incomplete(_)) => {
-                            self.parse_errors += 1;
-                        }
-                        Err(_) => {
-                            self.parse_errors += 1;
-                        }
+
+                        consumed += 4 + body_len;
+                    }
+
+                    // Single drain after the loop: O(carry_len) total.
+                    if !decision4_fired
+                        && consumed > 0
+                        && let Some(state) = self.flows.get_mut(flow_key)
+                    {
+                        state.server_hs_carry.drain(..consumed);
                     }
                 }
             }
