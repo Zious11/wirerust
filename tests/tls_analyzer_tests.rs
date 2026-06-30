@@ -11314,10 +11314,13 @@ mod story_146 {
     /// tail-drop condition (`data.len() > remaining`) fires; 1 byte is
     /// appended, 1 byte is dropped.
     ///
-    /// Non-tautology: if drop detection were broken (e.g., using `to_copy <
-    /// data.len()` instead of `data.len() > remaining`) the full-drop and
-    /// partial-drop paths would both miss the drop event, and the assertion
-    /// `drops_after == drops_before + 1` would fail.
+    /// Non-tautology: EC-C1 pins the partial-drop boundary — the test fails if
+    /// drop detection is broken such that the partial-drop event is not counted
+    /// (e.g., `did_drop` not set, or the saturation counter not incremented), or
+    /// if the counter fires the wrong number of times.  The `to_copy <
+    /// data.len()` mutant form is distinguished by the full-drop tests where
+    /// `remaining == 0` (see `test_BC_2_07_043_buffer_saturation_full_drop` and
+    /// `test_BC_2_07_043_full_buffer_empty_data_no_count`), not by this test.
     ///
     /// Traces to: BC-2.07.043 v1.3 EC-C1; AC-146-002 (partial-drop boundary).
     #[allow(non_snake_case)]
