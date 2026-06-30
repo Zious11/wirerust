@@ -7,7 +7,7 @@ wave: 66
 points: 3
 phase: f3
 tdd_mode: strict
-status: draft
+status: merged
 feature_id: fix-tls-clienthello-frag
 github_issue: fix-tls-clienthello-frag
 subsystems: [SS-07]
@@ -46,8 +46,8 @@ silent tail-drop primitive non-silent regardless of future reachability changes)
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.07.043 | v1.3 | Per-Direction Buffer Saturation Tail-Drop Is Observable via `buffer_saturation_drops` Counter | Primary: new `buffer_saturation_drops: u64` aggregate counter; `fill_buf_for_testing` seam; `summarize()` surfacing; borrow-constraint placement; 6 VP-040 Red-Gate tests |
-| BC-2.07.005 | v1.7 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes | Amended: Invariant 3 and Postcondition 4 updated to note `buffer_saturation_drops` increment; byte-drop semantics UNCHANGED; only telemetry added |
+| BC-2.07.043 | v1.3 | Per-Direction Buffer Saturation Tail-Drop Is Observable via `buffer_saturation_drops` Counter | Primary: new `buffer_saturation_drops: u64` aggregate counter; `fill_buf_for_testing` seam; `summarize()` surfacing; borrow-constraint placement; 6 VP-040 canonical Red-Gate tests + 2 EC-coverage tests (8 total) |
+| BC-2.07.005 | v1.7 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043) | Amended: Invariant 3 and Postcondition 4 updated to note `buffer_saturation_drops` increment; byte-drop semantics UNCHANGED; only telemetry added |
 
 ## Acceptance Criteria
 
@@ -80,11 +80,14 @@ let did_drop = data.len() > remaining;
 
 // AFTER the &mut state block closes (mutable borrow released):
 if did_drop {
-    self.buffer_saturation_drops += 1;
+    // SEC-003 sibling-consistency: saturating_add avoids theoretical u64
+    // overflow-check panic under overflow-checks=true; saturation at u64::MAX
+    // is safe for an aggregate diagnostic.
+    self.buffer_saturation_drops = self.buffer_saturation_drops.saturating_add(1);
 }
 ```
 
-The `did_drop` local bool flag MUST be set INSIDE the `&mut state` block; the `self.buffer_saturation_drops += 1` increment MUST be placed AFTER the block closes — Rust borrow rules forbid mutating `self` while `state: &mut TlsFlowState` borrows from `self.flows`. This placement is between the buffer-append block and the `try_parse_records` call (ADR-011 Decision 1 / BC-2.07.043 Invariant 4).
+The `did_drop` local bool flag MUST be set INSIDE the `&mut state` block; the `self.buffer_saturation_drops = self.buffer_saturation_drops.saturating_add(1)` increment MUST be placed AFTER the block closes — Rust borrow rules forbid mutating `self` while `state: &mut TlsFlowState` borrows from `self.flows`. This placement is between the buffer-append block and the `try_parse_records` call (ADR-011 Decision 1 / BC-2.07.043 Invariant 4).
 
 The increment condition is `data.len() > remaining` — NOT `to_copy < data.len()`. The form `to_copy < data.len()` misses the full-drop path (`remaining==0`) because `to_copy` is only computed inside the `if remaining > 0` arm (BC-2.07.043 Precondition 3 NOTE; ADR-011 C-3 canonical form).
 
@@ -148,8 +151,8 @@ Architecture compliance: SS-07 only. No other files change. This story is delibe
 
 | ID | Source | Description | Expected Behavior |
 |----|--------|-------------|-------------------|
-| EC-C1 | BC-2.07.043 EC-001 | Buffer at 65,535; `data` 2 bytes | 1 byte dropped; `buffer_saturation_drops += 1`; buf.len()==65,536; parse_errors unchanged |
-| EC-C2 | BC-2.07.043 EC-002 | Buffer at 65,536 (full); `data` 1,000 bytes | Full-drop: `buffer_saturation_drops += 1`; 0 bytes appended; requires `fill_buf_for_testing` seam to reach this state in tests |
+| EC-C1 | BC-2.07.043 EC-001 | Buffer at 65,535; `data` 2 bytes | 1 byte dropped; `buffer_saturation_drops.saturating_add(1)` (SEC-003); buf.len()==65,536; parse_errors unchanged |
+| EC-C2 | BC-2.07.043 EC-002 | Buffer at 65,536 (full); `data` 1,000 bytes | Full-drop: `buffer_saturation_drops.saturating_add(1)` (SEC-003); 0 bytes appended; requires `fill_buf_for_testing` seam to reach this state in tests |
 | EC-C3 | BC-2.07.043 EC-003 | Buffer at 65,536; `data` 0 bytes | `data.len()==0`, `remaining==0`; `0 > 0` is false; counter NOT incremented |
 | EC-C4 | BC-2.07.043 EC-005 | Buffer at 0; `data` exactly 65,536 bytes | `data.len()==remaining==65,536`; `65,536 > 65,536` is false; no drop; counter NOT incremented |
 | EC-C5 | BC-2.07.043 EC-006 | Two consecutive `on_data` calls each trigger a tail-drop | counter incremented twice; final value == initial + 2 |
@@ -157,7 +160,7 @@ Architecture compliance: SS-07 only. No other files change. This story is delibe
 
 ## Estimated Complexity
 
-**Story points: 3** (the existing tail-drop is already implemented; this story adds one counter field, one accessor, one test seam, one `did_drop` detection flag, one post-block increment, and one `summarize()` key insertion; the 6 VP-040 tests are deterministic unit tests with fixed fixtures)
+**Story points: 3** (the existing tail-drop is already implemented; this story adds one counter field, one accessor, one test seam, one `did_drop` detection flag, one post-block increment, and one `summarize()` key insertion; the 6 canonical VP-040 Red-Gate tests are deterministic unit tests with fixed fixtures; 2 additional EC-coverage tests pin EC-C1/EC-C3; 8 tests total)
 
 ## Token Budget Estimate
 
@@ -193,7 +196,7 @@ Fits within a 200k context window (~33%). The implementer should read the existi
 
 3. **Wire `did_drop` detection + post-block increment in `on_data` (AC-146-002)**
    - Inside both `Direction::ClientToServer` and `Direction::ServerToClient` buffer-append arms: add `let did_drop = data.len() > remaining;`
-   - AFTER the `&mut state` block closes: add `if did_drop { self.buffer_saturation_drops += 1; }`
+   - AFTER the `&mut state` block closes: add `if did_drop { self.buffer_saturation_drops = self.buffer_saturation_drops.saturating_add(1); }` (SEC-003 sibling-consistency: saturating_add avoids theoretical u64 overflow-check panic under overflow-checks=true; saturation at u64::MAX is safe for an aggregate diagnostic)
    - Critical: the increment MUST be between the buffer-append block and the `try_parse_records` call (ADR-011 Decision 1 C-3 borrow constraint)
    - Verify: `test_BC_2_07_043_buffer_saturation_observable` and `test_BC_2_07_043_both_directions_increment_same_counter` turn GREEN
 
@@ -212,7 +215,7 @@ Fits within a 200k context window (~33%). The implementer should read the existi
 
 **From STORY-144:** `handshake_reassembly_overflows: u64` was added to `TlsAnalyzer` using the same `truncated_records` pattern. The `summarize()` insertion pattern is already established. The `buffer_saturation_drops` counter follows the identical pattern.
 
-**From STORY-144 borrow-constraint lesson:** The `handshake_reassembly_overflows += 1` increment fires INSIDE the carry overflow check branch (before the borrow), so it has no borrow conflict. In contrast, `buffer_saturation_drops += 1` fires AFTER detecting a drop inside the `&mut state` block — so it requires the `did_drop: bool` flag pattern exactly as documented in ADR-011 Decision 1 and VP-040 Property Statement.
+**From STORY-144 borrow-constraint lesson:** The `handshake_reassembly_overflows += 1` increment fires INSIDE the carry overflow check branch (before the borrow), so it has no borrow conflict. In contrast, `buffer_saturation_drops = buffer_saturation_drops.saturating_add(1)` fires AFTER detecting a drop inside the `&mut state` block — so it requires the `did_drop: bool` flag pattern exactly as documented in ADR-011 Decision 1 and VP-040 Property Statement. The `saturating_add` form (rather than `+= 1`) matches the SEC-003 sibling-consistency pattern used by the three `handshake_reassembly_overflows` increments.
 
 **From BC-2.07.043 v1.3:** The seam signature is `fill_buf_for_testing(&mut self, flow_key: &FlowKey, direction: Direction, n: usize)` with `flow_key: &FlowKey` by REFERENCE (not by value). This matches the `&FlowKey` convention of all five sibling TLS test seams. Do not use by-value `FlowKey` — that would force a clone at call sites.
 
@@ -224,10 +227,10 @@ Source: `architecture/module-decomposition.md` + ADR-011
 
 1. **`buffer_saturation_drops` is on `TlsAnalyzer`, NOT `TlsFlowState`:** same as `truncated_records` and `handshake_reassembly_overflows`. Any misplacement on `TlsFlowState` would lose the count when a flow closes (BC-2.07.043 Invariant 2).
 2. **Increment condition is `data.len() > remaining`:** NOT `to_copy < data.len()`. The latter form misses the `remaining==0` full-drop case where `to_copy` is never computed (ADR-011 C-3).
-3. **`did_drop` flag pattern is REQUIRED by the borrow checker:** `self.buffer_saturation_drops += 1` cannot appear inside the `&mut state` block. Violating this produces a compile error.
+3. **`did_drop` flag pattern is REQUIRED by the borrow checker:** `self.buffer_saturation_drops = self.buffer_saturation_drops.saturating_add(1)` cannot appear inside the `&mut state` block. Violating this produces a compile error. The `saturating_add` form (not plain `+=`) matches the SEC-003 sibling-consistency pattern; both `buffer_saturation_drops` and all three `handshake_reassembly_overflows` increments must use `saturating_add`.
 4. **Byte-drop semantics of BC-2.07.005 are UNCHANGED:** This story adds telemetry only. The actual discard of bytes (`to_copy` vs `data.len()`) must not be modified.
 5. **`"buffer_saturation_drops": 0` in `summarize()` when no drops:** the key must always be present (EC-008), not only when the count is non-zero. This mirrors `"parse_errors": 0` and `"truncated_records": 0` always appearing.
-6. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL 6 new test functions added by STORY-146 MUST be placed inside a dedicated `mod story_146 { ... }` wrapper in `tests/tls_analyzer_tests.rs`. No new test function from this story may be added at the flat module root.
+6. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL 8 test functions delivered by STORY-146 (6 canonical VP-040 Red-Gate + 2 EC-coverage tests) MUST be placed inside a dedicated `mod story_146 { ... }` wrapper in `tests/tls_analyzer_tests.rs`. No new test function from this story may be added at the flat module root.
 
 ## Library & Framework Requirements
 
@@ -244,7 +247,7 @@ No new dependencies.
 | File | Change Type | Purpose |
 |------|------------|---------|
 | `src/analyzer/tls.rs` | Modify | Add `buffer_saturation_drops` field + accessor + seam + `did_drop` detection + `summarize()` key |
-| `tests/tls_analyzer_tests.rs` | Modify | Add VP-040 6 unit test functions, all inside `mod story_146 { ... }` per DF-TEST-NAMESPACE-001 |
+| `tests/tls_analyzer_tests.rs` | Modify | Add VP-040 6 canonical Red-Gate tests + 2 EC-coverage tests (8 total), all inside `mod story_146 { ... }` per DF-TEST-NAMESPACE-001 |
 
 No new files.
 
@@ -278,9 +281,11 @@ The VP-040 skeleton was authored with placeholder pseudo-helpers; this table map
 
 **Reconciliation rule:** Before creating any new helper, `grep` the existing `tests/tls_analyzer_tests.rs` for the relevant name pattern. Use the real existing name if found at crate scope; re-declare locally only for anything private to `mod story_144` / `mod story_145`.
 
-## Red-Gate Test Set (VP-040 — all 6 canonical names)
+## Red-Gate Test Set (VP-040 — 6 canonical + 2 EC-coverage = 8 total)
 
-All 6 test names below are CANONICAL per VP-040 and BC-2.07.043 VP table. Must appear verbatim (DF-AC-TEST-NAME-SYNC-001).
+### Canonical VP-040 Red-Gate Tests (6)
+
+All 6 test names below are CANONICAL per VP-040 and BC-2.07.043 VP table. Must appear verbatim (DF-AC-TEST-NAME-SYNC-001). These are the AC-cited tests — do NOT re-map ACs to the EC-coverage tests below.
 
 | Test name | Sub | BC Postcondition | Path |
 |-----------|-----|-----------------|------|
@@ -291,9 +296,25 @@ All 6 test names below are CANONICAL per VP-040 and BC-2.07.043 VP table. Must a
 | `test_BC_2_07_043_summarize_value_equals_drop_count` | Sub-D | PC-4 (summarize value-equality) | Uses Sub-A fixture |
 | `test_BC_2_07_043_both_directions_increment_same_counter` | Sub-E | PC-3 (both directions, same counter) | `fill_buf_for_testing` for S2C arm |
 
+### Additional EC-Table Coverage Tests (2, F-146-02)
+
+These two tests were added in commit 6a57eaa (F-146-02) to pin the story's EC table entries EC-C1 and EC-C3. They are ADDITIONAL coverage — they do NOT replace or re-map any ACs. They live inside `mod story_146` per DF-TEST-NAMESPACE-001.
+
+| Test name | EC | Description | Seam |
+|-----------|-----|-------------|------|
+| `test_BC_2_07_043_partial_drop_boundary` | EC-C1 | Buffer at 65,535 + 2 bytes → drops_before+1, parse_errors unchanged. Pins the partial-drop boundary (`remaining==1`): catches a missing or broken partial-drop detection (e.g., guard removed, condition inverted). Does NOT kill the `to_copy < data.len()` mutant — at `remaining==1`, `to_copy=1 < 2` is true so that mutant also increments; the `to_copy < data.len()` mutant is killed by the full-drop tests (`remaining==0`: `test_BC_2_07_043_buffer_saturation_full_drop` and `test_BC_2_07_043_full_buffer_empty_data_no_count`). | `fill_buf_for_testing(n = MAX_BUF - 1)` |
+| `test_BC_2_07_043_full_buffer_empty_data_no_count` | EC-C3 | Buffer at MAX_BUF + 0 bytes → no increment. Fails under a `>=` mutation of the strict `>` predicate. | `fill_buf_for_testing(n = MAX_BUF)` |
+
 ## Holdout Scenarios (F4)
 
 STORY-146 specifically gates on:
 - **HS-F4-010**: buffer-saturation holdout — `fill_buf_for_testing` + 1,000 byte delivery → `buffer_saturation_drops==1`, `parse_errors==0`, `summarize()["buffer_saturation_drops"]==1`
 - **HS-F4-011**: zero-drop holdout — fresh flow, data well within MAX_BUF → `buffer_saturation_drops==0` always present in `summarize()` detail map
 - **HS-F4-012**: cross-direction aggregate holdout — one C2S drop + one S2C drop → `buffer_saturation_drops==2`
+
+## Revision History
+
+| Version | Date | Change | Finding IDs |
+|---------|------|--------|-------------|
+| v1.0 | (initial) | Story authored per BC-2.07.043 v1.3 decomposition | — |
+| v1.1 | 2026-06-30 | F-146-01: Change `buffer_saturation_drops += 1` to `buffer_saturation_drops.saturating_add(1)` in all AC bodies, Tasks, Architecture Compliance Rules, and prose (SEC-003 sibling-consistency — matches `handshake_reassembly_overflows` siblings; avoids theoretical overflow-check panic under `overflow-checks = true`). F-146-02: Document 2 additional EC-coverage tests added in commit 6a57eaa (`test_BC_2_07_043_partial_drop_boundary` pins EC-C1; `test_BC_2_07_043_full_buffer_empty_data_no_count` pins EC-C3); test count updated from 6 to 8 throughout. No AC-to-BC traces changed; no `inputs:` list changed; input-hash unchanged. | F-146-01, F-146-02 |
