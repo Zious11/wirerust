@@ -9409,13 +9409,11 @@ mod story_144 {
     use wirerust::analyzer::tls::TlsAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
-    // STORY-144 stub: proptest is imported for the three proptest harnesses
-    // (proptest_vp039_carry_reassembly_two_record, proptest_vp039_exact_consume_coalesced,
-    // proptest_vp039_carry_bounded_invariant). The stubs use todo!() bodies so the
-    // macro is not yet exercised. `allow(unused_imports)` suppresses the -Dwarnings
-    // failure while the harnesses are stubs; the implementer removes the allow when
-    // the real proptest bodies are written.
-    #[allow(unused_imports)]
+    // proptest is used by the three proptest harnesses:
+    //   proptest_vp039_carry_reassembly_two_record (Sub-A)
+    //   proptest_vp039_exact_consume_coalesced (Sub-B)
+    //   proptest_vp039_carry_bounded_invariant (Sub-F)
+    // The allow(unused_imports) is removed now that the real proptest bodies are authored.
     use proptest::prelude::*;
 
     // ── Local test helpers ────────────────────────────────────────────────────
@@ -9464,27 +9462,77 @@ mod story_144 {
 
     // ── VP-039 Sub-A: carry reassembly ────────────────────────────────────────
 
-    /// VP-039 Sub-A (proptest): for any split offset 1<=k<n, a ClientHello
-    /// split into two 0x16 records must be fully reassembled.
-    ///
-    /// Asserts: `client_hello_seen==true`, `sni_counts.len()==1`,
-    /// `parse_errors==0`.
-    ///
-    /// Traces to: BC-2.07.038 v2.7 Postconditions 1–4.
-    /// Red Gate: FAILS before carry drain loop (AC-144-002) is implemented.
-    #[test]
-    fn proptest_vp039_carry_reassembly_two_record() {
-        // Stub body: proptest harness scaffolding. The real implementation
-        // of this harness requires the carry drain loop (AC-144-002).
-        // The todo!() causes this test to FAIL against the stub — Red Gate holds.
-        // The implementer replaces this body with the full proptest.
-        todo!(
-            "proptest_vp039_carry_reassembly_two_record: Red Gate stub. \
-             Implement the carry drain loop (AC-144-002) in try_parse_records, \
-             then replace this body with a proptest that splits a ClientHello \
-             at any offset 1<=k<n across two 0x16 records and asserts \
-             client_hello_seen==true, sni_counts.len()==1, parse_errors==0."
-        )
+    // VP-039 Sub-A (proptest): for any split offset 1<=k<n, a ClientHello
+    // split into two 0x16 records must be fully reassembled.
+    //
+    // Asserts: client_hello_seen==true, sni_counts.len()==1, parse_errors==0.
+    //
+    // Red Gate: FAILS against the stub because the carry drain loop
+    // (AC-144-002) is not yet implemented. Without reassembly, the fragmented
+    // ClientHello is never dispatched and client_hello_seen stays false.
+    //
+    // The strategy uses prop_oneof to guarantee partial-header splits
+    // (k < 4) and body splits (k >= 4) are both reachable in the same run.
+    //
+    // Traces to: BC-2.07.038 v2.7 Postconditions 1–4.
+    proptest! {
+        #[test]
+        fn proptest_vp039_carry_reassembly_two_record(
+            // Two-armed strategy: partial-header splits (1..4) AND body splits (4..256).
+            // Using prop_oneof ensures both sub-ranges are reachable in the same test run.
+            split_offset in prop_oneof![1usize..4usize, 4usize..256usize],
+        ) {
+            let client_hello = build_client_hello_with_sni("example.com");
+            let n = client_hello.len();
+            // Discard if split overshoots the actual message length.
+            prop_assume!(split_offset < n);
+
+            // Two-record fragmented delivery.
+            let mut analyzer_fragmented = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(1);
+            let ts: u32 = 100;
+
+            // Record 1: bytes [0..split_offset] wrapped as a 0x16 record payload.
+            let rec1 = wrap_as_tls_record(0x16, &client_hello[..split_offset]);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
+
+            // Record 2: bytes [split_offset..n] wrapped as a 0x16 record payload.
+            let rec2 = wrap_as_tls_record(0x16, &client_hello[split_offset..]);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts);
+
+            // Single-record delivery (baseline for comparison).
+            let mut analyzer_single = TlsAnalyzer::new();
+            let flow_key2 = make_test_flow_key(2);
+            let rec_single = wrap_as_tls_record(0x16, &client_hello);
+            analyzer_single.on_data(&flow_key2, Direction::ClientToServer, &rec_single, 0u64, ts);
+
+            // Red Gate primary assertion: after fragmented delivery, client_hello_seen
+            // must be true. Without the carry drain loop this is always false
+            // (stub never dispatches via the carry path) — fails on first case.
+            //
+            // Use flat accessor: client_hello_seen_for_testing is the NEW seam
+            // (STORY-144/146 deliverable), symmetric to server_hello_seen_for_testing.
+            prop_assert_eq!(
+                analyzer_fragmented.client_hello_seen_for_testing(&flow_key),
+                analyzer_single.client_hello_seen_for_testing(&flow_key2),
+                "fragmented and single-record ClientHello detection must agree: \
+                 fragmented={}, single={}",
+                analyzer_fragmented.client_hello_seen_for_testing(&flow_key),
+                analyzer_single.client_hello_seen_for_testing(&flow_key2),
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.parse_error_count(), 0u64,
+                "fragmented delivery must not produce parse errors"
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.sni_counts().len(), analyzer_single.sni_counts().len(),
+                "SNI detection must be identical for fragmented vs single-record"
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.ja3_counts().len(), analyzer_single.ja3_counts().len(),
+                "JA3 count must be identical for fragmented vs single-record"
+            );
+        }
     }
 
     /// VP-039 Sub-A (unit): three canonical RFC 8446 §4 handshake frames.
@@ -9746,20 +9794,88 @@ mod story_144 {
 
     // ── VP-039 Sub-B: exact-consume coalesced ─────────────────────────────────
 
-    /// VP-039 Sub-B (proptest): ClientHello + other_msg in one record;
-    /// handshake_count()==1, parse_errors==0, carry_len==0 after drain.
-    ///
-    /// Traces to: BC-2.07.042 v1.4 Postconditions 1–5.
-    /// Red Gate: FAILS because carry drain loop not implemented.
-    #[test]
-    fn proptest_vp039_exact_consume_coalesced() {
-        todo!(
-            "proptest_vp039_exact_consume_coalesced: Red Gate stub. \
-             Implement the carry drain loop (AC-144-002), then replace this body \
-             with a proptest that coalesces a ClientHello + a non-ClientHello \
-             message in one 0x16 record payload and asserts handshake_count()==1, \
-             parse_errors==0, carry_len==0 after drain."
-        )
+    // VP-039 Sub-B (proptest): ClientHello + other_msg coalesced in one record,
+    // delivered FRAGMENTED across two 0x16 records.
+    //
+    // The coalesced byte sequence is split at byte 4 (after the 4-byte ClientHello
+    // handshake header): record 1 = header only, record 2 = CH body + other_msg.
+    // This forces the carry drain loop to handle fragmentation AND coalesced dispatch.
+    //
+    // After both records: handshake_count()==1, parse_errors==0,
+    // carry_len==0, client_hello_seen==true.
+    //
+    // The secondary message has a NON-ZERO body_len so the exact-consume
+    // arithmetic (drain(4 + body_len)) is exercised with body_len > 0.
+    // handshakes_seen==1 is asserted directly via handshake_count()
+    // (not inferred from ja3_counts.len()==1 — F-F2-012 requirement).
+    //
+    // Red Gate: FAILS against the stub because the carry drain loop
+    // (AC-144-002) is not implemented. After record 1 (4-byte header only),
+    // client_hs_carry_len_for_testing must be 4 but the stub returns 0
+    // (carry never accumulates) — fails on the primary carry assertion.
+    //
+    // Traces to: BC-2.07.042 v1.4 Postconditions 1–5.
+    proptest! {
+        #[test]
+        fn proptest_vp039_exact_consume_coalesced(
+            // Vary the secondary handshake type (not 0x01/0x02 — any other type).
+            other_hs_type in 4u8..=20u8,
+            // Non-zero body length for the secondary message: 1–16 bytes.
+            // Ensures drain(4 + body_len) is exercised with body_len > 0.
+            other_body_len in 1u8..=16u8,
+        ) {
+            let client_hello = build_client_hello_with_sni("test.example.com");
+            // Secondary handshake: type(1) + 24-bit BE body_len(3) + body bytes.
+            let mut other_msg: Vec<u8> = vec![
+                other_hs_type,
+                0x00, 0x00, other_body_len,  // body_len encoded as 24-bit big-endian
+            ];
+            other_msg.extend(vec![0xBBu8; other_body_len as usize]); // non-zero body
+
+            // Coalesce: ClientHello handshake bytes immediately followed by other_msg.
+            let coalesced = [client_hello.as_slice(), other_msg.as_slice()].concat();
+
+            // FRAGMENTED delivery: split after the 4-byte ClientHello header so the
+            // carry drain loop must handle re-entry across records.
+            // Record 1: first 4 bytes (handshake header only — body pending).
+            // Record 2: remaining CH body + the full secondary message.
+            let rec1 = wrap_as_tls_record(0x16, &coalesced[..4]);
+            let rec2 = wrap_as_tls_record(0x16, &coalesced[4..]);
+
+            let mut analyzer = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(1);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, 100u32);
+
+            // Red Gate primary assertion: after record 1 (4-byte header only),
+            // carry must have accumulated 4 bytes. The stub never populates the
+            // carry buffer → carry_len == 0 → this assertion FAILS → Red Gate holds.
+            //
+            // client_hs_carry_len_for_testing is the NEW seam (STORY-144/146 deliverable).
+            prop_assert_eq!(
+                analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
+                "after 4-byte header record, carry must hold exactly 4 bytes; \
+                 stub returns 0 → Red Gate fails (0 != 4)"
+            );
+
+            // Deliver record 2 — the carry drain loop must now:
+            // 1. Complete the ClientHello (drain 4+body_len bytes), dispatch it.
+            // 2. Immediately drain the other_msg (non-CH, consumed silently).
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, 100u32);
+
+            // After full drain: exactly 1 ClientHello dispatched.
+            // F-F2-012: assert handshakes_seen==1 DIRECTLY via handshake_count().
+            prop_assert!(analyzer.client_hello_seen_for_testing(&flow_key),
+                "ClientHello in coalesced fragmented record must be dispatched (client_hello_seen==true)");
+            prop_assert_eq!(analyzer.handshake_count(), 1u64,
+                "exactly 1 ClientHello dispatched — handshake_count must be 1");
+            prop_assert_eq!(analyzer.parse_error_count(), 0u64,
+                "coalesced delivery must not produce parse errors");
+            // Carry buffer must be empty: both messages fully consumed.
+            prop_assert_eq!(
+                analyzer.client_hs_carry_len_for_testing(&flow_key), 0,
+                "carry buffer must be empty after all complete messages consumed"
+            );
+        }
     }
 
     /// VP-039 Sub-B (unit): no double-dispatch; handshakes_seen exact after
@@ -10113,21 +10229,108 @@ mod story_144 {
 
     // ── VP-039 Sub-F: carry bounded invariant ────────────────────────────────
 
-    /// VP-039 Sub-F (proptest): generative invariant — for any sequence of
-    /// on_data calls with arbitrary byte slices, both carry buffers remain
-    /// <= MAX_BUF after every call.
-    ///
-    /// Traces to: BC-2.07.039 v2.4 Invariant 1.
-    /// Red Gate: FAILS because carry accumulation is not implemented.
-    #[test]
-    fn proptest_vp039_carry_bounded_invariant() {
-        todo!(
-            "proptest_vp039_carry_bounded_invariant: Red Gate stub. \
-             Implement the carry drain loop (AC-144-002), then replace this body \
-             with a proptest that feeds arbitrary byte sequences to on_data and \
-             asserts client_hs_carry_len_for_testing <= MAX_BUF and \
-             server_hs_carry_len_for_testing <= MAX_BUF after every call. \
-             This is the Sub-F STORY-144-owned proptest (NOT shared with STORY-145)."
-        )
+    // VP-039 Sub-F (proptest): generative bounded-carry invariant.
+    //
+    // For any sequence of 1–8 on_data calls with 0x16 payloads that BEGIN
+    // WITH A VALID HANDSHAKE HEADER (body_len <= MAX_BUF = 65,536), the
+    // client-direction carry buffer never exceeds MAX_BUF after any call.
+    //
+    // Generator design (F-F2P-IMP-001 restructuring):
+    // Each payload starts with a valid 4-byte handshake header:
+    //   [0x01, (body_len >> 16) as u8, (body_len >> 8) as u8, body_len as u8]
+    // where body_len is in 0..=65_536. This guarantees carry actually
+    // accumulates (Decision-4 body_len-spoof guard does NOT fire) and makes
+    // the bounded-carry invariant non-trivially testable.
+    //
+    // Red Gate failure mechanism:
+    // The stub never populates the carry buffer (AC-144-002 not yet implemented).
+    // The secondary assertion — carry_len >= 1 after the first partial record —
+    // fails because carry_len is always 0 in the stub.
+    //
+    // The primary invariant assertion (carry_len <= MAX_BUF) remains the
+    // correctness guard for the real implementation.
+    //
+    // Traces to: BC-2.07.039 v2.4 Invariant 1.
+    proptest! {
+        #[test]
+        fn proptest_vp039_carry_bounded_invariant(
+            // Generate 1–8 records; each begins with a valid handshake header
+            // declaring body_len <= MAX_BUF so carry actually accumulates.
+            records in proptest::collection::vec(
+                // body_len in valid range [0, MAX_BUF] (Decision-4 guard does NOT fire).
+                (0usize..=65_536usize).prop_flat_map(|body_len| {
+                    // Partial body: up to min(body_len, MAX_RECORD_PAYLOAD-4) bytes.
+                    // The payload is always < 4+body_len so the carry accumulates —
+                    // the message is never complete in a single record.
+                    let body_max = body_len.min(18_428usize); // MAX_RECORD_PAYLOAD(18432) - 4
+                    proptest::collection::vec(proptest::arbitrary::any::<u8>(), 0..=body_max)
+                        .prop_map(move |body| {
+                            // Build payload: valid 4-byte handshake header + partial body.
+                            let mut payload = vec![
+                                0x01u8,                        // msg_type: ClientHello
+                                (body_len >> 16) as u8,        // len byte 0 (MSB)
+                                (body_len >> 8) as u8,         // len byte 1
+                                (body_len & 0xFF) as u8,       // len byte 2 (LSB)
+                            ];
+                            payload.extend_from_slice(&body);
+                            payload
+                        })
+                }),
+                1..=8usize,
+            ),
+        ) {
+            let mut analyzer = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(42);
+            let ts: u32 = 100;
+
+            for (idx, payload) in records.iter().enumerate() {
+                let rec = wrap_as_tls_record(0x16, payload);
+                analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
+
+                // Primary invariant: carry NEVER exceeds MAX_BUF.
+                // (This is the correctness guard for the real implementation;
+                // against the stub it trivially holds since carry is always 0.)
+                prop_assert!(
+                    analyzer.client_hs_carry_len_for_testing(&flow_key) <= 65_536,
+                    "client_hs_carry must never exceed MAX_BUF after on_data \
+                     (record {idx}, payload len {}, carry len {})",
+                    payload.len(),
+                    analyzer.client_hs_carry_len_for_testing(&flow_key),
+                );
+
+                // Red Gate secondary assertion: after delivering the FIRST record
+                // (which always contains a valid header + a partial-body that is
+                // never complete because body_max < body_len in the generator),
+                // the carry must have accumulated AT LEAST the payload bytes.
+                //
+                // In the real implementation: carry_len == cumulative payload bytes
+                // delivered (until a complete message is drained).
+                // In the stub: carry_len == 0 always → this assertion FAILS on
+                // the first generated record with payload.len() >= 1, providing
+                // the Red Gate failure.
+                if idx == 0 && !payload.is_empty() {
+                    // The first record's payload fits entirely in the carry buffer
+                    // (body_len <= MAX_BUF was guaranteed by the generator).
+                    // After the stub: carry_len == 0. After the real implementation:
+                    // carry_len == payload.len() (accumulation, no drain yet — unless
+                    // body_len == 0 which means the 4-byte header is a complete
+                    // zero-body message that drains immediately; skip that case).
+                    let declared_body_len = ((payload[1] as usize) << 16)
+                        | ((payload[2] as usize) << 8)
+                        | (payload[3] as usize);
+                    let is_partial = payload.len() < 4 + declared_body_len;
+                    if is_partial {
+                        prop_assert!(
+                            analyzer.client_hs_carry_len_for_testing(&flow_key) >= 1,
+                            "after partial first record (payload {} bytes, body_len {}), \
+                             carry_len must be >= 1 (carry must accumulate); \
+                             stub returns 0 → Red Gate fails",
+                            payload.len(),
+                            declared_body_len,
+                        );
+                    }
+                }
+            }
+        }
     }
 }
