@@ -56,7 +56,7 @@ Maintenance sweeps PAUSED for duration of this cycle.
 | F1 — Delta Analysis | DONE | delta-analysis.md committed; architect completed |
 | F2 — Spec Evolution | **CONVERGED + HUMAN-APPROVED 2026-06-29 (D-305, incl scope addition)** | 6 new BCs (BC-2.07.038-043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) + VP-039 (17 harnesses) + VP-040 (6 harnesses) + ADR-011. F-EV-001 defense-in-depth scope addition: BC-2.07.043 buffer_saturation_drops + BC-2.07.005 v1.7 reconciliation. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45. SS-07 43 BCs. |
 | F3 — Incremental Stories | **APPROVED 2026-06-29 (D-306)** | STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves); holdout registry HS-F4-001..012; input-hashes refreshed (144: 3dfe20c, 145: 88e29c9, 146: 6d9da65); pre-F4 verification PASS |
-| F4 — TDD Delta Implementation | **ACTIVE** | STORY-144 (wave 65) in per-story TDD delivery; worktree `.worktrees/story-144-tls-carry-reassembly`, branch `feature/story-144-tls-carry-reassembly`, from develop `ab0b388` |
+| F4 — TDD Delta Implementation | **ACTIVE** | Wave 65 DONE — STORY-144 MERGED (PR #341, squash `0986e878`, 11/11 CI green, 2026-06-29, D-307). Wave 66 active — STORY-145 (ServerHello symmetry+isolation) next; STORY-146 (buffer-saturation telemetry) after. Delivering sequentially (both touch tls.rs). |
 | F5 — Scoped Adversarial Review | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
 | F7 — Delta Convergence | PENDING | Version decision at gate |
@@ -99,7 +99,11 @@ Maintenance sweeps PAUSED for duration of this cycle.
 
 ## Tech Debt Created
 
-*Populated during cycle as items are identified.*
+| ID | Description | Priority | Target |
+|----|-------------|----------|--------|
+| SEC-002 | Narrow non-RFC overflow window [MAX_BUF-3, MAX_BUF] — message body in this range clears-and-recovers rather than assembling. Low exploitability; primary DoS path fixed in STORY-144. | LOW | F6 hardening |
+| SEC-004 | parse_errors plain `+=` in tls.rs — theoretical u64 overflow on extremely long-running high-parse-error flows (cosmetic counter wrap, no safety impact). | LOW | Maintenance sweep |
+| DONE-MID-LOOP-CROSS-DIRECTION | done()-mid-loop cross-direction carry interaction — if done() fires while partial message spans both directions, cross-direction carry residue may be silently cleared. Pre-existing. | LOW | Wave-gate review |
 
 ## Notes
 
