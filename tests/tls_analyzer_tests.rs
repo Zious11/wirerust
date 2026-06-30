@@ -11302,4 +11302,89 @@ mod story_146 {
             drops_initial + 2
         );
     }
+
+    // ── EC-C1: partial-drop at the 65,535-byte fill boundary ─────────────────
+
+    /// EC-C1 (unit): filling the buffer to 65,535 bytes (1 byte of remaining
+    /// capacity), then delivering 2 bytes, triggers exactly one drop-event
+    /// increment and leaves `parse_error_count` unchanged.
+    ///
+    /// Setup: `fill_buf_for_testing` parks the C2S buffer at 65,535 bytes
+    /// (remaining == 1).  Action: `on_data` with 2 bytes.  Since 2 > 1, the
+    /// tail-drop condition (`data.len() > remaining`) fires; 1 byte is
+    /// appended, 1 byte is dropped.
+    ///
+    /// Non-tautology: if drop detection were broken (e.g., using `to_copy <
+    /// data.len()` instead of `data.len() > remaining`) the full-drop and
+    /// partial-drop paths would both miss the drop event, and the assertion
+    /// `drops_after == drops_before + 1` would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 EC-C1; AC-146-002 (partial-drop boundary).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_partial_drop_boundary() {
+        let fk = make_test_flow_key(68);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park C2S buffer at 65,535 bytes (1 byte of remaining capacity).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF - 1);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let parse_errors_before = analyzer.parse_error_count();
+
+        // Deliver 2 bytes: remaining == 1, so 2 > 1 → drop fires, 1 byte appended.
+        let data = vec![0x00u8; 2];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "EC-C1 partial boundary (65,535-fill + 2 bytes): buffer_saturation_drops \
+             must increment by exactly 1 (drops_before={drops_before})"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "EC-C1 partial boundary: parse_error_count must NOT change on buffer \
+             saturation (parse_errors_before={parse_errors_before})"
+        );
+    }
+
+    // ── EC-C3: full buffer + empty data slice — no increment ─────────────────
+
+    /// EC-C3 (unit): filling the buffer to MAX_BUF (65,536 bytes), then
+    /// delivering an empty slice `&[]`, does NOT increment
+    /// `buffer_saturation_drops`.
+    ///
+    /// Setup: `fill_buf_for_testing` parks the C2S buffer at MAX_BUF bytes
+    /// (remaining == 0).  Action: `on_data` with 0 bytes.  The drop condition
+    /// is `data.len() > remaining` = `0 > 0` = false, so no increment occurs.
+    ///
+    /// Non-tautology: if the strict-`>` boundary were relaxed to `>=` (a
+    /// plausible mutation), then `0 >= 0` would evaluate to true, the counter
+    /// would increment, and the assertion `drops_after == drops_before` would
+    /// fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 EC-C3; AC-146-002 (strict-> predicate).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_full_buffer_empty_data_no_count() {
+        let fk = make_test_flow_key(69);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park C2S buffer at MAX_BUF (remaining == 0).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Deliver 0 bytes: 0 > 0 is false — drop must NOT fire.
+        analyzer.on_data(&fk, Direction::ClientToServer, &[], 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "EC-C3 empty-data / full-buffer: buffer_saturation_drops must NOT \
+             increment when data.len()==0 (drops_before={drops_before})"
+        );
+    }
 }

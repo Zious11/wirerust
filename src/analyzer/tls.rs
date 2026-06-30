@@ -1164,7 +1164,11 @@ impl StreamHandler for TlsAnalyzer {
         // Placement is between the buffer-append block and the try_parse_records call
         // (ADR-011 Decision 1 / BC-2.07.043 Invariant 4). Byte-drop semantics unchanged.
         if did_drop {
-            self.buffer_saturation_drops += 1;
+            // SEC-003: saturating_add mirrors sibling `handshake_reassembly_overflows`
+            // increments — avoids theoretical overflow-check panic under the release
+            // profile's `overflow-checks = true`. Counter saturation at u64::MAX is safe
+            // and intentional for an aggregate diagnostic.
+            self.buffer_saturation_drops = self.buffer_saturation_drops.saturating_add(1);
         }
 
         self.try_parse_records(flow_key, direction);
