@@ -10954,3 +10954,348 @@ mod story_145 {
         );
     }
 }
+
+// ── STORY-146 VP-040 Red-Gate tests ──────────────────────────────────────────
+//
+// DF-TEST-NAMESPACE-001: ALL 6 new test functions for STORY-146 are inside
+// this `mod story_146` wrapper.  No new flat-root tests are added for this story.
+//
+// These tests verify BC-2.07.043 v1.3 (Per-Direction Buffer Saturation
+// Tail-Drop Is Observable via `buffer_saturation_drops` Counter).
+//
+// Red-Gate status: all 6 MUST FAIL before implementation.
+//   - Tests calling `buffer_saturation_drop_count()` will panic on `todo!()`.
+//   - Tests calling `fill_buf_for_testing()` will panic on `todo!()`.
+//   - `test_BC_2_07_043_summarize_value_equals_drop_count` will fail because
+//     `"buffer_saturation_drops"` is absent from the `summarize()` detail map.
+//
+// Reconciliation (grep run before declaring helpers):
+//   build_server_hello     → EXISTS at flat root (line 137)
+//   build_client_hello     → EXISTS at flat root (line 16)
+//   wrap_as_tls_record     → ONLY in mod story_144/story_145 (private) — re-declared here
+//   make_test_flow_key     → ONLY in mod story_144/story_145 (private) — re-declared here
+//   all_findings_len_for_testing → EXISTS at tls.rs seam scope — used directly
+mod story_146 {
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
+
+    // ── Local test helpers ────────────────────────────────────────────────────
+
+    /// Create a `FlowKey` varied by `seed` so cross-flow and independent-flow
+    /// tests can use distinct keys without collision.
+    ///
+    /// Re-declared locally per DF-TEST-NAMESPACE-001 (identical to mod story_144/145 copy).
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 146, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 146, 1, seed]),
+            443,
+        )
+    }
+
+    // MAX_BUF = 65,536 bytes (BC-2.07.005 / ADR-011).  The real constant is
+    // private to `src/analyzer/tls.rs`; we use the literal here with a comment
+    // so any change to the real constant would break tests visibly.
+    const MAX_BUF: usize = 65_536;
+
+    // ── VP-040 Sub-A (partial-drop path) ─────────────────────────────────────
+
+    /// VP-040 Sub-A (unit): delivering 65,537 bytes to an empty per-direction
+    /// buffer causes a partial tail-drop (1 byte discarded), increments
+    /// `buffer_saturation_drops` by exactly 1, and leaves `parse_errors`
+    /// unchanged.
+    ///
+    /// Setup: fresh `TlsAnalyzer`; empty buffer (no prior `on_data`).
+    /// Action: `on_data` with 65,537 raw bytes (C2S direction).
+    /// Buffer remaining before call = MAX_BUF = 65,536.  Since 65,537 > 65,536,
+    /// the tail-drop condition fires.  1 byte is dropped; 65,536 bytes are
+    /// appended.
+    ///
+    /// Non-tautology: if the `did_drop` detection + `buffer_saturation_drops += 1`
+    /// increment were absent, `buffer_saturation_drop_count()` would return 0 and
+    /// the assertion `drops_after == drops_before + 1` would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 1 (partial-drop path); AC-146-002.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_buffer_saturation_observable() {
+        let fk = make_test_flow_key(60);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let parse_errors_before = analyzer.parse_error_count();
+
+        // 65,537 bytes to an empty buffer: remaining == 65,536; 1 byte dropped.
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "partial-drop (65,537 bytes to empty buffer): buffer_saturation_drops \
+             must increment by exactly 1 (drops_before={drops_before})"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "partial-drop: parse_error_count must NOT change on buffer saturation \
+             (parse_errors_before={parse_errors_before})"
+        );
+    }
+
+    // ── VP-040 Sub-A (full-drop path) ────────────────────────────────────────
+
+    /// VP-040 Sub-A (unit): delivering any bytes to a buffer already at MAX_BUF
+    /// capacity (remaining == 0) causes a full tail-drop and increments
+    /// `buffer_saturation_drops` by exactly 1.
+    ///
+    /// Setup: `fill_buf_for_testing` seam parks the C2S buffer at exactly MAX_BUF
+    /// bytes (remaining == 0).
+    /// Action: `on_data` with 1,000 raw bytes.
+    /// Since 1,000 > 0, the tail-drop condition fires; 0 bytes are appended.
+    ///
+    /// Non-tautology: if the full-drop path (`remaining==0` branch) were absent
+    /// or misdetected (using `to_copy < data.len()` instead of
+    /// `data.len() > remaining`), the counter would not increment and the
+    /// assertion would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 1 (full-drop path EC-002);
+    ///            AC-146-001 (`fill_buf_for_testing` seam); AC-146-002.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_buffer_saturation_full_drop() {
+        let fk = make_test_flow_key(61);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park the C2S buffer at exactly MAX_BUF (remaining == 0).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Any delivery now triggers full-drop: 1,000 > 0.
+        let data = vec![0x00u8; 1_000];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "full-drop (buffer at MAX_BUF, 1,000 bytes delivered): \
+             buffer_saturation_drops must increment by exactly 1 \
+             (drops_before={drops_before})"
+        );
+    }
+
+    // ── VP-040 Sub-B (no-drop boundary) ──────────────────────────────────────
+
+    /// VP-040 Sub-B (unit): when delivered data fits within the remaining buffer
+    /// capacity, `buffer_saturation_drops` is NOT incremented.
+    ///
+    /// Covers EC-003 (data well within capacity) and EC-005 (exact-fit boundary:
+    /// `data.len() == remaining`; condition is strictly `>`, so no drop).
+    ///
+    /// Setup: fresh analyzer; deliver a small record (100 bytes) that fits in
+    /// an empty MAX_BUF buffer.  Remaining = 65,536; 100 < 65,536 → no drop.
+    ///
+    /// EC-005 sub-check: deliver exactly MAX_BUF bytes to an empty buffer.
+    /// `data.len() == remaining == MAX_BUF`; `MAX_BUF > MAX_BUF` is false;
+    /// counter must NOT increment.
+    ///
+    /// Non-tautology: if the drop condition used `>=` instead of `>`, the EC-005
+    /// exact-fit delivery would incorrectly increment the counter and the
+    /// assertion `drops_after == drops_before` would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Invariant 5; EC-003, EC-005; AC-146-003.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_no_drop_no_counter() {
+        let fk = make_test_flow_key(62);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // EC-003: small record well within capacity.
+        let small = vec![0x00u8; 100];
+        analyzer.on_data(&fk, Direction::ClientToServer, &small, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "no-drop (100 bytes to empty buffer): buffer_saturation_drops must \
+             NOT change (drops_before={drops_before})"
+        );
+
+        // EC-005: exact-fit — deliver exactly MAX_BUF bytes to a fresh flow.
+        // remaining = MAX_BUF (fresh); data.len() == MAX_BUF; strictly > is false.
+        let fk2 = make_test_flow_key(63);
+        let drops_before_exact = analyzer.buffer_saturation_drop_count();
+        let exact_fit = vec![0x00u8; MAX_BUF];
+        analyzer.on_data(&fk2, Direction::ClientToServer, &exact_fit, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before_exact,
+            "exact-fit (MAX_BUF bytes to empty buffer): drop condition is strictly >, \
+             so counter must NOT change (drops_before_exact={drops_before_exact})"
+        );
+    }
+
+    // ── VP-040 Sub-C (counter persists across flow close) ────────────────────
+
+    /// VP-040 Sub-C (unit): `buffer_saturation_drops` is an aggregate counter on
+    /// `TlsAnalyzer` — NOT on `TlsFlowState` — and is NOT reset when
+    /// `on_flow_close` is called.
+    ///
+    /// Sequence: snapshot `drops_before`; trigger one drop; assert `drops_before + 1`;
+    /// call `on_flow_close`; assert counter still equals `drops_before + 1`.
+    ///
+    /// Non-tautology: if the counter were placed on `TlsFlowState` and zeroed on
+    /// flow close, the final assertion would fail (counter would revert to 0 or
+    /// be unreachable after `flows.remove`).
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 5, Invariant 2; AC-146-004.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_counter_persists_across_flows() {
+        let fk = make_test_flow_key(64);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Snapshot before drop.
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Trigger exactly one drop: 65,537 bytes to empty buffer.
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        let drops_after_drop = analyzer.buffer_saturation_drop_count();
+        assert_eq!(
+            drops_after_drop,
+            drops_before + 1,
+            "counter must increment after drop \
+             (drops_before={drops_before}, drops_after_drop={drops_after_drop})"
+        );
+
+        // Close the flow.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        // Counter must be unchanged by flow close.
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "buffer_saturation_drops must NOT reset on on_flow_close; \
+             aggregate counter persists on TlsAnalyzer, not TlsFlowState \
+             (drops_before={drops_before})"
+        );
+    }
+
+    // ── VP-040 Sub-D (summarize value-equality) ───────────────────────────────
+
+    /// VP-040 Sub-D (unit): `summarize()` exposes `"buffer_saturation_drops"` in
+    /// the `detail` map with value-equality to the current counter.
+    ///
+    /// After triggering 1 drop, `detail["buffer_saturation_drops"].as_u64()`
+    /// must equal `drops_before + 1` (value-equality, not mere key presence).
+    ///
+    /// Also verifies EC-008: the key is present even when the count is 0 (checked
+    /// on a fresh analyzer before the drop).
+    ///
+    /// Non-tautology: if `summarize()` omits the `"buffer_saturation_drops"` key
+    /// or inserts a wrong value, the `.expect()` or the `as_u64()` assertion fails.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 4; EC-008; AC-146-005.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_summarize_value_equals_drop_count() {
+        let fk = make_test_flow_key(65);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // EC-008 sub-check: key present even when counter is 0.
+        let summary_zero = analyzer.summarize();
+        let zero_val = summary_zero.detail.get("buffer_saturation_drops").expect(
+            "summarize() must contain 'buffer_saturation_drops' key even when count==0 (EC-008)",
+        );
+        assert_eq!(
+            zero_val.as_u64(),
+            Some(0),
+            "summarize() detail['buffer_saturation_drops'] must equal 0 on fresh \
+             analyzer; got: {zero_val:?}"
+        );
+
+        // Trigger exactly 1 drop.
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        let summary = analyzer.summarize();
+        let drop_val = summary
+            .detail
+            .get("buffer_saturation_drops")
+            .expect("summarize() must contain 'buffer_saturation_drops' key after a drop");
+
+        assert_eq!(
+            drop_val.as_u64(),
+            Some(drops_before + 1),
+            "summarize() detail['buffer_saturation_drops'] must equal drops_before+1={}; \
+             got: {drop_val:?}",
+            drops_before + 1
+        );
+    }
+
+    // ── VP-040 Sub-E (both directions increment the same counter) ────────────
+
+    /// VP-040 Sub-E (unit): one `ClientToServer` drop and one `ServerToClient`
+    /// drop each increment the SAME aggregate `buffer_saturation_drops` counter,
+    /// so after both drops the counter equals `drops_initial + 2`.
+    ///
+    /// Setup: use `fill_buf_for_testing` to park the S2C buffer at MAX_BUF for
+    /// the S2C drop (full-drop path).  The C2S drop uses the no-seam partial-drop
+    /// path (65,537 bytes to an empty C2S buffer).
+    ///
+    /// Non-tautology: if the two directions incremented separate counters or if
+    /// either direction failed to increment at all, `drops_final == drops_initial + 2`
+    /// would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 3; EC-007; AC-146-006.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_both_directions_increment_same_counter() {
+        let fk_c2s = make_test_flow_key(66);
+        let fk_s2c = make_test_flow_key(67);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_initial = analyzer.buffer_saturation_drop_count();
+
+        // C2S drop: 65,537 bytes to empty C2S buffer (partial-drop, no seam needed).
+        let data_c2s = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk_c2s, Direction::ClientToServer, &data_c2s, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_initial + 1,
+            "after C2S drop: counter must be drops_initial+1={} \
+             (drops_initial={drops_initial})",
+            drops_initial + 1
+        );
+
+        // S2C drop: park the S2C buffer at MAX_BUF via seam, then deliver 1 byte.
+        analyzer.fill_buf_for_testing(&fk_s2c, Direction::ServerToClient, MAX_BUF);
+        let data_s2c = vec![0x00u8; 1];
+        analyzer.on_data(&fk_s2c, Direction::ServerToClient, &data_s2c, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_initial + 2,
+            "after C2S+S2C drops: counter must be drops_initial+2={} \
+             (drops_initial={drops_initial})",
+            drops_initial + 2
+        );
+    }
+}
