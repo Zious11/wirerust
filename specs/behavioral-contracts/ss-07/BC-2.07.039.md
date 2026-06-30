@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.4"
+version: "2.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-29T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v2.2: Pass-3 adversarial reconciliation (F-P3-001 HIGH, F-P3-004 MEDIUM) — Architecture Anchors: handshake_reassembly_overflows type corrected u32→u64 to mirror truncated_records (u64 at tls.rs:319); PC-7 added: handshake_reassembly_overflows MUST be surfaced as a key in the summarize() JSON detail map, mirroring truncated_records (tls.rs:888-889); Red-Gate test name added: test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key — 2026-06-29"
   - "v2.3: Fix burst 6 adversarial reconciliation (F-FRESH-003 MEDIUM) — Inv-2 4×MAX_BUF ceiling qualified as a POST-on_data-return RESIDUE bound (mirrors BC-2.07.005 Observability Note convention); in-call transient peak higher: includes the record_bytes clone simultaneously live with client_buf drain + client_hs_carry bytes; '256 KiB hard peak' claim removed because it overstates the in-call peak (clone is transient, freed before on_data returns) — 2026-06-29"
   - "v2.4: Fix burst 9 adversarial reconciliation (F-EV-002 MEDIUM) — EC-009 added: mid-legitimate-assembly overflow-clear residual risk — an overflow-clear (buffer-fill or body_len-spoof) that fires while a legitimate ClientHello is being assembled discards the in-progress bytes; recovery requires a subsequent well-formed record; a real TLS client will not re-send a mid-handshake fragment (handshake layer is not a request-response protocol for individual records), so that handshake's SNI/JA3 may be permanently missed for that flow; this is the ACCEPTED BOUNDED outcome per TLS-REASSEMBLY-OVERFLOW-POLICY.md: clear-and-recover was chosen over sticky-abandon precisely to bound and deny permanence; the alternative (sticky-abandon) permanently blinds the entire direction with one packet; mid-assembly loss is the bounded residual risk of the chosen policy — 2026-06-29"
+  - "v2.5: F5 architecture-anchor re-anchor (F-F5-001) — MAX_BUF const :30→:33; truncated_records field :319→:339; per-record oversize guard L689-698→:731-741; summarize() truncated_records insert :888-889→:1223-1226; develop 8b52046; no semantic change — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,8 +42,8 @@ policy (Policy A), selected over sticky abandon-direction (Policy B) on evasion-
 grounds: a sticky-abandon flag is a one-packet, permanent, attacker-triggered blinding
 primitive (Ptacek/Newsham desync; Suricata CVE-2019-18792 precedent); clear-and-recover
 denies permanence. See `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` for the
-full evidence basis. Consistency: the existing per-record overflow handler in tls.rs
-L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize records.
+full evidence basis. Consistency: the existing per-record overflow handler in tls.rs:731-741
+already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize records.
 
 ## Preconditions
 
@@ -71,7 +72,7 @@ L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize re
 7. The `handshake_reassembly_overflows` counter MUST be surfaced as a key
    `"handshake_reassembly_overflows"` in the `detail` map returned by
    `TlsAnalyzer::summarize()`, in the same manner as `"truncated_records"` is inserted
-   at `tls.rs:888-889`. This backs ADR-011 Decision 5's observability rationale:
+   at `tls.rs:1223-1226`. This backs ADR-011 Decision 5's observability rationale:
    the counter is not a private diagnostic field — it is part of the durable telemetry
    surface accessible to consumers of `AnalysisSummary`. Red-Gate test:
    `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key` — an overflow
@@ -157,7 +158,7 @@ L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize re
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs — `TlsFlowState` carry fields + `handshake_reassembly_overflows` counter + overflow check in `try_parse_records`) |
 | Finding Source | TLS-CLIENTHELLO-FRAG-001; Pass-1 adversarial findings F-P1-001/SR-001 (CRITICAL), F-P1-005/SR-006 (MED) |
-| Design Decision | Pass-1 F2 reconciliation: clear-and-recover (Policy A) adopted over sticky abandon-direction (Policy B). Rationale: sticky-abandon is a one-packet permanent blinding primitive (Ptacek/Newsham desync; Suricata CVE-2019-18792); clear-and-recover matches Wireshark/Suricata norms and wirerust's existing per-record oversize handling (tls.rs L689-698). See `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md`. |
+| Design Decision | Pass-1 F2 reconciliation: clear-and-recover (Policy A) adopted over sticky abandon-direction (Policy B). Rationale: sticky-abandon is a one-packet permanent blinding primitive (Ptacek/Newsham desync; Suricata CVE-2019-18792); clear-and-recover matches Wireshark/Suricata norms and wirerust's existing per-record oversize handling (tls.rs:731-741). See `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md`. |
 | Stories | STORY-144 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
@@ -170,9 +171,9 @@ L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize re
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:30` — `const MAX_BUF: usize = 65_536` (shared constant)
+- `src/analyzer/tls.rs:33` — `const MAX_BUF: usize = 65_536` (shared constant)
 - `src/analyzer/tls.rs` — `TlsFlowState` struct: `client_hs_carry: Vec<u8>`, `server_hs_carry: Vec<u8>` (NO abandoned-flag fields; NO per-flow overflow counter)
-- `src/analyzer/tls.rs` — `TlsAnalyzer` struct: `handshake_reassembly_overflows: u64` (aggregate counter across all flows; mirrors `truncated_records` which is `u64` at tls.rs:319; NOT a per-flow field; NOT reset at flow close)
+- `src/analyzer/tls.rs` — `TlsAnalyzer` struct: `handshake_reassembly_overflows: u64` (aggregate counter across all flows; mirrors `truncated_records` which is `u64` at tls.rs:339; NOT a per-flow field; NOT reset at flow close)
 - `src/analyzer/tls.rs` — `try_parse_records` 0x16 drain path: overflow check before append; `carry.clear()` + `self.handshake_reassembly_overflows += 1` on overflow; continue (no break/skip)
 - `tests/tls_analyzer_tests.rs` — `test_vp039_carry_overflow_clear_and_recover`
 - `tests/tls_analyzer_tests.rs` — `test_vp039_carry_overflow_recovery`

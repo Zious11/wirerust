@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — handle_server_hello 542-604→586-651; JA3S compute 563→607; cipher tracking 566-568→611-612 — 2026-06-13"
   - "v1.5: fix-tls-clienthello-frag F2 scope expansion — 'complete ServerHello' now includes ServerHello assembled across multiple TLS records via BC-2.07.038 carry-buffer reassembly (server direction); Precondition 2 updated; Invariant 4 added (single-record fast path preserved); EC-005 added (fragmented ServerHello); Related BCs extended (+BC-2.07.038); TLS-CLIENTHELLO-FRAG-001 cross-reference added — 2026-06-29"
   - "v1.6: Pass-1 adversarial reconciliation (SR-008 MED) — add Postcondition 7 naming both drain operations explicitly: (a) record bytes drained from server_buf at the record layer; (b) assembled handshake message exact-consumed (4+body_len) from server_hs_carry at the carry layer; symmetric with BC-2.07.001 v1.8 Postcondition 8 — 2026-06-29"
+  - "v1.7: F5 architecture-anchor re-anchor (F-F5-001) — handle_server_hello 586-651→628-693; JA3S at 649; cipher tracking at 653-654; develop 8b52046; no semantic change — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -135,7 +136,7 @@ See EC-004 and BC-2.07.012 EC-004.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- ServerHello parsing and JA3S fingerprinting is a core TLS analysis capability |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:586-651, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:628-693, C-13) |
 | Stories | STORY-053, STORY-145 |
 | Origin BC | BC-TLS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -150,16 +151,16 @@ See EC-004 and BC-2.07.012 EC-004.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:586-651` -- `handle_server_hello` implementation
-- `src/analyzer/tls.rs:607` -- JA3S computation (`compute_ja3s`)
-- `src/analyzer/tls.rs:611-612` -- cipher tracking (`cipher_name` + `cipher_counts` increment)
+- `src/analyzer/tls.rs:628-693` -- `handle_server_hello` implementation
+- `src/analyzer/tls.rs:649` -- JA3S computation (`compute_ja3s`)
+- `src/analyzer/tls.rs:653-654` -- cipher tracking (`cipher_name` + `cipher_counts` increment)
 - `tests/tls_analyzer_tests.rs` -- test_parse_server_hello, test_weak_cipher_finding_server
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:586-651` (`handle_server_hello`) |
+| **Path** | `src/analyzer/tls.rs:628-693` (`handle_server_hello`) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

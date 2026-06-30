@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md
   - .factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md
   - .factory/cycles/fix-tls-clienthello-frag/delta-analysis.md
-input-hash: "9b4284b"
+input-hash: "52fb717"
 ---
 
 # STORY-144: TLS Handshake Carry Buffer + Fragmented ClientHello Reassembly
@@ -68,7 +68,7 @@ across multiple TLS 0x16 records into a per-direction carry buffer and dispatch
 - `server_hs_carry: Vec<u8>` — initialized to `Vec::new()` in `TlsFlowState::new()`
 
 `TlsAnalyzer` gets one new u64 aggregate counter (NOT on `TlsFlowState`):
-- `handshake_reassembly_overflows: u64` — initialized to `0` in `TlsAnalyzer::new()`; mirrors `truncated_records: u64` at tls.rs:319; NOT reset at flow close
+- `handshake_reassembly_overflows: u64` — initialized to `0` in `TlsAnalyzer::new()`; mirrors `truncated_records: u64` at tls.rs:339; NOT reset at flow close
 
 NO `hs_carry_abandoned` flag exists anywhere in `TlsFlowState` (BC-2.07.039 Invariant 4; ADR-011 Decision 5).
 
@@ -123,7 +123,7 @@ When `carry_buf.len() + record_payload.len() > MAX_BUF` (Decision 5 buffer-fill 
 - Processing continues: `continue` to next record (no sticky abandoned flag)
 - A subsequent well-formed 0x16 ClientHello on the same direction IS dispatched normally (clear-and-recover, Policy A; ADR-011 Decision 5)
 
-`summarize()` inserts `"handshake_reassembly_overflows"` into the `detail` `HashMap<String, Value>` with the u64 value (value-equality, not mere key presence). Mirrors `"truncated_records"` at tls.rs:888-889.
+`summarize()` inserts `"handshake_reassembly_overflows"` into the `detail` `HashMap<String, Value>` with the u64 value (value-equality, not mere key presence). Mirrors `"truncated_records"` at tls.rs:1223-1226.
 
 **Red-Gate tests (VP-039 Sub-C):**
 - `test_vp039_carry_overflow_clear_and_recover` — valid header body_len=65,500 + 4 padding records accumulate to 66,004 > MAX_BUF; Decision-5 fires exactly once; carry_len==0; overflow_count==overflows_before+1; parse_errors unchanged; findings_count snapshot before==after
@@ -264,8 +264,8 @@ Source: `architecture/module-decomposition.md` + ADR-011
 
 1. **Single-file change:** ONLY `src/analyzer/tls.rs` changes in Rust source. No other Rust files are modified.
 2. **No abandoned-flag:** `TlsFlowState` must not gain any `hs_carry_abandoned: bool` or equivalent sticky-discard field. The absence of this field is an invariant (BC-2.07.039 Invariant 4; ADR-011 Decision 5).
-3. **Carry counter lives on `TlsAnalyzer`, not `TlsFlowState`:** `handshake_reassembly_overflows` is an aggregate counter — same pattern as `truncated_records: u64` at tls.rs:319.
-4. **Carry cap uses same constant as TCP stream buffer:** `MAX_BUF = 65_536` (tls.rs:30) — same constant, NOT a new constant.
+3. **Carry counter lives on `TlsAnalyzer`, not `TlsFlowState`:** `handshake_reassembly_overflows` is an aggregate counter — same pattern as `truncated_records: u64` at tls.rs:339.
+4. **Carry cap uses same constant as TCP stream buffer:** `MAX_BUF = 65_536` (tls.rs:33) — same constant, NOT a new constant.
 5. **`parse_tls_message_handshake` (not `parse_tls_plaintext`) for assembled bytes:** the carry holds raw handshake message bytes with NO 5-byte TLS record header prefix; `parse_tls_plaintext` requires a record header and must not be used here (ADR-011 Decision 4; BC-2.07.038 Postcondition 9).
 6. **Overflow check fires BEFORE append (not after):** `if carry_buf.len() + record_payload.len() > MAX_BUF` fires in the outer record loop BEFORE `carry_buf.extend_from_slice(...)` (BC-2.07.039 Invariant 3).
 7. **Test namespace isolation (DF-TEST-NAMESPACE-001):** `tests/tls_analyzer_tests.rs` uses a FLAT module namespace. ALL 15 new test functions added by STORY-144 MUST be placed inside a dedicated `mod story_144 { ... }` wrapper at the end of the file. No new test function from this story may be added at the flat module root. The standalone-refactor option (extracting all existing flat-root tests into their own mods) is acceptable but NOT required for STORY-144; at minimum, wrap STORY-144's own tests. STORY-145 and STORY-146 will follow the same pattern with their own `mod story_145` and `mod story_146` wrappers.

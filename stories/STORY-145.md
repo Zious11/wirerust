@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.038.md
   - .factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md
   - .factory/cycles/fix-tls-clienthello-frag/delta-analysis.md
-input-hash: "9a82e5d"
+input-hash: "f2748f9"
 ---
 
 # STORY-145: ServerHello Carry Symmetry + Per-Flow / Per-Direction Isolation

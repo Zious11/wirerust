@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.8"
+version: "2.10"
 status: draft
 producer: product-owner
-timestamp: 2026-06-29T00:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 phase: 1a
 origin: greenfield
 traces_to: .factory/specs/domain/domain-spec.md
@@ -22,6 +22,8 @@ modified:
   - "v2.6: Fix burst 10 adversarial reconciliation (F-ADVF2-002 MED, F-ADVF2-003 LOW) — (1) Frame B prose corrected: the 4-byte header [0x01,0x01,0x05,0x00] is the ENTIRE input (no body bytes follow); the body_len-spoof guard fires on header decode before any body is appended — stating 66,816 zero bytes follow was physically wrong; the 66,816 / 1,281 decoded values are unchanged and correct; (2) Frame B AC backing tightened: Inv-5 / Decision-4 (body_len-spoof guard on header decode) is the PRIMARY backing; BC-2.07.039 shares only the clear+counter outcome (not the trigger — BC-2.07.039 is the Decision-5 buffer-fill guard, a different trigger); Frame A semantics (PC-9 malformed, parse_errors+1) unchanged — 2026-06-29"
   - "v2.7: Fix burst 11 (F-COMP-001 / F-COMP-003) — Verification Properties table: two new VP rows added citing architect-authored tests in VP-039: (1) test_vp039_n_record_reassembly for N-record drip-feed incl. 4-byte header split (PC-1/PC-2/PC-6 + EC-003); (2) test_vp039_large_valid_hello_reassembly for large ClientHello body 18,433..65,536 bytes (positively verifies Inv-5 cap raise to MAX_BUF) — 2026-06-29"
   - "v2.8: Artifact-fidelity correction (HS-F4-001-FRAMEC-validation.md) — corrected Frame C input vector from all-zero 256-byte body to 256-byte 0xcc body (session-id length = 0xcc = 204 > 32 triggers tls_parser 0.12.2 verify(be_u8, |&n| n <= 32) in tls_handshake.rs, yielding genuine Err; all-zero body yields Ok per parse_cipher_suites len==0 acceptance, NOT a malformed-reject case); corrected PC-9 example list: replaced 'zero-length cipher suite list' with 'session-id length byte > 32' as the canonical failing example; generalized stale parse_tls_plaintext tls.rs L787-789 citation in PC-9(a) to function-level reference; added PC-9 NOTE clarifying that a degenerate all-zero ClientHello body is accepted (parse_errors=0, JA3 emitted) — conformant lenient behavior per tls-parser 0.12.2 and standard JA3 tooling — 2026-06-30"
+  - "v2.9: F5 scoped-adversarial spec-precision reconciliation (F-01 MEDIUM, F-03 LOW) — Inv-4: scoped done() guarantee to the per-on_data-call boundary; removed false 'structurally guaranteed … never buffered … fires before try_parse_records' over-claim; documented bounded within-call behavior (mid-drain done() flip possible in out-of-order hello scenario; worst-case effect is a spurious parse_errors+1 or additional handshakes_seen increment — bounded, benign, not a DoS or correctness defect); PC-3: added direction-gating precision — 0x01 dispatches only on client-direction carry (client_hs_carry), 0x02 dispatches only on server-direction carry (server_hs_carry); off-direction hello msg_type falls into the _ arm without dispatch and without parse_errors increment; consistent with BC-2.07.041 Inv-2; no code change — 2026-06-30"
+  - "v2.10: F5 architecture-anchor re-anchor (F-F5-001) — truncated_records field :319→:339 in Architecture Anchors; EC-010 prose nit: 'remaining carry (spoof header bytes only)' → 'entire carry buffer (post-loop drain skipped; already-dispatched valid prefix harmlessly discarded — end state: carry empty)'; Frame-A body bytes: 'exactly 5 zero bytes' → '5 arbitrary body bytes (test uses 0xff; content irrelevant — 5-byte body below ClientHello minimum, parse_tls_message_handshake returns Err)'; develop 8b52046; no semantic change — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -62,13 +64,24 @@ gap identified in finding TLS-CLIENTHELLO-FRAG-001 (RFC 5246 §6.2.1; RFC 8446 �
 2. A handshake message is dispatched only when `carry_buf.len() >= 4 + body_len`,
    where `body_len` is decoded from bytes `[1..4]` of the carry buffer as a 3-byte
    big-endian unsigned integer.
-3. When a complete handshake message is present:
-   a. If `msg_type == 0x01` (ClientHello), `handle_client_hello` is called with the
-      assembled message body.
-   b. If `msg_type == 0x02` (ServerHello), `handle_server_hello` is called with the
-      assembled message body.
+3. When a complete handshake message is present, dispatch is **direction-gated**
+   (consistent with BC-2.07.041 Inv-2, which requires carry selection to match the
+   `Direction` parameter):
+   a. If `msg_type == 0x01` (ClientHello) **and** the carry is the **client-direction
+      carry** (`client_hs_carry`, i.e., `Direction::ClientToServer`), `handle_client_hello`
+      is called with the assembled message body. A `0x01` msg_type arriving on the
+      server-direction carry (`server_hs_carry`) falls into the `_` arm: consumed
+      silently without dispatch and without incrementing `parse_errors`.
+   b. If `msg_type == 0x02` (ServerHello) **and** the carry is the **server-direction
+      carry** (`server_hs_carry`, i.e., `Direction::ServerToClient`), `handle_server_hello`
+      is called with the assembled message body. A `0x02` msg_type arriving on the
+      client-direction carry (`client_hs_carry`) falls into the `_` arm: consumed
+      silently without dispatch and without incrementing `parse_errors`.
    c. If `msg_type` is any other value, the message is advanced past (consumed) without
-      dispatching.
+      dispatching (regardless of direction). This prevents a future implementer from
+      adding cross-direction dispatch, which would corrupt `client_hello_seen`,
+      `server_hello_seen`, and the associated fingerprint maps (`sni_counts`,
+      `ja3_counts`, `ja3s_counts`).
 4. After dispatching or advancing past a complete message, exactly `4 + body_len` bytes
    are removed from the front of the carry buffer (exact-consume). Any remaining bytes
    belong to the next handshake message.
@@ -150,13 +163,30 @@ gap identified in finding TLS-CLIENTHELLO-FRAG-001 (RFC 5246 §6.2.1; RFC 8446 �
    the carry buffer (exact-consume); no bytes are double-counted, no bytes are skipped.
 3. Content types other than 0x16 (`Handshake`) never feed the carry buffer; the CR-010
    guard-before-allocate path for non-handshake records is unaffected.
-4. Reassembly only applies to the pre-`done()` epoch. Once `done()` returns true
-   (both `client_hello_seen` and `server_hello_seen` are set), `on_data` short-circuits
-   before carry buffer processing — records after `done()` are never buffered. This is
-   structurally guaranteed because the `done()` check in `on_data` fires before
-   `try_parse_records` is called. This covers the RFC 8446 §5.1 "MUST NOT span key
-   changes" constraint: the unencrypted ClientHello/ServerHello are always in the
-   initial epoch, and `done()` fires after both are seen.
+4. Reassembly is scoped to the **per-`on_data`-call boundary**: when `done()` returns
+   true at `on_data` entry (both `client_hello_seen` and `server_hello_seen` are set),
+   that call short-circuits before carry buffer processing — records arriving in any
+   later `on_data` call after `done()` are never buffered. This cross-call guarantee
+   is complete and holds unconditionally.
+
+   **Bounded within-call behavior:** A record buffered while `done()` was false at
+   `on_data` entry is processed to completion by the current call. The `done()` check
+   fires only once, at `on_data` entry (`src/analyzer/tls.rs:1120-1123`); there is no
+   mid-loop re-check inside `try_parse_records`. Consequently, if a dispatch mid-drain
+   flips `done()` true — for example, a C2S record carries a late ClientHello coalesced
+   with trailing 0x16 bytes, and dispatching the ClientHello sets `client_hello_seen=true`
+   while `server_hello_seen` was already true from a prior S2C call — the drain loop
+   continues consuming any remaining complete messages in that same record. The
+   worst-case observable effect is bounded and benign: a possible single spurious
+   `parse_errors += 1` (if trailing bytes fail to parse as a complete message), or an
+   additional `handshakes_seen` increment (already permitted by BC-2.07.042 EC-001).
+   No false Finding is emitted; the cursor advances ≥ 4 bytes per iteration
+   (exact-consume invariant, Invariant 2), so no unbounded work occurs. This is NOT
+   a DoS or correctness defect.
+
+   This covers the RFC 8446 §5.1 "MUST NOT span key changes" constraint: the
+   unencrypted ClientHello/ServerHello are always in the initial epoch, and `done()`
+   fires after both are seen.
 5. If the handshake length header declares `body_len > MAX_BUF` (65,536), the message
    is treated as adversarial: the carry buffer for that direction is cleared and
    `TlsAnalyzer.handshake_reassembly_overflows` (aggregate counter, NOT per-flow) is
@@ -187,7 +217,7 @@ gap identified in finding TLS-CLIENTHELLO-FRAG-001 (RFC 5246 §6.2.1; RFC 8446 �
 | EC-007 | Single-record ClientHello (common case, no fragmentation) | Record payload appended to carry buffer (currently empty); consume loop immediately finds a complete message; dispatches in one pass; carry buffer empty after dispatch. Behavior identical to pre-fix path; no regression |
 | EC-008 | BC-2.07.004 record-layer oversize guard fires mid-reassembly: a 0x16 record arrives with `payload_len > MAX_RECORD_PAYLOAD` (18,432) while `client_hs_carry` holds partial bytes from earlier records | BC-2.07.004 guard fires FIRST (before the carry append): `client_buf` is cleared, `parse_errors` incremented, `truncated_records` incremented, `on_data` returns. `client_hs_carry` is NOT touched — it retains its prior partial bytes (orphaned partial carry). The orphaned partial carry persists bounded by `MAX_BUF`; it will be silently discarded at `on_flow_close` per BC-2.07.040 (no finding, no additional `parse_errors` increment at close). This is an accepted-risk path: the orphaned carry is bounded, harmless, and cleaned up at flow close. No separate carry-clearing is required by this BC. |
 | EC-009 | Attacker sends the maximum number of individually-valid 0x16 records (each `<= MAX_RECORD_PAYLOAD` bytes) without completing a handshake message, maximizing carry-processing work per `on_data` call | Per-record CPU work is bounded: for each record, `try_parse_records` does a record-header peek, a `record_bytes.clone()` into the carry, and a `drain` from the TCP stream buffer. The consume loop breaks immediately (`carry_buf.len() < 4 + body_len`) after each such partial append — only O(1) work per record at the carry layer. The total number of records that can accumulate before triggering the BC-2.07.039 overflow clear is bounded by `MAX_BUF / 1` (at most MAX_BUF single-byte records before carry overflows and is cleared). In practice, record COUNT is bounded by the upstream TCP-reassembly stream reassembler, which limits how many records can arrive per `on_data` invocation. `MAX_BUF / MAX_RECORD_PAYLOAD` (≈4) bounds the number of full-size records that can be accumulated before overflow clears the carry. Per-record work is O(MAX_RECORD_PAYLOAD) clone cost; total per-`on_data` cost is O(MAX_BUF). This is an accepted risk: the upstream stream reassembler is the primary rate-limiting bound; the carry overflow clear is the secondary bound. See `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` §Q5 fragmentation-control note. |
-| EC-010 | A complete valid handshake message is immediately followed (in the same carry) by a body_len-spoof header — e.g., carry holds `[complete ClientHello bytes ++ spoof_header (declared body_len > MAX_BUF)]` | The drain loop consumes the complete ClientHello first (exact-consume: `4 + body_len_valid` bytes removed); `handle_client_hello` is called; `client_hello_seen=true`; SNI and JA3 populated; `parse_errors=0` for this message. On the next loop iteration, the spoof header becomes the front of the carry; the body_len-spoof guard (Invariant 5) fires: the remaining carry (spoof header bytes only) is cleared; `handshake_reassembly_overflows` incremented; drain breaks. **No valid data is lost** — the ClientHello was fully dispatched before the guard fired. This is the F-IMPL-001 coalesced-spoof scenario (see also BC-2.07.042 EC-006 for the drain-loop perspective on this exact scenario). |
+| EC-010 | A complete valid handshake message is immediately followed (in the same carry) by a body_len-spoof header — e.g., carry holds `[complete ClientHello bytes ++ spoof_header (declared body_len > MAX_BUF)]` | The drain loop consumes the complete ClientHello first (exact-consume: `4 + body_len_valid` bytes removed); `handle_client_hello` is called; `client_hello_seen=true`; SNI and JA3 populated; `parse_errors=0` for this message. On the next loop iteration, the spoof header becomes the front of the carry; the body_len-spoof guard (Invariant 5) fires: the entire carry buffer is cleared (post-loop drain skipped; any already-dispatched valid prefix is harmlessly discarded — end state: carry empty); `handshake_reassembly_overflows` incremented; drain breaks. **No valid data is lost** — the ClientHello was fully dispatched before the guard fired. This is the F-IMPL-001 coalesced-spoof scenario (see also BC-2.07.042 EC-006 for the drain-loop perspective on this exact scenario). |
 
 ## Canonical Test Vectors
 
@@ -211,7 +241,7 @@ The test constructs three canonical frames by hand (no project helpers) and exer
 distinct behaviour with each:
 
 **Frame A — degenerate body_len (BE-decode baseline):**
-- Bytes: `[0x01, 0x00, 0x00, 0x05]` followed by exactly 5 zero bytes (body)
+- Bytes: `[0x01, 0x00, 0x00, 0x05]` followed by exactly 5 arbitrary body bytes (the test uses 0xff); content is irrelevant because a 5-byte body is below the ClientHello minimum, so parse_tls_message_handshake returns Err regardless.
 - Cited from RFC 8446 §4: "struct { HandshakeType msg_type; uint24 length; ... }"
 - `body_len` MUST be decoded as `5` (big-endian: `0x00_00_05`)
 - This frame has `msg_type=0x01` (ClientHello) and a degenerate 5-byte body
@@ -313,7 +343,7 @@ This test is a Red-Gate: it must FAIL before the carry-buffer implementation is 
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs` — `TlsFlowState` struct (add `client_hs_carry: Vec<u8>`, `server_hs_carry: Vec<u8>`; NO `handshake_reassembly_overflows` on TlsFlowState; NO abandoned-flag fields)
-- `src/analyzer/tls.rs` — `TlsAnalyzer` struct (add `handshake_reassembly_overflows: u64` as aggregate counter; mirrors `truncated_records` which is `u64` at tls.rs:319; NOT per-flow; NOT reset at flow close; surfaced in `summarize()`)
+- `src/analyzer/tls.rs` — `TlsAnalyzer` struct (add `handshake_reassembly_overflows: u64` as aggregate counter; mirrors `truncated_records` which is `u64` at tls.rs:339; NOT per-flow; NOT reset at flow close; surfaced in `summarize()`)
 - `src/analyzer/tls.rs` — `TlsFlowState::new()` (initialize carry fields to `Vec::new()` only)
 - `src/analyzer/tls.rs` — `try_parse_records` 0x16 record drain path (append payload to direction carry; consume loop; exact-consume dispatch)
 - `src/analyzer/tls.rs` — `on_flow_close` (drop carry fields alongside existing state via HashMap remove)

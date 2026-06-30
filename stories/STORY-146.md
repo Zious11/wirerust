@@ -27,7 +27,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.005.md
   - .factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md
   - .factory/cycles/fix-tls-clienthello-frag/delta-analysis.md
-input-hash: "6d9da65"
+input-hash: "6134dfc"
 ---
 
 # STORY-146: TLS Buffer Saturation Telemetry — `buffer_saturation_drops` Counter + `fill_buf_for_testing` Seam
@@ -56,7 +56,7 @@ silent tail-drop primitive non-silent regardless of future reachability changes)
 
 `TlsAnalyzer` gets one new field:
 - `buffer_saturation_drops: u64` — initialized to `0` in `TlsAnalyzer::new()`; NOT on `TlsFlowState`; NOT reset by `on_flow_close`
-- Mirrors `truncated_records: u64` at tls.rs:319 and `handshake_reassembly_overflows: u64` (STORY-144)
+- Mirrors `truncated_records: u64` at tls.rs:339 and `handshake_reassembly_overflows: u64` (STORY-144)
 
 Accessor method added:
 - `TlsAnalyzer::buffer_saturation_drop_count(&self) -> u64` — read-only accessor, same pattern as `parse_error_count()`, `truncated_record_count()`, `handshake_reassembly_overflow_count()`
@@ -69,7 +69,7 @@ Test seam added:
 ### AC-146-002: `on_data` detects tail-drop condition; increments `buffer_saturation_drops` exactly once per drop-event call; placement after `&mut state` block closes
 **Traces to:** BC-2.07.043 v1.3 Postconditions 1–2, Invariant 4; ADR-011 Decision 1 C-3 borrow constraint
 
-The existing buffer-append block in `on_data` at tls.rs:820-835 currently performs a tail-drop silently when `data.len() > remaining` (where `remaining = MAX_BUF.saturating_sub(buf.len())`). This story adds observability:
+The existing buffer-append block in `on_data` at tls.rs:1137-1161 currently performs a tail-drop silently when `data.len() > remaining` (where `remaining = MAX_BUF.saturating_sub(buf.len())`). This story adds observability:
 
 **Detection pattern (required — borrow-constraint mandated):**
 ```rust
@@ -120,7 +120,7 @@ After triggering a drop on a flow and then calling `on_flow_close`, `buffer_satu
 ### AC-146-005: `summarize()` exposes `"buffer_saturation_drops"` with value-equality (not mere key presence)
 **Traces to:** BC-2.07.043 v1.3 Postcondition 4; ADR-011 Decision 1
 
-`TlsAnalyzer::summarize()` inserts `"buffer_saturation_drops"` into the `detail` `HashMap<String, Value>` with value equal to the u64 counter. The assertion is `detail["buffer_saturation_drops"].as_u64() == expected_count` — value-equality, not `contains_key`. The key is ALWAYS present, even when the count is 0 (EC-008 in BC-2.07.043). Mirrors `"truncated_records"` and `"handshake_reassembly_overflows"` surfacing pattern at tls.rs:887-890.
+`TlsAnalyzer::summarize()` inserts `"buffer_saturation_drops"` into the `detail` `HashMap<String, Value>` with value equal to the u64 counter. The assertion is `detail["buffer_saturation_drops"].as_u64() == expected_count` — value-equality, not `contains_key`. The key is ALWAYS present, even when the count is 0 (EC-008 in BC-2.07.043). Mirrors `"truncated_records"` and `"handshake_reassembly_overflows"` surfacing pattern at tls.rs:1223-1226.
 
 (traces to BC-2.07.043 v1.3 Postcondition 4)
 
@@ -175,7 +175,7 @@ Architecture compliance: SS-07 only. No other files change. This story is delibe
 | Tool outputs | ~1,000 |
 | **Total estimate** | **~65,800** |
 
-Fits within a 200k context window (~33%). The implementer should read the existing `on_data` buffer-append block at tls.rs:820-835 carefully before adding the `did_drop` flag — the borrow constraint pattern is not immediately obvious from the code structure.
+Fits within a 200k context window (~33%). The implementer should read the existing `on_data` buffer-append block at tls.rs:1137-1161 carefully before adding the `did_drop` flag — the borrow constraint pattern is not immediately obvious from the code structure.
 
 ## Tasks
 
@@ -201,7 +201,7 @@ Fits within a 200k context window (~33%). The implementer should read the existi
    - Verify: `test_BC_2_07_043_buffer_saturation_observable` and `test_BC_2_07_043_both_directions_increment_same_counter` turn GREEN
 
 4. **Wire `summarize()` insertion (AC-146-005)**
-   - Add `detail.insert("buffer_saturation_drops", Value::from(self.buffer_saturation_drops))` after the existing `truncated_records` insert at tls.rs:888-889
+   - Add `detail.insert("buffer_saturation_drops", Value::from(self.buffer_saturation_drops))` after the existing `truncated_records` insert at tls.rs:1223-1226
    - Verify: `test_BC_2_07_043_summarize_value_equals_drop_count` turns GREEN
 
 5. **Full regression sweep**
@@ -219,7 +219,7 @@ Fits within a 200k context window (~33%). The implementer should read the existi
 
 **From BC-2.07.043 v1.3:** The seam signature is `fill_buf_for_testing(&mut self, flow_key: &FlowKey, direction: Direction, n: usize)` with `flow_key: &FlowKey` by REFERENCE (not by value). This matches the `&FlowKey` convention of all five sibling TLS test seams. Do not use by-value `FlowKey` — that would force a clone at call sites.
 
-**Dependency rationale (I6):** STORY-146 depends on STORY-144, NOT STORY-145. The `buffer_saturation_drops` telemetry touches the `on_data` TCP-segment buffer tail-drop path (`client_buf`/`server_buf` at tls.rs:820-835) and the `summarize()` counter-pattern established in STORY-144 (`handshake_reassembly_overflows`). It does NOT consume the ServerHello drain path added by STORY-145. STORY-146 and STORY-145 are therefore parallel (wave 66), both depending on STORY-144 (wave 65). Scheduling them in parallel saves one wave vs. the original linear STORY-145 → STORY-146 chain.
+**Dependency rationale (I6):** STORY-146 depends on STORY-144, NOT STORY-145. The `buffer_saturation_drops` telemetry touches the `on_data` TCP-segment buffer tail-drop path (`client_buf`/`server_buf` at tls.rs:1137-1161) and the `summarize()` counter-pattern established in STORY-144 (`handshake_reassembly_overflows`). It does NOT consume the ServerHello drain path added by STORY-145. STORY-146 and STORY-145 are therefore parallel (wave 66), both depending on STORY-144 (wave 65). Scheduling them in parallel saves one wave vs. the original linear STORY-145 → STORY-146 chain.
 
 ## Architecture Compliance Rules
 

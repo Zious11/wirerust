@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7: fix-tls-clienthello-frag F2 scope expansion — 'complete' now includes ClientHello assembled across multiple TLS records via BC-2.07.038 carry-buffer reassembly; Precondition 2 updated to include fragmented-then-assembled path; Invariant 5 added (single-record fast path preserved); EC-007 added (fragmented ClientHello); Related BCs extended (+BC-2.07.038); TLS-CLIENTHELLO-FRAG-001 cross-reference added — 2026-06-29"
   - "v1.8: Pass-1 adversarial reconciliation (SR-008 MED) — Postcondition 8 rewritten to name both drain operations explicitly: (a) record bytes drained from client_buf at the record layer; (b) assembled handshake message exact-consumed (4+body_len) from client_hs_carry at the carry layer; disambiguates which buffer is 'drained' — 2026-06-29"
   - "v1.9: Pass-2 adversarial reconciliation (F-F2-006 MEDIUM — priority inversion documented) — Related BCs: add explicit note that BC-2.07.001 is P0 (single-record fast path) and depends on P1 BC-2.07.038 (fragmented path); the SINGLE-RECORD ClientHello guarantee is P0; the FRAGMENTED-path guarantee is P1; this inversion is a deliberate design choice — P0 cannot wait for a P1 bug to be fixed since the single-record path is independent of the carry layer — 2026-06-29"
+  - "v2.0: F5 architecture-anchor re-anchor (F-F5-001) — handle_client_hello 389-580→431-622 (fn sig 431-436, body 437-622); handshakes_seen/version_counts at 437/440; JA3 at 561; SNI extraction 455-558; develop 8b52046; no semantic change — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -137,7 +138,7 @@ buffer is populated then immediately consumed in one pass). See TLS-CLIENTHELLO-
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- this BC is the primary ClientHello processing entry point for all TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:389-580, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:431-622, C-13) |
 | Stories | STORY-052, STORY-144 |
 | Origin BC | BC-TLS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -155,17 +156,17 @@ buffer is populated then immediately consumed in one pass). See TLS-CLIENTHELLO-
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:389-580` -- `handle_client_hello` implementation (fn sig 389-394, body 395-580)
-- `src/analyzer/tls.rs:395-398` -- `handshakes_seen` increment (395) and `version_counts` update (398)
-- `src/analyzer/tls.rs:519` -- JA3 computation and count
-- `src/analyzer/tls.rs:413-515` -- SNI extraction and finding emission
+- `src/analyzer/tls.rs:431-622` -- `handle_client_hello` implementation (fn sig 431-436, body 437-622)
+- `src/analyzer/tls.rs:437-440` -- `handshakes_seen` increment (437) and `version_counts` update (440)
+- `src/analyzer/tls.rs:561` -- JA3 computation and count
+- `src/analyzer/tls.rs:455-558` -- SNI extraction and finding emission
 - `tests/tls_analyzer_tests.rs` -- test_parse_client_hello
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:389-580` (`handle_client_hello`) |
+| **Path** | `src/analyzer/tls.rs:431-622` (`handle_client_hello`) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

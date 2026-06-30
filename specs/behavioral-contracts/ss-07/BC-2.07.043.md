@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-29T00:00:00Z
@@ -16,6 +16,7 @@ modified:
   - "v1.1: fix-tls-clienthello-frag adversary burst — C-1 Inv-4+Anchors post-block increment placement + borrow rationale; C-2 EC-002 full-drop test seam anchor added; C-3 PC-3 to_copy equivalence qualifier removed; I-2 PC-4 strengthened to value-equality; I-3 VP table expanded to 5 canonical names mapped to VP-040 Sub-A..Sub-E; I-4 tls.rs:887-889→887-890; OBS-1 VP-039-hedge→VP-040 definitive — 2026-06-29"
   - "v1.2: fix-tls-clienthello-frag architect VP-040 6-test reconciliation — added Sub-A full-drop row (test_BC_2_07_043_buffer_saturation_full_drop; uses fill_buf_for_testing seam, remaining==0 case) to VP table and VP Anchors; Architecture Anchors EC-002 test reference corrected from _observable to _buffer_saturation_full_drop — 2026-06-29"
   - "v1.3: fix-tls-clienthello-frag adversary F-F2-SEAM-SIG-001 — corrected fill_buf_for_testing seam signature from flow_key: FlowKey (by value) to flow_key: &FlowKey (by reference), matching VP-040 call sites and the &FlowKey convention of all five sibling TLS test seams (client_buf_len_for_testing etc., tls.rs:957+) — 2026-06-29"
+  - "v1.4: F5 architecture-anchor re-anchor (F-F5-001) — on_data buffer-append block :820-835→:1137-1161; truncated_records field :319→:339; truncated_records summarize() insert :887-890→:1223-1226; buffer_saturation_drops summarize() insert :887-890→:1236-1239; develop 8b52046; no semantic change — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,7 +77,7 @@ event is now counted.
    increment the same aggregate counter.
 4. `buffer_saturation_drops` appears as key `"buffer_saturation_drops"` in the `detail`
    `HashMap<String, Value>` returned by `TlsAnalyzer::summarize()`, mirroring the
-   `"truncated_records"` key pattern at `src/analyzer/tls.rs:887-890`. The value MUST
+   `"truncated_records"` key pattern at `src/analyzer/tls.rs:1223-1226`. The value MUST
    equal the current counter value exactly: `detail["buffer_saturation_drops"] ==
    self.buffer_saturation_drops`. A mere key-presence check without verifying the numeric
    value would pass a broken implementation that always inserts `0`.
@@ -89,7 +90,7 @@ event is now counted.
 ## Invariants
 
 1. `buffer_saturation_drops` is a `u64` field on `TlsAnalyzer` (NOT on `TlsFlowState`),
-   mirroring `truncated_records: u64` at `src/analyzer/tls.rs:319` and
+   mirroring `truncated_records: u64` at `src/analyzer/tls.rs:339` and
    `handshake_reassembly_overflows: u64` at the carry-layer level.
 2. `buffer_saturation_drops` is initialized to `0` in `TlsAnalyzer::new()` and never
    reset between flows or between `on_data` calls.
@@ -178,21 +179,21 @@ jumbogram support will NOT introduce a new silent drop — it will be immediatel
 | L2 Capability | CAP-07 ("TLS Traffic Analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS Traffic Analysis") per domain/capabilities/cap-07-tls-analysis.md — this BC adds observability telemetry to the per-direction stream buffer cap that is part of the TLS analysis bounded-resource design, directly within the TLS Traffic Analysis capability scope |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation; counter output is a numeric stat surfaced in detail map, not raw bytes) |
-| Architecture Module | SS-07 (analyzer/tls.rs — `on_data` buffer-append logic :820-835; `summarize()` detail map insertion :887-890; `TlsAnalyzer` struct field) |
+| Architecture Module | SS-07 (analyzer/tls.rs — `on_data` buffer-append logic :1137-1161; `summarize()` detail map insertion :1236-1239; `TlsAnalyzer` struct field) |
 | Stories | STORY-146 |
 | Origin | F-EV-001 defense-in-depth recommendation per `.factory/research/F-EV-001-clientbuf-saturation-validation.md` §7 |
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:820-835` — `on_data` buffer-append logic; the drop-condition
+- `src/analyzer/tls.rs:1137-1161` — `on_data` buffer-append logic; the drop-condition
   `data.len() > remaining` is DETECTED inside this block (set a local bool flag), but the
   `self.buffer_saturation_drops += 1` increment MUST be placed AFTER this block closes
   (after the `&mut state` borrow is released, before `try_parse_records` is called) — see
   Inv-4 borrow-constraint rationale. This block covers both `Direction::ClientToServer` and
   `Direction::ServerToClient` arms.
-- `src/analyzer/tls.rs:319` — `truncated_records: u64` (type precedent for new `buffer_saturation_drops: u64` field)
-- `src/analyzer/tls.rs:887-890` — `truncated_records` summarize() insertion (pattern to mirror
-  for `buffer_saturation_drops`; insert statement spans lines 887-890)
+- `src/analyzer/tls.rs:339` — `truncated_records: u64` (type precedent for new `buffer_saturation_drops: u64` field)
+- `src/analyzer/tls.rs:1223-1226` — `truncated_records` summarize() insertion (pattern to mirror
+  for `buffer_saturation_drops`; insert statement spans lines 1223-1226)
 - `src/analyzer/tls.rs` (TlsAnalyzer struct) — new field `buffer_saturation_drops: u64`
 - `tests/tls_analyzer_tests.rs` — `test_BC_2_07_043_buffer_saturation_observable` (Red-Gate test,
   partial-drop path; architect authors in VP-040)

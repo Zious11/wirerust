@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
-timestamp: 2026-06-30T00:00:00Z
+timestamp: 2026-06-30T18:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 337 entries (336 prior + 1 new BC-2.07.043 for F-EV-001 defense-in-depth; BC-2.01.004 retired). Active count: 336.
+>
+> **v2.3 2026-06-30 (fix-tls-clienthello-frag F5 scoped adversarial CONVERGED — re-anchor sweep 7 SS-07 BCs, BC-2.07.038 v2.10 Inv-4/PC-3 reconciliation):**
+> F5 CONVERGED (60/60 BC-completeness, 0 P0/HIGH/CRITICAL). F-F5-001 re-anchor sweep: BC-2.07.001 v1.9→v2.0 (handle_client_hello :389-580→:431-622; handshakes_seen/version_counts :437/:440; JA3 :561; SNI :455-558); BC-2.07.002 v1.6→v1.7 (handle_server_hello :586-651→:628-693; JA3S :649; cipher tracking :653-654); BC-2.07.005 v1.7→v1.8 (on_data buffer-append :820-835→:1137-1161; MAX_BUF const :30→:33); BC-2.07.038 v2.8→v2.10 (F-01 Inv-4 done()-scope corrected: done() is per-on_data-call scope not a persistent flag; F-03 PC-3 direction-gating corrected: independent per-direction, not cross-gated on client done(); anchor: truncated_records :319→:339; EC-010 prose: 'remaining carry (spoof header bytes only)' → 'entire carry buffer'; Frame-A: '5 zero bytes' → '5 arbitrary bytes (test uses 0xff)'); BC-2.07.039 v2.4→v2.5 (MAX_BUF :30→:33; truncated_records :319→:339; per-record oversize guard :689-698→:731-741; summarize() truncated_records insert :888-889→:1223-1226); BC-2.07.042 v1.4→v1.5 (EC-006 prose nit: 'remaining carry (spoof-only bytes) is cleared' → 'entire carry buffer is cleared (post-loop drain skipped; already-dispatched valid prefix harmlessly discarded — end state: carry empty)'; no semantic change); BC-2.07.043 v1.2→v1.4 (on_data buffer-append :820-835→:1137-1161; truncated_records field :319→:339; summarize() inserts :887-890→:1223-1226/:1236-1239). F-02 (fill_buf_for_testing mutating doc-hidden pub seam) → W7.1 backlog (TLS-FILLBUF-PUBLIC-SEAM-001). No BC count change (337 on disk; 336 active). SS-07 count unchanged at 43.
 >
 > **v2.0 2026-06-29 (fix-tls-clienthello-frag adversary burst — BC-2.07.043 v1.0→v1.1, BC-2.07.005 v1.6→v1.7):**
 > Resolved adversary findings C-1/C-2/C-3/I-2/I-3/I-4/OBS-1/F-1 against BC-2.07.043 v1.0 and BC-2.07.005 v1.6. No BC count change (337 on disk; 336 active). SS-07 stays 43. PRD bumped to v1.45. See `spec-changelog.md` §[tls-frag-fev001-adversary-burst-2026-06-29].
@@ -388,11 +391,11 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.07.001 | Parse Complete TLS ClientHello: Version, Ciphers, Extensions, SNI, JA3 | P0 | [WRITTEN] | BC-TLS-001 | <!-- v1.9: Pass-2 F-F2-006 — Related-BCs priority-inversion note: P0 BC depends on P1 BC-2.07.038; single-record path is P0; fragmented path is P1; deliberate design -->
-| BC-2.07.002 | Parse Complete TLS ServerHello: JA3S Fingerprint Computed | P0 | [WRITTEN] | BC-TLS-002 | <!-- v1.6: Pass-1 SR-008 — Postcondition 7 added: both drain operations named for server direction (record bytes from server_buf; 4+body_len from server_hs_carry) -->
+| BC-2.07.001 | Parse Complete TLS ClientHello: Version, Ciphers, Extensions, SNI, JA3 | P0 | [WRITTEN] | BC-TLS-001 | <!-- v2.0: F5 F-F5-001 anchor re-anchor — handle_client_hello 389-580→431-622; handshakes_seen/version_counts 437/440; JA3 561; SNI 455-558; develop 8b52046 -->
+| BC-2.07.002 | Parse Complete TLS ServerHello: JA3S Fingerprint Computed | P0 | [WRITTEN] | BC-TLS-002 | <!-- v1.7: F5 F-F5-001 anchor re-anchor — handle_server_hello 586-651→628-693; JA3S 649; cipher tracking 653-654; develop 8b52046 -->
 | BC-2.07.003 | After Both Hellos Seen, Subsequent Records Are Silently Skipped | P0 | [WRITTEN] | BC-TLS-003 |
 | BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors and truncated_records | P0 | [WRITTEN] | BC-TLS-004 |
-| BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043) | P1 | [WRITTEN] | BC-TLS-005 | <!-- v1.7: adversary burst C-3/C-1 — PC-4 drop condition canonical form data.len()>remaining; post-block placement constraint cross-reference added to BC-2.07.043 -->
+| BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043) | P1 | [WRITTEN] | BC-TLS-005 | <!-- v1.8: F5 F-F5-001 anchor re-anchor — on_data buffer-append 820-835→1137-1161; MAX_BUF const :30→:33; develop 8b52046 -->
 | BC-2.07.006 | JA3 Computation Filters GREASE Values per RFC 8701 | P0 | [WRITTEN] | BC-TLS-006 |
 | BC-2.07.007 | JA3 String Format: version,ciphers,...; MD5 Hex | P0 | [WRITTEN] | BC-TLS-007 |
 | BC-2.07.008 | JA3S String Format: version,cipher,extensions; MD5 Hex | P0 | [WRITTEN] | BC-TLS-008 | <!-- v1.4: P19 B-10 anchor fix: format tls.rs:171→:172; digest :172→:173 -->
@@ -425,12 +428,12 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState | P1 | [WRITTEN] | BC-TLS-035 |
 | BC-2.07.036 | Unknown Cipher IDs Render as Hex 0xNNNN Lowercase | P2 | [WRITTEN] | BC-TLS-036 |
 | BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 | <!-- v1.3: P19 B-10 anchor fix: extract_sni tls.rs:246→:247; match block :251-265→:252-269; v1.4: PG-ARP-F2-007 arm 2/3 emission :426→:437/:449→:461 -->
-| BC-2.07.038 | TLS Handshake-Message Reassembly Across Record Boundaries | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.8: F4 HS-F4-001-FRAMEC artifact-fidelity — Frame C input corrected to 0xcc body; PC-9 example and NOTE added; no code/test change. -->
-| BC-2.07.039 | Handshake Carry Buffer Bounded at MAX_BUF with Clear-and-Recover Overflow Policy | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.4: Fix burst 9 F-EV-002 MEDIUM — EC-009 added: mid-legitimate-assembly overflow-clear residual risk; SNI/JA3 may be missed for the affected flow; accepted bounded outcome per TLS-REASSEMBLY-OVERFLOW-POLICY.md; clear-and-recover chosen because sticky-abandon gives attacker permanent per-flow blinding. -->
+| BC-2.07.038 | TLS Handshake-Message Reassembly Across Record Boundaries | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.10: F5 F-F5-001 anchor re-anchor — truncated_records :319→:339; EC-010 prose: 'remaining carry (spoof header bytes only)' → 'entire carry buffer'; Frame-A: '5 zero bytes' → '5 arbitrary bytes (test uses 0xff)'; develop 8b52046 -->
+| BC-2.07.039 | Handshake Carry Buffer Bounded at MAX_BUF with Clear-and-Recover Overflow Policy | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.5: F5 F-F5-001 anchor re-anchor — MAX_BUF :30→:33; truncated_records :319→:339; per-record oversize guard L689-698→:731-741; summarize() truncated_records insert :888-889→:1223-1226; develop 8b52046 -->
 | BC-2.07.040 | Truncated Handshake at Flow Close Yields No Finding and No parse_errors Increment | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.3: Pass-3 F-P3-LOW — Related-BCs: 'abandoned carry is already empty' → 'overflow-cleared carry is already empty' (no abandoned-direction concept exists) -->
 | BC-2.07.041 | Handshake Carry Buffers Are Per-Flow and Per-Direction Isolated | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.2: Fix burst 11 F-COMP-002 MED — VP table cross-flow row re-pointed from proptest_vp039_direction_isolation (cross-DIRECTION only) to test_BC_2_07_041_cross_flow_isolation (dedicated cross-FLOW unit test, architect authoring in VP-039); over-claim removed. -->
-| BC-2.07.042 | Coalesced Handshake Messages in One Record Are Each Dispatched Independently | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.4: Fix burst 9 F-IMPL-001 MEDIUM — Inv-1: third permitted drain-loop exit (c) body_len-spoof total-clear-then-break enumerated; exit list now exhaustive (a/b/c); EC-006 added: complete-valid-then-spoof-header coalesced carry (valid dispatched first; spoof-only cleared; no valid data lost); EC-007 added: spoof-precedes-valid (entire carry cleared; accepted adversarial input; recovery on next well-formed record). -->
-| BC-2.07.043 | Per-Direction Buffer Saturation Tail-Drop Is Observable via buffer_saturation_drops Counter | P1 | [WRITTEN] | fix-tls-clienthello-frag-F2-scope-addition | <!-- v1.0: F-EV-001 defense-in-depth (human-approved scope addition). Defines buffer_saturation_drops: u64 on TlsAnalyzer; incremented by 1 per on_data tail-drop event (data.len() > remaining, covering both partial-copy and full-drop cases); applies to both client_buf and server_buf; surfaced in summarize() as "buffer_saturation_drops"; NOT reset at flow close; pre-empts F-EV-001 preconditions P1 (coalescing refactor) and P2 (IPv6 jumbogram); amends BC-2.07.005 Inv-3. Red-Gate test: test_BC_2_07_043_buffer_saturation_observable. v1.1: adversary burst — C-3 PC-3 to_copy equivalence qualifier removed (to_copy misses full-drop path); C-1 Inv-4 + Anchors post-block increment placement + borrow rationale specified; C-2 EC-002 full-drop test seam fill_buf_for_testing named; I-2 PC-4 value-equality (not just key presence); I-3 VP table 5 rows with VP-040 Sub-A..Sub-E; I-4 tls.rs:887-889→887-890; OBS-1 VP-039-hedge→VP-040 definitive. v1.2: architect VP-040 6-test reconciliation — Sub-A full-drop row added (test_BC_2_07_043_buffer_saturation_full_drop; uses fill_buf_for_testing seam, remaining==0 case); Architecture Anchors EC-002 test reference corrected to _buffer_saturation_full_drop. -->
+| BC-2.07.042 | Coalesced Handshake Messages in One Record Are Each Dispatched Independently | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.5: F5 F-F5-001 prose nit — EC-006: 'remaining carry (spoof-only bytes) is cleared' → 'entire carry buffer is cleared (post-loop drain skipped; already-dispatched valid prefix harmlessly discarded — end state: carry empty)'; no semantic change -->
+| BC-2.07.043 | Per-Direction Buffer Saturation Tail-Drop Is Observable via buffer_saturation_drops Counter | P1 | [WRITTEN] | fix-tls-clienthello-frag-F2-scope-addition | <!-- v1.4: F5 F-F5-001 anchor re-anchor — on_data buffer-append :820-835→:1137-1161; truncated_records field :319→:339; truncated_records summarize() insert :887-890→:1223-1226; buffer_saturation_drops summarize() insert :887-890→:1236-1239; develop 8b52046 -->
 
 <!-- PG-ARP-F2-007 (2026-06-13): full ss-07 tls.rs re-anchor applied to ALL 37 BCs (001-037, except 016/030 already clean). Root cause: tls.rs shifted ~10-60 lines from F2 timestamp-wiring (STORY-097/098/099). BC versions bumped individually; all Architecture Module, Architecture Anchors, Source Evidence Path, and inline prose citations updated to HEAD. -->
 <!-- fix-tls-clienthello-frag F2 (2026-06-29): BC-2.07.038–042 added (5 new BCs); BC-2.07.001 v1.7, BC-2.07.002 v1.5 scope-expanded. SS-07 count 37→42. -->
@@ -442,6 +445,8 @@ traces_to: .factory/specs/prd.md
 <!-- fix-tls-clienthello-frag F2 scope addition F-EV-001 (2026-06-29): BC-2.07.043 v1.0 added (buffer_saturation_drops observability counter); BC-2.07.005 v1.5→v1.6 (Inv-3 amended; no longer silent). SS-07 count 42→43. BC-INDEX v1.98→v1.99. -->
 <!-- fix-tls-clienthello-frag adversary burst (2026-06-29): BC-2.07.043 v1.0→v1.1 (C-1/C-2/C-3/I-2/I-3/I-4/OBS-1 resolved); BC-2.07.005 v1.6→v1.7 (PC-4 canonical drop condition; post-block placement cross-ref). BC-INDEX v1.99→v2.0. PRD v1.44→v1.45. -->
 <!-- fix-tls-clienthello-frag VP-040 6-test reconciliation (2026-06-29): BC-2.07.043 v1.1→v1.2 (Sub-A full-drop row added: test_BC_2_07_043_buffer_saturation_full_drop; VP Anchors + Architecture Anchors updated). BC-INDEX v2.0→v2.1. SS-07 count unchanged at 43. -->
+<!-- fix-tls-clienthello-frag F4 holdout HS-F4-001-FRAMEC (2026-06-30): BC-2.07.038 v2.7→v2.8 (Frame C 0xcc correction; PC-9 example; NOTE degenerate-all-zero accepted). BC-INDEX v2.1→v2.2. -->
+<!-- fix-tls-clienthello-frag F5 scoped adversarial CONVERGED (2026-06-30): 7 BCs re-anchored to tls.rs develop 8b52046 (F-F5-001); BC-2.07.038 v2.8→v2.10 (F-01 Inv-4 done()-scope + F-03 PC-3 direction-gating reconciliation + re-anchor); BC-2.07.039 v2.4→v2.5; BC-2.07.042 v1.4→v1.5; BC-2.07.043 v1.2→v1.4; BC-2.07.001 v1.9→v2.0; BC-2.07.002 v1.6→v1.7; BC-2.07.005 v1.7→v1.8. BC-INDEX v2.2→v2.3. -->
 
 ## ss-08: DNS Traffic Analysis (CAP-08)
 
