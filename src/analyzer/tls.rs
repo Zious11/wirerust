@@ -1447,7 +1447,6 @@ impl TlsAnalyzer {
     /// `truncated_record_count()` and `handshake_reassembly_overflow_count()` public
     /// accessor pattern (AC-146-001 / BC-2.07.043 Invariants 1–3). Read-only; do not
     /// use for drop-prevention decisions.
-    #[doc(hidden)]
     pub fn buffer_saturation_drop_count(&self) -> u64 {
         self.buffer_saturation_drops
     }

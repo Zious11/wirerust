@@ -10961,13 +10961,13 @@ mod story_145 {
 
 // ── STORY-146 VP-040 Red-Gate tests ──────────────────────────────────────────
 //
-// DF-TEST-NAMESPACE-001: ALL 6 new test functions for STORY-146 are inside
+// DF-TEST-NAMESPACE-001: ALL 8 test functions for STORY-146 (6 canonical VP-040 Red-Gate + 2 EC-coverage) are inside
 // this `mod story_146` wrapper.  No new flat-root tests are added for this story.
 //
 // These tests verify BC-2.07.043 v1.3 (Per-Direction Buffer Saturation
 // Tail-Drop Is Observable via `buffer_saturation_drops` Counter).
 //
-// GREEN status: all 6 tests pass.
+// GREEN status: all 8 tests pass.
 //   - Tests calling `buffer_saturation_drop_count()` read the implemented counter.
 //   - Tests calling `fill_buf_for_testing()` exercise the implemented fill seam.
 //   - `test_BC_2_07_043_summarize_value_equals_drop_count` verifies that
@@ -11018,7 +11018,7 @@ mod story_146 {
     /// the tail-drop condition fires.  1 byte is dropped; 65,536 bytes are
     /// appended.
     ///
-    /// Non-tautology: if the `did_drop` detection + `buffer_saturation_drops += 1`
+    /// Non-tautology: if the `did_drop` detection + `buffer_saturation_drops.saturating_add(1)`
     /// increment were absent, `buffer_saturation_drop_count()` would return 0 and
     /// the assertion `drops_after == drops_before + 1` would fail.
     ///
