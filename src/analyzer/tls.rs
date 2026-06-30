@@ -794,32 +794,167 @@ impl TlsAnalyzer {
             // the capture-relative timestamp to any emitted Findings.
             let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
 
-            match parse_tls_plaintext(&record_bytes) {
-                Ok((_rem, plaintext)) => {
-                    for msg in &plaintext.msg {
-                        match msg {
-                            TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ch)) => {
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.client_hello_seen = true;
-                                }
-                                self.handle_client_hello(ch, flow_key, last_ts);
+            // AC-144-002 / BC-2.07.038: direction-parameterized handshake carry path.
+            //
+            // STORY-144 scope: ClientToServer direction only.
+            // STORY-145 scope: ServerToClient direction (adds `server_hs_carry` arm).
+            //
+            // For ClientToServer: the record payload (no 5-byte TLS record header)
+            // is appended to `client_hs_carry`; the drain loop dispatches complete
+            // ClientHello messages via `parse_tls_message_handshake` (ADR-011 Decision 4).
+            //
+            // For ServerToClient (STORY-144): the pre-existing `parse_tls_plaintext` path
+            // is retained verbatim until STORY-145 replaces it with `server_hs_carry`.
+            // This preserves all existing ServerHello tests (AC-144-005).
+            match direction {
+                Direction::ClientToServer => {
+                    // ── ClientToServer carry path (AC-144-002) ──────────────────────
+                    let record_payload = record_bytes[5..].to_vec();
+
+                    // Step 1: Overflow check BEFORE append (BC-2.07.039 Invariant 3 /
+                    // ADR-011 Decision 5). If carry + payload would exceed MAX_BUF,
+                    // clear carry and increment the aggregate overflow counter; do NOT
+                    // increment parse_errors; continue to the next record.
+                    let carry_len_before = self
+                        .flows
+                        .get(flow_key)
+                        .map(|s| s.client_hs_carry.len())
+                        .unwrap_or(0);
+
+                    if carry_len_before + record_payload.len() > MAX_BUF {
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.client_hs_carry.clear();
+                        }
+                        self.handshake_reassembly_overflows += 1;
+                        continue;
+                    }
+
+                    // Step 2: Append payload to client_hs_carry.
+                    if let Some(state) = self.flows.get_mut(flow_key) {
+                        state.client_hs_carry.extend_from_slice(&record_payload);
+                    }
+
+                    // Step 3: Drain loop — consume complete handshake messages from carry.
+                    //
+                    // Each iteration: read 4-byte header to get body_len (3-byte BE);
+                    // guard body_len > MAX_BUF (Decision-4 spoof); wait if incomplete;
+                    // otherwise exact-consume and dispatch.
+                    // BC-2.07.042: back-to-back coalesced messages are each dispatched.
+                    loop {
+                        // Read current carry state without holding a borrow across dispatch.
+                        let (carry_len, msg_type, body_len) = {
+                            let state = match self.flows.get(flow_key) {
+                                Some(s) => s,
+                                None => break,
+                            };
+                            let carry = &state.client_hs_carry;
+                            if carry.len() < 4 {
+                                break;
                             }
-                            TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) => {
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.server_hello_seen = true;
-                                }
-                                self.handle_server_hello(sh, flow_key, last_ts);
+                            let mt = carry[0];
+                            let bl = ((carry[1] as usize) << 16)
+                                | ((carry[2] as usize) << 8)
+                                | (carry[3] as usize);
+                            (carry.len(), mt, bl)
+                        };
+
+                        // Decision-4: body_len > MAX_BUF → body_len-spoof guard.
+                        // Clear carry, increment overflow counter, break (ADR-011 Decision 4).
+                        if body_len > MAX_BUF {
+                            if let Some(state) = self.flows.get_mut(flow_key) {
+                                state.client_hs_carry.clear();
                             }
-                            _ => {}
+                            self.handshake_reassembly_overflows += 1;
+                            break;
+                        }
+
+                        // Incomplete: body not yet fully arrived — wait for next record.
+                        if carry_len < 4 + body_len {
+                            break;
+                        }
+
+                        // Clone the complete message bytes (4 header + body) for parsing
+                        // so we can dispatch (which takes &mut self) without holding a borrow.
+                        let msg_bytes: Vec<u8> = {
+                            let state = match self.flows.get(flow_key) {
+                                Some(s) => s,
+                                None => break,
+                            };
+                            state.client_hs_carry[..4 + body_len].to_vec()
+                        };
+
+                        // Dispatch on msg_type:
+                        // 0x01 → ClientHello via parse_tls_message_handshake.
+                        //   Ok(ClientHello): set client_hello_seen, call handle_client_hello.
+                        //   Err or Ok(non-CH): parse_errors+1, no finding (PC-9).
+                        // 0x02 → STORY-145 scope (ServerHello on server direction).
+                        //   Not reachable here (ClientToServer direction).
+                        // Other: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
+                        match msg_type {
+                            0x01 => {
+                                match parse_tls_message_handshake(&msg_bytes) {
+                                    Ok((
+                                        _rem,
+                                        TlsMessage::Handshake(TlsMessageHandshake::ClientHello(
+                                            ref ch,
+                                        )),
+                                    )) => {
+                                        if let Some(state) = self.flows.get_mut(flow_key) {
+                                            state.client_hello_seen = true;
+                                        }
+                                        self.handle_client_hello(ch, flow_key, last_ts);
+                                    }
+                                    Ok(_) => {
+                                        // Unexpected non-ClientHello for msg_type 0x01.
+                                        self.parse_errors += 1;
+                                    }
+                                    Err(_) => {
+                                        // Malformed assembled body (PC-9).
+                                        self.parse_errors += 1;
+                                    }
+                                }
+                            }
+                            _ => {
+                                // Other handshake types (Certificate=0x0b, etc.):
+                                // consume silently; parse_errors NOT incremented
+                                // (BC-2.07.038 Invariant 1; BC-2.07.042 EC-002).
+                            }
+                        }
+
+                        // Exact-consume: drain 4+body_len bytes from carry regardless of
+                        // parse outcome (BC-2.07.038 Postcondition 4 / Invariant 2).
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.client_hs_carry.drain(..4 + body_len);
                         }
                     }
                 }
-                Err(NomErr::Incomplete(_)) => {
-                    // Should not happen since we verified length — count as error if it does.
-                    self.parse_errors += 1;
-                }
-                Err(_) => {
-                    self.parse_errors += 1;
+
+                Direction::ServerToClient => {
+                    // ── ServerToClient: pre-existing parse_tls_plaintext path ─────
+                    //
+                    // STORY-145 will replace this with the server_hs_carry drain loop.
+                    // Retained verbatim here to preserve all existing ServerHello tests
+                    // (AC-144-005; BC-2.07.001 v1.9 Invariant 5).
+                    match parse_tls_plaintext(&record_bytes) {
+                        Ok((_rem, plaintext)) => {
+                            for msg in &plaintext.msg {
+                                if let TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) =
+                                    msg
+                                {
+                                    if let Some(state) = self.flows.get_mut(flow_key) {
+                                        state.server_hello_seen = true;
+                                    }
+                                    self.handle_server_hello(sh, flow_key, last_ts);
+                                }
+                            }
+                        }
+                        Err(NomErr::Incomplete(_)) => {
+                            self.parse_errors += 1;
+                        }
+                        Err(_) => {
+                            self.parse_errors += 1;
+                        }
+                    }
                 }
             }
         }
@@ -922,14 +1057,12 @@ impl StreamAnalyzer for TlsAnalyzer {
             "truncated_records".to_string(),
             serde_json::json!(self.truncated_records),
         );
-        // AC-144-003 (STUB — left for implementer): surface `handshake_reassembly_overflows`
-        // in the detail map once the carry drain loop (AC-144-002) is implemented.
-        // Adding it here in the stub would break the existing `test_summarize_output` test
-        // (which asserts exactly 7 keys); that test must remain green per AC-144-005.
-        // The implementer adds this insertion alongside the overflow counter increment logic,
-        // then updates `test_summarize_output` to expect 8 keys.
-        // The Red Gate test `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key`
-        // will FAIL here because the key is absent → `.expect("…")` panics.
+        // AC-144-003: surface `handshake_reassembly_overflows` in the detail map.
+        // Mirrors `truncated_records` above (BC-2.07.039 Postcondition 7).
+        detail.insert(
+            "handshake_reassembly_overflows".to_string(),
+            serde_json::json!(self.handshake_reassembly_overflows),
+        );
 
         AnalysisSummary {
             analyzer_name: self.name().to_string(),

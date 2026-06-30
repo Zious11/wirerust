@@ -334,18 +334,30 @@ fn test_ja3_grease_filtering() {
 
 #[test]
 fn test_parse_error_counter() {
-    // AC-007 / BC-2.07.029 postconditions 1-5:
-    // A handshake record (0x16) with a well-sized but malformed payload returns
-    // Err(_) from parse_tls_plaintext. parse_errors increments by 1. No finding
-    // emitted, no panic, flow remains in flows HashMap, loop continues/returns.
-    // truncated_records must NOT increment (this is a genuine parse failure, not
-    // an oversized-record DoS drop — BC-2.07.029 invariant 1).
+    // AC-007 / BC-2.07.029 postconditions 1-5 (updated for STORY-144 carry path):
+    // A handshake record (0x16) carrying a structurally-complete-but-malformed
+    // handshake message body causes parse_tls_message_handshake to return Err,
+    // incrementing parse_errors by 1. No finding emitted, no panic, flow remains.
+    // truncated_records must NOT increment (BC-2.07.029 invariant 1).
+    //
+    // With the STORY-144 carry path (AC-144-002), a "malformed 5-byte payload"
+    // like [0xFF;5] is now interpreted as a body_len-spoof (body_len=0xFFFFFF >
+    // MAX_BUF) → Decision-4 fires → handshake_reassembly_overflows++, NOT
+    // parse_errors. The genuine parse_errors case is a COMPLETE message (header
+    // declares body_len=N, N bytes delivered) with unparseable body content.
+    // This fixture sends body_len=5 header + 5-byte malformed body = 9 bytes.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // 5-byte TLS record header: type=0x16 (Handshake), version=0x0303, len=0x0005.
-    // Payload: 5 bytes of 0xFF — not a valid Handshake structure.
-    let bad_record = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+    // Carry-path fixture: [0x01, 0x00, 0x00, 0x05] header (msg_type=ClientHello,
+    // body_len=5) followed by 5 bytes of malformed content 0xFF.
+    // The carry drain loop assembles the 9-byte message and calls
+    // parse_tls_message_handshake, which fails on the malformed body → parse_errors+1.
+    let bad_record = [
+        0x16, 0x03, 0x03, 0x00, 0x09, // TLS record header, payload_len=9
+        0x01, 0x00, 0x00, 0x05, // handshake header: type=0x01, body_len=5
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    ]; // malformed 5-byte body
     analyzer.on_data(&fk, Direction::ClientToServer, &bad_record, 0, 0);
 
     // BC-2.07.029 postcondition 1: parse_errors incremented by exactly 1.
@@ -917,10 +929,13 @@ fn test_summarize_output() {
 
     let detail = &summary.detail;
 
-    // AC-009 / BC-2.07.031 postconditions 3-9:
-    // EXACT 7-key set — no more, no fewer (BTreeMap ordering enforced below).
+    // AC-009 / BC-2.07.031 postconditions 3-9 + AC-144-003:
+    // EXACT 8-key set — no more, no fewer (BTreeMap ordering enforced below).
+    // Updated from 7→8 in STORY-144 to include `handshake_reassembly_overflows`
+    // (BC-2.07.039 Postcondition 7 / AC-144-003).
     let required_keys = [
         "cipher_suites",
+        "handshake_reassembly_overflows",
         "ja3_hashes",
         "ja3s_hashes",
         "parse_errors",
@@ -936,8 +951,8 @@ fn test_summarize_output() {
     }
     assert_eq!(
         detail.len(),
-        7,
-        "AC-009 (BC-2.07.031 pc3-9): detail must have EXACTLY 7 keys, got: {:?}",
+        8,
+        "AC-009 (BC-2.07.031 pc3-9 + AC-144-003): detail must have EXACTLY 8 keys, got: {:?}",
         detail.keys().collect::<Vec<_>>()
     );
 
@@ -8402,11 +8417,18 @@ fn test_malformed_handshake_increments_parse_errors_only() {
         "AC-008 setup: truncated_records must be 0 after valid ClientHello"
     );
 
-    // Step 2: malformed handshake record (type=0x16, well-sized payload_len=5,
-    // but payload is garbage 0xFF bytes — parse_tls_plaintext returns Err(_)).
-    // payload_len=5 is well within MAX_RECORD_PAYLOAD (18432), so the oversized
-    // guard is NOT taken. This exercises the nom error path (BC-2.07.029 pc1-5).
-    let malformed = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+    // Step 2: malformed handshake record (type=0x16, well-sized payload_len=9,
+    // carrying a structurally-complete-but-malformed handshake body).
+    // Updated for STORY-144 carry path (AC-144-002): the payload must encode a
+    // COMPLETE handshake message (4-byte header + body) so the drain loop can
+    // assemble and attempt to parse it. A 5-byte [0xFF;5] payload would trigger
+    // Decision-4 (body_len=0xFFFFFF > MAX_BUF → overflow, not parse_error).
+    // This fixture: header [0x01,0x00,0x00,0x05]=body_len:5 + 5-byte garbage body.
+    let malformed = [
+        0x16, 0x03, 0x03, 0x00, 0x09, // TLS record, payload_len=9
+        0x01, 0x00, 0x00, 0x05, // HS header: type=0x01, body_len=5
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    ]; // malformed 5-byte body
     analyzer.on_data(&fk, Direction::ClientToServer, &malformed, 0, 0);
 
     // BC-2.07.029 inv1: parse_errors == 1 (genuine parse failure).
@@ -9224,11 +9246,19 @@ fn handshake_record_reaches_parser() {
         0,
         "0x16 record: buffer must be drained"
     );
-    // Empty payload -> nom Incomplete or parse error. parse_errors >= 1
-    // confirms the parse path was entered (non-0x16 path would leave it 0).
-    assert!(
-        analyzer.parse_error_count() >= 1,
-        "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
+    // Updated for STORY-144 carry path (AC-144-002): empty-payload 0x16 records
+    // are now buffered in client_hs_carry rather than immediately dispatched to
+    // parse_tls_plaintext. An empty payload (0 bytes) does not form a complete
+    // 4-byte handshake header; no parse attempt occurs and parse_errors stays 0.
+    // The observable proof that the 0x16 path was entered is:
+    //  (a) client_buf was drained above (buffer management still fires), AND
+    //  (b) a flow entry was created (active_flows == 1).
+    // Non-0x16 content types do NOT create carry entries; only 0x16 records
+    // go through the carry path, so flow creation + buf drain proves routing.
+    assert_eq!(
+        analyzer.active_flows_len_for_testing(),
+        1,
+        "0x16 with empty payload: flow must exist (proves 0x16 path was entered)"
     );
 }
 
@@ -9964,11 +9994,19 @@ mod story_144 {
         let record2 = wrap_as_tls_record(0x16, &padding);
         analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
-        // Record 3: 65,400 more bytes — carry would become 104 + 65,400 = 65,504 bytes.
-        // Still within MAX_BUF (65,536), so no overflow yet.
-        let big_payload: Vec<u8> = vec![0xBB; 65_400];
-        let record3 = wrap_as_tls_record(0x16, &big_payload);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record3, 0, 0);
+        // Records 3a–3d: together add 65,400 bytes so carry reaches 104+65,400 = 65,504.
+        // Each individual record payload ≤ 18,432 (MAX_RECORD_PAYLOAD) so the DoS guard
+        // (BC-2.07.004) does NOT fire; accumulation via multiple valid records is the
+        // intended overflow path per BC-2.07.039 v2.1 EC-002 / PRD F-F2-003.
+        // 3 × 18,432 + 10,104 = 65,400.
+        for _ in 0..3 {
+            let chunk: Vec<u8> = vec![0xBB; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
+        let remainder: Vec<u8> = vec![0xBB; 10_104]; // 65_400 - 3*18_432 = 10_104
+        let rec_rem = wrap_as_tls_record(0x16, &remainder);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec_rem, 0, 0);
 
         // Now carry = 65,504. Record 4: 100 bytes → 65,504 + 100 = 65,604 > 65,536.
         // Decision-5 fires: carry cleared, overflow_count+1.
@@ -10014,15 +10052,23 @@ mod story_144 {
         let mut analyzer = TlsAnalyzer::new();
         let sni = "post-overflow-recovery.example";
 
-        // Trigger an overflow first: push 65,537 bytes total to exceed MAX_BUF.
-        // Use a header-only record (body_len=65,500) + a 65,537-byte payload record.
+        // Trigger an overflow first by accumulating > MAX_BUF bytes across multiple
+        // individually-valid records (per BC-2.07.039 v2.1 EC-002 / PRD F-F2-003:
+        // a single 0x16 record with payload > MAX_RECORD_PAYLOAD (18,432) cannot reach
+        // the carry; overflow is triggered by accumulation across multiple valid records).
+        //
+        // Step 1: header-only record (4 bytes) → carry = 4.
         let header_only: Vec<u8> = vec![0x01, 0x00, 0xFF, 0xDC]; // body_len=65500
         let record_header = wrap_as_tls_record(0x16, &header_only);
         analyzer.on_data(&fk, Direction::ClientToServer, &record_header, 0, 0);
 
-        let overflow_payload: Vec<u8> = vec![0xAA; 65_537];
-        let record_overflow = wrap_as_tls_record(0x16, &overflow_payload);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record_overflow, 0, 0);
+        // Step 2: 3 × 18,432-byte records → carry grows to 4+18,432+18,432+18,432 = 55,300.
+        // Step 3: 4th record of 18,432 bytes → 55,300+18,432=73,732 > 65,536 → Decision-5.
+        for _ in 0..4 {
+            let chunk: Vec<u8> = vec![0xAA; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
 
         // Carry is now cleared; overflow_count >= 1.
         assert!(
