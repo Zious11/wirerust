@@ -4,10 +4,10 @@ project: wirerust
 mode: feature
 phase: 7
 status: in-progress
-current_step: "F4 wave 66 — STORY-145 (ServerHello symmetry+isolation) in per-story delivery; STORY-146 (buffer-saturation telemetry) next"
+current_step: "PAUSED for session-clear — F4 wave 66, STORY-145 mid-TDD (Red Gate established; NEXT: implementer wires ServerToClient carry drain)"
 pipeline: FEATURE-CYCLE
 current_cycle: fix-tls-clienthello-frag
-timestamp: 2026-06-29T23:30:00Z
+timestamp: 2026-06-30T00:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -22,17 +22,15 @@ prior_released_at: "2026-06-24"
 # Ground-truth HEADs (verified 2026-06-29 via git rev-parse)
 main_head: 3072e8287b9f7e6621740b6e31f04ae57914d0b9
 develop_head: 0986e8787abf909cd08af422b0b75f845d72616a
-factory_artifacts_head: c25f7e45e67044ab646146c24e1c495b05ab1160
 
 # Cargo.toml version on main and develop
 cargo_version_main: "0.11.0"
 cargo_version_develop: "0.11.0"
 
-# Open worktrees (2 stale scratch worktrees remain on disk — can be removed)
+# Open worktrees
 # Main checkout: /Users/zious/Documents/GITHUB/wirerust [develop]
 # Factory artifacts: /Users/zious/Documents/GITHUB/wirerust/.factory [factory-artifacts]
-# STALE (scratch, safe to remove): .worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify]
-# STALE (scratch, safe to remove): .worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses]
+# ACTIVE: .worktrees/story-145-tls-serverhello-symmetry @ f60c0e0 [feature/story-145-tls-serverhello-symmetry] — Red Gate established
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -47,7 +45,7 @@ story_index_note: "99 stories / 65 waves. STORY-130..142 MERGED. STORY-143 draft
 
 # Spec versions (current)
 bc_index_version: v2.1
-vp_index_version: v2.25
+vp_index_version: v2.28
 arch_index_version: v2.4
 prd_version: v1.45
 epics_version: v1.8
@@ -68,58 +66,70 @@ maintenance_completed_at: "2026-06-23"
 
 ## EXACT RESUME POINT
 
-**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F4 TDD DELTA IMPLEMENTATION ACTIVE — wave 65 DONE; wave 66 (STORY-145 + STORY-146) CURRENT**
+**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F4 TDD DELTA IMPLEMENTATION — wave 66 STORY-145 MID-TDD (RED GATE ESTABLISHED)**
 
-Phase F3 (incremental story decomposition) HUMAN-APPROVED. Phase F4 (TDD delta implementation) is the active step, driven autonomously; human receives reports at wave/phase boundaries.
+Phases F1 DONE, F2 HUMAN-APPROVED (D-305), F3 HUMAN-APPROVED (D-306). Phase F4 active
+(driven autonomously; human receives reports at wave/phase boundaries).
 
-**F3 story decomposition result:**
-- 3 stories authored: STORY-144 (wave 65, TLS carry reassembly), STORY-145 (wave 66, dep STORY-144), STORY-146 (wave 66, dep STORY-144).
-- Holdout registry: `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md` (HS-F4-001..012).
-- Input-hashes: STORY-144 `3dfe20c`, STORY-145 `88e29c9`, STORY-146 `6d9da65`.
-- STORY-INDEX v3.6 (99 stories, 65 waves).
+**Wave 65 DONE:** STORY-144 MERGED PR #341, squash `0986e878`, 11/11 CI green. stories_delivered 91→92. develop HEAD `0986e878`.
 
-**F4 per-story delivery sequence (canonical, per-story-delivery.md):**
-worktree → stub-architect (compilable Red-Gate stubs) → test-writer (failing Red-Gate tests) → implementer (TDD) → per-story adversarial convergence (3 clean, BC-5.39.001) → demo-recorder (per-AC demos) → push → pr-manager (9-step PR) → review → squash-merge → worktree cleanup. Wave integration gate after each wave. Build verification + holdout eval after F4.
+**Wave 66 — STORY-145 IN PROGRESS (mid-TDD, Red Gate established):**
 
-**Wave 65 DONE:** STORY-144 MERGED via PR #341 (squash `0986e878`, 11/11 CI green). Per-story adversarial 3-clean + security pass (SEC-001 quadratic-drain DoS found+fixed in carry loop) + demo pass (fragmented ClientHello baseline MISSED→DETECTED). stories_delivered 91→92. Develop HEAD now `0986e878`. STORY-144 worktree cleaned up.
+- Worktree: `/Users/zious/Documents/GITHUB/wirerust/.worktrees/story-145-tls-serverhello-symmetry`
+- Branch: `feature/story-145-tls-serverhello-symmetry` — PUSHED to origin
+- Base: develop `0986e878`
+- Commits on branch: `389c648` (S-145.00 stubs), `f60c0e0` (S-145.01 Red-Gate tests)
+- **Red Gate status:** ESTABLISHED. Tests `proptest_vp039_direction_isolation` and
+  `test_BC_2_07_041_cross_flow_isolation` FAIL (ServerToClient carry drain NOT yet wired).
+  136 existing tests GREEN. `cargo check`, `clippy -Dwarnings`, `cargo fmt --check` all CLEAN.
 
-**Wave 66 current:** STORY-145 (ServerHello symmetry + isolation) and STORY-146 (buffer-saturation telemetry). Both dep STORY-144 satisfied. Delivering SEQUENTIALLY (both touch `src/analyzer/tls.rs`): STORY-145 first → merge → STORY-146 from updated develop. STORY-145 worktree to be created from `0986e878`.
+**NEXT STEP ON RESUME:** Dispatch the **implementer** to wire the ServerToClient carry drain:
+1. Factor STORY-144's inline ClientToServer drain loop (see `src/analyzer/tls.rs`) into a
+   **direction-parameterized helper** per AC-145-001 (ref BC-2.07.041 v1.2).
+2. Add the server arm dispatching `handle_server_hello` via `server_hs_carry`.
+3. Make the 2 story_145 Red-Gate tests pass; keep all 138 tests green.
+4. `clippy -Dwarnings` and `cargo fmt --check` CLEAN.
 
-**Locked design decisions (do NOT re-derive on resume):**
-- OVERFLOW POLICY = clear-and-recover (Policy A, NO sticky-abandon flag). Chosen over abandon to deny permanent per-flow blinding. Research: `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` (Ptacek/Newsham; Suricata CVE-2019-18792).
-- Per-MESSAGE body_len cap = MAX_BUF=65,536 (raised from 18,432; Go maxHandshake parity).
-- Per-RECORD cap stays 18,432 (BC-2.07.004).
-- Parse boundary = `tls_parser::parse_tls_message_handshake` (NOT `parse_tls_plaintext`).
-- `handshake_reassembly_overflows` = TlsAnalyzer u64 AGGREGATE counter (not per-flow), surfaced in `summarize()`.
-- Per-flow ceiling 4×MAX_BUF (post-on_data-return residue).
-- `TlsFlowState` gains `client_hs_carry` + `server_hs_carry` (Vec<u8>) only.
-- F-EV-001 defense-in-depth IMPLEMENTED IN SPEC: BC-2.07.043 buffer_saturation_drops — TlsAnalyzer u64 aggregate counter, increment HOISTED after &mut state block (borrow constraint), surfaced in summarize(), no finding/no parse_errors; test seam fill_buf_for_testing. Three distinct telemetry counters: parse_errors+truncated_records (BC-2.07.004), handshake_reassembly_overflows (BC-2.07.039), buffer_saturation_drops (BC-2.07.043).
+**After implementer:** per-story adversarial convergence (3 clean passes, BC-5.39.001) →
+demo-recorder (per-AC demos) → push → pr-manager (9-step PR, NON-DESTRUCTIVE
+`update-branch`/`--auto`, NO force-push) → squash-merge → worktree cleanup.
 
-**Next action:** Per-story TDD delivery — STORY-145 (wave 66, ServerHello symmetry+isolation). Create worktree from `0986e878`; resume at stub-architect.
+**STORY-146 (buffer-saturation telemetry) — NOT STARTED.** Deliver AFTER STORY-145 merges
+(both touch `src/analyzer/tls.rs` — sequential). Create new worktree from updated develop.
 
-- v0.11.0 released (D-300, 2026-06-29). main=`3072e828`, develop=`ab0b388`. crates.io not published.
-- Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — cleaned per pre-F4 verification (D-306).
+**After wave 66 both merged:** wave-66 integration gate (full regression on develop) →
+F4 build-verification + holdout-evaluation (HS-F4-001..012 at
+`.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`) → F5 scoped adversarial →
+F6 targeted hardening → F7 delta convergence + HUMAN gate + RELEASE-VERSION decision
+(deferred; likely v0.11.1 patch, NOT v0.12.0).
 
-**OPEN HUMAN QUESTION (D-301, non-blocking):** Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now, or wait for the next gitflow back-merge? No functional impact either way. Awaiting answer.
+**Locked design facts (do NOT re-derive on resume):**
+- Overflow = clear-and-recover (NO sticky abandon). Per-MESSAGE cap MAX_BUF=65,536.
+  Per-RECORD cap 18,432. Parse boundary = `tls_parser::parse_tls_message_handshake`.
+- `handshake_reassembly_overflows` + `buffer_saturation_drops` = TlsAnalyzer u64 aggregates
+  (saturating_add), surfaced in `summarize()`. `TlsFlowState` = `client_hs_carry` +
+  `server_hs_carry` (Vec<u8>). Cursor + single-drain (O(carry_len), SEC-001 DoS fix).
+- Test wrappers in `mod story_NNN` (DF-TEST-NAMESPACE-001); strip 5-byte record header.
+  Seams: `client_hello_seen_for_testing`, `client_hs_carry_len_for_testing`,
+  `server_hs_carry_len_for_testing`, `handshake_reassembly_overflow_count`, `fill_buf_for_testing`.
+- STORY-145: BC-2.07.041 v1.2, BC-2.07.002 v1.6; VP-039 Sub-E; HS-F4-007/008/009; hash `88e29c9`.
+- STORY-146: BC-2.07.043 v1.3, BC-2.07.005 v1.7; VP-040 (6 harnesses + `fill_buf_for_testing`);
+  HS-F4-010/011/012; hash `6d9da65`.
 
 ## RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
-2. Read `.factory/STATE.md` (this file).
-3. Verify: `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`; `git rev-parse origin/develop` = `0986e8787abf909cd08af422b0b75f845d72616a`; `git tag -l v0.11.0` exists.
-4. Active cycle: `fix-tls-clienthello-frag`. F3 APPROVED (D-306) — F4 TDD delta implementation ACTIVE. Wave 65 DONE (STORY-144 MERGED). Wave 66 current (STORY-145 + STORY-146). Read `.factory/cycles/fix-tls-clienthello-frag/cycle-manifest.md` for scope + phase status.
-5. Maintenance sweeps PAUSED. Do not initiate maintenance work during this cycle.
-6. Next action: Per-story TDD delivery — STORY-145 (wave 66, ServerHello symmetry+isolation). Create worktree from develop `0986e878`; resume at stub-architect.
+2. Read `.factory/STATE.md` (this file) and `.factory/cycles/fix-tls-clienthello-frag/cycle-manifest.md`.
+3. Verify git state:
+   - `git rev-parse origin/develop` = `0986e8787abf909cd08af422b0b75f845d72616a`
+   - `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`
+   - Worktree `.worktrees/story-145-tls-serverhello-symmetry` on `feature/story-145-tls-serverhello-symmetry`
+   - Branch tip HEAD = `f60c0e0` (Red-Gate tests commit)
+4. Confirm Red Gate: run `cargo test --all-targets` from the story-145 worktree.
+   - EXPECTED: 2 tests FAIL (`proptest_vp039_direction_isolation`, `test_BC_2_07_041_cross_flow_isolation`); 136 PASS.
+5. Dispatch **implementer** agent as described in EXACT RESUME POINT above.
+6. Maintenance sweeps PAUSED. Do not initiate during this cycle (D-303).
 7. Non-blocking open question: main CHANGELOG fast-track (D-301) — re-surface if human asks.
-
-## Locked design facts (do not re-derive on resume)
-
-- ENIP header LITTLE-endian (`from_le_bytes`). `EnipCommandClass` 10 variants. `CipServiceClass` 15. `EnipFlowState` fields: `carry_c2s`, `carry_s2c` (replacing `carry`), `malformed_window_start_ts` (replacing `window_start_ts`). `on_data` sig: `(flow_key, data, timestamp, direction: Direction)`.
-- Modbus needs NO `on_data` sig change (direction already threaded). Sustained-window `>=` at modbus.rs:670 is an INTENTIONAL min-duration gate — PRESERVE. Modbus carry-cap STRUCTURALLY UNREACHABLE (max operand 259 < 260=MAX_ADU_CARRY_BYTES; active_carry.clear() at L1075 drains before walk). 6 cargo-mutants survivors EQUIVALENT — do NOT attempt to kill them.
-- DNP3 desync fix REQUIRES `frame_count==0` guard — both-carries-empty-only is INCOMPLETE (missed sub-case ii where a completed frame drains carry).
-- STORY-104 AC-006 "wrapping_sub" text superseded by saturating_sub precedent (spec corrected in STORY-141).
-- EC-X1: cross-direction carry splice — CONFIRMED HIGH. EC-X2: clock-backwards `wrapping_sub` → window reset — CONFIRMED HIGH. Both FIXED in STORY-139..142.
-- 2 .factory STORY-104 red-gate-LOG citations of old test names are historical run-logs — no update needed.
 
 ---
 
@@ -135,8 +145,8 @@ worktree → stub-architect (compilable Red-Gate stubs) → test-writer (failing
 | Tag v0.11.0 | commit `3072e828`; tag object `c50d89e8` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.1 / VP-INDEX v2.25 (40 VPs) / ARCH-INDEX v2.4 / PRD v1.45 |
-| Stories | 91 delivered / 99 total (STORY-INDEX v3.6) |
+| Spec versions | BC-INDEX v2.1 / VP-INDEX v2.28 (40 VPs) / ARCH-INDEX v2.4 / PRD v1.45 |
+| Stories | 92 delivered / 99 total (STORY-INDEX v3.6) |
 
 ---
 
@@ -144,43 +154,28 @@ worktree → stub-architect (compilable Red-Gate stubs) → test-writer (failing
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19 |
-| Phase 1 — Spec Crystallization | PASSED 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs |
-| Phase 2 — Story Decomposition | PASSED 2026-05-21 | 49 stories / 11 epics / 27 waves |
-| Phase 3 — TDD Implementation | PASSED 2026-05-31 | 48/48 stories, 27/27 waves |
-| Phase 4 — Holdout Evaluation | PASSED 2026-06-01 | mean 0.949 |
-| Phase 5 — Adversarial Refinement | PASSED 2026-06-01 | 3/3 adversary gate SATISFIED |
-| Phase 6 — Formal Hardening | PASSED 2026-06-02 | 8 Kani VPs; fuzz 21.7M/0; 20 VPs LOCKED |
-| Phase 7 + v0.1.0..v0.5.0 | RELEASED | Greenfield through MITRE v19 remap |
-| Feature DNP3 (E-8) + v0.6.0 | RELEASED 2026-06-12 | Detail: cycles/feature-8-dnp3-v0.5.0/ |
-| Feature ARP (E-16) + v0.7.0 | RELEASED 2026-06-16 | STORY-111..115; VP-024 LOCKED |
-| E-17 ARP QinQ/MACsec + v0.7.1 | RELEASED 2026-06-17 | STORY-116/117 |
-| E-18 finding-collapse + v0.8.0 | RELEASED 2026-06-17 | SS-11=29 BCs |
-| E-18/E-8 STORY-119 + v0.9.0 | RELEASED 2026-06-19 | 293 BCs; tag v0.9.0 |
-| v0.9.1/v0.9.2 patches | RELEASED 2026-06-19 | Doc/help + DNP3 determinism |
-| Feature pcapng-reader + v0.9.3 | RELEASED 2026-06-22 | 10 new BCs, VP-INDEX v2.10 |
+| Phase 0–7 + v0.1.0..v0.5.0 | RELEASED | Greenfield through MITRE v19 remap |
+| Feature DNP3 (E-8) + v0.6.0..v0.11.0 | RELEASED | Details: cycles/ subdirs |
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking |
-| Feature mitre-json-names + v0.9.4 | RELEASED 2026-06-23 | BC-INDEX v1.71 |
-| Fix cycle fix-pc-013-014-015 + v0.10.0 | RELEASED 2026-06-24 | tag v0.10.0 `0cbe922` |
-| Feature EtherNet/IP (Waves 58-64) + v0.11.0 | **RELEASED 2026-06-29 (D-300)** | tag v0.11.0 `3072e828`. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature cycle fix-tls-clienthello-frag — F1 | DONE | delta-analysis.md; architect completed |
-| Feature cycle fix-tls-clienthello-frag — F2 | **FULLY APPROVED (D-305, 2026-06-29)** | 6 new BCs (incl BC-2.07.043) + 3 amended (incl BC-2.07.005 v1.7) + VP-039 + VP-040 + ADR-011; scope addition F-EV-001 defense-in-depth approved |
-| Feature cycle fix-tls-clienthello-frag — F3 | **APPROVED (D-306, 2026-06-29)** | STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves) |
-| Feature cycle fix-tls-clienthello-frag — F4 | **ACTIVE** | Wave 65 DONE (STORY-144 MERGED PR #341 `0986e878`); wave 66 STORY-145+STORY-146 current |
+| Feature cycle fix-tls-clienthello-frag — F1 | DONE | delta-analysis.md committed |
+| Feature cycle fix-tls-clienthello-frag — F2 | APPROVED (D-305, 2026-06-29) | 6 new BCs + 3 amended + VP-039 + VP-040 + ADR-011 |
+| Feature cycle fix-tls-clienthello-frag — F3 | APPROVED (D-306, 2026-06-29) | STORY-144..146; STORY-INDEX v3.6; HS-F4-001..012 |
+| Feature cycle fix-tls-clienthello-frag — F4 | **ACTIVE** | Wave 65 DONE (STORY-144 PR #341 `0986e878`). Wave 66: STORY-145 mid-TDD (Red Gate established); STORY-146 pending |
+| Feature cycle fix-tls-clienthello-frag — F5 | PENDING | |
+| Feature cycle fix-tls-clienthello-frag — F6 | PENDING | |
+| Feature cycle fix-tls-clienthello-frag — F7 | PENDING | Version decision at gate |
 
 ---
 
-## Current Phase Steps
+## Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Phase F1 — Delta Analysis | DONE | Architect completed; delta-analysis.md committed |
-| Phase F2 — Spec Evolution | **FULLY APPROVED (D-305, 2026-06-29)** | 6 new BCs + 3 amended + VP-039 + VP-040 + ADR-011; F-EV-001 defense-in-depth scope addition approved |
-| Phase F3 — Incremental Stories | **APPROVED (D-306, 2026-06-29)** | STORY-144..146; STORY-INDEX v3.6; holdout registry HS-F4-001..012; input-hashes refreshed |
-| Phase F4 — TDD Delta Implementation | **ACTIVE** (current) | Wave 65 DONE — STORY-144 MERGED (PR #341, `0986e878`). Wave 66 active — STORY-145 (ServerHello symmetry+isolation) next; STORY-146 (buffer-saturation telemetry) after |
-| Phase F5 — Scoped Adversarial Review | PENDING | |
-| Phase F6 — Targeted Hardening | PENDING | |
-| Phase F7 — Delta Convergence | PENDING | Version decision at gate |
+| Wave 65: STORY-144 TDD delivery | DONE | PR #341 squash `0986e878`, 11/11 CI green. SEC-001 DoS fix included. stories_delivered 91→92 |
+| Wave 65: Integration gate | DONE | Full regression PASS on develop `0986e878` |
+| Wave 66: STORY-145 stubs | DONE | Commit `389c648` on branch feature/story-145-tls-serverhello-symmetry |
+| Wave 66: STORY-145 Red-Gate tests | DONE | Commit `f60c0e0`; 2 tests FAIL (expected), 136 PASS |
+| **Wave 66: STORY-145 implementation** | **NEXT** | Wire ServerToClient carry drain; make 2 story_145 tests pass; keep 138 green |
 
 ---
 
@@ -196,14 +191,13 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
-| D-300 | v0.11.0 RELEASED. PR #337 squash→main `3072e828`. Tag v0.11.0 pushed. GitHub release published (Latest). develop synced PR #338 `ecbcd268`. crates.io: not published (human declined). Cycle CLOSED. | 2026-06-29 |
-| D-301 | POST-RELEASE: v0.11.0 CHANGELOG corrected (PRs #339+#340; develop `ab0b388`). GitHub release notes updated (40 ENIP/MITRE markers confirmed). STORY-143 (draft, E-11) created. STORY-INDEX v3.2 (96 stories). main CHANGELOG will catch up on next gitflow back-merge. Open question: fast-track main CHANGELOG now vs wait — not yet answered. | 2026-06-29 |
-| D-302 | Dependabot triage: PRs #325 (softprops/action-gh-release 3.0.0→3.0.1, squash-merged 14:10:55Z, merge commit `a715437`) and #311 (actions/checkout 6.0.3→7.0.0 major, squash-merged 14:14:34Z, merge commit `a2d8c13`) merged to develop after 7-day soak verification per .github/dependabot.yml cooldown policy (#311: 11-day soak). CI 22/22 green on both. SHA-pinning preserved. No breaking impact (plain checkout usage, not fork pull_request_target pattern). develop now `a2d8c13`. Human-approved merge. | 2026-06-29 |
-| D-303 | Started Feature-Mode cycle `fix-tls-clienthello-frag` for TLS-CLIENTHELLO-FRAG-001 (validated CONFIRMED, severity HIGH). Human chose full F1-F7 VSDD process; release version deferred to F7 convergence (not v0.12.0 or v0.11.1 yet). Maintenance sweeps paused for cycle duration. develop at `a2d8c13`. | 2026-06-29 |
-| D-304 | Phase F2 spec evolution CONVERGED for fix-tls-clienthello-frag (TLS handshake reassembly). 5 new BCs (BC-2.07.038-042) + 2 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6) + VP-039 (17 harnesses) + ADR-011. Overflow policy = clear-and-recover (human-approved via research, D-303 cycle); per-message cap 65,536; parse boundary = `parse_tls_message_handshake`. 3+ clean adversary passes after 12 fix bursts. Awaiting F2 human approval gate. | 2026-06-29 |
-| D-305 | Phase F2 APPROVED (D-304 converged). Human approved + pulled the F-EV-001 defense-in-depth counter into the cycle: BC-2.07.043 (buffer_saturation_drops) + BC-2.07.005 v1.7 + VP-040 (6 harnesses) authored and converged via scoped adversarial passes. F-EV-001 (client_buf saturation) validated NOT-EXPLOITABLE; the counter makes the tail-drop primitive non-silent (pre-empts P1/P2). SS-07 43 BCs, VP total 40, BC-INDEX v2.1, PRD v1.45. Proceeding to F3. | 2026-06-29 |
-| D-306 | Phase F3 (story decomposition) HUMAN-APPROVED. F4 driven autonomously (human choice), reporting at wave/phase boundaries. F4-entry cleanup done: holdout registry HS-F4-001..012 at `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`; BC Stories-field sweep complete; input-hashes refreshed (STORY-144 `3dfe20c`, STORY-145 `88e29c9`, STORY-146 `6d9da65`). STORY-144 worktree created (`.worktrees/story-144-tls-carry-reassembly`, branch `feature/story-144-tls-carry-reassembly`, from develop `ab0b388`). Stale orphan worktrees cleaned. Pre-F4 verification PASS: CI green (`ab0b388`), branch protection squash-only confirmed, cargo check clean. STORY-INDEX v3.6 (99 stories, 65 waves). | 2026-06-29 |
-| D-307 | STORY-144 (TLS carry buffer + ClientHello reassembly) MERGED — PR #341 squash `0986e878`, 11/11 CI green. Per-story adversarial 3-clean + security pass (SEC-001 quadratic-drain DoS found+fixed in carry loop; STORY-144 carry loop) + demos (fragmented ClientHello baseline MISSED→DETECTED). stories_delivered 91→92. Wave 65 DONE. Develop HEAD `0986e878`. STORY-144 worktree cleaned. Wave 66 active: STORY-145 (ServerHello symmetry+isolation) → STORY-146 (buffer-saturation telemetry), sequential (both touch tls.rs). STORY-145 worktree to be created from `0986e878`. Open deferred items: SEC-002 (narrow non-RFC overflow window [MAX_BUF-3,MAX_BUF] → F6 hardening), done()-mid-loop cross-direction carry interaction (→ wave-gate review, pre-existing), SEC-004 (parse_errors plain += theoretical u64 overflow → maintenance sweep, LOW). | 2026-06-29 |
+| D-302 | Dependabot PRs #325+#311 merged. develop `a2d8c13`. | 2026-06-29 |
+| D-303 | Cycle `fix-tls-clienthello-frag` started. Full F1-F7. Maintenance paused. | 2026-06-29 |
+| D-304 | F2 CONVERGED: 5 new BCs + 2 amended + VP-039 + ADR-011. | 2026-06-29 |
+| D-305 | F2 APPROVED + F-EV-001 scope: BC-2.07.043 + VP-040. BC-INDEX v2.1, PRD v1.45. | 2026-06-29 |
+| D-306 | F3 APPROVED. STORY-144..146; STORY-INDEX v3.6; HS-F4-001..012. Pre-F4 PASS. | 2026-06-29 |
+| D-307 | STORY-144 MERGED PR #341 `0986e878`. SEC-001 DoS fixed. Wave 65 DONE. stories_delivered=92. | 2026-06-29 |
+| D-308 | Session paused at STORY-145 mid-TDD (Red Gate `f60c0e0`, branch pushed). Resume checkpoint written. VP-INDEX corrected to v2.28. | 2026-06-30 |
 
 ---
 
@@ -219,78 +213,62 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 ## Blocking Issues
 
-*None. Pipeline IDLE.*
+*None.*
 
 ---
 
-## Open Items / Backlog (v0.12.0 candidates — all DF-VALIDATION-001-gated)
+## Open Items / Backlog (DF-VALIDATION-001-gated unless noted)
 
-> **MAINTENANCE SWEEPS PAUSED** — cycle `fix-tls-clienthello-frag` in progress (D-303). Do not initiate new maintenance sweep runs until F7 gate.
+> **MAINTENANCE SWEEPS PAUSED** — cycle `fix-tls-clienthello-frag` in progress (D-303).
 
 | ID | Summary | Priority | Status |
 |----|---------|----------|--------|
-| TLS-CLIENTHELLO-FRAG-001 | ClientHello fragmented across TLS records → SNI/JA3 evasion (tls.rs:763-792). No record reassembly. Severity revised CRIT-candidate → HIGH (validated). | HIGH | IN PROGRESS (cycle fix-tls-clienthello-frag; F2 CONVERGED) |
-| F-EV-001 | client_buf TCP-buffer saturation silent blinding. Research-validated NOT-EXPLOITABLE on develop (`.factory/research/F-EV-001-clientbuf-saturation-validation.md` — residue ceiling ≤18,437 < MAX_BUF; oversize records telemetered; no segment coalescing). DF-VALIDATION-001 SATISFIED. Defense-in-depth counter BC-2.07.043 (buffer_saturation_drops) + VP-040 implemented in spec this cycle (D-305). F-EV-003 (done() whole-flow ServerHello silent-loss) is same class — not exploitable. | LOW | **RESOLVED** — defense-in-depth counter implemented in spec (D-305); BC-2.07.043 / VP-040 authored |
-| PRD-HEADER-VERSION-POINTER-LAG | [LOW residual — F3 sweep] PRD §2.7.1 subsection header version-pointer may lag current frontmatter version (v1.42→ now should reflect v1.45). Cosmetic only; body content current. | LOW | F3 sweep |
-| BC-2.07.043-PC4-BTREEMAP-LABEL | [NIT residual — F3 sweep] BC-2.07.043 PC-4 prose says HashMap but real type is BTreeMap<String,serde_json::Value> (non-load-bearing label mismatch). | NIT | F3 sweep |
-| SEAM-SIG-HISTORICAL-RESIDUE | [LOW residual — non-actionable] Two historical changelog entries (prd.md, spec-changelog) retain old by-value seam signature — accurate historical residue, not a defect. | LOW | No action needed (accurate history) |
-| DF-KANI-NONVACUITY-001-PROPTEST-GAP | [process-gap] DF-KANI-NONVACUITY-001 has no proptest/unit-test analog in policies.yaml. Proptest non-vacuity defects this cycle (Sub-F near-vacuity, Sub-C wrong-path) would have been caught earlier by codified proptest-analog policy. Candidate for policy-add at cycle close (per Cycle-Closing Checklist S-7.02). | LOW | Candidate — cycle close |
-| SEC-001 | Unsafe split-borrow in src/analyzer/enip.rs `on_data` — sound under invariant, but should refactor to modbus.rs owned-borrow pattern. Pre-existing PR #334. | MEDIUM | v0.12.0 candidate |
-| SEC-002 | Narrow non-RFC overflow window [MAX_BUF-3, MAX_BUF]: a message body spanning exactly this range clears-and-recovers rather than assembling. Found during STORY-144 adversarial (wave 65). Low exploitability; STORY-144 carry loop SEC-001 DoS fix covered primary path. Deferred to F6 targeted hardening. DF-VALIDATION-001-gated. | LOW | F6 hardening |
-| SEC-004 | parse_errors plain `+=` in tls.rs — theoretical u64 overflow on extremely long-running high-parse-error flows (cosmetic counter wrap, no safety impact). Deferred to maintenance sweep. DF-VALIDATION-001-gated. | LOW | Maintenance sweep |
-| DONE-MID-LOOP-CROSS-DIRECTION | done()-mid-loop cross-direction carry interaction: if `done()` fires while a partial message spans both directions, cross-direction carry residue may be silently cleared. Pre-existing design tension (not introduced by STORY-144). Wave-gate review item — assess at wave 66 integration gate or F5. | LOW | Wave-gate review (pre-existing) |
-| STORY-143 | Draft story (E-11, 3 pts): harden release-changelog to enumerate full `<prev-tag>..HEAD` PR range (policy DF-RELEASE-CHANGELOG-RANGE-001 candidate). | LOW | Draft — not yet scheduled |
-| EDGE-CASE-HUNT-2026-06-28 | ~30 candidates across all analyzers. Register: cycles/feature-enip-v0.11.0/EDGE-CASE-HUNT-REGISTER-2026-06-28.md. 4 CRIT, ~9 HIGH, MED/LOW. All DF-VALIDATION-001-gated. | MIXED | Candidates — validation-gated |
-| DESIGN-TIMESTAMP-MONOTONICITY | Design note: cycles/feature-enip-v0.11.0/DESIGN-TIMESTAMP-MONOTONICITY.md. Informs v0.12.0 planning. | REF | Archive (afd7dbb) |
-| DESIGN-CROSS-DIRECTION-STATE | Design note: cycles/feature-enip-v0.11.0/DESIGN-CROSS-DIRECTION-STATE.md. Informs v0.12.0 planning. | REF | Archive (afd7dbb) |
-| DNP3-DOC-COMMENT-STALE-ACTIVE-CARRY | [NIT] Stale doc comment in src/analyzer/dnp3.rs referencing old `active_carry!` pattern. Doc-only. DF-VALIDATION-001-gated. | NIT | v0.12.0 |
-| MODBUS-DEBUG-ASSERT-CARRY-CLEAR | [SEC-002 LOW] Add `debug_assert!(dir_carry.is_empty())` after carry clear in modbus.rs. Defensive correctness. DF-VALIDATION-001-gated. | LOW | v0.12.0 |
-| PROCESS-WATCH: false-structurally-killed claim | "False structurally-killed mutation claim" gap hit 2 consecutive waves (63+64). A 3rd triggers DF-ADVERSARY-TOOLCHAIN-PAIRING-001 policy-text update. | PROCESS | Watch |
-| DEPENDABOT-311 | PR #311 (actions/checkout 6.0.3→7.0.0 major). | LOW | MERGED 2026-06-29 (D-302, merge commit `a2d8c13`) |
-| DEPENDABOT-325 | PR #325 (softprops/action-gh-release 3.0.0→3.0.1). | LOW | MERGED 2026-06-29 (D-302, merge commit `a715437`) |
-| ENIP-CARRY-CAP-V0.12.0-REDESIGN | BC-2.17.016 PC-4 carry-overflow cap is unreachable dead code (RULING-137-002). v0.12.0 redesign should make reachable or remove. Mirrors MODBUS-CARRY-CAP. | BACKLOG | v0.12.0 |
-| F6-MUTANTS-FULL-RUN | Confirm 0-missed on full 241-mutant run for ENIP (21 caught/0 missed at F6 gate — confirm at F7). | BACKLOG | Human confirm |
-| BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | LOW | Cycle close / v0.12.0 |
+| TLS-CLIENTHELLO-FRAG-001 | ClientHello fragmented across TLS records → SNI/JA3 evasion. Severity HIGH. | HIGH | **IN PROGRESS** — F4 wave 66 STORY-145 mid-TDD |
+| SEC-002 | Narrow non-RFC overflow window [MAX_BUF-3, MAX_BUF] — clears-and-recovers rather than assembling. Low exploitability. | LOW | F6 hardening |
+| SEC-004 | parse_errors plain `+=` in tls.rs — theoretical u64 overflow. Cosmetic. | LOW | Maintenance sweep |
+| DONE-MID-LOOP-CROSS-DIRECTION | done()-mid-loop cross-direction carry interaction. Pre-existing. | LOW | Wave-gate review |
+| DF-KANI-NONVACUITY-001-PROPTEST-GAP | No proptest/unit analog for DF-KANI-NONVACUITY-001 in policies.yaml. | LOW | Policy-add at cycle close (S-7.02) |
+| SEC-001-ENIP | Unsafe split-borrow enip.rs `on_data` (pre-existing). | MEDIUM | v0.12.0 candidate |
+| STORY-143 | Draft story (E-11, 3 pts): harden release-changelog PR-range enumeration. | LOW | Draft — not scheduled |
+| EDGE-CASE-HUNT-2026-06-28 | ~30 candidates. Register: cycles/feature-enip-v0.11.0/EDGE-CASE-HUNT-REGISTER-2026-06-28.md. | MIXED | Validation-gated |
+| D-301-CHANGELOG | main CHANGELOG will catch up on next gitflow back-merge. Open question: fast-track? | LOW | Non-blocking open question |
 
-All GitHub-issue creation DF-VALIDATION-001-gated (policies.yaml).
+Full backlog with resolved/archived items: `cycles/feature-enip-v0.11.0/` decisions-archive and STATE.md prior to D-308 (accessible via `git -C .factory log`).
 
 ---
 
 ## Session Resume Checkpoint
 
-**Date:** 2026-06-29
-**State:** Feature cycle `fix-tls-clienthello-frag` — Phase F4 TDD delta implementation ACTIVE — wave 65 DONE (STORY-144 MERGED); wave 66 (STORY-145 + STORY-146) current
+**Date:** 2026-06-30
+**State:** PAUSED for session clear — Feature cycle `fix-tls-clienthello-frag`, Phase F4, wave 66, STORY-145 mid-TDD
 
-### What was done this session
-- v0.11.0 RELEASED (D-300) + post-release corrections (D-301) + Dependabot triage (D-302).
-- TLS-CLIENTHELLO-FRAG-001 research-validated CONFIRMED HIGH; DF-VALIDATION-001 SATISFIED.
-- Feature cycle `fix-tls-clienthello-frag` initialized (D-303); F1 delta analysis completed.
-- Phase F2 spec evolution CONVERGED + HUMAN-APPROVED (D-305): 6 new BCs + 3 amended + VP-039 + VP-040 + ADR-011.
-- Phase F3 HUMAN-APPROVED (D-306); STORY-144..146 authored; STORY-INDEX v3.6; pre-F4 verification PASS.
-- STORY-144 (wave 65) TDD delivered: per-story adversarial 3-clean + security (SEC-001 quadratic-drain DoS found+fixed) + demos (fragmented ClientHello baseline MISSED→DETECTED). PR #341 squash-merged `0986e878`, 11/11 CI green. stories_delivered 91→92 (D-307).
-- Wave 65 integration gate PASSED. STORY-144 worktree cleaned. Develop HEAD `0986e878`.
-- Deferred items filed: SEC-002 (→F6), done()-mid-loop cross-direction (→wave-gate review), SEC-004 (→maintenance sweep).
+### Exact state at pause
 
-### Open question (non-blocking)
-Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now via a docs-only PR, or left to ride to the next gitflow back-merge? No functional impact either way.
+- Worktree: `/Users/zious/Documents/GITHUB/wirerust/.worktrees/story-145-tls-serverhello-symmetry`
+- Branch HEAD: `f60c0e0` — `test(S-145.01): faithful VP-039 Sub-E Red Gate tests`
+- Branch PUSHED to `origin/feature/story-145-tls-serverhello-symmetry`
+- Failing tests: `proptest_vp039_direction_isolation`, `test_BC_2_07_041_cross_flow_isolation`
+- Cause: ServerToClient carry drain path not yet wired in `src/analyzer/tls.rs`
 
-### Next action
-Per-story TDD delivery — STORY-145 (wave 66, ServerHello symmetry + per-direction isolation). Create worktree from develop `0986e878` (branch `feature/story-145-tls-serverhello-symmetry`). Resume at stub-architect. After STORY-145 merge, deliver STORY-146 (buffer-saturation telemetry) from updated develop.
+### Next action (first thing to do on resume)
+
+Dispatch implementer to wire the ServerToClient carry drain per the EXACT RESUME POINT
+section above. Full 9-step per-story delivery follows (adversarial → demos → push → PR →
+squash-merge → cleanup → STORY-146).
 
 ---
 
 ## Governance Policy
 
-Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-001 (HIGH), DF-SIBLING-SWEEP-001 v4 (CRITICAL), DF-PR-MANAGER-COMPLETE-001 (HIGH), DF-ADVERSARY-METHODOLOGY-001 (HIGH), DF-AC-TEST-NAME-SYNC-001 v2 (MEDIUM), DF-CONVERGENCE-BEFORE-MERGE-001 (CRITICAL), DF-DEVELOP-FRESHNESS-001 v2 (HIGH), DF-ADVERSARY-TOOLCHAIN-PAIRING-001 (MEDIUM), DF-INPUT-HASH-CANONICAL-001 (HIGH), DF-ADVERSARY-CHECKOUT-GUARD-001 (HIGH), DF-TEST-CITATION-SWEEP-001 (HIGH), DF-TEST-NAMESPACE-001 (MEDIUM), DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 (HIGH), DF-CANONICAL-FRAME-HOLDOUT-001 (CRITICAL), DF-BC-COMPLETENESS-SWEEP-001 (HIGH), DF-GREEN-DOC-TENSE-SWEEP v2 (HIGH), DF-KANI-NONVACUITY-001 (HIGH).
+Full policy text: `.factory/policies.yaml`. 17 active policies — critical: DF-SIBLING-SWEEP-001
+v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001. See policies.yaml for
+full list.
 
 ---
 
 ## Notes
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
-- Closed cycle: `cycles/feature-enip-v0.11.0/` (decisions-archive.md D-228..D-301, CLOSED D-300).
-- STORY-INDEX.md authoritative (99 stories / 65 waves — v3.6). STORY-130..142 all MERGED. STORY-144 MERGED (wave 65, D-307). stories_delivered=92. STORY-143 draft (E-11, D-301). STORY-145..146 authored (F3, wave 66, D-306).
-- v0.11.0 RELEASED (D-300, 2026-06-29). main=`3072e828`, develop=`0986e878` (post-STORY-144 merge D-307), tag v0.11.0. crates.io not published.
-- Repo squash-only policy set (D-289). Branch protection on develop + main (D-290).
-- SEC-001 (unsafe split-borrow enip.rs `on_data`, MEDIUM, pre-existing PR #334) in backlog as v0.12.0 candidate (D-300).
-- BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation, D-298). VP-INDEX v2.14 (38 VPs; VP-037 range 0..6, D-298). Cycle fix-tls-clienthello-frag F2 (initial convergence): BC-INDEX v1.98 (5 new BCs + 2 amended in SS-07; SS-07 42 BCs), VP-INDEX v2.21 (39 VPs; VP-039 added, 17 harnesses), ARCH-INDEX v2.3 (ADR-011 added), PRD v1.43. F2 scope addition (D-305): BC-INDEX v2.1 (BC-2.07.043 + BC-2.07.005 v1.7; SS-07 43 BCs; 337 on disk / 336 active), VP-INDEX v2.25 (40 VPs; VP-040 added, 6 harnesses), ARCH-INDEX v2.4, PRD v1.45.
+- STORY-INDEX.md: 99 stories / 65 waves (v3.6). stories_delivered=92. STORY-145 mid-TDD.
+- v0.11.0 RELEASED 2026-06-29. main=`3072e828`, develop=`0986e878`. Not on crates.io.
+- Squash-only policy (D-289). Branch protection develop + main (D-290).
