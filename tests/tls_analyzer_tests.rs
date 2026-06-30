@@ -10967,11 +10967,11 @@ mod story_145 {
 // These tests verify BC-2.07.043 v1.3 (Per-Direction Buffer Saturation
 // Tail-Drop Is Observable via `buffer_saturation_drops` Counter).
 //
-// Red-Gate status: all 6 MUST FAIL before implementation.
-//   - Tests calling `buffer_saturation_drop_count()` will panic on `todo!()`.
-//   - Tests calling `fill_buf_for_testing()` will panic on `todo!()`.
-//   - `test_BC_2_07_043_summarize_value_equals_drop_count` will fail because
-//     `"buffer_saturation_drops"` is absent from the `summarize()` detail map.
+// GREEN status: all 6 tests pass.
+//   - Tests calling `buffer_saturation_drop_count()` read the implemented counter.
+//   - Tests calling `fill_buf_for_testing()` exercise the implemented fill seam.
+//   - `test_BC_2_07_043_summarize_value_equals_drop_count` verifies that
+//     `"buffer_saturation_drops"` is present and accurate in the `summarize()` detail map.
 //
 // Reconciliation (grep run before declaring helpers):
 //   build_server_hello     → EXISTS at flat root (line 137)

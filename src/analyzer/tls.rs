@@ -1429,19 +1429,13 @@ impl TlsAnalyzer {
 
     // ── STORY-146 accessor + test seam (AC-146-001) ───────────────────────────
     //
-    // Self-check (BC-5.38.005 invariant 1) applied before including any body:
-    // "If I include this real implementation, will the test for this function
-    //  pass trivially without any implementer work?"
-    // — For `buffer_saturation_drop_count`: YES — returning `self.buffer_saturation_drops`
-    //   directly would make `test_BC_2_07_043_no_drop_no_counter` pass (counter==0 satisfies
-    //   drops_after==drops_before) and would make the accessors in all other VP-040 tests
-    //   observable. The counter increment wiring is not yet added; all tests that observe a
-    //   non-zero counter would fail for a different reason — but the no-drop test would pass
-    //   trivially. Therefore: `todo!()`.
-    // — For `fill_buf_for_testing`: YES — a real fill seam would make
-    //   `test_BC_2_07_043_buffer_saturation_full_drop` and
-    //   `test_BC_2_07_043_both_directions_increment_same_counter` able to set up the full-drop
-    //   state, enabling those test paths to exercise the (not-yet-wired) counter. Therefore: `todo!()`.
+    // During the RED gate, `buffer_saturation_drop_count` and `fill_buf_for_testing`
+    // carried `todo!()` bodies to enforce test failures before implementation.
+    // Both are now fully implemented: `buffer_saturation_drop_count` reads
+    // `self.buffer_saturation_drops` directly (mirroring the
+    // `truncated_record_count` / `handshake_reassembly_overflow_count` pattern),
+    // and `fill_buf_for_testing` fills the per-direction TCP-segment buffer to an
+    // exact byte count so tests can drive the full-drop path without live traffic.
 
     /// Public accessor: aggregate count of per-direction buffer saturation tail-drop events.
     ///
