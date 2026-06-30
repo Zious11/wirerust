@@ -9422,13 +9422,11 @@ fn test_weak_cipher_evidence_capped_at_64_with_elision() {
 
 // ── STORY-144: TLS Handshake Carry Buffer + Fragmented ClientHello Reassembly ──
 //
-// Red-Gate test set VP-039 Sub-A/B/C/D/F.
+// VP-039 Sub-A/B/C/D/F — AC-144-002 implemented (carry drain loop is live).
 //
-// ALL 15 harnesses in this module MUST FAIL before the carry drain loop is
-// implemented (AC-144-002). The stubs in src/analyzer/tls.rs compile clean but
-// do not implement reassembly — the assertions below will not be satisfied
-// until the implementer adds the carry drain loop. This is the Red Gate per
-// BC-5.38.001.
+// These 15 harnesses verify the ClientToServer carry drain loop introduced by
+// AC-144-002. The carry buffer accumulates 0x16 record payloads and drains them
+// message-by-message once a complete handshake message is available.
 //
 // Namespace isolation: DF-TEST-NAMESPACE-001 — all STORY-144 tests live inside
 // this `mod story_144` wrapper. No new flat-root tests are added for this story.
@@ -9496,10 +9494,6 @@ mod story_144 {
     // split into two 0x16 records must be fully reassembled.
     //
     // Asserts: client_hello_seen==true, sni_counts.len()==1, parse_errors==0.
-    //
-    // Red Gate: FAILS against the stub because the carry drain loop
-    // (AC-144-002) is not yet implemented. Without reassembly, the fragmented
-    // ClientHello is never dispatched and client_hello_seen stays false.
     //
     // The strategy uses prop_oneof to guarantee partial-header splits
     // (k < 4) and body splits (k >= 4) are both reachable in the same run.
@@ -9590,13 +9584,9 @@ mod story_144 {
         let frame_a_record = wrap_as_tls_record(0x16, &frame_a_hs);
         analyzer.on_data(&fk, Direction::ClientToServer, &frame_a_record, 0, 0);
 
-        // Frame A must produce parse_errors+1 (malformed assembled body) and
-        // client_hello_seen must remain false.
-        // Against the stub: the existing parse_tls_plaintext path parses a complete
-        // record but this non-standard handshake may or may not increment parse_errors.
-        // The RED GATE assertion is that the carry-path behavior (frame-by-frame
-        // accumulation + per-message dispatch) is not yet wired — this test FAILS
-        // because it asserts behavior that only the carry drain loop can provide.
+        // Frame A: msg_type=0x01, body_len=5. The carry drain loop dispatches the
+        // complete 9-byte message via parse_tls_message_handshake, which returns an
+        // error for this degenerate body → client_hello_seen stays false.
         assert!(
             !analyzer.client_hello_seen_for_testing(&fk),
             "Frame A: client_hello_seen must be false for degenerate 5-byte body"
@@ -9636,7 +9626,6 @@ mod story_144 {
     /// → parse_errors+1, carry empty after consume, no finding, no panic.
     ///
     /// Traces to: BC-2.07.038 v2.7 Postcondition 9 / ADR-011 Decision 4.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
     #[allow(non_snake_case)]
     #[test]
@@ -9656,14 +9645,12 @@ mod story_144 {
 
         analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
 
-        // RED GATE ASSERTION: after record 1 (incomplete header+body), carry must
-        // hold 4 bytes (the handshake header). Against the stub, carry is never
-        // populated → this assertion fails (0 != 4).
+        // After record 1: carry holds the 4-byte handshake header (body_len=20
+        // bytes not yet received). Drain loop sees carry_len=4 < 4+20 → waits.
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&fk),
             4,
-            "malformed body test (Red Gate): carry must hold 4 header bytes after record 1; \
-             stub never populates carry → this assertion fails → Red Gate holds"
+            "malformed body: carry must hold 4 header bytes after record 1"
         );
 
         // Record 2: the 20-byte malformed body.
@@ -9703,7 +9690,6 @@ mod story_144 {
     /// Asserts: SNI extracted correctly, parse_errors==0, client_hello_seen==true.
     ///
     /// Traces to: BC-2.07.038 v2.7 EC-001 "SNI boundary split".
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_sni_boundary_deterministic() {
         let fk = make_test_flow_key(40);
@@ -9747,7 +9733,6 @@ mod story_144 {
     /// (header-split scenarios). Asserts sni_counts.len()==1, parse_errors==0.
     ///
     /// Traces to: BC-2.07.038 v2.7 EC-003.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_n_record_reassembly() {
         let fk = make_test_flow_key(41);
@@ -9784,7 +9769,6 @@ mod story_144 {
     /// SNI/JA3 populated, handshake_reassembly_overflows==0.
     ///
     /// Traces to: BC-2.07.038 v2.7 Invariant 5.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_large_valid_hello_reassembly() {
         let fk = make_test_flow_key(42);
@@ -9792,12 +9776,8 @@ mod story_144 {
         let sni = "large-hello.example";
 
         // Build a large ClientHello by splitting across two records.
-        // A standard ClientHello is ~150 bytes. To make it >18,433 bytes
-        // we can pad the first fragment (pre-body completion) across many records.
-        // For the stub test, a two-record split of a normal ClientHello
-        // exercises the same path; the "large" constraint is verified by the
-        // implementer via a synthetic large payload.
-        // The stub test just verifies the two-record case fails against the stub.
+        // Split right after the 4-byte handshake header so the carry accumulates
+        // the header in record 1 and completes the message in record 2.
         let hs_bytes = build_client_hello_with_sni(sni);
         let split = 4; // split right after the 4-byte handshake header
         let record1 = wrap_as_tls_record(0x16, &hs_bytes[..split]);
@@ -9839,11 +9819,6 @@ mod story_144 {
     // handshakes_seen==1 is asserted directly via handshake_count()
     // (not inferred from ja3_counts.len()==1 — F-F2-012 requirement).
     //
-    // Red Gate: FAILS against the stub because the carry drain loop
-    // (AC-144-002) is not implemented. After record 1 (4-byte header only),
-    // client_hs_carry_len_for_testing must be 4 but the stub returns 0
-    // (carry never accumulates) — fails on the primary carry assertion.
-    //
     // Traces to: BC-2.07.042 v1.4 Postconditions 1–5.
     proptest! {
         #[test]
@@ -9876,15 +9851,11 @@ mod story_144 {
             let flow_key = make_test_flow_key(1);
             analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, 100u32);
 
-            // Red Gate primary assertion: after record 1 (4-byte header only),
-            // carry must have accumulated 4 bytes. The stub never populates the
-            // carry buffer → carry_len == 0 → this assertion FAILS → Red Gate holds.
-            //
-            // client_hs_carry_len_for_testing is the NEW seam (STORY-144/146 deliverable).
+            // After record 1 (4-byte header only), the carry drain loop sees
+            // carry_len=4 < 4+body_len → waits. Carry holds exactly 4 bytes.
             prop_assert_eq!(
                 analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
-                "after 4-byte header record, carry must hold exactly 4 bytes; \
-                 stub returns 0 → Red Gate fails (0 != 4)"
+                "after 4-byte header record, carry must hold exactly 4 bytes"
             );
 
             // Deliver record 2 — the carry drain loop must now:
@@ -9912,7 +9883,6 @@ mod story_144 {
     /// coalesced ClientHello + unknown message in one record.
     ///
     /// Traces to: BC-2.07.042 v1.4 AC-EXACT-CONSUME.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
     #[allow(non_snake_case)]
     #[test]
@@ -9938,13 +9908,12 @@ mod story_144 {
 
         analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
 
-        // RED GATE ASSERTION: after record 1 (4-byte header only), carry must hold
-        // 4 bytes. Against the stub, carry is never populated → fails (0 != 4).
+        // After record 1 (4-byte header only), the drain loop sees
+        // carry_len=4 < 4+body_len → waits. Carry holds exactly 4 bytes.
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&fk),
             4,
-            "exact-consume coalesced (Red Gate): carry must hold 4 header bytes after record 1; \
-             stub never populates carry → fails → Red Gate holds"
+            "exact-consume coalesced: carry must hold 4 header bytes after record 1"
         );
 
         analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
@@ -9976,7 +9945,6 @@ mod story_144 {
     /// additional 4 padding records push total past MAX_BUF (65,536) → overflow.
     ///
     /// Traces to: BC-2.07.039 v2.4 Postconditions 1–6.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_carry_overflow_clear_and_recover() {
         let fk = make_test_flow_key(43);
@@ -10045,7 +10013,6 @@ mod story_144 {
     /// client_hello_seen==true; SNI/JA3 populated; parse_errors==0.
     ///
     /// Traces to: BC-2.07.039 v2.4 Postcondition 6 (clear-and-recover).
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_carry_overflow_recovery() {
         let fk = make_test_flow_key(44);
@@ -10101,7 +10068,6 @@ mod story_144 {
     /// overflow_count+1; parse_errors unchanged; findings unchanged.
     ///
     /// Traces to: BC-2.07.038 v2.7 Invariant 5 / ADR-011 Decision 4.
-    /// Red Gate: FAILS because carry drain loop not implemented.
     #[test]
     fn test_vp039_body_len_spoof() {
         let fk = make_test_flow_key(45);
@@ -10141,7 +10107,6 @@ mod story_144 {
     /// detail["handshake_reassembly_overflows"].as_u64()==1.
     ///
     /// Traces to: BC-2.07.039 v2.4 Postcondition 7.
-    /// Red Gate: FAILS because overflow counter never reaches 1 against stub.
     // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
     #[allow(non_snake_case)]
     #[test]
@@ -10175,7 +10140,6 @@ mod story_144 {
     /// parse_errors unchanged; findings unchanged.
     ///
     /// Traces to: BC-2.07.040 v1.3 Postconditions 1–5.
-    /// Red Gate: FAILS because carry is never populated against stub.
     #[test]
     fn test_vp039_truncated_carry_no_error() {
         let fk = make_test_flow_key(47);
@@ -10187,13 +10151,12 @@ mod story_144 {
         let record = wrap_as_tls_record(0x16, &partial_header);
         analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
-        // RED GATE ASSERTION: carry must hold the 4-byte header (incomplete body is
-        // pending). Against the stub, carry is never populated → carry_len==0 → fails.
+        // After on_data: carry holds the 4-byte header (body_len=100 bytes not yet
+        // received). Drain loop sees carry_len=4 < 4+100 → waits.
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&fk),
             4,
-            "truncated carry (Red Gate): carry must hold 4 header bytes before flow close; \
-             stub never populates carry → fails (0 != 4) → Red Gate holds"
+            "truncated carry: carry must hold 4 header bytes before flow close"
         );
 
         let parse_errors_before = analyzer.parse_error_count();
@@ -10221,10 +10184,15 @@ mod story_144 {
 
     /// VP-039 Sub-D (unit): empty carry at flow close; no observable effect.
     ///
-    /// active_flows_len_for_testing()==0 after single-flow test.
+    /// Exercises BC-2.07.040 v1.3 Postconditions 1–5 via a body_len-spoof record
+    /// that fires Decision-4 immediately (carry starts empty, spoof header appended,
+    /// drain loop fires → carry.clear(), overflows+1, carry back to 0). Then
+    /// on_flow_close is called with an empty carry, verifying that:
+    ///   - no parse_errors are added
+    ///   - no new findings are emitted
+    ///   - active_flows drops to 0
     ///
     /// Traces to: BC-2.07.040 v1.3 Postconditions 1–5.
-    /// Red Gate: FAILS because the test asserts carry behavior not yet wired.
     // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
     #[allow(non_snake_case)]
     #[test]
@@ -10232,40 +10200,51 @@ mod story_144 {
         let fk = make_test_flow_key(48);
         let mut analyzer = TlsAnalyzer::new();
 
-        // CARRY PATH: send a partial 0x16 record (4-byte header only, body pending).
-        // In the real implementation, this populates carry with 4 bytes.
-        // Then trigger an overflow-clear to bring carry back to 0 before flow close.
-        // This exercises "empty carry at flow close" where the carry was populated
-        // and cleared — verifying BC-2.07.040 PC-5 (overflow-cleared carry silently
-        // discarded at close).
-        let partial_header: Vec<u8> = vec![0x01, 0x00, 0x00, 0x20]; // body_len=32
-        let record1 = wrap_as_tls_record(0x16, &partial_header);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+        // Deliver a single 0x16 record whose first (and only) header declares
+        // body_len=65537 > MAX_BUF. The drain loop fires Decision-4 immediately:
+        //   carry was [] → append [0x01, 0x01, 0x00, 0x01] → carry.len()==4
+        //   drain loop reads body_len=65537 > MAX_BUF → carry.clear(), overflows+1, break
+        // After on_data: carry is empty, overflow_count==1.
+        let spoof: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // body_len=65537 > MAX_BUF
+        let record = wrap_as_tls_record(0x16, &spoof);
 
-        // RED GATE ASSERTION: in the real implementation, carry holds 4 bytes here.
-        // Against the stub, carry is never populated → carry_len==0 → fails (0 != 4).
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        // Decision-4 must have fired: overflow_count==1, carry empty.
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            1,
+            "empty carry flow close: Decision-4 must increment overflow_count to 1"
+        );
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&fk),
-            4,
-            "empty carry flow close (Red Gate): carry must hold 4 header bytes before \
-             overflow-clear; stub never populates carry → fails (0 != 4) → Red Gate holds"
+            0,
+            "empty carry flow close: carry must be empty after Decision-4 clear"
         );
 
-        // Trigger Decision-5 overflow to clear carry (push carry over MAX_BUF).
-        // body_len=65537 in next header → Decision-4 body_len-spoof guard fires, clears carry.
-        let spoof: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // body_len=65537
-        let record2 = wrap_as_tls_record(0x16, &spoof);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
-
-        // Now carry is empty (cleared by overflow). Close the flow.
+        // Flow must still exist (on_data creates the flow entry; on_flow_close removes it).
         assert_eq!(
             analyzer.active_flows_len_for_testing(),
             1,
-            "pre-condition: flow must exist before on_flow_close"
+            "empty carry flow close: flow must exist before on_flow_close"
         );
 
+        // Close the flow with an empty carry — must be a no-op for errors/findings.
         analyzer.on_flow_close(&fk, CloseReason::Fin);
 
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "empty carry flow close: parse_errors must not change"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "empty carry flow close: findings must not change"
+        );
         assert_eq!(
             analyzer.active_flows_len_for_testing(),
             0,
@@ -10288,13 +10267,12 @@ mod story_144 {
     // accumulates (Decision-4 body_len-spoof guard does NOT fire) and makes
     // the bounded-carry invariant non-trivially testable.
     //
-    // Red Gate failure mechanism:
-    // The stub never populates the carry buffer (AC-144-002 not yet implemented).
     // The secondary assertion — carry_len >= 1 after the first partial record —
-    // fails because carry_len is always 0 in the stub.
+    // verifies that the carry actually accumulates for partial messages (no drain
+    // fires until the message is complete).
     //
-    // The primary invariant assertion (carry_len <= MAX_BUF) remains the
-    // correctness guard for the real implementation.
+    // The primary invariant assertion (carry_len <= MAX_BUF) is the
+    // bounded-carry correctness guard.
     //
     // Traces to: BC-2.07.039 v2.4 Invariant 1.
     proptest! {
@@ -10334,8 +10312,6 @@ mod story_144 {
                 analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
                 // Primary invariant: carry NEVER exceeds MAX_BUF.
-                // (This is the correctness guard for the real implementation;
-                // against the stub it trivially holds since carry is always 0.)
                 prop_assert!(
                     analyzer.client_hs_carry_len_for_testing(&flow_key) <= 65_536,
                     "client_hs_carry must never exceed MAX_BUF after on_data \
@@ -10344,23 +10320,13 @@ mod story_144 {
                     analyzer.client_hs_carry_len_for_testing(&flow_key),
                 );
 
-                // Red Gate secondary assertion: after delivering the FIRST record
-                // (which always contains a valid header + a partial-body that is
-                // never complete because body_max < body_len in the generator),
-                // the carry must have accumulated AT LEAST the payload bytes.
-                //
-                // In the real implementation: carry_len == cumulative payload bytes
-                // delivered (until a complete message is drained).
-                // In the stub: carry_len == 0 always → this assertion FAILS on
-                // the first generated record with payload.len() >= 1, providing
-                // the Red Gate failure.
+                // Secondary assertion: after the FIRST record (partial body, never
+                // complete because body_max < body_len in the generator), the carry
+                // must have accumulated AT LEAST 1 byte. The drain loop sees
+                // carry_len < 4 + body_len → waits without draining.
                 if idx == 0 && !payload.is_empty() {
-                    // The first record's payload fits entirely in the carry buffer
-                    // (body_len <= MAX_BUF was guaranteed by the generator).
-                    // After the stub: carry_len == 0. After the real implementation:
-                    // carry_len == payload.len() (accumulation, no drain yet — unless
-                    // body_len == 0 which means the 4-byte header is a complete
-                    // zero-body message that drains immediately; skip that case).
+                    // Skip zero-body messages — a 4-byte header with body_len==0 is a
+                    // complete message that drains immediately, leaving carry empty.
                     let declared_body_len = ((payload[1] as usize) << 16)
                         | ((payload[2] as usize) << 8)
                         | (payload[3] as usize);
@@ -10369,8 +10335,7 @@ mod story_144 {
                         prop_assert!(
                             analyzer.client_hs_carry_len_for_testing(&flow_key) >= 1,
                             "after partial first record (payload {} bytes, body_len {}), \
-                             carry_len must be >= 1 (carry must accumulate); \
-                             stub returns 0 → Red Gate fails",
+                             carry_len must be >= 1 (carry must accumulate)",
                             payload.len(),
                             declared_body_len,
                         );
