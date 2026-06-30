@@ -9584,9 +9584,15 @@ mod story_144 {
         let frame_a_record = wrap_as_tls_record(0x16, &frame_a_hs);
         analyzer.on_data(&fk, Direction::ClientToServer, &frame_a_record, 0, 0);
 
-        // Frame A: msg_type=0x01, body_len=5. The carry drain loop dispatches the
-        // complete 9-byte message via parse_tls_message_handshake, which returns an
-        // error for this degenerate body → client_hello_seen stays false.
+        // Frame A: explicit BC-CANONICAL-FRAME assertions (adversary LOW).
+        // The carry drain loop dispatches the complete 9-byte message via
+        // parse_tls_message_handshake, which returns an error for the degenerate
+        // 5-byte body → parse_errors+1, client_hello_seen remains false.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "Frame A: degenerate 5-byte body must produce parse_errors==1"
+        );
         assert!(
             !analyzer.client_hello_seen_for_testing(&fk),
             "Frame A: client_hello_seen must be false for degenerate 5-byte body"
@@ -9933,6 +9939,74 @@ mod story_144 {
             analyzer.client_hs_carry_len_for_testing(&fk),
             0,
             "coalesced record: carry must be empty after full drain"
+        );
+    }
+
+    /// SEC-001 regression (unit): single 0x16 record packed with N zero-body-length
+    /// non-ClientHello messages processes in O(N) work (cursor-based drain), not
+    /// O(N²) (per-message Vec::drain).
+    ///
+    /// Fixture: one 0x16 record whose payload contains 1,000 4-byte messages of the
+    /// form [non_ch_type, 0x00, 0x00, 0x00] (msg_type != 0x01, body_len = 0). Each
+    /// message is consumed silently by the drain loop (BC-2.07.038 Invariant 1;
+    /// BC-2.07.042 EC-002). After delivery:
+    ///   - carry must be empty (all 1,000 messages fully consumed)
+    ///   - parse_errors must be 0 (non-0x01 types never increment parse_errors)
+    ///   - handshake_reassembly_overflows must be 0 (payload within MAX_BUF)
+    ///   - client_hello_seen must be false (no ClientHello dispatched)
+    ///
+    /// This test guards against reintroducing per-message drain. With the old O(N²)
+    /// approach, 1,000 messages × 4,000-byte carry → ~4 MB of memmove. With the
+    /// cursor+single-drain approach the total memmove is 4,000 bytes (one drain).
+    ///
+    /// Traces to: BC-2.07.038 Invariant 1; BC-2.07.042 EC-002; SEC-001 fix.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_042_coalesced_zero_len_no_quadratic_drain() {
+        let fk = make_test_flow_key(250);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Build a payload of 1,000 zero-body-length non-ClientHello messages.
+        // Each message: [msg_type=0x02, 0x00, 0x00, 0x00] — type 0x02 (ServerHello)
+        // is not dispatched on the ClientToServer direction; body_len = 0.
+        // Total payload: 4,000 bytes (well within MAX_RECORD_PAYLOAD=18,432 and MAX_BUF=65,536).
+        const N: usize = 1_000;
+        let mut payload: Vec<u8> = Vec::with_capacity(N * 4);
+        for _ in 0..N {
+            payload.extend_from_slice(&[0x02, 0x00, 0x00, 0x00]);
+        }
+        assert_eq!(
+            payload.len(),
+            N * 4,
+            "payload sanity: must be exactly N*4 bytes"
+        );
+
+        // Deliver as a single 0x16 record.
+        let record = wrap_as_tls_record(0x16, &payload);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        // All N messages consumed silently — carry must be empty.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "SEC-001 regression: carry must be empty after N={N} zero-body messages"
+        );
+        // Non-0x01 msg_type: parse_errors MUST NOT increment (BC-2.07.038 Invariant 1).
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "SEC-001 regression: parse_errors must be 0 for N={N} non-ClientHello messages"
+        );
+        // No overflow should occur (payload 4,000 bytes << MAX_BUF=65,536).
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            0,
+            "SEC-001 regression: no overflow expected for {N}-message payload within MAX_BUF"
+        );
+        // No ClientHello was sent.
+        assert!(
+            !analyzer.client_hello_seen_for_testing(&fk),
+            "SEC-001 regression: client_hello_seen must be false (no 0x01 msg dispatched)"
         );
     }
 

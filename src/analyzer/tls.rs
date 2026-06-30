@@ -822,7 +822,11 @@ impl TlsAnalyzer {
                         if let Some(state) = self.flows.get_mut(flow_key) {
                             state.client_hs_carry.clear();
                         }
-                        self.handshake_reassembly_overflows += 1;
+                        // SEC-003: saturating_add to avoid theoretical overflow-check panic
+                        // under `overflow-checks = true` (release profile). This counter is
+                        // an aggregate diagnostic; saturation at u64::MAX is safe and intentional.
+                        self.handshake_reassembly_overflows =
+                            self.handshake_reassembly_overflows.saturating_add(1);
                         continue;
                     }
 
@@ -833,52 +837,72 @@ impl TlsAnalyzer {
 
                     // Step 3: Drain loop — consume complete handshake messages from carry.
                     //
-                    // Each iteration: read 4-byte header to get body_len (3-byte BE);
-                    // guard body_len > MAX_BUF (Decision-4 spoof); wait if incomplete;
-                    // otherwise exact-consume and dispatch.
+                    // SEC-001 (CWE-400/834): CURSOR-BASED drain to prevent quadratic CPU
+                    // amplification. The previous approach called `carry.drain(..k)` once
+                    // PER message, which is O(remaining-after-k) per call — O(N·L) total
+                    // for N coalesced messages in a carry of L bytes. An attacker packing
+                    // thousands of zero-body-length messages into a single MAX_RECORD_PAYLOAD
+                    // record could cause ~40 MB of memmove per `on_data` call.
+                    //
+                    // Fix: advance a local `consumed` cursor per message; perform EXACTLY
+                    // ONE `carry.drain(..consumed)` after the loop exits (O(carry_len) total).
+                    //
+                    // All slice reads use `&carry[consumed..]` during the loop; the single
+                    // drain is issued via a separate `get_mut` borrow after the loop to
+                    // satisfy Rust's borrow rules (immutable loop reads → mutable post-loop
+                    // drain).
+                    //
+                    // Semantics preserved:
+                    //   - Each message advances cursor by exactly 4 + body_len
+                    //     (BC-2.07.038 Postcondition 4 / Invariant 2).
+                    //   - Decision-4 body_len-spoof guard: carry.clear() + overflows+1 + break.
+                    //   - Decision-5 overflow guard (Step 1, before append): unchanged.
+                    //   - Partial trailing messages are NOT consumed (cursor not advanced);
+                    //     they remain in carry for the next on_data call.
+                    //   - Clone for dispatch: only msg_type==0x01 clones the message bytes
+                    //     (4 + body_len, bounded ≤ 65,540). Non-dispatched types advance the
+                    //     cursor without any heap allocation.
+                    //
                     // BC-2.07.042: back-to-back coalesced messages are each dispatched.
+                    let mut consumed: usize = 0;
+                    // Track whether Decision-4 fired (body_len spoof) so we can clear the
+                    // carry and skip the normal single-drain after the loop.
+                    let mut decision4_fired = false;
                     loop {
-                        // Read current carry state without holding a borrow across dispatch.
+                        // Read current carry state at the cursor position.
                         let (carry_len, msg_type, body_len) = {
                             let state = match self.flows.get(flow_key) {
                                 Some(s) => s,
                                 None => break,
                             };
                             let carry = &state.client_hs_carry;
-                            if carry.len() < 4 {
+                            if carry.len() - consumed < 4 {
                                 break;
                             }
-                            let mt = carry[0];
-                            let bl = ((carry[1] as usize) << 16)
-                                | ((carry[2] as usize) << 8)
-                                | (carry[3] as usize);
+                            let mt = carry[consumed];
+                            let bl = ((carry[consumed + 1] as usize) << 16)
+                                | ((carry[consumed + 2] as usize) << 8)
+                                | (carry[consumed + 3] as usize);
                             (carry.len(), mt, bl)
                         };
 
                         // Decision-4: body_len > MAX_BUF → body_len-spoof guard.
                         // Clear carry, increment overflow counter, break (ADR-011 Decision 4).
+                        // Note: consumed bytes up to this point are discarded by the clear().
                         if body_len > MAX_BUF {
                             if let Some(state) = self.flows.get_mut(flow_key) {
                                 state.client_hs_carry.clear();
                             }
-                            self.handshake_reassembly_overflows += 1;
+                            self.handshake_reassembly_overflows =
+                                self.handshake_reassembly_overflows.saturating_add(1);
+                            decision4_fired = true;
                             break;
                         }
 
                         // Incomplete: body not yet fully arrived — wait for next record.
-                        if carry_len < 4 + body_len {
+                        if carry_len - consumed < 4 + body_len {
                             break;
                         }
-
-                        // Clone the complete message bytes (4 header + body) for parsing
-                        // so we can dispatch (which takes &mut self) without holding a borrow.
-                        let msg_bytes: Vec<u8> = {
-                            let state = match self.flows.get(flow_key) {
-                                Some(s) => s,
-                                None => break,
-                            };
-                            state.client_hs_carry[..4 + body_len].to_vec()
-                        };
 
                         // Dispatch on msg_type:
                         // 0x01 → ClientHello via parse_tls_message_handshake.
@@ -887,8 +911,20 @@ impl TlsAnalyzer {
                         // 0x02 → STORY-145 scope (ServerHello on server direction).
                         //   Not reachable here (ClientToServer direction).
                         // Other: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
+                        // Clone only for msg_type==0x01 (the dispatch path). Non-dispatched
+                        // types advance the cursor without any heap allocation.
                         match msg_type {
                             0x01 => {
+                                // Clone the complete message bytes for parsing so we can
+                                // dispatch (which takes &mut self) without holding a borrow.
+                                let msg_bytes: Vec<u8> = {
+                                    let state = match self.flows.get(flow_key) {
+                                        Some(s) => s,
+                                        None => break,
+                                    };
+                                    state.client_hs_carry[consumed..consumed + 4 + body_len]
+                                        .to_vec()
+                                };
                                 match parse_tls_message_handshake(&msg_bytes) {
                                     Ok((
                                         _rem,
@@ -918,11 +954,18 @@ impl TlsAnalyzer {
                             }
                         }
 
-                        // Exact-consume: drain 4+body_len bytes from carry regardless of
-                        // parse outcome (BC-2.07.038 Postcondition 4 / Invariant 2).
-                        if let Some(state) = self.flows.get_mut(flow_key) {
-                            state.client_hs_carry.drain(..4 + body_len);
-                        }
+                        // Advance cursor by exactly 4 + body_len regardless of parse outcome
+                        // (BC-2.07.038 Postcondition 4 / Invariant 2).
+                        consumed += 4 + body_len;
+                    }
+
+                    // Single drain after the loop: O(carry_len) total, not O(carry_len²).
+                    // Skipped when Decision-4 fired (carry was already cleared above).
+                    if !decision4_fired
+                        && consumed > 0
+                        && let Some(state) = self.flows.get_mut(flow_key)
+                    {
+                        state.client_hs_carry.drain(..consumed);
                     }
                 }
 
