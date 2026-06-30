@@ -10516,71 +10516,131 @@ mod story_145 {
     // `client_hello_seen` and `server_hello_seen` must be true after all records
     // are delivered.
     //
-    // Red Gate: this FAILS until the `ServerToClient` carry drain path is wired
-    // in `try_parse_records`.  The current `parse_tls_plaintext` path only
-    // handles single-record ServerHellos; a fragmented ServerHello arrives as
-    // two partial 0x16 records and the second record alone is not a complete
-    // TLS plaintext record, so `server_hello_seen` remains false.
+    // The test runs THREE analyzers in parallel:
+    //   - `interleaved` — C2S and S2C fragments interleaved on the SAME flow
+    //   - `c2s_only`    — same C2S fragments delivered alone
+    //   - `s2c_only`    — same S2C fragments delivered alone
+    // Then asserts:
+    //   (1) interleaved.client_hello_seen == c2s_only.client_hello_seen (equivalence)
+    //   (2) interleaved.server_hello_seen == s2c_only.server_hello_seen (equivalence)
+    //   (3) interleaved.server_hello_seen == true (explicit truth — non-vacuous Red Gate)
+    //   (4) interleaved.parse_errors == c2s_only.parse_errors + s2c_only.parse_errors
+    //   (5) SNI extracted, JA3S extracted (both == true after complete delivery)
+    //
+    // Red Gate: FAILS until the `ServerToClient` carry drain path is wired.
+    //   Before STORY-145: s2c_only.server_hello_seen == false (no drain) AND
+    //   assertion (3) fires directly (interleaved.server_hello_seen == false != true).
+    //
+    // Saturating clamp (not prop_assume): prevents case discard for short ServerHello.
     //
     // Traces to: BC-2.07.041 v1.2 Invariant 2; BC-2.07.002 v1.6 Precondition 2;
     //            AC-145-001, AC-145-002, AC-145-004.
     proptest! {
         #[test]
         fn proptest_vp039_direction_isolation(
-            // Split point for the ClientHello fragmentation (C2S direction).
-            c2s_split in prop_oneof![1usize..4usize, 4usize..256usize],
-            // Split point for the ServerHello fragmentation (S2C direction).
-            s2c_split in prop_oneof![1usize..4usize, 4usize..256usize],
+            // split_c2s and split_s2c are raw strategy outputs; they are clamped
+            // below to 1..n-1 after the hello bytes are generated.
+            split_c2s in prop_oneof![1usize..4usize, 4usize..256usize],
+            split_s2c in prop_oneof![1usize..4usize, 4usize..256usize],
         ) {
-            let client_hello = build_client_hello_with_sni("client.example.com");
-            let server_hello = build_server_hello();
-            let n_c = client_hello.len();
-            let n_s = server_hello.len();
+            let c2s_hello = build_client_hello_with_sni("client.example.com");
+            let s2c_hello = build_server_hello();
 
-            prop_assume!(c2s_split < n_c);
-            prop_assume!(s2c_split < n_s);
+            let c2s_n = c2s_hello.len();
+            let s2c_n = s2c_hello.len();
 
-            let mut analyzer = TlsAnalyzer::new();
+            // Clamp to [1, n-1] — a function of the actual message length, not a
+            // fixed small constant.  prop_assume would discard too many cases for
+            // the s2c hello (which may be short), so we saturating-clamp instead.
+            let k_c2s = split_c2s.min(c2s_n - 1).max(1);
+            let k_s2c = split_s2c.min(s2c_n - 1).max(1);
+
             let flow_key = make_test_flow_key(1);
-            let ts: u32 = 200;
+            let ts: u32 = 100;
 
-            // Interleaved delivery: C2S frag 1, S2C frag 1, C2S frag 2, S2C frag 2.
-            let c2s_rec1 = wrap_as_tls_record(0x16, &client_hello[..c2s_split]);
-            let s2c_rec1 = wrap_as_tls_record(0x16, &server_hello[..s2c_split]);
-            let c2s_rec2 = wrap_as_tls_record(0x16, &client_hello[c2s_split..]);
-            let s2c_rec2 = wrap_as_tls_record(0x16, &server_hello[s2c_split..]);
+            // --- Interleaved run ---
+            let mut interleaved = TlsAnalyzer::new();
 
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &c2s_rec1, 0u64, ts);
-            analyzer.on_data(&flow_key, Direction::ServerToClient, &s2c_rec1, 0u64, ts);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &c2s_rec2, 0u64, ts);
-            analyzer.on_data(&flow_key, Direction::ServerToClient, &s2c_rec2, 0u64, ts);
+            // c2s partial delivery 1
+            let rec_c2s_1 = wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_1, 0u64, ts);
 
-            // Red Gate assertion: both hellos must be seen after interleaved delivery.
-            // client_hello_seen via carry drain (STORY-144): already passes.
-            // server_hello_seen via carry drain (STORY-145): FAILS until server path wired.
+            // s2c partial delivery 1 (interleaved)
+            let rec_s2c_1 = wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_1, 0u64, ts);
+
+            // c2s completing delivery
+            let rec_c2s_2 = wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_2, 0u64, ts);
+
+            // s2c completing delivery
+            let rec_s2c_2 = wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_2, 0u64, ts);
+
+            // --- Independent c2s-only run ---
+            let fk_c2s = make_test_flow_key(2);
+            let mut c2s_only = TlsAnalyzer::new();
+            c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
+                &wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]), 0u64, ts);
+            c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
+                &wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]), 0u64, ts);
+
+            // --- Independent s2c-only run ---
+            let fk_s2c = make_test_flow_key(3);
+            let mut s2c_only = TlsAnalyzer::new();
+            s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
+                &wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]), 0u64, ts);
+            s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
+                &wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]), 0u64, ts);
+
+            // Invariant: interleaved run sees the same hellos as independent runs.
+            // Use FLAT accessors — no state_for_testing (TlsFlowState is private):
+            //   client_hello_seen_for_testing — NEW seam (STORY-144/146 deliverable)
+            //   server_hello_seen_for_testing — EXISTING seam (tls.rs:991)
+            prop_assert_eq!(
+                interleaved.client_hello_seen_for_testing(&flow_key),
+                c2s_only.client_hello_seen_for_testing(&fk_c2s),
+                "interleaved c2s hello detection must match independent c2s run"
+            );
+            prop_assert_eq!(
+                interleaved.server_hello_seen_for_testing(&flow_key),
+                s2c_only.server_hello_seen_for_testing(&fk_s2c),
+                "interleaved s2c hello detection must match independent s2c run"
+            );
+            // parse_errors is AGGREGATE on TlsAnalyzer — read via accessor, NOT off state
+            prop_assert_eq!(
+                interleaved.parse_error_count(),
+                c2s_only.parse_error_count() + s2c_only.parse_error_count(),
+                "interleaved parse_errors must equal sum of independent parse_errors"
+            );
+
+            // Explicit truth assertions — non-vacuous Red Gate guard.
+            // Without these, the equivalence checks above pass trivially when both
+            // sides return false (before STORY-145 wires the S2C carry drain).
+            // BC-2.07.041 Sub-E property: BOTH directions must succeed after complete
+            // fragmented delivery.
             prop_assert!(
-                analyzer.client_hello_seen_for_testing(&flow_key),
-                "client_hello_seen must be true after interleaved fragmented C2S delivery"
+                interleaved.client_hello_seen_for_testing(&flow_key),
+                "client_hello_seen must be true after complete interleaved C2S delivery"
             );
             prop_assert!(
-                analyzer.server_hello_seen_for_testing(&flow_key),
-                "server_hello_seen must be true after interleaved fragmented S2C delivery \
+                interleaved.server_hello_seen_for_testing(&flow_key),
+                "server_hello_seen must be true after complete interleaved S2C delivery \
                  (Red Gate: fails until ServerToClient carry drain path is wired)"
             );
-            // No parse errors from fragmented delivery.
-            prop_assert_eq!(
-                analyzer.parse_error_count(), 0u64,
-                "interleaved fragmented delivery must not produce parse errors"
+            // SNI (from ClientHello) and JA3S (from ServerHello) must be extracted.
+            prop_assert!(
+                !interleaved.sni_counts().is_empty(),
+                "sni_counts must be non-empty after C2S ClientHello reassembly"
             );
-            // Both carries must be fully drained after complete delivery.
-            prop_assert_eq!(
-                analyzer.client_hs_carry_len_for_testing(&flow_key), 0,
-                "client_hs_carry must be empty after complete C2S reassembly"
+            prop_assert!(
+                !interleaved.ja3s_counts().is_empty(),
+                "ja3s_counts must be non-empty after S2C ServerHello reassembly \
+                 (Red Gate: empty until ServerToClient carry drain path is wired)"
             );
             prop_assert_eq!(
-                analyzer.server_hs_carry_len_for_testing(&flow_key), 0,
-                "server_hs_carry must be empty after complete S2C reassembly \
-                 (Red Gate: fails until ServerToClient carry drain path is wired)"
+                interleaved.parse_error_count(), 0u64,
+                "interleaved fragmented delivery must produce zero parse errors"
             );
         }
     }
@@ -10608,7 +10668,8 @@ mod story_145 {
     // Traces to: BC-2.07.041 v1.2 Invariants 1, 4; Postconditions 1, 4–5;
     //            BC-2.07.002 v1.6 Precondition 2; AC-145-003, AC-145-004.
     #[test]
-    fn test_bc_2_07_041_cross_flow_isolation() {
+    #[allow(non_snake_case)]
+    fn test_BC_2_07_041_cross_flow_isolation() {
         let mut analyzer = TlsAnalyzer::new();
         let flow_a = make_test_flow_key(10);
         let flow_b = make_test_flow_key(20);
