@@ -17,9 +17,15 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use md5::{Digest, Md5};
+// STORY-144 stub: `parse_tls_message_handshake` is imported here for the carry
+// drain loop (AC-144-002) which is not yet implemented. The import is present
+// so the ADR-011 Decision 4 parse boundary is expressed in the stub and the
+// implementer does not need to add it. The `allow` suppresses the unused-import
+// warning under -Dwarnings while the drain loop is still todo!().
+#[allow(unused_imports)]
 use tls_parser::{
     Err as NomErr, TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
-    TlsMessageHandshake, parse_tls_extensions, parse_tls_plaintext,
+    TlsMessageHandshake, parse_tls_extensions, parse_tls_message_handshake, parse_tls_plaintext,
 };
 
 use crate::analyzer::AnalysisSummary;
@@ -281,6 +287,21 @@ struct TlsFlowState {
     /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
     /// isolation invariant).
     last_ts: u32,
+    /// Handshake-message carry buffer for the ClientToServer direction.
+    ///
+    /// Accumulates 0x16 record payloads across multiple `try_parse_records`
+    /// calls until a complete handshake message (4-byte header + body_len
+    /// body bytes) is available. Initialized to `Vec::new()` in
+    /// `TlsFlowState::new()`; dropped automatically when `on_flow_close`
+    /// removes the `TlsFlowState` from the `flows` map (BC-2.07.040).
+    /// NO `hs_carry_abandoned` flag exists anywhere (BC-2.07.039 Invariant 4).
+    /// AC-144-001 / ADR-011 Decision 1.
+    client_hs_carry: Vec<u8>,
+    /// Handshake-message carry buffer for the ServerToClient direction.
+    ///
+    /// Symmetric companion to `client_hs_carry`. Initialized to `Vec::new()`.
+    /// AC-144-001 / ADR-011 Decision 1.
+    server_hs_carry: Vec<u8>,
 }
 
 impl TlsFlowState {
@@ -291,6 +312,8 @@ impl TlsFlowState {
             client_hello_seen: false,
             server_hello_seen: false,
             last_ts: 0,
+            client_hs_carry: Vec::new(),
+            server_hs_carry: Vec::new(),
         }
     }
 
@@ -317,6 +340,16 @@ pub struct TlsAnalyzer {
     /// distinguishable from genuinely malformed records — see
     /// LESSON-P1.05 (CNV-PAT-002 follow-up).
     truncated_records: u64,
+    /// Aggregate count of handshake carry buffer overflow events.
+    ///
+    /// Incremented each time a 0x16 record payload would push a direction's
+    /// carry buffer past `MAX_BUF` (Decision 5 buffer-fill guard) OR when
+    /// `body_len > MAX_BUF` inside the drain loop (Decision 4 body_len-spoof
+    /// guard). This is an AGGREGATE counter on `TlsAnalyzer` — NOT on
+    /// `TlsFlowState` — and is NOT reset at `on_flow_close`. Mirrors the
+    /// existing `truncated_records` aggregate counter pattern.
+    /// AC-144-001 / ADR-011 Decision 1 / BC-2.07.039 Invariant 5.
+    handshake_reassembly_overflows: u64,
     all_findings: Vec<Finding>,
 }
 
@@ -338,6 +371,7 @@ impl TlsAnalyzer {
             handshakes_seen: 0,
             parse_errors: 0,
             truncated_records: 0,
+            handshake_reassembly_overflows: 0,
             all_findings: Vec::new(),
         }
     }
@@ -888,6 +922,14 @@ impl StreamAnalyzer for TlsAnalyzer {
             "truncated_records".to_string(),
             serde_json::json!(self.truncated_records),
         );
+        // AC-144-003 (STUB — left for implementer): surface `handshake_reassembly_overflows`
+        // in the detail map once the carry drain loop (AC-144-002) is implemented.
+        // Adding it here in the stub would break the existing `test_summarize_output` test
+        // (which asserts exactly 7 keys); that test must remain green per AC-144-005.
+        // The implementer adds this insertion alongside the overflow counter increment logic,
+        // then updates `test_summarize_output` to expect 8 keys.
+        // The Red Gate test `test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key`
+        // will FAIL here because the key is absent → `.expect("…")` panics.
 
         AnalysisSummary {
             analyzer_name: self.name().to_string(),
@@ -1007,6 +1049,98 @@ impl TlsAnalyzer {
     #[doc(hidden)]
     pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
         self.flows.get(flow_key).map(|s| s.last_ts)
+    }
+
+    // ── STORY-144 test seams (AC-144-001) ─────────────────────────────────────
+    //
+    // These seams expose the new STORY-144 carry-buffer fields and aggregate
+    // counter so that the VP-039 Red-Gate test suite can verify carry-buffer
+    // state directly.  All follow the `#[doc(hidden)] pub fn` convention
+    // established by the existing seams above.  MUST NOT be called from
+    // production code.
+
+    /// Test-only accessor: whether `client_hello_seen` is set for the given flow.
+    ///
+    /// Symmetric companion to the EXISTING `server_hello_seen_for_testing`
+    /// (tls.rs:991). Exposes `flow.client_hello_seen` so tests can directly
+    /// verify BC-2.07.001 postcondition 1 ("flow.client_hello_seen is set to
+    /// true") for the carry-reassembly path (AC-144-001 / STORY-144).
+    /// Returns `false` for absent flows.
+    /// MUST NOT be called from production code.
+    ///
+    /// Self-check (BC-5.38.005 invariant 1):
+    /// "If I include this real implementation, will the test for this function
+    /// pass trivially without any implementer work?"
+    /// — No: the test for this seam (`test_BC_2_07_038_canonical_frame_rfc8446_s4`
+    /// and others) asserts `client_hello_seen == true` only AFTER a fragmented
+    /// ClientHello is reassembled by the carry drain loop. The drain loop is not
+    /// yet implemented, so `client_hello_seen` is never set via the carry path;
+    /// the Red Gate holds.
+    #[doc(hidden)]
+    pub fn client_hello_seen_for_testing(&self, flow_key: &FlowKey) -> bool {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.client_hello_seen)
+            .unwrap_or(false)
+    }
+
+    /// Test-only accessor: byte length of `client_hs_carry` for the given flow.
+    ///
+    /// Exposes the carry-buffer length so tests can assert that the handshake
+    /// carry accumulates and drains correctly (AC-144-001 / BC-2.07.038 PC-6).
+    /// Returns 0 if the flow is absent or if the carry is empty.
+    /// MUST NOT be called from production code.
+    ///
+    /// Self-check (BC-5.38.005 invariant 1):
+    /// "If I include this real implementation, will the test for this function
+    /// pass trivially without any implementer work?"
+    /// — No: tests assert carry grows to >0 mid-reassembly. The carry is only
+    /// populated by the drain loop (AC-144-002), not yet implemented; this
+    /// accessor always returns 0 against the stub → Red Gate holds.
+    #[doc(hidden)]
+    pub fn client_hs_carry_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.client_hs_carry.len())
+            .unwrap_or(0)
+    }
+
+    /// Test-only accessor: byte length of `server_hs_carry` for the given flow.
+    ///
+    /// Symmetric companion to `client_hs_carry_len_for_testing` for the
+    /// ServerToClient direction (AC-144-001 / BC-2.07.038 PC-6).
+    /// Returns 0 if the flow is absent or if the carry is empty.
+    /// MUST NOT be called from production code.
+    ///
+    /// Self-check (BC-5.38.005 invariant 1):
+    /// "If I include this real implementation, will the test for this function
+    /// pass trivially without any implementer work?"
+    /// — No: same rationale as `client_hs_carry_len_for_testing` above.
+    #[doc(hidden)]
+    pub fn server_hs_carry_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.server_hs_carry.len())
+            .unwrap_or(0)
+    }
+
+    /// Test-only / public accessor: aggregate count of handshake carry overflow events.
+    ///
+    /// Reads `self.handshake_reassembly_overflows` directly. Exposed as a public
+    /// accessor (not just a hidden test seam) because it mirrors the existing
+    /// `truncated_record_count()` public accessor pattern (AC-144-001 / ADR-011
+    /// Decision 1). Returns 0 until the carry drain loop is implemented (AC-144-002).
+    /// MUST NOT be called from production code for overflow decisions — read-only.
+    ///
+    /// Self-check (BC-5.38.005 invariant 1):
+    /// "If I include this real implementation, will the test for this function
+    /// pass trivially without any implementer work?"
+    /// — No: tests assert overflow_count >= 1. The counter is only incremented
+    /// inside the carry drain loop (AC-144-002), not yet implemented; this
+    /// always returns 0 against the stub → Red Gate holds.
+    #[doc(hidden)]
+    pub fn handshake_reassembly_overflow_count(&self) -> u64 {
+        self.handshake_reassembly_overflows
     }
 }
 
