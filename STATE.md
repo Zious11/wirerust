@@ -4,10 +4,10 @@ project: wirerust
 mode: feature
 phase: 7
 status: in-progress
-current_step: "Wave 66 COMPLETE (STORY-145 #343, STORY-146 #344). Integration gate PASS (2220/0). NEXT: F4 build-verification + holdout-evaluation (HS-F4-001..012)."
+current_step: "F4 holdout PASS (0.904 mean, 8/8 must-pass). HS-F4-001-FRAMEC finding RESOLVED (artifact-fidelity, no code change). NEXT: F5 scoped adversarial."
 pipeline: FEATURE-CYCLE
 current_cycle: fix-tls-clienthello-frag
-timestamp: 2026-06-30T12:00:00Z
+timestamp: 2026-06-30T14:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -44,7 +44,7 @@ total_stories: 99
 story_index_note: "99 stories / 66 waves. STORY-130..142 MERGED. STORY-143 draft (E-11, D-301). STORY-144 MERGED (wave 65). STORY-145 MERGED (wave 66, PR #343). STORY-146 MERGED (wave 66, PR #344, 8b52046). Wave 66 COMPLETE."
 
 # Spec versions (current)
-bc_index_version: v2.1
+bc_index_version: v2.2
 vp_index_version: v2.28
 arch_index_version: v2.4
 prd_version: v1.45
@@ -66,10 +66,9 @@ maintenance_completed_at: "2026-06-23"
 
 ## EXACT RESUME POINT
 
-**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F4 HOLDOUT-EVALUATION PENDING**
+**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F5 SCOPED ADVERSARIAL NEXT**
 
-Phases F1 DONE, F2 HUMAN-APPROVED (D-305), F3 HUMAN-APPROVED (D-306). Phase F4 active
-(driven autonomously; human receives reports at wave/phase boundaries).
+Phases F1 DONE, F2 HUMAN-APPROVED (D-305), F3 HUMAN-APPROVED (D-306), F4 PASS (D-311).
 
 **Wave 65 DONE:** STORY-144 MERGED PR #341, squash `0986e878`. stories_delivered 91→92.
 
@@ -82,11 +81,17 @@ stories_delivered 93→94.
 
 **Wave-66 integration gate PASS:** Full regression on develop `8b52046` = 2220/0; clippy/fmt green.
 
-**NEXT STEP ON RESUME:** F4 build-verification + holdout-evaluation against HS-F4-001..012 at
-`.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`. Holdout-evaluator uses a
-different model family / information asymmetry (public API + holdout scenarios only). Then F5
-scoped adversarial → F6 targeted hardening → F7 delta convergence + HUMAN gate +
-RELEASE-VERSION decision (likely v0.11.1 patch).
+**F4 holdout PASS (D-311):** Mean 0.904 ≥ 0.85; 8/8 must-pass ≥ 0.6. 10/12 independently
+verified; HS-F4-010/012 seam-gated proxy-verified. HS-F4-001 Frame C finding triaged →
+verdict B+C (artifact-fidelity / conformant-leniency): BC-2.07.038 v2.8 + holdout corrected;
+no code change. STORY-144 input-hash `3dfe20c`→`9b4284b`; STORY-145 `88e29c9`→`9a82e5d`.
+
+**NEXT STEP ON RESUME:** F5 scoped adversarial — fresh-context multi-pass adversarial review
+of the cycle DELTA (STORY-144 #341 + STORY-145 #343 + STORY-146 #344 on develop `8b52046`),
+with the MANDATORY DF-BC-COMPLETENESS-SWEEP-001 first step (enumerate all cycle BCs SS-07:
+BC-2.07.038/040/041/042/043 + amended 001/002/005, verify each Invariant/PC has an
+implementation path in the delta). Then F6 targeted hardening → F7 delta convergence +
+HUMAN gate + RELEASE-VERSION decision (likely v0.11.1 patch).
 
 **Locked design facts (do NOT re-derive on resume):**
 - Overflow = clear-and-recover (NO sticky abandon). Per-MESSAGE cap MAX_BUF=65,536.
@@ -108,12 +113,14 @@ RELEASE-VERSION decision (likely v0.11.1 patch).
 3. Verify git state:
    - `git rev-parse origin/develop` = `8b52046421332b6d9796fe93acf69b38960815bd`
    - `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`
-   - No story-145 or story-146 worktree (both removed after merge)
-4. F4 build-verification: `cargo test --all-targets && cargo clippy --all-targets -- -D warnings`.
-5. Dispatch **holdout-evaluator** against HS-F4-001..012 at
-   `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`.
-6. Maintenance sweeps PAUSED. Do not initiate during this cycle (D-303).
-7. Non-blocking open question: main CHANGELOG fast-track (D-301) — re-surface if human asks.
+   - No story worktrees open (all removed after merge)
+4. F5 entry: dispatch **vsdd-factory:phase-f5-scoped-adversarial** — fresh-context
+   multi-pass adversarial review of the cycle DELTA (STORY-144/145/146 on develop `8b52046`).
+   MANDATORY first step: DF-BC-COMPLETENESS-SWEEP-001 (enumerate all cycle BCs SS-07:
+   BC-2.07.038/040/041/042/043 + amended 001/002/005, verify each Invariant/PC has an
+   implementation path in the delta).
+5. Maintenance sweeps PAUSED. Do not initiate during this cycle (D-303).
+6. Non-blocking open question: main CHANGELOG fast-track (D-301) — re-surface if human asks.
 
 ---
 
@@ -129,7 +136,7 @@ RELEASE-VERSION decision (likely v0.11.1 patch).
 | Tag v0.11.0 | commit `3072e828`; tag object `c50d89e8` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.1 / VP-INDEX v2.28 (40 VPs) / ARCH-INDEX v2.4 / PRD v1.45 |
+| Spec versions | BC-INDEX v2.2 / VP-INDEX v2.28 (40 VPs) / ARCH-INDEX v2.4 / PRD v1.45 |
 | Stories | 94 delivered / 99 total (STORY-INDEX v3.8) |
 
 ---
@@ -144,8 +151,8 @@ RELEASE-VERSION decision (likely v0.11.1 patch).
 | Feature cycle fix-tls-clienthello-frag — F1 | DONE | delta-analysis.md committed |
 | Feature cycle fix-tls-clienthello-frag — F2 | APPROVED (D-305, 2026-06-29) | 6 new BCs + 3 amended + VP-039 + VP-040 + ADR-011 |
 | Feature cycle fix-tls-clienthello-frag — F3 | APPROVED (D-306, 2026-06-29) | STORY-144..146; STORY-INDEX v3.6; HS-F4-001..012 |
-| Feature cycle fix-tls-clienthello-frag — F4 | **ACTIVE** | Wave 65+66 DONE; integration gate PASS (2220/0 on `8b52046`). Holdout PENDING (HS-F4-001..012) |
-| Feature cycle fix-tls-clienthello-frag — F5 | PENDING | |
+| Feature cycle fix-tls-clienthello-frag — F4 | **DONE/PASS** | Holdout 0.904 mean, 8/8 must-pass; HS-F4-001-FRAMEC artifact-fidelity correction (BC-2.07.038 v2.8 + holdout corrected; no code change) |
+| Feature cycle fix-tls-clienthello-frag — F5 | **ACTIVE/NEXT** | Scoped adversarial — cycle DELTA (STORY-144/145/146 on develop `8b52046`) |
 | Feature cycle fix-tls-clienthello-frag — F6 | PENDING | |
 | Feature cycle fix-tls-clienthello-frag — F7 | PENDING | Version decision at gate |
 
@@ -155,11 +162,11 @@ RELEASE-VERSION decision (likely v0.11.1 patch).
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 65: Integration gate | DONE | Full regression PASS on develop `0986e878` |
-| Wave 66: STORY-145 TDD delivery | DONE | PR #343 squash `d3d2e19`; 5-pass per-story adversarial (3 clean on `ae45d54`); reviews+CI green; stories_delivered 92→93 |
-| Wave 66: STORY-146 delivery | DONE | PR #344 squash `8b52046`; multi-pass convergence (3 clean on `bb29117`); pr-reviewer APPROVE + security-reviewer CLEAR; 11/11 CI green; stories_delivered 93→94 |
 | Wave 66: Integration gate | DONE | Full regression PASS on develop `8b52046` (2220/0); clippy/fmt green |
-| **F4: holdout-evaluation** | **NEXT** | HS-F4-001..012 at `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md` |
+| F4: holdout-evaluation | DONE/PASS | Mean 0.904, 8/8 must-pass; 10/12 directly verified; HS-F4-010/012 seam-gated proxy-verified |
+| F4: HS-F4-001 Frame C triage | DONE | Verdict B+C (artifact-fidelity): BC-2.07.038 v2.8 + holdout corrected; no code change; STORY-144/145 hashes recomputed |
+| F4: BC-INDEX v2.2 committed | DONE | bc_index_version v2.1→v2.2 (BC-2.07.038 v2.8 correction) |
+| **F5: scoped adversarial** | **NEXT** | Fresh-context multi-pass review of cycle DELTA (STORY-144/145/146); DF-BC-COMPLETENESS-SWEEP-001 first |
 
 ---
 
@@ -184,6 +191,7 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-308 | Session paused at STORY-145 mid-TDD (Red Gate `f60c0e0`, branch pushed). Resume checkpoint written. VP-INDEX corrected to v2.28. | 2026-06-30 |
 | D-309 | STORY-145 MERGED PR #343 squash `d3d2e19`. Per-story convergence: 5 passes (1-2 found doc-tense MEDIUM + DoS-guard coverage MEDIUM, both fixed; 3 clean on ae45d54). pr-reviewer + security-reviewer APPROVE; 11/11 CI green. Human-authorized merge (auto-mode classifier required direct user merge). stories_delivered=93. | 2026-06-30 |
 | D-310 | STORY-146 MERGED PR #344 squash `8b52046`. Per-story convergence: multi-pass (found+fixed doc-tense, saturating_add SEC-003 sibling-parity, EC-C1/EC-C3 coverage, 6→8 test-count header drift, accessor visibility parity, EC-C1 docstring attribution; 3 clean on `bb29117`). pr-reviewer APPROVE + security-reviewer CLEAR; 11/11 CI green. Human-authorized merge. stories_delivered=94. Wave 66 COMPLETE; integration gate PASS (2220/0). | 2026-06-30 |
+| D-311 | F4 holdout PASS (mean 0.904 ≥ 0.85; must-pass 8/8 ≥ 0.6). HS-F4-001 Frame C contradiction triaged by research-agent → verdict B+C (artifact-fidelity / conformant-leniency): BC-2.07.038 v2.7→v2.8 (Frame C input corrected to 0xcc body, PC-9 example updated, NOTE on degenerate-all-zero accepted case added) + holdout HS-F4-001 Frame C corrected to match; no code change. STORY-144 input-hash `3dfe20c`→`9b4284b`; STORY-145 `88e29c9`→`9a82e5d` (recomputed via bin/compute-input-hash). BC-INDEX v2.1→v2.2. | 2026-06-30 |
 
 ---
 
@@ -209,7 +217,9 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Summary | Priority | Status |
 |----|---------|----------|--------|
-| TLS-CLIENTHELLO-FRAG-001 | ClientHello + ServerHello fragmentation → SNI/JA3/JA3S evasion. Severity HIGH. | HIGH | Code merged (STORY-144/145/146). **F4 holdout PENDING** (HS-F4-001..012) |
+| TLS-CLIENTHELLO-FRAG-001 | ClientHello + ServerHello fragmentation → SNI/JA3/JA3S evasion. Severity HIGH. | HIGH | Code merged (STORY-144/145/146). F4 holdout PASS. **F5 scoped adversarial NEXT** |
+| TLS-FRAMEC-TEST-DOC-001 | Verify/align comment-docstring of `test_BC_2_07_038_canonical_frame_rfc8446_s4` Frame C (~tests/tls_analyzer_tests.rs:9619) to accurately describe the 0xcc session-id>32 vector (test is behaviorally correct + green; doc-comment fidelity item). | LOW | Fold into F6 hardening or doc fix-PR (requires develop code PR) |
+| TLS-CH-STRICT-VALIDATION-001 | Consider strict structural validation rejecting empty-cipher-suite / trailing-padded ClientHellos as an evasion anomaly (deliberate change against lenient-fingerprinting norm; separate maintenance item). | LOW | NOT this cycle — separate maintenance item |
 | SEC-002 | Narrow non-RFC overflow window [MAX_BUF-3, MAX_BUF] — clears-and-recovers rather than assembling. Low exploitability. | LOW | F6 hardening |
 | SEC-004 | parse_errors plain `+=` in tls.rs — theoretical u64 overflow. Cosmetic. | LOW | Maintenance sweep |
 | DONE-MID-LOOP-CROSS-DIRECTION | done()-mid-loop cross-direction carry interaction. Pre-existing. | LOW | Wave-gate review |
@@ -231,21 +241,23 @@ Full backlog with resolved/archived items: `cycles/feature-enip-v0.11.0/` decisi
 ## Session Resume Checkpoint
 
 **Date:** 2026-06-30
-**State:** Wave 66 COMPLETE; F4 holdout-evaluation next — Feature cycle `fix-tls-clienthello-frag`, Phase F4
+**State:** F4 holdout PASS; F5 scoped adversarial next — Feature cycle `fix-tls-clienthello-frag`, Phase F5
 
 ### Exact state at checkpoint
 
 - develop HEAD: `8b52046421332b6d9796fe93acf69b38960815bd` (short `8b52046`)
-- STORY-145 MERGED: PR #343, squash `d3d2e19`, 11/11 CI green
-- STORY-146 MERGED: PR #344, squash `8b52046`, 11/11 CI green; stories_delivered=94
-- Both story worktrees removed; remote branches deleted
-- Wave-66 integration gate PASS: 2220/0 on `8b52046`
+- F4 holdout PASS: mean 0.904, 8/8 must-pass; HS-F4-001 Frame C finding resolved (artifact-fidelity)
+- BC-2.07.038 at v2.8; BC-INDEX at v2.2
+- STORY-144 input-hash: `9b4284b` (was `3dfe20c`); STORY-145: `9a82e5d` (was `88e29c9`)
+- All story worktrees removed; no open worktrees
 
 ### Next action (first thing to do on resume)
 
-F4 build-verification: `cargo test --all-targets && cargo clippy --all-targets -- -D warnings`
-then dispatch **holdout-evaluator** against HS-F4-001..012 at
-`.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`.
+Dispatch **vsdd-factory:phase-f5-scoped-adversarial** — fresh-context multi-pass adversarial
+review of cycle DELTA (STORY-144 #341 + STORY-145 #343 + STORY-146 #344 on develop `8b52046`).
+MANDATORY first step: DF-BC-COMPLETENESS-SWEEP-001 (enumerate all cycle BCs SS-07:
+BC-2.07.038/040/041/042/043 + amended 001/002/005, verify each Invariant/PC has an
+implementation path in the delta).
 
 ---
 
@@ -260,6 +272,7 @@ full list.
 ## Notes
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
-- STORY-INDEX.md: 99 stories / 66 waves (v3.8). stories_delivered=94. STORY-144/145/146 MERGED (wave 65+66). Wave 66 COMPLETE.
+- STORY-INDEX.md: 99 stories / 66 waves (v3.8). stories_delivered=94. STORY-144/145/146 MERGED (wave 65+66). Wave 66 COMPLETE. F4 holdout PASS.
 - v0.11.0 RELEASED 2026-06-29. main=`3072e828`, develop=`8b52046` (wave 66 gate). Not on crates.io.
+- BC-INDEX v2.2 (BC-2.07.038 v2.8 Frame-C fidelity fix). STORY-144/145 input-hashes updated.
 - Squash-only policy (D-289). Branch protection develop + main (D-290).

@@ -53,11 +53,15 @@ decoded from verbatim RFC 8446 §4 byte sequences, independently of the project'
 - **Frame B** (`[0x01, 0x01, 0x05, 0x00]` header only, no body bytes): big-endian
   decode → `body_len=66,816 > MAX_BUF`. Expected: body_len-spoof guard fires;
   `handshake_reassembly_overflows` incremented by 1; carry cleared; `parse_errors=0`.
-- **Frame C** (`[0x01, 0x00, 0x01, 0x00]` + 256 zero bytes): `body_len=256`,
-  length-complete but internally malformed body. Expected: `parse_errors` incremented
-  by 1; carry emptied (260 bytes consumed); `client_hello_seen=false`.
+- **Frame C** (`[0x01, 0x00, 0x01, 0x00]` + 256 bytes of `0xcc`): `body_len=256`,
+  length-complete but internally malformed: session-id length byte = `0xcc` = 204 > 32,
+  rejected by `tls_parser` 0.12.2 `verify(be_u8, |&n| n <= 32)` (`tls_handshake.rs`
+  session-id length guard) → genuine `Err` → `parse_errors` incremented by 1; carry
+  emptied (260 bytes consumed); `client_hello_seen=false`. (An all-zero body parses as
+  a structurally valid degenerate ClientHello — `Ok`, `parse_errors=0` — and is NOT
+  the malformed vector; see BC-2.07.038 v2.8 PC-9 NOTE.)
 
-**BCs exercised:** BC-2.07.038 v2.7 AC-CANONICAL-FRAME; BC-2.07.038 Inv-5 (Frame B);
+**BCs exercised:** BC-2.07.038 v2.8 AC-CANONICAL-FRAME; BC-2.07.038 Inv-5 (Frame B);
 BC-2.07.038 PC-9 (Frames A and C).
 
 **Expected outcome:** PASS (all three frame assertions hold).

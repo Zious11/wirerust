@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.7"
+version: "2.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-29T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v2.5: Fix burst 9 adversarial reconciliation (F-IMPL-002 MEDIUM) — AC-CANONICAL-FRAME expanded to enumerate three canonical test frames (Frame A: degenerate body_len=5 / Frame B: BE-vs-LE discriminator 66,816 vs 1,281 / Frame C: body_len=256 all-zero body exercises PC-9 malformed-body path); AC-CANONICAL-FRAME explicitly documents that the canonical-frame test test_BC_2_07_038_canonical_frame_rfc8446_s4 legitimately bundles BE-decode verification (Frame A), clear-and-recover after body_len-spoof (Frame B), and PC-9 malformed-body parse_errors+1 (Frame C) in one test; parse_errors+1 assertion for Frame C is now backed by an explicitly documented BC behavior; EC-010 added: complete valid message followed by trailing body_len-spoof header coalesced in one carry — valid message dispatches first; spoof-only remainder cleared; no valid data lost (see BC-2.07.042 EC-006 for drain-loop perspective) — 2026-06-29"
   - "v2.6: Fix burst 10 adversarial reconciliation (F-ADVF2-002 MED, F-ADVF2-003 LOW) — (1) Frame B prose corrected: the 4-byte header [0x01,0x01,0x05,0x00] is the ENTIRE input (no body bytes follow); the body_len-spoof guard fires on header decode before any body is appended — stating 66,816 zero bytes follow was physically wrong; the 66,816 / 1,281 decoded values are unchanged and correct; (2) Frame B AC backing tightened: Inv-5 / Decision-4 (body_len-spoof guard on header decode) is the PRIMARY backing; BC-2.07.039 shares only the clear+counter outcome (not the trigger — BC-2.07.039 is the Decision-5 buffer-fill guard, a different trigger); Frame A semantics (PC-9 malformed, parse_errors+1) unchanged — 2026-06-29"
   - "v2.7: Fix burst 11 (F-COMP-001 / F-COMP-003) — Verification Properties table: two new VP rows added citing architect-authored tests in VP-039: (1) test_vp039_n_record_reassembly for N-record drip-feed incl. 4-byte header split (PC-1/PC-2/PC-6 + EC-003); (2) test_vp039_large_valid_hello_reassembly for large ClientHello body 18,433..65,536 bytes (positively verifies Inv-5 cap raise to MAX_BUF) — 2026-06-29"
+  - "v2.8: Artifact-fidelity correction (HS-F4-001-FRAMEC-validation.md) — corrected Frame C input vector from all-zero 256-byte body to 256-byte 0xcc body (session-id length = 0xcc = 204 > 32 triggers tls_parser 0.12.2 verify(be_u8, |&n| n <= 32) in tls_handshake.rs, yielding genuine Err; all-zero body yields Ok per parse_cipher_suites len==0 acceptance, NOT a malformed-reject case); corrected PC-9 example list: replaced 'zero-length cipher suite list' with 'session-id length byte > 32' as the canonical failing example; generalized stale parse_tls_plaintext tls.rs L787-789 citation in PC-9(a) to function-level reference; added PC-9 NOTE clarifying that a degenerate all-zero ClientHello body is accepted (parse_errors=0, JA3 emitted) — conformant lenient behavior per tls-parser 0.12.2 and standard JA3 tooling — 2026-06-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,16 +97,31 @@ gap identified in finding TLS-CLIENTHELLO-FRAG-001 (RFC 5246 §6.2.1; RFC 8446 �
    directly consumes the `4 + body_len` byte slice the carry holds.
 
    If `parse_tls_message_handshake` returns `Err(_)` (assembled body is length-complete
-   but internally malformed — e.g., truncated extensions, out-of-range version, zero-
-   length cipher suite list), the following MUST hold:
+   but internally malformed — e.g., truncated extensions, out-of-range version, or a
+   session-id length byte > 32, which `tls_parser` 0.12.2 rejects via
+   `verify(be_u8, |&n| n <= 32)` in `tls_handshake.rs`), the following MUST hold:
    - (a) `parse_errors` is incremented by exactly 1 (parity with the single-record
-     path at `tls.rs` L787-789 where `parse_tls_plaintext` failure increments
-     `parse_errors`).
+     path where `parse_tls_message_handshake` failure increments `parse_errors`).
    - (b) The message bytes are still exact-consumed: `drain(..4 + body_len)` executes
      regardless — the 4-byte header + body are a complete, length-consistent frame.
    - (c) No finding is emitted. A malformed reassembled body is not a detection event.
    - (d) No panic. `parse_tls_message_handshake` returns `Result`; the `Err(_)` arm is
      handled explicitly.
+
+   **NOTE — degenerate-but-structurally-valid ClientHello is ACCEPTED (conformant):**
+   A ClientHello body that is structurally valid but semantically degenerate — e.g.,
+   version=0, empty cipher-suite list (0-byte `ciphers_len`), empty compression list,
+   empty or absent extensions, trailing zero-byte padding within the declared body
+   length — parses as `Ok` under tls-parser 0.12.2. Empty cipher lists are explicitly
+   accepted (`parse_cipher_suites` returns `Ok` when `len == 0`, `tls_handshake.rs`);
+   inner trailing bytes within the declared `body_len` are discarded by
+   `parse_tls_message_handshake`. Such a body does NOT fire PC-9. `parse_errors` stays
+   0; `client_hello_seen` is set; a JA3 is emitted from the degenerate fields. This is
+   conformant lenient behavior, consistent with tls-parser 0.12.2 and standard JA3
+   tooling (Zeek, Suricata). Canonical example: an all-zero 256-byte ClientHello body
+   has `sidlen=0` (ok), `ciphers_len=0` (ok, empty accepted), `comp_len=0` (ok),
+   trailing zeros within declared length discarded → `Ok` → `parse_errors=0`, JA3
+   emitted. This is NOT a malformed-reject case and does not fire PC-9.
 
    **Distinction from BC-2.07.040 Inv-1 and BC-2.07.039 PC-3 (no contradiction):**
    These are three separate, non-overlapping failure paths:
@@ -217,14 +233,22 @@ distinct behaviour with each:
 - Assertion: `handshake_reassembly_overflows == 1`; carry buffer empty after drain
   (exercises BC-2.07.038 Inv-5 / Decision-4: body_len-spoof guard on header decode)
 
-**Frame C — body_len=256, all-zero body (PC-9 malformed-body path):**
-- Bytes: `[0x01, 0x00, 0x01, 0x00]` followed by exactly 256 zero bytes (body)
+**Frame C — body_len=256, session-id length overflow (PC-9 malformed-body path):**
+- Bytes: `[0x01, 0x00, 0x01, 0x00]` followed by exactly 256 bytes of `0xcc` (body)
 - `body_len` MUST be decoded as `256` (big-endian: `0x00_01_00`)
 - `msg_type=0x01` (ClientHello); body is length-complete (256 bytes present) but
-  internally malformed (all zeros is not a valid ClientHello)
-- `parse_tls_message_handshake` returns `Err(_)` for the all-zero body;
+  internally malformed: after the 2-byte version field and 32-byte random field, the
+  session-id length byte arrives at body offset 34 as `0xcc` = 204. `tls_parser` 0.12.2
+  enforces `verify(be_u8, |&n| n <= 32)` on this field (`tls_handshake.rs` session-id
+  length guard); the guard fails → `parse_tls_message_handshake` returns `Err(_)` →
   exercises PC-9: `parse_errors` incremented by 1, exact-consume `4 + 256 = 260` bytes,
   no finding, no panic; `client_hello_seen=false`
+- **Why not all-zero?** An all-zero body has `sidlen=0` (ok), `ciphers_len=0` (ok —
+  empty cipher lists are explicitly accepted by `parse_cipher_suites`), trailing zeros
+  within declared length discarded → `parse_tls_message_handshake` returns `Ok`
+  (degenerate but structurally valid; see PC-9 NOTE above). An all-zero body does NOT
+  fire PC-9. The `0xcc` body is the genuinely-malformed vector that triggers the
+  tls_parser session-id length guard.
 - Assertion: `body_len == 256`; `parse_errors == 1`; `client_hello_seen == false`;
   carry buffer empty after drain (all 260 bytes consumed)
 

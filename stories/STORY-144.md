@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md
   - .factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md
   - .factory/cycles/fix-tls-clienthello-frag/delta-analysis.md
-input-hash: "3dfe20c"
+input-hash: "9b4284b"
 ---
 
 # STORY-144: TLS Handshake Carry Buffer + Fragmented ClientHello Reassembly

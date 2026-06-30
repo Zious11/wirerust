@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
-timestamp: 2026-06-29T15:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -26,6 +26,9 @@ traces_to: .factory/specs/prd.md
 > I-4 MED: BC-2.07.043 — tls.rs:887-889 corrected to tls.rs:887-890 (insert statement spans 887-890) in Postcondition 4, Architecture Anchors, and Traceability.
 > OBS-1 LOW: BC-2.07.043 — "VP-039 (or new VP)" hedge and "likely VP-040" replaced with definitive "VP-040" throughout VP table, VP Anchors, and Architecture Anchors.
 > F-1 HIGH: BC-INDEX BC-2.07.005 master table row — title updated to match H1 "Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043)"; v1.7 inline comment added.
+>
+> **v2.2 2026-06-30 (fix-tls-clienthello-frag F4 holdout — BC-2.07.038 v2.7→v2.8 artifact-fidelity correction; HS-F4-001-FRAMEC triage):**
+> Artifact-fidelity correction triggered by HS-F4-001 Frame C holdout finding (verdict B+C — HOLDOUT-OVERSPECIFIED + pre-existing conformant-leniency). Research-agent validation confirmed: an all-zero 256-byte ClientHello body is accepted by tls-parser 0.12.2 (`parse_cipher_suites` returns `Ok` when `len==0`; `sidlen=0` ok; trailing zeros within declared body_len discarded); it does NOT fire PC-9. The genuinely-malformed vector that triggers the session-id length guard is a body with `sidlen=0xcc` (204 > 32) — e.g., 256 bytes of `0xcc`. BC-2.07.038 v2.7→v2.8: (1) Frame C input vector corrected from all-zero 256-byte body to 256 bytes of `0xcc`; (2) PC-9 example list: replaced "zero-length cipher suite list" with "session-id length byte > 32" as the canonical failing example; (3) stale `parse_tls_plaintext tls.rs L787-789` cite in PC-9(a) generalized to function-level reference; (4) PC-9 NOTE added: a degenerate all-zero ClientHello body is accepted (`parse_errors=0`, JA3 emitted) — conformant lenient behavior per tls-parser 0.12.2 and standard JA3 tooling. Holdout scenario HS-F4-001 Frame C corrected to match. No code change; no new tests; BC count unchanged (337 on disk; 336 active). SS-07 count unchanged at 43. STORY-144 and STORY-145 input-hashes recomputed (BC-2.07.038 is a declared input of both). See `.factory/research/HS-F4-001-FRAMEC-validation.md`.
 >
 > **v2.1 2026-06-29 (fix-tls-clienthello-frag VP-040 6-test reconciliation — BC-2.07.043 v1.1→v1.2):**
 > Architect VP-040 6-test reconciliation. BC-2.07.043 v1.1→v1.2: Sub-A full-drop test added (`test_BC_2_07_043_buffer_saturation_full_drop`; exercises `remaining==0` path via `fill_buf_for_testing` seam); Sub-D renamed to `test_BC_2_07_043_summarize_value_equals_drop_count` (was `test_BC_2_07_043_summarize_exposes_buffer_saturation_drops_key`); VP Anchors and Architecture Anchors EC-002 test reference updated to `_buffer_saturation_full_drop`. No BC count change (337 on disk; 336 active). SS-07 count unchanged at 43.
@@ -422,7 +425,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState | P1 | [WRITTEN] | BC-TLS-035 |
 | BC-2.07.036 | Unknown Cipher IDs Render as Hex 0xNNNN Lowercase | P2 | [WRITTEN] | BC-TLS-036 |
 | BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 | <!-- v1.3: P19 B-10 anchor fix: extract_sni tls.rs:246→:247; match block :251-265→:252-269; v1.4: PG-ARP-F2-007 arm 2/3 emission :426→:437/:449→:461 -->
-| BC-2.07.038 | TLS Handshake-Message Reassembly Across Record Boundaries | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.7: Fix burst 11 F-COMP-001/F-COMP-003 — two new VP rows: test_vp039_n_record_reassembly (N-record drip-feed, PC-1/PC-2/PC-6/EC-003) and test_vp039_large_valid_hello_reassembly (large ClientHello 18433..65536 bytes, verifies Inv-5 cap raise). -->
+| BC-2.07.038 | TLS Handshake-Message Reassembly Across Record Boundaries | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.8: F4 HS-F4-001-FRAMEC artifact-fidelity — Frame C input corrected to 0xcc body; PC-9 example and NOTE added; no code/test change. -->
 | BC-2.07.039 | Handshake Carry Buffer Bounded at MAX_BUF with Clear-and-Recover Overflow Policy | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v2.4: Fix burst 9 F-EV-002 MEDIUM — EC-009 added: mid-legitimate-assembly overflow-clear residual risk; SNI/JA3 may be missed for the affected flow; accepted bounded outcome per TLS-REASSEMBLY-OVERFLOW-POLICY.md; clear-and-recover chosen because sticky-abandon gives attacker permanent per-flow blinding. -->
 | BC-2.07.040 | Truncated Handshake at Flow Close Yields No Finding and No parse_errors Increment | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.3: Pass-3 F-P3-LOW — Related-BCs: 'abandoned carry is already empty' → 'overflow-cleared carry is already empty' (no abandoned-direction concept exists) -->
 | BC-2.07.041 | Handshake Carry Buffers Are Per-Flow and Per-Direction Isolated | P1 | [WRITTEN] | fix-tls-clienthello-frag | <!-- v1.2: Fix burst 11 F-COMP-002 MED — VP table cross-flow row re-pointed from proptest_vp039_direction_isolation (cross-DIRECTION only) to test_BC_2_07_041_cross_flow_isolation (dedicated cross-FLOW unit test, architect authoring in VP-039); over-claim removed. -->
