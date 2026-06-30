@@ -179,7 +179,7 @@ jumbogram support will NOT introduce a new silent drop — it will be immediatel
 | Capability Anchor Justification | CAP-07 ("TLS Traffic Analysis") per domain/capabilities/cap-07-tls-analysis.md — this BC adds observability telemetry to the per-direction stream buffer cap that is part of the TLS analysis bounded-resource design, directly within the TLS Traffic Analysis capability scope |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation; counter output is a numeric stat surfaced in detail map, not raw bytes) |
 | Architecture Module | SS-07 (analyzer/tls.rs — `on_data` buffer-append logic :820-835; `summarize()` detail map insertion :887-890; `TlsAnalyzer` struct field) |
-| Stories | (to be assigned in F3 story decomposition) |
+| Stories | STORY-146 |
 | Origin | F-EV-001 defense-in-depth recommendation per `.factory/research/F-EV-001-clientbuf-saturation-validation.md` §7 |
 
 ## Architecture Anchors
@@ -207,7 +207,7 @@ jumbogram support will NOT introduce a new silent drop — it will be immediatel
 
 ## Story Anchor
 
-(To be filled after F3 story decomposition — STORY-A or new story for F-EV-001 defense-in-depth)
+STORY-146 (TLS Buffer Saturation Telemetry — `buffer_saturation_drops` Counter; wave 66, dep=STORY-144)
 
 ## VP Anchors
 

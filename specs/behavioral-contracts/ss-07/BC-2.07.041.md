@@ -114,7 +114,7 @@ and vice versa. This mirrors the VP-014 cross-flow isolation invariant establish
 | Architecture Module | SS-07 (analyzer/tls.rs — `HashMap<FlowKey, TlsFlowState>` keying; direction parameter to `on_data`) |
 | Finding Source | TLS-CLIENTHELLO-FRAG-001; F1 §6 regression risk #4 (VP-014 TLS carry analog) |
 | Analogue | VP-014 (HttpAnalyzer cross-flow isolation; proptest; P1; verified) — same isolation pattern extended to TLS carry buffers |
-| Stories | TBD (F3 STORY-B) |
+| Stories | STORY-145 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
 ## Related BCs
@@ -135,7 +135,7 @@ and vice versa. This mirrors the VP-014 cross-flow isolation invariant establish
 
 ## Story Anchor
 
-TBD (F3 STORY-B: ServerHello Reassembly + Cross-Direction Isolation)
+STORY-145 (TLS ServerHello Fragmentation Symmetry + Per-Direction Isolation — BC primary; wave 66)
 
 ## VP Anchors
 

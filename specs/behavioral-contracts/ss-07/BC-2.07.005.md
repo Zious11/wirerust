@@ -131,7 +131,7 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- per-direction buffer cap is part of TLS analysis bounded-resource design (ARCH-INDEX Cross-Cutting Concerns) |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:820-835, C-13) |
-| Stories | STORY-058 |
+| Stories | STORY-058, STORY-146 |
 | Origin BC | BC-TLS-005 (pass-3 ingestion corpus; confidence upgraded to HIGH — cap literally proven via residue tests in STORY-058, F-S058-P1-001) |
 
 ## Related BCs
@@ -166,6 +166,10 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 - **literal residue test**: `test_buffer_cap_appends_at_most_max_buf_literal_residue` — feeds MAX_BUF+1 bytes and asserts resident buffer == 6 bytes; clip removal would yield 7
 - **noop assertion**: `test_buffer_full_append_noop_literal` — proves zero-copy path when buffer is full
 - **silence assertion**: `test_buffer_overflow_silent_no_counters` — proves no counter increments on silent drop
+
+## Story Anchor
+
+STORY-146 (TLS Buffer Saturation Telemetry — `buffer_saturation_drops` Counter; amended: Invariant 3 and Postcondition 4 updated to note counter increment; byte-drop semantics unchanged; wave 66, dep=STORY-144)
 
 ## Purity Classification
 

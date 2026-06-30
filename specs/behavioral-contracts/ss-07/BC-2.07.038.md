@@ -271,7 +271,7 @@ This test is a Red-Gate: it must FAIL before the carry-buffer implementation is 
 | Finding Source | TLS-CLIENTHELLO-FRAG-001 (validated 2026-06-29; see `.factory/research/TLS-CLIENTHELLO-FRAG-001-validation.md`) |
 | Pass-1 Reconciliation | F-P1-001/SR-001 (CRITICAL — remove sticky abandon); F-P1-006 (MED — raise body_len cap 18432→65536); F-P1-010 (LOW — downgrade P0→P1); SR-008 (MED — name both drains in Postcondition 8) |
 | RFC Authority | RFC 5246 §6.2.1 (TLS 1.2 fragmentation); RFC 8446 §5.1 (TLS 1.3 fragmentation + MUST NOT span key changes) |
-| Stories | TBD (F3 STORY-A) |
+| Stories | STORY-144 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
 ## Related BCs
@@ -298,7 +298,7 @@ This test is a Red-Gate: it must FAIL before the carry-buffer implementation is 
 
 ## Story Anchor
 
-TBD (F3 STORY-A: TLS Handshake Carry Buffer + Fragmented ClientHello Reassembly)
+STORY-144 (TLS Carry Buffer + ClientHello Fragmentation Reassembly — BC primary; wave 65)
 
 ## VP Anchors
 

@@ -158,7 +158,7 @@ L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize re
 | Architecture Module | SS-07 (analyzer/tls.rs — `TlsFlowState` carry fields + `handshake_reassembly_overflows` counter + overflow check in `try_parse_records`) |
 | Finding Source | TLS-CLIENTHELLO-FRAG-001; Pass-1 adversarial findings F-P1-001/SR-001 (CRITICAL), F-P1-005/SR-006 (MED) |
 | Design Decision | Pass-1 F2 reconciliation: clear-and-recover (Policy A) adopted over sticky abandon-direction (Policy B). Rationale: sticky-abandon is a one-packet permanent blinding primitive (Ptacek/Newsham desync; Suricata CVE-2019-18792); clear-and-recover matches Wireshark/Suricata norms and wirerust's existing per-record oversize handling (tls.rs L689-698). See `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md`. |
-| Stories | TBD (F3 STORY-A) |
+| Stories | STORY-144 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
 ## Related BCs
@@ -180,7 +180,7 @@ L689-698 already implements clear-and-recover for MAX_RECORD_PAYLOAD oversize re
 
 ## Story Anchor
 
-TBD (F3 STORY-A)
+STORY-144 (TLS Carry Buffer + ClientHello Fragmentation Reassembly — BC primary; wave 65)
 
 ## VP Anchors
 

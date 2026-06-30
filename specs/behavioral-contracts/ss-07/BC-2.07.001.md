@@ -138,7 +138,7 @@ buffer is populated then immediately consumed in one pass). See TLS-CLIENTHELLO-
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- this BC is the primary ClientHello processing entry point for all TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:389-580, C-13) |
-| Stories | STORY-052 |
+| Stories | STORY-052, STORY-144 |
 | Origin BC | BC-TLS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs
@@ -174,6 +174,10 @@ buffer is populated then immediately consumed in one pass). See TLS-CLIENTHELLO-
 - **type constraint**: TlsClientHelloContents struct fields from tls_parser crate
 - **guard clause**: `ch.ext` None/Some branch; `parse_tls_extensions` Ok/Err branch
 - **assertion**: test_parse_client_hello exercises the full path
+
+## Story Anchor
+
+STORY-144 (TLS Carry Buffer + ClientHello Fragmentation Reassembly — amended: "complete" now includes multi-record reassembled path; single-record fast path unchanged; wave 65)
 
 ## Purity Classification
 

@@ -55,8 +55,8 @@ Maintenance sweeps PAUSED for duration of this cycle.
 |-------|--------|-------|
 | F1 — Delta Analysis | DONE | delta-analysis.md committed; architect completed |
 | F2 — Spec Evolution | **CONVERGED + HUMAN-APPROVED 2026-06-29 (D-305, incl scope addition)** | 6 new BCs (BC-2.07.038-043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) + VP-039 (17 harnesses) + VP-040 (6 harnesses) + ADR-011. F-EV-001 defense-in-depth scope addition: BC-2.07.043 buffer_saturation_drops + BC-2.07.005 v1.7 reconciliation. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45. SS-07 43 BCs. |
-| F3 — Incremental Stories | **ACTIVE** | Story decomposition in progress |
-| F4 — TDD Delta Implementation | PENDING | |
+| F3 — Incremental Stories | **APPROVED 2026-06-29 (D-306)** | STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves); holdout registry HS-F4-001..012; input-hashes refreshed (144: 3dfe20c, 145: 88e29c9, 146: 6d9da65); pre-F4 verification PASS |
+| F4 — TDD Delta Implementation | **ACTIVE** | STORY-144 (wave 65) in per-story TDD delivery; worktree `.worktrees/story-144-tls-carry-reassembly`, branch `feature/story-144-tls-carry-reassembly`, from develop `ab0b388` |
 | F5 — Scoped Adversarial Review | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
 | F7 — Delta Convergence | PENDING | Version decision at gate |

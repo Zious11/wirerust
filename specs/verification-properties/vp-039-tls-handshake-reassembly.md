@@ -37,6 +37,15 @@ modified:
   - date: 2026-06-29
     actor: architect
     reason: "Fix-burst-12 (F-1/O-1/O-2/O-3 final cleanup — LAST F2 cleanup): (F-1 MEDIUM) stale harness-count phrase removed from VP-INDEX P1 enumeration entry for VP-039; corrected to '4 proptest + 13 unit tests = 17 total harnesses' matching catalog row and callout block. (O-1 LOW) test_vp039_large_valid_hello_reassembly inline layout comments corrected: extensions_length 39944 → 39,957 (correct: SNI_EXT(18)+PAD_EXT_HEADER(4)+PAD_DATA_LEN(39935)) and padding ext_length 39926 → 39,935 (correct: PAD_DATA_LEN = TARGET_BODY_LEN(40000) - FIXED_PREFIX(43) - SNI_EXT(18) - PAD_EXT_HEADER(4)); byte range updated [65..39991] → [65..40000] accordingly. (O-2 LOW) dead binding let sni_hostname = 'large.example.com' dropped; assert!(sni.contains_key('large.com')) added for parity with sibling tests (fixture encodes 9-byte 'large.com'). (O-3 LOW) docstring BC-2.07.038 Inv-5 quotation reworded as corollary paraphrase — 'large-but-valid sub-case' label added; range narrowed to (18,432, MAX_BUF] (cap-raise range); 'MUST be assembled and dispatched rather than silently dropped or counted as an overflow' avoids presenting editorial paraphrase as verbatim contract text. VP total (39), proptest_count (17), p1_count (25) UNCHANGED."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review (DF-SIBLING-SWEEP-001 C1/C2/C3/C4 — API signature sweep, sibling of VP-040): (C1 CRITICAL) ALL on_data calls corrected from 4-arg form (&flow, Dir, &data, ts) to 5-arg form (&flow, Dir, &data, 0u64, ts) matching StreamHandler trait: fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64, timestamp: u32). Affected: ~40 call sites across Sub-A/B/C/D/E/F proptest harnesses, all deterministic unit tests, and all canonical-frame/SNI-boundary/N-record/large-valid-hello tests. (C2 CRITICAL) Both on_flow_close calls corrected from 1-arg form (&flow_key) to 2-arg form (&flow_key, CloseReason::Fin) matching StreamHandler trait: fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason); import note added at each call site. Affected: test_vp039_truncated_carry_no_error and test_BC_2_07_040_empty_carry_flow_close. (C3 CRITICAL) All findings_count_for_testing() calls renamed to all_findings_len_for_testing() — the real accessor name from tls.rs line 920; findings_count_for_testing does NOT exist. Affected: ~10 sites in Sub-C, Sub-D, malformed-assembled-body tests. Implementation Notes seam contract updated to cite all_findings_len_for_testing. (C4 CRITICAL) client_hello_seen_for_testing(&flow_key) standalone call in Frame A replaced with state_for_testing(&flow_key).client_hello_seen — the real pattern (no standalone accessor exists). VP total (39), proptest_count (17), p1_count (25) UNCHANGED."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review-pass2 ([F-CRIT-1] accessor sweep — all state_for_testing removed): state_for_testing does NOT exist on TlsAnalyzer (TlsFlowState is private). ALL 19 occurrences of state_for_testing(&flow_key).client_hello_seen / .server_hello_seen in harness code replaced with FLAT accessors: (1) client_hello_seen — replaced with analyzer.client_hello_seen_for_testing(&flow_key) at 14 call sites (Sub-A proptest x2, Sub-B proptest x1, Sub-C recovery x1, Sub-C body_len_spoof x1, Sub-C malformed_assembled_body x1, canonical-frame Frame A x1, SNI-boundary x1, Sub-B-ext exact-consume x1, Sub-E-ext cross-flow x4, N-record Sub-A-ext Scenario 1 x1, N-record Scenario 2 x1, large-valid-hello x1). client_hello_seen_for_testing is a NEW seam (STORY-144/146 deliverable), symmetric to EXISTING server_hello_seen_for_testing at tls.rs:991. (2) server_hello_seen — replaced with analyzer.server_hello_seen_for_testing(&flow_key) / s2c_only.server_hello_seen_for_testing(&fk_s2c) at 1 call site (Sub-E proptest); server_hello_seen_for_testing is the EXISTING seam at tls.rs:991. Implementation Notes seam contract rewritten: state_for_testing removed from the contract; flat-accessor pattern declared authoritative; STORY-144 obligation for client_hello_seen_for_testing + handshake_reassembly_overflow_count + client_hs_carry_len_for_testing + server_hs_carry_len_for_testing documented. Docstring comments in test_BC_2_07_038_malformed_assembled_body and test_BC_2_07_041_cross_flow_isolation seam-notes updated to cite flat accessor. VP total (40), proptest_count (17), p1_count (26), kani_count (15) UNCHANGED."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review-pass3 (F-IMP-1 CRITICAL — record-vs-raw double-wrap fix): (1) build_client_hello_with_sni(sni) local wrapper redefined: the real build_client_hello(sni, &[0x002f]) returns a COMPLETE TLS record (5-byte record header 0x16,0x03,0x01,len_hi,len_lo + handshake bytes). The prior wrapper returned this full record unchanged. Every test that then called wrap_as_tls_record(0x16, &hello[..k]) produced a DOUBLE-WRAPPED record (outer record header wrapping an inner record header + handshake) — the carry loop read the inner header bytes as handshake bytes causing SNI/JA3 extraction failures. CORRECTED: build_client_hello_with_sni(sni) now strips the 5-byte record header by returning build_client_hello(sni, &[0x002f])[5..].to_vec(). (2) build_server_hello() local wrapper similarly corrected: strips [5..] from build_server_hello(0x002f). Docstrings for both wrappers fully explain the stripping contract. (3) test_BC_2_07_041_cross_flow_isolation Flow A delivery fixed: was build_client_hello('a.example', &[0x002f]) + wrap_as_tls_record (double-wrap); now delivers build_client_hello('a.example', &[0x002f]) DIRECTLY via on_data (single-record fast path, no wrapping needed). Flow B delivery updated to use build_client_hello_with_sni('b.example') (stripped) + wrap_as_tls_record per fragment. (4) test_vp039_n_record_reassembly updated to use build_client_hello_with_sni(sni_hostname) instead of build_client_hello(sni_hostname, &[0x002f]); doc comment explains the double-wrap hazard. All other harnesses that use build_client_hello_with_sni + wrap_as_tls_record are NOW correct (wrapper strips the header; wrap_as_tls_record adds exactly one header per fragment). test_vp039_large_valid_hello_reassembly was already correct (builds raw bytes directly, no double-wrap). VP total (40), proptest_count (17), p1_count (26) UNCHANGED."
 ---
 
 # VP-039: TLS Handshake Reassembly — Bounded Carry, Exact-Consume, Truncation-Safety, Cross-Direction Isolation
@@ -343,24 +352,24 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 1: bytes [0..split_offset] as a 0x16 record payload
             let rec1 = wrap_as_tls_record(0x16, &client_hello[..split_offset]);
-            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
 
             // Record 2: bytes [split_offset..n] as a 0x16 record payload
             let rec2 = wrap_as_tls_record(0x16, &client_hello[split_offset..]);
-            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec2, ts);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts);
 
             // Single-record delivery (baseline)
             let mut analyzer_single = TlsAnalyzer::new();
             let flow_key2 = make_test_flow_key(2);
             let rec_single = wrap_as_tls_record(0x16, &client_hello);
-            analyzer_single.on_data(&flow_key2, Direction::ClientToServer, &rec_single, ts);
+            analyzer_single.on_data(&flow_key2, Direction::ClientToServer, &rec_single, 0u64, ts);
 
-            // Flow-scoped reads via state_for_testing (client_hello_seen/server_hello_seen only)
-            let frag_state = analyzer_fragmented.state_for_testing(&flow_key);
-            let single_state = analyzer_single.state_for_testing(&flow_key2);
-
+            // Flow-scoped reads via flat accessors on TlsAnalyzer:
+            //   client_hello_seen_for_testing(&flow_key) — NEW seam (STORY-144/146 deliverable),
+            //   symmetric to the EXISTING server_hello_seen_for_testing at tls.rs:991.
             prop_assert_eq!(
-                frag_state.client_hello_seen, single_state.client_hello_seen,
+                analyzer_fragmented.client_hello_seen_for_testing(&flow_key),
+                analyzer_single.client_hello_seen_for_testing(&flow_key2),
                 "fragmented and single-record ClientHello detection must agree"
             );
 
@@ -416,12 +425,12 @@ mod vp039_tls_handshake_reassembly {
 
             let mut analyzer = TlsAnalyzer::new();
             let flow_key = make_test_flow_key(1);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 100);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, 100u32);
 
-            let state = analyzer.state_for_testing(&flow_key);
-
-            // Flow-scoped read: client_hello_seen is on TlsFlowState
-            prop_assert!(state.client_hello_seen,
+            // Flow-scoped read: client_hello_seen via flat accessor on TlsAnalyzer.
+            // client_hello_seen_for_testing is a NEW seam (STORY-144/146 deliverable),
+            // symmetric to the EXISTING server_hello_seen_for_testing at tls.rs:991.
+            prop_assert!(analyzer.client_hello_seen_for_testing(&flow_key),
                 "ClientHello in coalesced record must be dispatched");
 
             // Aggregate reads via analyzer accessors (NOT off TlsFlowState)
@@ -486,7 +495,7 @@ mod vp039_tls_handshake_reassembly {
         let parse_errors_before = analyzer.parse_error_count();
         let overflows_before = analyzer.handshake_reassembly_overflow_count();
         // Snapshot findings count before delivery (BC-2.07.039 PC-4: no finding on overflow).
-        let findings_before = analyzer.findings_count_for_testing();
+        let findings_before = analyzer.all_findings_len_for_testing();
 
         // Record 1: VALID handshake header declaring body_len = 65,500 (Decision-4 safe)
         // header bytes: [0x01, 0x00, 0xFF, 0xDC]
@@ -496,20 +505,20 @@ mod vp039_tls_handshake_reassembly {
         let mut rec1_payload = vec![0x01u8, 0x00, 0xFF, 0xDC];  // handshake header: body_len=65,500
         rec1_payload.extend(vec![0x00u8; 16_000]);               // partial body (16,000 of 65,500)
         let rec1 = wrap_as_tls_record(0x16, &rec1_payload);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
 
         // Records 2–4: 16,000 body bytes each; carry grows to 48,004 then 64,004.
         for _ in 0..3 {
             let payload = vec![0x00u8; 16_000];
             let rec = wrap_as_tls_record(0x16, &payload);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
         }
 
         // Record 5: 2,000 body bytes; carry would become 64,004 + 2,000 = 66,004 > 65,536.
         // Decision-5 buffer-fill guard fires: carry cleared, overflows += 1.
         let rec5_payload = vec![0x00u8; 2_000];
         let rec5 = wrap_as_tls_record(0x16, &rec5_payload);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec5, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec5, 0u64, ts);
 
         // Carry must be cleared (length == 0, not merely <= MAX_BUF).
         // client_hs_carry_len_for_testing delegates to the flow-level carry seam.
@@ -531,10 +540,10 @@ mod vp039_tls_handshake_reassembly {
         );
         // No finding emitted on the overflow path (BC-2.07.039 PC-4).
         // Real assertion: findings_count snapshot before == after.
-        let findings_after = analyzer.findings_count_for_testing();
+        let findings_after = analyzer.all_findings_len_for_testing();
         assert_eq!(
             findings_before, findings_after,
-            "carry overflow must not emit any finding (findings_count must be unchanged)"
+            "carry overflow must not emit any finding (all_findings_len must be unchanged)"
         );
     }
 
@@ -558,16 +567,16 @@ mod vp039_tls_handshake_reassembly {
         let mut rec1_payload = vec![0x01u8, 0x00, 0xFF, 0xDC];  // header: body_len=65,500
         rec1_payload.extend(vec![0x00u8; 16_000]);
         let rec1 = wrap_as_tls_record(0x16, &rec1_payload);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
 
         for _ in 0..3 {
             let payload = vec![0x00u8; 16_000];
             let rec = wrap_as_tls_record(0x16, &payload);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
         }
         let rec5_payload = vec![0x00u8; 2_000];
         let rec5 = wrap_as_tls_record(0x16, &rec5_payload);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec5, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec5, 0u64, ts);
 
         // Verify overflow fired (Decision-5 buffer-fill, counter incremented by exactly 1).
         assert_eq!(
@@ -578,12 +587,12 @@ mod vp039_tls_handshake_reassembly {
         // Step 2: deliver a well-formed single-record ClientHello on the same direction.
         let client_hello = build_client_hello_with_sni("recovery.example.com");
         let rec = wrap_as_tls_record(0x16, &client_hello);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts + 1);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts + 1);
 
-        // Flow-scoped read: client_hello_seen is on TlsFlowState
-        let state = analyzer.state_for_testing(&flow_key);
+        // Flow-scoped read via flat accessor — client_hello_seen_for_testing is a NEW seam
+        // (STORY-144/146 deliverable), symmetric to EXISTING server_hello_seen_for_testing.
         assert!(
-            state.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key),
             "post-overflow ClientHello must be dispatched (clear-and-recover, not sticky-abandon)"
         );
 
@@ -608,7 +617,7 @@ mod vp039_tls_handshake_reassembly {
         let parse_errors_before = analyzer.parse_error_count();
         let overflows_before = analyzer.handshake_reassembly_overflow_count();
         // Snapshot findings count before delivery (BC-2.07.039 PC-4: no finding on overflow).
-        let findings_before = analyzer.findings_count_for_testing();
+        let findings_before = analyzer.all_findings_len_for_testing();
 
         // Craft a 4-byte handshake header with body_len = 65537 (> MAX_BUF = 65536):
         //   type  = 0x01 (ClientHello-looking, to ensure the consume loop reaches the guard)
@@ -616,7 +625,7 @@ mod vp039_tls_handshake_reassembly {
         // No body bytes follow (the guard fires before buffering any body).
         let spoofed_header: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // 4 bytes: type + 24-bit len
         let rec = wrap_as_tls_record(0x16, &spoofed_header);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
         // Carry must be cleared — carry seam is flow-scoped via analyzer delegation.
         assert_eq!(
@@ -635,14 +644,13 @@ mod vp039_tls_handshake_reassembly {
         );
         // No finding emitted on the body_len-spoof overflow path (BC-2.07.039 PC-4).
         // Real assertion: findings_count snapshot before == after.
-        let findings_after = analyzer.findings_count_for_testing();
+        let findings_after = analyzer.all_findings_len_for_testing();
         assert_eq!(
             findings_before, findings_after,
-            "body_len > MAX_BUF overflow must not emit any finding (findings_count must be unchanged)"
+            "body_len > MAX_BUF overflow must not emit any finding (all_findings_len must be unchanged)"
         );
-        // client_hello_seen must remain false — flow-scoped read.
-        let state = analyzer.state_for_testing(&flow_key);
-        assert!(!state.client_hello_seen, "spoofed ClientHello must not be dispatched");
+        // client_hello_seen must remain false — flat accessor (NEW seam, STORY-144/146 deliverable).
+        assert!(!analyzer.client_hello_seen_for_testing(&flow_key), "spoofed ClientHello must not be dispatched");
     }
 
     /// VP-039 Sub-C (summarize() surfacing, BC-2.07.039 PC-7):
@@ -672,7 +680,7 @@ mod vp039_tls_handshake_reassembly {
         //   len  = 0x01_00_01 = 65537 (3-byte big-endian) — strictly > MAX_BUF = 65536
         let spoofed_header: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // 4 bytes: type + 24-bit len
         let rec = wrap_as_tls_record(0x16, &spoofed_header);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
         // Verify exactly 1 overflow fired — the summary must reflect this count.
         assert_eq!(
@@ -766,7 +774,7 @@ mod vp039_tls_handshake_reassembly {
     ///
     /// parse_errors is an AGGREGATE on TlsAnalyzer — read via analyzer.parse_error_count(),
     /// NEVER off TlsFlowState. client_hello_seen is flow-scoped — read via
-    /// analyzer.state_for_testing(&flow_key).client_hello_seen.
+    /// analyzer.client_hello_seen_for_testing(&flow_key) (NEW seam, STORY-144/146 deliverable).
     #[test]
     fn test_BC_2_07_038_malformed_assembled_body() {
         let mut analyzer = TlsAnalyzer::new();
@@ -776,7 +784,7 @@ mod vp039_tls_handshake_reassembly {
         // Snapshot counters before delivery.
         let parse_errors_before = analyzer.parse_error_count();
         let overflows_before = analyzer.handshake_reassembly_overflow_count();
-        let findings_before = analyzer.findings_count_for_testing();
+        let findings_before = analyzer.all_findings_len_for_testing();
 
         // Construct a malformed "ClientHello" handshake message:
         //   type = 0x01 (ClientHello)
@@ -804,14 +812,14 @@ mod vp039_tls_handshake_reassembly {
         let rec1 = wrap_as_tls_record(0x16, &malformed_msg[..4]);
         let rec2 = wrap_as_tls_record(0x16, &malformed_msg[4..]);
 
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
         // After rec1: carry = [0x01, 0x00, 0x00, 0x06] (4-byte header); body incomplete — wait.
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
             "after header-only record, carry must hold exactly the 4-byte header"
         );
 
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, ts + 1);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts + 1);
         // After rec2: 4 + 6 = 10 bytes in carry; consume loop reads body_len=6, carry >= 4+6.
         // parse_tls_message_handshake([0x01, 0x00, 0x00, 0x06, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00])
         // → Err(_) (malformed ClientHello body) → parse_errors += 1; drain(..10).
@@ -828,7 +836,7 @@ mod vp039_tls_handshake_reassembly {
             "carry must be empty after exact-consume of malformed assembled body"
         );
         // No finding emitted — malformed reassembled body is not a detection event.
-        let findings_after = analyzer.findings_count_for_testing();
+        let findings_after = analyzer.all_findings_len_for_testing();
         assert_eq!(
             findings_before, findings_after,
             "malformed assembled body must not emit any finding"
@@ -839,9 +847,9 @@ mod vp039_tls_handshake_reassembly {
             "malformed assembled body must NOT increment handshake_reassembly_overflows"
         );
         // client_hello_seen must remain false — malformed hello was not dispatched.
-        let state = analyzer.state_for_testing(&flow_key);
+        // Flat accessor (NEW seam, STORY-144/146 deliverable).
         assert!(
-            !state.client_hello_seen,
+            !analyzer.client_hello_seen_for_testing(&flow_key),
             "malformed assembled ClientHello must NOT set client_hello_seen"
         );
     }
@@ -868,17 +876,18 @@ mod vp039_tls_handshake_reassembly {
         let client_hello = build_client_hello_with_sni("sni.example.com");
         let partial = &client_hello[..4]; // 4-byte handshake header only, no body
         let rec = wrap_as_tls_record(0x16, partial);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
         // Snapshot BEFORE flow close (BC-2.07.040 PC3 — must not change).
         // parse_errors is an AGGREGATE on TlsAnalyzer — NOT on TlsFlowState.
         // The pre-close snapshot is the reference; we assert post == pre, not that pre == 0.
         // This proves on_flow_close did not increment the counter, regardless of prior state.
         let parse_errors_before = analyzer.parse_error_count();
-        let findings_before = analyzer.findings_count_for_testing();
+        let findings_before = analyzer.all_findings_len_for_testing();
 
         // Close the flow with the partial carry still present.
-        analyzer.on_flow_close(&flow_key);
+        // Import: use wirerust::reassembly::handler::CloseReason; (or crate re-export path)
+        analyzer.on_flow_close(&flow_key, CloseReason::Fin);
 
         // parse_errors must equal the pre-close snapshot — on_flow_close must NOT increment.
         // parse_errors is a TlsAnalyzer aggregate that survives flow close; it remains readable
@@ -890,7 +899,7 @@ mod vp039_tls_handshake_reassembly {
             "on_flow_close with partial carry must NOT increment parse_errors (pre-close snapshot must equal post-close)"
         );
         // findings_count must be UNCHANGED across on_flow_close (BC-2.07.040 PC3).
-        let findings_after = analyzer.findings_count_for_testing();
+        let findings_after = analyzer.all_findings_len_for_testing();
         assert_eq!(
             findings_before, findings_after,
             "on_flow_close with partial carry must not emit any finding"
@@ -942,51 +951,48 @@ mod vp039_tls_handshake_reassembly {
 
             // c2s partial delivery 1
             let rec_c2s_1 = wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]);
-            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_1, ts);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_1, 0u64, ts);
 
             // s2c partial delivery 1 (interleaved)
             let rec_s2c_1 = wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]);
-            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_1, ts);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_1, 0u64, ts);
 
             // c2s completing delivery
             let rec_c2s_2 = wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]);
-            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_2, ts);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_2, 0u64, ts);
 
             // s2c completing delivery
             let rec_s2c_2 = wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]);
-            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_2, ts);
-
-            // Flow-scoped reads: client_hello_seen / server_hello_seen are on TlsFlowState
-            let interleaved_state = interleaved.state_for_testing(&flow_key);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_2, 0u64, ts);
 
             // --- Independent c2s-only run ---
             let fk_c2s = make_test_flow_key(2);
             let mut c2s_only = TlsAnalyzer::new();
             c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
-                &wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]), ts);
+                &wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]), 0u64, ts);
             c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
-                &wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]), ts);
+                &wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]), 0u64, ts);
 
             // --- Independent s2c-only run ---
             let fk_s2c = make_test_flow_key(3);
             let mut s2c_only = TlsAnalyzer::new();
             s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
-                &wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]), ts);
+                &wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]), 0u64, ts);
             s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
-                &wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]), ts);
+                &wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]), 0u64, ts);
 
-            // Flow-scoped reads for the independent runs
-            let c2s_state = c2s_only.state_for_testing(&fk_c2s);
-            let s2c_state = s2c_only.state_for_testing(&fk_s2c);
-
-            // Invariant: interleaved run sees the same hellos as independent runs
-            // hello flags are flow-scoped (TlsFlowState) — OK to read off state
+            // Invariant: interleaved run sees the same hellos as independent runs.
+            // Use FLAT accessors — no state_for_testing (TlsFlowState is private):
+            //   client_hello_seen_for_testing — NEW seam (STORY-144/146 deliverable)
+            //   server_hello_seen_for_testing — EXISTING seam (tls.rs:991)
             prop_assert_eq!(
-                interleaved_state.client_hello_seen, c2s_state.client_hello_seen,
+                interleaved.client_hello_seen_for_testing(&flow_key),
+                c2s_only.client_hello_seen_for_testing(&fk_c2s),
                 "interleaved c2s hello detection must match independent c2s run"
             );
             prop_assert_eq!(
-                interleaved_state.server_hello_seen, s2c_state.server_hello_seen,
+                interleaved.server_hello_seen_for_testing(&flow_key),
+                s2c_only.server_hello_seen_for_testing(&fk_s2c),
                 "interleaved s2c hello detection must match independent s2c run"
             );
             // parse_errors is AGGREGATE on TlsAnalyzer — read via accessor, NOT off state
@@ -1052,7 +1058,7 @@ mod vp039_tls_handshake_reassembly {
 
             for payload in &records {
                 let rec = wrap_as_tls_record(0x16, payload);
-                analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+                analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
                 // Invariant: carry never exceeds MAX_BUF after any on_data call.
                 // With valid-header payloads, carry accumulates genuinely — the overflow
@@ -1145,14 +1151,14 @@ mod vp039_tls_handshake_reassembly {
 
             let errors_before = analyzer.parse_error_count();
 
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
             // After rec1: carry has [0x01, 0x00, 0x00, 0x05] — header complete, body pending.
             assert_eq!(
                 analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
                 "Frame A: after header-only record, carry must hold exactly the 4-byte header"
             );
 
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, ts + 1);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts + 1);
             // After rec2: 4 header + 5 body = 9 bytes accumulated; loop reads body_len from
             // carry[1..4] = [0x00, 0x00, 0x05] → body_len = 5 (BE per RFC 8446 §4).
             // Exact-consume drain(4+5) clears carry to 0 (PC-9 path — body malformed).
@@ -1167,6 +1173,8 @@ mod vp039_tls_handshake_reassembly {
                 "Frame A: malformed 5-byte ClientHello body must increment parse_errors by 1 (PC-9 path)"
             );
             // client_hello_seen must be false: the Err result prevents hello dispatch.
+            // Use flat accessor — client_hello_seen_for_testing is a NEW seam (STORY-144/146
+            // deliverable), symmetric to EXISTING server_hello_seen_for_testing at tls.rs:991.
             assert!(
                 !analyzer.client_hello_seen_for_testing(&flow_key),
                 "Frame A: failed parse must not set client_hello_seen"
@@ -1194,7 +1202,7 @@ mod vp039_tls_handshake_reassembly {
             let rec_b = wrap_as_tls_record(0x16, &discriminator_header);
 
             let overflows_before = analyzer_b.handshake_reassembly_overflow_count();
-            analyzer_b.on_data(&flow_key_b, Direction::ClientToServer, &rec_b, ts);
+            analyzer_b.on_data(&flow_key_b, Direction::ClientToServer, &rec_b, 0u64, ts);
 
             // Correct BE decoder fires the > MAX_BUF guard → carry cleared to 0.
             // A buggy LE decoder would read body_len = 1,281 (within MAX_BUF) and buffer
@@ -1248,7 +1256,7 @@ mod vp039_tls_handshake_reassembly {
             let rec_c = wrap_as_tls_record(0x16, &frame_c_payload);
 
             let parse_errors_before_c = analyzer_c.parse_error_count();
-            analyzer_c.on_data(&flow_key_c, Direction::ClientToServer, &rec_c, ts);
+            analyzer_c.on_data(&flow_key_c, Direction::ClientToServer, &rec_c, 0u64, ts);
 
             // Carry must be empty after dispatch (4+256 bytes drained).
             assert_eq!(
@@ -1384,8 +1392,8 @@ mod vp039_tls_handshake_reassembly {
         let rec1 = wrap_as_tls_record(0x16, &hello[..split]);
         let rec2 = wrap_as_tls_record(0x16, &hello[split..]);
 
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, ts + 1);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts + 1);
 
         // SNI must be populated — reassembly succeeded through the SNI-extension region.
         assert_eq!(
@@ -1407,9 +1415,9 @@ mod vp039_tls_handshake_reassembly {
             "SNI-boundary split must not produce parse errors"
         );
         // Flow-scoped: client_hello_seen must be true.
-        let state = analyzer.state_for_testing(&flow_key);
+        // Flat accessor — client_hello_seen_for_testing is a NEW seam (STORY-144/146 deliverable).
         assert!(
-            state.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key),
             "client_hello_seen must be true after SNI-boundary split reassembly"
         );
     }
@@ -1450,7 +1458,7 @@ mod vp039_tls_handshake_reassembly {
         // (fully consumed after dispatch) before we close the flow.
         let client_hello = build_client_hello_with_sni("empty-carry.example.com");
         let rec = wrap_as_tls_record(0x16, &client_hello);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
         // Verify the carry is empty (completely consumed after the full record).
         assert_eq!(
@@ -1460,10 +1468,11 @@ mod vp039_tls_handshake_reassembly {
 
         // Snapshot counters before flow close.
         let parse_errors_before = analyzer.parse_error_count();
-        let findings_before = analyzer.findings_count_for_testing();
+        let findings_before = analyzer.all_findings_len_for_testing();
 
         // Close the flow with an empty carry.
-        analyzer.on_flow_close(&flow_key);
+        // Import: use wirerust::reassembly::handler::CloseReason; (or crate re-export path)
+        analyzer.on_flow_close(&flow_key, CloseReason::Fin);
 
         // parse_errors must be UNCHANGED — on_flow_close with empty carry is a no-op
         // for error accounting (BC-2.07.040: no observable effect beyond flow removal).
@@ -1473,7 +1482,7 @@ mod vp039_tls_handshake_reassembly {
         );
         // findings_count must be UNCHANGED.
         assert_eq!(
-            analyzer.findings_count_for_testing(), findings_before,
+            analyzer.all_findings_len_for_testing(), findings_before,
             "on_flow_close with EMPTY carry must not emit any finding (BC-2.07.040)"
         );
         // Flow must be removed.
@@ -1542,7 +1551,7 @@ mod vp039_tls_handshake_reassembly {
         coalesced.extend_from_slice(&non_hello_msg);
         let rec = wrap_as_tls_record(0x16, &coalesced);
 
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
 
         // === KEY ASSERTION: handshakes_seen == 1 (exact count, no double-dispatch) ===
         // analyzer.handshake_count() counts dispatches to handle_client_hello; it must be 1.
@@ -1563,10 +1572,9 @@ mod vp039_tls_handshake_reassembly {
             "coalesced ClientHello + non-hello must produce zero parse_errors"
         );
 
-        // client_hello_seen must be true (flow-scoped read).
-        let state = analyzer.state_for_testing(&flow_key);
+        // client_hello_seen must be true — flat accessor (NEW seam, STORY-144/146 deliverable).
         assert!(
-            state.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key),
             "client_hello_seen must be true after coalesced ClientHello dispatch"
         );
     }
@@ -1614,7 +1622,8 @@ mod vp039_tls_handshake_reassembly {
     /// ## Seam notes
     ///
     /// - `sni_counts()` is AGGREGATE on TlsAnalyzer — accumulates across all flows.
-    /// - `client_hello_seen` is flow-scoped — read via `state_for_testing(&flow_key)`.
+    /// - `client_hello_seen` is flow-scoped — read via `client_hello_seen_for_testing(&flow_key)`
+    ///   (NEW seam, STORY-144/146 deliverable; symmetric to EXISTING server_hello_seen_for_testing).
     /// - `parse_error_count()` is AGGREGATE on TlsAnalyzer.
     #[test]
     fn test_BC_2_07_041_cross_flow_isolation() {
@@ -1622,21 +1631,31 @@ mod vp039_tls_handshake_reassembly {
         let ts: u32 = 100;
 
         // --- Flow A: complete single-record ClientHello (SNI = "a.example") ---
+        //
+        // F-IMP-1 fix: build_client_hello returns a COMPLETE TLS record (5-byte record header
+        // + handshake bytes). For single-record delivery without fragmentation, deliver the
+        // full record directly via on_data WITHOUT calling wrap_as_tls_record. Calling
+        // wrap_as_tls_record on an already-framed record produces a double-wrapped record
+        // (two record headers stacked) — the reassembler reads the inner header bytes as
+        // handshake payload and fails to extract SNI/JA3.
         let flow_key_a = make_test_flow_key(60);
-        let hello_a = build_client_hello("a.example", &[0x002f]);
-        let rec_a = wrap_as_tls_record(0x16, &hello_a);
-        analyzer.on_data(&flow_key_a, Direction::ClientToServer, &rec_a, ts);
+        let rec_a = build_client_hello("a.example", &[0x002f]); // full TLS record — deliver directly
+        analyzer.on_data(&flow_key_a, Direction::ClientToServer, &rec_a, 0u64, ts);
 
         // Flow A: client_hello_seen must be true immediately (single-record fast path).
-        let state_a_after_single = analyzer.state_for_testing(&flow_key_a);
+        // Flat accessor — client_hello_seen_for_testing is a NEW seam (STORY-144/146 deliverable).
         assert!(
-            state_a_after_single.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key_a),
             "Flow A: complete single-record ClientHello must set client_hello_seen"
         );
 
         // --- Flow B: same-shaped ClientHello FRAGMENTED across two records (SNI = "b.example") ---
+        //
+        // F-IMP-1 fix: build_client_hello_with_sni strips the 5-byte record header and returns
+        // raw handshake bytes. wrap_as_tls_record then adds exactly ONE record header per
+        // fragment — no double-wrap.
         let flow_key_b = make_test_flow_key(61);
-        let hello_b = build_client_hello("b.example", &[0x002f]);
+        let hello_b = build_client_hello_with_sni("b.example"); // RAW handshake bytes (5-byte header stripped)
         let n_b = hello_b.len();
         // Split at the midpoint (guaranteed inside the body for any reasonable hello length).
         let split_b = n_b / 2;
@@ -1646,30 +1665,28 @@ mod vp039_tls_handshake_reassembly {
         let rec_b2 = wrap_as_tls_record(0x16, &hello_b[split_b..]);
 
         // Deliver fragment 1 of Flow B (carry holds partial hello for Flow B only).
-        analyzer.on_data(&flow_key_b, Direction::ClientToServer, &rec_b1, ts + 1);
+        analyzer.on_data(&flow_key_b, Direction::ClientToServer, &rec_b1, 0u64, ts + 1);
 
         // CROSS-FLOW ISOLATION CHECKPOINT: after Flow B's partial delivery,
         // Flow A's state must be UNCHANGED (client_hello_seen still true, no regression).
-        let state_a_mid = analyzer.state_for_testing(&flow_key_a);
+        // Flat accessor — client_hello_seen_for_testing (NEW seam, STORY-144/146 deliverable).
         assert!(
-            state_a_mid.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key_a),
             "Flow A: client_hello_seen must remain true after Flow B partial delivery (no cross-flow carry bleed)"
         );
 
         // Deliver fragment 2 of Flow B (completes reassembly).
-        analyzer.on_data(&flow_key_b, Direction::ClientToServer, &rec_b2, ts + 2);
+        analyzer.on_data(&flow_key_b, Direction::ClientToServer, &rec_b2, 0u64, ts + 2);
 
         // --- Final assertions ---
 
-        // Both flows: client_hello_seen must be true.
-        let state_a = analyzer.state_for_testing(&flow_key_a);
-        let state_b = analyzer.state_for_testing(&flow_key_b);
+        // Both flows: client_hello_seen must be true — flat accessor (NEW seam, STORY-144/146).
         assert!(
-            state_a.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key_a),
             "Flow A: client_hello_seen must be true (single-record delivery)"
         );
         assert!(
-            state_b.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key_b),
             "Flow B: client_hello_seen must be true (fragmented delivery reassembled)"
         );
 
@@ -1758,7 +1775,14 @@ mod vp039_tls_handshake_reassembly {
     #[test]
     fn test_vp039_n_record_reassembly() {
         let sni_hostname = "n-record.example.com";
-        let hello = build_client_hello(sni_hostname, &[0x002f]);
+        // F-IMP-1 fix: use build_client_hello_with_sni which strips the 5-byte TLS record
+        // header and returns RAW handshake bytes. The slices are then wrapped via
+        // wrap_as_tls_record — adding exactly ONE record header per fragment, no double-wrap.
+        // Using build_client_hello(...) directly would produce a full TLS record whose first
+        // 5 bytes (record header: 0x16, 0x03, 0x01, len_hi, len_lo) would be included in
+        // the fragment and interpreted by the carry loop as handshake bytes — a double-wrap
+        // causing SNI/JA3 extraction failures.
+        let hello = build_client_hello_with_sni(sni_hostname); // RAW handshake bytes (no record header)
         let n = hello.len();
         assert!(n >= 4, "hello must be at least 4 bytes (for the 4-byte header)");
         assert!(n >= 5, "hello must have at least 1 body byte beyond the header");
@@ -1771,7 +1795,7 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 1: first 1 byte of header
             let rec1 = wrap_as_tls_record(0x16, &hello[..1]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
             assert_eq!(
                 analyzer.client_hs_carry_len_for_testing(&flow_key), 1,
                 "Scenario 1 after rec1: carry must hold exactly 1 byte"
@@ -1779,7 +1803,7 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 2: second 1 byte of header
             let rec2 = wrap_as_tls_record(0x16, &hello[1..2]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, ts + 1);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts + 1);
             assert_eq!(
                 analyzer.client_hs_carry_len_for_testing(&flow_key), 2,
                 "Scenario 1 after rec2: carry must hold exactly 2 bytes"
@@ -1787,7 +1811,7 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 3: remainder (header bytes [2..3] + full body)
             let rec3 = wrap_as_tls_record(0x16, &hello[2..]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec3, ts + 2);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec3, 0u64, ts + 2);
 
             // After all 3 records: reassembly complete
             assert_eq!(
@@ -1810,9 +1834,9 @@ mod vp039_tls_handshake_reassembly {
                 analyzer.ja3_counts().len(), 1,
                 "Scenario 1: JA3 must be populated after 3-record reassembly"
             );
-            let state = analyzer.state_for_testing(&flow_key);
+            // Flat accessor — client_hello_seen_for_testing (NEW seam, STORY-144/146 deliverable).
             assert!(
-                state.client_hello_seen,
+                analyzer.client_hello_seen_for_testing(&flow_key),
                 "Scenario 1: client_hello_seen must be true after 3-record reassembly"
             );
         }
@@ -1825,15 +1849,15 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 1: header byte [0]
             let rec1 = wrap_as_tls_record(0x16, &hello[..1]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, ts);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
 
             // Record 2: header byte [1]
             let rec2 = wrap_as_tls_record(0x16, &hello[1..2]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, ts + 1);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts + 1);
 
             // Record 3: header bytes [2..4] (completes the 4-byte header)
             let rec3 = wrap_as_tls_record(0x16, &hello[2..4]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec3, ts + 2);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec3, 0u64, ts + 2);
             // Header complete but body absent — loop must wait (carry holds 4 bytes).
             assert_eq!(
                 analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
@@ -1842,7 +1866,7 @@ mod vp039_tls_handshake_reassembly {
 
             // Record 4: full body (hello[4..])
             let rec4 = wrap_as_tls_record(0x16, &hello[4..]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec4, ts + 3);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec4, 0u64, ts + 3);
 
             // After all 4 records: reassembly complete
             assert_eq!(
@@ -1865,9 +1889,9 @@ mod vp039_tls_handshake_reassembly {
                 analyzer.ja3_counts().len(), 1,
                 "Scenario 2: JA3 must be populated after 4-record reassembly"
             );
-            let state = analyzer.state_for_testing(&flow_key);
+            // Flat accessor — client_hello_seen_for_testing (NEW seam, STORY-144/146 deliverable).
             assert!(
-                state.client_hello_seen,
+                analyzer.client_hello_seen_for_testing(&flow_key),
                 "Scenario 2: client_hello_seen must be true after 4-record reassembly"
             );
         }
@@ -2066,7 +2090,7 @@ mod vp039_tls_handshake_reassembly {
         while offset < blob.len() {
             let end = (offset + MAX_RECORD_PAYLOAD).min(blob.len());
             let rec = wrap_as_tls_record(0x16, &blob[offset..end]);
-            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, ts_i);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts_i);
             offset = end;
             ts_i += 1;
         }
@@ -2111,10 +2135,9 @@ mod vp039_tls_handshake_reassembly {
             "carry must be empty after large valid hello reassembly"
         );
 
-        // client_hello_seen must be true (flow-scoped).
-        let state = analyzer.state_for_testing(&flow_key);
+        // client_hello_seen must be true — flat accessor (NEW seam, STORY-144/146 deliverable).
         assert!(
-            state.client_hello_seen,
+            analyzer.client_hello_seen_for_testing(&flow_key),
             "client_hello_seen must be true after large valid hello reassembly (body_len=40000)"
         );
     }
@@ -2123,26 +2146,67 @@ mod vp039_tls_handshake_reassembly {
     // Test helpers
     // -----------------------------------------------------------------------
 
-    /// Build a minimal TLS ClientHello handshake message (type=0x01 + 3-byte len + body)
-    /// with the given SNI hostname. The body is a minimal but syntactically valid
-    /// ClientHello extension block.
+    /// Build a minimal TLS ClientHello HANDSHAKE MESSAGE (type=0x01 + 3-byte len + body)
+    /// with the given SNI hostname — RAW HANDSHAKE BYTES, no TLS record header.
     ///
-    /// Delegates to the REAL `build_client_hello(sni, cipher_ids)` helper in
-    /// `tests/tls_analyzer_tests.rs` (line 16 — two args: `sni: &str`, `cipher_ids: &[u16]`).
-    /// NOT `build_client_hello(sni)` — that is a 1-arg form that does NOT exist (F-F2-004 fix).
+    /// The real `build_client_hello(sni, cipher_ids)` in `tests/tls_analyzer_tests.rs`
+    /// returns a COMPLETE TLS record: 5-byte record header (0x16, 0x03, 0x01, len_hi, len_lo)
+    /// followed by the handshake message bytes. This wrapper STRIPS the 5-byte record header
+    /// by returning `full_record[5..]`.
+    ///
+    /// ## Why stripping is required (F-IMP-1 fix — record-vs-raw double-wrap)
+    ///
+    /// VP-039 tests that fragment a hello across records use:
+    ///   ```
+    ///   let rec = wrap_as_tls_record(0x16, &hello[..k]);
+    ///   ```
+    /// `wrap_as_tls_record` prepends ONE TLS record header. If `hello` were a full
+    /// TLS record (with its own 5-byte header), the result would be a double-wrapped
+    /// record: an outer record header wrapping an inner record header + handshake.
+    /// The reassembler's carry loop would read the inner record header bytes as
+    /// handshake message bytes and fail to extract SNI or JA3.
+    ///
+    /// By stripping the 5-byte header here, `hello[..k]` contains only raw handshake
+    /// bytes (msg_type + uint24_len + body). `wrap_as_tls_record(0x16, &hello[..k])`
+    /// then produces a single well-formed TLS record carrying a fragment of the
+    /// handshake message — exactly what the carry reassembler expects.
+    ///
+    /// ## Single-record delivery (no fragmentation)
+    ///
+    /// For tests that deliver a complete hello in a single record without fragmentation,
+    /// either:
+    ///   (a) Use `build_client_hello(sni, &[0x002f])` directly and deliver the full
+    ///       record via `on_data` WITHOUT calling `wrap_as_tls_record` (the full record
+    ///       is already correctly framed), or
+    ///   (b) Use `build_client_hello_with_sni(sni)` (this function) and wrap it:
+    ///       `wrap_as_tls_record(0x16, &hello)` — equivalent and consistent with
+    ///       the fragmentation path.
+    ///
+    /// This wrapper uses approach (b) everywhere for consistency.
     fn build_client_hello_with_sni(sni: &str) -> Vec<u8> {
-        // Implementer: use the REAL two-arg signature.
-        build_client_hello(sni, &[0x002f])
+        // build_client_hello returns: [0x16, 0x03, 0x01, len_hi, len_lo, <handshake bytes>]
+        // Strip the 5-byte TLS record header to yield raw handshake bytes only.
+        let full_record = build_client_hello(sni, &[0x002f]);
+        // Precondition: the record must have at least a 5-byte header.
+        assert!(full_record.len() >= 5, "build_client_hello returned a record shorter than 5 bytes");
+        full_record[5..].to_vec()
     }
 
-    /// Build a minimal TLS ServerHello handshake message (type=0x02 + 3-byte len + body).
+    /// Build a minimal TLS ServerHello HANDSHAKE MESSAGE (type=0x02 + 3-byte len + body)
+    /// — RAW HANDSHAKE BYTES, no TLS record header.
     ///
-    /// Delegates to the REAL `build_server_hello(cipher_id)` helper in
-    /// `tests/tls_analyzer_tests.rs` (line 137 — one arg: `cipher_id: u16`).
-    /// `build_minimal_server_hello()` does NOT exist (F-F2-004 fix — removed).
+    /// The real `build_server_hello(cipher_id)` in `tests/tls_analyzer_tests.rs` returns
+    /// a COMPLETE TLS record (5-byte record header + handshake bytes). This wrapper STRIPS
+    /// the 5-byte record header by returning `full_record[5..]`.
+    ///
+    /// See the `build_client_hello_with_sni` doc comment for the full rationale.
+    /// The stripping contract is identical for both helpers.
     fn build_server_hello() -> Vec<u8> {
-        // Implementer: use the REAL one-arg signature.
-        build_server_hello(0x002f)
+        // build_server_hello returns: [0x16, 0x03, 0x03, len_hi, len_lo, <handshake bytes>]
+        // Strip the 5-byte TLS record header to yield raw handshake bytes only.
+        let full_record = build_server_hello(0x002f);
+        assert!(full_record.len() >= 5, "build_server_hello returned a record shorter than 5 bytes");
+        full_record[5..].to_vec()
     }
 
     /// Wrap a handshake payload in a TLS record with the given content type.
@@ -2174,35 +2238,46 @@ mod vp039_tls_handshake_reassembly {
 
 ### Implementation Notes
 
-**Test-seam contract (F-F2-001 fix — Pass-2 adversarial reconciliation):**
+**Test-seam contract (F-F2-001 fix — Pass-2 adversarial reconciliation; F3-review-pass2 [F-CRIT-1] fix):**
 
-The VP-039 harnesses use TWO distinct seam types. No harness may mix them:
+The VP-039 harnesses use FLAT accessors on `TlsAnalyzer` only. `TlsFlowState` is private;
+`state_for_testing` does NOT exist and is NOT used anywhere in this harness.
 
-**Flow-scoped seams** (read from `TlsFlowState` via `state_for_testing(&flow_key)`)
-expose only fields that live on `TlsFlowState`:
-- `client_hello_seen: bool`
-- `server_hello_seen: bool`
-- (carry lengths via `client_hs_carry_len_for_testing` / `server_hs_carry_len_for_testing`)
+**Flow-scoped seams** (flat accessors on `TlsAnalyzer` that delegate to per-flow state):
+- `analyzer.client_hello_seen_for_testing(&flow_key) -> bool` — **NEW seam**
+  (STORY-144/146 deliverable). Symmetric to the EXISTING `server_hello_seen_for_testing`
+  at `tls.rs:991`. Exposes `flows.get(flow_key).map(|s| s.client_hello_seen).unwrap_or(false)`.
+  STORY-144 MUST add this accessor to `src/analyzer/tls.rs` in the `impl TlsAnalyzer`
+  `#[cfg(test)]` block, following the exact same pattern as `server_hello_seen_for_testing`.
+- `analyzer.server_hello_seen_for_testing(&flow_key) -> bool` — **EXISTING seam**
+  (tls.rs:991). Used in Sub-E for the s2c direction isolation check.
+- `analyzer.client_hs_carry_len_for_testing(&flow_key) -> usize` — **NEW seam**
+  (STORY-144/146 deliverable). Exposes `client_hs_carry.len()` for the given flow.
+- `analyzer.server_hs_carry_len_for_testing(&flow_key) -> usize` — **NEW seam**
+  (STORY-144/146 deliverable). Exposes `server_hs_carry.len()` for the given flow.
 
 **Aggregate seams** (read directly from the `TlsAnalyzer` instance) expose fields that
 are `TlsAnalyzer`-level counters/maps, NOT on `TlsFlowState`:
-- `analyzer.parse_error_count()` — NOT `state.parse_errors`
-- `analyzer.sni_counts()` — NOT `state.sni_counts`
-- `analyzer.ja3_counts()` — NOT `state.ja3_counts`
-- `analyzer.handshake_count()` — NOT `state.handshakes_seen`
-- `analyzer.handshake_reassembly_overflow_count()` — NOT `state.handshake_reassembly_overflows`
+- `analyzer.parse_error_count()` — **EXISTING** (tls.rs:363)
+- `analyzer.sni_counts()` — **EXISTING** (tls.rs:347)
+- `analyzer.ja3_counts()` — **EXISTING** (tls.rs:351)
+- `analyzer.handshake_count()` — **EXISTING** (tls.rs:373)
+- `analyzer.handshake_reassembly_overflow_count()` — **NEW seam** (STORY-144 deliverable).
+  Exposes the `handshake_reassembly_overflows` counter added by the fix cycle.
+- `analyzer.all_findings_len_for_testing()` — **EXISTING** (tls.rs:920)
+- `analyzer.active_flows_len_for_testing()` — **EXISTING** (tls.rs:944)
 
-`state_for_testing(&flow_key)` returns a `&TlsFlowState` that exposes `client_hello_seen`
-and `server_hello_seen` only. It does NOT expose `parse_errors`, `sni_counts`,
-`ja3_counts`, `handshakes_seen`, or `handshake_reassembly_overflows` — those fields
-do not exist on `TlsFlowState`.
+`state_for_testing` does NOT exist. `TlsFlowState` is private and not accessible to tests.
+All `client_hello_seen` and `server_hello_seen` reads use the flat accessor pattern above.
 
 - `client_hs_carry_len_for_testing(&flow_key)` and `server_hs_carry_len_for_testing(&flow_key)`
   expose `client_hs_carry.len()` and `server_hs_carry.len()` respectively, as documented
   in the F1 delta analysis (CHANGED symbols table).
-- `findings_count_for_testing()` exposes the total number of findings accumulated across
-  all flows, enabling the Sub-D pre/post assertion on finding count across `on_flow_close`.
-  Mirrors the `active_flows_len_for_testing()` pattern.
+- `all_findings_len_for_testing()` exposes the total number of findings accumulated across
+  all flows (`self.all_findings.len()`), enabling the Sub-D pre/post assertion on finding
+  count across `on_flow_close`. Mirrors the `active_flows_len_for_testing()` pattern.
+  (C3 fix: `findings_count_for_testing` does NOT exist; the real seam name is
+  `all_findings_len_for_testing` — confirmed from `src/analyzer/tls.rs` line 920.)
 - `active_flows_len_for_testing()` exposes `flows.len()` for the Sub-D flow-removal check.
 - `build_client_hello_with_sni(sni)` delegates to the REAL `build_client_hello(sni, &[0x002f])`
   helper in `tests/tls_analyzer_tests.rs` (real signature: 2 args — `sni: &str` at line 16

@@ -133,7 +133,7 @@ design.
 | Architecture Module | SS-07 (analyzer/tls.rs — carry drain loop in `try_parse_records`; exact-consume logic) |
 | Finding Source | TLS-CLIENTHELLO-FRAG-001; RFC 5246 §6.2.1 (coalescing explicitly permitted) |
 | RFC Authority | RFC 5246 §6.2.1: "multiple client messages of the same ContentType MAY be coalesced into a single TLSPlaintext record" |
-| Stories | TBD (F3 STORY-A) |
+| Stories | STORY-144 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
 ## Related BCs
@@ -152,7 +152,7 @@ design.
 
 ## Story Anchor
 
-TBD (F3 STORY-A)
+STORY-144 (TLS Carry Buffer + ClientHello Fragmentation Reassembly — BC primary; wave 65)
 
 ## VP Anchors
 

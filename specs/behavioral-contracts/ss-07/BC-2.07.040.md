@@ -115,7 +115,7 @@ merely because the capture ended before a handshake message completed.
 | Architecture Module | SS-07 (analyzer/tls.rs — `on_flow_close` via `HashMap::remove`; existing state-drop mechanism) |
 | Finding Source | TLS-CLIENTHELLO-FRAG-001 validation §Q5 (snaplen-truncated captures / READER cand-05 interaction) |
 | RFC Authority | RFC 5246 §6.2.1 (fragmented messages; truncation at capture end = incomplete fragment) |
-| Stories | TBD (F3 STORY-A) |
+| Stories | STORY-144 |
 | Origin | greenfield (fix-tls-clienthello-frag cycle) |
 
 ## Related BCs
@@ -133,7 +133,7 @@ merely because the capture ended before a handshake message completed.
 
 ## Story Anchor
 
-TBD (F3 STORY-A)
+STORY-144 (TLS Carry Buffer + ClientHello Fragmentation Reassembly — BC primary; wave 65)
 
 ## VP Anchors
 

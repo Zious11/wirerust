@@ -136,7 +136,7 @@ See EC-004 and BC-2.07.012 EC-004.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- ServerHello parsing and JA3S fingerprinting is a core TLS analysis capability |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:586-651, C-13) |
-| Stories | STORY-053 |
+| Stories | STORY-053, STORY-145 |
 | Origin BC | BC-TLS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs
@@ -167,6 +167,10 @@ See EC-004 and BC-2.07.012 EC-004.
 
 - **type constraint**: TlsServerHelloContents struct from tls_parser
 - **guard clause**: version <= 0x0300 deprecation check; is_weak_server_cipher guard
+
+## Story Anchor
+
+STORY-145 (TLS ServerHello Fragmentation Symmetry + Per-Direction Isolation — amended: "complete" now includes multi-record reassembled path via server_hs_carry; single-record fast path unchanged; wave 66)
 
 ## Purity Classification
 

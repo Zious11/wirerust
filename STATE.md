@@ -4,10 +4,10 @@ project: wirerust
 mode: feature
 phase: 7
 status: in-progress
-current_step: "Feature cycle fix-tls-clienthello-frag — F2 APPROVED (incl F-EV-001 counter); F3 story decomposition active"
+current_step: "F4 ACTIVE — wave 65 STORY-144 (TLS carry reassembly) in per-story TDD delivery"
 pipeline: FEATURE-CYCLE
 current_cycle: fix-tls-clienthello-frag
-timestamp: 2026-06-29T19:00:00Z
+timestamp: 2026-06-29T21:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -41,9 +41,9 @@ adversary_convergence_counter: SATISFIED
 
 # Story tracking
 stories_delivered: 91
-story_index_version: v3.2
-total_stories: 96
-story_index_note: "96 stories / 64 waves. STORY-130..142 MERGED. STORY-143 draft (E-11, D-301)."
+story_index_version: v3.6
+total_stories: 99
+story_index_note: "99 stories / 65 waves. STORY-130..142 MERGED. STORY-143 draft (E-11, D-301). STORY-144..146 authored (F3, wave 65-66)."
 
 # Spec versions (current)
 bc_index_version: v2.1
@@ -68,15 +68,22 @@ maintenance_completed_at: "2026-06-23"
 
 ## EXACT RESUME POINT
 
-**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F2 FULLY APPROVED (D-305, 2026-06-29); F3 STORY DECOMPOSITION ACTIVE**
+**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F3 APPROVED (D-306, 2026-06-29); F4 TDD DELTA IMPLEMENTATION ACTIVE — STORY-144 in per-story delivery**
 
-Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-requested F-EV-001 defense-in-depth scope addition (BC-2.07.043 + VP-040). Phase F3 (incremental story decomposition) is the active step.
+Phase F3 (incremental story decomposition) HUMAN-APPROVED. Phase F4 (TDD delta implementation) is the active step, driven autonomously; human receives reports at wave/phase boundaries.
 
-**F2 delta summary (final, including scope addition):**
-- 6 new BCs: BC-2.07.038 (v2.7, reassembly across records), BC-2.07.039 (v2.4, bounded carry clear-and-recover overflow), BC-2.07.040 (v1.3, truncation-safety), BC-2.07.041 (v1.2, per-flow+per-direction isolation), BC-2.07.042 (v1.4, coalesced dispatch), BC-2.07.043 (buffer_saturation_drops counter).
-- 3 amended: BC-2.07.001 v1.9, BC-2.07.002 v1.6 (scope expansion to fragmented-then-assembled), BC-2.07.005 v1.7 (silent-truncation Inv-3 superseded; reconciled with BC-2.07.043).
-- VP-039 (proptest+unit; 17 harnesses: 4 proptest + 13 unit). VP-040 (6 harnesses, buffer saturation observability). ADR-011 (TLS handshake reassembly design).
-- Spec versions: BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45, SS-07 now 43 BCs. BC total: 337 on disk / 336 active.
+**F3 story decomposition result:**
+- 3 stories authored: STORY-144 (wave 65, TLS carry reassembly), STORY-145 (wave 66, dep STORY-144), STORY-146 (wave 66, dep STORY-144).
+- Holdout registry: `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md` (HS-F4-001..012).
+- Input-hashes: STORY-144 `3dfe20c`, STORY-145 `88e29c9`, STORY-146 `6d9da65`.
+- STORY-INDEX v3.6 (99 stories, 65 waves).
+
+**F4 per-story delivery sequence (canonical, per-story-delivery.md):**
+worktree → stub-architect (compilable Red-Gate stubs) → test-writer (failing Red-Gate tests) → implementer (TDD) → per-story adversarial convergence (3 clean, BC-5.39.001) → demo-recorder (per-AC demos) → push → pr-manager (9-step PR) → review → squash-merge → worktree cleanup. Wave integration gate after each wave. Build verification + holdout eval after F4.
+
+**STORY-144 worktree:** `.worktrees/story-144-tls-carry-reassembly` (branch `feature/story-144-tls-carry-reassembly`, from develop `ab0b388`).
+
+**Delivery sequence remaining:** STORY-144 (wave 65, active) → wave 65 integration gate → STORY-145 + STORY-146 (wave 66, both dep STORY-144) → wave 66 integration gate → build verification + holdout eval → F4 complete.
 
 **Locked design decisions (do NOT re-derive on resume):**
 - OVERFLOW POLICY = clear-and-recover (Policy A, NO sticky-abandon flag). Chosen over abandon to deny permanent per-flow blinding. Research: `.factory/research/TLS-REASSEMBLY-OVERFLOW-POLICY.md` (Ptacek/Newsham; Suricata CVE-2019-18792).
@@ -86,12 +93,12 @@ Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-re
 - `handshake_reassembly_overflows` = TlsAnalyzer u64 AGGREGATE counter (not per-flow), surfaced in `summarize()`.
 - Per-flow ceiling 4×MAX_BUF (post-on_data-return residue).
 - `TlsFlowState` gains `client_hs_carry` + `server_hs_carry` (Vec<u8>) only.
-- F-EV-001 defense-in-depth IMPLEMENTED IN SPEC (human pulled into cycle): BC-2.07.043 buffer_saturation_drops — TlsAnalyzer u64 aggregate counter incremented when on_data buffer-append discards bytes (condition data.len() > remaining, covering partial AND full drop), increment HOISTED after the &mut state block (borrow constraint), surfaced in summarize(), no finding/no parse_errors; test seam fill_buf_for_testing(&mut self, &FlowKey, Direction, usize). BC-2.07.005 v1.7 reconciled (silent-truncation Inv-3 superseded). Three distinct telemetry counters now: parse_errors+truncated_records (record-oversize BC-2.07.004), handshake_reassembly_overflows (carry overflow BC-2.07.039), buffer_saturation_drops (TCP-buffer saturation BC-2.07.043).
+- F-EV-001 defense-in-depth IMPLEMENTED IN SPEC: BC-2.07.043 buffer_saturation_drops — TlsAnalyzer u64 aggregate counter, increment HOISTED after &mut state block (borrow constraint), surfaced in summarize(), no finding/no parse_errors; test seam fill_buf_for_testing. Three distinct telemetry counters: parse_errors+truncated_records (BC-2.07.004), handshake_reassembly_overflows (BC-2.07.039), buffer_saturation_drops (BC-2.07.043).
 
-**Next action:** Execute `vsdd-factory:phase-f3-incremental-stories`.
+**Next action:** Continue per-story TDD delivery — STORY-144 (wave 65). Resume at stub-architect if not yet started.
 
 - v0.11.0 released (D-300, 2026-06-29). main=`3072e828`, develop=`ab0b388`. crates.io not published.
-- Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — safe to remove when convenient.
+- Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — cleaned per pre-F4 verification (D-306).
 
 **OPEN HUMAN QUESTION (D-301, non-blocking):** Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now, or wait for the next gitflow back-merge? No functional impact either way. Awaiting answer.
 
@@ -100,9 +107,9 @@ Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-re
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file).
 3. Verify: `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`; `git rev-parse origin/develop` = `ab0b3883b8bc942d7d11bacb0e8b2387ecb2b4c0`; `git tag -l v0.11.0` exists.
-4. Active cycle: `fix-tls-clienthello-frag`. F2 FULLY APPROVED (D-305) — F3 story decomposition ACTIVE. Read `.factory/cycles/fix-tls-clienthello-frag/cycle-manifest.md` for scope + phase status.
+4. Active cycle: `fix-tls-clienthello-frag`. F3 APPROVED (D-306) — F4 TDD delta implementation ACTIVE. Read `.factory/cycles/fix-tls-clienthello-frag/cycle-manifest.md` for scope + phase status.
 5. Maintenance sweeps PAUSED. Do not initiate maintenance work during this cycle.
-6. Next action: Execute `vsdd-factory:phase-f3-incremental-stories`.
+6. Next action: Per-story TDD delivery — STORY-144 (wave 65). Check worktree `.worktrees/story-144-tls-carry-reassembly` (branch `feature/story-144-tls-carry-reassembly`). Resume at stub-architect if stubs not yet generated.
 7. Non-blocking open question: main CHANGELOG fast-track (D-301) — re-surface if human asks.
 
 ## Locked design facts (do not re-derive on resume)
@@ -129,7 +136,7 @@ Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-re
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.1 / VP-INDEX v2.25 (40 VPs) / ARCH-INDEX v2.4 / PRD v1.45 |
-| Stories | 91 delivered / 96 total (STORY-INDEX v3.2) |
+| Stories | 91 delivered / 99 total (STORY-INDEX v3.6) |
 
 ---
 
@@ -158,7 +165,8 @@ Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-re
 | Feature EtherNet/IP (Waves 58-64) + v0.11.0 | **RELEASED 2026-06-29 (D-300)** | tag v0.11.0 `3072e828`. Detail: cycles/feature-enip-v0.11.0/ |
 | Feature cycle fix-tls-clienthello-frag — F1 | DONE | delta-analysis.md; architect completed |
 | Feature cycle fix-tls-clienthello-frag — F2 | **FULLY APPROVED (D-305, 2026-06-29)** | 6 new BCs (incl BC-2.07.043) + 3 amended (incl BC-2.07.005 v1.7) + VP-039 + VP-040 + ADR-011; scope addition F-EV-001 defense-in-depth approved |
-| Feature cycle fix-tls-clienthello-frag — F3 | **ACTIVE** | Story decomposition in progress |
+| Feature cycle fix-tls-clienthello-frag — F3 | **APPROVED (D-306, 2026-06-29)** | STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves) |
+| Feature cycle fix-tls-clienthello-frag — F4 | **ACTIVE** | STORY-144 (wave 65) in per-story TDD delivery |
 
 ---
 
@@ -168,8 +176,8 @@ Phase F2 spec evolution FULLY CONVERGED + HUMAN-APPROVED, including the human-re
 |------|--------|-------|
 | Phase F1 — Delta Analysis | DONE | Architect completed; delta-analysis.md committed |
 | Phase F2 — Spec Evolution | **FULLY APPROVED (D-305, 2026-06-29)** | 6 new BCs + 3 amended + VP-039 + VP-040 + ADR-011; F-EV-001 defense-in-depth scope addition approved |
-| Phase F3 — Incremental Stories | **ACTIVE** (current) | Story decomposition in progress |
-| Phase F4 — TDD Delta Implementation | PENDING | |
+| Phase F3 — Incremental Stories | **APPROVED (D-306, 2026-06-29)** | STORY-144..146; STORY-INDEX v3.6; holdout registry HS-F4-001..012; input-hashes refreshed |
+| Phase F4 — TDD Delta Implementation | **ACTIVE** (current) | STORY-144 (wave 65) in per-story TDD delivery; worktree: .worktrees/story-144-tls-carry-reassembly |
 | Phase F5 — Scoped Adversarial Review | PENDING | |
 | Phase F6 — Targeted Hardening | PENDING | |
 | Phase F7 — Delta Convergence | PENDING | Version decision at gate |
@@ -194,6 +202,7 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-303 | Started Feature-Mode cycle `fix-tls-clienthello-frag` for TLS-CLIENTHELLO-FRAG-001 (validated CONFIRMED, severity HIGH). Human chose full F1-F7 VSDD process; release version deferred to F7 convergence (not v0.12.0 or v0.11.1 yet). Maintenance sweeps paused for cycle duration. develop at `a2d8c13`. | 2026-06-29 |
 | D-304 | Phase F2 spec evolution CONVERGED for fix-tls-clienthello-frag (TLS handshake reassembly). 5 new BCs (BC-2.07.038-042) + 2 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6) + VP-039 (17 harnesses) + ADR-011. Overflow policy = clear-and-recover (human-approved via research, D-303 cycle); per-message cap 65,536; parse boundary = `parse_tls_message_handshake`. 3+ clean adversary passes after 12 fix bursts. Awaiting F2 human approval gate. | 2026-06-29 |
 | D-305 | Phase F2 APPROVED (D-304 converged). Human approved + pulled the F-EV-001 defense-in-depth counter into the cycle: BC-2.07.043 (buffer_saturation_drops) + BC-2.07.005 v1.7 + VP-040 (6 harnesses) authored and converged via scoped adversarial passes. F-EV-001 (client_buf saturation) validated NOT-EXPLOITABLE; the counter makes the tail-drop primitive non-silent (pre-empts P1/P2). SS-07 43 BCs, VP total 40, BC-INDEX v2.1, PRD v1.45. Proceeding to F3. | 2026-06-29 |
+| D-306 | Phase F3 (story decomposition) HUMAN-APPROVED. F4 driven autonomously (human choice), reporting at wave/phase boundaries. F4-entry cleanup done: holdout registry HS-F4-001..012 at `.factory/cycles/fix-tls-clienthello-frag/holdout-scenarios.md`; BC Stories-field sweep complete; input-hashes refreshed (STORY-144 `3dfe20c`, STORY-145 `88e29c9`, STORY-146 `6d9da65`). STORY-144 worktree created (`.worktrees/story-144-tls-carry-reassembly`, branch `feature/story-144-tls-carry-reassembly`, from develop `ab0b388`). Stale orphan worktrees cleaned. Pre-F4 verification PASS: CI green (`ab0b388`), branch protection squash-only confirmed, cargo check clean. STORY-INDEX v3.6 (99 stories, 65 waves). | 2026-06-29 |
 
 ---
 
@@ -246,22 +255,22 @@ All GitHub-issue creation DF-VALIDATION-001-gated (policies.yaml).
 ## Session Resume Checkpoint
 
 **Date:** 2026-06-29
-**State:** Feature cycle `fix-tls-clienthello-frag` — Phase F2 FULLY APPROVED (D-305, incl F-EV-001 scope addition); F3 story decomposition ACTIVE
+**State:** Feature cycle `fix-tls-clienthello-frag` — Phase F3 HUMAN-APPROVED (D-306); Phase F4 TDD delta implementation ACTIVE — STORY-144 (wave 65) in per-story delivery
 
 ### What was done this session
 - v0.11.0 RELEASED (D-300) + post-release corrections (D-301) + Dependabot triage (D-302).
 - TLS-CLIENTHELLO-FRAG-001 research-validated CONFIRMED HIGH; DF-VALIDATION-001 SATISFIED.
 - Feature cycle `fix-tls-clienthello-frag` initialized (D-303); F1 delta analysis completed.
-- Phase F2 spec evolution executed and CONVERGED: 5 new BCs (BC-2.07.038-042), 2 amended BCs (BC-2.07.001 v1.9, BC-2.07.002 v1.6), VP-039 (17 harnesses), ADR-011. 12 fix bursts; 3+ clean adversary passes. BC-INDEX v1.98, VP-INDEX v2.21, ARCH-INDEX v2.3, PRD v1.43.
-- F-EV-001 research-validated NOT-EXPLOITABLE. Process gap DF-KANI-NONVACUITY-001-PROPTEST-GAP filed.
-- Phase F2 HUMAN-APPROVED (D-305). Human pulled F-EV-001 defense-in-depth into cycle: BC-2.07.043 (buffer_saturation_drops), BC-2.07.005 v1.7, VP-040 (6 harnesses) authored + converged. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45, SS-07 43 BCs. BC total 337 on disk / 336 active.
+- Phase F2 spec evolution executed and CONVERGED: 6 new BCs (BC-2.07.038-043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) + VP-039 + VP-040 + ADR-011. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45.
+- Phase F2 HUMAN-APPROVED (D-305). Phase F3 story decomposition completed: STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves).
+- Phase F3 HUMAN-APPROVED (D-306). F4-entry cleanup: holdout registry HS-F4-001..012, BC Stories-field sweep, input-hashes refreshed, STORY-144 worktree created, stale worktrees cleaned, pre-F4 verification PASS.
 - Maintenance sweeps PAUSED.
 
 ### Open question (non-blocking)
 Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now via a docs-only PR, or left to ride to the next gitflow back-merge? No functional impact either way.
 
 ### Next action
-Execute `vsdd-factory:phase-f3-incremental-stories`.
+Per-story TDD delivery — STORY-144 (wave 65, TLS carry reassembly). Worktree: `.worktrees/story-144-tls-carry-reassembly` (branch `feature/story-144-tls-carry-reassembly`). Resume at stub-architect.
 
 ---
 
@@ -275,7 +284,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Closed cycle: `cycles/feature-enip-v0.11.0/` (decisions-archive.md D-228..D-301, CLOSED D-300).
-- STORY-INDEX.md authoritative (96 stories / 64 waves — v3.2). STORY-130..142 all MERGED. stories_delivered=91. STORY-143 added draft (E-11, D-301).
+- STORY-INDEX.md authoritative (99 stories / 65 waves — v3.6). STORY-130..142 all MERGED. stories_delivered=91. STORY-143 draft (E-11, D-301). STORY-144..146 authored (F3, waves 65-66, D-306).
 - v0.11.0 RELEASED (D-300, 2026-06-29). main=`3072e828`, develop=`a2d8c13` (post-Dependabot triage D-302), tag v0.11.0. crates.io not published.
 - Repo squash-only policy set (D-289). Branch protection on develop + main (D-290).
 - SEC-001 (unsafe split-borrow enip.rs `on_data`, MEDIUM, pre-existing PR #334) in backlog as v0.12.0 candidate (D-300).

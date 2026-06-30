@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.37"
+version: "1.40"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -133,6 +133,15 @@ modified:
   - date: 2026-06-29
     actor: architect
     reason: "F2 adversary implementability fix burst (on_data sig / CloseReason / seam / ADR-011 C-3 propagation): VP-040 Coverage-Note PROSE block corrected — (1) harness count '5 deterministic unit tests' → '6 deterministic unit tests'; (2) Sub-A description corrected from stale 'pre-fill via on_data calls (~45 × 1,460-byte calls)' to correct '65,537-byte single slice to empty buffer (no seam required)'; (3) Sub-A-full-drop entry added explicitly with fill_buf_for_testing seam (FINAL); (4) increment condition stated as data.len()>remaining; (5) on_flow_close(CloseReason::Fin) noted in Sub-C; (6) all 6 canonical test names enumerated. The VP-040 table row (already correct from v1.35) and Totals row (VP total 40, integration/unit 6) UNCHANGED. Version bump 1.36→1.37."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review (DF-SIBLING-SWEEP-001 C1/C2/C3/C4 — VP-039 API signature sweep, sibling of VP-040): fixes applied directly to vp-039-tls-handshake-reassembly.md; no VP-to-Module table row changes needed (VP counts, tool columns, and Totals row are all per-VP granularity and VP-039 was already counted). Coverage-note prose note for VP-039: seam accessor all_findings_len_for_testing() is the ONLY correct name for the findings-count accessor on TlsAnalyzer (tls.rs line 920); the name findings_count_for_testing does not exist — replaced at ~10 sites in VP-039 skeleton; state_for_testing(&flow_key).client_hello_seen is the correct access pattern for the client_hello_seen field (no standalone accessor); StreamHandler::on_data 5-arg signature (flow_key, direction, data, offset: u64, timestamp: u32) enforced at all ~40 call sites; StreamHandler::on_flow_close 2-arg signature (flow_key, reason: CloseReason) enforced at both call sites. VP total (40), proptest (17), Kani (15), fuzz (2), integration/unit (6) UNCHANGED. Version bump 1.37→1.38."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review-pass2 ([F-CRIT-1] accessor sweep — VP-039 coverage-note seam contract corrected): The F3-review entry incorrectly noted 'state_for_testing(&flow_key).client_hello_seen is the correct access pattern'. That was wrong — state_for_testing does not exist on TlsAnalyzer. Correction: (a) client_hello_seen is accessed via client_hello_seen_for_testing(&flow_key) — NEW seam (STORY-144/146 deliverable), 14 call sites in VP-039 skeleton; (b) server_hello_seen is accessed via server_hello_seen_for_testing(&flow_key) — EXISTING seam (tls.rs:991), 1 call site in Sub-E proptest. The VP-039 table row is unchanged (counts are per-VP). VP total (40), proptest (17), Kani (15), fuzz (2), integration/unit (6) UNCHANGED. Version bump 1.38→1.39."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Fix-burst-F3-review-pass3 (F-IMP-1/F-IMP-2/F-IMP-3 — VP-039 double-wrap fix + VP-040 placeholder resolution + snapshot-delta): No VP-to-Module table row changes, no Totals row changes, no tool column count changes — all fixes are harness-skeleton corrections in VP-039/VP-040 source files. (F-IMP-1 CRITICAL) VP-039 coverage note: build_client_hello_with_sni() and build_server_hello() local wrappers corrected to strip the 5-byte TLS record header (full_record[5..].to_vec()); the real helpers at tests/tls_analyzer_tests.rs:16/:137 return COMPLETE records; 3 double-wrap call sites resolved: test_BC_2_07_041_cross_flow_isolation Flow A (now delivers full record directly), test_vp039_n_record_reassembly (now uses stripped wrapper + wrap_as_tls_record), all other harnesses using build_client_hello_with_sni+wrap_as_tls_record correct after wrapper fix. (F-IMP-2) VP-040 coverage note: all FlowKey placeholders resolved to test_flow_key()/concrete FlowKey::new; all pseudo-helpers fill_to_capacity/deliver_one_more_byte replaced with fill_buf_for_testing+1-byte on_data; VP-040 Dependency Set section added for story-writer ownership (existing + STORY-146 deliverables). (F-IMP-3) VP-040 Sub-C snapshot-delta: absolute assert_eq!(drops,1) → drops_initial captured before ops; assert drops_initial+1 after drop; assert unchanged after close. VP total (40), proptest (17), Kani (15), fuzz (2), integration/unit (6) UNCHANGED. Version bump 1.39→1.40."
 ---
 
 # Verification Coverage Matrix
