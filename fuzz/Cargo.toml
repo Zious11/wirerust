@@ -50,3 +50,10 @@ path = "fuzz_targets/fuzz_enip_cip_parse.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_tls_reassembly"
+path = "fuzz_targets/fuzz_tls_reassembly.rs"
+test = false
+doc = false
+bench = false
