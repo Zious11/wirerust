@@ -2,10 +2,10 @@
 document_type: cycle-manifest
 cycle_id: fix-tls-clienthello-frag
 cycle_type: feature
-version: DEFERRED
-status: in-progress
+version: v0.11.1
+status: completed
 started: 2026-06-29T15:00:00Z
-completed: ~
+completed: 2026-07-01T00:00:00Z
 producer: orchestrator
 ---
 
@@ -37,8 +37,7 @@ records in `src/analyzer/tls.rs`. Reassembly must:
 
 ## Release Version
 
-DEFERRED — human decision at F7 convergence. Candidates: v0.11.1 (patch) or
-bundled into v0.12.0. Both options are open; no version committed yet.
+v0.11.1 — released 2026-07-01. PR #347 gitflow merge into main (`4e2b285`). Tag `v0.11.1` (object `e8a8a2d4e7cd03e337b066859586e2c610208888`). GitHub Release published (4 assets: aarch64/x86_64 darwin, x86_64 windows-msvc, x86_64 linux-gnu). Not published to crates.io (D-300 human decision). Back-merged to develop via PR #348 squash (`ba6fbd8`). Both branches at 0.11.1, in sync.
 
 ## Develop HEAD at Cycle Start
 
@@ -56,23 +55,21 @@ Maintenance sweeps PAUSED for duration of this cycle.
 | F1 — Delta Analysis | DONE | delta-analysis.md committed; architect completed |
 | F2 — Spec Evolution | **CONVERGED + HUMAN-APPROVED 2026-06-29 (D-305, incl scope addition)** | 6 new BCs (BC-2.07.038-043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) + VP-039 (17 harnesses) + VP-040 (6 harnesses) + ADR-011. F-EV-001 defense-in-depth scope addition: BC-2.07.043 buffer_saturation_drops + BC-2.07.005 v1.7 reconciliation. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45. SS-07 43 BCs. |
 | F3 — Incremental Stories | **APPROVED 2026-06-29 (D-306)** | STORY-144..146 authored; STORY-INDEX v3.6 (99 stories, 65 waves); holdout registry HS-F4-001..012; input-hashes refreshed (144: 3dfe20c, 145: 88e29c9, 146: 6d9da65); pre-F4 verification PASS |
-| F4 — TDD Delta Implementation | **ACTIVE** | Wave 65 DONE — STORY-144 MERGED (PR #341, squash `0986e878`, 11/11 CI green, D-307). Wave 66: STORY-145 mid-TDD, Red Gate established (`f60c0e0`), branch `feature/story-145-tls-serverhello-symmetry` pushed. NEXT: implementer wires ServerToClient carry drain. STORY-146 pending STORY-145 merge. |
-| F5 — Scoped Adversarial Review | PENDING | |
-| F6 — Targeted Hardening | PENDING | |
-| F7 — Delta Convergence | PENDING | Version decision at gate |
+| F4 — TDD Delta Implementation | **DONE** | All 3 stories MERGED. STORY-144 PR #341 squash `0986e878` (Wave 65). STORY-145 PR #343 squash `d3d2e19` (Wave 66). STORY-146 PR #344 squash `8b52046` (Wave 66). stories_delivered=94. |
+| F5 — Scoped Adversarial Review | **DONE/CONVERGED** | 5 passes. BC-completeness 60/60. 0 P0. BC-2.07.038 v2.10. Re-anchor 7 BCs. BC-INDEX v2.3. |
+| F6 — Targeted Hardening | **DONE** | Kani VP-039 3 non-vacuous proofs PASS. fuzz_tls_reassembly 1.9M execs 0 crashes. mod f6_hardening 12 tests — 100% real-gap kill (13 gaps; 2 provably-equiv dead-code survivors at tls.rs:950:59, ADR-011). anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346. |
+| F7 — Delta Convergence | **DONE/CONVERGED** | v0.11.1 released PR #347 into main (`4e2b285`). Back-merge PR #348 to develop (`ba6fbd8`). S-7.02 SATISFIED. Cycle CLOSED (D-316). |
 
 ## Delivered
 
-*Populated at cycle close (F7 gate).*
-
 | Metric | Value |
 |--------|-------|
-| Stories delivered | TBD |
-| BCs created | TBD |
-| VPs created | TBD |
-| Adversarial passes | TBD |
-| Final holdout satisfaction | TBD |
-| Release version | DEFERRED — decided at F7 |
+| Stories delivered | 3 (STORY-144, STORY-145, STORY-146) |
+| BCs created | 6 new (BC-2.07.038–043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) |
+| VPs created | 2 (VP-039: 17 harnesses; VP-040: 6 harnesses) |
+| Adversarial passes | F5: 5 passes + per-story convergence (STORY-145: 5 passes; STORY-146: multi-pass) |
+| Final holdout satisfaction | 0.904 mean / 8-of-8 must-pass (F4 gate) |
+| Release version | v0.11.1 (released 2026-07-01; PR #347; tag `v0.11.1`) |
 
 ## Spec Changes
 

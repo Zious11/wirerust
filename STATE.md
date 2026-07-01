@@ -3,28 +3,27 @@ document_type: pipeline-state
 project: wirerust
 mode: feature
 phase: 7
-status: active
-current_step: "F7 delta convergence — S-7.02 process-gap codification DONE (STORY-147 added; PG-BC-ANCHOR-VALIDATION-001 + DF-KANI-NONVACUITY-001-PROPTEST-GAP deferred). Awaiting release/0.11.1 PR merge + back-merge to close cycle."
+status: idle
+current_step: "Cycle fix-tls-clienthello-frag CLOSED. v0.11.1 released (main=4e2b285, develop=ba6fbd8, both 0.11.1, in sync). No active cycle. Maintenance sweeps may resume (D-303 pause lifted)."
 pipeline: FEATURE-CYCLE
-current_cycle: fix-tls-clienthello-frag
 timestamp: 2026-07-01T00:00:00Z
 
 # Release chain (latest)
-released_version: v0.11.0
-released_at: "2026-06-29"
-release_tag: v0.11.0
-release_tag_object: c50d89e88984df2ba22bd24332a7a2c7d9626f2c
-release_commit: 3072e8287b9f7e6621740b6e31f04ae57914d0b9
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.0
-prior_released_version: v0.10.0
-prior_released_at: "2026-06-24"
-# Ground-truth HEADs (verified 2026-07-01 via PR merges)
-main_head: 3072e8287b9f7e6621740b6e31f04ae57914d0b9
-develop_head: 52907bc71e627974ae31014b8548ff4c941dfd2d
-# Cargo.toml version on main and develop
-cargo_version_main: "0.11.0"
-cargo_version_develop: "0.11.0"
-# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. F6 worktrees removed.
+released_version: v0.11.1
+released_at: "2026-07-01"
+release_tag: v0.11.1
+release_tag_object: e8a8a2d4e7cd03e337b066859586e2c610208888
+release_commit: 4e2b28529ae196785ce6a0baed522b9939f929ea
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.1
+prior_released_version: v0.11.0
+prior_released_at: "2026-06-29"
+# Ground-truth HEADs (verified 2026-07-01 — PR #347 main merge + #348 develop back-merge)
+main_head: 4e2b28529ae196785ce6a0baed522b9939f929ea
+develop_head: ba6fbd85846a7665516d6222715f4de924aaa8e5
+# Cargo.toml version on main and develop (in sync)
+cargo_version_main: "0.11.1"
+cargo_version_develop: "0.11.1"
+# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/back-merge worktrees removed.
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
@@ -33,7 +32,7 @@ adversary_convergence_counter: SATISFIED
 stories_delivered: 94
 story_index_version: v3.9
 total_stories: 100
-story_index_note: "100 stories / 66 waves. STORY-147 added (E-11, PG-MUTANTS-JOBS-001, fix-tls-clienthello-frag F6). Wave 66 COMPLETE. develop=52907bc."
+story_index_note: "100 stories / 66 waves. STORY-147 added (E-11, PG-MUTANTS-JOBS-001, fix-tls-clienthello-frag F6). Wave 66 COMPLETE. develop=ba6fbd8."
 # Spec versions (current)
 bc_index_version: v2.3
 vp_index_version: v2.28
@@ -45,7 +44,7 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-# Maintenance
+# Maintenance (D-303 pause LIFTED — sweeps may resume)
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-22
 maintenance_completed_at: "2026-06-23"
@@ -55,11 +54,9 @@ maintenance_completed_at: "2026-06-23"
 
 ## EXACT RESUME POINT
 
-**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — F7 DELTA CONVERGENCE (S-7.02 codification DONE)**
+**NO ACTIVE CYCLE — idle. Next: maintenance sweep or new feature cycle.**
 
-Cycle fix-tls-clienthello-frag — F6 DONE (PRs #345/#346 merged, develop=52907bc). S-7.02 process-gap codification DONE: STORY-147 added (PG-MUTANTS-JOBS-001 codified); PG-BC-ANCHOR-VALIDATION-001 and DF-KANI-NONVACUITY-001-PROPTEST-GAP justified-deferred. ARCH-INDEX v2.5 (VP-040 count 5→6). NEXT: release/0.11.1 PR merge + back-merge to develop → cycle CLOSED.
-
-F6 summary: Kani VP-039 3 proofs PASS (non-vacuous); fuzz 1.9M execs clean; 12 mutation-gap tests in `mod f6_hardening` — 100% real-gap kill rate (13 gaps closed; 2 provably-equiv survivors at tls.rs:950:59 documented). anyhow 1.0.103: RUSTSEC-2026-0190 cleared. Narrative detail: `cycles/fix-tls-clienthello-frag/burst-log.md`.
+Cycle `fix-tls-clienthello-frag` CLOSED 2026-07-01. v0.11.1 released (main=`4e2b285`, tag `v0.11.1`). Back-merged to develop (`ba6fbd8`). Both branches at 0.11.1, in sync. S-7.02 SATISFIED. D-303 pause LIFTED.
 
 ---
 
@@ -69,11 +66,11 @@ F6 summary: Kani VP-039 3 proofs PASS (non-vacuous); fuzz 1.9M execs clean; 12 m
 |-------|-------|
 | Project | wirerust |
 | Mode | feature (post-greenfield) |
-| Version | 0.11.0 (released) |
-| Main HEAD | `3072e828` (full: `3072e8287b9f7e6621740b6e31f04ae57914d0b9`) |
-| Develop HEAD | `52907bc` (full: `52907bc71e627974ae31014b8548ff4c941dfd2d`) |
-| Tag v0.11.0 | commit `3072e828`; tag object `c50d89e8` |
-| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
+| Version | 0.11.1 (released) |
+| Main HEAD | `4e2b285` (full: `4e2b28529ae196785ce6a0baed522b9939f929ea`) |
+| Develop HEAD | `ba6fbd8` (full: `ba6fbd85846a7665516d6222715f4de924aaa8e5`) |
+| Tag v0.11.1 | commit `4e2b285`; tag object `e8a8a2d4` |
+| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.1 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.3 / VP-INDEX v2.28 (40 VPs) / ARCH-INDEX v2.5 / PRD v1.45 |
 | Stories | 94 delivered / 100 total (STORY-INDEX v3.9) |
@@ -93,7 +90,7 @@ F6 summary: Kani VP-039 3 proofs PASS (non-vacuous); fuzz 1.9M execs clean; 12 m
 | Feature cycle fix-tls-clienthello-frag — F4 | **DONE/PASS** | Holdout 0.904 mean, 8/8 must-pass; HS-F4-001 artifact-fidelity fix |
 | Feature cycle fix-tls-clienthello-frag — F5 | **DONE/CONVERGED** | 5 passes; BC-completeness 60/60, 0 P0; BC-INDEX v2.3 |
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
-| Feature cycle fix-tls-clienthello-frag — F7 | **IN PROGRESS (starting)** | 5-dimension check + regression + release-version decision |
+| Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 
 ---
 
@@ -105,7 +102,7 @@ F6 summary: Kani VP-039 3 proofs PASS (non-vacuous); fuzz 1.9M execs clean; 12 m
 | F6: kani+fuzz | DONE | VP-039 3 harnesses non-vacuous PASS; fuzz_tls_reassembly 1.9M execs 0 crashes |
 | F6: mutation-gap tests | DONE | mod f6_hardening 12 tests; 100% real-gap kill; 2 provably-equiv survivors documented |
 | F6: anyhow bump + fix-PRs | DONE | PR #345 squash d7f0ef4; PR #346 squash 52907bc (anyhow 1.0.103). develop=52907bc |
-| **F7: delta convergence** | **IN PROGRESS** | 5-dimension check + full regression + release-version decision + S-7.02 cycle-close |
+| **F7: delta convergence** | **DONE/CONVERGED** | v0.11.1 released (#347 main + #348 back-merge, ba6fbd8). S-7.02 SATISFIED. Cycle CLOSED (D-316). |
 
 ---
 
@@ -128,6 +125,8 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-312 | F5 scoped adversarial CONVERGED. 60/60 BC-completeness. BC-2.07.038 v2.10. Re-anchor 7 BCs. BC-INDEX v2.3. | 2026-06-30 |
 | D-313 | F6 targeted hardening IN PROGRESS (paused for session clear). Kani VP-039 (3 proofs, non-vacuous) + fuzz (1.9M execs clean). 13 mutation-gap tests remain. RUSTSEC-2026-0190 open. | 2026-06-30 |
 | D-314 | F6 DONE. PR #345 merged (squash d7f0ef4): 12 mutation-gap tests mod f6_hardening — 100% real-gap kill (13 gaps closed; 2 provably-equiv survivors at tls.rs:950:59 documented). PR #346 merged (squash 52907bc): anyhow 1.0.102→1.0.103, RUSTSEC-2026-0190 cleared, cargo deny PASS. F6-MUTATION-GAPS-001 RESOLVED. RUSTSEC-2026-0190 RESOLVED. SEC-002/SEC-006 closed-by-design (mod f6_hardening themes 1+2+6 pin exact-MAX_BUF + clear-and-recover). develop=52907bc. F7 next. | 2026-07-01 |
+| D-315 | Gitflow merge-settings alignment. Enabled allow_merge_commit=true repo-wide; main branch protection required_linear_history=false (accepts gitflow merge commits for releases + back-merges). develop keeps required_linear_history=true (squash-only, D-289 preserved). Refines D-289 + D-290. Root-caused B1: v0.11.0 squash into main left branches diverged; recurred because back-merge was skipped and squash-into-main prevented shared ancestry. | 2026-07-01 |
+| D-316 | Cycle fix-tls-clienthello-frag CLOSED / CONVERGED. Released v0.11.1 (PR #347 gitflow merge into main `4e2b285`; tag `v0.11.1` object `e8a8a2d4`; GH Release published, 4 assets, NOT crates.io per D-300). Back-merged to develop PR #348 squash `ba6fbd8`. Both at 0.11.1 in sync. F6: Kani VP-039 3 non-vacuous proofs; fuzz 1.9M clean; 100% real-gap mutation kill (13/13; 2 dead-code survivors ADR-011). PRs #341/#343/#344/#345/#346/#347/#348. S-7.02 SATISFIED (STORY-147 PG-MUTANTS-JOBS-001; PG-BC-ANCHOR-VALIDATION-001 + DF-KANI-NONVACUITY-001-PROPTEST-GAP justified-deferred). | 2026-07-01 |
 
 ---
 
@@ -149,11 +148,9 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 
 ## Open Items / Backlog (DF-VALIDATION-001-gated unless noted)
 
-> **MAINTENANCE SWEEPS PAUSED** — cycle `fix-tls-clienthello-frag` in progress (D-303).
-
 | ID | Summary | Priority | Status |
 |----|---------|----------|--------|
-| TLS-CLIENTHELLO-FRAG-001 | ClientHello + ServerHello fragmentation → SNI/JA3/JA3S evasion. | HIGH | F6 DONE (PRs #345/#346). **F7 IN PROGRESS** |
+| TLS-CLIENTHELLO-FRAG-001 | ClientHello + ServerHello fragmentation → SNI/JA3/JA3S evasion. | HIGH | **CLOSED — v0.11.1 released** (PRs #341/#343/#344/#345/#346/#347/#348) |
 | PG-MUTANTS-JOBS-001 | `cargo mutants --jobs 8` masks real survivors as load-induced timeouts on this suite (infinite-loop mutants inflate innocent mutants past auto-timeout → false "0 missed"). Run at low --jobs or high --timeout. | MEDIUM | **CODIFIED → STORY-147** (draft, E-11, 3 pts; mutants.toml low-parallelism + CLAUDE.md guidance; S-7.02 2026-07-01) |
 | PG-BC-ANCHOR-VALIDATION-001 | No automated line-anchor validation; drift recurs each cycle growing tls.rs. | LOW | **JUSTIFIED DEFERRAL** — target: next maintenance sweep; needs automated symbol-line resolver or symbol-only-anchor policy; grouped with BC-ANCHOR-DRIFT-OUTOFCYCLE-001 |
 | DF-KANI-NONVACUITY-001-PROPTEST-GAP | No proptest/unit analog for DF-KANI-NONVACUITY-001 in policies.yaml. | LOW | **JUSTIFIED DEFERRAL** — target: next Kani VP authoring; VP-039 non-vacuity manually confirmed this cycle; no current coverage gap |
@@ -169,18 +166,13 @@ Full backlog (archived/resolved items): `cycles/feature-enip-v0.11.0/` decisions
 ## Session Resume Checkpoint
 
 **Date:** 2026-07-01
-**State:** F7 delta convergence — S-7.02 codification DONE — Feature cycle `fix-tls-clienthello-frag`
+**State:** Idle — cycle `fix-tls-clienthello-frag` CLOSED. No active cycle.
 
-- develop HEAD: `52907bc71e627974ae31014b8548ff4c941dfd2d` (short `52907bc`). main HEAD: `3072e8287b9f7e6621740b6e31f04ae57914d0b9` (v0.11.0).
-- F6 DONE: PR #345 squash `d7f0ef46` (12 mutation-gap tests); PR #346 squash `52907bc` (anyhow 1.0.103). No open worktrees.
-- S-7.02 DONE: STORY-147 added (PG-MUTANTS-JOBS-001 codified); PG-BC-ANCHOR-VALIDATION-001 + DF-KANI-NONVACUITY-001-PROPTEST-GAP justified-deferred. ARCH-INDEX v2.5.
-- stories_delivered: 94. total_stories: 100. BC-INDEX v2.3. VP-INDEX v2.28. ARCH-INDEX v2.5.
+- main HEAD: `4e2b28529ae196785ce6a0baed522b9939f929ea` (short `4e2b285`, v0.11.1). develop HEAD: `ba6fbd85846a7665516d6222715f4de924aaa8e5` (short `ba6fbd8`). Both at Cargo 0.11.1.
+- v0.11.1 released: tag `v0.11.1` (object `e8a8a2d4`), GH Release published (4 assets). Not on crates.io (D-300).
+- S-7.02 SATISFIED. stories_delivered: 94. BC-INDEX v2.3. VP-INDEX v2.28. ARCH-INDEX v2.5.
 
-**Next action (BLOCKING sequence):**
-
-1. release/0.11.1 branch: version bump + CHANGELOG → PR to main → tag v0.11.1.
-2. Back-merge main → develop.
-3. Declare cycle fix-tls-clienthello-frag CLOSED (after PR merges).
+**Next action:** Start new maintenance sweep or feature cycle as needed.
 
 ---
 
@@ -194,7 +186,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 ## Notes
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
-- STORY-INDEX.md: 100 stories / 66 waves (v3.9). stories_delivered=94. STORY-147 added (E-11, PG-MUTANTS-JOBS-001). Wave 66 COMPLETE. F7 S-7.02 codification DONE.
-- v0.11.0 RELEASED 2026-06-29. main=`3072e828`, develop=`52907bc`. Not on crates.io.
-- F6: PR #345 (mutation tests, 100% real-gap kill) + PR #346 (anyhow 1.0.103) merged. RUSTSEC-2026-0190 cleared.
-- BC-INDEX v2.3. Squash-only policy (D-289). Branch protection develop + main (D-290).
+- STORY-INDEX.md: 100 stories / 66 waves (v3.9). stories_delivered=94. STORY-147 added (E-11, PG-MUTANTS-JOBS-001). Wave 66 COMPLETE.
+- v0.11.1 RELEASED 2026-07-01. main=`4e2b285` (PR #347 gitflow merge), develop=`ba6fbd8` (PR #348 back-merge squash). Not on crates.io (D-300).
+- BC-INDEX v2.3. VP-INDEX v2.28. ARCH-INDEX v2.5. PRD v1.45. Squash-only policy on develop (D-289). Branch protection (D-290 / D-315).
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). Maintenance sweeps may resume (D-303 pause lifted).
