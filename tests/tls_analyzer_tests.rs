@@ -11391,3 +11391,451 @@ mod story_146 {
         );
     }
 }
+
+// ── F6 Mutation-Gap Hardening Tests ───────────────────────────────────────────
+//
+// Closes 11 of the 13 surviving mutation-testing gaps in the TLS handshake-
+// reassembly delta (Phase F6, cycle fix-tls-clienthello-frag).  One site is
+// unkillable: C2S 950:59 `Ok(_)` arm is dead code — `parse_tls_handshake_msg_
+// client_hello` is `map(parse_tls_client_hello, TlsMessageHandshake::ClientHello)`
+// and always wraps success in ClientHello, so Ok(non-ClientHello) for msg_type=0x01
+// cannot occur.  No deterministic test can cover unreachable dead code.
+//
+// Covered mutation sites:
+//   Theme 1 — Step-1 exact-MAX_BUF boundary  (C2S 829:64, S2C 998:64  `>→>=`)
+//   Theme 2 — Step-1 guard arithmetic         (C2S 829:41, S2C 998:41  `+→*`)
+//   Theme 3 — Decision-4 body_len boundary    (C2S 900:37, S2C 1036:37 `>→>=`)
+//   Theme 4 — parse_errors inc Ok(non-SH)     (S2C 1079:59             `+=→-=` / `+=→*=`)
+//   Theme 5 — S2C body_len high-byte shift    (S2C 1030:67             `<<→>>`)
+//   Theme 6 — Incomplete-body guard           (C2S 911:38, S2C 1047:38 `-→+`)
+//   Theme 6c — S2C exact-fill no-drop         (S2C 1155:43             `>→>=`)
+//
+// Namespace isolation: DF-TEST-NAMESPACE-001.
+mod f6_hardening {
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{Direction, StreamHandler};
+
+    // MAX_BUF = 65,536 bytes (BC-2.07.005 / ADR-011).
+    // MAX_RECORD_PAYLOAD = 18,432 bytes (TLS record payload ceiling; try_parse_records
+    // rejects payload_len > 18,432 with parse_errors+1).
+    const MAX_BUF: usize = 65_536;
+    const MAX_RECORD_PAYLOAD: usize = 18_432;
+
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 200, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 200, 1, seed]),
+            443,
+        )
+    }
+
+    /// Wrap `payload` bytes in a minimal TLS 0x16 (Handshake) record header.
+    fn wrap_handshake_record(payload: &[u8]) -> Vec<u8> {
+        let len = payload.len();
+        let mut rec = vec![0x16u8, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
+        rec.extend_from_slice(payload);
+        rec
+    }
+
+    // ── Theme 1: Step-1 exact-MAX_BUF boundary ───────────────────────────────
+    //
+    // Mutation sites C2S 829:64 / S2C 998:64: `>` → `>=`.
+    // With correct `>`: carry_len_before + record_payload.len() == MAX_BUF is accepted.
+    // With `>=` mutant: the exact-fill is falsely rejected (carry cleared, overflow+1).
+    //
+    // Accumulation sequence (5 records, all payloads ≤ MAX_RECORD_PAYLOAD):
+    //   Rec 1: 4-byte incomplete-message header.
+    //          Header: [0x03, 0x01, 0x00, 0x00] — msg_type=0x03 (silent), body_len=65,536.
+    //          Decision-4: 65,536 > 65,536 = false (strict).  Incomplete → wait.
+    //   Rec 2–4: 18,432 bytes of zeros each.
+    //          After rec1..rec4: carry = 4 + 3 × 18,432 = 55,300 bytes.
+    //   Rec 5: 10,236 bytes.  55,300 + 10,236 = 65,536 = MAX_BUF.
+    //          Step-1: 65,536 > 65,536 = false → append accepted.
+    //
+    // Assertions: overflow_count unchanged AND carry_len == MAX_BUF.
+
+    /// Build the 5-record sequence that fills the hs-carry to exactly MAX_BUF bytes.
+    fn max_buf_fill_records() -> Vec<Vec<u8>> {
+        // 4 + 3 × 18,432 + 10,236 = 65,536.
+        let fill_tail = MAX_BUF - (4 + MAX_RECORD_PAYLOAD * 3); // = 10,236
+        vec![
+            wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]), // 4 bytes
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; fill_tail]),
+        ]
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_039_c2s_step1_exact_max_buf_accepted() {
+        let fk = make_test_flow_key(1);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        for rec in max_buf_fill_records() {
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme1/C2S (829:64): carry+payload == MAX_BUF must NOT trigger overflow \
+             (> is strict; >= mutant would clear carry and increment overflow)"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            MAX_BUF,
+            "Theme1/C2S (829:64): carry must be retained at exactly MAX_BUF bytes"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_step1_exact_max_buf_accepted() {
+        let fk = make_test_flow_key(2);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        for rec in max_buf_fill_records() {
+            analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+        }
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme1/S2C (998:64): carry+payload == MAX_BUF must NOT trigger overflow"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            MAX_BUF,
+            "Theme1/S2C (998:64): server carry must be retained at exactly MAX_BUF bytes"
+        );
+    }
+
+    // ── Theme 2: Step-1 arithmetic (+→*) ─────────────────────────────────────
+    //
+    // Mutation sites C2S 829:41 / S2C 998:41: `+` → `*`.
+    // With correct `+`: 4 + 18,432 = 18,436 ≤ MAX_BUF → no overflow.
+    // With `*` mutant:  4 × 18,432 = 73,728 > MAX_BUF → carry cleared, overflow+1.
+    //
+    // Setup: send a 4-byte incomplete-header record first (carry = 4), then a
+    // MAX_RECORD_PAYLOAD record.  The asymmetry between 4+N and 4×N for large N
+    // is what distinguishes the two operations.
+    //
+    // Assertions: overflow_count unchanged AND carry_len > 0.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_039_c2s_step1_additive_not_multiplicative() {
+        let fk = make_test_flow_key(3);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // Rec 1: carry → 4 bytes (incomplete message, body_len=65,536).
+        let rec1 = wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec1, 0, 0);
+
+        // Rec 2: with +: 4+18,432=18,436 ≤ MAX_BUF (no overflow).
+        //        with * mutant: 4×18,432=73,728 > MAX_BUF (overflow+1).
+        let rec2 = wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec2, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme2/C2S (829:41): 4 + 18432 = 18436 ≤ MAX_BUF must NOT overflow \
+             (+ is additive; * mutant gives 73728 > MAX_BUF)"
+        );
+        assert!(
+            analyzer.client_hs_carry_len_for_testing(&fk) > 0,
+            "Theme2/C2S (829:41): carry must be non-empty after additive accumulation"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_step1_additive_not_multiplicative() {
+        let fk = make_test_flow_key(4);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        let rec1 = wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec1, 0, 0);
+
+        let rec2 = wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec2, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme2/S2C (998:41): 4 + 18432 must NOT overflow"
+        );
+        assert!(
+            analyzer.server_hs_carry_len_for_testing(&fk) > 0,
+            "Theme2/S2C (998:41): server carry must be non-empty after additive accumulation"
+        );
+    }
+
+    // ── Theme 3: Decision-4 body_len exact-MAX_BUF boundary ──────────────────
+    //
+    // Mutation sites C2S 900:37 / S2C 1036:37: `>` → `>=`.
+    // body_len = 65,536 = MAX_BUF sits exactly at the boundary.
+    // With correct `>`: 65,536 > 65,536 = false → Decision-4 does NOT fire, carry retained.
+    // With `>=` mutant: 65,536 >= 65,536 = true → Decision-4 fires, carry cleared, overflow+1.
+    //
+    // Payload: 4-byte header [msg_type, 0x01, 0x00, 0x00].
+    //   body_len = (0x01 << 16) | (0x00 << 8) | 0x00 = 65,536 = MAX_BUF.
+    // Incomplete check: 4 < 4 + 65,536 = 65,540 → wait.
+    //
+    // Assertions: overflow_count unchanged AND carry_len == 4.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_c2s_decision4_body_len_max_buf_not_spoof() {
+        let fk = make_test_flow_key(5);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // [0x01, 0x01, 0x00, 0x00]: msg_type=0x01, body_len=(0x01<<16)|0=65,536=MAX_BUF.
+        let rec = wrap_handshake_record(&[0x01u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme3/C2S (900:37): body_len == MAX_BUF must NOT trigger Decision-4 \
+             (> is strict; >= mutant would clear carry and increment overflow)"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme3/C2S (900:37): carry must retain the 4-byte incomplete header"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_decision4_body_len_max_buf_not_spoof() {
+        let fk = make_test_flow_key(6);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // [0x02, 0x01, 0x00, 0x00]: msg_type=0x02, body_len=65,536=MAX_BUF.
+        let rec = wrap_handshake_record(&[0x02u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme3/S2C (1036:37): body_len == MAX_BUF must NOT trigger Decision-4"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme3/S2C (1036:37): server carry must retain the 4-byte incomplete header"
+        );
+    }
+
+    // ── Theme 4: S2C parse_errors increment for Ok(non-ServerHello) ──────────
+    //
+    // Mutation site S2C 1079:59: `+=` → `-=` / `+=` → `*=`.
+    //
+    // tls-parser v0.12.2 returns `TlsMessageHandshake::ServerHelloV13Draft18` for a
+    // ServerHello whose version field is 0x7f12 (TLS 1.3 Draft 18).  That variant
+    // does NOT match `TlsMessageHandshake::ServerHello(ref sh)`, so it falls into the
+    // `Ok(_)` arm at line 1078, which must increment parse_errors by exactly 1.
+    //
+    // Message layout (40 bytes total = 4-byte header + 36-byte body):
+    //   Header: [0x02, 0x00, 0x00, 0x24]  msg_type=0x02, body_len=36
+    //   Body:   [0x7f, 0x12]              version = TLS 1.3 Draft 18
+    //           [0x00 × 32]              random
+    //           [0x13, 0x01]             cipher TLS_AES_128_GCM_SHA256
+    //
+    // Assertions: parse_error_count == errors_before + 1 AND server_hs_carry_len == 0.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_parse_errors_inc_ok_non_server_hello_v13draft18() {
+        let fk = make_test_flow_key(7);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // Construct a complete ServerHello message with version=0x7f12 (TLS 1.3 Draft 18).
+        // parse_tls_handshake_msg_server_hello dispatches version 0x7f12 to
+        // parse_tls_handshake_msg_server_hello_tlsv13draft18, which returns
+        // ServerHelloV13Draft18 — a variant that does NOT match the production
+        // ServerHello pattern, triggering the Ok(_) arm at src/analyzer/tls.rs:1078.
+        let mut msg = Vec::with_capacity(40);
+        msg.extend_from_slice(&[0x02u8, 0x00, 0x00, 0x24]); // header: type=0x02, len=36
+        msg.extend_from_slice(&[0x7fu8, 0x12]); // version = TLS 1.3 Draft 18
+        msg.extend_from_slice(&[0x00u8; 32]); // random
+        msg.extend_from_slice(&[0x13u8, 0x01]); // cipher
+
+        let rec = wrap_handshake_record(&msg);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before + 1,
+            "Theme4/S2C (1079:59): Ok(ServerHelloV13Draft18) must increment parse_errors \
+             by exactly 1 (-= mutant decrements; *= mutant with 0 × 1 = 0 ≠ 1)"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "Theme4/S2C (1079:59): the 40-byte message must be fully consumed (carry drained)"
+        );
+    }
+
+    // ── Theme 5: S2C body_len high-byte shift (<<16 vs >>16) ─────────────────
+    //
+    // Mutation site S2C 1030:67: `<< 16` → `>> 16`.
+    // Payload [0x02, 0x01, 0x00, 0x00]: body_len bytes are [0x01, 0x00, 0x00].
+    //
+    // With correct `<< 16`: body_len = (0x01 << 16) | 0 | 0 = 65,536 = MAX_BUF.
+    //   Decision-4: 65,536 > 65,536 = false.  Incomplete: 4 < 65,540 → wait.
+    //   Result: carry_len = 4, parse_errors unchanged.
+    //
+    // With `>> 16` mutant: body_len = (0x01 >> 16) | 0 | 0 = 0.
+    //   Incomplete: 4 < 4 + 0 = 4 → 4 < 4 = false → NOT incomplete → dispatch.
+    //   msg_bytes = carry[0..4]; parse_tls_message_handshake fails (hl=65,536 but
+    //   zero body bytes remain) → Err → parse_errors += 1.  consumed=4.  carry drained.
+    //   Result: carry_len = 0, parse_errors = 1.
+    //
+    // Note: same payload as Theme 3 S2C; pins a different mutation site via different
+    // primary assertions.
+    //
+    // Assertions: server_hs_carry_len == 4 AND parse_error_count unchanged.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_body_len_high_byte_shift_left_not_right() {
+        let fk = make_test_flow_key(8);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // [0x02, 0x01, 0x00, 0x00]: msg_type=0x02, body_len bytes=[0x01, 0x00, 0x00].
+        // << 16 interpretation: body_len = 65,536 → incomplete.
+        // >> 16 mutant interpretation: body_len = 0 → dispatches → parse fails → carry drained.
+        let rec = wrap_handshake_record(&[0x02u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme5/S2C (1030:67): << 16 gives body_len=65536 (incomplete) → carry \
+             retained at 4; >> 16 mutant gives body_len=0 → dispatch → drain → carry=0"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before,
+            "Theme5/S2C (1030:67): with << 16 no dispatch occurs → parse_errors unchanged"
+        );
+    }
+
+    // ── Theme 6: Incomplete-body guard with partial-trailing carry ────────────
+    //
+    // Mutation sites C2S 911:38 / S2C 1047:38: `-` → `+`.
+    // With correct `-`: carry_len - consumed < 4 + body_len → incomplete → break.
+    // With `+` mutant:  carry_len + consumed is a larger value, the `<` condition
+    //   is harder to satisfy, so the mutant falsely treats incomplete messages as
+    //   complete and consumes them.
+    //
+    // Coalesced 8-byte payload:
+    //   Msg1 (complete):   [0x03, 0x00, 0x00, 0x00]  msg_type=0x03, body_len=0
+    //   Msg2 (incomplete): [0x03, 0x00, 0x00, 0x04]  msg_type=0x03, body_len=4, no body
+    //
+    // Drain loop with correct `-`:
+    //   iter1: carry_len=8, consumed=0. 8-0=8 ≥ 4+0=4 → complete. consumed=4.
+    //   iter2: carry_len=8, consumed=4. 8-4=4 < 4+4=8 → incomplete. break.
+    //   drain(..4) → carry_len = 4 (Msg2 header retained).
+    //
+    // Drain loop with `+` mutant:
+    //   iter1: 8+0=8 ≥ 4+0=4 → same, consumed=4.
+    //   iter2: 8+4=12 ≥ 4+4=8 → NOT incomplete → silent consume. consumed=8.
+    //   drain(..8) → carry_len = 0.
+    //
+    // Assertion: carry_len == 4.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_c2s_incomplete_body_partial_trailing_carry_retained() {
+        let fk = make_test_flow_key(9);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Coalesced payload: complete Msg1 + incomplete Msg2 header.
+        let payload: Vec<u8> = vec![
+            0x03, 0x00, 0x00, 0x00, // Msg1: type=0x03, body_len=0 (complete)
+            0x03, 0x00, 0x00, 0x04, // Msg2: type=0x03, body_len=4 (header only, no body)
+        ];
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme6/C2S (911:38): partial trailing Msg2 header (4 bytes) must remain in \
+             carry after Msg1 is consumed; - mutant (+) falsely treats Msg2 as complete \
+             and drains it, leaving carry_len=0"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_incomplete_body_partial_trailing_carry_retained() {
+        let fk = make_test_flow_key(10);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let payload: Vec<u8> = vec![
+            0x03, 0x00, 0x00, 0x00, // Msg1: complete
+            0x03, 0x00, 0x00, 0x04, // Msg2: header only, incomplete
+        ];
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme6/S2C (1047:38): partial trailing Msg2 header must remain in server carry; \
+             - mutant (+) falsely consumes it, leaving carry_len=0"
+        );
+    }
+
+    // ── Theme 6c: S2C exact-fill no-drop ─────────────────────────────────────
+    //
+    // Mutation site S2C 1155:43: `>` → `>=`.
+    // Mirrors the C2S EC-005 sub-check in mod story_146 (`test_BC_2_07_043_no_drop_no_counter`).
+    //
+    // Delivers exactly MAX_BUF bytes S2C to a fresh (empty) server_buf.
+    //   remaining = MAX_BUF.  data.len() == remaining == MAX_BUF.
+    //   Correct `>`:  MAX_BUF > MAX_BUF = false → did_drop = false → counter unchanged.
+    //   `>=` mutant:  MAX_BUF >= MAX_BUF = true  → did_drop = true  → counter+1.
+    //
+    // Assertion: buffer_saturation_drop_count == drops_before (no drop at exact boundary).
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_s2c_exact_fill_no_drop() {
+        let fk = make_test_flow_key(11);
+        let mut analyzer = TlsAnalyzer::new();
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Deliver exactly MAX_BUF raw bytes S2C.  server_buf starts empty; remaining = MAX_BUF.
+        // data.len() == remaining → strict > is false → no drop.
+        let data = vec![0x00u8; MAX_BUF];
+        analyzer.on_data(&fk, Direction::ServerToClient, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "Theme6c/S2C (1155:43): exact-fill (MAX_BUF bytes, empty server_buf) must NOT \
+             increment buffer_saturation_drops — drop condition is strictly >, not >= \
+             (drops_before={drops_before})"
+        );
+    }
+}
