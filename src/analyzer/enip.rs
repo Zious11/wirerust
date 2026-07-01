@@ -1654,12 +1654,10 @@ pub struct CpfItem {
 ///
 /// Returns `vec![]` if `cpf_data.len() < 2`.
 ///
-/// # Fuzz Obligation (F-P9-002)
+/// # Fuzz Coverage (F-P9-002 — discharged)
 ///
-/// This function carries an F6 cargo-fuzz no-panic / bounds-safety obligation
-/// (see VP-032 "Out-of-scope note" and ADR-010 Decision 8 DEFERRED list).
-/// A fuzz harness targeting this function MUST be added in the F6 formal-hardening phase.
-/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cpf_items(data); })` in fuzz/.
+/// Covered by `fuzz/fuzz_targets/fuzz_enip_cip_parse.rs` (F-P9-002 discharged).
+/// The harness calls `parse_cpf_items(data)` directly on arbitrary bytes.
 ///
 /// # Panics
 /// Never panics for any input (pure-core obligation, BC-2.17.005 postcondition 5).
@@ -1729,12 +1727,10 @@ pub struct CipHeader {
 ///
 /// **Call-site contract (F-P9-001):** call ONLY for `type_id == 0x00B2` items in v0.11.0.
 ///
-/// # Fuzz Obligation (F-P9-002)
+/// # Fuzz Coverage (F-P9-002 — discharged)
 ///
-/// This function carries an F6 cargo-fuzz no-panic / bounds-safety obligation
-/// (see VP-032 "Out-of-scope note" and ADR-010 Decision 8 DEFERRED list).
-/// A fuzz harness targeting this function MUST be added in the F6 formal-hardening phase.
-/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cip_header(data); })` in fuzz/.
+/// Covered by `fuzz/fuzz_targets/fuzz_enip_cip_parse.rs` (F-P9-002 discharged).
+/// The harness calls `parse_cip_header(data)` directly on arbitrary bytes.
 ///
 /// # Panics
 /// Never panics for any input (pure-core obligation, BC-2.17.006 postcondition 8).
@@ -1894,10 +1890,10 @@ pub enum CipPathSegment {
 /// (== 0x20 / == 0x24 / == 0x30) — do NOT use `& 0xE0` mask (would misclassify 0x24 as
 /// Class). 16-bit extended segments are deferred to v0.12.0.
 ///
-/// # Fuzz Obligation (F-P9-002)
+/// # Fuzz Coverage (F-P9-002 — discharged)
 ///
-/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cip_request_path(data); })`
-/// in fuzz/ during F6 formal-hardening phase.
+/// Covered by `fuzz/fuzz_targets/fuzz_enip_cip_parse.rs` (F-P9-002 discharged).
+/// The harness calls `parse_cip_request_path(data)` directly on arbitrary bytes.
 ///
 /// # Panics
 /// Never panics for any input (pure-core obligation, BC-2.17.009 postcondition 4).
