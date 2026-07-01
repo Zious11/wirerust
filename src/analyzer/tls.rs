@@ -916,8 +916,8 @@ impl TlsAnalyzer {
                         // 0x01 → ClientHello via parse_tls_message_handshake.
                         //   Ok(ClientHello): set client_hello_seen, call handle_client_hello.
                         //   Err or Ok(non-CH): parse_errors+1, no finding (PC-9).
-                        // 0x02 → STORY-145 scope (ServerHello on server direction).
-                        //   Not reachable here (ClientToServer direction).
+                        // 0x02 → ServerHello; handled in the ServerToClient arm (AC-145-001).
+                        //   Not reachable in the ClientToServer direction.
                         // Other: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
                         // Clone only for msg_type==0x01 (the dispatch path). Non-dispatched
                         // types advance the cursor without any heap allocation.
@@ -1368,8 +1368,8 @@ impl TlsAnalyzer {
 
     /// Test-only accessor: whether `client_hello_seen` is set for the given flow.
     ///
-    /// Symmetric companion to the EXISTING `server_hello_seen_for_testing`
-    /// (tls.rs:991). Exposes `flow.client_hello_seen` so tests can directly
+    /// Symmetric companion to `server_hello_seen_for_testing`.
+    /// Exposes `flow.client_hello_seen` so tests can directly
     /// verify BC-2.07.001 postcondition 1 ("flow.client_hello_seen is set to
     /// true") for the carry-reassembly path (AC-144-001 / STORY-144).
     /// Returns `false` for absent flows.
@@ -1380,9 +1380,9 @@ impl TlsAnalyzer {
     /// pass trivially without any implementer work?"
     /// — No: the test for this seam (`test_BC_2_07_038_canonical_frame_rfc8446_s4`
     /// and others) asserts `client_hello_seen == true` only AFTER a fragmented
-    /// ClientHello is reassembled by the carry drain loop. The drain loop is not
-    /// yet implemented, so `client_hello_seen` is never set via the carry path;
-    /// the Red Gate holds.
+    /// ClientHello is reassembled by the carry drain loop. The drain loop is
+    /// implemented (STORY-144, AC-144-001); `client_hello_seen` is set via the
+    /// carry path when a ClientHello is reassembled across records.
     #[doc(hidden)]
     pub fn client_hello_seen_for_testing(&self, flow_key: &FlowKey) -> bool {
         self.flows
