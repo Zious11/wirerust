@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.4"
+version: "2.5"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.5 2026-07-01 (F2 adversarial Pass-1 remediation — BC-scope fixes; PRD bumped to v1.47):**
+> Fixes for F2 adversarial Pass-1 BC-scope findings: F-F2P1-002 (P0) BC-2.05.010 Precondition 3 false DNS premise removed; UDP key changed to `min(src_port, dst_port)`; DNS edge case EC-010/011/012/013 added; VP-043 cited in VP Anchors. F-F2P1-001 (HIGH) BC-2.18.002 EC-003 GOOSE ethertype 34992→35000 (0x88B8 = 35000 decimal). F-F2P1-004 (HIGH) BC-2.18.002 Invariant 2 weakened from iff to one-way implication with ARP carve-out. F-F2P1-003 (HIGH) BC-2.18.001/002 category enum L2 removed; category ∈ {ICS, IT} only; GOOSE.category=ICS; cap-18 capability doc fixed. F-F2P1-005 (MED) BC-2.18.001 EC-007 HART-IP single transport=UDP. F-F2P1-006 (MED) BC-2.05.010/011/PRD: UDP key `dst_port`→`min(src_port, dst_port)`. F-F2P1-008 (MED) VP-041 harness renamed to `proptest_vp041_oracle_cross_check` in BC-2.18.001..004. F-F2P1-009 (MED) output ordering: catalog-declaration order added to BC-2.18.001 PC-8, BC-2.18.002 PC-4; BC-INDEX "alphabetical sort"→"catalog-declaration order". F-F2P1-011 (MED) BC-2.05.010/011 VP Anchors cite both VP-042 (TCP) and VP-043 (UDP). F-F2P1-012 (LOW) BC-2.05.010 Invariant 6: 65,535→65,536, 131,070→131,072. F-F2P1-013 (LOW) BC-2.12.024 comment OQ-6→OQ-2. F-F2P1-014 (LOW) BC-2.18.002 field comment adds category+ethertype.
 >
 > **v2.4 2026-07-01 (feature-protocol-coverage F2 spec-layer INTEGRATE sub-burst — 9 new BCs, SS-18 section added):**
 > 9 new BCs for feature-protocol-coverage F2 spec-layer (ADR-012, D-320): SS-18 (Protocol Coverage Catalog): BC-2.18.001 (P0) `protocols` subcommand terminal catalog output; BC-2.18.002 (P1) `protocols` JSON mode; BC-2.18.003 (P0) `supported_protocols()`/`unsupported_protocols()` set-difference correctness; BC-2.18.004 (P0) catalog partition invariant (supported ∪ unsupported == KNOWN_PROTOCOLS, disjoint). SS-05 extension: BC-2.05.010 (P0) `unclassified_port_counts` keyed on `(TransportProto, u16)` — TCP via Dispatcher None-target, UDP via decode-loop; BC-2.05.011 (P0) per-(TransportProto, port) counts exact and monotonically non-decreasing. SS-12 extension: BC-2.12.022 (P0) `wirerust protocols` subcommand dispatches to `run_protocols()`; BC-2.12.023 (P0) `--coverage-gaps` flag opt-in, NOT auto-enabled under `analyze --all`; BC-2.12.024 (P1) `CoverageGapsSummary` includes mandatory caveat text. BC count: 337→346 on disk; 336→345 active. SS-18 section added. SS-05: 9→11. SS-12: 21→24. PRD bumped to v1.46. VP-042 wording updated (TransportProto, u16) key clarification. RTM §7 rows added for all 9 BCs. CAP-18 registered in domain-spec capability index.
@@ -562,7 +565,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.021 | Summary Serializes with total_packets/total_bytes/skipped_packets Fields | P1 | [WRITTEN] | BC-SUM-004 |
 | BC-2.12.022 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; cli.rs/main.rs; `protocols` subcommand wired to run_protocols(); --json produces JSON array output -->
 | BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 8; existing --all consumers unaffected; CoverageGapsSummary appended post-findings -->
-| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 9; Suricata tri-state vocabulary; mandatory caveat text required per D-320 OQ-6 -->
+| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 9; Suricata tri-state vocabulary (known-unsupported/unknown/known-supported) per D-320 OQ-2 (report what was seen vs what is knowable) -->
 
 ## ss-13: Absent / Unwired Feature Contracts
 
@@ -761,16 +764,16 @@ traces_to: .factory/specs/prd.md
 > BC-2.18.002: JSON mode — structured protocol array output.
 > BC-2.18.003: supported_protocols() / unsupported_protocols() set-difference and ARP insertion.
 > BC-2.18.004: Catalog partition invariant — supported ∪ unsupported == KNOWN_PROTOCOLS, disjoint.
-> VP-041 (proptest P1, draft): catalog set-difference correctness (2 harnesses; src/protocols.rs).
+> VP-041 (proptest P1, draft): catalog oracle cross-check (`proptest_vp041_oracle_cross_check`; single harness; src/protocols.rs).
 > KNOWN_PROTOCOLS ~30 entries: 7 supported + 9 ICS Tier-1 unsupported + 5 L2/multicast + 9 IT core.
 > Note: SS-05 extension (BC-2.05.010..011) and SS-12 extension (BC-2.12.022..024) are co-features.
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: terminal table with name/ports/status/transport/detection columns; one row per entry; alphabetical sort -->
-| BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: --json flag; array of objects; fields: name/ports/status/transport/port_detectable -->
-| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: SUPPORTED_PORTS compile-time set mirrors classify() rules; ARP added unconditionally; VP-041 Sub-A -->
-| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: VP-041 Sub-B proptest_vp041_partition_invariant; every KNOWN_PROTOCOLS entry in exactly one set -->
+| BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: terminal table with name/ports/status/transport/detection columns; one row per entry; catalog-declaration order -->
+| BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: --json flag; array of objects; fields: name/category/ports/status/transport/port_detectable/ethertype; catalog-declaration order -->
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: SUPPORTED_PORTS compile-time set mirrors classify() rules; ARP added unconditionally; VP-041 oracle (proptest_vp041_oracle_cross_check) -->
+| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: VP-041 proptest_vp041_oracle_cross_check (primary oracle); every KNOWN_PROTOCOLS entry in exactly one set -->
 
 ---
 

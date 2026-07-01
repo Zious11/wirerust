@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.7"
+version: "2.8"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -87,6 +87,9 @@ modified:
   - date: 2026-07-01
     actor: architect
     reason: "F2-SCOPE-DRIFT-UDP-001 resolution: ADR-012 Decision 6 corrected from TCP-only to TCP+UDP dynamic detection (D-320 OQ-5 approved scope). Bounded-Resource Design SS-18 note updated: HashMap key type changed from direction-normalized (u16, u16) port pair to (TransportProto, u16) supporting TCP+UDP transport discrimination; UDP unclassified counter added in main.rs decode loop; combined key bound 2×65,535. ADR-012 row updated to reflect TCP+UDP. SS-18 row comment updated. module-decomposition.md C-21 updated with new field. Version bump 2.6→2.7."
+  - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 adversarial Pass-1 remediation (F-F2P1-003/006/008/010/011/012): (F-F2P1-003) SS-18 registry comment: ProtocolCategory = {ICS, IT} ONLY — NO L2 variant; L2 detection expressed by transport:LinkLayer + port_detectable:false. (F-F2P1-006) Bounded-Resource Design SS-18 note: UDP key changed from (Udp, dst_port) → (Udp, min(src_port, dst_port)) symmetric with TCP; SS-18 registry comment updated with key=min(src_port,dst_port). (F-F2P1-008) SS-18 registry comment: VP-041 harness updated proptest_vp041_set_difference → proptest_vp041_oracle_cross_check (non-vacuous; independent oracle). (F-F2P1-011) SS-18 registry comment: VP-043 added (main.rs UDP decode-loop accumulation; OQ-5 UDP exactness jointly VP-042+VP-043). (F-F2P1-012) Bounded-Resource Design SS-18 note: combined bound corrected 2×65,535 → 2×65,536 (port space 0..=65535 = 65,536 values per transport). VP-INDEX updated to v2.31 (VP-043 added; VP-041 reframed; VP-042 key fixed; total 42→43, proptest 19→20, p1 28→29). Version bump 2.7→2.8."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -156,7 +159,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
 | SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
 | SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 26 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..026; TCP/44818 explicit messaging MVP; UDP/2222 deferred; F2 addendum: BC-2.17.026 --enip-error-burst-threshold --> |
-| SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 | <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004 (PO delivers next); C-26; VP-041 proptest set-difference + VP-042 proptest port-count accumulation; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP+UDP dynamic detection (D-320 OQ-5); BACnet UDP/47808 IS flaggable; (TransportProto, u16) key; L2/multicast port-undetectable --> |
+| SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 | <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004 (PO delivers next); C-26; VP-041 proptest oracle-cross-check (F-F2P1-008: non-vacuous; proptest_vp041_oracle_cross_check independent of supported_protocols()) + VP-042 proptest dispatcher port-count accumulation + VP-043 proptest main.rs UDP decode-loop accumulation (F-F2P1-011); ProtocolCategory = {ICS, IT} ONLY — NO L2 variant (F-F2P1-003); L2 detection expressed by transport:LinkLayer + port_detectable:false; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP+UDP dynamic detection (D-320 OQ-5); BACnet UDP/47808 IS flaggable; (TransportProto, u16) key = min(src_port, dst_port) (F-F2P1-006); L2/multicast port-undetectable --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 
@@ -211,7 +214,7 @@ Three independent caps operate at different layers:
 - L3/SS-14: `MAX_PENDING_TRANSACTIONS = 256` per Modbus flow (transaction correlation table); `MAX_FINDINGS = 10,000` shared constant
 - L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
 - L3/SS-17: carry buffer bounded to 600 bytes per ENIP flow (`MAX_ENIP_CARRY_BYTES = 600`; ADR-010 Decision 3); `MAX_FINDINGS = 10,000` shared constant; `MALFORMED_ANOMALY_THRESHOLD = 3` for T0814 windowed gate (architecture-delta §4.2; ADR-010 Decision 4)
-- L3/SS-18 (via SS-05 + SS-12): two `(TransportProto, u16)` keyed counters back the dynamic gap report — (a) `StreamDispatcher.unclassified_port_counts: HashMap<(TransportProto, u16), u64>` for TCP None-target flows (key: `(Tcp, lower_port)`; populated at `on_flow_close`; overhead proportional to closed unclassified TCP flows, not packet volume); (b) `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in `main.rs` decode loop for UDP packets not handled by a dissector (key: `(Udp, dst_port)`; per-packet); `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs` (NOT imported from `protocols.rs`); combined bound: 2 × 65,535 unique keys; both maps read-only after `run_analyze()` returns; ADR-012 Decision 6
+- L3/SS-18 (via SS-05 + SS-12): two `(TransportProto, u16)` keyed counters back the dynamic gap report — (a) `StreamDispatcher.unclassified_port_counts: HashMap<(TransportProto, u16), u64>` for TCP None-target flows (key: `(Tcp, min(src_port, dst_port))`; symmetric normalization eliminates ephemeral-port noise; populated at `on_flow_close`; overhead proportional to closed unclassified TCP flows, not packet volume); (b) `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in `main.rs` decode loop for UDP packets not handled by a dissector (key: `(Udp, min(src_port, dst_port))`; per-packet; symmetric with TCP); `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs` (NOT imported from `protocols.rs`); combined bound: 2 × 65,536 unique keys (port space 0..=65535 = 65,536 values per transport); both maps read-only after `run_analyze()` returns; ADR-012 Decision 6 (F-F2P1-006 key fix, F-F2P1-012 bound fix)
 - L1/SS-04: `max_flows` and `memcap` configurable via `ReassemblyConfig`
 
 ### Single-Threaded Synchronous Execution

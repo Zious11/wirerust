@@ -81,7 +81,7 @@ existing downstream consumers of wirerust JSON output (ADR-012 Decision 8).
 | EC-005 | `wirerust analyze <file> --coverage-gaps` on empty pcap | CoverageGapsSummary present but with empty map; mandatory caveat text still present |
 | EC-006 | `wirerust analyze <file> --coverage-gaps --json` | JSON output has `"coverage_gaps"` key alongside `"findings"` and `"summary"` |
 | EC-007 | `wirerust protocols --coverage-gaps` | clap error (flag not valid on protocols subcommand); non-zero exit |
-| EC-008 | Large pcap with many unclassified flows | CoverageGapsSummary bounded by port-space (at most 131,070 unique keys per BC-2.05.010 Invariant 6) |
+| EC-008 | Large pcap with many unclassified flows | CoverageGapsSummary bounded by port-space (at most 131,072 unique keys per BC-2.05.010 Invariant 6 — u16 range 0..=65535 = 65,536 values × 2 transports) |
 
 ## Canonical Test Vectors
 

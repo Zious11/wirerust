@@ -19,8 +19,14 @@ traces_to:
 
 This document records the complete design-layer changes made in the F2 spec evolution
 phase for cycle `feature-protocol-coverage` (human gate D-320). It covers new
-subsystem SS-18, new component C-26, new ADR-012, and two new verification properties
-VP-041 and VP-042.
+subsystem SS-18, new component C-26, new ADR-012, and three new verification properties
+VP-041, VP-042, and VP-043.
+
+**F2P1 adversarial remediation (2026-07-01):** Eight design-layer findings from F2
+adversarial Pass-1 (F-F2P1-003, 005, 006, 007, 008, 010, 011, 012) corrected in
+ADR-012, SS-18, VP-INDEX, verification-architecture.md, verification-coverage-matrix.md,
+ARCH-INDEX.md, and this document. Design decisions recorded in §10 for product-owner
+BC alignment.
 
 This document does NOT author behavioral contracts (BC-2.18.001..004 / BC-2.05.010..011
 / BC-2.12.022..024) — those are the product-owner's next deliverable. It provides the
@@ -62,16 +68,18 @@ This file is the canonical specification for SS-18. It defines:
 ### 2.2 Data Model (src/protocols.rs — PURE CORE)
 
 ```rust
-pub enum ProtocolCategory { ICS, IT, L2 }
+// NO L2 variant in ProtocolCategory — L2 detection is expressed by
+// transport: Transport::LinkLayer + port_detectable: false (F-F2P1-003)
+pub enum ProtocolCategory { ICS, IT }
 pub enum Transport { Tcp, Udp, LinkLayer }
 
 pub struct KnownProtocol {
     pub name:            &'static str,
     pub category:        ProtocolCategory,
     pub transport:       Transport,
-    pub canonical_ports: &'static [u16],   // empty for L2 protocols
-    pub ethertype:       Option<u16>,       // Some only for L2 protocols
-    pub port_detectable: bool,              // false for L2/multicast entries
+    pub canonical_ports: &'static [u16],   // empty for LinkLayer-transport protocols
+    pub ethertype:       Option<u16>,       // Some only for LinkLayer-transport protocols
+    pub port_detectable: bool,              // false for LinkLayer/multicast entries
     pub description:     &'static str,
 }
 
@@ -94,8 +102,10 @@ SS-18 depends on nothing within wirerust's source tree. It is a leaf in the depe
 graph. Consuming subsystems:
 - SS-12 (cli.rs / main.rs) — adds `protocols` subcommand and `--coverage-gaps` flag
 - SS-05 (dispatcher.rs) — adds `unclassified_port_counts: HashMap<(TransportProto, u16), u64>`
-  for TCP None-target flow tracking (key: `(Tcp, lower_port)`); SS-12 (main.rs) adds a
-  UDP unclassified counter with the same key type for UDP datagrams in the decode loop;
+  for TCP None-target flow tracking (key: `(Tcp, lower_port)` where `lower_port =
+  min(src_port, dst_port)`); SS-12 (main.rs) adds a UDP unclassified counter with the
+  same key type for UDP datagrams in the decode loop (key: `(Udp, min(src_port,
+  dst_port))` — symmetric normalization prevents ephemeral-port noise; F-F2P1-006);
   SUPPORTED_PORTS relationship documented but SS-05 does NOT import from protocols.rs at
   runtime; `TransportProto` is a minimal `{Tcp, Udp}` enum in dispatcher.rs (not from
   protocols.rs, which has a third `LinkLayer` variant)
@@ -117,7 +127,10 @@ Key decisions recorded:
 5. SUPPORTED_PORTS compile-time mirror of classify() — drift guarded by VP-041
 6. TCP+UDP dynamic detection (D-320 OQ-5); (TransportProto, u16) key; BACnet/IP
    UDP/47808 IS flaggable; L2/multicast still port-undetectable (structural)
-7. Category tagging (ICS / IT / L2)
+7. Category tagging (ICS / IT) — NO L2 variant in ProtocolCategory; L2 detection
+   expressed by transport:LinkLayer + port_detectable:false (F-F2P1-003); `--ics-only`
+   category filter NOT shipping this cycle (retained for display and future filtering
+   only; F-F2P1-010)
 8. `--coverage-gaps` explicit flag (NOT auto under `--all`)
 9. `CoverageGapsSummary` as report section (NOT Finding entries)
 
@@ -125,23 +138,44 @@ Key decisions recorded:
 
 ### VP-041 (proptest, P1, draft — src/protocols.rs)
 
-**Property:** Catalog set-difference correctness — partition and disjoint invariants.
-- `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS`
-- `supported_protocols() ∩ unsupported_protocols() == ∅`
-- Every KNOWN_PROTOCOLS entry appears in exactly one output set
+**Property:** Catalog oracle cross-check — supported classification agrees with
+independent oracle (F-F2P1-008, DF-KANI-NONVACUITY-001).
 
-**Harnesses:** 2 proptest harnesses
-- `proptest_vp041_set_difference_correct` (partition + disjoint via SUPPORTED_PORTS mask)
-- `proptest_vp041_partition_invariant` (each entry in exactly one set)
+The original partition/disjoint formulation was vacuously true because
+`unsupported = KNOWN \ supported` holds by construction. VP-041 is reframed to use
+an independent oracle that does NOT call `supported_protocols()` or
+`unsupported_protocols()`:
+
+```rust
+// Independent oracle (does not call supported_protocols() / unsupported_protocols())
+let oracle_supported: bool =
+    entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p))
+    || entry.name == "ARP";
+// Assertion: catalog classification must agree with oracle
+assert_eq!(is_supported_by_catalog(entry), oracle_supported);
+```
+
+**Harnesses:** 1 proptest harness
+- `proptest_vp041_oracle_cross_check` — for every KNOWN_PROTOCOLS entry, independently
+  computes `oracle_supported` without calling `supported_protocols()` /
+  `unsupported_protocols()`; non-vacuous (falsifiable if SUPPORTED_PORTS diverges from
+  classify())
 
 **Traces:** BC-2.18.003, BC-2.18.004
 
 ### VP-042 (proptest, P1, draft — dispatcher.rs)
 
-**Property:** Per-port unclassified-flow count accumulation exactness.
+**Property:** Per-port unclassified-flow count accumulation exactness — TCP dispatcher
+`on_flow_close` path only.
 - `unclassified_port_counts.values().sum() == N` after N None-target on_flow_close calls
-- Per-port count equals input frequency
+- Per-port count equals input frequency; key is `(Tcp, min(src_port, dst_port))`
+  (F-F2P1-006 symmetric normalization)
 - Classified-flow on_flow_close does NOT increment any counter
+
+**SCOPE NOTE (F-F2P1-011):** VP-042 covers only `dispatcher.rs::on_flow_close`. UDP
+packets in the `main.rs` decode loop are NOT routed through `on_flow_close` and are
+NOT reachable by VP-042. UDP exactness/monotonicity for the decode-loop path is
+covered by VP-043.
 
 **Harnesses:** 3 proptest harnesses
 - `proptest_vp042_total_count_equals_n`
@@ -152,6 +186,28 @@ Key decisions recorded:
 re-run at F6 as regression confirmation. The `classify()` function is unchanged, but
 the new `unclassified_port_counts` HashMap field changes the `StreamDispatcher` struct;
 Kani proof bounds must be re-checked.
+
+**Traces:** BC-2.05.010, BC-2.05.011
+
+### VP-043 (proptest, P1, draft — main.rs) — NEW, F-F2P1-011
+
+**Property:** UDP decode-loop unclassified-packet count accumulation exactness (OQ-5
+UDP path gap).
+
+The `main.rs` decode loop processes UDP datagrams independently of `dispatcher.rs`.
+Packets failing `dns_analyzer.can_decode()` are counted as unclassified; the key is
+`(TransportProto::Udp, min(src_port, dst_port))`. VP-042 cannot reach this path.
+VP-043 closes the OQ-5 UDP exactness/monotonicity gap jointly with VP-042 (VP-042
+covers dispatcher path, VP-043 covers decode-loop path).
+
+- Total unclassified count == N after N non-DNS UDP packets through decode loop
+- No increment for classified UDP (DNS)
+- Key is `(TransportProto::Udp, min(src_port, dst_port))` — symmetric normalization
+
+**Harnesses:** 2 proptest harnesses
+- `proptest_vp043_total_count_equals_n` — N non-DNS UDP packets yield total == N
+- `proptest_vp043_no_increment_on_classified_udp` — classified UDP does NOT increment
+  the counter
 
 **Traces:** BC-2.05.010, BC-2.05.011
 
@@ -169,9 +225,11 @@ Changes applied:
 
 ## 6. VP-INDEX.md Updates
 
-Updated: `.factory/specs/verification-properties/VP-INDEX.md` (v2.28 → v2.30)
+Updated: `.factory/specs/verification-properties/VP-INDEX.md` (v2.28 → v2.30 initial;
+v2.30 → v2.31 after F2P1 adversarial remediation)
 
-Changes applied:
+### 6.1 Initial F2 Design Layer (D-320) — v2.28 → v2.30
+
 - total_vps: 40 → 42
 - p1_count: 26 → 28
 - proptest_count: 17 → 19
@@ -181,24 +239,61 @@ Changes applied:
 - P1 Properties list: VP-041 and VP-042 inserted (newest first ordering)
 - Consistency Invariants: total 40 → 42, proptest 17 → 19, P1 26 → 28, draft 9 → 11
 
+### 6.2 F2P1 Adversarial Remediation — v2.30 → v2.31
+
+- total_vps: 42 → 43 (VP-043 added)
+- p1_count: 28 → 29
+- proptest_count: 19 → 20
+- VP-041 harness renamed: `proptest_vp041_set_difference_correct` →
+  `proptest_vp041_oracle_cross_check` (oracle reframe, F-F2P1-008)
+- VP-042 key fixed: `(Udp, dst_port)` → `(Udp, min(src_port, dst_port))`; VP-043
+  scope note added (F-F2P1-006, F-F2P1-011)
+- VP-043 row added: UDP decode-loop accumulation, main.rs, proptest, P1, draft
+- Consistency Invariants: total 42 → 43, proptest 19 → 20, P1 28 → 29, draft 11 → 12
+
 ## 7. Verification Architecture Document Updates
 
-Updated: `.factory/specs/architecture/verification-architecture.md` (v2.24 → v2.26)
+Updated: `.factory/specs/architecture/verification-architecture.md` (v2.24 → v2.26
+initial; v2.26 → v2.27 after F2P1 adversarial remediation)
 
-Changes applied:
+### 7.1 Initial F2 Design Layer (D-320) — v2.24 → v2.26
+
 - Should Prove table: VP-041 and VP-042 rows added
 - Tooling Selection proptest row: VP-041, VP-042 added to list (17 → 19)
 - P1 enumeration list: VP-041 and VP-042 bullet points added
 - Total counts updated (40 → 42, P1 26 → 28)
 
-Updated: `.factory/specs/architecture/verification-coverage-matrix.md` (v1.40 → v1.42)
+### 7.2 F2P1 Adversarial Remediation — v2.26 → v2.27
 
-Changes applied:
+- VP-041 Should Prove row: oracle reframe (`proptest_vp041_oracle_cross_check`);
+  non-vacuous per DF-KANI-NONVACUITY-001 (F-F2P1-008)
+- VP-042 Should Prove row: key `(Udp, dst_port)` → `(Udp, min(src_port, dst_port))`;
+  VP-043 scope note added (F-F2P1-006, F-F2P1-011)
+- VP-043 Should Prove row added: UDP decode-loop accumulation, main.rs, proptest
+- Tooling Selection proptest row: VP-043 added (19 → 20 VPs)
+- P1 list: VP-043 added; VP-041 entry updated to oracle harness name;
+  VP-042 entry updated with key fix + scope note
+
+Updated: `.factory/specs/architecture/verification-coverage-matrix.md` (v1.40 → v1.42
+initial; v1.42 → v1.43 after F2P1 adversarial remediation)
+
+### 7.3 Initial F2 Design Layer (D-320) — v1.40 → v1.42
+
 - VP-to-Module Mapping: VP-041 and VP-042 rows added
 - Per-Module Coverage Totals: new `protocols.rs` module row added
 - Per-Module Coverage Totals: `dispatcher.rs` row proptest 0 → 1, Total 1 → 2
 - Totals row: proptest 17 → 19, overall 40 → 42
 - Coverage notes: VP-041 and VP-042 notes added
+
+### 7.4 F2P1 Adversarial Remediation — v1.42 → v1.43
+
+- VP-041 row: oracle reframe (`proptest_vp041_oracle_cross_check`) (F-F2P1-008)
+- VP-042 row: key `min(src_port, dst_port)`; VP-043 scope note (F-F2P1-006,
+  F-F2P1-011)
+- VP-043 row added after VP-042: main.rs, proptest
+- Per-Module Coverage Totals: `main.rs` row added (0 Kani, 1 proptest, 0 fuzz,
+  0 integration, total 1)
+- Totals row: proptest 19 → 20, overall 42 → 43
 
 ## 8. Product-Owner Anchoring Guidance
 
@@ -226,8 +321,8 @@ Use `subsystem: SS-05` in frontmatter.
 
 | BC ID | Suggested Topic |
 |-------|----------------|
-| BC-2.05.010 | `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` updated at `on_flow_close` for `DispatchTarget::None` TCP flows; key is `(Tcp, lower_port)` where `lower_port = min(src_port, dst_port)`; UDP unclassified packets tracked separately in decode loop with key `(Udp, dst_port)` |
-| BC-2.05.011 | Per-(transport, port) counts are exact and monotonic; classified-flow `on_flow_close` does NOT update the TCP map; all TCP-map entries carry `TransportProto::Tcp` |
+| BC-2.05.010 | `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` updated at `on_flow_close` for `DispatchTarget::None` TCP flows; key is `(Tcp, lower_port)` where `lower_port = min(src_port, dst_port)`; UDP unclassified packets tracked separately in decode loop with key `(Udp, min(src_port, dst_port))` — symmetric normalization prevents ephemeral-port noise (F-F2P1-006) |
+| BC-2.05.011 | Per-(transport, port) counts are exact and monotonic; classified-flow `on_flow_close` does NOT update the TCP map; all TCP-map entries carry `TransportProto::Tcp`; TCP dispatcher-path exactness verified by VP-042; UDP decode-loop exactness verified by VP-043 |
 
 ### SS-12 BCs (BC-2.12.022..024)
 
@@ -266,3 +361,85 @@ Use `subsystem: SS-12` in frontmatter.
 | `.factory/specs/architecture/ARCH-INDEX.md` | Bounded-Resource SS-18 note updated (TransportProto, u16) dual-counter; ADR-012 row updated TCP-only → TCP+UDP; SS-18 registry comment updated; modified log entry added | v2.6 → v2.7 |
 | `.factory/specs/architecture/module-decomposition.md` | C-21 row updated: unclassified_port_counts field + TransportProto type note | v1.8 (modified) |
 | `.factory/phase-f2-spec-evolution/feature-protocol-coverage-architecture-delta.md` | OQ-5 overview, SS-05 section, ADR decisions summary, BC-2.05.010/011 anchoring, mandatory caveat text — all updated for TCP+UDP | draft (modified) |
+
+### 9.3 F2P1 Adversarial Remediation (F-F2P1-003, 005, 006, 007, 008, 010, 011, 012)
+
+| File | Finding(s) | Change | Version |
+|------|-----------|--------|---------|
+| `.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md` | F-F2P1-003, F-F2P1-006, F-F2P1-010 | Decision 7: L2 variant removed from ProtocolCategory, ICS/IT only, `--ics-only` softened to display-only; Decision 6: UDP key `dst_port` → `min(src_port, dst_port)` | accepted (modified) |
+| `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` | F-F2P1-003, F-F2P1-005, F-F2P1-006, F-F2P1-007, F-F2P1-012 | ProtocolCategory ICS/IT only; HART-IP transport TCP+UDP → UDP (single-canonical); §Transport Model section added; `known` → `known-supported` in output spec; UDP key → `min(src_port, dst_port)`; bound `2 × 65,535` → `2 × 65,536` | v1.0 → v1.1 |
+| `.factory/specs/architecture/ARCH-INDEX.md` | F-F2P1-003, F-F2P1-006, F-F2P1-008, F-F2P1-011, F-F2P1-012 | SS-18 registry comment: ProtocolCategory ICS/IT only, oracle VP-041, VP-043; Bounded-Resource note: key fix + `2 × 65,536` | v2.7 → v2.8 |
+| `.factory/specs/verification-properties/VP-INDEX.md` | F-F2P1-006, F-F2P1-008, F-F2P1-011 | VP-041 oracle reframe; VP-042 key fix + scope note; VP-043 added | v2.30 → v2.31 |
+| `.factory/specs/architecture/verification-architecture.md` | F-F2P1-006, F-F2P1-008, F-F2P1-011 | VP-041/042/043 Should Prove rows updated; P1 list updated; Tooling proptest VP-043 added | v2.26 → v2.27 |
+| `.factory/specs/architecture/verification-coverage-matrix.md` | F-F2P1-006, F-F2P1-008, F-F2P1-011 | VP-041/042/043 rows updated; main.rs row added; Totals updated | v1.42 → v1.43 |
+| `.factory/phase-f2-spec-evolution/feature-protocol-coverage-architecture-delta.md` | ALL F2P1 | ProtocolCategory ICS/IT only; VP-041 oracle reframe; VP-042 key fix + scope note; VP-043 section added; ADR Decision 7 note; UDP key fix in BC-2.05.010 anchoring | draft (modified) |
+
+**Product-owner BC files requiring alignment (PO scope — NOT modified by architect):**
+| File | Finding | Change needed |
+|------|---------|---------------|
+| `.factory/specs/bcs/BC-2.05.010.md` | F-F2P1-012 | Line 81: `2 × 65,535` → `2 × 65,536`; also adopt `min(src_port, dst_port)` UDP key per F-F2P1-006 |
+| `.factory/specs/prd.md` | F-F2P1-006 | Line 2162: `(Udp, dst_port)` → `(Udp, min(src_port, dst_port))` |
+
+## 10. Design Decisions for Product-Owner BC Alignment
+
+The following design decisions were made during F2P1 adversarial remediation. The
+product-owner must reflect these decisions when updating BC files.
+
+### D-F2P1-001: ProtocolCategory has no L2 variant (F-F2P1-003)
+
+`ProtocolCategory` is `{ ICS, IT }` only. GOOSE.category = ICS (not a third enum
+variant). L2-protocol detection is expressed structurally: `transport:
+Transport::LinkLayer AND port_detectable: false`. There is no `L2` category value
+in the enum at any layer. BC-2.18.001/003/004 must not reference a `L2` category
+variant in their postconditions or invariants.
+
+### D-F2P1-002: Single-canonical-transport per KnownProtocol entry (F-F2P1-005)
+
+The `Transport` field on `KnownProtocol` admits exactly one value (`Tcp`, `Udp`, or
+`LinkLayer`). Protocols that run on both TCP and UDP have a single canonical transport
+designated for the catalog. HART-IP canonical transport = UDP (port 5094); the TCP
+variant is noted in `description` but not modeled in the type. BCs must not assert
+multi-value transport fields.
+
+### D-F2P1-003: UDP gap counter uses min(src_port, dst_port) (F-F2P1-006)
+
+Both TCP (`dispatcher.rs::on_flow_close`) and UDP (`main.rs` decode loop) unclassified
+counters use `min(src_port, dst_port)` as the port component of the HashMap key. This
+prevents ephemeral-port noise: SNMP response from 161→52000 is keyed as `(Udp, 161)`,
+not `(Udp, 52000)`. BC-2.05.010 and BC-2.05.011 must state this normalization.
+
+### D-F2P1-004: CoverageGapsSummary tri-state uses "known-supported" (F-F2P1-007)
+
+The authoritative tri-state terms (Suricata-derived, ADR-012 Decision 2) are:
+`known-supported` / `known-unsupported` / `unknown`. The third term is
+`known-supported`, NOT `known`. BC-2.12.023/024 and any BC referencing the
+CoverageGapsSummary output schema must use `known-supported`.
+
+### D-F2P1-005: VP-041 is a non-vacuous oracle cross-check (F-F2P1-008)
+
+The original partition/disjoint formulation of VP-041 was vacuously true by
+construction. The harness is reframed to `proptest_vp041_oracle_cross_check`: an
+independent oracle computes `oracle_supported` without calling
+`supported_protocols()` or `unsupported_protocols()`, then asserts agreement. This
+is falsifiable if `SUPPORTED_PORTS` diverges from `classify()`. BC-2.18.003/004
+postconditions remain valid but the VP proof strategy changed.
+
+### D-F2P1-006: VP-042 covers only dispatcher.rs on_flow_close; VP-043 covers main.rs UDP (F-F2P1-011)
+
+VP-042 is scoped to `dispatcher.rs::on_flow_close` (TCP path). The UDP decode loop
+in `main.rs` is a separate execution path not routed through `on_flow_close`. VP-043
+(new) covers the `main.rs` UDP decode-loop unclassified-packet counter. OQ-5 UDP
+exactness/monotonicity is jointly covered by VP-042 (dispatcher path) + VP-043
+(decode-loop path). BC-2.05.010/011 may cite both VPs.
+
+### D-F2P1-007: Port space is 0..=65535 = 65,536 values (F-F2P1-012)
+
+The bounded-resource bound is `2 × 65,536` unique HashMap keys (one per transport ×
+one per port value in 0..=65535). The prior `2 × 65,535` was off-by-one. BC-2.05.010
+postconditions stating HashMap bounds must use 65,536, not 65,535.
+
+### D-F2P1-008: --ics-only filter NOT shipping this cycle (F-F2P1-010)
+
+`ProtocolCategory` is retained for display in the `protocols` subcommand output and
+for future filtering. The `--ics-only` CLI flag does NOT ship this cycle. No BC may
+require or describe a `--ics-only` filter. BC-2.12.022/023 must not reference it.

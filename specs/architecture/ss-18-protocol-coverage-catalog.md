@@ -3,11 +3,15 @@ artifact: architecture-section
 section: ss-18-protocol-coverage-catalog
 subsystem_id: SS-18
 traces_to: ARCH-INDEX.md
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-07-01T00:00:00Z
 feature_cycle: feature-protocol-coverage
+modified:
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-1 remediation: (F-F2P1-003) ProtocolCategory enum corrected to {ICS, IT} only — removed L2 variant; L2 detection expressed by transport:LinkLayer + port_detectable:false; (F-F2P1-005) HART-IP catalog entry changed from TCP+UDP to canonical UDP:5094 with TCP noted in description; §Transport Model section added documenting single-canonical-transport decision for HART-IP/IEC-104/BACnet; (F-F2P1-006) UDP counter key changed from (Udp, dst_port) to (Udp, min(src_port, dst_port)) — ephemeral-port guard symmetric with TCP lower_port; (F-F2P1-007) CoverageGapsSummary Output tri-state: 'known' corrected to 'known-supported' (authoritative per ADR-012 Decision 2 and BC-2.12.024); (F-F2P1-012) Bounded-Resource Note off-by-one: 2×65,535 → 2×65,536 (port space 0..=65535 = 65,536 values per transport)."
 ---
 
 # SS-18: Protocol Coverage Catalog
@@ -51,7 +55,7 @@ set-difference computation is pure core, testable independently.
 ## Data Model
 
 ```rust
-pub enum ProtocolCategory { ICS, IT, L2 }
+pub enum ProtocolCategory { ICS, IT }   // NO L2 variant — L2 detection is expressed by transport:LinkLayer + port_detectable:false
 
 pub enum Transport { Tcp, Udp, LinkLayer }
 
@@ -100,7 +104,7 @@ CLI help text MUST state this distinction explicitly (see ADR-012 Decision 3).
 | OPC-UA binary | TCP | 4840 | IANA registered |
 | PROFINET RPC | UDP | 34962, 34963, 34964 | — |
 | ICCP / TASE.2 | TCP | 102 | Port 102 collision |
-| HART-IP | TCP+UDP | 5094 | — |
+| HART-IP | UDP | 5094 | TCP also supported per [P10]; UDP is canonical (initiates session); single-canonical-transport model — see §Transport Model |
 
 ### L2/Multicast — NOT Port-Detectable (5)
 
@@ -125,6 +129,33 @@ CLI help text MUST state this distinction explicitly (see ADR-012 Decision 3).
 | NTP | UDP | 123 | Time sync critical for SV/GOOSE/SCADA timestamps |
 | SMTP | TCP | 25 | Alarm email from historians/RTUs |
 | LDAP | TCP | 389 | AD auth in IT/OT DMZ |
+
+---
+
+## Transport Model
+
+**Decision (F-F2P1-005):** Each `KnownProtocol` entry carries a **single canonical
+transport** in its `transport: Transport` field. Dual-stack protocols (those that
+historically support both TCP and UDP) are assigned one canonical transport per entry,
+with the alternative noted in `description`.
+
+**HART-IP:** canonical `Transport::Udp` (port 5094). UDP initiates the HART-IP session
+and is listed first in all authoritative sources including Wireshark HART-IP [P10].
+TCP is also defined by the standard but is treated as secondary; the description field
+carries the note "TCP also supported per HART-IP specification".
+
+**IEC 60870-5-104 (IEC-104):** canonical `Transport::Tcp` (port 2404). IANA registers
+both TCP and UDP for port 2404 [P8], but the standard specifies TCP as primary; UDP
+is documented as "rare" in the research [feature-protocol-coverage-research.md Q1].
+
+**BACnet/IP:** canonical `Transport::Udp` (port 47808). UDP-only by default [C8][P4].
+
+**Rationale:** A single-canonical-transport model keeps `Transport` a simple enum with
+one value per entry, preserving the pure-core invariant (no collection type needed) and
+making proptest strategies straightforward. VP-041 and BC-2.18.001/002 EC-007 encode
+the single-transport model. If dual-transport detection becomes required in a future
+cycle, the field type can change to `&'static [Transport]` — a breaking API change
+documented in ADR-012.
 
 ---
 
@@ -203,7 +234,7 @@ The dynamic gap report is a new named section in the analysis output, produced o
 when `--coverage-gaps` is passed. It groups undissected flows by `(transport, port)`
 with packet counts, using Suricata-style vocabulary (per ADR-012 Decision 2):
 
-- **known** — port maps to a catalog entry whose `supported: true`
+- **known-supported** — port maps to a catalog entry whose `supported: true`
   (should never appear in gap report; sanity check only)
 - **known-unsupported** — port maps to a catalog entry with `supported: false`
   (the main signal: "we know about this protocol but can't dissect it")
@@ -237,8 +268,11 @@ Two counters back the dynamic gap report:
 
 2. **UDP counter** — `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in
    the `main.rs` decode loop: populated per-packet for UDP datagrams not handled by a
-   dissector; key is `(Udp, dst_port)`.
+   dissector; key is `(Udp, min(src_port, dst_port))` — lower-numbered of the two ports,
+   approximating the service/server port and guarding against ephemeral-port noise
+   (symmetric with the TCP `lower_port` convention; ADR-012 Decision 6).
 
 Both counters use the same key type and are combined when producing `CoverageGapsSummary`.
-Combined bound: at most `2 × 65,535` unique `(TransportProto, port)` keys (65,535 TCP
-entries + 65,535 UDP entries). Both maps are read-only after `run_analyze()` returns.
+Combined bound: at most `2 × 65,536` unique `(TransportProto, port)` keys (65,536 TCP
+entries + 65,536 UDP entries — port space 0..=65535 = 65,536 values per transport).
+Both maps are read-only after `run_analyze()` returns.

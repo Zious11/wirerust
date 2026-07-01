@@ -15,13 +15,17 @@ timestamp: 2026-07-01T18:00:00Z
 ## Description
 
 wirerust maintains a static, hand-curated compile-time catalog (`KNOWN_PROTOCOLS`) of
-approximately 30 ICS/IT/L2 protocols that are known to the tool — including those it
-actively dissects and those it does not. The catalog enables two coverage surfaces:
+approximately 30 ICS/IT protocols (including 5 with `transport=LinkLayer`) that are known
+to the tool — including those it actively dissects and those it does not. `ProtocolCategory`
+has exactly two variants: `ICS` and `IT`. Link-layer/multicast protocols (GOOSE, etc.) are
+ICS-category entries with `transport=LinkLayer`, not a third category. The catalog enables two coverage surfaces:
 
 1. **Static surface** — the `protocols` CLI subcommand lists all catalog entries with
-   their name, category (ICS / IT / L2), transport, canonical ports, supported status,
-   and EtherType. Operators can filter to `--supported`, `--unsupported`, or `--all` and
-   can request structured JSON output via the global `--json` flag.
+   their name, category (`ICS` or `IT`), transport (`TCP`, `UDP`, or `LinkLayer`), canonical
+   ports, supported status, and EtherType. L2-ness is expressed via `transport=LinkLayer ∧
+   port_detectable:false` — there is no third `L2` category variant. Operators can filter to
+   `--supported`, `--unsupported`, or `--all` and can request structured JSON output via the
+   global `--json` flag.
 
 2. **Dynamic surface** — when `--coverage-gaps` is passed to `analyze`, wirerust tracks
    TCP and UDP flows/packets that no dissector handled (keyed by `(TransportProto, u16)`)

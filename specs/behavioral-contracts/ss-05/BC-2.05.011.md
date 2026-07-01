@@ -47,7 +47,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 ## Postconditions
 
 1. **Exactness (TCP):** After exactly N `on_flow_close` calls with `DispatchTarget::None` and `lower_port == P`, `StreamDispatcher.unclassified_port_counts[(Tcp, P)] == N`. The count is exact, not an approximation.
-2. **Exactness (UDP):** After exactly M UDP packets to `dst_port == Q` that are unhandled by any dissector, `udp_unclassified_counts[(Udp, Q)] == M`.
+2. **Exactness (UDP):** After exactly M UDP packets for which `min(src_port, dst_port) == Q` that are unhandled by any dissector, `udp_unclassified_counts[(Udp, Q)] == M`. The key uses `min(src_port, dst_port)` so request and response direction packets on the same service port accumulate into the same counter.
 3. **Monotonicity:** Once a key `(TransportProto::Tcp, P)` has a value `V` in `unclassified_port_counts`, no subsequent operation decreases its value. The counter is monotonically non-decreasing over the lifetime of the analyzer run.
 4. **No classified-flow increment:** If `on_flow_close` is called with `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip`, `Arp`, or any classified variant (non-None), `unclassified_port_counts` is NOT modified. No key is added, no existing count is incremented.
 5. **TCP-map key purity:** Every key in `StreamDispatcher.unclassified_port_counts` has `key.0 == TransportProto::Tcp`. No `TransportProto::Udp` key ever appears in the dispatcher's TCP map. This is a structural invariant of the dispatcher's map (the UDP counter is a separate map in the decode loop, never interleaved with the dispatcher's map).
@@ -91,9 +91,10 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 
 | VP-NNN | Sub | Property | Proof Method |
 |--------|-----|----------|-------------|
-| VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target closes | proptest: `proptest_vp042_total_count_equals_n` |
+| VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target closes (TCP dispatcher path) | proptest: `proptest_vp042_total_count_equals_n` |
 | VP-042 | Sub-B | Per-port count equals None-target-close frequency for that port | proptest: `proptest_vp042_per_port_count_equals_frequency` |
 | VP-042 | Sub-C | Classified-flow close does NOT update TCP counter | proptest: `proptest_vp042_no_count_spurious_on_classified_flows` |
+| VP-043 | — | UDP counter exactness and monotonicity: per-packet count == M after M declined-by-all-dissectors UDP packets; keys use `min(src_port, dst_port)`; counter never decreases (main.rs decode-loop path) | proptest: `proptest_vp043_udp_counter_exactness` |
 | — | All TCP-map keys have TransportProto::Tcp | unit: `test_BC_2_05_011_tcp_map_key_purity` |
 | — | UDP-map keys have TransportProto::Udp; never cross-contaminate TCP map | unit: `test_BC_2_05_011_udp_map_key_purity` |
 | — | Counter is monotonically non-decreasing (second None-target close on same port increases count) | unit: `test_BC_2_05_011_monotonic_increment` |
@@ -113,7 +114,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 
 - `src/dispatcher.rs` — `on_flow_close` `None` arm: `self.unclassified_port_counts.entry((TransportProto::Tcp, lower_port)).or_insert(0) += 1` — note that `+=1` is the ONLY mutation site for this counter (monotonicity follows)
 - `src/dispatcher.rs` — NO `on_data` path increments `unclassified_port_counts` (only `on_flow_close` does)
-- `src/main.rs` — UDP decode loop: `udp_unclassified_counts.entry((TransportProto::Udp, dst_port)).or_insert(0) += 1` per-packet
+- `src/main.rs` — UDP decode loop: `udp_unclassified_counts.entry((TransportProto::Udp, min(src_port, dst_port))).or_insert(0) += 1` per-packet (only for packets all dissectors decline)
 - `tests/dispatcher_tests.rs` — VP-042 proptest harnesses, plus `test_BC_2_05_011_tcp_map_key_purity`, `test_BC_2_05_011_udp_map_key_purity`, `test_BC_2_05_011_monotonic_increment`
 
 ## Story Anchor
@@ -122,9 +123,10 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 
 ## VP Anchors
 
-- VP-042 Sub-A — `proptest_vp042_total_count_equals_n`
+- VP-042 Sub-A — `proptest_vp042_total_count_equals_n` (TCP dispatcher path)
 - VP-042 Sub-B — `proptest_vp042_per_port_count_equals_frequency`
 - VP-042 Sub-C — `proptest_vp042_no_count_spurious_on_classified_flows`
+- VP-043 — `proptest_vp043_udp_counter_exactness` (main.rs UDP path)
 
 ## Purity Classification
 

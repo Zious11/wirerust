@@ -8,6 +8,9 @@ modified:
   - date: "2026-07-01"
     actor: architect
     reason: "F2-SCOPE-DRIFT-UDP-001 resolution: corrected Decision 6 from TCP-only to TCP+UDP dynamic detection per approved scope D-320 OQ-5. Updated Decision 3a (TCP-only caveat updated to L2/multicast-only caveat; UDP-based protocols BACnet/IP, SNMP, NTP are now detectable). Updated Consequences section: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) to support transport-discriminated keying. BACnet/IP UDP/47808 is now flaggable in the dynamic gap report."
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-1 remediation: (F-F2P1-003) Decision 7 rewritten — removed `L2` category variant; ProtocolCategory is now {ICS, IT} only; L2 detection-class expressed solely by transport:LinkLayer + port_detectable:false; GOOSE.category=ICS; (F-F2P1-010) Decision 7 note updated — no category-based CLI filter ships this cycle per D-320 scope; (F-F2P1-006) Decision 6 UDP key changed from (Udp, dst_port) to (Udp, min(src_port, dst_port)) — ephemeral-port guard symmetric with TCP lower_port convention; Consequences section updated to match."
 subsystems_affected:
   - SS-18
   - SS-05
@@ -190,9 +193,16 @@ distinctly even when they share the same port number.
   the server/service port; aligns with the existing `(lower, upper)` flow-key convention
   and the research caveat against treating ephemeral high ports as protocols).
 - **UDP unclassified packets** — tracked by a lightweight counter in the decode loop in
-  `main.rs` (outside the TCP-only dispatcher). Key: `(TransportProto::Udp, dst_port)`
-  where `dst_port` is the destination port of the UDP packet (service port). UDP is
+  `main.rs` (outside the TCP-only dispatcher). Key:
+  `(TransportProto::Udp, min(src_port, dst_port))` where `min(src_port, dst_port)` is
+  the lower-numbered of the two endpoint ports, approximating the service/server port
+  (symmetric with the TCP implementation's `lower_port` convention). UDP is
   connectionless; accumulation is per-packet, not per-flow-close.
+
+  **Ephemeral-port guard rationale:** Using `min(src_port, dst_port)` prevents
+  ephemeral-port noise. A SNMP response (src: 161 → dst: ephemeral 52000) is correctly
+  keyed on `(Udp, 161)`, not `(Udp, 52000)`. Ephemeral ports (≥ 49152) carry no service
+  meaning [C11] and must not generate catalog entries (research Q4§1).
 
 **CoverageGapsSummary merge:** The reporter reads both counters; both use the same
 `(TransportProto, u16)` key type. The unified view enables the Suricata tri-state
@@ -224,19 +234,22 @@ dispatcher context).
 
 ## Decision 7: Category Tagging
 
-**Decision:** Every `KnownProtocol` entry is tagged with one of three categories:
+**Decision:** Every `KnownProtocol` entry is tagged with one of two categories:
 
 | Category | Use |
 |----------|-----|
-| `ICS` | Industrial/OT protocols (Modbus, DNP3, S7comm, GOOSE, etc.) |
-| `IT` | General IT/enterprise protocols relevant in OT (SSH, RDP, SMB, etc.) |
-| `L2` | Layer-2-only protocols without a TCP/UDP port (GOOSE, SV, EtherCAT, etc.) |
+| `ICS` | Industrial/OT protocols (Modbus, DNP3, S7comm, GOOSE, BACnet, etc.) |
+| `IT` | General IT/enterprise protocols relevant in OT environments (SSH, RDP, SMB, etc.) |
 
-Note: `L2` is a transport/detection characteristic, not a mutually exclusive security
-category (GOOSE is also `ICS`). In the Rust implementation, `category` captures the
-security/domain classification (`ICS` vs. `IT`), while `transport: Transport::LinkLayer`
-and `port_detectable: false` capture the detection limitation. Both are required for
-the `protocols` subcommand to support filtering (e.g. `--ics-only`).
+`ProtocolCategory` is `{ ICS, IT }` only. There is NO `L2` category variant.
+Layer-2 detection characteristics — protocols identified by EtherType rather than port
+(GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT) — are expressed exclusively by
+`transport: Transport::LinkLayer` and `port_detectable: false`, NOT by a separate
+`L2` category. L2 protocols such as GOOSE carry `category: ICS`.
+
+Category is retained for display and possible future filtering. No category-based CLI
+flag (e.g. `--ics-only`) ships this cycle; D-320 approved scope is OQ-1..OQ-5 only,
+and BC-2.12.022 restricts filters to `--all`, `--supported`, and `--unsupported`.
 
 ---
 
@@ -282,7 +295,8 @@ section in the analysis output, NOT as individual `Finding` entries.
   `lower_port` is the lower-numbered port of the direction-normalized flow key.
 - `src/main.rs` decode loop gains a UDP unclassified counter (same key type
   `HashMap<(TransportProto, u16), u64>`) for UDP packets not routed to any dissector;
-  key is `(Udp, dst_port)`.
+  key is `(Udp, min(src_port, dst_port))` — lower-numbered port (ephemeral-port guard,
+  symmetric with TCP `lower_port` convention; Decision 6 rationale above).
 - `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs`, independent of
   `protocols.rs::Transport` (which has a third `LinkLayer` variant and must not be
   imported into the dispatcher per the pure-core boundary rule).

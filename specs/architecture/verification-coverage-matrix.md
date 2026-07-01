@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.42"
+version: "1.43"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -148,6 +148,9 @@ modified:
   - date: 2026-07-01
     actor: architect
     reason: "feature-protocol-coverage F2 design layer (D-320): VP-042 added (proptest; P1; draft; dispatcher.rs; BC-2.05.010/BC-2.05.011) — dispatcher per-port unclassified-flow count accumulation; dispatcher.rs row proptest 0→1, Total 1→2. proptest Totals 18→19, overall Totals 41→42. VP-004 re-validation note added (regression at F6). Version bump 1.41→1.42."
+  - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 adversarial Pass-1 remediation: (F-F2P1-008) VP-041 table row reframed — proptest_vp041_oracle_cross_check harness replaces vacuous proptest_vp041_set_difference_correct; oracle independently computes supported set without calling supported_protocols()/unsupported_protocols() (DF-KANI-NONVACUITY-001; non-vacuous and falsifiable). (F-F2P1-006) VP-042 table row key fixed: UDP key (Udp, dst_port) → (Udp, min(src_port, dst_port)) (symmetric with TCP; eliminates ephemeral-port noise); VP-043 scope note added. (F-F2P1-011) VP-043 added: UDP decode-loop unclassified-packet count accumulation; new module row main.rs added to Per-Module Coverage Totals (0 Kani / 1 proptest (VP-043) / 0 fuzz / 0 int-unit = 1 total). proptest Totals 19→20, overall Totals 42→43. Version bump 1.42→1.43."
 ---
 
 # Verification Coverage Matrix
@@ -195,8 +198,9 @@ modified:
 | VP-037 | Modbus carry-buffer direction isolation (DRIFT-MODBUS-DIRECTION-001): proptest_vp037_direction_isolation_fn_code_counts — interleaved c2s/s2c deliveries produce correct fn_code_counts with carry_c2s/carry_s2c never mixed; parse_errors==0; proptest_vp037_independent_run_equivalence — interleaved fn_code_counts equal those of independent same-direction runs; traces BC-2.14.002 v2.0 Inv-4 + EC-007 | analyzer/modbus.rs | proptest | P1 | draft |
 | VP-038 | Modbus window backwards-timestamp no-spurious-reset (DRIFT-MODBUS-CLOCK-001): Sub-A T0831 5s backwards-ts no-reset (BC-2.14.016 v2.3 EC-010/EC-011); Sub-B T0806 burst 1s backwards-ts no-reset (BC-2.14.017 v2.7 EC-010/EC-012); Sub-C T0806 sustained >=2s minimum-duration gate — >= INTENTIONALLY PRESERVED (RULING-MODBUS-SIBLING-001 §2.3 — fires AT 2s mark; not a pin); Sub-D T0888 exception 10s backwards-ts no-reset (BC-2.14.019 v1.5 EC-009); Sub-E genuine u32 rollover deterministic unit test (all four Modbus windows); traces BC-2.14.016 v2.3 / BC-2.14.017 v2.7 / BC-2.14.019 v1.5 | analyzer/modbus.rs | proptest | P1 | draft |
 | VP-040 | TLS per-direction buffer saturation observability (F-EV-001 defense-in-depth, fix-tls-clienthello-frag F2 scope-addition — adversary fix burst applied): buffer_saturation_drops TlsAnalyzer aggregate; SEAM — reads via buffer_saturation_drop_count() accessor; INCREMENT CONDITION data.len()>remaining (covers partial-drop AND full-drop); INCREMENT SITE after &mut state block closes (borrow constraint; C-1); (Sub-A test_BC_2_07_043_buffer_saturation_observable) PARTIAL-DROP: 65,537-byte slice to empty buffer, counter+1, parse_errors unchanged (PC-1, PC-6; no seam needed); (Sub-A-full-drop test_BC_2_07_043_buffer_saturation_full_drop) FULL-DROP: fill_buf_for_testing seam to remaining==0, deliver non-empty slice, counter+1 (PC-1, EC-002; seam from PO BC-2.07.043 v1.1); (Sub-B test_BC_2_07_043_no_drop_no_counter) small data fits, counter unchanged (PC-1 negative); (Sub-C test_BC_2_07_043_counter_persists_across_flows) drop then on_flow_close, counter unchanged — NOT reset (PC-5); (Sub-D test_BC_2_07_043_summarize_value_equals_drop_count) summarize() detail["buffer_saturation_drops"].as_u64()==1 — value-equality, not key presence (PC-4; NOT PC-2); (Sub-E test_BC_2_07_043_both_directions_increment_same_counter) c2s drop + s2c drop == initial+2 (PC-3: both directions); PC-6: parse_errors NOT incremented (BC-2.07.005); DISTINCT from VP-039; 6 unit tests total | analyzer/tls.rs | unit | P1 | draft |
-| VP-041 | Protocol Coverage Catalog set-difference correctness (feature-protocol-coverage D-320): (proptest_vp041_set_difference_correct) for any instantiation of KNOWN_PROTOCOLS, supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS (partition invariant) and supported_protocols() ∩ unsupported_protocols() == ∅ (disjoint invariant); (proptest_vp041_partition_invariant) every entry in KNOWN_PROTOCOLS appears in exactly one of the two output sets; NOTE: KNOWN_PROTOCOLS is a &[KnownProtocol] compile-time constant — the proptest harness drives over programmatic catalog subsets by generating an arbitrary supported_ports mask; SUPPORTED_PORTS drift (ADR-012 Decision 5) is the primary risk guarded here; traces BC-2.18.003, BC-2.18.004 | (set-difference partition + disjoint invariants) | src/protocols.rs | proptest | P1 | draft |
-| VP-042 | Dispatcher per-port unclassified-flow count accumulation (feature-protocol-coverage D-320): (proptest_vp042_total_count_equals_n) after N on_flow_close(None-target) calls with varying (u16,u16) port pairs, unclassified_port_counts.values().sum() == N; (proptest_vp042_per_port_count_equals_frequency) each per-port count equals the frequency of that port pair in the input sequence; (proptest_vp042_no_count_spurious_on_classified_flows) on_flow_close for classified flows (non-None DispatchTarget) does NOT increment any per-port counter; NOTE: VP-004 (Kani, dispatcher::classify() content-first dispatch) MUST be re-run at F6 as regression confirmation — the new `unclassified_port_counts` HashMap field does NOT change classify() logic but must not invalidate existing Kani proof bounds; traces BC-2.05.010, BC-2.05.011 | (accumulation exactness + no-spurious-increment) | dispatcher.rs | proptest | P1 | draft |
+| VP-041 | Protocol Coverage Catalog set-difference correctness — oracle-cross-check + partition invariant (feature-protocol-coverage D-320; reframed F-F2P1-008 per DF-KANI-NONVACUITY-001): (proptest_vp041_oracle_cross_check) for each entry in KNOWN_PROTOCOLS, independently compute oracle_supported = entry.canonical_ports overlaps SUPPORTED_PORTS OR entry.name=="ARP" (oracle does NOT call supported_protocols()/unsupported_protocols()); assert supported_protocols() returns exactly those entries (set-equality by name); non-vacuous and falsifiable — detects broken supported_protocols() that returns too many, too few, or wrong entries; the partition/disjoint invariants alone cannot detect such breakage because they hold trivially whenever unsupported = KNOWN \ supported by definition; (proptest_vp041_partition_invariant) supported∪unsupported==KNOWN_PROTOCOLS AND supported∩unsupported==∅; SUPPORTED_PORTS drift (ADR-012 Decision 5) guarded; traces BC-2.18.003, BC-2.18.004 | (oracle cross-check non-vacuous + partition completeness + disjoint invariant) | src/protocols.rs | proptest | P1 | draft |
+| VP-042 | Dispatcher per-port unclassified-flow count accumulation (feature-protocol-coverage D-320; F-F2P1-006 key fix: min(src_port, dst_port)): (proptest_vp042_total_count_equals_n) after N on_flow_close(None-target) calls, unclassified_port_counts.values().sum()==N; (proptest_vp042_per_port_count_equals_frequency) per-(TransportProto, u16)-pair count equals input frequency — TCP keyed on (Tcp, min(src_port, dst_port)), UDP flows-via-dispatcher keyed on (Udp, min(src_port, dst_port)); (proptest_vp042_no_count_spurious_on_classified_flows) classified flows do NOT increment any counter; SCOPE: covers dispatcher.rs on_flow_close path only; UDP decode-loop path in main.rs is NOT reachable from dispatcher.rs and is covered by VP-043 (F-F2P1-011); NOTE: VP-004 MUST be re-run at F6 as regression confirmation — classify() logic UNCHANGED but new HashMap field must not break Kani proof bounds; traces BC-2.05.010, BC-2.05.011 | (accumulation exactness + no-spurious-increment + symmetric min-port key) | dispatcher.rs | proptest | P1 | draft |
+| VP-043 | UDP decode-loop unclassified-packet count accumulation (feature-protocol-coverage D-320; F-F2P1-011 UDP path gap): in main.rs decode loop, UDP packets failing dns_analyzer.can_decode() increment the gap counter keyed on (TransportProto::Udp, min(src_port, dst_port)); (proptest_vp043_total_count_equals_n) after N unclassifiable UDP packets, counter total == N (BC-2.05.010); (proptest_vp043_no_increment_on_classified_udp) classified UDP packets do NOT increment the counter; RATIONALE: VP-042 covers only dispatcher.rs on_flow_close; UDP packets in main.rs decode loop are unreachable from dispatcher.rs; OQ-5 UDP exactness/monotonicity jointly covered by VP-042 (dispatcher path) + VP-043 (decode-loop path); traces BC-2.05.010, BC-2.05.011 | (UDP decode-loop accumulation + no-spurious-increment + symmetric min-port key) | main.rs | proptest | P1 | draft |
 | VP-039 | TLS handshake reassembly (fix-tls-clienthello-frag, F-P3/F-burst-6/F-burst-7 fixes): SEAM CONTRACT — aggregate reads (parse_errors, sni_counts, ja3_counts, handshakes_seen, handshake_reassembly_overflows) via TlsAnalyzer accessors ONLY; NEVER off TlsFlowState; (Sub-A) proptest_vp039_carry_reassembly_two_record — split range = function of actual hello length via prop_oneof![1..4, 4..n]; partial-header {1,2,3} reachable; SNI-region guaranteed by test_vp039_sni_boundary_deterministic; client_hello_seen==true, parse_errors==0 via analyzer.parse_error_count() (BC-2.07.038); (Sub-B) proptest_vp039_exact_consume_coalesced — two coalesced messages (second with NON-ZERO body_len), carry_len==0, handshakes_seen==1 asserted DIRECTLY via analyzer.handshake_count() (BC-2.07.042); (Sub-B-ext — F-FRESH2-003) test_BC_2_07_042_exact_consume_no_double_dispatch: deterministic coalesced ClientHello + Certificate (type=0x0B), asserts handshake_count()==1 (no double-dispatch), carry drained, parse_errors==0 (BC-2.07.042); (Sub-C, 4 unit tests — F-CRITICAL-2 fixture corrected) test_vp039_carry_overflow_clear_and_recover: valid-header body_len=65,500 ([0x01,0x00,0xFF,0xDC]) + accumulation records trigger Decision-5 buffer-fill guard once (carry.len()+payload>MAX_BUF), carry cleared to len==0, analyzer.handshake_reassembly_overflow_count()+1 [TlsAnalyzer aggregate; prior 0xCC fill hit Decision-4 body_len-spoof 4× — assertion was FALSE], parse_errors unchanged, findings_count pre==post [BC-2.07.039 PC-4; F-P3-005]; test_vp039_carry_overflow_recovery: post-overflow ClientHello dispatched normally, SNI+JA3 via analyzer.sni_counts()/ja3_counts() (BC-2.07.039 recovery assertion); test_vp039_body_len_spoof: body_len=65537>MAX_BUF [65536 would NOT trigger strict > guard; F-P3-002] triggers Decision-4 clear-and-recover, findings_count pre==post [BC-2.07.039 PC-4; F-P3-005]; test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key: triggers overflow, calls summarize(), asserts detail["handshake_reassembly_overflows"].as_u64()==1 — value-equality NOT mere key presence [BC-2.07.039 PC-7; F-P3-004; F-F2IMPL-001]; (Sub-D) test_vp039_truncated_carry_no_error — on_flow_close with partial carry: findings_count pre==post, parse_errors post==pre snapshot [NOT pre==0; F-P3-LOW] via analyzer.parse_error_count() (BC-2.07.040 PC3); (Sub-D-ext — F-FRESH2-003) test_BC_2_07_040_empty_carry_flow_close: on_flow_close with EMPTY carry (after full consume) has no observable effect beyond flow removal; parse_errors unchanged, findings unchanged, active_flows==0 (BC-2.07.040 degenerate case); (Sub-E) proptest_vp039_direction_isolation — interleaved c2s/s2c fragmented hellos == independent same-direction runs; parse_errors via analyzer.parse_error_count(); carry_c2s/carry_s2c never mixed (BC-2.07.041); (Sub-F — F-F2P-IMP-001 generator restructured; F-FRESH2-004 Decision-5 note) proptest_vp039_carry_bounded_invariant — generator draws body_len from 0..=65_536 (valid-header prefix via prop_flat_map) ensuring genuine carry accumulation; prior arbitrary-u8 generator was near-vacuous (Decision-4 fired on nearly every record); carry.len()≤MAX_BUF after every call (BC-2.07.039 Inv-1); NOTE: Decision-5 buffer-fill path exercised DETERMINISTICALLY by test_vp039_carry_overflow_clear_and_recover, not probabilistically by Sub-F; (Canonical-frame F-P3-003/F-FRESH-002) test_BC_2_07_038_canonical_frame_rfc8446_s4 — Frame A: [0x01,0x00,0x00,0x05] body_len=5; Frame B discriminator: [0x01,0x01,0x05,0x00] BE=66816>MAX_BUF→carry_len=0; LE=1281→carry_len=4; pins decode direction (DF-CANONICAL-FRAME-HOLDOUT-001); Frame C (F-FRESH-002): [0x01,0x00,0x01,0x00] body_len=256 mid-range dispatch-lane — asserts carry drains to 0, parse_errors+1 (malformed all-zeros body via ADR-011 Decision-4); pins BE decode in dispatch lane, not only at overflow boundary; (SNI-boundary F-P3-006) test_vp039_sni_boundary_deterministic — runtime scan for [0x00,0x00] SNI type marker; splits at sni_ext_start+1 (provably inside extension); asserts sni_ext_start>4 and split<n; replaces blind n/2; (Malformed-assembled-body F-FRESH-001) test_BC_2_07_038_malformed_assembled_body — assembled length-complete handshake body (body_len=6, header [0x01,0x00,0x00,0x06]) with malformed body (version OK but missing Random field) fails parse_tls_message_handshake → parse_errors+1, exact-consume 4+6=10 bytes, no finding, no panic; parity with single-record parse_errors discipline (ADR-011 Decision-4 error semantics); total 4 proptest + 13 unit tests = 17 harnesses (fix-burst-11 +3); the 13 unit tests: (1) test_vp039_carry_overflow_clear_and_recover; (2) test_vp039_carry_overflow_recovery; (3) test_vp039_body_len_spoof; (4) test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key; (5) test_vp039_truncated_carry_no_error; (6) test_BC_2_07_038_canonical_frame_rfc8446_s4; (7) test_vp039_sni_boundary_deterministic; (8) test_BC_2_07_038_malformed_assembled_body; (9) test_BC_2_07_040_empty_carry_flow_close (F-FRESH2-003: Sub-D-ext, BC-2.07.040 empty-carry degenerate); (10) test_BC_2_07_042_exact_consume_no_double_dispatch (F-FRESH2-003: Sub-B-ext, BC-2.07.042 deterministic coalesce); (11) test_BC_2_07_041_cross_flow_isolation (F-COMP-002: Sub-E-ext, two distinct FlowKeys, BC-2.07.041 PC-1/PC-4/Inv-1); (12) test_vp039_n_record_reassembly (F-COMP-001: Sub-A-ext-N, >=3-record re-entrancy, BC-2.07.038 PC-1/PC-2/PC-6+EC-003); (13) test_vp039_large_valid_hello_reassembly (F-COMP-003: Sub-C-ext-large, ~40 KB valid ClientHello, BC-2.07.038 Inv-5) | analyzer/tls.rs | proptest | P1 | draft |
 
 
@@ -208,6 +212,7 @@ modified:
 | reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
 | reassembly/mod.rs | 1 (VP-003) | 1 (VP-021) | 0 | 0 | 2 |
 | dispatcher.rs | 1 (VP-004) | 1 (VP-042) | 0 | 0 | 2 |
+| main.rs | 0 | 1 (VP-043) | 0 | 0 | 1 |
 | protocols.rs | 0 | 1 (VP-041) | 0 | 0 | 1 |
 | analyzer/tls.rs | 1 (VP-005) | 2 (VP-013, VP-039) | 0 | 1 (VP-040) | 4 |
 | analyzer/http.rs | 0 | 2 (VP-006, VP-014) | 0 | 0 | 2 |
@@ -223,7 +228,7 @@ modified:
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
 | analyzer/enip.rs | 1 (VP-032) | 2 (VP-033, VP-034) | 0 | 0 | 3 |
 | reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
-| **Totals** | **15** | **19** | **2** | **6** | **42** |
+| **Totals** | **15** | **20** | **2** | **6** | **43** |
 
 
 ## Coverage Notes
@@ -492,21 +497,20 @@ modified:
   Kani(15) + proptest(17) + fuzz(2) + integration/unit(6) = 40.
 
 - VP-041 (src/protocols.rs / proptest): draft; lock gate at F6. Authored as part of
-  feature-protocol-coverage F2 design layer (D-320 / ADR-012). VP-041 guards the partition
-  invariant of the `protocols.rs` pure-core catalog API: `supported_protocols()` and
-  `unsupported_protocols()` must together cover all of `KNOWN_PROTOCOLS` (union ==
-  KNOWN_PROTOCOLS) and never overlap (disjoint). The proptest harness
-  `proptest_vp041_set_difference_correct` generates an arbitrary bitflag mask representing
-  which `canonical_ports` entries are in `SUPPORTED_PORTS`, instantiates a test catalog,
-  and asserts both the partition (union == full set) and disjoint (intersection == empty)
-  invariants hold. The harness `proptest_vp041_partition_invariant` independently
-  verifies that each `KnownProtocol` entry appears in exactly one output set. These are
-  proptest rather than Kani because the `KNOWN_PROTOCOLS` slice involves heap allocation
-  (Vec return types) that is outside Kani's pure-core scope; proptest is appropriate for
-  pure functional set-difference properties over bounded collections. src/protocols.rs is a
-  new module (C-26, SS-18); the Per-Module Coverage Totals row has been added accordingly.
-  Traces BC-2.18.003 (supported_protocols returns exactly the entries whose ports are in
-  SUPPORTED_PORTS) and BC-2.18.004 (unsupported_protocols returns the complement).
+  feature-protocol-coverage F2 design layer (D-320 / ADR-012). Reframed F-F2P1-008 to
+  use a non-vacuous oracle harness (DF-KANI-NONVACUITY-001). The original partition/disjoint
+  formulation was vacuously true by construction (`unsupported = KNOWN \ supported` holds
+  trivially). VP-041 now includes:
+  - `proptest_vp041_oracle_cross_check` — for each entry in `KNOWN_PROTOCOLS`, independently
+    compute `oracle_supported = entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p))
+    || entry.name == "ARP"` WITHOUT calling `supported_protocols()` or `unsupported_protocols()`;
+    assert `supported_protocols()` returns exactly the entries where `oracle_supported == true`
+    (set-equality by name); non-vacuous and falsifiable — detects a broken `supported_protocols()`
+    that returns too many, too few, or wrong entries.
+  - `proptest_vp041_partition_invariant` — supported∪unsupported == KNOWN_PROTOCOLS (completeness)
+    AND supported∩unsupported == ∅ (disjoint); partition invariant as supplementary check.
+  Uses proptest (not Kani) because `Vec` return types are outside Kani's pure-core scope.
+  src/protocols.rs is a new module (C-26, SS-18). Traces BC-2.18.003, BC-2.18.004.
 
 - VP-042 (dispatcher.rs / proptest): draft; lock gate at F6. Authored as part of
   feature-protocol-coverage F2 design layer (D-320 / ADR-012). VP-042 guards three
@@ -523,8 +527,22 @@ modified:
   is new state on `StreamDispatcher` and Kani's bounded model checking must be re-executed
   to confirm the pre-existing Kani proof bounds are still satisfiable. No classify() logic
   was changed; this re-run is a sanity check, not an expected proof change.
-  Traces BC-2.05.010 (unclassified_port_counts updated at on_flow_close for None-target flows)
-  and BC-2.05.011 (per-port counts are direction-normalized and exact).
+  SCOPE NOTE (F-F2P1-011): VP-042 covers only `dispatcher.rs::on_flow_close`. UDP packets
+  in the `main.rs` decode loop are NOT routed through `on_flow_close` and are NOT reachable
+  by VP-042. See VP-043 for UDP decode-loop coverage.
+  Key: `(TransportProto::Tcp, min(src_port, dst_port))` (F-F2P1-006 symmetric normalization).
+  Traces BC-2.05.010 and BC-2.05.011.
+
+- VP-043 (main.rs / proptest): draft; lock gate at F6. Added F-F2P1-011 to close the OQ-5
+  UDP exactness/monotonicity gap. The `main.rs` decode loop processes UDP datagrams
+  independently of `dispatcher.rs::on_flow_close`. UDP packets failing
+  `dns_analyzer.can_decode()` are counted as unclassified in a separate counter with key
+  `(TransportProto::Udp, min(src_port, dst_port))` — symmetric normalization prevents
+  ephemeral-port noise (F-F2P1-006). VP-043 harnesses:
+  (1) `proptest_vp043_total_count_equals_n` — N non-DNS UDP packets produce total count == N;
+  (2) `proptest_vp043_no_increment_on_classified_udp` — classified UDP (DNS) does NOT
+  increment the counter. VP-042 (dispatcher path) + VP-043 (decode-loop path) jointly cover
+  OQ-5 UDP exactness/monotonicity. Traces BC-2.05.010, BC-2.05.011.
 
 - VP-037 and VP-038 (analyzer/modbus.rs / proptest): draft; lock gate at F6. These two VPs
   were authored as part of RULING-MODBUS-SIBLING-001 (DRIFT-MODBUS-DIRECTION-001 and

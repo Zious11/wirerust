@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.46"
+version: "1.47"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -424,6 +424,9 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.47 delta (2026-07-01 — F2 adversarial Pass-1 BC-scope remediation):**
+> BC-scope fixes for F2 adversarial Pass-1 findings (F-F2P1-001..014): BC-2.05.010 Precondition 3 false "no UDP dissector" premise removed; DNS/53 handled by DnsAnalyzer not counted; UDP key changed to `min(src_port, dst_port)` (F-F2P1-002/006). BC-2.18.002 EC-003 GOOSE ethertype 34992→35000 (0x88B8=35000; F-F2P1-001). BC-2.18.002 Invariant 2 weakened from iff to one-way implication with ARP carve-out (F-F2P1-004). ProtocolCategory ∈ {ICS, IT} only; GOOSE.category=ICS; cap-18 doc fixed (F-F2P1-003). HART-IP single transport=UDP in BC-2.18.001 EC-007 (F-F2P1-005). VP-041 harness renamed to `proptest_vp041_oracle_cross_check` in BC-2.18.001..004 (F-F2P1-008). Catalog-declaration output ordering added to BC-2.18.001 PC-8, BC-2.18.002 PC-4 (F-F2P1-009). BC-2.05.010/011 VP Anchors cite VP-042 (TCP) + VP-043 (UDP) (F-F2P1-011). BC-2.05.010 Invariant 6: 65,535→65,536; 131,070→131,072 (F-F2P1-012). BC-INDEX BC-2.12.024 OQ-6→OQ-2 (F-F2P1-013). BC-INDEX BC-2.18.002 field list adds category+ethertype (F-F2P1-014). RTM VP anchors updated: BC-2.18.004→VP-041 oracle; BC-2.05.011→VP-042+VP-043. BC-INDEX bumped to v2.5.
 >
 > **Version 1.46 delta (2026-07-01 — feature-protocol-coverage F2 spec-layer INTEGRATE sub-burst — 9 new BCs, SS-18 added):**
 > 9 new BCs for feature-protocol-coverage F2 spec-layer (ADR-012, D-320, release target v0.12.0). SS-18 (Protocol Coverage Catalog) fully wired: BC-2.18.001 (P0) `protocols` terminal output; BC-2.18.002 (P1) `protocols` JSON mode; BC-2.18.003 (P0) `supported_protocols()`/`unsupported_protocols()` set-difference + ARP inclusion; BC-2.18.004 (P0) catalog partition invariant (VP-041). SS-05 dispatcher extension: BC-2.05.010 (P0) `unclassified_port_counts` keyed on `(TransportProto, u16)` — TCP via None-target on_flow_close, UDP via decode-loop; BC-2.05.011 (P0) per-(TransportProto, port) count exactness and monotonicity (VP-042). SS-12 CLI extension: BC-2.12.022 (P0) `protocols` subcommand dispatch; BC-2.12.023 (P0) `--coverage-gaps` opt-in (NOT auto-enabled under `--all`); BC-2.12.024 (P1) `CoverageGapsSummary` mandatory caveat text. PENDING DELTA marker removed from §2.18. RTM §7 rows added for all 9 BCs. BC-INDEX bumped to v2.4 (346 on disk / 345 active). CAP-18 registered in domain-spec capability index. VP-042 wording updated to name (TransportProto, u16) key type explicitly (per D-322; wording-only, no VP count change). See BC-INDEX v2.4, ARCH-INDEX SS-18, ADR-012.
@@ -1894,8 +1897,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.05.007 | CAP-05 | SS-05 (dispatcher.rs) | P1 | unit |
 | BC-2.05.008 | CAP-05 | SS-05 (dispatcher.rs) | P1 | unit |
 | BC-2.05.009 | CAP-05 | SS-05 (dispatcher.rs) | P0 | inferred |
-| BC-2.05.010 | CAP-05 | SS-05 (dispatcher.rs) | P0 | unit+proptest VP-042 |
-| BC-2.05.011 | CAP-05 | SS-05 (dispatcher.rs) | P0 | proptest VP-042 |
+| BC-2.05.010 | CAP-05 | SS-05 (dispatcher.rs) + SS-12 (main.rs) | P0 | unit+proptest VP-042 (TCP) + VP-043 (UDP) |
+| BC-2.05.011 | CAP-05 | SS-05 (dispatcher.rs) + SS-12 (main.rs) | P0 | proptest VP-042 (TCP) + VP-043 (UDP) |
 | BC-2.06.001 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.002 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.003 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
@@ -2131,8 +2134,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.17.026 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
 | BC-2.18.001 | CAP-18 | SS-18 (protocols.rs) | P0 | unit |
 | BC-2.18.002 | CAP-18 | SS-18 (protocols.rs) | P1 | unit |
-| BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 |
-| BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 |
+| BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 oracle (`proptest_vp041_oracle_cross_check`) |
+| BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 oracle (`proptest_vp041_oracle_cross_check`) |
 
 
 ### 2.18 Protocol Coverage Catalog (CAP-18) [Feature — ADR-012, feature-protocol-coverage]
@@ -2159,7 +2162,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 > **Dynamic gap detection (D-320 OQ-5, ADR-012 Decision 6):** TCP+UDP. `unclassified_port_counts`
 > in `StreamDispatcher` (TCP, keyed on `(Tcp, min_port)`) + `udp_unclassified_counts` in the
-> decode loop (UDP, keyed on `(Udp, dst_port)`). Both use `HashMap<(TransportProto, u16), u64>`.
+> decode loop (UDP, keyed on `(Udp, min(src_port, dst_port))`). Both use `HashMap<(TransportProto, u16), u64>`.
 > BACnet/IP UDP/47808 IS flaggable. `TransportProto` is a minimal `{Tcp, Udp}` enum in
 > `dispatcher.rs` (NOT `protocols::Transport` which has a third `LinkLayer` variant).
 
@@ -2170,9 +2173,9 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 > Uses Suricata tri-state vocabulary: `known-unsupported` / `unknown` / `known-supported`.
 > Appended to analysis output after all Findings.
 
-> **Formal verification:** VP-041 (proptest P1, draft — src/protocols.rs: catalog set-difference
-> partition and disjoint invariants; 2 harnesses). VP-042 (proptest P1, draft — dispatcher.rs:
-> per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-004 (Kani,
+> **Formal verification:** VP-041 (proptest P1, draft — src/protocols.rs: catalog oracle cross-check;
+> single harness `proptest_vp041_oracle_cross_check`; oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || name=="ARP"`). VP-042 (proptest P1, draft — dispatcher.rs:
+> per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-043 (proptest P1, draft — main.rs UDP decode loop: UDP counter exactness, DNS exclusion, min-port key; harness `proptest_vp043_udp_counter_exactness`). VP-004 (Kani,
 > dispatcher `classify()`, P0, verified) MUST be re-run at F6 as regression confirmation
 > (classify() is unchanged, but new HashMap field changes StreamDispatcher struct size).
 

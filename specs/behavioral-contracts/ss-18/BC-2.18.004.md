@@ -57,7 +57,7 @@ their outputs jointly exhaustive.
 1. The partition is STATIC — it depends only on compile-time constants (`KNOWN_PROTOCOLS`, `SUPPORTED_PORTS`). It cannot change at runtime.
 2. Adding a new entry to `KNOWN_PROTOCOLS` without updating `SUPPORTED_PORTS` will cause the new entry to appear in `unsupported_protocols()`. This is the intended drift-detection behavior.
 3. Adding a new port to `SUPPORTED_PORTS` without a corresponding `KNOWN_PROTOCOLS` entry with that port does NOT change the partition (the new port has no matching entry to move).
-4. VP-041 harnesses MUST verify both the union completeness (Postcondition 1) and the disjoint property (Postcondition 2) independently, not as a single combined assertion. Failing only one of the two is possible (e.g., a phantom entry in the supported set would break disjoint but might not break union completeness if the entry is also in KNOWN_PROTOCOLS).
+4. VP-041 harness MUST verify both union completeness (Postcondition 1) and the disjoint property (Postcondition 2). The oracle approach (`proptest_vp041_oracle_cross_check`) achieves this by checking each entry individually against the canonical membership predicate, covering both properties in a single pass.
 
 ## Edge Cases
 
@@ -84,8 +84,7 @@ their outputs jointly exhaustive.
 
 | VP-NNN | Sub | Property | Proof Method |
 |--------|-----|----------|-------------|
-| VP-041 | Sub-A | `supported ∪ unsupported == KNOWN_PROTOCOLS` (union completeness) | proptest: `proptest_vp041_set_difference_correct` |
-| VP-041 | Sub-B | `supported ∩ unsupported == ∅` (disjoint) | proptest: `proptest_vp041_partition_invariant` |
+| VP-041 | — | Oracle cross-check: for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"` (covers union completeness AND disjoint in single pass) | proptest: `proptest_vp041_oracle_cross_check` |
 
 ## Traceability
 
@@ -101,7 +100,7 @@ their outputs jointly exhaustive.
 ## Architecture Anchors
 
 - `src/protocols.rs` — `KNOWN_PROTOCOLS`, `SUPPORTED_PORTS`, `supported_protocols()`, `unsupported_protocols()` — these four items are the complete scope of this invariant
-- `tests/protocols_tests.rs` — VP-041 proptest harnesses `proptest_vp041_set_difference_correct` and `proptest_vp041_partition_invariant`
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`; single harness verifies both union completeness and disjoint in one pass)
 
 ## Story Anchor
 
@@ -109,8 +108,7 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 
 ## VP Anchors
 
-- VP-041 Sub-A — `proptest_vp041_set_difference_correct` (union completeness)
-- VP-041 Sub-B — `proptest_vp041_partition_invariant` (disjoint)
+- VP-041 — `proptest_vp041_oracle_cross_check` (oracle: per-entry canonical membership predicate; covers union completeness and disjoint)
 
 ## Purity Classification
 

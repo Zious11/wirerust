@@ -50,7 +50,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 
 1. `--coverage-gaps` flag is set; `StreamDispatcher` has `coverage_gaps_enabled: bool` field (or equivalent) set to `true`.
 2. For the TCP counter: `StreamDispatcher::on_flow_close` is called for a `FlowKey` whose cached route is `DispatchTarget::None` (i.e., the flow was never classified to a protocol dissector).
-3. For the UDP counter: a UDP packet arrives in the decode loop in `main.rs` that is NOT handled by any dissector (no dissector accepts UDP in this cycle; all UDP packets are unclassified).
+3. For the UDP counter: a UDP packet arrives in the decode loop in `main.rs` and ALL UDP dissectors have declined to handle it (e.g., `dns_analyzer.can_decode(&parsed)` returned `false` for this packet). If a dissector accepts the packet (e.g., `DnsAnalyzer` accepts UDP/53), the packet is NOT counted.
 4. `TransportProto` is the minimal enum `{ Tcp, Udp }` defined in `dispatcher.rs` (NOT `protocols::Transport`, which has a third `LinkLayer` variant and MUST NOT be imported into the dispatcher per the pure-core boundary rule of SS-18).
 
 ## Postconditions
@@ -61,9 +61,9 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
    - The map is updated ONLY for `DispatchTarget::None` flows; classified flows (Http, Tls, Modbus, etc.) do NOT trigger this increment.
 
 2. **UDP counter — per-packet in decode loop:**
-   - Let `dst_port` be the destination port of the UDP datagram (service port heuristic; UDP is connectionless so no per-flow close event exists).
-   - `udp_unclassified_counts.entry((TransportProto::Udp, dst_port)).or_insert(0) += 1`.
-   - The map is updated for every UDP packet that is NOT handled by a dissector.
+   - Let `lower_port = min(udp_header.src_port, udp_header.dst_port)` (direction-normalized; same approach as TCP; computed per-packet from the UDP header).
+   - `udp_unclassified_counts.entry((TransportProto::Udp, lower_port)).or_insert(0) += 1`.
+   - The map is updated for every UDP packet that is NOT handled by any dissector (i.e., after the `dns_analyzer.can_decode()` check returns false and any other UDP dissectors also decline).
 
 3. **Key type identity:** All keys in `StreamDispatcher.unclassified_port_counts` have `key.0 == TransportProto::Tcp` (the dispatcher handles TCP only). All keys in `udp_unclassified_counts` have `key.0 == TransportProto::Udp`.
 
@@ -75,10 +75,10 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 
 1. `TransportProto` in `dispatcher.rs` is a minimal `{Tcp, Udp}` enum. It is NOT imported from `protocols.rs`. The `protocols::Transport` enum is not used here (it has `LinkLayer` which is not a valid TCP/UDP transport for the dispatcher context).
 2. The TCP map key is ALWAYS `(TransportProto::Tcp, lower_port)` where `lower_port = min(src_port, dst_port)`. A UDP key NEVER appears in the TCP dispatcher map.
-3. The UDP map key is ALWAYS `(TransportProto::Udp, dst_port)`. A TCP key NEVER appears in the UDP counter map.
+3. The UDP map key is ALWAYS `(TransportProto::Udp, min(src_port, dst_port))`. A TCP key NEVER appears in the UDP counter map.
 4. The counters are populated only at `DispatchTarget::None` close (TCP) or per-packet-unhandled (UDP). `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip` classified flows do NOT increment either counter.
 5. The TCP counter is populated at `on_flow_close`, NOT at `on_data`. This bounds overhead to closed flows, not packet volume.
-6. Both counters are bounded by the port space: at most 65,535 distinct TCP keys and 65,535 distinct UDP keys (combined max 131,070 unique `(TransportProto, u16)` pairs).
+6. Both counters are bounded by the port space: at most 65,536 distinct TCP keys and 65,536 distinct UDP keys (combined max 131,072 unique `(TransportProto, u16)` pairs). (u16 range is 0–65535 = 65,536 distinct values.)
 
 ## Edge Cases
 
@@ -93,27 +93,34 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 | EC-007 | Flow with src_port=80, dst_port=54321 — lower_port=80 | Key is `(Tcp, 80)` regardless of flow direction; direction-normalized |
 | EC-008 | Flow with src_port=54321, dst_port=80 — lower_port=80 | Same key `(Tcp, 80)` as EC-007; bidirectional flows on same port merge into one counter |
 | EC-009 | Multiple UDP packets to port 161 (SNMP) — each increments counter | `(Udp, 161)` count grows by 1 per unhandled UDP packet (per-packet, not per-flow) |
+| EC-010 | UDP/53 DNS packet handled by `DnsAnalyzer` (`dns_analyzer.can_decode()` returns true) | Counter NOT incremented; `(Udp, 53)` absent from gap report; DNS traffic is classified, not unclassified |
+| EC-011 | UDP/53 packet arrives, src=53 dst=60000 (response direction); `dns_analyzer.can_decode()` false | `lower_port = min(53, 60000) = 53`; key `(Udp, 53)` incremented only if dissector declines this packet |
+| EC-012 | UDP packet src=61000 dst=47808 (BACnet query direction) | `lower_port = min(61000, 47808) = 47808`; key `(Udp, 47808)` incremented |
+| EC-013 | UDP packet src=47808 dst=61000 (BACnet response direction) | `lower_port = min(47808, 61000) = 47808`; same key `(Udp, 47808)` — response and request merge into one counter |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | None-target TCP flow, src=1234, dst=502 (lower=502) | `unclassified_port_counts[(Tcp, 502)] == 1` | happy-path-tcp |
-| UDP packet to dst_port=47808 | `udp_unclassified_counts[(Udp, 47808)] == 1` | happy-path-udp (BACnet) |
-| UDP packet to dst_port=161 | `udp_unclassified_counts[(Udp, 161)] == 1` | happy-path-udp (SNMP) |
+| UDP packet src=60000 dst=47808 (BACnet query; lower_port=47808; no dissector) | `udp_unclassified_counts[(Udp, 47808)] == 1` | happy-path-udp (BACnet) |
+| UDP packet src=60001 dst=161 (SNMP query; lower_port=161; no dissector) | `udp_unclassified_counts[(Udp, 161)] == 1` | happy-path-udp (SNMP) |
 | Classified TCP flow (Modbus/502) closed | `unclassified_port_counts` unchanged (no `(Tcp, 502)` increment) | classified-no-increment |
 | TCP None-target on port 102 | `unclassified_port_counts[(Tcp, 102)] == 1` | port-102 |
 | `(Tcp, 47808)` key vs `(Udp, 47808)` key | Both independently counted; they are distinct keys | transport-discrimination |
 | `--coverage-gaps` not set | Both maps empty after any number of flows | conditional-population |
+| UDP/53 DNS packet (DnsAnalyzer accepts: `can_decode()` returns true) | `udp_unclassified_counts` does NOT contain `(Udp, 53)` key | dns-handled-not-counted |
+| UDP src=61000 dst=47808 (BACnet query, no dissector) | `udp_unclassified_counts[(Udp, 47808)] == 1` (key is min port = 47808) | min-port-normalization |
+| UDP src=47808 dst=61000 (BACnet response, no dissector) | `udp_unclassified_counts[(Udp, 47808)] == 2` (same key; second packet increments) | min-port-normalization |
 
 ## Verification Properties
 
 | VP-NNN | Sub | Property | Proof Method |
 |--------|-----|----------|-------------|
-| VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target on_flow_close calls | proptest: `proptest_vp042_total_count_equals_n` |
+| VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target on_flow_close calls (TCP dispatcher path) | proptest: `proptest_vp042_total_count_equals_n` |
 | VP-042 | Sub-B | Per-port count equals input frequency for TCP counter | proptest: `proptest_vp042_per_port_count_equals_frequency` |
 | VP-042 | Sub-C | Classified-flow on_flow_close does NOT increment TCP counter | proptest: `proptest_vp042_no_count_spurious_on_classified_flows` |
-| — | UDP counter increments per-packet for unhandled UDP | unit: `test_BC_2_05_010_udp_counter_per_packet` |
+| VP-043 | — | `udp_unclassified_counts` increments per-packet only for packets all dissectors decline; DNS/53 accepted by DnsAnalyzer does NOT appear; keys use `min(src_port, dst_port)` (main.rs UDP decode loop path) | proptest: `proptest_vp043_udp_counter_exactness` |
 | — | TCP keys always have TransportProto::Tcp; UDP keys always have TransportProto::Udp | unit: `test_BC_2_05_010_key_type_identity` |
 
 ## Traceability
@@ -132,7 +139,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 - `src/dispatcher.rs` — `StreamDispatcher` struct gains `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` field; populated at `on_flow_close` when `target == DispatchTarget::None && self.coverage_gaps_enabled`
 - `src/dispatcher.rs` — `TransportProto` enum: `pub enum TransportProto { Tcp, Udp }` — minimal, defined here, NOT imported from `protocols.rs`
 - `src/dispatcher.rs` — `on_flow_close` None-target arm: after incrementing `unclassified_flows`, also increment `(Tcp, lower_port)` key in `unclassified_port_counts`; `lower_port = min(flow_key.src_port, flow_key.dst_port)`
-- `src/main.rs` — decode loop UDP path: for each UDP packet not routed to a dissector, increment `udp_unclassified_counts.entry((TransportProto::Udp, udp_header.dst_port)).or_insert(0) += 1`
+- `src/main.rs` — decode loop UDP path: for each UDP packet after all dissectors decline (i.e., after `dns_analyzer.can_decode(&parsed)` returns false and any other UDP dissectors decline), compute `lower_port = min(udp_header.src_port, udp_header.dst_port)` and increment `udp_unclassified_counts.entry((TransportProto::Udp, lower_port)).or_insert(0) += 1`
 - VP-042: `proptest_vp042_total_count_equals_n`, `proptest_vp042_per_port_count_equals_frequency`, `proptest_vp042_no_count_spurious_on_classified_flows` (all in `tests/dispatcher_tests.rs` or equivalent)
 
 ## Story Anchor
@@ -141,9 +148,10 @@ TBD (F3 story decomposition for feature-protocol-coverage — expected to be par
 
 ## VP Anchors
 
-- VP-042 Sub-A — `proptest_vp042_total_count_equals_n`
+- VP-042 Sub-A — `proptest_vp042_total_count_equals_n` (TCP dispatcher path)
 - VP-042 Sub-B — `proptest_vp042_per_port_count_equals_frequency`
 - VP-042 Sub-C — `proptest_vp042_no_count_spurious_on_classified_flows`
+- VP-043 — `proptest_vp043_udp_counter_exactness` (main.rs UDP path; covers DNS exclusion and min-port key)
 
 ## Purity Classification
 

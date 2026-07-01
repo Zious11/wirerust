@@ -95,8 +95,7 @@ fail.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-041 | `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` (partition correctness) | proptest: `proptest_vp041_set_difference_correct` |
-| VP-041 | `supported_protocols() ∩ unsupported_protocols() == ∅` (disjoint invariant) | proptest: `proptest_vp041_partition_invariant` |
+| VP-041 | Oracle cross-check: for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"` (covers both partition correctness and disjoint invariant) | proptest: `proptest_vp041_oracle_cross_check` |
 | — | ARP always in supported set despite no port match | unit: `test_BC_2_18_003_arp_in_supported_set` |
 | — | `SUPPORTED_PORTS` entries each have a corresponding supported_protocols() entry | unit: `test_BC_2_18_003_supported_ports_mirror` |
 | — | BACnet/IP (47808 not in SUPPORTED_PORTS) is in unsupported_protocols() | unit: `test_BC_2_18_003_bacnet_unsupported` |
@@ -118,6 +117,7 @@ fail.
 - `src/protocols.rs` — `pub fn supported_protocols() -> Vec<&'static KnownProtocol>` — returns entries matching SUPPORTED_PORTS intersection OR ARP special case
 - `src/protocols.rs` — `pub fn unsupported_protocols() -> Vec<&'static KnownProtocol>` — returns complement of `supported_protocols()` within `KNOWN_PROTOCOLS`
 - `src/protocols.rs` — `pub fn all_protocols() -> &'static [KnownProtocol]` — returns full `KNOWN_PROTOCOLS` slice
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`)
 
 ## Story Anchor
 
@@ -125,8 +125,7 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 
 ## VP Anchors
 
-- VP-041 Sub-A — `proptest_vp041_set_difference_correct`: partition correctness (union == KNOWN_PROTOCOLS)
-- VP-041 Sub-B — `proptest_vp041_partition_invariant`: disjoint (intersection == ∅)
+- VP-041 — `proptest_vp041_oracle_cross_check`: oracle checks each entry against the canonical membership predicate; verifies both partition correctness (union == KNOWN_PROTOCOLS) and disjoint (intersection == ∅) in a single pass
 
 ## Purity Classification
 
