@@ -34,21 +34,18 @@ mod bc_2_16_016 {
     // BC-2.16.016 PC4 — RED GATE: --arp help text must document unbounded findings
     // -----------------------------------------------------------------------
 
-    /// BC-2.16.016 Postcondition 4 (RED GATE):
+    /// BC-2.16.016 Postcondition 4:
     /// `wirerust analyze --help` must document that ARP findings output is
     /// UNBOUNDED — specifically, the `--arp` flag's help entry must contain
     /// the word "unbounded" (case-insensitive).
     ///
-    /// **This test FAILS before the PC-015 implementation** because `src/cli.rs`
-    /// lines 194–198 define `--arp` with a short one-line `///` doc-comment that
-    /// mentions spoofing and GARP detection but says nothing about findings being
-    /// unbounded. The word "unbounded" is absent from the rendered help output.
+    /// PC-015 is implemented: `src/cli.rs` defines `--arp` with a `long_help`
+    /// that documents unbounded findings behavior; this test passes on current
+    /// code.
     ///
-    /// **Red Gate assertion**: after running `wirerust analyze --help`, this test
-    /// locates the `--arp` flag entry in the output (the text between `--arp` and
-    /// the next `--arp-spoof-threshold` sibling flag) and asserts it contains
-    /// "unbounded". It will FAIL on current code and PASS after the long_help
-    /// is added to the `--arp` arg in `src/cli.rs`.
+    /// After running `wirerust analyze --help`, this test locates the `--arp`
+    /// flag entry in the output (the text between `--arp` and the next
+    /// `--arp-spoof-threshold` sibling flag) and asserts it contains "unbounded".
     ///
     /// BC-2.16.016 reference:
     ///   Postcondition 4: "The CLI `--help` text for `--arp` MUST document the
@@ -106,19 +103,14 @@ mod bc_2_16_016 {
         // The word "unbounded" is the canonical keyword specified in BC-2.16.016 PC4
         // and scope.md §PC-015 Fix Classification item 1.
         //
-        // RED GATE: this assertion FAILS on the current codebase because `src/cli.rs`
-        // `--arp` doc-comment contains:
-        //   "Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, and
-        //    L2/L3 sender-MAC mismatch. Default-off; included by --all."
-        // The word "unbounded" is absent. After the PC-015 doc fix adds a long_help
-        // mentioning unbounded findings, this assertion PASSES.
+        // PC-015 is implemented: `src/cli.rs` `--arp` long_help documents
+        // unbounded findings behavior; this assertion passes on current code.
         assert!(
             arp_entry.to_lowercase().contains("unbounded"),
-            "BC-2.16.016 PC4 (RED GATE): the `--arp` flag help text (between `--arp` and \
+            "BC-2.16.016 PC4: the `--arp` flag help text (between `--arp` and \
              `--arp-spoof-threshold` in `wirerust analyze --help`) must contain the word \
              'unbounded' to document that ARP findings output is not capped. \
-             This is the PC-015 doc fix. Currently FAILING because long_help is absent \
-             from `src/cli.rs` lines 194-198. \
+             PC-015 implemented (long_help added to `src/cli.rs`). \
              `--arp` help entry:\n{}",
             arp_entry
         );
