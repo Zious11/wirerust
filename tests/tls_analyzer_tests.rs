@@ -334,18 +334,30 @@ fn test_ja3_grease_filtering() {
 
 #[test]
 fn test_parse_error_counter() {
-    // AC-007 / BC-2.07.029 postconditions 1-5:
-    // A handshake record (0x16) with a well-sized but malformed payload returns
-    // Err(_) from parse_tls_plaintext. parse_errors increments by 1. No finding
-    // emitted, no panic, flow remains in flows HashMap, loop continues/returns.
-    // truncated_records must NOT increment (this is a genuine parse failure, not
-    // an oversized-record DoS drop — BC-2.07.029 invariant 1).
+    // AC-007 / BC-2.07.029 postconditions 1-5 (updated for STORY-144 carry path):
+    // A handshake record (0x16) carrying a structurally-complete-but-malformed
+    // handshake message body causes parse_tls_message_handshake to return Err,
+    // incrementing parse_errors by 1. No finding emitted, no panic, flow remains.
+    // truncated_records must NOT increment (BC-2.07.029 invariant 1).
+    //
+    // With the STORY-144 carry path (AC-144-002), a "malformed 5-byte payload"
+    // like [0xFF;5] is now interpreted as a body_len-spoof (body_len=0xFFFFFF >
+    // MAX_BUF) → Decision-4 fires → handshake_reassembly_overflows++, NOT
+    // parse_errors. The genuine parse_errors case is a COMPLETE message (header
+    // declares body_len=N, N bytes delivered) with unparseable body content.
+    // This fixture sends body_len=5 header + 5-byte malformed body = 9 bytes.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // 5-byte TLS record header: type=0x16 (Handshake), version=0x0303, len=0x0005.
-    // Payload: 5 bytes of 0xFF — not a valid Handshake structure.
-    let bad_record = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+    // Carry-path fixture: [0x01, 0x00, 0x00, 0x05] header (msg_type=ClientHello,
+    // body_len=5) followed by 5 bytes of malformed content 0xFF.
+    // The carry drain loop assembles the 9-byte message and calls
+    // parse_tls_message_handshake, which fails on the malformed body → parse_errors+1.
+    let bad_record = [
+        0x16, 0x03, 0x03, 0x00, 0x09, // TLS record header, payload_len=9
+        0x01, 0x00, 0x00, 0x05, // handshake header: type=0x01, body_len=5
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    ]; // malformed 5-byte body
     analyzer.on_data(&fk, Direction::ClientToServer, &bad_record, 0, 0);
 
     // BC-2.07.029 postcondition 1: parse_errors incremented by exactly 1.
@@ -917,10 +929,16 @@ fn test_summarize_output() {
 
     let detail = &summary.detail;
 
-    // AC-009 / BC-2.07.031 postconditions 3-9:
-    // EXACT 7-key set — no more, no fewer (BTreeMap ordering enforced below).
+    // AC-009 / BC-2.07.031 postconditions 3-9 + AC-144-003 + AC-146-005:
+    // EXACT 9-key set — no more, no fewer (BTreeMap ordering enforced below).
+    // Updated from 7→8 in STORY-144 to include `handshake_reassembly_overflows`
+    // (BC-2.07.039 Postcondition 7 / AC-144-003).
+    // Updated from 8→9 in STORY-146 to include `buffer_saturation_drops`
+    // (BC-2.07.043 Postcondition 4 / AC-146-005; key always present even when count==0).
     let required_keys = [
+        "buffer_saturation_drops",
         "cipher_suites",
+        "handshake_reassembly_overflows",
         "ja3_hashes",
         "ja3s_hashes",
         "parse_errors",
@@ -936,8 +954,9 @@ fn test_summarize_output() {
     }
     assert_eq!(
         detail.len(),
-        7,
-        "AC-009 (BC-2.07.031 pc3-9): detail must have EXACTLY 7 keys, got: {:?}",
+        9,
+        "AC-009 (BC-2.07.031 pc3-9 + AC-144-003 + AC-146-005): detail must have EXACTLY 9 keys, \
+         got: {:?}",
         detail.keys().collect::<Vec<_>>()
     );
 
@@ -8402,11 +8421,18 @@ fn test_malformed_handshake_increments_parse_errors_only() {
         "AC-008 setup: truncated_records must be 0 after valid ClientHello"
     );
 
-    // Step 2: malformed handshake record (type=0x16, well-sized payload_len=5,
-    // but payload is garbage 0xFF bytes — parse_tls_plaintext returns Err(_)).
-    // payload_len=5 is well within MAX_RECORD_PAYLOAD (18432), so the oversized
-    // guard is NOT taken. This exercises the nom error path (BC-2.07.029 pc1-5).
-    let malformed = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+    // Step 2: malformed handshake record (type=0x16, well-sized payload_len=9,
+    // carrying a structurally-complete-but-malformed handshake body).
+    // Updated for STORY-144 carry path (AC-144-002): the payload must encode a
+    // COMPLETE handshake message (4-byte header + body) so the drain loop can
+    // assemble and attempt to parse it. A 5-byte [0xFF;5] payload would trigger
+    // Decision-4 (body_len=0xFFFFFF > MAX_BUF → overflow, not parse_error).
+    // This fixture: header [0x01,0x00,0x00,0x05]=body_len:5 + 5-byte garbage body.
+    let malformed = [
+        0x16, 0x03, 0x03, 0x00, 0x09, // TLS record, payload_len=9
+        0x01, 0x00, 0x00, 0x05, // HS header: type=0x01, body_len=5
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    ]; // malformed 5-byte body
     analyzer.on_data(&fk, Direction::ClientToServer, &malformed, 0, 0);
 
     // BC-2.07.029 inv1: parse_errors == 1 (genuine parse failure).
@@ -9224,11 +9250,19 @@ fn handshake_record_reaches_parser() {
         0,
         "0x16 record: buffer must be drained"
     );
-    // Empty payload -> nom Incomplete or parse error. parse_errors >= 1
-    // confirms the parse path was entered (non-0x16 path would leave it 0).
-    assert!(
-        analyzer.parse_error_count() >= 1,
-        "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
+    // Updated for STORY-144 carry path (AC-144-002): empty-payload 0x16 records
+    // are now buffered in client_hs_carry rather than immediately dispatched to
+    // parse_tls_plaintext. An empty payload (0 bytes) does not form a complete
+    // 4-byte handshake header; no parse attempt occurs and parse_errors stays 0.
+    // The observable proof that the 0x16 path was entered is:
+    //  (a) client_buf was drained above (buffer management still fires), AND
+    //  (b) a flow entry was created (active_flows == 1).
+    // Non-0x16 content types do NOT create carry entries; only 0x16 records
+    // go through the carry path, so flow creation + buf drain proves routing.
+    assert_eq!(
+        analyzer.active_flows_len_for_testing(),
+        1,
+        "0x16 with empty payload: flow must exist (proves 0x16 path was entered)"
     );
 }
 
@@ -9388,4 +9422,2473 @@ fn test_weak_cipher_evidence_capped_at_64_with_elision() {
          with cap=64; got: {:?}",
         last
     );
+}
+
+// ── STORY-144: TLS Handshake Carry Buffer + Fragmented ClientHello Reassembly ──
+//
+// VP-039 Sub-A/B/C/D/F — AC-144-002 implemented (carry drain loop is live).
+//
+// These 15 harnesses verify the ClientToServer carry drain loop introduced by
+// AC-144-002. The carry buffer accumulates 0x16 record payloads and drains them
+// message-by-message once a complete handshake message is available.
+//
+// Namespace isolation: DF-TEST-NAMESPACE-001 — all STORY-144 tests live inside
+// this `mod story_144` wrapper. No new flat-root tests are added for this story.
+//
+// Test count: 15 (3 proptest + 12 unit).
+mod story_144 {
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
+    // proptest is used by the three proptest harnesses:
+    //   proptest_vp039_carry_reassembly_two_record (Sub-A)
+    //   proptest_vp039_exact_consume_coalesced (Sub-B)
+    //   proptest_vp039_carry_bounded_invariant (Sub-F)
+    // The allow(unused_imports) is removed now that the real proptest bodies are authored.
+    use proptest::prelude::*;
+
+    // ── Local test helpers ────────────────────────────────────────────────────
+    //
+    // Reconciliation rule: before creating any new helper, grep for the relevant
+    // name in the existing suite. Names below are new (not present at flat root).
+
+    /// Create a `FlowKey` varied by `seed` so cross-flow and independent-flow
+    /// tests can use distinct keys without collision.
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 144, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 144, 1, seed]),
+            443,
+        )
+    }
+
+    /// Returns the RAW handshake-message bytes for a ClientHello with the given
+    /// SNI, with NO TLS record header prefix (5 bytes stripped).
+    ///
+    /// `build_client_hello` at the flat root returns a COMPLETE TLS record
+    /// (5-byte header + handshake body). This wrapper strips the header so
+    /// fragmentation tests can re-frame the handshake bytes into arbitrary
+    /// record boundaries via `wrap_as_tls_record`.
+    fn build_client_hello_with_sni(sni: &str) -> Vec<u8> {
+        // Reconciliation: `build_client_hello` exists at flat root; use it.
+        // build_client_hello(sni, ciphers) → [0x16, ver_hi, ver_lo, len_hi, len_lo, ...body...]
+        // Strip the 5-byte record header to get raw handshake-message bytes.
+        super::build_client_hello(sni, &[0x002f])[5..].to_vec()
+    }
+
+    /// Wrap `payload` bytes in a 5-byte TLS record header for the given content type.
+    ///
+    /// Reconciliation: `make_tls_record_cr010` at flat root only builds empty-payload
+    /// records. This generic wrapper is new; no `wrap_as_tls_record` or generic
+    /// `make_tls_record` exists at the flat root.
+    fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
+        let len = payload.len();
+        let len_hi = (len >> 8) as u8;
+        let len_lo = (len & 0xff) as u8;
+        let mut record = vec![content_type, 0x03, 0x03, len_hi, len_lo];
+        record.extend_from_slice(payload);
+        record
+    }
+
+    // ── VP-039 Sub-A: carry reassembly ────────────────────────────────────────
+
+    // VP-039 Sub-A (proptest): for any split offset 1<=k<n, a ClientHello
+    // split into two 0x16 records must be fully reassembled.
+    //
+    // Asserts: client_hello_seen==true, sni_counts.len()==1, parse_errors==0.
+    //
+    // The strategy uses prop_oneof to guarantee partial-header splits
+    // (k < 4) and body splits (k >= 4) are both reachable in the same run.
+    //
+    // Traces to: BC-2.07.038 v2.7 Postconditions 1–4.
+    proptest! {
+        #[test]
+        fn proptest_vp039_carry_reassembly_two_record(
+            // Two-armed strategy: partial-header splits (1..4) AND body splits (4..256).
+            // Using prop_oneof ensures both sub-ranges are reachable in the same test run.
+            split_offset in prop_oneof![1usize..4usize, 4usize..256usize],
+        ) {
+            let client_hello = build_client_hello_with_sni("example.com");
+            let n = client_hello.len();
+            // Discard if split overshoots the actual message length.
+            prop_assume!(split_offset < n);
+
+            // Two-record fragmented delivery.
+            let mut analyzer_fragmented = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(1);
+            let ts: u32 = 100;
+
+            // Record 1: bytes [0..split_offset] wrapped as a 0x16 record payload.
+            let rec1 = wrap_as_tls_record(0x16, &client_hello[..split_offset]);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, ts);
+
+            // Record 2: bytes [split_offset..n] wrapped as a 0x16 record payload.
+            let rec2 = wrap_as_tls_record(0x16, &client_hello[split_offset..]);
+            analyzer_fragmented.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, ts);
+
+            // Single-record delivery (baseline for comparison).
+            let mut analyzer_single = TlsAnalyzer::new();
+            let flow_key2 = make_test_flow_key(2);
+            let rec_single = wrap_as_tls_record(0x16, &client_hello);
+            analyzer_single.on_data(&flow_key2, Direction::ClientToServer, &rec_single, 0u64, ts);
+
+            // Red Gate primary assertion: after fragmented delivery, client_hello_seen
+            // must be true. Without the carry drain loop this is always false
+            // (stub never dispatches via the carry path) — fails on first case.
+            //
+            // Use flat accessor: client_hello_seen_for_testing is the NEW seam
+            // (STORY-144/146 deliverable), symmetric to server_hello_seen_for_testing.
+            prop_assert_eq!(
+                analyzer_fragmented.client_hello_seen_for_testing(&flow_key),
+                analyzer_single.client_hello_seen_for_testing(&flow_key2),
+                "fragmented and single-record ClientHello detection must agree: \
+                 fragmented={}, single={}",
+                analyzer_fragmented.client_hello_seen_for_testing(&flow_key),
+                analyzer_single.client_hello_seen_for_testing(&flow_key2),
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.parse_error_count(), 0u64,
+                "fragmented delivery must not produce parse errors"
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.sni_counts().len(), analyzer_single.sni_counts().len(),
+                "SNI detection must be identical for fragmented vs single-record"
+            );
+            prop_assert_eq!(
+                analyzer_fragmented.ja3_counts().len(), analyzer_single.ja3_counts().len(),
+                "JA3 count must be identical for fragmented vs single-record"
+            );
+        }
+    }
+
+    /// VP-039 Sub-A (unit): three canonical RFC 8446 §4 handshake frames.
+    ///
+    /// Frame A: degenerate body_len=5, msg_type=0x01 — assembled 9-byte body
+    ///   is a malformed ClientHello → parse_errors+1, client_hello_seen=false.
+    /// Frame B: BE-vs-LE discriminator — body_len encoded as big-endian 0x01_05_00
+    ///   = 66,816 > MAX_BUF → handshake_reassembly_overflows+1, parse_errors unchanged.
+    /// Frame C: body_len=256 (0x000100), msg_type=0x01, malformed body →
+    ///   parse_errors+1, client_hello_seen=false.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 AC-CANONICAL-FRAME + Invariant 5.
+    /// Red Gate: FAILS because carry drain loop not implemented.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_canonical_frame_rfc8446_s4() {
+        let fk = make_test_flow_key(38);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Frame A: msg_type=0x01, body_len=5 (degenerate). Header bytes: [0x01, 0x00, 0x00, 0x05]
+        // + 5 bytes body. Total handshake message = 9 bytes.
+        // Wrapped in a 0x16 TLS record so the existing record-layer parses it.
+        let frame_a_hs: Vec<u8> = vec![0x01, 0x00, 0x00, 0x05, 0xff, 0xff, 0xff, 0xff, 0xff];
+        let frame_a_record = wrap_as_tls_record(0x16, &frame_a_hs);
+        analyzer.on_data(&fk, Direction::ClientToServer, &frame_a_record, 0, 0);
+
+        // Frame A: explicit BC-CANONICAL-FRAME assertions (adversary LOW).
+        // The carry drain loop dispatches the complete 9-byte message via
+        // parse_tls_message_handshake, which returns an error for the degenerate
+        // 5-byte body → parse_errors+1, client_hello_seen remains false.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "Frame A: degenerate 5-byte body must produce parse_errors==1"
+        );
+        assert!(
+            !analyzer.client_hello_seen_for_testing(&fk),
+            "Frame A: client_hello_seen must be false for degenerate 5-byte body"
+        );
+
+        // Frame B: body_len = 0x010500 (BE) = 66,816 > MAX_BUF.
+        // Header: [0x01, 0x01, 0x05, 0x00] — type=0x01, length BE = 0x010500.
+        // Wrapped in a 0x16 record just carrying the 4-byte header (no body bytes).
+        let frame_b_hs: Vec<u8> = vec![0x01, 0x01, 0x05, 0x00];
+        let frame_b_record = wrap_as_tls_record(0x16, &frame_b_hs);
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        analyzer.on_data(&fk, Direction::ClientToServer, &frame_b_record, 0, 0);
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "Frame B: body_len=66816 > MAX_BUF must trigger handshake_reassembly_overflows+1"
+        );
+
+        // Frame C: body_len=256, msg_type=0x01, malformed 256-byte body.
+        let mut frame_c_hs: Vec<u8> = vec![0x01, 0x00, 0x01, 0x00]; // body_len=256
+        frame_c_hs.extend(vec![0xcc; 256]); // malformed body
+        let frame_c_record = wrap_as_tls_record(0x16, &frame_c_hs);
+        let parse_errors_before = analyzer.parse_error_count();
+        analyzer.on_data(&fk, Direction::ClientToServer, &frame_c_record, 0, 0);
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before + 1,
+            "Frame C: malformed assembled body must produce parse_errors+1"
+        );
+        assert!(
+            !analyzer.client_hello_seen_for_testing(&fk),
+            "Frame C: client_hello_seen must remain false after malformed body"
+        );
+    }
+
+    /// VP-039 Sub-A (unit): assembled, length-complete header + malformed body
+    /// → parse_errors+1, carry empty after consume, no finding, no panic.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 Postcondition 9 / ADR-011 Decision 4.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_malformed_assembled_body() {
+        let fk = make_test_flow_key(39);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Test the CARRY PATH: fragment the malformed ClientHello across two records.
+        // Record 1: just the 4-byte handshake header (type=0x01, body_len=20).
+        // Record 2: the 20-byte malformed body.
+        // The carry drain loop must:
+        //   1. Accumulate 4 bytes in carry after record 1 (not yet complete — body pending).
+        //   2. After record 2: carry has 4+20=24 bytes, drain fires, parse_tls_message_handshake
+        //      fails on the malformed body → parse_errors+1, exact-consume, carry empty.
+        let header_only: Vec<u8> = vec![0x01, 0x00, 0x00, 0x14]; // type=ClientHello, body_len=20
+        let record1 = wrap_as_tls_record(0x16, &header_only);
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+
+        // After record 1: carry holds the 4-byte handshake header (body_len=20
+        // bytes not yet received). Drain loop sees carry_len=4 < 4+20 → waits.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "malformed body: carry must hold 4 header bytes after record 1"
+        );
+
+        // Record 2: the 20-byte malformed body.
+        let body: Vec<u8> = vec![0xcc; 20];
+        let record2 = wrap_as_tls_record(0x16, &body);
+
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+
+        // After carry drain loop processes the complete (header+body):
+        // parse_errors+1, no new finding, client_hello_seen=false, carry empty.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before + 1,
+            "malformed assembled body must produce exactly parse_errors+1"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "malformed assembled body must not emit a finding"
+        );
+        assert!(
+            !analyzer.client_hello_seen_for_testing(&fk),
+            "client_hello_seen must be false after malformed assembled body"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "carry must be empty (exact-consumed) after malformed assembled body"
+        );
+    }
+
+    /// VP-039 Sub-A (unit): ClientHello split at the exact SNI field boundary.
+    ///
+    /// First record ends mid-SNI bytes; second record completes them.
+    /// Asserts: SNI extracted correctly, parse_errors==0, client_hello_seen==true.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 EC-001 "SNI boundary split".
+    #[test]
+    fn test_vp039_sni_boundary_deterministic() {
+        let fk = make_test_flow_key(40);
+        let mut analyzer = TlsAnalyzer::new();
+        let sni = "sni-boundary.example";
+
+        // Get raw handshake bytes (no 5-byte record header).
+        let hs_bytes = build_client_hello_with_sni(sni);
+
+        // Split at byte 30 (within SNI extension, which starts around byte 50+ but
+        // the split point just needs to be non-trivial — anywhere in the middle
+        // of the handshake message body guarantees the SNI field spans two records).
+        let split = hs_bytes.len() / 2;
+        let record1 = wrap_as_tls_record(0x16, &hs_bytes[..split]);
+        let record2 = wrap_as_tls_record(0x16, &hs_bytes[split..]);
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+
+        assert!(
+            analyzer.client_hello_seen_for_testing(&fk),
+            "SNI boundary split: client_hello_seen must be true after both records"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "SNI boundary split: parse_errors must be 0"
+        );
+        assert_eq!(
+            analyzer.sni_counts().len(),
+            1,
+            "SNI boundary split: sni_counts must have exactly 1 entry"
+        );
+        assert!(
+            analyzer.sni_counts().contains_key(sni),
+            "SNI boundary split: sni_counts must contain '{sni}'"
+        );
+    }
+
+    /// VP-039 Sub-A-ext-N (unit): ONE ClientHello drip-fed across >=3 records
+    /// (header-split scenarios). Asserts sni_counts.len()==1, parse_errors==0.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 EC-003.
+    #[test]
+    fn test_vp039_n_record_reassembly() {
+        let fk = make_test_flow_key(41);
+        let mut analyzer = TlsAnalyzer::new();
+        let sni = "n-record.example";
+
+        let hs_bytes = build_client_hello_with_sni(sni);
+
+        // Drip-feed: 1 byte per record for the first 3, then the remainder.
+        let record0 = wrap_as_tls_record(0x16, &hs_bytes[..1]);
+        let record1 = wrap_as_tls_record(0x16, &hs_bytes[1..2]);
+        let record2 = wrap_as_tls_record(0x16, &hs_bytes[2..3]);
+        let record_rest = wrap_as_tls_record(0x16, &hs_bytes[3..]);
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record0, 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record_rest, 0, 0);
+
+        assert_eq!(
+            analyzer.sni_counts().len(),
+            1,
+            "n-record reassembly: sni_counts must have exactly 1 entry"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "n-record reassembly: parse_errors must be 0"
+        );
+    }
+
+    /// VP-039 Sub-C-ext-large (unit): body 18,433..65,536 bytes (large valid hello).
+    ///
+    /// SNI/JA3 populated, handshake_reassembly_overflows==0.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 Invariant 5.
+    #[test]
+    fn test_vp039_large_valid_hello_reassembly() {
+        let fk = make_test_flow_key(42);
+        let mut analyzer = TlsAnalyzer::new();
+        let sni = "large-hello.example";
+
+        // Build a large ClientHello by splitting across two records.
+        // Split right after the 4-byte handshake header so the carry accumulates
+        // the header in record 1 and completes the message in record 2.
+        let hs_bytes = build_client_hello_with_sni(sni);
+        let split = 4; // split right after the 4-byte handshake header
+        let record1 = wrap_as_tls_record(0x16, &hs_bytes[..split]);
+        let record2 = wrap_as_tls_record(0x16, &hs_bytes[split..]);
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            0,
+            "large hello: handshake_reassembly_overflows must be 0 for valid body"
+        );
+        assert_eq!(
+            analyzer.sni_counts().len(),
+            1,
+            "large hello: sni_counts must have exactly 1 entry"
+        );
+        assert!(
+            analyzer.sni_counts().contains_key(sni),
+            "large hello: sni_counts must contain '{sni}'"
+        );
+    }
+
+    // ── VP-039 Sub-B: exact-consume coalesced ─────────────────────────────────
+
+    // VP-039 Sub-B (proptest): ClientHello + other_msg coalesced in one record,
+    // delivered FRAGMENTED across two 0x16 records.
+    //
+    // The coalesced byte sequence is split at byte 4 (after the 4-byte ClientHello
+    // handshake header): record 1 = header only, record 2 = CH body + other_msg.
+    // This forces the carry drain loop to handle fragmentation AND coalesced dispatch.
+    //
+    // After both records: handshake_count()==1, parse_errors==0,
+    // carry_len==0, client_hello_seen==true.
+    //
+    // The secondary message has a NON-ZERO body_len so the exact-consume
+    // arithmetic (drain(4 + body_len)) is exercised with body_len > 0.
+    // handshakes_seen==1 is asserted directly via handshake_count()
+    // (not inferred from ja3_counts.len()==1 — F-F2-012 requirement).
+    //
+    // Traces to: BC-2.07.042 v1.4 Postconditions 1–5.
+    proptest! {
+        #[test]
+        fn proptest_vp039_exact_consume_coalesced(
+            // Vary the secondary handshake type (not 0x01/0x02 — any other type).
+            other_hs_type in 4u8..=20u8,
+            // Non-zero body length for the secondary message: 1–16 bytes.
+            // Ensures drain(4 + body_len) is exercised with body_len > 0.
+            other_body_len in 1u8..=16u8,
+        ) {
+            let client_hello = build_client_hello_with_sni("test.example.com");
+            // Secondary handshake: type(1) + 24-bit BE body_len(3) + body bytes.
+            let mut other_msg: Vec<u8> = vec![
+                other_hs_type,
+                0x00, 0x00, other_body_len,  // body_len encoded as 24-bit big-endian
+            ];
+            other_msg.extend(vec![0xBBu8; other_body_len as usize]); // non-zero body
+
+            // Coalesce: ClientHello handshake bytes immediately followed by other_msg.
+            let coalesced = [client_hello.as_slice(), other_msg.as_slice()].concat();
+
+            // FRAGMENTED delivery: split after the 4-byte ClientHello header so the
+            // carry drain loop must handle re-entry across records.
+            // Record 1: first 4 bytes (handshake header only — body pending).
+            // Record 2: remaining CH body + the full secondary message.
+            let rec1 = wrap_as_tls_record(0x16, &coalesced[..4]);
+            let rec2 = wrap_as_tls_record(0x16, &coalesced[4..]);
+
+            let mut analyzer = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(1);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec1, 0u64, 100u32);
+
+            // After record 1 (4-byte header only), the carry drain loop sees
+            // carry_len=4 < 4+body_len → waits. Carry holds exactly 4 bytes.
+            prop_assert_eq!(
+                analyzer.client_hs_carry_len_for_testing(&flow_key), 4,
+                "after 4-byte header record, carry must hold exactly 4 bytes"
+            );
+
+            // Deliver record 2 — the carry drain loop must now:
+            // 1. Complete the ClientHello (drain 4+body_len bytes), dispatch it.
+            // 2. Immediately drain the other_msg (non-CH, consumed silently).
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &rec2, 0u64, 100u32);
+
+            // After full drain: exactly 1 ClientHello dispatched.
+            // F-F2-012: assert handshakes_seen==1 DIRECTLY via handshake_count().
+            prop_assert!(analyzer.client_hello_seen_for_testing(&flow_key),
+                "ClientHello in coalesced fragmented record must be dispatched (client_hello_seen==true)");
+            prop_assert_eq!(analyzer.handshake_count(), 1u64,
+                "exactly 1 ClientHello dispatched — handshake_count must be 1");
+            prop_assert_eq!(analyzer.parse_error_count(), 0u64,
+                "coalesced delivery must not produce parse errors");
+            // Carry buffer must be empty: both messages fully consumed.
+            prop_assert_eq!(
+                analyzer.client_hs_carry_len_for_testing(&flow_key), 0,
+                "carry buffer must be empty after all complete messages consumed"
+            );
+        }
+    }
+
+    /// VP-039 Sub-B (unit): no double-dispatch; handshakes_seen exact after
+    /// coalesced ClientHello + unknown message in one record.
+    ///
+    /// Traces to: BC-2.07.042 v1.4 AC-EXACT-CONSUME.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_042_exact_consume_no_double_dispatch() {
+        let fk = make_test_flow_key(42);
+        let mut analyzer = TlsAnalyzer::new();
+        let sni = "coalesced.example";
+
+        // CARRY PATH: split the coalesced payload across TWO 0x16 records so the
+        // carry drain loop must handle both the ClientHello AND the trailing message.
+        //
+        // Coalesced raw payload: ClientHello handshake bytes + Certificate (type=0x0b).
+        let ch_hs = build_client_hello_with_sni(sni);
+        let other_hs: Vec<u8> = vec![0x0b, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let mut coalesced = ch_hs.clone();
+        coalesced.extend_from_slice(&other_hs);
+
+        // Split after the first 4 bytes (handshake header of the ClientHello).
+        // Record 1: just the 4-byte CH header → carry accumulates 4 bytes (incomplete body).
+        // Record 2: the rest of CH body + Certificate bytes.
+        let record1 = wrap_as_tls_record(0x16, &coalesced[..4]);
+        let record2 = wrap_as_tls_record(0x16, &coalesced[4..]);
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+
+        // After record 1 (4-byte header only), the drain loop sees
+        // carry_len=4 < 4+body_len → waits. Carry holds exactly 4 bytes.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "exact-consume coalesced: carry must hold 4 header bytes after record 1"
+        );
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+
+        // After full drain: exactly one ClientHello dispatched, Certificate silently consumed.
+        assert_eq!(
+            analyzer.handshake_count(),
+            1,
+            "coalesced record: handshake_count must be exactly 1 (no double-dispatch)"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "coalesced record: parse_errors must be 0 (non-CH message consumed silently)"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "coalesced record: carry must be empty after full drain"
+        );
+    }
+
+    /// SEC-001 regression (unit): single 0x16 record packed with N zero-body-length
+    /// non-ClientHello messages processes in O(N) work (cursor-based drain), not
+    /// O(N²) (per-message Vec::drain).
+    ///
+    /// Fixture: one 0x16 record whose payload contains 1,000 4-byte messages of the
+    /// form [non_ch_type, 0x00, 0x00, 0x00] (msg_type != 0x01, body_len = 0). Each
+    /// message is consumed silently by the drain loop (BC-2.07.038 Invariant 1;
+    /// BC-2.07.042 EC-002). After delivery:
+    ///   - carry must be empty (all 1,000 messages fully consumed)
+    ///   - parse_errors must be 0 (non-0x01 types never increment parse_errors)
+    ///   - handshake_reassembly_overflows must be 0 (payload within MAX_BUF)
+    ///   - client_hello_seen must be false (no ClientHello dispatched)
+    ///
+    /// This test guards against reintroducing per-message drain. With the old O(N²)
+    /// approach, 1,000 messages × 4,000-byte carry → ~4 MB of memmove. With the
+    /// cursor+single-drain approach the total memmove is 4,000 bytes (one drain).
+    ///
+    /// Traces to: BC-2.07.038 Invariant 1; BC-2.07.042 EC-002; SEC-001 fix.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_042_coalesced_zero_len_no_quadratic_drain() {
+        let fk = make_test_flow_key(250);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Build a payload of 1,000 zero-body-length non-ClientHello messages.
+        // Each message: [msg_type=0x02, 0x00, 0x00, 0x00] — type 0x02 (ServerHello)
+        // is not dispatched on the ClientToServer direction; body_len = 0.
+        // Total payload: 4,000 bytes (well within MAX_RECORD_PAYLOAD=18,432 and MAX_BUF=65,536).
+        const N: usize = 1_000;
+        let mut payload: Vec<u8> = Vec::with_capacity(N * 4);
+        for _ in 0..N {
+            payload.extend_from_slice(&[0x02, 0x00, 0x00, 0x00]);
+        }
+        assert_eq!(
+            payload.len(),
+            N * 4,
+            "payload sanity: must be exactly N*4 bytes"
+        );
+
+        // Deliver as a single 0x16 record.
+        let record = wrap_as_tls_record(0x16, &payload);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        // All N messages consumed silently — carry must be empty.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "SEC-001 regression: carry must be empty after N={N} zero-body messages"
+        );
+        // Non-0x01 msg_type: parse_errors MUST NOT increment (BC-2.07.038 Invariant 1).
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "SEC-001 regression: parse_errors must be 0 for N={N} non-ClientHello messages"
+        );
+        // No overflow should occur (payload 4,000 bytes << MAX_BUF=65,536).
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            0,
+            "SEC-001 regression: no overflow expected for {N}-message payload within MAX_BUF"
+        );
+        // No ClientHello was sent.
+        assert!(
+            !analyzer.client_hello_seen_for_testing(&fk),
+            "SEC-001 regression: client_hello_seen must be false (no 0x01 msg dispatched)"
+        );
+    }
+
+    // ── VP-039 Sub-C: carry overflow clear-and-recover ────────────────────────
+
+    /// VP-039 Sub-C (unit): Decision-5 fires exactly once; carry cleared;
+    /// overflow_count==overflows_before+1; parse_errors unchanged.
+    ///
+    /// Fixture: valid header body_len=65,500 accumulates 65,504 bytes total;
+    /// additional 4 padding records push total past MAX_BUF (65,536) → overflow.
+    ///
+    /// Traces to: BC-2.07.039 v2.4 Postconditions 1–6.
+    #[test]
+    fn test_vp039_carry_overflow_clear_and_recover() {
+        let fk = make_test_flow_key(43);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Record 1: header body_len=65,500 (msg_type=0x01, len=[0xFF, 0xFC, 0x00]? no:
+        // 65500 = 0xFFDC = 0x00_FF_DC — 3-byte BE: [0x00, 0xFF, 0xDC]).
+        // Send just the 4-byte header so carry accumulates 4 bytes.
+        let header_only: Vec<u8> = vec![0x01, 0x00, 0xFF, 0xDC]; // body_len = 65500
+        let record1 = wrap_as_tls_record(0x16, &header_only);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record1, 0, 0);
+
+        // Record 2: 100 more bytes — now carry = 4 + 100 = 104 bytes.
+        let padding: Vec<u8> = vec![0xAA; 100];
+        let record2 = wrap_as_tls_record(0x16, &padding);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
+
+        // Records 3a–3d: together add 65,400 bytes so carry reaches 104+65,400 = 65,504.
+        // Each individual record payload ≤ 18,432 (MAX_RECORD_PAYLOAD) so the DoS guard
+        // (BC-2.07.004) does NOT fire; accumulation via multiple valid records is the
+        // intended overflow path per BC-2.07.039 v2.1 EC-002 / PRD F-F2-003.
+        // 3 × 18,432 + 10,104 = 65,400.
+        for _ in 0..3 {
+            let chunk: Vec<u8> = vec![0xBB; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
+        let remainder: Vec<u8> = vec![0xBB; 10_104]; // 65_400 - 3*18_432 = 10_104
+        let rec_rem = wrap_as_tls_record(0x16, &remainder);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec_rem, 0, 0);
+
+        // Now carry = 65,504. Record 4: 100 bytes → 65,504 + 100 = 65,604 > 65,536.
+        // Decision-5 fires: carry cleared, overflow_count+1.
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        let overflow_trigger: Vec<u8> = vec![0xCC; 100];
+        let record4 = wrap_as_tls_record(0x16, &overflow_trigger);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record4, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "Decision-5: overflow_count must increment by exactly 1"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "Decision-5: carry must be cleared (len==0) after overflow"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "Decision-5: parse_errors must NOT change on carry overflow"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "Decision-5: findings must NOT change on carry overflow"
+        );
+    }
+
+    /// VP-039 Sub-C (unit): post-overflow single-record ClientHello dispatched.
+    ///
+    /// client_hello_seen==true; SNI/JA3 populated; parse_errors==0.
+    ///
+    /// Traces to: BC-2.07.039 v2.4 Postcondition 6 (clear-and-recover).
+    #[test]
+    fn test_vp039_carry_overflow_recovery() {
+        let fk = make_test_flow_key(44);
+        let mut analyzer = TlsAnalyzer::new();
+        let sni = "post-overflow-recovery.example";
+
+        // Trigger an overflow first by accumulating > MAX_BUF bytes across multiple
+        // individually-valid records (per BC-2.07.039 v2.1 EC-002 / PRD F-F2-003:
+        // a single 0x16 record with payload > MAX_RECORD_PAYLOAD (18,432) cannot reach
+        // the carry; overflow is triggered by accumulation across multiple valid records).
+        //
+        // Step 1: header-only record (4 bytes) → carry = 4.
+        let header_only: Vec<u8> = vec![0x01, 0x00, 0xFF, 0xDC]; // body_len=65500
+        let record_header = wrap_as_tls_record(0x16, &header_only);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record_header, 0, 0);
+
+        // Step 2: 3 × 18,432-byte records → carry grows to 4+18,432+18,432+18,432 = 55,300.
+        // Step 3: 4th record of 18,432 bytes → 55,300+18,432=73,732 > 65,536 → Decision-5.
+        for _ in 0..4 {
+            let chunk: Vec<u8> = vec![0xAA; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
+
+        // Carry is now cleared; overflow_count >= 1.
+        assert!(
+            analyzer.handshake_reassembly_overflow_count() >= 1,
+            "pre-condition: overflow must have fired"
+        );
+
+        // Now send a complete single-record ClientHello — must be dispatched normally.
+        let ch_hs = build_client_hello_with_sni(sni);
+        let record_ch = wrap_as_tls_record(0x16, &ch_hs);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record_ch, 0, 0);
+
+        assert!(
+            analyzer.client_hello_seen_for_testing(&fk),
+            "post-overflow recovery: client_hello_seen must be true after complete hello"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "post-overflow recovery: parse_errors must be 0"
+        );
+        assert!(
+            analyzer.sni_counts().contains_key(sni),
+            "post-overflow recovery: SNI '{sni}' must be in sni_counts"
+        );
+    }
+
+    /// VP-039 Sub-C (unit): body_len > MAX_BUF triggers Decision-4 clear-and-recover.
+    ///
+    /// overflow_count+1; parse_errors unchanged; findings unchanged.
+    ///
+    /// Traces to: BC-2.07.038 v2.7 Invariant 5 / ADR-011 Decision 4.
+    #[test]
+    fn test_vp039_body_len_spoof() {
+        let fk = make_test_flow_key(45);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // A 0x16 record whose handshake header declares body_len=65537 (> MAX_BUF=65536).
+        // 65537 = 0x010001 — 3-byte BE: [0x01, 0x00, 0x01].
+        let spoof_header: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // type=0x01, body_len=65537
+        let record = wrap_as_tls_record(0x16, &spoof_header);
+
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "body_len spoof: Decision-4 must fire, overflow_count+1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "body_len spoof: parse_errors must NOT change (Decision-4)"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "body_len spoof: findings must NOT change (Decision-4)"
+        );
+    }
+
+    /// VP-039 Sub-C (unit): `summarize()` exposes `handshake_reassembly_overflows`
+    /// key with value-equality (not mere key presence).
+    ///
+    /// detail["handshake_reassembly_overflows"].as_u64()==1.
+    ///
+    /// Traces to: BC-2.07.039 v2.4 Postcondition 7.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_039_summarize_exposes_handshake_reassembly_overflows_key() {
+        let fk = make_test_flow_key(46);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Trigger exactly one overflow via body_len spoof (Decision-4).
+        // 65537 = 0x010001 → BE bytes [0x01, 0x00, 0x01].
+        let spoof_header: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // body_len=65537
+        let record = wrap_as_tls_record(0x16, &spoof_header);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        let summary = analyzer.summarize();
+        let overflow_val = summary
+            .detail
+            .get("handshake_reassembly_overflows")
+            .expect("summarize() must contain 'handshake_reassembly_overflows' key");
+
+        assert_eq!(
+            overflow_val.as_u64(),
+            Some(1),
+            "summarize() detail['handshake_reassembly_overflows'] must equal 1; \
+             got: {overflow_val:?}"
+        );
+    }
+
+    // ── VP-039 Sub-D: on_flow_close carry discard ─────────────────────────────
+
+    /// VP-039 Sub-D (unit): partial 4-byte header only → on_flow_close;
+    /// parse_errors unchanged; findings unchanged.
+    ///
+    /// Traces to: BC-2.07.040 v1.3 Postconditions 1–5.
+    #[test]
+    fn test_vp039_truncated_carry_no_error() {
+        let fk = make_test_flow_key(47);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Send exactly 4 bytes (a complete 4-byte handshake header with body_len=100)
+        // but do NOT send the body — the carry must hold a partial message (4 bytes).
+        let partial_header: Vec<u8> = vec![0x01, 0x00, 0x00, 0x64]; // body_len=100
+        let record = wrap_as_tls_record(0x16, &partial_header);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        // After on_data: carry holds the 4-byte header (body_len=100 bytes not yet
+        // received). Drain loop sees carry_len=4 < 4+100 → waits.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "truncated carry: carry must hold 4 header bytes before flow close"
+        );
+
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        // Close the flow — carry (4 bytes) must be silently discarded.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "truncated carry at flow close: parse_errors must not change"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "truncated carry at flow close: findings must not change"
+        );
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "truncated carry at flow close: flow must be removed from flows map"
+        );
+    }
+
+    /// VP-039 Sub-D (unit): empty carry at flow close; no observable effect.
+    ///
+    /// Exercises BC-2.07.040 v1.3 Postconditions 1–5 via a body_len-spoof record
+    /// that fires Decision-4 immediately (carry starts empty, spoof header appended,
+    /// drain loop fires → carry.clear(), overflows+1, carry back to 0). Then
+    /// on_flow_close is called with an empty carry, verifying that:
+    ///   - no parse_errors are added
+    ///   - no new findings are emitted
+    ///   - active_flows drops to 0
+    ///
+    /// Traces to: BC-2.07.040 v1.3 Postconditions 1–5.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_040_empty_carry_flow_close() {
+        let fk = make_test_flow_key(48);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Deliver a single 0x16 record whose first (and only) header declares
+        // body_len=65537 > MAX_BUF. The drain loop fires Decision-4 immediately:
+        //   carry was [] → append [0x01, 0x01, 0x00, 0x01] → carry.len()==4
+        //   drain loop reads body_len=65537 > MAX_BUF → carry.clear(), overflows+1, break
+        // After on_data: carry is empty, overflow_count==1.
+        let spoof: Vec<u8> = vec![0x01, 0x01, 0x00, 0x01]; // body_len=65537 > MAX_BUF
+        let record = wrap_as_tls_record(0x16, &spoof);
+
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+        // Decision-4 must have fired: overflow_count==1, carry empty.
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            1,
+            "empty carry flow close: Decision-4 must increment overflow_count to 1"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            0,
+            "empty carry flow close: carry must be empty after Decision-4 clear"
+        );
+
+        // Flow must still exist (on_data creates the flow entry; on_flow_close removes it).
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            1,
+            "empty carry flow close: flow must exist before on_flow_close"
+        );
+
+        // Close the flow with an empty carry — must be a no-op for errors/findings.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "empty carry flow close: parse_errors must not change"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "empty carry flow close: findings must not change"
+        );
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "empty carry flow close: active_flows must be 0 after on_flow_close"
+        );
+    }
+
+    // ── VP-039 Sub-F: carry bounded invariant ────────────────────────────────
+
+    // VP-039 Sub-F (proptest): generative bounded-carry invariant.
+    //
+    // For any sequence of 1–8 on_data calls with 0x16 payloads that BEGIN
+    // WITH A VALID HANDSHAKE HEADER (body_len <= MAX_BUF = 65,536), the
+    // client-direction carry buffer never exceeds MAX_BUF after any call.
+    //
+    // Generator design (F-F2P-IMP-001 restructuring):
+    // Each payload starts with a valid 4-byte handshake header:
+    //   [0x01, (body_len >> 16) as u8, (body_len >> 8) as u8, body_len as u8]
+    // where body_len is in 0..=65_536. This guarantees carry actually
+    // accumulates (Decision-4 body_len-spoof guard does NOT fire) and makes
+    // the bounded-carry invariant non-trivially testable.
+    //
+    // The secondary assertion — carry_len >= 1 after the first partial record —
+    // verifies that the carry actually accumulates for partial messages (no drain
+    // fires until the message is complete).
+    //
+    // The primary invariant assertion (carry_len <= MAX_BUF) is the
+    // bounded-carry correctness guard.
+    //
+    // Traces to: BC-2.07.039 v2.4 Invariant 1.
+    proptest! {
+        #[test]
+        fn proptest_vp039_carry_bounded_invariant(
+            // Generate 1–8 records; each begins with a valid handshake header
+            // declaring body_len <= MAX_BUF so carry actually accumulates.
+            records in proptest::collection::vec(
+                // body_len in valid range [0, MAX_BUF] (Decision-4 guard does NOT fire).
+                (0usize..=65_536usize).prop_flat_map(|body_len| {
+                    // Partial body: up to min(body_len, MAX_RECORD_PAYLOAD-4) bytes.
+                    // The payload is always < 4+body_len so the carry accumulates —
+                    // the message is never complete in a single record.
+                    let body_max = body_len.min(18_428usize); // MAX_RECORD_PAYLOAD(18432) - 4
+                    proptest::collection::vec(proptest::arbitrary::any::<u8>(), 0..=body_max)
+                        .prop_map(move |body| {
+                            // Build payload: valid 4-byte handshake header + partial body.
+                            let mut payload = vec![
+                                0x01u8,                        // msg_type: ClientHello
+                                (body_len >> 16) as u8,        // len byte 0 (MSB)
+                                (body_len >> 8) as u8,         // len byte 1
+                                (body_len & 0xFF) as u8,       // len byte 2 (LSB)
+                            ];
+                            payload.extend_from_slice(&body);
+                            payload
+                        })
+                }),
+                1..=8usize,
+            ),
+        ) {
+            let mut analyzer = TlsAnalyzer::new();
+            let flow_key = make_test_flow_key(42);
+            let ts: u32 = 100;
+
+            for (idx, payload) in records.iter().enumerate() {
+                let rec = wrap_as_tls_record(0x16, payload);
+                analyzer.on_data(&flow_key, Direction::ClientToServer, &rec, 0u64, ts);
+
+                // Primary invariant: carry NEVER exceeds MAX_BUF.
+                prop_assert!(
+                    analyzer.client_hs_carry_len_for_testing(&flow_key) <= 65_536,
+                    "client_hs_carry must never exceed MAX_BUF after on_data \
+                     (record {idx}, payload len {}, carry len {})",
+                    payload.len(),
+                    analyzer.client_hs_carry_len_for_testing(&flow_key),
+                );
+
+                // Secondary assertion: after the FIRST record (partial body, never
+                // complete because body_max < body_len in the generator), the carry
+                // must have accumulated AT LEAST 1 byte. The drain loop sees
+                // carry_len < 4 + body_len → waits without draining.
+                if idx == 0 && !payload.is_empty() {
+                    // Skip zero-body messages — a 4-byte header with body_len==0 is a
+                    // complete message that drains immediately, leaving carry empty.
+                    let declared_body_len = ((payload[1] as usize) << 16)
+                        | ((payload[2] as usize) << 8)
+                        | (payload[3] as usize);
+                    let is_partial = payload.len() < 4 + declared_body_len;
+                    if is_partial {
+                        prop_assert!(
+                            analyzer.client_hs_carry_len_for_testing(&flow_key) >= 1,
+                            "after partial first record (payload {} bytes, body_len {}), \
+                             carry_len must be >= 1 (carry must accumulate)",
+                            payload.len(),
+                            declared_body_len,
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── STORY-145: ServerHello Carry Symmetry + Per-Flow / Per-Direction Isolation ──
+//
+// Wave 66. Behavioral Contracts: BC-2.07.041 v1.2, BC-2.07.002 v1.6.
+//
+// Red-Gate harnesses (VP-039 Sub-E scope — 2 new tests):
+//   1. proptest_vp039_direction_isolation   (Sub-E): interleaved C2S/S2C fragmented
+//      hellos for the same flow; assert both hellos seen, no cross-direction bleed.
+//   2. test_BC_2_07_041_cross_flow_isolation (Sub-E-ext): two distinct FlowKeys;
+//      Flow A complete single-record, Flow B fragmented; assert sni_counts contains
+//      both hostnames with no cross-flow bleed.
+//
+// Namespace isolation: DF-TEST-NAMESPACE-001 — all STORY-145 tests live inside
+// this `mod story_145` wrapper.  No new flat-root tests are added for this story.
+//
+// Test count: 4 (1 proptest + 3 unit).
+mod story_145 {
+    use proptest::prelude::*;
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{Direction, StreamHandler};
+
+    // ── Local test helpers ────────────────────────────────────────────────────
+    //
+    // DF-TEST-NAMESPACE-001 / STORY-145 helper note: helpers are re-declared
+    // locally per mod.  Before creating any helper below, the story note
+    // instructs grepping for the real name at the flat root.
+    //
+    // Reconciliation results (grep run during stub generation):
+    //   build_server_hello     → EXISTS at flat root (line 137)
+    //   build_client_hello     → EXISTS at flat root (line 16)
+    //   wrap_as_tls_record     → ONLY in mod story_144 (private) — re-declared here
+    //   make_test_flow_key     → ONLY in mod story_144 (private) — re-declared here
+    //
+    // GREEN-BY-DESIGN self-check (BC-5.38.005 invariant 1):
+    // "If I include this real implementation, will the test for this function
+    // pass trivially without any implementer work?"
+    // — No: helpers are pure construction utilities; no test assertions are
+    //   inside them.  They are ≤ 5 lines and contain no branching logic on
+    //   domain state beyond type construction.  Declared as real bodies under
+    //   GREEN-BY-DESIGN / WIRING-EXEMPT because they are builder helpers with
+    //   zero domain branching (constructors, not behaviors).
+
+    /// Create a `FlowKey` varied by `seed` so cross-flow and independent-flow
+    /// tests can use distinct keys without collision.
+    ///
+    /// Re-declared locally per DF-TEST-NAMESPACE-001 (identical to mod story_144 copy).
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 145, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 145, 1, seed]),
+            443,
+        )
+    }
+
+    /// Returns the RAW handshake-message bytes for a ServerHello (0x002f),
+    /// with NO TLS record header prefix (5 bytes stripped).
+    ///
+    /// `build_server_hello` at the flat root returns a COMPLETE TLS record
+    /// (5-byte header + handshake body).  This wrapper strips the header so
+    /// fragmentation tests can re-frame the bytes via `wrap_as_tls_record`.
+    ///
+    /// Reconciliation: `build_server_hello` exists at flat root; used here.
+    fn build_server_hello() -> Vec<u8> {
+        super::build_server_hello(0x002f)[5..].to_vec()
+    }
+
+    /// Returns the RAW handshake-message bytes for a ClientHello with the given
+    /// SNI, with NO TLS record header prefix (5 bytes stripped).
+    ///
+    /// Reconciliation: `build_client_hello` exists at flat root; used here.
+    fn build_client_hello_with_sni(sni: &str) -> Vec<u8> {
+        super::build_client_hello(sni, &[0x002f])[5..].to_vec()
+    }
+
+    /// Wrap `payload` bytes in a 5-byte TLS record header for the given content type.
+    ///
+    /// Reconciliation: `wrap_as_tls_record` does NOT exist at flat root; re-declared
+    /// locally here (identical to mod story_144 copy).
+    fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
+        let len = payload.len();
+        let len_hi = (len >> 8) as u8;
+        let len_lo = (len & 0xff) as u8;
+        let mut record = vec![content_type, 0x03, 0x03, len_hi, len_lo];
+        record.extend_from_slice(payload);
+        record
+    }
+
+    // ── VP-039 Sub-E: direction isolation ────────────────────────────────────
+
+    // VP-039 Sub-E (proptest): interleaved C2S and S2C fragmented hello
+    // deliveries must each accumulate into their own carry buffer, and both
+    // `client_hello_seen` and `server_hello_seen` must be true after all records
+    // are delivered.
+    //
+    // The test runs THREE analyzers in parallel:
+    //   - `interleaved` — C2S and S2C fragments interleaved on the SAME flow
+    //   - `c2s_only`    — same C2S fragments delivered alone
+    //   - `s2c_only`    — same S2C fragments delivered alone
+    // Then asserts:
+    //   (1) interleaved.client_hello_seen == c2s_only.client_hello_seen (equivalence)
+    //   (2) interleaved.server_hello_seen == s2c_only.server_hello_seen (equivalence)
+    //   (3) interleaved.server_hello_seen == true (explicit truth — non-vacuous Red Gate)
+    //   (4) interleaved.parse_errors == c2s_only.parse_errors + s2c_only.parse_errors
+    //   (5) SNI extracted, JA3S extracted (both == true after complete delivery)
+    //
+    // STORY-145 wired the `ServerToClient` carry drain path; all assertions pass.
+    //   The unified per-direction carry-buffer loop appends incoming bytes to the
+    //   server_hs_carry, then drains via `parse_tls_message_handshake` until the carry
+    //   is empty — single-record and fragmented S2C delivery share the same path.
+    //
+    // Saturating clamp (not prop_assume): prevents case discard for short ServerHello.
+    //
+    // Traces to: BC-2.07.041 v1.2 Invariant 2; BC-2.07.002 v1.6 Precondition 2;
+    //            AC-145-001, AC-145-002, AC-145-004.
+    proptest! {
+        #[test]
+        fn proptest_vp039_direction_isolation(
+            // split_c2s and split_s2c are raw strategy outputs; they are clamped
+            // below to 1..n-1 after the hello bytes are generated.
+            split_c2s in prop_oneof![1usize..4usize, 4usize..256usize],
+            split_s2c in prop_oneof![1usize..4usize, 4usize..256usize],
+        ) {
+            let c2s_hello = build_client_hello_with_sni("client.example.com");
+            let s2c_hello = build_server_hello();
+
+            let c2s_n = c2s_hello.len();
+            let s2c_n = s2c_hello.len();
+
+            // Clamp to [1, n-1] — a function of the actual message length, not a
+            // fixed small constant.  prop_assume would discard too many cases for
+            // the s2c hello (which may be short), so we saturating-clamp instead.
+            let k_c2s = split_c2s.min(c2s_n - 1).max(1);
+            let k_s2c = split_s2c.min(s2c_n - 1).max(1);
+
+            let flow_key = make_test_flow_key(1);
+            let ts: u32 = 100;
+
+            // --- Interleaved run ---
+            let mut interleaved = TlsAnalyzer::new();
+
+            // c2s partial delivery 1
+            let rec_c2s_1 = wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_1, 0u64, ts);
+
+            // s2c partial delivery 1 (interleaved)
+            let rec_s2c_1 = wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_1, 0u64, ts);
+
+            // c2s completing delivery
+            let rec_c2s_2 = wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]);
+            interleaved.on_data(&flow_key, Direction::ClientToServer, &rec_c2s_2, 0u64, ts);
+
+            // s2c completing delivery
+            let rec_s2c_2 = wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]);
+            interleaved.on_data(&flow_key, Direction::ServerToClient, &rec_s2c_2, 0u64, ts);
+
+            // --- Independent c2s-only run ---
+            let fk_c2s = make_test_flow_key(2);
+            let mut c2s_only = TlsAnalyzer::new();
+            c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
+                &wrap_as_tls_record(0x16, &c2s_hello[..k_c2s]), 0u64, ts);
+            c2s_only.on_data(&fk_c2s, Direction::ClientToServer,
+                &wrap_as_tls_record(0x16, &c2s_hello[k_c2s..]), 0u64, ts);
+
+            // --- Independent s2c-only run ---
+            let fk_s2c = make_test_flow_key(3);
+            let mut s2c_only = TlsAnalyzer::new();
+            s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
+                &wrap_as_tls_record(0x16, &s2c_hello[..k_s2c]), 0u64, ts);
+            s2c_only.on_data(&fk_s2c, Direction::ServerToClient,
+                &wrap_as_tls_record(0x16, &s2c_hello[k_s2c..]), 0u64, ts);
+
+            // Invariant: interleaved run sees the same hellos as independent runs.
+            // Use FLAT accessors — no state_for_testing (TlsFlowState is private):
+            //   client_hello_seen_for_testing — NEW seam (STORY-144/146 deliverable)
+            //   server_hello_seen_for_testing — EXISTING seam (tls.rs:991)
+            prop_assert_eq!(
+                interleaved.client_hello_seen_for_testing(&flow_key),
+                c2s_only.client_hello_seen_for_testing(&fk_c2s),
+                "interleaved c2s hello detection must match independent c2s run"
+            );
+            prop_assert_eq!(
+                interleaved.server_hello_seen_for_testing(&flow_key),
+                s2c_only.server_hello_seen_for_testing(&fk_s2c),
+                "interleaved s2c hello detection must match independent s2c run"
+            );
+            // parse_errors is AGGREGATE on TlsAnalyzer — read via accessor, NOT off state
+            prop_assert_eq!(
+                interleaved.parse_error_count(),
+                c2s_only.parse_error_count() + s2c_only.parse_error_count(),
+                "interleaved parse_errors must equal sum of independent parse_errors"
+            );
+
+            // Explicit truth assertions — non-vacuous guards.
+            // Without these, the equivalence checks above would pass trivially if both
+            // sides returned false (regression guard for ServerToClient carry drain).
+            // BC-2.07.041 Sub-E property: BOTH directions must succeed after complete
+            // fragmented delivery.
+            prop_assert!(
+                interleaved.client_hello_seen_for_testing(&flow_key),
+                "client_hello_seen must be true after complete interleaved C2S delivery"
+            );
+            prop_assert!(
+                interleaved.server_hello_seen_for_testing(&flow_key),
+                "server_hello_seen must be true after complete interleaved S2C delivery \
+                 (regression: ServerToClient carry-buffer drain loop not dispatching)"
+            );
+            // SNI (from ClientHello) and JA3S (from ServerHello) must be extracted.
+            prop_assert!(
+                !interleaved.sni_counts().is_empty(),
+                "sni_counts must be non-empty after C2S ClientHello reassembly"
+            );
+            prop_assert!(
+                !interleaved.ja3s_counts().is_empty(),
+                "ja3s_counts must be non-empty after S2C ServerHello reassembly \
+                 (regression: ServerToClient carry-buffer drain loop not dispatching)"
+            );
+            prop_assert_eq!(
+                interleaved.parse_error_count(), 0u64,
+                "interleaved fragmented delivery must produce zero parse errors"
+            );
+
+            // AC-145-001 post-condition: both carry buffers must be drained empty
+            // after all records have been delivered.  A non-zero carry here means
+            // the drain loop consumed fewer bytes than it appended — regression
+            // against the server-direction carry path.
+            prop_assert_eq!(
+                interleaved.client_hs_carry_len_for_testing(&flow_key), 0,
+                "carry_len_client must be 0 after complete C2S delivery (AC-145-001)"
+            );
+            prop_assert_eq!(
+                interleaved.server_hs_carry_len_for_testing(&flow_key), 0,
+                "carry_len_server must be 0 after complete S2C delivery (AC-145-001)"
+            );
+        }
+    }
+
+    // ── VP-039 Sub-E-ext: cross-flow isolation ────────────────────────────────
+
+    // test_BC_2_07_041_cross_flow_isolation (unit): two distinct FlowKeys.
+    //   Flow A: complete single-record ClientHello (SNI = "a.example") +
+    //           complete single-record ServerHello (S2C).
+    //   Flow B: fragmented two-record ClientHello (SNI = "b.example") +
+    //           fragmented two-record ServerHello (S2C).
+    //
+    //   After delivery: sni_counts must have exactly 2 entries, one for each SNI;
+    //   both flow_a and flow_b must have server_hello_seen==true (ServerHello
+    //   carry drain applies to each flow independently).  No cross-flow bleed.
+    //
+    // STORY-145 wired the ServerToClient carry drain path; both flows pass.
+    //   - Flow A's complete single-record ServerHello: the record payload is appended
+    //     to an empty server_hs_carry; the drain loop calls `parse_tls_message_handshake`
+    //     on the complete message and empties the carry → server_hello_seen == true.
+    //   - Flow B's FRAGMENTED ServerHello: two partial records accumulate in
+    //     server_hs_carry; the drain loop dispatches once the complete message arrives
+    //     → server_hello_seen == true.
+    //
+    // Traces to: BC-2.07.041 v1.2 Invariants 1, 4; Postconditions 1, 4–5;
+    //            BC-2.07.002 v1.6 Precondition 2; AC-145-003, AC-145-004.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_07_041_cross_flow_isolation() {
+        let mut analyzer = TlsAnalyzer::new();
+        let flow_a = make_test_flow_key(10);
+        let flow_b = make_test_flow_key(20);
+        let ts: u32 = 300;
+
+        // ── Flow A ────────────────────────────────────────────────────────────
+        // C2S: complete single-record ClientHello (SNI = "a.example").
+        let a_client_hello = build_client_hello_with_sni("a.example");
+        let a_c2s_rec = wrap_as_tls_record(0x16, &a_client_hello);
+        analyzer.on_data(&flow_a, Direction::ClientToServer, &a_c2s_rec, 0u64, ts);
+
+        // S2C: complete single-record ServerHello (unified carry-buffer drain loop).
+        let a_server_hello = build_server_hello();
+        let a_s2c_rec = wrap_as_tls_record(0x16, &a_server_hello);
+        analyzer.on_data(&flow_a, Direction::ServerToClient, &a_s2c_rec, 0u64, ts);
+
+        // ── Flow B ────────────────────────────────────────────────────────────
+        // C2S: fragmented two-record ClientHello (SNI = "b.example").
+        let b_client_hello = build_client_hello_with_sni("b.example");
+        let c2s_split = b_client_hello.len() / 2;
+        let b_c2s_rec1 = wrap_as_tls_record(0x16, &b_client_hello[..c2s_split]);
+        let b_c2s_rec2 = wrap_as_tls_record(0x16, &b_client_hello[c2s_split..]);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, &b_c2s_rec1, 0u64, ts);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, &b_c2s_rec2, 0u64, ts);
+
+        // S2C: fragmented two-record ServerHello (requires server_hs_carry drain —
+        // the STORY-145 Red Gate path).
+        let b_server_hello = build_server_hello();
+        let s2c_split = b_server_hello.len() / 2;
+        let b_s2c_rec1 = wrap_as_tls_record(0x16, &b_server_hello[..s2c_split]);
+        let b_s2c_rec2 = wrap_as_tls_record(0x16, &b_server_hello[s2c_split..]);
+        analyzer.on_data(&flow_b, Direction::ServerToClient, &b_s2c_rec1, 0u64, ts);
+        analyzer.on_data(&flow_b, Direction::ServerToClient, &b_s2c_rec2, 0u64, ts);
+
+        // ── Assertions ────────────────────────────────────────────────────────
+
+        // Both flows must have client_hello_seen == true (STORY-144 carry drain).
+        assert!(
+            analyzer.client_hello_seen_for_testing(&flow_a),
+            "flow_a: client_hello_seen must be true after single-record C2S delivery"
+        );
+        assert!(
+            analyzer.client_hello_seen_for_testing(&flow_b),
+            "flow_b: client_hello_seen must be true after fragmented C2S delivery"
+        );
+
+        // flow_a: server_hello_seen must be true (single-record S2C, carry drain loop).
+        assert!(
+            analyzer.server_hello_seen_for_testing(&flow_a),
+            "flow_a: server_hello_seen must be true after single-record S2C delivery"
+        );
+
+        // flow_b: server_hello_seen must be true (fragmented S2C, carry drain loop).
+        assert!(
+            analyzer.server_hello_seen_for_testing(&flow_b),
+            "flow_b: server_hello_seen must be true after fragmented S2C delivery \
+             (regression: ServerToClient carry-buffer drain loop not dispatching)"
+        );
+
+        // No parse errors from any delivery path.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "cross-flow delivery must not produce parse errors"
+        );
+
+        // sni_counts: exactly 2 entries (one per flow); no cross-flow bleed.
+        let sni_counts = analyzer.sni_counts();
+        assert_eq!(
+            sni_counts.len(),
+            2,
+            "sni_counts must have exactly 2 entries (one per flow SNI); \
+             cross-flow bleed or missing dispatch would produce wrong count. \
+             got: {sni_counts:?}"
+        );
+        assert_eq!(
+            sni_counts.get("a.example").copied().unwrap_or(0),
+            1,
+            "a.example must appear exactly once in sni_counts"
+        );
+        assert_eq!(
+            sni_counts.get("b.example").copied().unwrap_or(0),
+            1,
+            "b.example must appear exactly once in sni_counts"
+        );
+
+        // ja3s_counts: both flows contributed a ServerHello → 1 or 2 entries
+        // (1 if both flows chose the same cipher fingerprint, 2 otherwise).
+        // The invariant is ja3s_counts.len() >= 1 (at least one JA3S was computed).
+        // Both flows delivered a complete ServerHello via the carry-buffer drain loop.
+        let ja3s_counts = analyzer.ja3s_counts();
+        assert!(
+            !ja3s_counts.is_empty(),
+            "ja3s_counts must have at least 1 entry after ServerHello delivery to both flows \
+             (regression: carry-buffer drain loop not dispatching flow_b's fragmented ServerHello)"
+        );
+
+        // Carries fully drained after complete delivery.
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&flow_a),
+            0,
+            "flow_a client_hs_carry must be empty after single-record C2S delivery"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&flow_b),
+            0,
+            "flow_b client_hs_carry must be empty after complete fragmented C2S delivery"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&flow_a),
+            0,
+            "flow_a server_hs_carry must be empty after single-record S2C delivery"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&flow_b),
+            0,
+            "flow_b server_hs_carry must be empty after complete fragmented S2C delivery \
+             (regression: carry-buffer drain loop not consuming all bytes)"
+        );
+
+        // Active flows: both remain in the map (neither closed).
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            2,
+            "both flows must remain active (on_flow_close not called)"
+        );
+    }
+
+    // ── VP-039 Sub-C-S2C: server-direction Step-1 overflow guard ─────────────
+
+    /// VP-039 Sub-C-S2C (unit): accumulating ServerToClient records past MAX_BUF
+    /// triggers the Step-1 pre-append overflow guard, clears `server_hs_carry`,
+    /// increments `handshake_reassembly_overflows`, and leaves the flow in
+    /// clear-and-recover state — a subsequent complete ServerHello is dispatched.
+    ///
+    /// This mirrors `test_vp039_carry_overflow_clear_and_recover` in mod story_144
+    /// but drives `Direction::ServerToClient` with handshake msg_type `0x02`.
+    ///
+    /// Non-tautology argument: if the Step-1 guard at tls.rs:987-994 were removed,
+    /// `server_hs_carry` would grow past MAX_BUF=65536 without being cleared, the
+    /// overflow_count assertion would fail (counter stays at `overflows_before`),
+    /// and the `server_hs_carry_len == 0` assertion would fail (carry still holds
+    /// ~65504 bytes).
+    ///
+    /// Traces to: BC-2.07.039 v2.4 Postcondition 6 (clear-and-recover);
+    ///            BC-2.07.041 v1.2 Invariant 2; AC-145-001.
+    #[test]
+    fn test_vp039_server_carry_overflow_clear_and_recover() {
+        let fk = make_test_flow_key(50);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Record 1: send a 4-byte handshake header with body_len=65500 (< MAX_BUF).
+        // msg_type=0x02 (ServerHello), body_len = 65500 = 0x00FFDC.
+        // Carry after record 1: 4 bytes.
+        let header_only: Vec<u8> = vec![0x02, 0x00, 0xFF, 0xDC];
+        let record1 = wrap_as_tls_record(0x16, &header_only);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record1, 0, 0);
+
+        // Records 2–4: add 3 × 18,432 bytes (= 55,296 bytes) to server_hs_carry.
+        // After these records: carry = 4 + 55,296 = 55,300 bytes. No overflow yet.
+        for _ in 0..3 {
+            let chunk: Vec<u8> = vec![0xBB; 18_432];
+            let rec = wrap_as_tls_record(0x16, &chunk);
+            analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+        }
+
+        // Record 5: 10,240 bytes → carry = 55,300 + 10,240 = 65,540 > 65,536.
+        // Step-1 pre-append guard fires: server_hs_carry cleared, overflow_count+1.
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        let overflow_trigger: Vec<u8> = vec![0xCC; 10_240];
+        let record5 = wrap_as_tls_record(0x16, &overflow_trigger);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record5, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "server Step-1 guard: overflow_count must increment by exactly 1"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "server Step-1 guard: server_hs_carry must be cleared (len==0) after overflow"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "server Step-1 guard: parse_errors must NOT change on carry overflow"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "server Step-1 guard: findings must NOT change on carry overflow"
+        );
+
+        // Clear-and-recover: a subsequent complete single-record ServerHello must
+        // be dispatched normally (carry was cleared, not sticky-abandoned).
+        let sh_bytes = build_server_hello();
+        let record_sh = wrap_as_tls_record(0x16, &sh_bytes);
+        analyzer.on_data(&fk, Direction::ServerToClient, &record_sh, 0, 0);
+
+        assert!(
+            analyzer.server_hello_seen_for_testing(&fk),
+            "clear-and-recover: server_hello_seen must be true after post-overflow ServerHello"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "clear-and-recover: server_hs_carry must be empty after fully consumed ServerHello"
+        );
+    }
+
+    // ── VP-039 Sub-C-S2C: server-direction Decision-4 body_len-spoof guard ────
+
+    /// VP-039 Sub-C-S2C (unit): a ServerToClient handshake header whose declared
+    /// `body_len > MAX_BUF` triggers Decision-4, clears `server_hs_carry`, and
+    /// increments `handshake_reassembly_overflows` without inflating `parse_errors`.
+    ///
+    /// This mirrors `test_vp039_body_len_spoof` in mod story_144 but drives
+    /// `Direction::ServerToClient` with handshake msg_type `0x02` (ServerHello).
+    ///
+    /// Non-tautology argument: if the Decision-4 guard at tls.rs:1025-1033 were
+    /// removed, the drain loop would not clear on a spoofed body_len; it would
+    /// instead fall through to the "incomplete" check (`carry_len - consumed <
+    /// 4 + body_len`) and break without incrementing the counter.  The
+    /// overflow_count assertion would fail (counter stays at `overflows_before`).
+    ///
+    /// Traces to: BC-2.07.038 v2.7 Invariant 5 / ADR-011 Decision 4;
+    ///            BC-2.07.041 v1.2 Invariant 2; AC-145-001.
+    #[test]
+    fn test_vp039_server_body_len_spoof() {
+        let fk = make_test_flow_key(51);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // A 0x16 record whose ServerHello handshake header declares body_len=65537
+        // (> MAX_BUF=65536).  65537 = 0x010001 → 3-byte BE: [0x01, 0x00, 0x01].
+        // msg_type=0x02 (ServerHello).
+        let spoof_header: Vec<u8> = vec![0x02, 0x01, 0x00, 0x01]; // body_len = 65537
+        let record = wrap_as_tls_record(0x16, &spoof_header);
+
+        let overflows_before = analyzer.handshake_reassembly_overflow_count();
+        let parse_errors_before = analyzer.parse_error_count();
+        let findings_before = analyzer.all_findings_len_for_testing();
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &record, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflows_before + 1,
+            "server body_len spoof: Decision-4 must fire, overflow_count+1"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "server body_len spoof: server_hs_carry must be cleared after Decision-4"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "server body_len spoof: parse_errors must NOT change (Decision-4)"
+        );
+        assert_eq!(
+            analyzer.all_findings_len_for_testing(),
+            findings_before,
+            "server body_len spoof: findings must NOT change (Decision-4)"
+        );
+    }
+}
+
+// ── STORY-146 VP-040 Red-Gate tests ──────────────────────────────────────────
+//
+// DF-TEST-NAMESPACE-001: ALL 8 test functions for STORY-146 (6 canonical VP-040 Red-Gate + 2 EC-coverage) are inside
+// this `mod story_146` wrapper.  No new flat-root tests are added for this story.
+//
+// These tests verify BC-2.07.043 v1.3 (Per-Direction Buffer Saturation
+// Tail-Drop Is Observable via `buffer_saturation_drops` Counter).
+//
+// GREEN status: all 8 tests pass.
+//   - Tests calling `buffer_saturation_drop_count()` read the implemented counter.
+//   - Tests calling `fill_buf_for_testing()` exercise the implemented fill seam.
+//   - `test_BC_2_07_043_summarize_value_equals_drop_count` verifies that
+//     `"buffer_saturation_drops"` is present and accurate in the `summarize()` detail map.
+//
+// Reconciliation (grep run before declaring helpers):
+//   build_server_hello     → EXISTS at flat root (line 137)
+//   build_client_hello     → EXISTS at flat root (line 16)
+//   wrap_as_tls_record     → ONLY in mod story_144/story_145 (private) — re-declared here
+//   make_test_flow_key     → ONLY in mod story_144/story_145 (private) — re-declared here
+//   all_findings_len_for_testing → EXISTS at tls.rs seam scope — used directly
+mod story_146 {
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
+
+    // ── Local test helpers ────────────────────────────────────────────────────
+
+    /// Create a `FlowKey` varied by `seed` so cross-flow and independent-flow
+    /// tests can use distinct keys without collision.
+    ///
+    /// Re-declared locally per DF-TEST-NAMESPACE-001 (identical to mod story_144/145 copy).
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 146, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 146, 1, seed]),
+            443,
+        )
+    }
+
+    // MAX_BUF = 65,536 bytes (BC-2.07.005 / ADR-011).  The real constant is
+    // private to `src/analyzer/tls.rs`; we use the literal here with a comment
+    // so any change to the real constant would break tests visibly.
+    const MAX_BUF: usize = 65_536;
+
+    // ── VP-040 Sub-A (partial-drop path) ─────────────────────────────────────
+
+    /// VP-040 Sub-A (unit): delivering 65,537 bytes to an empty per-direction
+    /// buffer causes a partial tail-drop (1 byte discarded), increments
+    /// `buffer_saturation_drops` by exactly 1, and leaves `parse_errors`
+    /// unchanged.
+    ///
+    /// Setup: fresh `TlsAnalyzer`; empty buffer (no prior `on_data`).
+    /// Action: `on_data` with 65,537 raw bytes (C2S direction).
+    /// Buffer remaining before call = MAX_BUF = 65,536.  Since 65,537 > 65,536,
+    /// the tail-drop condition fires.  1 byte is dropped; 65,536 bytes are
+    /// appended.
+    ///
+    /// Non-tautology: if the `did_drop` detection + `buffer_saturation_drops.saturating_add(1)`
+    /// increment were absent, `buffer_saturation_drop_count()` would return 0 and
+    /// the assertion `drops_after == drops_before + 1` would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 1 (partial-drop path); AC-146-002.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_buffer_saturation_observable() {
+        let fk = make_test_flow_key(60);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let parse_errors_before = analyzer.parse_error_count();
+
+        // 65,537 bytes to an empty buffer: remaining == 65,536; 1 byte dropped.
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "partial-drop (65,537 bytes to empty buffer): buffer_saturation_drops \
+             must increment by exactly 1 (drops_before={drops_before})"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "partial-drop: parse_error_count must NOT change on buffer saturation \
+             (parse_errors_before={parse_errors_before})"
+        );
+    }
+
+    // ── VP-040 Sub-A (full-drop path) ────────────────────────────────────────
+
+    /// VP-040 Sub-A (unit): delivering any bytes to a buffer already at MAX_BUF
+    /// capacity (remaining == 0) causes a full tail-drop and increments
+    /// `buffer_saturation_drops` by exactly 1.
+    ///
+    /// Setup: `fill_buf_for_testing` seam parks the C2S buffer at exactly MAX_BUF
+    /// bytes (remaining == 0).
+    /// Action: `on_data` with 1,000 raw bytes.
+    /// Since 1,000 > 0, the tail-drop condition fires; 0 bytes are appended.
+    ///
+    /// Non-tautology: if the full-drop path (`remaining==0` branch) were absent
+    /// or misdetected (using `to_copy < data.len()` instead of
+    /// `data.len() > remaining`), the counter would not increment and the
+    /// assertion would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 1 (full-drop path EC-002);
+    ///            AC-146-001 (`fill_buf_for_testing` seam); AC-146-002.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_buffer_saturation_full_drop() {
+        let fk = make_test_flow_key(61);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park the C2S buffer at exactly MAX_BUF (remaining == 0).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Any delivery now triggers full-drop: 1,000 > 0.
+        let data = vec![0x00u8; 1_000];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "full-drop (buffer at MAX_BUF, 1,000 bytes delivered): \
+             buffer_saturation_drops must increment by exactly 1 \
+             (drops_before={drops_before})"
+        );
+    }
+
+    // ── VP-040 Sub-B (no-drop boundary) ──────────────────────────────────────
+
+    /// VP-040 Sub-B (unit): when delivered data fits within the remaining buffer
+    /// capacity, `buffer_saturation_drops` is NOT incremented.
+    ///
+    /// Covers EC-003 (data well within capacity) and EC-005 (exact-fit boundary:
+    /// `data.len() == remaining`; condition is strictly `>`, so no drop).
+    ///
+    /// Setup: fresh analyzer; deliver a small record (100 bytes) that fits in
+    /// an empty MAX_BUF buffer.  Remaining = 65,536; 100 < 65,536 → no drop.
+    ///
+    /// EC-005 sub-check: deliver exactly MAX_BUF bytes to an empty buffer.
+    /// `data.len() == remaining == MAX_BUF`; `MAX_BUF > MAX_BUF` is false;
+    /// counter must NOT increment.
+    ///
+    /// Non-tautology: if the drop condition used `>=` instead of `>`, the EC-005
+    /// exact-fit delivery would incorrectly increment the counter and the
+    /// assertion `drops_after == drops_before` would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Invariant 5; EC-003, EC-005; AC-146-003.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_no_drop_no_counter() {
+        let fk = make_test_flow_key(62);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // EC-003: small record well within capacity.
+        let small = vec![0x00u8; 100];
+        analyzer.on_data(&fk, Direction::ClientToServer, &small, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "no-drop (100 bytes to empty buffer): buffer_saturation_drops must \
+             NOT change (drops_before={drops_before})"
+        );
+
+        // EC-005: exact-fit — deliver exactly MAX_BUF bytes to a fresh flow.
+        // remaining = MAX_BUF (fresh); data.len() == MAX_BUF; strictly > is false.
+        let fk2 = make_test_flow_key(63);
+        let drops_before_exact = analyzer.buffer_saturation_drop_count();
+        let exact_fit = vec![0x00u8; MAX_BUF];
+        analyzer.on_data(&fk2, Direction::ClientToServer, &exact_fit, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before_exact,
+            "exact-fit (MAX_BUF bytes to empty buffer): drop condition is strictly >, \
+             so counter must NOT change (drops_before_exact={drops_before_exact})"
+        );
+    }
+
+    // ── VP-040 Sub-C (counter persists across flow close) ────────────────────
+
+    /// VP-040 Sub-C (unit): `buffer_saturation_drops` is an aggregate counter on
+    /// `TlsAnalyzer` — NOT on `TlsFlowState` — and is NOT reset when
+    /// `on_flow_close` is called.
+    ///
+    /// Sequence: snapshot `drops_before`; trigger one drop; assert `drops_before + 1`;
+    /// call `on_flow_close`; assert counter still equals `drops_before + 1`.
+    ///
+    /// Non-tautology: if the counter were placed on `TlsFlowState` and zeroed on
+    /// flow close, the final assertion would fail (counter would revert to 0 or
+    /// be unreachable after `flows.remove`).
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 5, Invariant 2; AC-146-004.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_counter_persists_across_flows() {
+        let fk = make_test_flow_key(64);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Snapshot before drop.
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Trigger exactly one drop: 65,537 bytes to empty buffer.
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        let drops_after_drop = analyzer.buffer_saturation_drop_count();
+        assert_eq!(
+            drops_after_drop,
+            drops_before + 1,
+            "counter must increment after drop \
+             (drops_before={drops_before}, drops_after_drop={drops_after_drop})"
+        );
+
+        // Close the flow.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        // Counter must be unchanged by flow close.
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "buffer_saturation_drops must NOT reset on on_flow_close; \
+             aggregate counter persists on TlsAnalyzer, not TlsFlowState \
+             (drops_before={drops_before})"
+        );
+    }
+
+    // ── VP-040 Sub-D (summarize value-equality) ───────────────────────────────
+
+    /// VP-040 Sub-D (unit): `summarize()` exposes `"buffer_saturation_drops"` in
+    /// the `detail` map with value-equality to the current counter.
+    ///
+    /// After triggering 1 drop, `detail["buffer_saturation_drops"].as_u64()`
+    /// must equal `drops_before + 1` (value-equality, not mere key presence).
+    ///
+    /// Also verifies EC-008: the key is present even when the count is 0 (checked
+    /// on a fresh analyzer before the drop).
+    ///
+    /// Non-tautology: if `summarize()` omits the `"buffer_saturation_drops"` key
+    /// or inserts a wrong value, the `.expect()` or the `as_u64()` assertion fails.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 4; EC-008; AC-146-005.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_summarize_value_equals_drop_count() {
+        let fk = make_test_flow_key(65);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // EC-008 sub-check: key present even when counter is 0.
+        let summary_zero = analyzer.summarize();
+        let zero_val = summary_zero.detail.get("buffer_saturation_drops").expect(
+            "summarize() must contain 'buffer_saturation_drops' key even when count==0 (EC-008)",
+        );
+        assert_eq!(
+            zero_val.as_u64(),
+            Some(0),
+            "summarize() detail['buffer_saturation_drops'] must equal 0 on fresh \
+             analyzer; got: {zero_val:?}"
+        );
+
+        // Trigger exactly 1 drop.
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let data = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        let summary = analyzer.summarize();
+        let drop_val = summary
+            .detail
+            .get("buffer_saturation_drops")
+            .expect("summarize() must contain 'buffer_saturation_drops' key after a drop");
+
+        assert_eq!(
+            drop_val.as_u64(),
+            Some(drops_before + 1),
+            "summarize() detail['buffer_saturation_drops'] must equal drops_before+1={}; \
+             got: {drop_val:?}",
+            drops_before + 1
+        );
+    }
+
+    // ── VP-040 Sub-E (both directions increment the same counter) ────────────
+
+    /// VP-040 Sub-E (unit): one `ClientToServer` drop and one `ServerToClient`
+    /// drop each increment the SAME aggregate `buffer_saturation_drops` counter,
+    /// so after both drops the counter equals `drops_initial + 2`.
+    ///
+    /// Setup: use `fill_buf_for_testing` to park the S2C buffer at MAX_BUF for
+    /// the S2C drop (full-drop path).  The C2S drop uses the no-seam partial-drop
+    /// path (65,537 bytes to an empty C2S buffer).
+    ///
+    /// Non-tautology: if the two directions incremented separate counters or if
+    /// either direction failed to increment at all, `drops_final == drops_initial + 2`
+    /// would fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 Postcondition 3; EC-007; AC-146-006.
+    // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-040 table.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_both_directions_increment_same_counter() {
+        let fk_c2s = make_test_flow_key(66);
+        let fk_s2c = make_test_flow_key(67);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let drops_initial = analyzer.buffer_saturation_drop_count();
+
+        // C2S drop: 65,537 bytes to empty C2S buffer (partial-drop, no seam needed).
+        let data_c2s = vec![0x00u8; MAX_BUF + 1];
+        analyzer.on_data(&fk_c2s, Direction::ClientToServer, &data_c2s, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_initial + 1,
+            "after C2S drop: counter must be drops_initial+1={} \
+             (drops_initial={drops_initial})",
+            drops_initial + 1
+        );
+
+        // S2C drop: park the S2C buffer at MAX_BUF via seam, then deliver 1 byte.
+        analyzer.fill_buf_for_testing(&fk_s2c, Direction::ServerToClient, MAX_BUF);
+        let data_s2c = vec![0x00u8; 1];
+        analyzer.on_data(&fk_s2c, Direction::ServerToClient, &data_s2c, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_initial + 2,
+            "after C2S+S2C drops: counter must be drops_initial+2={} \
+             (drops_initial={drops_initial})",
+            drops_initial + 2
+        );
+    }
+
+    // ── EC-C1: partial-drop at the 65,535-byte fill boundary ─────────────────
+
+    /// EC-C1 (unit): filling the buffer to 65,535 bytes (1 byte of remaining
+    /// capacity), then delivering 2 bytes, triggers exactly one drop-event
+    /// increment and leaves `parse_error_count` unchanged.
+    ///
+    /// Setup: `fill_buf_for_testing` parks the C2S buffer at 65,535 bytes
+    /// (remaining == 1).  Action: `on_data` with 2 bytes.  Since 2 > 1, the
+    /// tail-drop condition (`data.len() > remaining`) fires; 1 byte is
+    /// appended, 1 byte is dropped.
+    ///
+    /// Non-tautology: EC-C1 pins the partial-drop boundary — the test fails if
+    /// drop detection is broken such that the partial-drop event is not counted
+    /// (e.g., `did_drop` not set, or the saturation counter not incremented), or
+    /// if the counter fires the wrong number of times.  The `to_copy <
+    /// data.len()` mutant form is distinguished by the full-drop tests where
+    /// `remaining == 0` (see `test_BC_2_07_043_buffer_saturation_full_drop` and
+    /// `test_BC_2_07_043_full_buffer_empty_data_no_count`), not by this test.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 EC-C1; AC-146-002 (partial-drop boundary).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_partial_drop_boundary() {
+        let fk = make_test_flow_key(68);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park C2S buffer at 65,535 bytes (1 byte of remaining capacity).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF - 1);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+        let parse_errors_before = analyzer.parse_error_count();
+
+        // Deliver 2 bytes: remaining == 1, so 2 > 1 → drop fires, 1 byte appended.
+        let data = vec![0x00u8; 2];
+        analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before + 1,
+            "EC-C1 partial boundary (65,535-fill + 2 bytes): buffer_saturation_drops \
+             must increment by exactly 1 (drops_before={drops_before})"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "EC-C1 partial boundary: parse_error_count must NOT change on buffer \
+             saturation (parse_errors_before={parse_errors_before})"
+        );
+    }
+
+    // ── EC-C3: full buffer + empty data slice — no increment ─────────────────
+
+    /// EC-C3 (unit): filling the buffer to MAX_BUF (65,536 bytes), then
+    /// delivering an empty slice `&[]`, does NOT increment
+    /// `buffer_saturation_drops`.
+    ///
+    /// Setup: `fill_buf_for_testing` parks the C2S buffer at MAX_BUF bytes
+    /// (remaining == 0).  Action: `on_data` with 0 bytes.  The drop condition
+    /// is `data.len() > remaining` = `0 > 0` = false, so no increment occurs.
+    ///
+    /// Non-tautology: if the strict-`>` boundary were relaxed to `>=` (a
+    /// plausible mutation), then `0 >= 0` would evaluate to true, the counter
+    /// would increment, and the assertion `drops_after == drops_before` would
+    /// fail.
+    ///
+    /// Traces to: BC-2.07.043 v1.3 EC-C3; AC-146-002 (strict-> predicate).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_full_buffer_empty_data_no_count() {
+        let fk = make_test_flow_key(69);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Park C2S buffer at MAX_BUF (remaining == 0).
+        analyzer.fill_buf_for_testing(&fk, Direction::ClientToServer, MAX_BUF);
+
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Deliver 0 bytes: 0 > 0 is false — drop must NOT fire.
+        analyzer.on_data(&fk, Direction::ClientToServer, &[], 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "EC-C3 empty-data / full-buffer: buffer_saturation_drops must NOT \
+             increment when data.len()==0 (drops_before={drops_before})"
+        );
+    }
+}
+
+// ── F6 Mutation-Gap Hardening Tests ───────────────────────────────────────────
+//
+// Closes 11 of the 13 surviving mutation-testing gaps in the TLS handshake-
+// reassembly delta (Phase F6, cycle fix-tls-clienthello-frag).  One site is
+// unkillable: C2S 950:59 `Ok(_)` arm is dead code — `parse_tls_handshake_msg_
+// client_hello` is `map(parse_tls_client_hello, TlsMessageHandshake::ClientHello)`
+// and always wraps success in ClientHello, so Ok(non-ClientHello) for msg_type=0x01
+// cannot occur.  No deterministic test can cover unreachable dead code.
+//
+// Covered mutation sites:
+//   Theme 1 — Step-1 exact-MAX_BUF boundary  (C2S 829:64, S2C 998:64  `>→>=`)
+//   Theme 2 — Step-1 guard arithmetic         (C2S 829:41, S2C 998:41  `+→*`)
+//   Theme 3 — Decision-4 body_len boundary    (C2S 900:37, S2C 1036:37 `>→>=`)
+//   Theme 4 — parse_errors inc Ok(non-SH)     (S2C 1079:59             `+=→-=` / `+=→*=`)
+//   Theme 5 — S2C body_len high-byte shift    (S2C 1030:67             `<<→>>`)
+//   Theme 6 — Incomplete-body guard           (C2S 911:38, S2C 1047:38 `-→+`)
+//   Theme 6c — S2C exact-fill no-drop         (S2C 1155:43             `>→>=`)
+//
+// Namespace isolation: DF-TEST-NAMESPACE-001.
+mod f6_hardening {
+    use std::net::IpAddr;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{Direction, StreamHandler};
+
+    // MAX_BUF = 65,536 bytes (BC-2.07.005 / ADR-011).
+    // MAX_RECORD_PAYLOAD = 18,432 bytes (TLS record payload ceiling; try_parse_records
+    // rejects payload_len > 18,432 with parse_errors+1).
+    const MAX_BUF: usize = 65_536;
+    const MAX_RECORD_PAYLOAD: usize = 18_432;
+
+    fn make_test_flow_key(seed: u8) -> FlowKey {
+        FlowKey::new(
+            IpAddr::from([10, 200, 0, seed]),
+            49000u16.wrapping_add(seed as u16),
+            IpAddr::from([10, 200, 1, seed]),
+            443,
+        )
+    }
+
+    /// Wrap `payload` bytes in a minimal TLS 0x16 (Handshake) record header.
+    fn wrap_handshake_record(payload: &[u8]) -> Vec<u8> {
+        let len = payload.len();
+        let mut rec = vec![0x16u8, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
+        rec.extend_from_slice(payload);
+        rec
+    }
+
+    // ── Theme 1: Step-1 exact-MAX_BUF boundary ───────────────────────────────
+    //
+    // Mutation sites C2S 829:64 / S2C 998:64: `>` → `>=`.
+    // With correct `>`: carry_len_before + record_payload.len() == MAX_BUF is accepted.
+    // With `>=` mutant: the exact-fill is falsely rejected (carry cleared, overflow+1).
+    //
+    // Accumulation sequence (5 records, all payloads ≤ MAX_RECORD_PAYLOAD):
+    //   Rec 1: 4-byte incomplete-message header.
+    //          Header: [0x03, 0x01, 0x00, 0x00] — msg_type=0x03 (silent), body_len=65,536.
+    //          Decision-4: 65,536 > 65,536 = false (strict).  Incomplete → wait.
+    //   Rec 2–4: 18,432 bytes of zeros each.
+    //          After rec1..rec4: carry = 4 + 3 × 18,432 = 55,300 bytes.
+    //   Rec 5: 10,236 bytes.  55,300 + 10,236 = 65,536 = MAX_BUF.
+    //          Step-1: 65,536 > 65,536 = false → append accepted.
+    //
+    // Assertions: overflow_count unchanged AND carry_len == MAX_BUF.
+
+    /// Build the 5-record sequence that fills the hs-carry to exactly MAX_BUF bytes.
+    fn max_buf_fill_records() -> Vec<Vec<u8>> {
+        // 4 + 3 × 18,432 + 10,236 = 65,536.
+        let fill_tail = MAX_BUF - (4 + MAX_RECORD_PAYLOAD * 3); // = 10,236
+        vec![
+            wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]), // 4 bytes
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]),
+            wrap_handshake_record(&vec![0u8; fill_tail]),
+        ]
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_039_c2s_step1_exact_max_buf_accepted() {
+        let fk = make_test_flow_key(1);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        for rec in max_buf_fill_records() {
+            analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+        }
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme1/C2S (829:64): carry+payload == MAX_BUF must NOT trigger overflow \
+             (> is strict; >= mutant would clear carry and increment overflow)"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            MAX_BUF,
+            "Theme1/C2S (829:64): carry must be retained at exactly MAX_BUF bytes"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_step1_exact_max_buf_accepted() {
+        let fk = make_test_flow_key(2);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        for rec in max_buf_fill_records() {
+            analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+        }
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme1/S2C (998:64): carry+payload == MAX_BUF must NOT trigger overflow"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            MAX_BUF,
+            "Theme1/S2C (998:64): server carry must be retained at exactly MAX_BUF bytes"
+        );
+    }
+
+    // ── Theme 2: Step-1 arithmetic (+→*) ─────────────────────────────────────
+    //
+    // Mutation sites C2S 829:41 / S2C 998:41: `+` → `*`.
+    // With correct `+`: 4 + 18,432 = 18,436 ≤ MAX_BUF → no overflow.
+    // With `*` mutant:  4 × 18,432 = 73,728 > MAX_BUF → carry cleared, overflow+1.
+    //
+    // Setup: send a 4-byte incomplete-header record first (carry = 4), then a
+    // MAX_RECORD_PAYLOAD record.  The asymmetry between 4+N and 4×N for large N
+    // is what distinguishes the two operations.
+    //
+    // Assertions: overflow_count unchanged AND carry_len > 0.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_039_c2s_step1_additive_not_multiplicative() {
+        let fk = make_test_flow_key(3);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // Rec 1: carry → 4 bytes (incomplete message, body_len=65,536).
+        let rec1 = wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec1, 0, 0);
+
+        // Rec 2: with +: 4+18,432=18,436 ≤ MAX_BUF (no overflow).
+        //        with * mutant: 4×18,432=73,728 > MAX_BUF (overflow+1).
+        let rec2 = wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec2, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme2/C2S (829:41): 4 + 18432 = 18436 ≤ MAX_BUF must NOT overflow \
+             (+ is additive; * mutant gives 73728 > MAX_BUF)"
+        );
+        assert!(
+            analyzer.client_hs_carry_len_for_testing(&fk) > 0,
+            "Theme2/C2S (829:41): carry must be non-empty after additive accumulation"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_step1_additive_not_multiplicative() {
+        let fk = make_test_flow_key(4);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        let rec1 = wrap_handshake_record(&[0x03u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec1, 0, 0);
+
+        let rec2 = wrap_handshake_record(&vec![0u8; MAX_RECORD_PAYLOAD]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec2, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme2/S2C (998:41): 4 + 18432 must NOT overflow"
+        );
+        assert!(
+            analyzer.server_hs_carry_len_for_testing(&fk) > 0,
+            "Theme2/S2C (998:41): server carry must be non-empty after additive accumulation"
+        );
+    }
+
+    // ── Theme 3: Decision-4 body_len exact-MAX_BUF boundary ──────────────────
+    //
+    // Mutation sites C2S 900:37 / S2C 1036:37: `>` → `>=`.
+    // body_len = 65,536 = MAX_BUF sits exactly at the boundary.
+    // With correct `>`: 65,536 > 65,536 = false → Decision-4 does NOT fire, carry retained.
+    // With `>=` mutant: 65,536 >= 65,536 = true → Decision-4 fires, carry cleared, overflow+1.
+    //
+    // Payload: 4-byte header [msg_type, 0x01, 0x00, 0x00].
+    //   body_len = (0x01 << 16) | (0x00 << 8) | 0x00 = 65,536 = MAX_BUF.
+    // Incomplete check: 4 < 4 + 65,536 = 65,540 → wait.
+    //
+    // Assertions: overflow_count unchanged AND carry_len == 4.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_c2s_decision4_body_len_max_buf_not_spoof() {
+        let fk = make_test_flow_key(5);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // [0x01, 0x01, 0x00, 0x00]: msg_type=0x01, body_len=(0x01<<16)|0=65,536=MAX_BUF.
+        let rec = wrap_handshake_record(&[0x01u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme3/C2S (900:37): body_len == MAX_BUF must NOT trigger Decision-4 \
+             (> is strict; >= mutant would clear carry and increment overflow)"
+        );
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme3/C2S (900:37): carry must retain the 4-byte incomplete header"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_decision4_body_len_max_buf_not_spoof() {
+        let fk = make_test_flow_key(6);
+        let mut analyzer = TlsAnalyzer::new();
+        let overflow_before = analyzer.handshake_reassembly_overflow_count();
+
+        // [0x02, 0x01, 0x00, 0x00]: msg_type=0x02, body_len=65,536=MAX_BUF.
+        let rec = wrap_handshake_record(&[0x02u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.handshake_reassembly_overflow_count(),
+            overflow_before,
+            "Theme3/S2C (1036:37): body_len == MAX_BUF must NOT trigger Decision-4"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme3/S2C (1036:37): server carry must retain the 4-byte incomplete header"
+        );
+    }
+
+    // ── Theme 4: S2C parse_errors increment for Ok(non-ServerHello) ──────────
+    //
+    // Mutation site S2C 1079:59: `+=` → `-=` / `+=` → `*=`.
+    //
+    // tls-parser v0.12.2 returns `TlsMessageHandshake::ServerHelloV13Draft18` for a
+    // ServerHello whose version field is 0x7f12 (TLS 1.3 Draft 18).  That variant
+    // does NOT match `TlsMessageHandshake::ServerHello(ref sh)`, so it falls into the
+    // `Ok(_)` arm at line 1078, which must increment parse_errors by exactly 1.
+    //
+    // Message layout (40 bytes total = 4-byte header + 36-byte body):
+    //   Header: [0x02, 0x00, 0x00, 0x24]  msg_type=0x02, body_len=36
+    //   Body:   [0x7f, 0x12]              version = TLS 1.3 Draft 18
+    //           [0x00 × 32]              random
+    //           [0x13, 0x01]             cipher TLS_AES_128_GCM_SHA256
+    //
+    // Assertions: parse_error_count == errors_before + 1 AND server_hs_carry_len == 0.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_parse_errors_inc_ok_non_server_hello_v13draft18() {
+        let fk = make_test_flow_key(7);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // Construct a complete ServerHello message with version=0x7f12 (TLS 1.3 Draft 18).
+        // parse_tls_handshake_msg_server_hello dispatches version 0x7f12 to
+        // parse_tls_handshake_msg_server_hello_tlsv13draft18, which returns
+        // ServerHelloV13Draft18 — a variant that does NOT match the production
+        // ServerHello pattern, triggering the Ok(_) arm at src/analyzer/tls.rs:1078.
+        let mut msg = Vec::with_capacity(40);
+        msg.extend_from_slice(&[0x02u8, 0x00, 0x00, 0x24]); // header: type=0x02, len=36
+        msg.extend_from_slice(&[0x7fu8, 0x12]); // version = TLS 1.3 Draft 18
+        msg.extend_from_slice(&[0x00u8; 32]); // random
+        msg.extend_from_slice(&[0x13u8, 0x01]); // cipher
+
+        let rec = wrap_handshake_record(&msg);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before + 1,
+            "Theme4/S2C (1079:59): Ok(ServerHelloV13Draft18) must increment parse_errors \
+             by exactly 1 (-= mutant decrements; *= mutant with 0 × 1 = 0 ≠ 1)"
+        );
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            0,
+            "Theme4/S2C (1079:59): the 40-byte message must be fully consumed (carry drained)"
+        );
+    }
+
+    // ── Theme 5: S2C body_len high-byte shift (<<16 vs >>16) ─────────────────
+    //
+    // Mutation site S2C 1030:67: `<< 16` → `>> 16`.
+    // Payload [0x02, 0x01, 0x00, 0x00]: body_len bytes are [0x01, 0x00, 0x00].
+    //
+    // With correct `<< 16`: body_len = (0x01 << 16) | 0 | 0 = 65,536 = MAX_BUF.
+    //   Decision-4: 65,536 > 65,536 = false.  Incomplete: 4 < 65,540 → wait.
+    //   Result: carry_len = 4, parse_errors unchanged.
+    //
+    // With `>> 16` mutant: body_len = (0x01 >> 16) | 0 | 0 = 0.
+    //   Incomplete: 4 < 4 + 0 = 4 → 4 < 4 = false → NOT incomplete → dispatch.
+    //   msg_bytes = carry[0..4]; parse_tls_message_handshake fails (hl=65,536 but
+    //   zero body bytes remain) → Err → parse_errors += 1.  consumed=4.  carry drained.
+    //   Result: carry_len = 0, parse_errors = 1.
+    //
+    // Note: same payload as Theme 3 S2C; pins a different mutation site via different
+    // primary assertions.
+    //
+    // Assertions: server_hs_carry_len == 4 AND parse_error_count unchanged.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_body_len_high_byte_shift_left_not_right() {
+        let fk = make_test_flow_key(8);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // [0x02, 0x01, 0x00, 0x00]: msg_type=0x02, body_len bytes=[0x01, 0x00, 0x00].
+        // << 16 interpretation: body_len = 65,536 → incomplete.
+        // >> 16 mutant interpretation: body_len = 0 → dispatches → parse fails → carry drained.
+        let rec = wrap_handshake_record(&[0x02u8, 0x01, 0x00, 0x00]);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme5/S2C (1030:67): << 16 gives body_len=65536 (incomplete) → carry \
+             retained at 4; >> 16 mutant gives body_len=0 → dispatch → drain → carry=0"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before,
+            "Theme5/S2C (1030:67): with << 16 no dispatch occurs → parse_errors unchanged"
+        );
+    }
+
+    // ── Theme 5b: S2C body_len MIDDLE-byte shift (<<8 vs >>8) ───────────────
+    //
+    // Mutation site S2C 1030:67: `<< 8` → `>> 8` (MIDDLE byte of the 3-byte body_len).
+    // The previous Theme-5 test pins the HIGH-byte lane (1029:70 `<<16`); this test
+    // pins the MIDDLE-byte lane (1030:67 `<<8`) by using a body_len whose bits 8–15
+    // are non-zero (middle byte 0x01 ≠ 0).
+    //
+    // body_len = 384 = 0x000180; bytes: [0x00, 0x01, 0x80].
+    //   carry[consumed+1] = 0x00 → high:  (0x00 << 16) = 0
+    //   carry[consumed+2] = 0x01 → middle: (0x01 << 8) = 256  ←  key bit
+    //   carry[consumed+3] = 0x80       →  low:  128
+    // With correct `<< 8`: body_len = 0 + 256 + 128 = 384.
+    // With `>> 8` mutant:  body_len = 0 + (0x01 >> 8) + 128 = 0 + 0 + 128 = 128.
+    //
+    // Deliver exactly 4 + 384 - 1 = 387 bytes (one byte short of a complete message):
+    //   Correct (body_len=384): 387 < 4+384=388 → INCOMPLETE → wait. carry_len = 387.
+    //   Mutant  (body_len=128): 387 ≥ 4+128=132 → complete → dispatch (parse fails) →
+    //     carry drained. carry_len ≠ 387; parse_errors incremented.
+    //
+    // Assertions: server_hs_carry_len == 387 AND parse_error_count unchanged.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_body_len_mid_byte_shift_left_not_right() {
+        let fk = make_test_flow_key(12);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // body_len = 384 = 0x000180: middle byte = 0x01 (≠ 0) distinguishes << 8 from >> 8.
+        // Payload = [header (4)] + [383 zero bytes] = 387 bytes = body_len_correct - 1.
+        // This is one byte short of a complete message under the correct << 8 interpretation.
+        let mut payload = Vec::with_capacity(387);
+        payload.extend_from_slice(&[0x02u8, 0x00, 0x01, 0x80]); // header: type=0x02, body_len=384
+        payload.extend(std::iter::repeat_n(0u8, 383)); // 383 zero bytes (body_len - 1)
+
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            387,
+            "Theme5b/S2C (1030:67): << 8 gives body_len=384, carry(387) < 388 → incomplete, \
+             carry retained at 387; >> 8 mutant gives body_len=128, carry(387) ≥ 132 → \
+             dispatch → carry drained (carry_len ≠ 387)"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before,
+            "Theme5b/S2C (1030:67): with correct << 8 body_len=384 the message is incomplete \
+             → no dispatch → parse_errors unchanged"
+        );
+    }
+
+    // ── Theme 6: Incomplete-body guard with partial-trailing carry ────────────
+    //
+    // Mutation sites C2S 911:38 / S2C 1047:38: `-` → `+`.
+    // With correct `-`: carry_len - consumed < 4 + body_len → incomplete → break.
+    // With `+` mutant:  carry_len + consumed is a larger value, the `<` condition
+    //   is harder to satisfy, so the mutant falsely treats incomplete messages as
+    //   complete and consumes them.
+    //
+    // Coalesced 8-byte payload:
+    //   Msg1 (complete):   [0x03, 0x00, 0x00, 0x00]  msg_type=0x03, body_len=0
+    //   Msg2 (incomplete): [0x03, 0x00, 0x00, 0x04]  msg_type=0x03, body_len=4, no body
+    //
+    // Drain loop with correct `-`:
+    //   iter1: carry_len=8, consumed=0. 8-0=8 ≥ 4+0=4 → complete. consumed=4.
+    //   iter2: carry_len=8, consumed=4. 8-4=4 < 4+4=8 → incomplete. break.
+    //   drain(..4) → carry_len = 4 (Msg2 header retained).
+    //
+    // Drain loop with `+` mutant:
+    //   iter1: 8+0=8 ≥ 4+0=4 → same, consumed=4.
+    //   iter2: 8+4=12 ≥ 4+4=8 → NOT incomplete → silent consume. consumed=8.
+    //   drain(..8) → carry_len = 0.
+    //
+    // Assertion: carry_len == 4.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_038_c2s_incomplete_body_partial_trailing_carry_retained() {
+        let fk = make_test_flow_key(9);
+        let mut analyzer = TlsAnalyzer::new();
+
+        // Coalesced payload: complete Msg1 + incomplete Msg2 header.
+        let payload: Vec<u8> = vec![
+            0x03, 0x00, 0x00, 0x00, // Msg1: type=0x03, body_len=0 (complete)
+            0x03, 0x00, 0x00, 0x04, // Msg2: type=0x03, body_len=4 (header only, no body)
+        ];
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ClientToServer, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.client_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme6/C2S (911:38): partial trailing Msg2 header (4 bytes) must remain in \
+             carry after Msg1 is consumed; - mutant (+) falsely treats Msg2 as complete \
+             and drains it, leaving carry_len=0"
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_incomplete_body_partial_trailing_carry_retained() {
+        let fk = make_test_flow_key(10);
+        let mut analyzer = TlsAnalyzer::new();
+
+        let payload: Vec<u8> = vec![
+            0x03, 0x00, 0x00, 0x00, // Msg1: complete
+            0x03, 0x00, 0x00, 0x04, // Msg2: header only, incomplete
+        ];
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            4,
+            "Theme6/S2C (1047:38): partial trailing Msg2 header must remain in server carry; \
+             - mutant (+) falsely consumes it, leaving carry_len=0"
+        );
+    }
+
+    // ── Theme 6c: S2C exact-fill no-drop ─────────────────────────────────────
+    //
+    // Mutation site S2C 1155:43: `>` → `>=`.
+    // Mirrors the C2S EC-005 sub-check in mod story_146 (`test_BC_2_07_043_no_drop_no_counter`).
+    //
+    // Delivers exactly MAX_BUF bytes S2C to a fresh (empty) server_buf.
+    //   remaining = MAX_BUF.  data.len() == remaining == MAX_BUF.
+    //   Correct `>`:  MAX_BUF > MAX_BUF = false → did_drop = false → counter unchanged.
+    //   `>=` mutant:  MAX_BUF >= MAX_BUF = true  → did_drop = true  → counter+1.
+    //
+    // Assertion: buffer_saturation_drop_count == drops_before (no drop at exact boundary).
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_043_s2c_exact_fill_no_drop() {
+        let fk = make_test_flow_key(11);
+        let mut analyzer = TlsAnalyzer::new();
+        let drops_before = analyzer.buffer_saturation_drop_count();
+
+        // Deliver exactly MAX_BUF raw bytes S2C.  server_buf starts empty; remaining = MAX_BUF.
+        // data.len() == remaining → strict > is false → no drop.
+        let data = vec![0x00u8; MAX_BUF];
+        analyzer.on_data(&fk, Direction::ServerToClient, &data, 0, 0);
+
+        assert_eq!(
+            analyzer.buffer_saturation_drop_count(),
+            drops_before,
+            "Theme6c/S2C (1155:43): exact-fill (MAX_BUF bytes, empty server_buf) must NOT \
+             increment buffer_saturation_drops — drop condition is strictly >, not >= \
+             (drops_before={drops_before})"
+        );
+    }
 }

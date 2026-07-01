@@ -7,9 +7,155 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-06-29
+## [0.11.1] - 2026-07-01
 
 ### Fixed
+
+- **TLS handshake-message reassembly across TLS records (TLS-CLIENTHELLO-FRAG-001, HIGH).**
+  The TLS analyzer previously parsed ClientHello and ServerHello records only when the full
+  handshake message arrived in a single TLS record. A TLS peer that fragments a handshake
+  message across record boundaries (valid per RFC 8446 §5.1 / RFC 5246 §6.2.1) caused wirerust to miss the
+  SNI extension, JA3 fingerprint, and JA3S fingerprint entirely — a trivially exploitable
+  evasion path. The analyzer now maintains a per-direction carry buffer that accumulates
+  record payloads across records until a complete handshake message is available, then
+  parses it. Carry bounds are enforced per-direction: per-message cap 65 536 bytes
+  (the maximum TLS handshake message size), per-record cap 18 432 bytes (maximum TLS
+  record payload). On overflow the carry buffer is cleared and recovery continues from
+  the next record (clear-and-recover policy). Closes silent SNI/JA3/JA3S fingerprint-evasion
+  via fragmented handshakes. [STORY-144 #341, STORY-145 #343, STORY-146 #344, BC-2.07.038–042]
+
+### Added
+
+- **TLS buffer-saturation telemetry.** A new `buffer_saturation_drops` counter is included
+  in the TLS analyzer summary. It increments each time the per-direction carry buffer reaches
+  its cap and is cleared (overflow-and-recover event). Exposes carry-overflow frequency for
+  threat-hunting and capacity tuning without changing the existing wire format of other
+  summary fields. [STORY-146, PR #344, BC-2.07.043]
+
+### Security
+
+- **TLS reassembly path formally hardened** — Kani VP-039 proof harnesses (3 non-vacuous),
+  a cargo-fuzz target, and 12 mutation-gap tests added for the new reassembly path, closing
+  the formal-verification obligation for the carry-buffer bounds and clear-and-recover
+  semantics. [PR #345]
+
+- **Bumped `anyhow` 1.0.102 → 1.0.103** to clear RUSTSEC-2026-0190 (advisory against
+  1.0.102 only; no behavior change). [PR #346]
+
+## [0.11.0] - 2026-06-29
+
+### Added
+
+- **EtherNet/IP (ENIP) + CIP protocol analyzer** — the headline feature of this release
+  (Feature #316, STORY-130..139, PRs #317–#334, ADR-010). wirerust now analyzes TCP/44818
+  flows using the ODVA EtherNet/IP + Common Industrial Protocol (CIP) stack. The analyzer
+  is enabled with `--enip` (also covered by `--all`) and requires stream reassembly.
+
+  **Protocol coverage:**
+
+  - Parses the 24-byte ENIP encapsulation header (all fields, little-endian per ODVA
+    specification): command, length, session_handle, status, sender_context, options.
+    [STORY-130, PR #317, BC-2.17.001/002]
+  - Classifies all 65,536 possible u16 command values into the 9 ODVA known commands
+    (ListServices, ListIdentity, ListInterfaces, RegisterSession, UnRegisterSession,
+    SendRRData, SendUnitData, IndicateStatus, Cancel) plus an `Unknown` catch-all.
+    [STORY-130, PR #317, BC-2.17.004]
+  - Parses Common Packet Format (CPF) item lists from `SendRRData` (0x006F) and
+    `SendUnitData` (0x0070) payloads: bounded item-count walk, type_id recognition for
+    Null Address (0x0000), Connected Address (0x00A1), Connected Data (0x00B1), and
+    Unconnected Data (0x00B2) items. CIP service extraction and request-path segment
+    parse apply to Unconnected Data Items (0x00B2) only in this release.
+    [STORY-132, PR #319, BC-2.17.005/006/007/009]
+  - Dispatched as Rule 7 in the `StreamDispatcher` — port-44818 fallback after the
+    existing TLS, HTTP, Modbus (port 502), and DNP3 (port 20000) rules. Content-signature
+    rules (TLS record, HTTP prefix) take priority. [STORY-131, PR #318, ADR-010 Decision 1]
+  - Per-flow state (`EnipFlowState`) with a 600-byte per-direction carry buffer
+    (`carry_c2s` / `carry_s2c`), frame-walk loop, and session summary folded at
+    capture end. [STORY-136/137/138, PRs #326–#329, BC-2.17.016/017/021]
+
+  **CLI flags:**
+
+  - `--enip` — enable EtherNet/IP TCP analysis (default-off; included by `--all`)
+  - `--enip-write-burst-threshold N` — T0836 write-burst threshold: fires when more than
+    N CIP write-class service requests (SetAttributesAll, SetAttributeList,
+    SetAttributeSingle) are observed in any 1-second window per flow (default: 50)
+  - `--enip-error-burst-threshold M` — T0888 error-burst threshold: fires when more than
+    M CIP error responses (non-zero `general_status`) are observed in any 10-second window
+    per flow (default: 5; strict `>` semantics)
+
+  **MITRE ATT&CK for ICS detections (ics-attack-19.1):**
+
+  - **T0846 Remote System Discovery** — emitted per flow on the first ENIP ListIdentity
+    (command 0x0063) frame; one-shot guard per flow. [STORY-134, PR #323, BC-2.17.010]
+  - **T0888 Remote System Information Discovery** — two detection patterns:
+    Pattern A: CIP GetAttribute{All,List,Single} request targeting Identity Object
+    (Class 0x01) in the request path; Pattern B: CIP error-response burst exceeding
+    `--enip-error-burst-threshold` within a 10-second window. [STORY-134/135, PRs #323/#324,
+    BC-2.17.014]
+  - **T0858 Change Operating Mode** — emitted per CIP Stop service (service code 0x07)
+    request, indicating a controller run-to-stop transition command. [STORY-135, PR #324,
+    BC-2.17.011]
+  - **T0816 Device Restart/Shutdown** — emitted per CIP Reset service (service code 0x05)
+    request. [STORY-135, PR #324, BC-2.17.013]
+  - **T0836 Modify Parameter** — emitted when CIP write-class services (SetAttributesAll
+    0x02, SetAttributeList 0x04, SetAttributeSingle 0x10) exceed
+    `--enip-write-burst-threshold` within a 1-second window per flow. [STORY-135, PR #324,
+    BC-2.17.012]
+  - **T0814 Denial of Service** — malformed-frame anomaly; fires when 3 or more
+    structurally invalid ENIP frames accumulate in a 300-second window per flow. Shared
+    technique ID with the DNP3/Modbus analyzers. [STORY-137, PR #327, BC-2.17.018]
+
+  New `MitreTactic::IcsExecution` enum variant added (TA0104) for T0858 "Change Operating
+  Mode". MITRE catalog grew from 25 to 28 seeded technique IDs; emitted count grew from
+  17 to 20 (T0858, T0816, T0846 added to the emitted set). T0846 promoted from
+  seeded-only to emitted for the first time via ENIP ListIdentity detection.
+  [STORY-133, PR #320, BC-2.10.008, VP-007]
+
+  **Session summary (`enip_summary`):** `summarize()` produces a 7-key JSON object —
+  `command_distribution`, `total_pdu_count`, `parse_errors`, `write_count`,
+  `error_count`, `flows_analyzed`, `dropped_findings` — folding both closed and
+  still-open flows at call time. [STORY-138, PR #329, BC-2.17.021]
+
+  **Formal verification and quality assurance:**
+
+  - VP-032 Kani proof harnesses Sub-A through Sub-D: `parse_enip_header` all-input
+    safety, `classify_enip_command` totality, `is_valid_enip_frame` biconditional,
+    `classify_cip_service` totality. [STORY-130/132, BC-2.17.001–004/007]
+  - `fuzz_enip_cip_parse` cargo-fuzz harness covering `parse_cpf_items`,
+    `parse_cip_header`, `parse_cip_request_path`, and `parse_enip_header` — F-P9-002
+    obligation discharged. [PR #332]
+  - Full-pipeline E2E tests against real ENIP/CIP pcaps: holdout scenarios HS-110
+    through HS-122 verified (6 test cases, real-world captures). [PR #333]
+
+### Changed
+
+- **ENIP session summary wire format cleaned up.** The `enip_summary` JSON output uses
+  the canonical key name `"parse_errors"` (not `"total_parse_errors"`) from day one,
+  consistent with the lesson learned from the DNP3 rename in v0.10.0. The summary wire
+  format was further cleaned up to ensure consistent field ordering and null-safety.
+  [PR #331, BC-2.17.021 Invariant 1]
+
+- **Green-doc-tense CI gate added.** A new CI job (`green-doc-tense-gate`) runs
+  `bin/check-green-doc-tense` on all tracked source and test files, failing if any
+  doc-comment or changelog entry uses aspirational tense markers ("will", "planned",
+  "future") in contexts that assert current behavior. The gate includes a self-test
+  (`bin/test_check_green_doc_tense.py`) that verifies 10 known-bad and 14 known-good
+  patterns. [PR #321, b9b2e93]
+
+### Fixed
+
+- **ENIP source-IP attribution corrected.** The per-direction source-IP resolution
+  in `on_data` was incorrect: it used a port-44818 heuristic that misidentified the
+  client when the FlowKey's lower port was 44818. Replaced with direction-based
+  attribution (`Direction::ClientToServer` maps to the TCP initiator; `ServerToClient`
+  maps to the TCP responder), mirroring the Modbus pattern. Finding `source_ip` fields
+  now correctly reflect the sending endpoint. [PR #328, AC-139-002]
+
+- **ENIP `summarize()` includes still-open flows.** `summarize()` previously reported
+  only counters accumulated from closed flows, silently undercounting `total_pdu_count`,
+  `flows_analyzed`, `parse_errors`, and `command_distribution` whenever flows were still
+  open at capture end. The summary now folds all still-open `EnipFlowState` entries into
+  the aggregate at call time (RULING-W61-001). [PR #330, BC-2.17.021 Postcondition 1]
 
 - **Modbus EC-X1: per-direction carry buffer split (`carry_c2s` / `carry_s2c`).**
   The Modbus analyzer previously used a single shared carry buffer for both directions, allowing
@@ -659,7 +805,9 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/Zious11/wirerust/compare/v0.11.0...v0.11.1
+[0.11.0]: https://github.com/Zious11/wirerust/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Zious11/wirerust/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/Zious11/wirerust/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Zious11/wirerust/compare/v0.9.2...v0.9.3
