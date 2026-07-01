@@ -139,6 +139,9 @@ the StreamAnalyzer trait (L2 imports L3 types). Accepted by ADR 0002.
 | CAP-10 | MITRE ATT&CK mapping | L3 | SS-10 | cap-10-mitre-mapping.md |
 | CAP-11 | Reporting and output | L4 | SS-11 | cap-11-reporting-output.md |
 | CAP-12 | CLI orchestration / entry point | L0 | SS-12 | cap-12-cli-orchestration.md |
+| CAP-18 | Protocol coverage catalog | L2 | SS-18 | cap-18-protocol-coverage-catalog.md |
+
+> **Note:** CAP-13..CAP-17 (Modbus/ICS, DNP3/ICS, ARP Security, EtherNet/IP+CIP) are registered in ARCH-INDEX.md Subsystem Registry (SS-14..SS-17) and their capability files exist in the capabilities/ directory, but were not back-filled into this table. CAP-18 is added here to anchor the feature-protocol-coverage F2 delta. A full back-fill of CAP-13..CAP-17 is a pre-existing gap, out of scope for this task.
 
 **CAP-12 note:** CAP-12 is the L0 cross-cutting orchestration capability. It coordinates
 CAP-01..CAP-11 without reimplementing any of them. Components: C-1 (main.rs), C-2 (lib.rs),

@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.45"
+version: "1.46"
 status: draft
 producer: product-owner
-timestamp: 2026-06-29T15:00:00Z
+timestamp: 2026-07-01T18:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -425,6 +425,9 @@ supplements:
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
 >
+> **Version 1.46 delta (2026-07-01 — feature-protocol-coverage F2 spec-layer INTEGRATE sub-burst — 9 new BCs, SS-18 added):**
+> 9 new BCs for feature-protocol-coverage F2 spec-layer (ADR-012, D-320, release target v0.12.0). SS-18 (Protocol Coverage Catalog) fully wired: BC-2.18.001 (P0) `protocols` terminal output; BC-2.18.002 (P1) `protocols` JSON mode; BC-2.18.003 (P0) `supported_protocols()`/`unsupported_protocols()` set-difference + ARP inclusion; BC-2.18.004 (P0) catalog partition invariant (VP-041). SS-05 dispatcher extension: BC-2.05.010 (P0) `unclassified_port_counts` keyed on `(TransportProto, u16)` — TCP via None-target on_flow_close, UDP via decode-loop; BC-2.05.011 (P0) per-(TransportProto, port) count exactness and monotonicity (VP-042). SS-12 CLI extension: BC-2.12.022 (P0) `protocols` subcommand dispatch; BC-2.12.023 (P0) `--coverage-gaps` opt-in (NOT auto-enabled under `--all`); BC-2.12.024 (P1) `CoverageGapsSummary` mandatory caveat text. PENDING DELTA marker removed from §2.18. RTM §7 rows added for all 9 BCs. BC-INDEX bumped to v2.4 (346 on disk / 345 active). CAP-18 registered in domain-spec capability index. VP-042 wording updated to name (TransportProto, u16) key type explicitly (per D-322; wording-only, no VP count change). See BC-INDEX v2.4, ARCH-INDEX SS-18, ADR-012.
+>
 > **Version 1.45 delta (2026-06-29 — fix-tls-clienthello-frag adversary burst — BC-2.07.043 v1.1, BC-2.07.005 v1.7):**
 > Adversary findings C-1/C-2/C-3/I-2/I-3/I-4/OBS-1/F-1 resolved against BC-2.07.043 v1.0 and BC-2.07.005 v1.6. No BC count change. SS-07 stays 43. BC-INDEX v1.99→v2.0.
 > **C-3 HIGH:** BC-2.07.043 PC-3 — canonical increment condition is `data.len() > remaining` only. Removed "(equivalently, `to_copy < data.len()`)" qualifier. `to_copy` is computed only inside `if remaining > 0` arm; using it as the condition would miss the full-drop case (`remaining==0`).
@@ -834,7 +837,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.05.008 | No analyzer configured: dispatcher early-returns from on_data | P1 | BC-DSP-008 |
 | BC-2.05.009 | on_flow_close removes route entry and forwards close to analyzer | P0 | BC-DSP-009 |
 
-> Full contracts: `behavioral-contracts/ss-05/BC-2.05.001.md` through `BC-2.05.009.md`
+> Full contracts: `behavioral-contracts/ss-05/BC-2.05.001.md` through `BC-2.05.009.md` (originals); `BC-2.05.010.md` and `BC-2.05.011.md` (feature-protocol-coverage-F2 dispatcher extension — see §2.18.B)
 
 ### 2.6 HTTP Traffic Analysis (CAP-06)
 
@@ -1131,7 +1134,7 @@ remaining`, covering both partial-copy and full-drop). It is surfaced in `summar
 | BC-2.12.020 | Summary::unique_hosts returns sorted deduplicated Vec<IpAddr> | P1 | BC-SUM-003 |
 | BC-2.12.021 | Summary serializes with total_packets, total_bytes, skipped_packets fields | P1 | BC-SUM-004 |
 
-> Full contracts: `behavioral-contracts/ss-12/BC-2.12.001.md` through `BC-2.12.021.md`
+> Full contracts: `behavioral-contracts/ss-12/BC-2.12.001.md` through `BC-2.12.021.md` (originals); `BC-2.12.022.md` through `BC-2.12.024.md` (feature-protocol-coverage-F2 CLI extension — see §2.18.C)
 
 ### 2.13 Absent / Unwired Feature Contracts (Documented Current Behavior)
 
@@ -1891,6 +1894,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.05.007 | CAP-05 | SS-05 (dispatcher.rs) | P1 | unit |
 | BC-2.05.008 | CAP-05 | SS-05 (dispatcher.rs) | P1 | unit |
 | BC-2.05.009 | CAP-05 | SS-05 (dispatcher.rs) | P0 | inferred |
+| BC-2.05.010 | CAP-05 | SS-05 (dispatcher.rs) | P0 | unit+proptest VP-042 |
+| BC-2.05.011 | CAP-05 | SS-05 (dispatcher.rs) | P0 | proptest VP-042 |
 | BC-2.06.001 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.002 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.003 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
@@ -2026,6 +2031,9 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.12.019 | CAP-12 | SS-12 (summary.rs) | P1 | unit |
 | BC-2.12.020 | CAP-12 | SS-12 (summary.rs) | P1 | unit |
 | BC-2.12.021 | CAP-12 | SS-12 (summary.rs) | P1 | unit |
+| BC-2.12.022 | CAP-12 | SS-12 (cli.rs, main.rs) | P0 | unit+integration |
+| BC-2.12.023 | CAP-12 | SS-12 (cli.rs, main.rs) | P0 | unit+integration |
+| BC-2.12.024 | CAP-12 | SS-12 (cli.rs, main.rs) | P1 | unit |
 | BC-2.13.001 | CAP-12 | SS-13 (cli.rs) | P0 | unit |
 | BC-2.13.002 | CAP-12 | SS-13 (cli.rs) | P0 | unit |
 | BC-2.13.003 | CAP-12 | SS-13 (cli.rs) | P0 | unit |
@@ -2121,6 +2129,81 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.17.024 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
 | BC-2.17.025 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
 | BC-2.17.026 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
+| BC-2.18.001 | CAP-18 | SS-18 (protocols.rs) | P0 | unit |
+| BC-2.18.002 | CAP-18 | SS-18 (protocols.rs) | P1 | unit |
+| BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 |
+| BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 |
+
+
+### 2.18 Protocol Coverage Catalog (CAP-18) [Feature — ADR-012, feature-protocol-coverage]
+
+> **Release target: v0.12.0 (additive — new `protocols` subcommand + `--coverage-gaps` dynamic gap detection).**
+> All 9 BCs (BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024) authored and wired to BC-INDEX v2.4 and RTM §7. No existing behavior changes.
+
+> **Feature Mode F2 spec-layer (2026-07-01).** 9 new BCs covering the protocol coverage
+> catalog capability (SS-18, C-26 `src/protocols.rs`) and the dynamic gap detection
+> extensions to `StreamDispatcher` (SS-05) and the CLI (SS-12).
+
+> **Catalog scope (D-320 OQ-1):** 7 supported protocols + 9 ICS Tier-1 unsupported
+> (port-detectable) + 5 L2/multicast (port_detectable: false) + 9 IT core unsupported
+> = ~30 entries. Hand-curated static compile-time array. No auto-sourcing from IANA.
+
+> **Key caveats (ADR-012 Decision 3):**
+> - **Port-102 four-way TCP collision:** S7comm, S7comm-plus, IEC 61850 MMS, and
+>   ICCP/TASE.2 all share TCP/102 (ISO-on-TCP/TPKT). Gap reports on `(Tcp, 102)` cannot
+>   be attributed to a single protocol. CoverageGapsSummary MUST include this collision note.
+> - **L2/multicast protocols structurally absent:** GOOSE (0x88B8), Sampled Values (0x88BA),
+>   PROFINET-RT/DCP (0x8892), EtherCAT (0x88A4) have no TCP/UDP port and are never reported
+>   by the dynamic gap detector. The mandatory caveat text directs operators to
+>   `wirerust protocols --unsupported` for L2 coverage information.
+
+> **Dynamic gap detection (D-320 OQ-5, ADR-012 Decision 6):** TCP+UDP. `unclassified_port_counts`
+> in `StreamDispatcher` (TCP, keyed on `(Tcp, min_port)`) + `udp_unclassified_counts` in the
+> decode loop (UDP, keyed on `(Udp, dst_port)`). Both use `HashMap<(TransportProto, u16), u64>`.
+> BACnet/IP UDP/47808 IS flaggable. `TransportProto` is a minimal `{Tcp, Udp}` enum in
+> `dispatcher.rs` (NOT `protocols::Transport` which has a third `LinkLayer` variant).
+
+> **`--coverage-gaps` flag (ADR-012 Decision 8):** Explicit opt-in; NOT auto-enabled under
+> `analyze --all`. Existing `--all` consumers see unchanged output.
+
+> **CoverageGapsSummary (ADR-012 Decision 9):** New named report section (NOT Finding entries).
+> Uses Suricata tri-state vocabulary: `known-unsupported` / `unknown` / `known-supported`.
+> Appended to analysis output after all Findings.
+
+> **Formal verification:** VP-041 (proptest P1, draft — src/protocols.rs: catalog set-difference
+> partition and disjoint invariants; 2 harnesses). VP-042 (proptest P1, draft — dispatcher.rs:
+> per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-004 (Kani,
+> dispatcher `classify()`, P0, verified) MUST be re-run at F6 as regression confirmation
+> (classify() is unchanged, but new HashMap field changes StreamDispatcher struct size).
+
+#### 2.18.A Protocol Coverage Catalog — Pure Core (Group A, SS-18)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | feature-protocol-coverage-F2 |
+| BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | feature-protocol-coverage-F2 |
+| BC-2.18.003 | `supported_protocols()` Returns Exactly SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | feature-protocol-coverage-F2 |
+| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | feature-protocol-coverage-F2 |
+
+#### 2.18.B Dispatcher Extension — TCP+UDP Dynamic Gap Counting (Group B, SS-05)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.05.010 | `unclassified_port_counts` Populated with (TransportProto, u16) Keys — TCP via Dispatcher None-Target, UDP via Decode-Loop | P0 | feature-protocol-coverage-F2 |
+| BC-2.05.011 | Per-(TransportProto, Port) Counts Are Exact and Monotonically Non-Decreasing; Classified Flows Do Not Update TCP Counter; All TCP Entries Carry TransportProto::Tcp | P0 | feature-protocol-coverage-F2 |
+
+#### 2.18.C CLI Surface — `protocols` Subcommand and `--coverage-gaps` Flag (Group C, SS-12)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.12.022 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | P0 | feature-protocol-coverage-F2 |
+| BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | feature-protocol-coverage-F2 |
+| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | feature-protocol-coverage-F2 |
+
+> Full contracts:
+> - `behavioral-contracts/ss-18/BC-2.18.001.md` through `BC-2.18.004.md` (SS-18 catalog)
+> - `behavioral-contracts/ss-05/BC-2.05.010.md` through `BC-2.05.011.md` (SS-05 dispatcher extension)
+> - `behavioral-contracts/ss-12/BC-2.12.022.md` through `BC-2.12.024.md` (SS-12 CLI surface)
 
 
 ## 8. Domain Debt Index

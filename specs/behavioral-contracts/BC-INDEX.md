@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.3"
+version: "2.4"
 status: draft
 producer: product-owner
-timestamp: 2026-06-30T18:00:00Z
+timestamp: 2026-07-01T18:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -14,7 +14,10 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 337 entries (336 prior + 1 new BC-2.07.043 for F-EV-001 defense-in-depth; BC-2.01.004 retired). Active count: 336.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.4 2026-07-01 (feature-protocol-coverage F2 spec-layer INTEGRATE sub-burst — 9 new BCs, SS-18 section added):**
+> 9 new BCs for feature-protocol-coverage F2 spec-layer (ADR-012, D-320): SS-18 (Protocol Coverage Catalog): BC-2.18.001 (P0) `protocols` subcommand terminal catalog output; BC-2.18.002 (P1) `protocols` JSON mode; BC-2.18.003 (P0) `supported_protocols()`/`unsupported_protocols()` set-difference correctness; BC-2.18.004 (P0) catalog partition invariant (supported ∪ unsupported == KNOWN_PROTOCOLS, disjoint). SS-05 extension: BC-2.05.010 (P0) `unclassified_port_counts` keyed on `(TransportProto, u16)` — TCP via Dispatcher None-target, UDP via decode-loop; BC-2.05.011 (P0) per-(TransportProto, port) counts exact and monotonically non-decreasing. SS-12 extension: BC-2.12.022 (P0) `wirerust protocols` subcommand dispatches to `run_protocols()`; BC-2.12.023 (P0) `--coverage-gaps` flag opt-in, NOT auto-enabled under `analyze --all`; BC-2.12.024 (P1) `CoverageGapsSummary` includes mandatory caveat text. BC count: 337→346 on disk; 336→345 active. SS-18 section added. SS-05: 9→11. SS-12: 21→24. PRD bumped to v1.46. VP-042 wording updated (TransportProto, u16) key clarification. RTM §7 rows added for all 9 BCs. CAP-18 registered in domain-spec capability index.
 >
 > **v2.3 2026-06-30 (fix-tls-clienthello-frag F5 scoped adversarial CONVERGED — re-anchor sweep 7 SS-07 BCs, BC-2.07.038 v2.10 Inv-4/PC-3 reconciliation):**
 > F5 CONVERGED (60/60 BC-completeness, 0 P0/HIGH/CRITICAL). F-F5-001 re-anchor sweep: BC-2.07.001 v1.9→v2.0 (handle_client_hello :389-580→:431-622; handshakes_seen/version_counts :437/:440; JA3 :561; SNI :455-558); BC-2.07.002 v1.6→v1.7 (handle_server_hello :586-651→:628-693; JA3S :649; cipher tracking :653-654); BC-2.07.005 v1.7→v1.8 (on_data buffer-append :820-835→:1137-1161; MAX_BUF const :30→:33); BC-2.07.038 v2.8→v2.10 (F-01 Inv-4 done()-scope corrected: done() is per-on_data-call scope not a persistent flag; F-03 PC-3 direction-gating corrected: independent per-direction, not cross-gated on client done(); anchor: truncated_records :319→:339; EC-010 prose: 'remaining carry (spoof header bytes only)' → 'entire carry buffer'; Frame-A: '5 zero bytes' → '5 arbitrary bytes (test uses 0xff)'); BC-2.07.039 v2.4→v2.5 (MAX_BUF :30→:33; truncated_records :319→:339; per-record oversize guard :689-698→:731-741; summarize() truncated_records insert :888-889→:1223-1226); BC-2.07.042 v1.4→v1.5 (EC-006 prose nit: 'remaining carry (spoof-only bytes) is cleared' → 'entire carry buffer is cleared (post-loop drain skipped; already-dispatched valid prefix harmlessly discarded — end state: carry empty)'; no semantic change); BC-2.07.043 v1.2→v1.4 (on_data buffer-append :820-835→:1137-1161; truncated_records field :319→:339; summarize() inserts :887-890→:1223-1226/:1236-1239). F-02 (fill_buf_for_testing mutating doc-hidden pub seam) → W7.1 backlog (TLS-FILLBUF-PUBLIC-SEAM-001). No BC count change (337 on disk; 336 active). SS-07 count unchanged at 43.
@@ -355,6 +358,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.05.007 | unclassified_flows Increments Only at on_flow_close | P1 | [WRITTEN] | BC-DSP-007 | <!-- v1.4: Pass-18 B-01/B-02/B-03 anchor re-sync + four-analyzer guard prose; on_flow_close :171-194→:322-361, guard :188-191→:352-356; guard widened http/tls→http/tls/modbus/dnp3 -->
 | BC-2.05.008 | No Analyzer Configured: Dispatcher Early-Returns | P1 | [WRITTEN] | BC-DSP-008 | <!-- v1.6: Pass-18 B-01/B-02/B-03 anchor re-sync + four-analyzer guard prose; early-return guard :121-123→:256-259; guard widened http/tls→http/tls/modbus/dnp3 -->
 | BC-2.05.009 | on_flow_close Removes Route Entry and Forwards Close | P0 | [WRITTEN] | BC-DSP-009 | <!-- v1.4: Pass-18 B-01/B-02 anchor re-sync; on_flow_close :171-194→:322-361, removes :175-176→:326-327 -->
+| BC-2.05.010 | `unclassified_port_counts` Populated with (TransportProto, u16) Keys — TCP via Dispatcher None-Target, UDP via Decode-Loop | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; HashMap<(TransportProto, u16), u64>; TCP keyed on (Tcp, min_port) at on_flow_close None-target; UDP keyed on (Udp, dst_port) in decode loop; VP-042 -->
+| BC-2.05.011 | Per-(TransportProto, Port) Counts Are Exact and Monotonically Non-Decreasing; Classified Flows Do Not Update TCP Counter; All TCP Entries Carry TransportProto::Tcp | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; VP-042 Sub-A/B/C proptest harnesses -->
 
 ## ss-06: HTTP Traffic Analysis (CAP-06)
 
@@ -555,6 +560,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.019 | Summary::ingest Derives Service Name from app_protocol_hint | P1 | [WRITTEN] | BC-SUM-002 |
 | BC-2.12.020 | Summary::unique_hosts Returns Sorted Deduplicated Vec<IpAddr> | P1 | [WRITTEN] | BC-SUM-003 |
 | BC-2.12.021 | Summary Serializes with total_packets/total_bytes/skipped_packets Fields | P1 | [WRITTEN] | BC-SUM-004 |
+| BC-2.12.022 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; cli.rs/main.rs; `protocols` subcommand wired to run_protocols(); --json produces JSON array output -->
+| BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 8; existing --all consumers unaffected; CoverageGapsSummary appended post-findings -->
+| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 9; Suricata tri-state vocabulary; mandatory caveat text required per D-320 OQ-6 -->
 
 ## ss-13: Absent / Unwired Feature Contracts
 
@@ -745,6 +753,25 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.025 | RegisterSession (0x0065) and UnRegisterSession (0x0066) Classified and PDU-Counted; No Finding Emitted | P1 | [WRITTEN] | (none — session handshake; mitre_techniques: vec![]) | feature-enip-v0.11.0 | <!-- v1.1: F8-001 — PC2 corrected: command_counts incremented in BC-2.17.016 frame-walk (PC-0) NOT in process_pdu; Architecture Anchor corrected; Inv2 updated; session handshake PDU-counted; no finding; session-handle anomaly validation deferred v0.12.0; F2 adversary F-ENIP-004 -->
 | BC-2.17.026 | --enip-error-burst-threshold CLI Flag Configures T0888 Error-Burst Detection Sensitivity | P1 | [WRITTEN] | (none — CLI) | feature-enip-v0.11.0 | <!-- operator tuning for noisy CIP environments [OA-005]; threshold used by BC-2.17.014 Pattern B; symmetric with BC-2.17.023; F2 addendum -->
 
+## ss-18: Protocol Coverage Catalog (CAP-18)
+
+> 4 BCs total; 4 fully written; 0 planned.
+> Feature: feature-protocol-coverage (ADR-012, D-320, issue TBD); release target v0.12.0.
+> BC-2.18.001: Terminal catalog output — all KNOWN_PROTOCOLS entries listed.
+> BC-2.18.002: JSON mode — structured protocol array output.
+> BC-2.18.003: supported_protocols() / unsupported_protocols() set-difference and ARP insertion.
+> BC-2.18.004: Catalog partition invariant — supported ∪ unsupported == KNOWN_PROTOCOLS, disjoint.
+> VP-041 (proptest P1, draft): catalog set-difference correctness (2 harnesses; src/protocols.rs).
+> KNOWN_PROTOCOLS ~30 entries: 7 supported + 9 ICS Tier-1 unsupported + 5 L2/multicast + 9 IT core.
+> Note: SS-05 extension (BC-2.05.010..011) and SS-12 extension (BC-2.12.022..024) are co-features.
+
+| BC ID | Title | Priority | Status | Origin |
+|-------|-------|----------|--------|--------|
+| BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: terminal table with name/ports/status/transport/detection columns; one row per entry; alphabetical sort -->
+| BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: --json flag; array of objects; fields: name/ports/status/transport/port_detectable -->
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: SUPPORTED_PORTS compile-time set mirrors classify() rules; ARP added unconditionally; VP-041 Sub-A -->
+| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: VP-041 Sub-B proptest_vp041_partition_invariant; every KNOWN_PROTOCOLS entry in exactly one set -->
+
 ---
 
 ## Ingestion-to-L3 Mapping Coverage
@@ -756,6 +783,7 @@ traces_to: .factory/specs/prd.md
 | BC-DEC-001..015 | 15 | BC-2.02.001..015 (BC-2.02.009 revised to v1.6 in F2 ARP delta) |
 | BC-RAS-001..054 + issue-#100 F2 | 55 | BC-2.04.001..055 |
 | BC-DSP-001..009 | 9 | BC-2.05.001..009 |
+| feature-protocol-coverage-F2 (SS-05 dispatcher extension) | 2 | BC-2.05.010..011 |
 | BC-HTTP-001..026 | 26 | BC-2.06.001..026 |
 | BC-TLS-001..037 + fix-tls-clienthello-frag (5 new) + fix-tls-clienthello-frag F2 scope addition (1 new) | 43 | BC-2.07.001..043 |
 | BC-DNS-001..004 | 4 | BC-2.08.001..004 |
@@ -768,13 +796,15 @@ traces_to: .factory/specs/prd.md
 | feature-064-F2 mitre_attack JSON enrichment (greenfield) | 1 | BC-2.11.035 |
 | BC-CLI-001..017 | 17 | BC-2.12.001..017 |
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
+| feature-protocol-coverage-F2 (SS-12 CLI extension) | 3 | BC-2.12.022..024 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 | feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 16 | BC-2.16.001..016 |
 | feature-enip-v0.11.0 EtherNet/IP + CIP (greenfield) | 26 | BC-2.17.001..026 |
+| feature-protocol-coverage-F2 (SS-18 catalog, greenfield) | 4 | BC-2.18.001..004 |
 
-**Total BCs on disk: 337. Active: 336. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs; + 1 fix-pc-013-014-015 addition (BC-2.16.016) for PC-015 ARP unbounded findings (D-221) = 305 on disk / 304 active BCs; + 24 Feature Mode F2 additions (BC-2.17.001..024) for feature-enip-v0.11.0 EtherNet/IP + CIP analyzer (ADR-010, issue #316) = 329 on disk / 328 active BCs; + 1 F2 adversary Pass-1 addition (BC-2.17.025, session-handshake) = 330 on disk / 329 active BCs; + 1 F2 addendum addition (BC-2.17.026, --enip-error-burst-threshold CLI flag) = 331 on disk / 330 active BCs; + 5 fix-tls-clienthello-frag Feature Mode F2 additions (BC-2.07.038..042, TLS handshake-reassembly carry BCs) = 336 on disk / 335 active BCs; + 1 fix-tls-clienthello-frag F2 scope addition (BC-2.07.043, F-EV-001 defense-in-depth buffer_saturation_drops observability counter) = 337 on disk / 336 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 16 greenfield rows (15 original + 1 fix-pc-013-014-015); issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active); feature-enip adds 26 rows as SS-17 (total SS-17: 26 BCs — 24 original + 1 F2 adversary Pass-1 addition + 1 F2 addendum); fix-tls-clienthello-frag adds 5 rows to SS-07 plus 1 F2 scope addition (total SS-07: 43 BCs — 37 original + 5 carry BCs + 1 F-EV-001 defense-in-depth). 1 BC retired in pcapng-F2 (BC-2.01.004).**
+**Total BCs on disk: 346. Active: 345. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs; + 1 fix-pc-013-014-015 addition (BC-2.16.016) for PC-015 ARP unbounded findings (D-221) = 305 on disk / 304 active BCs; + 24 Feature Mode F2 additions (BC-2.17.001..024) for feature-enip-v0.11.0 EtherNet/IP + CIP analyzer (ADR-010, issue #316) = 329 on disk / 328 active BCs; + 1 F2 adversary Pass-1 addition (BC-2.17.025, session-handshake) = 330 on disk / 329 active BCs; + 1 F2 addendum addition (BC-2.17.026, --enip-error-burst-threshold CLI flag) = 331 on disk / 330 active BCs; + 5 fix-tls-clienthello-frag Feature Mode F2 additions (BC-2.07.038..042, TLS handshake-reassembly carry BCs) = 336 on disk / 335 active BCs; + 1 fix-tls-clienthello-frag F2 scope addition (BC-2.07.043, F-EV-001 defense-in-depth buffer_saturation_drops observability counter) = 337 on disk / 336 active BCs; + 9 feature-protocol-coverage-F2 additions (BC-2.05.010..011 SS-05 dispatcher extension, BC-2.12.022..024 SS-12 CLI extension, BC-2.18.001..004 SS-18 catalog — ADR-012, D-320) = 346 on disk / 345 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 16 greenfield rows (15 original + 1 fix-pc-013-014-015); issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active); feature-enip adds 26 rows as SS-17 (total SS-17: 26 BCs — 24 original + 1 F2 adversary Pass-1 addition + 1 F2 addendum); fix-tls-clienthello-frag adds 5 rows to SS-07 plus 1 F2 scope addition (total SS-07: 43 BCs — 37 original + 5 carry BCs + 1 F-EV-001 defense-in-depth); feature-protocol-coverage adds 2 rows to SS-05 (total SS-05: 11 BCs), 3 rows to SS-12 (total SS-12: 24 BCs — 17 CLI + 4 SUM + 3 protocols/coverage-gaps), and 4 rows as SS-18 (total SS-18: 4 BCs). 1 BC retired in pcapng-F2 (BC-2.01.004).**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --
