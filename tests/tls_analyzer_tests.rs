@@ -11738,6 +11738,59 @@ mod f6_hardening {
         );
     }
 
+    // ── Theme 5b: S2C body_len MIDDLE-byte shift (<<8 vs >>8) ───────────────
+    //
+    // Mutation site S2C 1030:67: `<< 8` → `>> 8` (MIDDLE byte of the 3-byte body_len).
+    // The previous Theme-5 test pins the HIGH-byte lane (1029:70 `<<16`); this test
+    // pins the MIDDLE-byte lane (1030:67 `<<8`) by using a body_len whose bits 8–15
+    // are non-zero (middle byte 0x01 ≠ 0).
+    //
+    // body_len = 384 = 0x000180; bytes: [0x00, 0x01, 0x80].
+    //   carry[consumed+1] = 0x00 → high:  (0x00 << 16) = 0
+    //   carry[consumed+2] = 0x01 → middle: (0x01 << 8) = 256  ←  key bit
+    //   carry[consumed+3] = 0x80       →  low:  128
+    // With correct `<< 8`: body_len = 0 + 256 + 128 = 384.
+    // With `>> 8` mutant:  body_len = 0 + (0x01 >> 8) + 128 = 0 + 0 + 128 = 128.
+    //
+    // Deliver exactly 4 + 384 - 1 = 387 bytes (one byte short of a complete message):
+    //   Correct (body_len=384): 387 < 4+384=388 → INCOMPLETE → wait. carry_len = 387.
+    //   Mutant  (body_len=128): 387 ≥ 4+128=132 → complete → dispatch (parse fails) →
+    //     carry drained. carry_len ≠ 387; parse_errors incremented.
+    //
+    // Assertions: server_hs_carry_len == 387 AND parse_error_count unchanged.
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_07_041_s2c_body_len_mid_byte_shift_left_not_right() {
+        let fk = make_test_flow_key(12);
+        let mut analyzer = TlsAnalyzer::new();
+        let errors_before = analyzer.parse_error_count();
+
+        // body_len = 384 = 0x000180: middle byte = 0x01 (≠ 0) distinguishes << 8 from >> 8.
+        // Payload = [header (4)] + [383 zero bytes] = 387 bytes = body_len_correct - 1.
+        // This is one byte short of a complete message under the correct << 8 interpretation.
+        let mut payload = Vec::with_capacity(387);
+        payload.extend_from_slice(&[0x02u8, 0x00, 0x01, 0x80]); // header: type=0x02, body_len=384
+        payload.extend(std::iter::repeat_n(0u8, 383)); // 383 zero bytes (body_len - 1)
+
+        let rec = wrap_handshake_record(&payload);
+        analyzer.on_data(&fk, Direction::ServerToClient, &rec, 0, 0);
+
+        assert_eq!(
+            analyzer.server_hs_carry_len_for_testing(&fk),
+            387,
+            "Theme5b/S2C (1030:67): << 8 gives body_len=384, carry(387) < 388 → incomplete, \
+             carry retained at 387; >> 8 mutant gives body_len=128, carry(387) ≥ 132 → \
+             dispatch → carry drained (carry_len ≠ 387)"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            errors_before,
+            "Theme5b/S2C (1030:67): with correct << 8 body_len=384 the message is incomplete \
+             → no dispatch → parse_errors unchanged"
+        );
+    }
+
     // ── Theme 6: Incomplete-body guard with partial-trailing carry ────────────
     //
     // Mutation sites C2S 911:38 / S2C 1047:38: `-` → `+`.
