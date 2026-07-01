@@ -2,9 +2,9 @@
 document_type: pipeline-state
 project: wirerust
 mode: feature
-phase: feature-ready
-status: idle
-current_step: "PIPELINE AT REST — no active cycle. Session paused 2026-07-01."
+phase: F2-spec-evolution
+status: active
+current_step: "Feature cycle feature-protocol-coverage — F1 DONE, scope approved; entering F2 spec evolution."
 pipeline: FEATURE-CYCLE
 timestamp: 2026-07-01T00:00:00Z
 
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**PIPELINE AT REST — no active cycle. See Session Resume Checkpoint below.**
+**Cycle `feature-protocol-coverage` — F1 DONE, scope approved. Entering F2 spec evolution. See Session Resume Checkpoint below.**
 
 ---
 
@@ -65,7 +65,7 @@ maintenance_prior_run: maint-2026-06-22
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | feature (post-maint-2026-07-01; idle) |
+| Mode | feature (cycle: feature-protocol-coverage; F2 spec evolution) |
 | Version | 0.11.1 (released) |
 | Main HEAD | `4e2b285` (full: `4e2b28529ae196785ce6a0baed522b9939f929ea`) |
 | Develop HEAD | `3a60317` (full: `3a60317965e62bef9895e857c8a26fc3b8d03ad0`) |
@@ -92,6 +92,8 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F5 | **DONE/CONVERGED** | 5 passes; BC-completeness 60/60, 0 P0; BC-INDEX v2.3 |
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
+| Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
+| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **IN PROGRESS** | Entering. Scope gate approved (D-320): OQ-1 ICS+core-IT catalog ~28-32 entries; OQ-2 CoverageGapsSummary section; OQ-5 TCP+UDP dynamic detection (BACnet/IP udp/47808 Tier-1); OQ-3 terminal+--json; OQ-4 explicit --coverage-gaps flag. |
 
 ---
 
@@ -99,11 +101,11 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
-| F7: delta convergence | DONE/CONVERGED | v0.11.1 released (#347 main + #348 back-merge, ba6fbd8). S-7.02 SATISFIED. Cycle CLOSED (D-316). |
-| Maint maint-2026-07-01: detection | DONE | 6 parallel sweeps complete; findings documented in maintenance-log.md |
 | Maint maint-2026-07-01: doc PRs | DONE | PR #349 (9 stale comments, squash b451c481); PR #350 (docs+ADR-011, squash 3a60317) merged |
 | Maint maint-2026-07-01: stories drafted | DONE | STORY-148/149/150 drafted; STORY-INDEX v3.10 (103 stories); IDX-003 reconciled |
-| **Maint maint-2026-07-01: CLOSED** | **DONE (D-318)** | develop=3a60317. Idle. |
+| **Maint maint-2026-07-01: CLOSED** | **DONE (D-318)** | develop=3a60317. |
+| **Cycle feature-protocol-coverage STARTED** | **DONE (D-320)** | F1 delta-analysis complete. 5 source files, 9 new BCs, 2 new VPs (VP-041/042), ADR-012, SS-18. Scope gate approved. |
+| **F2: spec evolution** | **IN PROGRESS** | Entering F2 spec evolution. |
 
 ---
 
@@ -131,6 +133,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-317 | Maintenance run maint-2026-07-01 STARTED. D-303 pause lifted. Sweeps: dep/supply-chain, security, code-quality/pattern, doc/comment-drift, spec/anchor-drift, performance (6 total; UI/design-drift skipped — CLI only). develop @ ba6fbd8, v0.11.1. Log: `.factory/cycles/maint-2026-07-01/maintenance-log.md`. | 2026-07-01 |
 | D-318 | maint-2026-07-01 COMPLETE. 2 doc cleanup PRs merged (#349 squash b451c481 — 9 stale RED-tense/todo!() comments; #350 squash 3a60317 — README ENIP+TLS-reassembly docs + ADR-011 promoted to docs/adr/0011 + CLAUDE.md ADR list 0010+0011). develop=3a60317. SEC-005/006 (ENIP on_flow_close unwired + DNP3 flow-map unbounded) → STORY-148 (E-20, 5 pts). Perf regression PERF-001/002/003-005 + benchmark gap → STORY-149 (E-11, 5 pts). TLS-DRAIN-DUP-001 (~220-line C2S/S2C duplication) → STORY-150 (E-11, 5 pts). Spec/anchor drift BC-ANCHOR-DRIFT-OUTOFCYCLE-001 expanded (12 stale sites, exact fixes captured), ARCH-INDEX-COUNT-DRIFT-001, TLS-SUMMARIZE-MAPTYPE-001, SEC-004/007, SEC-001-ENIP, MAINT-SC-001 deferred to backlog. IDX-003 total_points reconciled 656→659 (STORY-121 3 pts never added at v2.0). Audit/deny/pins clean. 0 STALE input-hashes (STORY-148/149/150 have inputs:[]). | 2026-07-01 |
 | D-319 | Session paused for clear at 2026-07-01; durable resume checkpoint written. Pipeline at rest, no active cycle. | 2026-07-01 |
+| D-320 | Feature cycle `feature-protocol-coverage` STARTED (feature: list protocols wirerust does NOT dissect — both static coverage report + dynamic undissected-traffic detection). F1 delta-analysis DONE. Scope gate APPROVED by human with research-backed decisions: OQ-1 = ICS + core-IT curated catalog (~28-32 entries, category-tagged); OQ-2 = new CoverageGapsSummary report section using Suricata-style known/unknown/failed states; OQ-5 = TCP+UDP dynamic detection this cycle (BACnet/IP udp/47808 is Tier-1, must be flaggable — expands STORY-153 beyond F1's TCP-only assumption); OQ-3 = terminal + --json; OQ-4 = default to explicit --coverage-gaps flag (do NOT auto-enable under analyze --all), to confirm in F2. Research report `.factory/phase-f1-delta-analysis/feature-protocol-coverage-research.md` (25+ ICS protocols tiered; L2/multicast protocols GOOSE/SV/PROFINET-RT flagged as port-undetectable; port-102 collision S7comm/MMS/ICCP noted; hand-curated catalog confirmed correct — no auto-source). Entering F2 spec evolution. | 2026-07-01 |
 
 ---
 
@@ -173,12 +176,13 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**PIPELINE AT REST — no active cycle. Session paused for clear at 2026-07-01. Safe to clear and resume.**
+**Cycle `feature-protocol-coverage` — ACTIVE. F1 DONE, scope approved (D-320). F2 spec evolution IN PROGRESS.**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1 released + tagged). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. No open PRs. No stray worktrees (main checkout [develop] + .factory [factory-artifacts] only).
-- **Last completed work:** cycle fix-tls-clienthello-frag CLOSED (v0.11.1 released, D-316); gitflow merge-settings aligned (D-315); maintenance run maint-2026-07-01 COMPLETE (D-318 — 2 doc PRs #349/#350 merged, 3 follow-up stories STORY-148/149/150 drafted).
-- **RESUME PROCEDURE (BLOCKING, in order):** (1) run `vsdd-factory:factory-worktree-health` — PASS required; (2) read `.factory/STATE.md` (this file); (3) verify git ground truth (origin/develop=`3a60317`, origin/main=`4e2b285`, no open PRs, no stray worktrees); (4) pipeline is idle — await human direction. No in-flight work to resume.
-- **RECOMMENDED NEXT CANDIDATES (not started; await human):** STORY-148 (SEC-005/006 ENIP on_flow_close DoS — highest value), STORY-149 (TLS carry perf recovery), STORY-150 (TLS drain DRY refactor + Kani re-run); plus deferred backlog in `cycles/maint-2026-07-01/maintenance-log.md` (12 spec anchor sites, ARCH-INDEX-COUNT-DRIFT-001, TLS-SUMMARIZE-MAPTYPE-001, SEC-004/007 counter hygiene, SEC-001-ENIP v0.12.0, dep-refresh). Optional: session-reviewer for this run.
+- **Last completed work:** F1 delta-analysis for cycle `feature-protocol-coverage` DONE; scope gate APPROVED (D-320). Artifacts at `.factory/phase-f1-delta-analysis/`: `feature-protocol-coverage-delta-analysis.md`, `affected-files.txt`, `feature-protocol-coverage-research.md`.
+- **Active cycle context:** 5 source files impacted (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / VP-041/VP-042 / ADR-012 / SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher VP-004 Kani harnesses). Scope: OQ-1 ICS+core-IT catalog ~28-32 entries; OQ-2 CoverageGapsSummary; OQ-5 TCP+UDP dynamic detection (BACnet/IP udp/47808 Tier-1); OQ-3 terminal+--json; OQ-4 explicit --coverage-gaps flag.
+- **RESUME PROCEDURE (BLOCKING, in order):** (1) run `vsdd-factory:factory-worktree-health` — PASS required; (2) read `.factory/STATE.md` (this file); (3) verify git ground truth (origin/develop=`3a60317`, origin/main=`4e2b285`, no open PRs, no stray worktrees); (4) proceed to F2 spec evolution — run `vsdd-factory:phase-f2-spec-evolution`.
+- **F2 ENTRY:** Dispatch `vsdd-factory:phase-f2-spec-evolution` with cycle `feature-protocol-coverage`. Read F1 artifacts (delta-analysis.md + research.md) as primary inputs. Scope decisions locked per D-320.
 
 ---
 
@@ -193,4 +197,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Idle.
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. Entering F2.
