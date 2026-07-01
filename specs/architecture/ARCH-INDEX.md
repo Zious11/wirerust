@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.5"
+version: "2.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -81,6 +81,9 @@ modified:
   - date: 2026-07-01
     actor: spec-steward
     reason: "ADR-011 VP-040 harness count 5→6 (align with VP-INDEX v2.28; adversary fix-burst added test_BC_2_07_043_buffer_saturation_full_drop). Consistency Finding 1, cycle fix-tls-clienthello-frag F7. Version bump 2.4→2.5."
+  - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 design layer (D-320): SS-18 (Protocol Coverage Catalog) added to Subsystem Registry (CAP-18, protocols.rs, 4 BCs BC-2.18.001..004 — PO delivers next); ADR-012 added to Architecture Decisions table (catalog design: static compile-time array, tri-state Suricata vocabulary, port-102 collision, TCP-only dynamic detection, ICS+IT scope, SUPPORTED_PORTS mirror, --coverage-gaps flag, CoverageGapsSummary section); Document Map component count updated 25→26 (C-26 protocols.rs); Bounded-Resource Design note extended with SS-18 unclassified_port_counts HashMap (direction-normalized, None-target-only population, bounded by port-space); VP-INDEX updated to v2.30 (VP-041 proptest P1 draft src/protocols.rs + VP-042 proptest P1 draft dispatcher.rs; total 40→42, proptest 17→19, p1 26→28). Version bump 2.5→2.6."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -115,7 +118,8 @@ network interfaces. The binary IS the complete deployment unit.
 | File | Contents | Tokens (est.) |
 |------|----------|---------------|
 | `system-overview.md` | 5-layer pipeline narrative, data flow, key constraints | ~900 |
-| `module-decomposition.md` | 25 components C-1..C-25 mapped to source files and SS-NN | ~1100 |
+| `module-decomposition.md` | 26 components C-1..C-26 mapped to source files and SS-NN | ~1100 |
+| `ss-18-protocol-coverage-catalog.md` | SS-18 catalog data model, KnownProtocol struct, supported-set derivation, port 102 collision, L2/multicast caveat, dynamic detection scope | ~900 |
 | `dependency-graph.md` | Import DAG, the one accepted cycle (L2<->L3), external crates | ~800 |
 | `api-surface.md` | Public API: traits, structs, CLI surface, no network interfaces | ~900 |
 | `verification-architecture.md` | Provable properties catalog, P0/P1 list, tooling selection | ~1100 |
@@ -149,6 +153,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
 | SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
 | SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 26 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..026; TCP/44818 explicit messaging MVP; UDP/2222 deferred; F2 addendum: BC-2.17.026 --enip-error-burst-threshold --> |
+| SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 | <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004 (PO delivers next); C-26; VP-041 proptest set-difference + VP-042 proptest port-count accumulation; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP-only dynamic detection this cycle; BACnet UDP/47808 structural gap documented --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 
@@ -203,6 +208,7 @@ Three independent caps operate at different layers:
 - L3/SS-14: `MAX_PENDING_TRANSACTIONS = 256` per Modbus flow (transaction correlation table); `MAX_FINDINGS = 10,000` shared constant
 - L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
 - L3/SS-17: carry buffer bounded to 600 bytes per ENIP flow (`MAX_ENIP_CARRY_BYTES = 600`; ADR-010 Decision 3); `MAX_FINDINGS = 10,000` shared constant; `MALFORMED_ANOMALY_THRESHOLD = 3` for T0814 windowed gate (architecture-delta §4.2; ADR-010 Decision 4)
+- L3/SS-18 (via SS-05): `unclassified_port_counts: HashMap<(u16, u16), u64>` on `StreamDispatcher` — populated only at `on_flow_close` for `DispatchTarget::None` flows; direction-normalized key (src_port, dst_port) with src_port ≤ dst_port convention; bounded by port-space (at most ~65,535 unique keys); overhead proportional to closed-unclassified-flow count, not packet volume; map is read-only after `run_analyze()` returns; ADR-012 Decision 6
 - L1/SS-04: `max_flows` and `memcap` configurable via `ReassemblyConfig`
 
 ### Single-Threaded Synchronous Execution
@@ -233,6 +239,8 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0009 | 2026-06-19 | pcapng capture-format reader support: magic-byte auto-detection (peek without consuming), Option A parser (pcap-file 2.0.0 PcapNgReader, +0 new crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper (if_tsresol/if_tsoffset), BC-2.01.004 retired/inverted. **Rev 12 (2026-06-21, D-188):** Decision 25 — `decode_epb_body` extracted as `pub #[doc(hidden)]` pure-core function (VP-027 Kani anchor; F-F5P1-001 fix, PR #287). Decision 26 — `PcapSource.is_pcapng: bool` discriminant field added; `format_zero_packet_notice` reads it instead of calling `read_magic` a second time (F-F5P1-003 fix; eliminates TOCTOU mislabel and redundant open). **Rev 13 (2026-06-22, D-192):** Decision 27 — 4 GiB file-size guard (MAX_PCAPNG_FILE_BYTES = 4_294_967_296) added to `from_file` before `read_to_end`; rejection surfaces as E-INP-014 (F6-SEC-A fix; PR #296 feddbd1). Decision 28 — `MAX_INTERFACE_TABLE_ENTRIES = 65535` cap added to IDB-parse loop; excess IDB rejected as E-INP-015 (F6-SEC-B fix; PR #296 feddbd1). Both guards apply only to the `from_file` / `from_pcap_reader` path; residual unbounded accumulation on `from_pcap_reader` STREAM path is latent debt (SEC-008, ADR-009 Decision 13 all-in-memory model scope). | SS-01 |
 | ADR 0010 | 2026-06-24 | EtherNet/IP + CIP TCP integration (Issue #316): port-44818 Rule 7 port-fallback classification, `DispatchTarget::Enip`, two-level ENIP→CPF→CIP manual binary parser, 600-byte carry buffer cap (MAX_ENIP_CARRY_BYTES = 600, justified in Decision 3), ForwardOpen connection-lifecycle tracking in-scope for v0.11.0, UDP/2222 implicit I/O deferred, corrected MITRE technique set (T0858+T0816+T1693.001 new; T0857/T0855/T0856 revoked in ics-attack-19.1), new `MitreTactic::IcsExecution` variant, ForwardOpen technique gap documented (no dedicated ICS technique — T1692.001 only when connection demonstrably carries unauthorized command), VP-004 oracle extension, VP-007 SEEDED 25→28 EMITTED 17→20 | SS-05, SS-10, SS-17 |
 | ADR 0011 | 2026-06-29 | TLS handshake-message reassembly across record boundaries (fix-tls-clienthello-frag): bounded per-direction carry buffer (`client_hs_carry` / `server_hs_carry` on TlsFlowState, MAX_BUF = 65,536 each) + `handshake_reassembly_overflows` AGGREGATE counter on TlsAnalyzer (mirrors `truncated_records`; NOT on TlsFlowState, NOT dropped at on_flow_close), content-type-0x16-only accumulation, exact-consume loop with 4+body_len drain, per-message body_len > MAX_BUF guard (65,536 — Go crypto/tls maxHandshake interop ceiling; Ok(_) arm in inner match is UNREACHABLE given outer 0x01|0x02 msg_type guard — grouped with Err(_) only for match exhaustiveness; BC-2.07.038 PC-9), clear-and-recover overflow policy (Policy A — clear carry, increment analyzer counter, no parse_errors, no finding, NO sticky abandon flag, recovery permitted), truncation-safety at flow close (partial carry silently discarded — indistinguishable from snaplen-truncated capture, resolves READER cand-05 interaction), single-record fast-path preserved, pre-`done()` epoch only, RFC 8446 §5.1 post-key-change exclusion automatic via existing `done()` gate. Per-flow residue ceiling: 4 × MAX_BUF ≈ 256 KiB (POST-on_data-return; in-call transient peak is higher due to record_bytes clone — see BC-2.07.039 v2.3 Inv-2). **Decision 1 amendment (F2 scope-addition):** `buffer_saturation_drops: u64` aggregate counter added to TlsAnalyzer — increments by 1 each time `on_data` tail-drops bytes due to client_buf/server_buf MAX_BUF cap (remaining==0 or to_copy<data.len()); surfaced in `summarize()` detail map; F-EV-001 defense-in-depth making the pre-existing silent tail-drop observable. New BCs: BC-2.07.038..042 (original), BC-2.07.043 (F2 scope-addition). Amended: BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.6. New VPs: VP-039 (proptest, P1, draft; 4 proptest + 13 unit tests = 17 total harnesses); VP-040 (unit, P1, draft; 6 deterministic unit tests (Sub-A partial-drop, Sub-A-full-drop, Sub-B, Sub-C, Sub-D, Sub-E) buffer_saturation_drops observability). DTU not required. | SS-07 |
+
+| ADR 0012 | 2026-07-01 | Protocol Coverage Catalog design (feature-protocol-coverage D-320): hand-curated static compile-time array `KNOWN_PROTOCOLS` in `src/protocols.rs` (pure-core, zero I/O); Suricata-style tri-state vocabulary (known-supported / known-unsupported / unknown) for `CoverageGapsSummary`; port-102 four-way collision documented (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2 all share TCP/102 — gap report cites ambiguity); L2/multicast protocols (`port_detectable: false`) listed in catalog but structurally absent from dynamic detector; ICS + core-IT scope (~30 entries: 7 supported + 9 ICS Tier-1 + 5 L2-flagged + 9 IT); `SUPPORTED_PORTS: &[u16]` compile-time mirror of `dispatcher.rs::classify()` port rules (drift guarded by VP-041); TCP-only dynamic detection this cycle — BACnet/IP UDP/47808 structural gap documented (immediate follow-on); `--coverage-gaps` explicit flag (NOT auto-enabled under `--all`); `CoverageGapsSummary` as report section (NOT Finding entries) | SS-18, SS-05, SS-12 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID

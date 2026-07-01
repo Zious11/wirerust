@@ -1,0 +1,34 @@
+# Affected files for cycle: feature-protocol-coverage
+# Generated: 2026-07-01
+# Format: <change_type> <file_path>
+# change_type: NEW | MODIFIED | DEPENDENT | BASELINE
+
+NEW     src/protocols.rs
+MODIFIED src/dispatcher.rs
+MODIFIED src/cli.rs
+MODIFIED src/main.rs
+MODIFIED src/lib.rs
+DEPENDENT src/reporter/terminal.rs
+DEPENDENT src/reporter/json.rs
+
+# Regression baseline (must not be modified; tests must stay green)
+BASELINE src/analyzer/arp.rs
+BASELINE src/analyzer/dnp3.rs
+BASELINE src/analyzer/dns.rs
+BASELINE src/analyzer/enip.rs
+BASELINE src/analyzer/http.rs
+BASELINE src/analyzer/modbus.rs
+BASELINE src/analyzer/tls.rs
+BASELINE src/analyzer/mod.rs
+BASELINE src/decoder.rs
+BASELINE src/reader.rs
+BASELINE src/findings.rs
+BASELINE src/mitre.rs
+BASELINE src/summary.rs
+BASELINE src/reassembly/mod.rs
+BASELINE src/reassembly/flow.rs
+BASELINE src/reassembly/handler.rs
+BASELINE src/reassembly/lifecycle.rs
+BASELINE src/reassembly/segment.rs
+BASELINE src/reassembly/config.rs
+BASELINE src/reassembly/stats.rs
