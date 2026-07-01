@@ -1855,3 +1855,201 @@ mod proptest_proofs_vp005 {
         }
     }
 }
+
+// ── VP-039: carry-drain loop safety proofs (F6 targeted hardening) ─────────────
+//
+// These proofs are ADDITIVE to `kani_proofs_vp005` (SNI classification) and do
+// NOT modify it. They harden the STORY-144 / STORY-145 / STORY-146 delta: the
+// cursor-based handshake carry-drain loop and the Step-1 pre-append overflow
+// guard in `TlsAnalyzer::try_parse_records`.
+//
+// WHY A MODEL (not a direct harness over `try_parse_records`):
+//   `try_parse_records` reaches its carry-drain loop only through
+//   `self.flows: HashMap<FlowKey, TlsFlowState>`, whose default `RandomState`
+//   hasher is FFI that CBMC cannot symbolically execute (the same limitation
+//   documented for the Modbus `on_data` fuzz target). So `drain_loop_model`
+//   below replicates the EXACT pointer arithmetic of the production loop over a
+//   bounded symbolic carry buffer. The correspondence is line-for-line:
+//
+//     model step                         production (tls.rs, ClientToServer
+//                                         ~875-977; ServerToClient ~1016-1101
+//                                         is byte-for-byte identical)
+//     ──────────────────────────────     ──────────────────────────────────
+//     `carry.len()-consumed<4 → break`   tls.rs:887  `carry.len()-consumed < 4`
+//     `mt = carry[consumed]`             tls.rs:890
+//     `bl = (b1<<16)|(b2<<8)|b3`         tls.rs:891-893
+//     `body_len > MAX_BUF → break`       tls.rs:900  Decision-4 spoof guard
+//     `len-consumed < 4+body_len → break` tls.rs:911 incomplete-body guard
+//     `&carry[consumed..consumed+4+bl]`  tls.rs:933  dispatch clone slice
+//     `consumed += 4 + body_len`         tls.rs:967  cursor advance
+//     `drain(..consumed)`                tls.rs:976  single post-loop drain
+//
+// The fuzz target `fuzz_tls_reassembly` independently exercises the REAL
+// `try_parse_records` over the live HashMap path as a dynamic cross-check.
+//
+// NON-VACUITY (DF-KANI-NONVACUITY-001): every harness pairs its safety
+// assertions with `kani::cover!` checks that FAIL verification if the
+// interesting code paths (loop entry, dispatch, multi-message advance,
+// Decision-4, partial-trailing) are unreachable — so a vacuous model that never
+// enters the loop body cannot pass.
+#[cfg(kani)]
+mod kani_proofs_vp039 {
+    use super::{MAX_BUF, MAX_RECORD_PAYLOAD};
+
+    /// Bounded symbolic carry size. A handshake header is 4 bytes, so N=12 admits
+    /// up to three zero-body messages — enough to exercise multi-message coalesced
+    /// drains and partial-trailing retention while staying CBMC-tractable.
+    const N: usize = 12;
+
+    /// Faithful model of the cursor-based carry-drain loop (see module header for
+    /// the line-by-line correspondence to `try_parse_records`).
+    ///
+    /// Returns `(consumed, decision4_fired, iterations, dispatched)` so the
+    /// calling harness can assert safety postconditions AND prove non-vacuity via
+    /// `kani::cover!` over the returned counters.
+    fn drain_loop_model(carry: &[u8]) -> (usize, bool, u32, u32) {
+        let mut consumed: usize = 0;
+        let mut decision4_fired = false;
+        let mut iterations: u32 = 0;
+        let mut dispatched: u32 = 0;
+        loop {
+            // INVARIANT A — cursor in bounds at loop top (guards the `- consumed`
+            // subtractions below against usize underflow).
+            assert!(consumed <= carry.len());
+
+            if carry.len() - consumed < 4 {
+                break;
+            }
+
+            // INVARIANT B — 4-byte handshake header read is in bounds.
+            // `carry.len() - consumed >= 4`  ⇒  `consumed + 3 < carry.len()`.
+            assert!(consumed + 3 < carry.len());
+            let _mt = carry[consumed];
+            let body_len = ((carry[consumed + 1] as usize) << 16)
+                | ((carry[consumed + 2] as usize) << 8)
+                | (carry[consumed + 3] as usize);
+
+            // Decision-4: body_len-spoof guard. body_len can be up to 0xFFFFFF
+            // here (3 symbolic bytes), so this path is genuinely reachable.
+            if body_len > MAX_BUF {
+                decision4_fired = true;
+                break;
+            }
+
+            // Incomplete body — wait for next record (partial-trailing retention).
+            if carry.len() - consumed < 4 + body_len {
+                break;
+            }
+
+            // INVARIANT C — dispatch clone slice `carry[consumed..consumed+4+body_len]`
+            // is in bounds.
+            assert!(consumed + 4 + body_len <= carry.len());
+            let _slice = &carry[consumed..consumed + 4 + body_len];
+            dispatched += 1;
+
+            // INVARIANT D — progress: every non-breaking iteration advances the
+            // cursor by >= 4, so the loop strictly progresses and terminates.
+            let advance = 4 + body_len;
+            assert!(advance >= 4);
+
+            // INVARIANT E — no usize overflow on the cursor advance.
+            let next = consumed.checked_add(advance);
+            assert!(next.is_some());
+            consumed = next.unwrap();
+
+            iterations += 1;
+        }
+
+        // POSTCONDITION — `carry.drain(..consumed)` range is always valid.
+        assert!(consumed <= carry.len());
+        (consumed, decision4_fired, iterations, dispatched)
+    }
+
+    /// (A) Carry-drain loop is memory-safe and terminating over a fully symbolic
+    /// bounded carry: no OOB index, no `- consumed` underflow, no overflow on the
+    /// advance, and the final `drain(..consumed)` cursor is always `<= carry.len()`.
+    ///
+    /// CBMC additionally checks every slice index in the model for panic-freedom
+    /// automatically; the explicit asserts pin the human-readable invariants.
+    ///
+    /// BOUND: 12 symbolic bytes + symbolic length `<= 12`; the loop advances by
+    /// `>= 4` each iteration so at most 3 iterations occur; `#[kani::unwind(5)]`
+    /// fully unrolls it.
+    #[kani::proof]
+    #[kani::unwind(5)]
+    fn verify_drain_loop_cursor_safety() {
+        let buf: [u8; N] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= N);
+        let carry = &buf[..len];
+
+        let (consumed, d4, iters, disp) = drain_loop_model(carry);
+
+        // Safety postcondition (also asserted inside the model).
+        assert!(consumed <= carry.len());
+
+        // NON-VACUITY: these covers fail verification unless each interesting path
+        // is reachable — proving the safety asserts above are NOT vacuous.
+        kani::cover!(disp >= 1); // at least one complete message dispatched
+        kani::cover!(iters >= 2); // multiple coalesced messages drained
+        kani::cover!(d4); // Decision-4 body_len-spoof path taken
+        kani::cover!(consumed > 0 && consumed < carry.len()); // partial trailing retained
+        kani::cover!(consumed == carry.len()); // carry fully consumed
+    }
+
+    /// (B) No usize overflow on `consumed += 4 + body_len` at the REAL scale.
+    ///
+    /// The carry buffer is bounded by `MAX_BUF` (Step-1 pre-append guard), so the
+    /// cursor never exceeds `MAX_BUF`; `body_len` is bounded by `MAX_BUF` by the
+    /// Decision-4 guard. This harness proves the advance cannot wrap for ANY such
+    /// `consumed` / `body_len` (symbolic, full range under the assumptions) — a
+    /// stronger statement than the N=12 model can make.
+    #[kani::proof]
+    fn verify_no_usize_overflow_on_advance() {
+        let consumed: usize = kani::any();
+        let body_len: usize = kani::any();
+        kani::assume(consumed <= MAX_BUF); // cursor bounded by carry <= MAX_BUF
+        kani::assume(body_len <= MAX_BUF); // Decision-4 guard
+
+        // The header-read add and the advance add both must not wrap.
+        assert!((4usize).checked_add(body_len).is_some());
+        let next = consumed.checked_add(4 + body_len);
+        assert!(next.is_some());
+
+        // NON-VACUITY: the advance can legitimately land both within and beyond a
+        // single MAX_BUF span, so the assumptions admit real states.
+        kani::cover!(next.unwrap() <= MAX_BUF);
+        kani::cover!(next.unwrap() > MAX_BUF);
+    }
+
+    /// (C) Step-1 pre-append guard keeps the carry bounded: `carry.len() <= MAX_BUF`
+    /// is maintained, and the guard's own `carry_len_before + payload_len` add
+    /// does not overflow (payload is bounded upstream by `MAX_RECORD_PAYLOAD`).
+    ///
+    /// Models tls.rs:829-844 (ClientToServer) / 998-1010 (ServerToClient) Step-1.
+    #[kani::proof]
+    fn verify_carry_bounded_after_append() {
+        let carry_len_before: usize = kani::any();
+        let payload_len: usize = kani::any();
+        kani::assume(carry_len_before <= MAX_BUF); // invariant on entry
+        kani::assume(payload_len <= MAX_RECORD_PAYLOAD); // record payload cap (try_parse_records)
+
+        // Guard add must not overflow.
+        assert!(carry_len_before.checked_add(payload_len).is_some());
+
+        let new_len = if carry_len_before + payload_len > MAX_BUF {
+            0 // carry.clear()
+        } else {
+            carry_len_before + payload_len // carry.extend_from_slice(payload)
+        };
+
+        // POSTCONDITION: carry stays bounded by MAX_BUF.
+        assert!(new_len <= MAX_BUF);
+
+        // NON-VACUITY: both the clear path and the append path are reachable, and
+        // the append path can reach the exact MAX_BUF boundary.
+        kani::cover!(carry_len_before + payload_len > MAX_BUF); // clear path
+        kani::cover!(new_len > 0 && new_len < MAX_BUF); // append, below cap
+        kani::cover!(new_len == MAX_BUF); // append, exactly at cap
+    }
+}

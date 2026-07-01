@@ -8,3 +8,5 @@ demo-evidence/
 # Local-only PCAP samples for manual E2E validation (NOT committed/pushed).
 # Large real-world captures; storage backend TBD — see STATE.md PCAP-CORPUS-001.
 /tests/fixtures/local-samples/
+# cargo-mutants output directories (F6 targeted hardening runs)
+mutants-f6*/
