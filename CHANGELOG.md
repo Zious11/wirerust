@@ -7,6 +7,41 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-07-01
+
+### Fixed
+
+- **TLS handshake-message reassembly across TLS records (TLS-CLIENTHELLO-FRAG-001, HIGH).**
+  The TLS analyzer previously parsed ClientHello and ServerHello records only when the full
+  handshake message arrived in a single TLS record. A TLS peer that fragments a handshake
+  message across record boundaries (valid per RFC 8446 §5.1 / RFC 5246 §6.2.1) caused wirerust to miss the
+  SNI extension, JA3 fingerprint, and JA3S fingerprint entirely — a trivially exploitable
+  evasion path. The analyzer now maintains a per-direction carry buffer that accumulates
+  record payloads across records until a complete handshake message is available, then
+  parses it. Carry bounds are enforced per-direction: per-message cap 65 536 bytes
+  (the maximum TLS handshake message size), per-record cap 18 432 bytes (maximum TLS
+  record payload). On overflow the carry buffer is cleared and recovery continues from
+  the next record (clear-and-recover policy). Closes silent SNI/JA3/JA3S fingerprint-evasion
+  via fragmented handshakes. [STORY-144 #341, STORY-145 #343, STORY-146 #344, BC-2.07.038–042]
+
+### Added
+
+- **TLS buffer-saturation telemetry.** A new `buffer_saturation_drops` counter is included
+  in the TLS analyzer summary. It increments each time the per-direction carry buffer reaches
+  its cap and is cleared (overflow-and-recover event). Exposes carry-overflow frequency for
+  threat-hunting and capacity tuning without changing the existing wire format of other
+  summary fields. [STORY-146, PR #344, BC-2.07.043]
+
+### Security
+
+- **TLS reassembly path formally hardened** — Kani VP-039 proof harnesses (3 non-vacuous),
+  a cargo-fuzz target, and 12 mutation-gap tests added for the new reassembly path, closing
+  the formal-verification obligation for the carry-buffer bounds and clear-and-recover
+  semantics. [PR #345]
+
+- **Bumped `anyhow` 1.0.102 → 1.0.103** to clear RUSTSEC-2026-0190 (advisory against
+  1.0.102 only; no behavior change). [PR #346]
+
 ## [0.11.0] - 2026-06-29
 
 ### Added
@@ -770,7 +805,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/Zious11/wirerust/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/Zious11/wirerust/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Zious11/wirerust/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/Zious11/wirerust/compare/v0.9.3...v0.9.4
