@@ -34,8 +34,9 @@ Approved scope (human gate D-320):
   vocabulary (known-supported / known-unsupported / unknown); grouped by transport+port
 - OQ-3: `protocols` CLI subcommand; terminal table + global --json flag honored
 - OQ-4: dynamic gap detection gated behind `--coverage-gaps` flag; NOT auto under --all
-- OQ-5: TCP-only dynamic detection this cycle; BACnet UDP/47808 structural gap documented
-  with mandatory caveat; UDP gap detection is immediate follow-on
+- OQ-5: TCP+UDP dynamic detection this cycle (D-320 approved scope; BACnet/IP UDP/47808
+  IS flaggable); `(TransportProto, u16)` key distinguishes TCP vs UDP on same port;
+  L2/multicast port-undetectable caveats remain (GOOSE/SV/PROFINET-RT/EtherCAT)
 
 ## 2. New Subsystem: SS-18 (Protocol Coverage Catalog)
 
@@ -55,7 +56,7 @@ This file is the canonical specification for SS-18. It defines:
 - The `SUPPORTED_PORTS` compile-time constant derivation approach
 - Port 102 four-way collision (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2)
 - L2/multicast `port_detectable: false` entries (GOOSE, SV, PROFINET-RT/DCP, EtherCAT)
-- Dynamic detection scope caveat (TCP-only, BACnet UDP mandatory caveat)
+- Dynamic detection scope (TCP+UDP; L2/multicast structurally absent; port-102 collision caveat)
 - Bounded-resource note for `unclassified_port_counts` HashMap (SS-05)
 
 ### 2.2 Data Model (src/protocols.rs — PURE CORE)
@@ -92,9 +93,12 @@ pub fn all_protocols() -> &'static [KnownProtocol] { KNOWN_PROTOCOLS }
 SS-18 depends on nothing within wirerust's source tree. It is a leaf in the dependency
 graph. Consuming subsystems:
 - SS-12 (cli.rs / main.rs) — adds `protocols` subcommand and `--coverage-gaps` flag
-- SS-05 (dispatcher.rs) — adds `unclassified_port_counts: HashMap<(u16, u16), u64>`
-  for CoverageGapsSummary; SUPPORTED_PORTS relationship documented but SS-05 does NOT
-  import from protocols.rs at runtime (drift is a compile-time documentation invariant)
+- SS-05 (dispatcher.rs) — adds `unclassified_port_counts: HashMap<(TransportProto, u16), u64>`
+  for TCP None-target flow tracking (key: `(Tcp, lower_port)`); SS-12 (main.rs) adds a
+  UDP unclassified counter with the same key type for UDP datagrams in the decode loop;
+  SUPPORTED_PORTS relationship documented but SS-05 does NOT import from protocols.rs at
+  runtime; `TransportProto` is a minimal `{Tcp, Udp}` enum in dispatcher.rs (not from
+  protocols.rs, which has a third `LinkLayer` variant)
 
 ## 3. New ADR: ADR-012
 
@@ -106,11 +110,13 @@ graph. Consuming subsystems:
 Key decisions recorded:
 1. Hand-curated static compile-time array (not external file) — zero I/O, verifiable
 2. Suricata tri-state vocabulary (known-supported / known-unsupported / unknown)
-3. Port-based detection caveats: TCP-only this cycle; port-102 four-way collision;
-   L2/multicast NOT port-detectable; heuristic disclaimer
+3. Port-based detection caveats: TCP+UDP scope; port-102 four-way TCP collision;
+   L2/multicast NOT port-detectable (only structural limitation remaining); heuristic
+   disclaimer
 4. ICS + core-IT scope (not ICS-only, not all-IANA)
 5. SUPPORTED_PORTS compile-time mirror of classify() — drift guarded by VP-041
-6. TCP-only dynamic detection; BACnet UDP/47808 deferred with high-priority follow-on
+6. TCP+UDP dynamic detection (D-320 OQ-5); (TransportProto, u16) key; BACnet/IP
+   UDP/47808 IS flaggable; L2/multicast still port-undetectable (structural)
 7. Category tagging (ICS / IT / L2)
 8. `--coverage-gaps` explicit flag (NOT auto under `--all`)
 9. `CoverageGapsSummary` as report section (NOT Finding entries)
@@ -220,8 +226,8 @@ Use `subsystem: SS-05` in frontmatter.
 
 | BC ID | Suggested Topic |
 |-------|----------------|
-| BC-2.05.010 | `unclassified_port_counts: HashMap<(u16, u16), u64>` updated at on_flow_close for DispatchTarget::None flows; key is direction-normalized port pair (src_port ≤ dst_port) |
-| BC-2.05.011 | Per-port-pair counts are exact and monotonic; classified-flow on_flow_close does NOT update the map |
+| BC-2.05.010 | `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` updated at `on_flow_close` for `DispatchTarget::None` TCP flows; key is `(Tcp, lower_port)` where `lower_port = min(src_port, dst_port)`; UDP unclassified packets tracked separately in decode loop with key `(Udp, dst_port)` |
+| BC-2.05.011 | Per-(transport, port) counts are exact and monotonic; classified-flow `on_flow_close` does NOT update the TCP map; all TCP-map entries carry `TransportProto::Tcp` |
 
 ### SS-12 BCs (BC-2.12.022..024)
 
@@ -231,15 +237,16 @@ Use `subsystem: SS-12` in frontmatter.
 |-------|----------------|
 | BC-2.12.022 | `protocols` subcommand: `wirerust protocols` prints terminal table; `wirerust protocols --json` prints JSON |
 | BC-2.12.023 | `--coverage-gaps` flag: when passed with `analyze`, appends CoverageGapsSummary section to output; NOT auto-enabled under `--all` |
-| BC-2.12.024 | CoverageGapsSummary includes mandatory caveats: TCP-only scope, BACnet UDP/47808 structural gap, L2/multicast not port-detectable |
+| BC-2.12.024 | CoverageGapsSummary includes mandatory caveats: TCP+UDP scope; L2/multicast (GOOSE/SV/PROFINET-RT/EtherCAT) structurally absent from gap report (no TCP/UDP port); port-102 four-way TCP collision ambiguity |
 
-**CoverageGapsSummary mandatory caveat text (fixed string):**
-> "Dynamic gap detection covers TCP flows only. UDP-based protocols (e.g. BACnet/IP on
-> 47808, SNMP, NTP, PROFINET RPC) and Layer-2 protocols (GOOSE, Sampled Values,
-> PROFINET-RT/DCP, EtherCAT) are not represented in the gap report. Consult the static
-> `protocols` catalog for the full known-protocol set."
+**CoverageGapsSummary mandatory caveat text (fixed string — updated for TCP+UDP scope):**
+> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE, Sampled
+> Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are not represented in
+> the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
 
 ## 9. Files Modified in This Delta
+
+### 9.1 Initial F2 Design Layer (D-320)
 
 | File | Change | Version |
 |------|--------|---------|
@@ -249,3 +256,13 @@ Use `subsystem: SS-12` in frontmatter.
 | `.factory/specs/verification-properties/VP-INDEX.md` | VP-041, VP-042 added | v2.28 → v2.30 |
 | `.factory/specs/architecture/verification-architecture.md` | VP-041, VP-042 in Should Prove + P1 list + Tooling | v2.24 → v2.26 |
 | `.factory/specs/architecture/verification-coverage-matrix.md` | VP-041, VP-042 rows + module rows + Totals | v1.40 → v1.42 |
+
+### 9.2 F2-SCOPE-DRIFT-UDP-001 Resolution (TCP+UDP reconciliation)
+
+| File | Change | Version |
+|------|--------|---------|
+| `.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md` | Decision 6 corrected TCP-only → TCP+UDP; Decision 3a updated TCP-only caveat → L2-only structural caveat; Context corrected; Consequences updated HashMap key type to (TransportProto, u16) | accepted (modified) |
+| `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` | Dynamic Detection Scope section updated TCP-only → TCP+UDP; BACnet/IP gap text updated (now detectable); Bounded-Resource Note updated with dual-counter design and (TransportProto, u16) key; Subsystem Purpose updated | v1.0 (modified) |
+| `.factory/specs/architecture/ARCH-INDEX.md` | Bounded-Resource SS-18 note updated (TransportProto, u16) dual-counter; ADR-012 row updated TCP-only → TCP+UDP; SS-18 registry comment updated; modified log entry added | v2.6 → v2.7 |
+| `.factory/specs/architecture/module-decomposition.md` | C-21 row updated: unclassified_port_counts field + TransportProto type note | v1.8 (modified) |
+| `.factory/phase-f2-spec-evolution/feature-protocol-coverage-architecture-delta.md` | OQ-5 overview, SS-05 section, ADR decisions summary, BC-2.05.010/011 anchoring, mandatory caveat text — all updated for TCP+UDP | draft (modified) |

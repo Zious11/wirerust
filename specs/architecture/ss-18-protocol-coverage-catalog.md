@@ -20,11 +20,12 @@ SS-18 provides wirerust with two surfaces for reporting protocol coverage:
    ~30 ICS/IT protocols, and pure-core functions to report which are supported versus
    unsupported. Served by the `protocols` CLI subcommand.
 
-2. **Dynamic surface** — per-(transport, port) accumulation of flows that the
-   `StreamDispatcher` routed to `DispatchTarget::None`, surfaced as a
-   `CoverageGapsSummary` report section behind `--coverage-gaps`. This state
-   lives in SS-05 (`dispatcher.rs`); SS-18 provides the catalog anchor and
-   vocabulary that gives meaning to those port/count pairs.
+2. **Dynamic surface** — per-(transport, port) accumulation of TCP and UDP flows that
+   no dissector handled, surfaced as a `CoverageGapsSummary` report section behind
+   `--coverage-gaps`. TCP unclassified flows are tracked in SS-05 (`dispatcher.rs`);
+   UDP unclassified packets are tracked in the decode loop in `main.rs`. SS-18 provides
+   the catalog anchor and vocabulary that gives meaning to those (transport, port)/count
+   pairs.
 
 SS-18 exists because "what wirerust knows about but cannot dissect" was previously
 implicit — there was no authoritative enumeration and no way to surface live traffic
@@ -95,7 +96,7 @@ CLI help text MUST state this distinction explicitly (see ADR-012 Decision 3).
 | S7comm-plus | TCP | 102 | Port 102 collision |
 | IEC 60870-5-104 (IEC-104) | TCP | 2404 | IANA registered |
 | IEC 61850 MMS | TCP | 102 | Port 102 collision |
-| BACnet/IP | UDP | 47808 | **UDP-only; TCP-only dynamic detector structural gap** |
+| BACnet/IP | UDP | 47808 | UDP-only; detectable via UDP counter in decode loop (D-320 OQ-5) |
 | OPC-UA binary | TCP | 4840 | IANA registered |
 | PROFINET RPC | UDP | 34962, 34963, 34964 | — |
 | ICCP / TASE.2 | TCP | 102 | Port 102 collision |
@@ -167,23 +168,32 @@ Consequences for the catalog:
 
 ---
 
-## Dynamic Detection Scope (TCP-only, this cycle)
+## Dynamic Detection Scope (TCP+UDP, this cycle)
 
-The `CoverageGapsSummary` feature tracks **TCP flows** only. `StreamDispatcher`
-handles TCP; UDP is handled outside the dispatcher.
+The `CoverageGapsSummary` feature tracks **both TCP and UDP flows** (approved scope
+D-320 OQ-5). `StreamDispatcher` handles TCP; UDP packets are tracked via a separate
+lightweight counter in the decode loop in `main.rs`, outside the dispatcher. Both
+surfaces contribute to the unified `CoverageGapsSummary` output. The combined structure
+is keyed on `(TransportProto, u16)` — a 2-tuple of transport protocol (`Tcp` or `Udp`)
+and canonical port number.
 
-**Structural gap — BACnet/IP (UDP/47808):** BACnet is a Tier-1 catalog ICS
-protocol and is UDP-only by default. The dynamic detector will structurally never
-flag a BACnet gap. The report MUST include a fixed caveat:
+**BACnet/IP (UDP/47808) is now detectable:** BACnet is a Tier-1 catalog ICS protocol
+and is UDP-only by default. With TCP+UDP scope, a BACnet gap on UDP/47808 IS flaggable
+in the dynamic gap report. The `(Udp, 47808)` key is distinct from any TCP traffic on
+the same port, preventing false conflation.
 
-> "Dynamic gap detection covers TCP flows only. UDP-based protocols (e.g. BACnet/IP
-> on 47808, SNMP, NTP, PROFINET RPC) and Layer-2 protocols (GOOSE, Sampled Values,
-> PROFINET-RT/DCP, EtherCAT) are not represented in the gap report. Consult the
-> static `protocols` catalog for the full known-protocol set."
+**Remaining structural limitation — L2/multicast protocols:** GOOSE, Sampled Values,
+PROFINET-RT/DCP, and EtherCAT have no TCP/UDP port and are structurally absent from
+the dynamic gap report regardless of transport scope. The report MUST include a fixed
+caveat:
 
-UDP gap detection (`--coverage-gaps` extended to the decode loop in `main.rs`) is
-the planned immediate follow-on cycle. BACnet/IP's UDP prevalence makes it
-high-value.
+> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE, Sampled
+> Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are not represented in
+> the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
+
+**Port-102 collision still applies to TCP:** The four-way TCP/102 collision (S7comm,
+S7comm-plus, IEC 61850 MMS, ICCP-TASE.2) is unresolved at the port level; a gap on
+`(Tcp, 102)` cannot be attributed to a single protocol (see §Port 102 Collision).
 
 ---
 
@@ -218,9 +228,17 @@ It is a leaf in the dependency graph. Consuming modules:
 
 ## Bounded-Resource Note
 
-`unclassified_port_counts: HashMap<(u16, u16), u64>` in `StreamDispatcher` (SS-05) is
-the runtime state backing the dynamic gap report. It accumulates entries only when
-`on_flow_close` fires for a `DispatchTarget::None` flow. Port space is bounded:
-at most ~65,535 unique port-pair keys (direction-normalized). The map is populated
-at flow-close granularity (not on every `on_data` call), so overhead is proportional
-to the number of *closed* unclassified flows, not to packet volume.
+Two counters back the dynamic gap report:
+
+1. **TCP counter** — `StreamDispatcher.unclassified_port_counts: HashMap<(TransportProto, u16), u64>`
+   (SS-05): populated only at `on_flow_close` for `DispatchTarget::None` TCP flows;
+   key is `(Tcp, lower_port)`. Overhead is proportional to closed unclassified TCP flows,
+   not packet volume.
+
+2. **UDP counter** — `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in
+   the `main.rs` decode loop: populated per-packet for UDP datagrams not handled by a
+   dissector; key is `(Udp, dst_port)`.
+
+Both counters use the same key type and are combined when producing `CoverageGapsSummary`.
+Combined bound: at most `2 × 65,535` unique `(TransportProto, port)` keys (65,535 TCP
+entries + 65,535 UDP entries). Both maps are read-only after `run_analyze()` returns.

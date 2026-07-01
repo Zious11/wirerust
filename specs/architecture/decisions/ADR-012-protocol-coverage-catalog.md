@@ -4,7 +4,10 @@ adr_id: ADR-012
 status: accepted
 accepted_date: "2026-07-01"
 date: 2026-07-01
-modified: []
+modified:
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2-SCOPE-DRIFT-UDP-001 resolution: corrected Decision 6 from TCP-only to TCP+UDP dynamic detection per approved scope D-320 OQ-5. Updated Decision 3a (TCP-only caveat updated to L2/multicast-only caveat; UDP-based protocols BACnet/IP, SNMP, NTP are now detectable). Updated Consequences section: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) to support transport-discriminated keying. BACnet/IP UDP/47808 is now flaggable in the dynamic gap report."
 subsystems_affected:
   - SS-18
   - SS-05
@@ -28,8 +31,8 @@ The `feature-protocol-coverage` cycle introduces two capabilities:
 
 1. A **static catalog** (`KNOWN_PROTOCOLS`) of ~30 ICS and IT protocols that wirerust
    knows about, plus pure functions to report which are supported versus unsupported.
-2. A **dynamic gap detector** that surfaces TCP flows routed to `DispatchTarget::None`
-   by transport and port, exposed as `CoverageGapsSummary` in the analysis output.
+2. A **dynamic gap detector** that surfaces TCP and UDP flows not handled by a dissector,
+   keyed by `(transport, port)` and exposed as `CoverageGapsSummary` in the analysis output.
 
 These capabilities required a set of non-obvious design choices that this ADR records.
 Approved scope from human gate D-320 (non-negotiable): OQ-1 through OQ-5 resolved.
@@ -91,11 +94,11 @@ match*, which is semantically different but pragmatically the best fit.
 **Decision:** The following caveats MUST appear in the `CoverageGapsSummary` output
 header and in the `protocols --help` text. They are not optional warnings.
 
-**3a. TCP-only dynamic detection:**
-> Dynamic gap detection covers TCP flows only. UDP-based protocols (BACnet/IP on
-> 47808, SNMP, NTP, PROFINET RPC, DNS on 53) and Layer-2 protocols (GOOSE,
-> Sampled Values, PROFINET-RT/DCP, EtherCAT) are never reported here. Consult
-> `wirerust protocols --unsupported` for the full known-protocol set.
+**3a. Transport scope — L2/multicast protocols are structurally absent:**
+> Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE,
+> Sampled Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are never
+> reported in the dynamic gap report regardless of TCP+UDP scope. Consult
+> `wirerust protocols --unsupported` for L2 protocol coverage.
 
 **3b. Port 102 collision:**
 Four distinct ICS protocols share TCP port 102: **S7comm, S7comm-plus, IEC 61850 MMS,
@@ -170,24 +173,52 @@ an ARP-specific constant).
 
 ---
 
-## Decision 6: TCP+UDP Scope for Dynamic Detection
+## Decision 6: TCP+UDP Dynamic Detection (D-320 OQ-5 Approved Scope)
 
-**Decision:** The `CoverageGapsSummary` feature covers **TCP flows only** in this
-cycle. The catalog is transport-aware (records UDP protocols correctly). UDP gap
-detection is explicitly deferred to the next cycle with a planned implementation path.
+**Decision:** The `CoverageGapsSummary` feature covers **both TCP and UDP flows** in
+this cycle (approved scope D-320 OQ-5). The `unclassified_port_counts` structure uses
+`(TransportProto, u16)` as its key — a 2-tuple of transport protocol (`Tcp` or `Udp`)
+and canonical port number — enabling TCP and UDP unclassified traffic to be counted
+distinctly even when they share the same port number.
+
+**Implementation split:**
+
+- **TCP unclassified flows** — tracked by `StreamDispatcher.unclassified_port_counts:
+  HashMap<(TransportProto, u16), u64>` at `on_flow_close` for `DispatchTarget::None`
+  flows. The dispatcher handles TCP only; all entries carry `TransportProto::Tcp`.
+  Canonical port: lower-numbered port of the direction-normalized flow key (approximates
+  the server/service port; aligns with the existing `(lower, upper)` flow-key convention
+  and the research caveat against treating ephemeral high ports as protocols).
+- **UDP unclassified packets** — tracked by a lightweight counter in the decode loop in
+  `main.rs` (outside the TCP-only dispatcher). Key: `(TransportProto::Udp, dst_port)`
+  where `dst_port` is the destination port of the UDP packet (service port). UDP is
+  connectionless; accumulation is per-packet, not per-flow-close.
+
+**CoverageGapsSummary merge:** The reporter reads both counters; both use the same
+`(TransportProto, u16)` key type. The unified view enables the Suricata tri-state
+(known-unsupported / unknown) to classify, for example, UDP/47808 as `known-unsupported`
+(BACnet/IP catalog match) and TCP/47808 as `unknown` (no catalog entry) independently.
 
 **Rationale:**
-- `StreamDispatcher` handles TCP flows only. Extending dynamic detection to UDP this
-  cycle would require new UDP-flow plumbing in `main.rs`, outside the VP-004 Kani zone.
-- BACnet/IP (UDP/47808) is a Tier-1 catalog protocol and the most significant UDP gap.
-  Deferring it requires the mandatory caveat in Decision 3a above.
-- UDP gap tracking (lightweight per-(udp, port) counter in the decode loop) is the
-  natural completion; it is filed as the immediate follow-on with high priority.
+- BACnet/IP (UDP/47808) is a Tier-1 catalog ICS protocol. D-320 OQ-5 explicitly
+  approved TCP+UDP so that BACnet gaps are flaggable in the dynamic gap report.
+- `(TransportProto, u16)` keying prevents false conflation: a BACnet gap on UDP/47808
+  is not merged with hypothetical TCP/47808 traffic.
+- UDP counter placement in the decode loop (outside the dispatcher) avoids any change
+  to the VP-004 Kani-verified `classify()` function or `DispatchTarget` enum.
 
-**Catalog design consequence:** `canonical_ports` entries include UDP protocol entries
-(BACnet/IP, SNMP, NTP, PROFINET RPC) with the correct `transport: Transport::Udp`
-annotation. This ensures `protocols --unsupported` gives accurate information even
-while the dynamic detector is TCP-only.
+**Remaining port caveats:**
+- L2/multicast protocols (GOOSE, SV, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port
+  and remain structurally absent from the dynamic gap report (Decision 3a, 3c).
+- Port-102 four-way TCP collision (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2)
+  still applies to TCP entries keyed on `(Tcp, 102)` (Decision 3b).
+
+**`TransportProto` type note:** `dispatcher.rs` MUST NOT import from `protocols.rs`
+(pure-core boundary, per Decision 5 and SS-18 §Subsystem Boundaries). `TransportProto`
+is therefore a minimal enum defined independently in `dispatcher.rs` (or a shared
+low-level module), containing only `Tcp` and `Udp` variants. It is NOT the `Transport`
+enum from `protocols.rs` (which has a third `LinkLayer` variant unsuitable for the
+dispatcher context).
 
 ---
 
@@ -246,8 +277,15 @@ section in the analysis output, NOT as individual `Finding` entries.
 ## Consequences
 
 - `src/protocols.rs` is a new pure-core module (C-26, SS-18). Zero external crates added.
-- `src/dispatcher.rs` gains `unclassified_port_counts: HashMap<(u16, u16), u64>` (SS-05).
-  The HashMap is direction-normalized via the existing flow-key port normalization.
+- `src/dispatcher.rs` gains `unclassified_port_counts: HashMap<(TransportProto, u16), u64>`
+  (SS-05) for TCP None-target flow tracking; key is `(Tcp, lower_port)` where
+  `lower_port` is the lower-numbered port of the direction-normalized flow key.
+- `src/main.rs` decode loop gains a UDP unclassified counter (same key type
+  `HashMap<(TransportProto, u16), u64>`) for UDP packets not routed to any dissector;
+  key is `(Udp, dst_port)`.
+- `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs`, independent of
+  `protocols.rs::Transport` (which has a third `LinkLayer` variant and must not be
+  imported into the dispatcher per the pure-core boundary rule).
 - `src/cli.rs` gains `Protocols { supported, unsupported, all }` variant (SS-12).
 - `src/main.rs` gains `run_protocols()` and a `Commands::Protocols` arm (SS-12).
 - `--coverage-gaps` flag added to `analyze` subcommand; absent by default (Decision 8).

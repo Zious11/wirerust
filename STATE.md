@@ -4,7 +4,7 @@ project: wirerust
 mode: feature
 phase: F2-spec-evolution
 status: paused
-current_step: "PAUSED for session clear. Cycle feature-protocol-coverage F2 design-layer DONE; F2 spec-layer (product-owner BCs+PRD) NOT started. BLOCKING: reconcile F2-SCOPE-DRIFT-UDP-001 (TCP+UDP per D-320, not TCP-only) before authoring BCs."
+current_step: "F2-SCOPE-DRIFT-UDP-001 RESOLVED. Cycle feature-protocol-coverage F2 design-layer fully consistent with D-320/OQ-5 (TCP+UDP). ARCH-INDEX v2.7. F2 spec-layer (product-owner BCs+PRD) may now begin. Next: dispatch product-owner for BC-2.18.001..004, BC-2.05.010..011 (with UDP), BC-2.12.022..024."
 pipeline: FEATURE-CYCLE
 timestamp: 2026-07-01T18:00:00Z
 
@@ -36,7 +36,7 @@ story_index_note: "103 stories / 66 waves. STORY-148/149/150 added (maint-2026-0
 # Spec versions (current)
 bc_index_version: v2.3
 vp_index_version: v2.30
-arch_index_version: v2.6
+arch_index_version: v2.7
 prd_version: v1.45
 epics_version: v1.8
 # DTU
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**DURABLE PAUSE — Cycle `feature-protocol-coverage` — F2 design-layer DONE; F2 spec-layer (BCs+PRD) NOT started. BLOCKING: F2-SCOPE-DRIFT-UDP-001 must be resolved before product-owner authors BCs. See Session Resume Checkpoint below for ordered resume procedure.**
+**DURABLE PAUSE — Cycle `feature-protocol-coverage` — F2 design-layer DONE; blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322); ARCH-INDEX v2.7. F2 spec-layer (BCs+PRD) NOT started. Next: dispatch product-owner. See Session Resume Checkpoint below.**
 
 ---
 
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-06-22
 | Tag v0.11.1 | commit `4e2b285`; tag object `e8a8a2d4` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.1 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.3 / VP-INDEX v2.30 (42 VPs: VP-041/042 added) / ARCH-INDEX v2.6 (SS-18 added) / PRD v1.45 |
+| Spec versions | BC-INDEX v2.3 / VP-INDEX v2.30 (42 VPs: VP-041/042 added) / ARCH-INDEX v2.7 (SS-18 + TCP+UDP reconciliation) / PRD v1.45 |
 | Stories | 94 delivered / 103 total (STORY-INDEX v3.10) |
 
 ---
@@ -93,7 +93,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
-| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **PAUSED** | Design-layer DONE (SS-18, ADR-012, VP-041/042, ARCH-INDEX v2.6, VP-INDEX v2.30). Spec-layer (BCs+PRD) NOT started. BLOCKING: F2-SCOPE-DRIFT-UDP-001 — ADR-012 dec #7 says TCP-only, contradicts D-320/OQ-5 TCP+UDP; reconcile before authoring BC-2.05/BC-2.12. |
+| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **PAUSED** | Design-layer DONE (SS-18, ADR-012, VP-041/042, ARCH-INDEX v2.7, VP-INDEX v2.30). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). Spec-layer (BCs+PRD) NOT started. Next: product-owner BC-2.18/BC-2.05/BC-2.12 + PRD delta. |
 
 ---
 
@@ -104,7 +104,7 @@ maintenance_prior_run: maint-2026-06-22
 | **Maint maint-2026-07-01: CLOSED** | **DONE (D-318)** | develop=3a60317. |
 | **Cycle feature-protocol-coverage STARTED** | **DONE (D-320)** | F1 delta-analysis complete. 5 source files, 9 new BCs, 2 new VPs (VP-041/042), ADR-012, SS-18. Scope gate approved. |
 | **F2 design-layer: SS-18 + ADR-012 + VP-041/042 + index bumps** | **DONE** | SS-18 (C-26 src/protocols.rs); ADR-012 (9 decisions); VP-041 (protocols.rs proptest, 2 harnesses); VP-042 (dispatcher proptest, 3 harnesses). ARCH-INDEX v2.5→v2.6; VP-INDEX v2.28→v2.30. VP-004 Kani re-validation flagged for F6. |
-| **Blocking issue F2-SCOPE-DRIFT-UDP-001 logged** | **OPEN** | ADR-012 dec #7 says TCP-only detection this cycle; contradicts D-320/OQ-5 (TCP+UDP, BACnet/IP udp/47808 Tier-1). Must reconcile before authoring BC-2.05/BC-2.12. Owner: architect (ADR-012 + SS-18/SS-05), then product-owner. |
+| **Blocking issue F2-SCOPE-DRIFT-UDP-001 RESOLVED** | **DONE** | ADR-012 Decision 6 corrected TCP-only→TCP+UDP. SS-18, ARCH-INDEX v2.7, module-decomposition, architecture-delta all updated. (TransportProto, u16) key consistent. Product-owner unblocked for BC-2.05/BC-2.12. |
 | **PAUSED for session clear (D-321)** | **PAUSED** | F2 spec-layer (product-owner BCs+PRD) NOT started. Resume procedure: see Session Resume Checkpoint. |
 
 ---
@@ -135,6 +135,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-319 | Session paused for clear at 2026-07-01; durable resume checkpoint written. Pipeline at rest, no active cycle. | 2026-07-01 |
 | D-320 | Feature cycle `feature-protocol-coverage` STARTED (feature: list protocols wirerust does NOT dissect — both static coverage report + dynamic undissected-traffic detection). F1 delta-analysis DONE. Scope gate APPROVED by human with research-backed decisions: OQ-1 = ICS + core-IT curated catalog (~28-32 entries, category-tagged); OQ-2 = new CoverageGapsSummary report section using Suricata-style known/unknown/failed states; OQ-5 = TCP+UDP dynamic detection this cycle (BACnet/IP udp/47808 is Tier-1, must be flaggable — expands STORY-153 beyond F1's TCP-only assumption); OQ-3 = terminal + --json; OQ-4 = default to explicit --coverage-gaps flag (do NOT auto-enable under analyze --all), to confirm in F2. Research report `.factory/phase-f1-delta-analysis/feature-protocol-coverage-research.md` (25+ ICS protocols tiered; L2/multicast protocols GOOSE/SV/PROFINET-RT flagged as port-undetectable; port-102 collision S7comm/MMS/ICCP noted; hand-curated catalog confirmed correct — no auto-source). Entering F2 spec evolution. | 2026-07-01 |
 | D-321 | F2 design-layer DONE (SS-18, ADR-012, VP-041/042, index bumps ARCH v2.6 / VP v2.30). Session paused for clear before F2 spec-layer (BCs+PRD). Scope-drift F2-SCOPE-DRIFT-UDP-001 logged: ADR-012 dec #7 says TCP-only but D-320/OQ-5 approved TCP+UDP — reconcile on resume before authoring BC-2.05/BC-2.12. | 2026-07-01 |
+| D-322 | F2-SCOPE-DRIFT-UDP-001 RESOLVED. ADR-012 Decision 6 corrected TCP-only→TCP+UDP (D-320 OQ-5 approved scope). Decision 3a updated (TCP-only caveat→L2/multicast structural caveat). Consequences updated: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) 2-tuple. SS-18 Dynamic Detection Scope section, Bounded-Resource Note, and Subsystem Purpose updated. ARCH-INDEX v2.6→v2.7 (Bounded-Resource note, ADR-012 row, SS-18 registry comment, modified log). module-decomposition.md C-21 updated with new field and TransportProto note. architecture-delta.md OQ-5/SS-05/decisions/BC-2.05 anchoring/mandatory caveat all reconciled. BACnet/IP UDP/47808 is now flaggable. Product-owner unblocked for BC-2.05.010/011, BC-2.12.022/024. VP-042 flagged for harness key-type amendment at story-authoring time (property description valid; harnesses use new (TransportProto, u16) type). VP-041 unaffected. | 2026-07-01 |
 
 ---
 
@@ -152,7 +153,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 
 | ID | Summary | Priority | Owner | Status |
 |----|---------|----------|-------|--------|
-| F2-SCOPE-DRIFT-UDP-001 | ADR-012 dec #7 states "TCP-only detection this cycle"; contradicts approved scope D-320/OQ-5 which explicitly requires TCP+UDP dynamic detection (BACnet/IP udp/47808 Tier-1, must be flaggable). Must reconcile before product-owner authors BC-2.05.010..011 and BC-2.12.022..024. Resolution: architect corrects ADR-012 dec #7 to TCP+UDP + updates SS-18/SS-05 to include UDP port tracking + ensures BC-2.05 unclassified_port_counts keys on (transport, port) not just port; then product-owner authors BCs with UDP included. | HIGH | architect (ADR-012 + SS docs) → product-owner (BCs) | OPEN |
+| F2-SCOPE-DRIFT-UDP-001 | ADR-012 Decision 6 corrected from TCP-only to TCP+UDP dynamic detection. SS-18 Dynamic Detection Scope updated. ARCH-INDEX v2.6→v2.7 (Bounded-Resource note, ADR-012 row, SS-18 registry comment). module-decomposition.md C-21 updated. architecture-delta.md reconciled. (TransportProto, u16) keying consistent across all docs. Product-owner may now author BC-2.05.010/011 and BC-2.12.022/024 with UDP included. | HIGH | architect (ADR-012 + SS docs) → product-owner (BCs) | **RESOLVED 2026-07-01** |
 
 ---
 
@@ -179,7 +180,7 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**DURABLE PAUSE — Cycle `feature-protocol-coverage` — F2 design-layer DONE. F2 spec-layer NOT started. BLOCKING blocker must be resolved first.**
+**DURABLE PAUSE — Cycle `feature-protocol-coverage` — F2 design-layer DONE (blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED, D-322). F2 spec-layer NOT started. Next: dispatch product-owner for BC-2.18.001..004, BC-2.05.010..011 (with UDP), BC-2.12.022..024.**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
 - **F2 design-layer artifacts (DONE):**
@@ -199,7 +200,7 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
   1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
   2. Read `.factory/STATE.md` (this file) — confirm durable pause state.
   3. Verify git ground truth: `origin/develop=3a60317`, `origin/main=4e2b285`, no open PRs, no stray worktrees.
-  4. **Resolve F2-SCOPE-DRIFT-UDP-001 FIRST** — dispatch architect to correct ADR-012 dec #7 from "TCP-only" to "TCP+UDP" and update SS-18/SS-05 specs to include UDP port tracking (unclassified_port_counts keyed on (transport, port) not just port).
+  4. ~~**Resolve F2-SCOPE-DRIFT-UDP-001 FIRST**~~ **DONE** — ADR-012 Decision 6 corrected to TCP+UDP; SS-18/SS-05 updated; (TransportProto, u16) keying consistent; ARCH-INDEX v2.7.
   5. After architect fix committed to factory-artifacts: dispatch product-owner for F2 spec-layer — author BC-2.18.001..004, BC-2.05.010..011 (with UDP), BC-2.12.022..024, PRD delta, BC-INDEX bump.
   6. Run adversarial spec convergence (F2 adversary passes until 0 P0 findings).
   7. Human F2 gate approval, then proceed to F3 story decomposition.
@@ -217,4 +218,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). F2 spec-layer paused — blocker F2-SCOPE-DRIFT-UDP-001 open.
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). ARCH-INDEX v2.7. F2 spec-layer NOT started.
