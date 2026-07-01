@@ -2,11 +2,11 @@
 document_type: pipeline-state
 project: wirerust
 mode: feature
-phase: 7
+phase: feature-ready
 status: idle
-current_step: "maint-2026-07-01 COMPLETE (2 doc PRs #349/#350 merged; 3 follow-up stories STORY-148/149/150 drafted; findings recorded). No active cycle."
+current_step: "PIPELINE AT REST — no active cycle. Session paused 2026-07-01."
 pipeline: FEATURE-CYCLE
-timestamp: 2026-07-01T17:28:56Z
+timestamp: 2026-07-01T00:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.1
@@ -56,9 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**IDLE — maint-2026-07-01 COMPLETE. No active cycle.**
-
-Maintenance run maint-2026-07-01 CLOSED 2026-07-01 (D-318). 2 doc PRs merged (#349 stale-comment cleanup, #350 docs+ADR-011). develop advanced ba6fbd8→3a60317. 3 follow-up stories drafted (STORY-148/149/150). Backlog deferred items documented. IDX-003 total_points reconciled 656→659. Next: dispatch STORY-148/149/150 in a future feature cycle or maintenance sweep.
+**PIPELINE AT REST — no active cycle. See Session Resume Checkpoint below.**
 
 ---
 
@@ -132,6 +130,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-316 | Cycle fix-tls-clienthello-frag CLOSED / CONVERGED. Released v0.11.1 (PR #347 gitflow merge into main `4e2b285`; tag `v0.11.1` object `e8a8a2d4`; GH Release published, 4 assets, NOT crates.io per D-300). Back-merged to develop PR #348 squash `ba6fbd8`. Both at 0.11.1 in sync. F6: Kani VP-039 3 non-vacuous proofs; fuzz 1.9M clean; 100% real-gap mutation kill (13/13; 2 dead-code survivors ADR-011). PRs #341/#343/#344/#345/#346/#347/#348. S-7.02 SATISFIED (STORY-147 PG-MUTANTS-JOBS-001; PG-BC-ANCHOR-VALIDATION-001 + DF-KANI-NONVACUITY-001-PROPTEST-GAP justified-deferred). | 2026-07-01 |
 | D-317 | Maintenance run maint-2026-07-01 STARTED. D-303 pause lifted. Sweeps: dep/supply-chain, security, code-quality/pattern, doc/comment-drift, spec/anchor-drift, performance (6 total; UI/design-drift skipped — CLI only). develop @ ba6fbd8, v0.11.1. Log: `.factory/cycles/maint-2026-07-01/maintenance-log.md`. | 2026-07-01 |
 | D-318 | maint-2026-07-01 COMPLETE. 2 doc cleanup PRs merged (#349 squash b451c481 — 9 stale RED-tense/todo!() comments; #350 squash 3a60317 — README ENIP+TLS-reassembly docs + ADR-011 promoted to docs/adr/0011 + CLAUDE.md ADR list 0010+0011). develop=3a60317. SEC-005/006 (ENIP on_flow_close unwired + DNP3 flow-map unbounded) → STORY-148 (E-20, 5 pts). Perf regression PERF-001/002/003-005 + benchmark gap → STORY-149 (E-11, 5 pts). TLS-DRAIN-DUP-001 (~220-line C2S/S2C duplication) → STORY-150 (E-11, 5 pts). Spec/anchor drift BC-ANCHOR-DRIFT-OUTOFCYCLE-001 expanded (12 stale sites, exact fixes captured), ARCH-INDEX-COUNT-DRIFT-001, TLS-SUMMARIZE-MAPTYPE-001, SEC-004/007, SEC-001-ENIP, MAINT-SC-001 deferred to backlog. IDX-003 total_points reconciled 656→659 (STORY-121 3 pts never added at v2.0). Audit/deny/pins clean. 0 STALE input-hashes (STORY-148/149/150 have inputs:[]). | 2026-07-01 |
+| D-319 | Session paused for clear at 2026-07-01; durable resume checkpoint written. Pipeline at rest, no active cycle. | 2026-07-01 |
 
 ---
 
@@ -155,7 +154,6 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 
 | ID | Summary | Priority | Status |
 |----|---------|----------|--------|
-| TLS-CLIENTHELLO-FRAG-001 | ClientHello/ServerHello fragmentation SNI/JA3 evasion. | HIGH | **CLOSED — v0.11.1** (PRs #341–#348) |
 | PG-MUTANTS-JOBS-001 | `cargo mutants --jobs 8` masks survivors. | MEDIUM | **CODIFIED → STORY-147** (draft, E-11, 3 pts) |
 | SEC-005 + SEC-006 | ENIP on_flow_close unwired (CWE-400 DoS); DNP3 flow-map no cap. | MEDIUM | **→ STORY-148** (E-20, 5 pts, draft) |
 | PERF-001/002 + BENCHMARK-GAP-001 | TLS carry-path +10.3% regression; HashMap + Vec alloc hotspots; no fragmented-handshake fixture. | HIGH | **→ STORY-149** (E-11, 5 pts, draft) |
@@ -166,7 +164,6 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | SEC-004 + SEC-007 | 7+ counter `+= 1` → saturating_add; clippy hygiene MQ-003/004/005. | LOW | Deferred — trivial PR candidate |
 | PG-BC-ANCHOR-VALIDATION-001 | No automated anchor validation; 12 stale sites maint-2026-07-01. | LOW | Deferred — STORY-091 tooling candidate |
 | DF-KANI-NONVACUITY-001-PROPTEST-GAP | No proptest/unit analog for DF-KANI-NONVACUITY-001. | LOW | Justified deferral — next Kani VP |
-| SEC-002/SEC-006 (F6) | Overflow window [MAX_BUF-3, MAX_BUF]. Pinned by mod f6_hardening. | LOW | Closed-by-design (F6) |
 | SEC-001-ENIP | Unsafe split-borrow enip.rs `on_data`. | MEDIUM | v0.12.0 candidate |
 | TLS-FILLBUF-PUBLIC-SEAM-001 + MAINT-SC-001 | fill_buf_for_testing seam (W7.1); indicatif patch + 41 transitive updates; 8 stale deny.toml entries. | LOW | W7.1 backlog / optional dep-refresh |
 
@@ -176,15 +173,12 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Date:** 2026-07-01
-**State:** IDLE — maint-2026-07-01 COMPLETE. No active cycle.
+**PIPELINE AT REST — no active cycle. Session paused for clear at 2026-07-01. Safe to clear and resume.**
 
-- main HEAD: `4e2b28529ae196785ce6a0baed522b9939f929ea` (short `4e2b285`, v0.11.1). develop HEAD: `3a60317965e62bef9895e857c8a26fc3b8d03ad0` (short `3a60317`). Both at Cargo 0.11.1.
-- v0.11.1 released: tag `v0.11.1` (object `e8a8a2d4`), GH Release published (4 assets). Not on crates.io (D-300).
-- S-7.02 SATISFIED. stories_delivered: 94. STORY-INDEX v3.10 (103 stories). BC-INDEX v2.3. VP-INDEX v2.28. ARCH-INDEX v2.5.
-- maint-2026-07-01 CLOSED (D-318). PRs #349+#350 merged. STORY-148/149/150 drafted. IDX-003 reconciled (total_points 659).
-
-**Next action:** Dispatch STORY-148, STORY-149, or STORY-150 in a future feature cycle, or start a new maintenance sweep.
+- **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1 released + tagged). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. No open PRs. No stray worktrees (main checkout [develop] + .factory [factory-artifacts] only).
+- **Last completed work:** cycle fix-tls-clienthello-frag CLOSED (v0.11.1 released, D-316); gitflow merge-settings aligned (D-315); maintenance run maint-2026-07-01 COMPLETE (D-318 — 2 doc PRs #349/#350 merged, 3 follow-up stories STORY-148/149/150 drafted).
+- **RESUME PROCEDURE (BLOCKING, in order):** (1) run `vsdd-factory:factory-worktree-health` — PASS required; (2) read `.factory/STATE.md` (this file); (3) verify git ground truth (origin/develop=`3a60317`, origin/main=`4e2b285`, no open PRs, no stray worktrees); (4) pipeline is idle — await human direction. No in-flight work to resume.
+- **RECOMMENDED NEXT CANDIDATES (not started; await human):** STORY-148 (SEC-005/006 ENIP on_flow_close DoS — highest value), STORY-149 (TLS carry perf recovery), STORY-150 (TLS drain DRY refactor + Kani re-run); plus deferred backlog in `cycles/maint-2026-07-01/maintenance-log.md` (12 spec anchor sites, ARCH-INDEX-COUNT-DRIFT-001, TLS-SUMMARIZE-MAPTYPE-001, SEC-004/007 counter hygiene, SEC-001-ENIP v0.12.0, dep-refresh). Optional: session-reviewer for this run.
 
 ---
 
@@ -198,7 +192,5 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 ## Notes
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
-- STORY-INDEX.md: 103 stories / 66 waves (v3.10). stories_delivered=94. STORY-148/149/150 added (maint-2026-07-01). IDX-003 total_points reconciled 656→659. Wave 66 COMPLETE.
-- v0.11.1 RELEASED 2026-07-01. main=`4e2b285` (PR #347 gitflow merge), develop=`3a60317` (after PRs #349+#350 maint-2026-07-01 doc cleanup). Not on crates.io (D-300).
-- BC-INDEX v2.3. VP-INDEX v2.28. ARCH-INDEX v2.5. PRD v1.45. Squash-only policy on develop (D-289). Branch protection (D-290 / D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). Maintenance run maint-2026-07-01 CLOSED (D-318). Idle.
+- Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Idle.
