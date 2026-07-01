@@ -47,8 +47,8 @@ handshake message bytes was silently dropped without detection.
 
 When a TLS ClientHello is fragmented, wirerust produced no finding, no SNI entry, and no JA3
 hash — identical to an opaque TLS flow. Adversaries using known published techniques
-(Kubernetes ingress-nginx CVE-2021-25742, F5 BIG-IP fragmentation bypass, Palo Alto NGFW
-bypass) can fragment the ClientHello to evade SNI-based detection. The research-validated
+(F5 BIG-IP TLS fragmentation bypass, Palo Alto NGFW TLS fragmentation bypass) can fragment
+the ClientHello to evade SNI-based detection. The research-validated
 finding for this cycle is documented in
 `.factory/research/TLS-CLIENTHELLO-FRAG-001-validation.md`.
 
