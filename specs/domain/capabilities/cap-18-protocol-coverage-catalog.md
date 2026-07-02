@@ -42,7 +42,7 @@ Key caveats encoded in the catalog and surfaced in CLI output:
 - Port 102 hosts a four-way TCP collision: S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2
   all share TCP/102 (ISO-on-TCP / TPKT framing). Gap reports on (Tcp, 102) cannot be
   attributed to a single protocol.
-- L2/multicast protocols (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT) have no
+- L2/multicast protocols (e.g., GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) have no
   TCP/UDP port and are structurally absent from the dynamic gap report. They are listed
   in the catalog with `port_detectable: false`.
 

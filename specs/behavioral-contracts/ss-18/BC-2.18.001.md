@@ -55,7 +55,7 @@ by a separate category variant.
 2. For `--supported`: only entries where `supported == true` (i.e., `supported_protocols()` result) are printed.
 3. For `--unsupported`: only entries where `supported == false` (i.e., `unsupported_protocols()` result) are printed.
 4. Each printed row contains: name, category (`ICS` or `IT`), transport indicator (`TCP`, `UDP`, or `[L2]` for `LinkLayer` entries), canonical port(s) (comma-separated u16 values, or `—` for entries with `canonical_ports: &[]`), and a supported indicator (`yes` / `no`). `ProtocolCategory` has only two variants (`ICS`, `IT`); L2-ness is expressed via the transport column, not via a third category.
-5. EtherType is printed for link-layer entries (`transport=LinkLayer`) (e.g., `0x88B8 (35000)` for GOOSE); the EtherType column is `—` for non-link-layer (TCP/UDP) entries.
+5. EtherType is printed for link-layer entries (`transport=LinkLayer`) where `ethertype` is non-`None` (e.g., `0x88B8 (35000)` for GOOSE); the EtherType column is `—` for non-link-layer (TCP/UDP) entries AND for LinkLayer entries with `ethertype=None` (ARP renders `—` in the EtherType column).
 6. The output includes a fixed port-102 collision footnote: `"NOTE: TCP/102 hosts S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 — gap reports on port 102 cannot be attributed to a single protocol."` (exact text may differ in implementation; the semantic requirement is that the four-way collision is identified and named).
 7. The output includes a fixed link-layer/multicast note for entries with `port_detectable: false` (i.e., `transport=LinkLayer`): those entries are listed with `port_detectable: false` indicated (e.g., marker in a `[L2]` transport column or footnote), making clear they will never appear in the `CoverageGapsSummary` dynamic gap report.
 8. Output rows appear in catalog-declaration order (the order of entries in `KNOWN_PROTOCOLS`). No additional sort is applied at render time.
@@ -73,7 +73,7 @@ by a separate category variant.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `--supported` filter only | Only 7 supported entries printed (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP); no link-layer entries (with `port_detectable: false`) in this set |
+| EC-001 | `--supported` filter only | Only 7 supported entries printed (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP); no L2/multicast protocol entries (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) in this set; ARP is the sole `transport=LinkLayer` entry and it IS supported |
 | EC-002 | `--unsupported` filter only | All non-supported entries printed including 5 link-layer/multicast entries (`transport=LinkLayer`); port-102 footnote present (S7comm/MMS/etc. are all unsupported) |
 | EC-003 | `--all` or no flag | All ~30 entries printed; both supported and unsupported; port-102 footnote present; link-layer entries have `[L2]` transport indicator |
 | EC-004 | Link-layer entry (e.g., IEC 61850 GOOSE) in `--unsupported` output | Displayed with category=`ICS`, transport `[L2]`, ports `—`, EtherType `0x88B8 (35000)`; `port_detectable: false` indicated. GOOSE is ICS-category with LinkLayer transport — NOT a third category. |

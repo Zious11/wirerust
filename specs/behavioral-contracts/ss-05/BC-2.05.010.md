@@ -122,7 +122,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 | VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target on_flow_close calls (TCP dispatcher path) | proptest: `proptest_vp042_total_count_equals_n` |
 | VP-042 | Sub-B | Per-port count equals input frequency for TCP counter | proptest: `proptest_vp042_per_port_count_equals_frequency` |
 | VP-042 | Sub-C | Classified-flow on_flow_close does NOT increment TCP counter | proptest: `proptest_vp042_no_count_spurious_on_classified_flows` |
-| VP-043 | — | `udp_unclassified_counts` increments per-packet only for packets all dissectors decline; DNS/53 accepted by DnsAnalyzer does NOT appear; keys use `min(src_port, dst_port)` (main.rs UDP decode loop path) | proptest: `proptest_vp043_udp_counter_exactness` |
+| VP-043 | — | `udp_unclassified_counts` increments per-packet only for packets all dissectors decline; DNS/53 accepted by DnsAnalyzer does NOT appear; keys use `min(src_port, dst_port)` (main.rs UDP decode loop path) | proptest: `proptest_vp043_total_count_equals_n`, `proptest_vp043_no_increment_on_classified_udp` |
 | — | TCP keys always have TransportProto::Tcp; UDP keys always have TransportProto::Udp | unit: `test_BC_2_05_010_key_type_identity` |
 
 ## Traceability
@@ -153,7 +153,7 @@ TBD (F3 story decomposition for feature-protocol-coverage — expected to be par
 - VP-042 Sub-A — `proptest_vp042_total_count_equals_n` (TCP dispatcher path)
 - VP-042 Sub-B — `proptest_vp042_per_port_count_equals_frequency`
 - VP-042 Sub-C — `proptest_vp042_no_count_spurious_on_classified_flows`
-- VP-043 — `proptest_vp043_udp_counter_exactness` (main.rs UDP path; covers DNS exclusion and min-port key)
+- VP-043 — `proptest_vp043_total_count_equals_n` + `proptest_vp043_no_increment_on_classified_udp` (main.rs UDP path; covers accumulation totality and DNS-exclusion gate)
 
 ## Purity Classification
 

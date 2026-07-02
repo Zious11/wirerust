@@ -94,7 +94,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 | VP-042 | Sub-A | `unclassified_port_counts.values().sum() == N` after N None-target closes (TCP dispatcher path) | proptest: `proptest_vp042_total_count_equals_n` |
 | VP-042 | Sub-B | Per-port count equals None-target-close frequency for that port | proptest: `proptest_vp042_per_port_count_equals_frequency` |
 | VP-042 | Sub-C | Classified-flow close does NOT update TCP counter | proptest: `proptest_vp042_no_count_spurious_on_classified_flows` |
-| VP-043 | — | UDP counter exactness and monotonicity: per-packet count == M after M declined-by-all-dissectors UDP packets; keys use `min(src_port, dst_port)`; counter never decreases (main.rs decode-loop path) | proptest: `proptest_vp043_udp_counter_exactness` |
+| VP-043 | — | UDP counter exactness and monotonicity: per-packet count == M after M declined-by-all-dissectors UDP packets; keys use `min(src_port, dst_port)`; counter never decreases (main.rs decode-loop path) | proptest: `proptest_vp043_total_count_equals_n`, `proptest_vp043_no_increment_on_classified_udp` |
 | — | All TCP-map keys have TransportProto::Tcp | unit: `test_BC_2_05_011_tcp_map_key_purity` |
 | — | UDP-map keys have TransportProto::Udp; never cross-contaminate TCP map | unit: `test_BC_2_05_011_udp_map_key_purity` |
 | — | Counter is monotonically non-decreasing (second None-target close on same port increases count) | unit: `test_BC_2_05_011_monotonic_increment` |
@@ -126,7 +126,7 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 - VP-042 Sub-A — `proptest_vp042_total_count_equals_n` (TCP dispatcher path)
 - VP-042 Sub-B — `proptest_vp042_per_port_count_equals_frequency`
 - VP-042 Sub-C — `proptest_vp042_no_count_spurious_on_classified_flows`
-- VP-043 — `proptest_vp043_udp_counter_exactness` (main.rs UDP path)
+- VP-043 — `proptest_vp043_total_count_equals_n` + `proptest_vp043_no_increment_on_classified_udp` (main.rs UDP path)
 
 ## Purity Classification
 

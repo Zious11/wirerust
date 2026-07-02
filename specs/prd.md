@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.48"
+version: "1.49"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -2178,7 +2178,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 > **Formal verification:** VP-041 (proptest P1, draft — src/protocols.rs: catalog oracle cross-check;
 > single harness `proptest_vp041_oracle_cross_check`; oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || name=="ARP"`). VP-042 (proptest P1, draft — dispatcher.rs:
-> per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-043 (proptest P1, draft — main.rs UDP decode loop: UDP counter exactness, DNS exclusion, min-port key; harness `proptest_vp043_udp_counter_exactness`). VP-004 (Kani,
+> per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-043 (proptest P1, draft — main.rs UDP decode loop: UDP counter exactness, DNS exclusion, min-port key; 2 harnesses: `proptest_vp043_total_count_equals_n`, `proptest_vp043_no_increment_on_classified_udp`). VP-004 (Kani,
 > dispatcher `classify()`, P0, verified) MUST be re-run at F6 as regression confirmation
 > (classify() is unchanged, but new HashMap field changes StreamDispatcher struct size).
 
