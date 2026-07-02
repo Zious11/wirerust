@@ -1853,7 +1853,7 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
 
 // ── STORY-153 (BC-2.05.010 + BC-2.05.011 + VP-042 + VP-043) ───────────────────
 //
-// Red-Gate test suite for:
+// Regression-guard test suite for:
 //   - TransportProto enum (AC-153-001)
 //   - unclassified_port_counts field + dual-gate + lower_port normalization (AC-153-002/003)
 //   - TCP counter key purity (AC-153-004)
@@ -1861,15 +1861,14 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
 //   - VP-042 proptest harnesses, 3 subs (AC-153-006)
 //   - VP-043 proptest harnesses, 2 harnesses (AC-153-007)
 //
-// Tests that exercise counting logic MUST FAIL against current stubs:
-//   on_flow_close inner block and udp_gap_key both have todo!().
+// All tests exercise the fully-implemented counting logic (on_flow_close inner
+// block and udp_gap_key seam) and serve as regression guards going forward.
 //
-// Structural/accessor tests are GREEN-by-design per BC-5.38.002/003;
-// see stub comments in dispatcher.rs for rationale.
+// Structural/accessor tests remain GREEN-by-design per BC-5.38.002/003.
 //
-// F-F3P10-001 regression guard is GREEN against the stub because the stub
-// already correctly places `unclassified_flows += 1` outside the
-// coverage_gaps_enabled block (ADR-012 Decision 6 Clarification EXACT).
+// F-F3P10-001 regression guard: `unclassified_flows += 1` is correctly placed
+// outside the `coverage_gaps_enabled` block (ADR-012 Decision 6 Clarification
+// EXACT) — this test ensures that placement is never regressed.
 // ───────────────────────────────────────────────────────────────────────────────
 
 #[allow(non_snake_case)]
@@ -1929,7 +1928,7 @@ mod story_153 {
 
     /// BC-2.05.010 PC-4 / Invariant 1: `TransportProto` has `Tcp` and `Udp` variants,
     /// distinct from `protocols::Transport` (which has a third `LinkLayer` variant).
-    /// GREEN-by-design: enum already defined in stub.
+    /// GREEN-by-design: enum variants are compiler-enforced constants.
     #[test]
     fn test_BC_2_05_010_key_type_identity() {
         assert_ne!(TransportProto::Tcp, TransportProto::Udp);
@@ -1974,13 +1973,13 @@ mod story_153 {
     /// BC-2.05.010 PC-4 (conditional-population gate): when constructed WITHOUT
     /// `.with_coverage_gaps(true)`, a None-target flow close must leave the map empty.
     ///
-    /// GREEN against stub: `coverage_gaps_enabled = false` means the `if
-    /// self.coverage_gaps_enabled { todo!() }` inner block is never entered.
+    /// Regression guard: `coverage_gaps_enabled = false` means the inner
+    /// `if self.coverage_gaps_enabled` block is never entered; map stays empty.
     #[test]
     fn test_BC_2_05_010_coverage_gaps_disabled_map_empty() {
         let mut dispatcher = no_gaps_dispatcher();
         // None-target close: no on_data → routes returns None → None arm fires.
-        // coverage_gaps_enabled = false → inner todo!() block skipped.
+        // coverage_gaps_enabled = false → inner coverage_gaps block not entered.
         dispatcher.on_flow_close(&keyed(54321, 9999), CloseReason::Fin);
         assert!(
             dispatcher.unclassified_port_counts().is_empty(),
@@ -1999,8 +1998,8 @@ mod story_153 {
     /// would zero this counter on all normal runs, breaking BC-2.05.009 and
     /// holdouts HS-040/HS-095.
     ///
-    /// GREEN against stub: the stub correctly places `unclassified_flows += 1` outside
-    /// the `coverage_gaps_enabled` block — this test validates that structure.
+    /// Regression guard: `unclassified_flows += 1` is correctly placed outside
+    /// the `coverage_gaps_enabled` block — this test ensures that is never regressed.
     #[test]
     fn test_BC_2_05_010_unclassified_flows_fires_when_gaps_disabled() {
         let mut dispatcher = no_gaps_dispatcher();
@@ -2029,7 +2028,7 @@ mod story_153 {
     /// Port 9999 is neutral — not a classify() port rule target.
     /// Port 502 is RESERVED EXCLUSIVELY for `test_BC_2_05_011_no_increment_classified_flow`.
     ///
-    /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+    /// Regression guard: on_flow_close None-target arm increments `unclassified_port_counts`.
     #[test]
     fn test_BC_2_05_010_tcp_counter_none_target() {
         let mut dispatcher = gaps_dispatcher();
@@ -2056,7 +2055,7 @@ mod story_153 {
     /// BC-2.05.011 PC-1 + Invariant 1 (monotonically non-decreasing):
     /// Three successive None-target closes on the same port produce count == 3.
     ///
-    /// FAILS against stub: todo!() in on_flow_close inner block.
+    /// Regression guard: on_flow_close inner block increments count on every None-target close.
     #[test]
     fn test_BC_2_05_011_monotonic_increment() {
         let mut dispatcher = gaps_dispatcher();
@@ -2081,9 +2080,9 @@ mod story_153 {
     /// `DispatchTarget` for port 502 is `Modbus`. This test uses Modbus/502.
     ///
     /// A None-target close on port 9001 makes the test non-vacuous: without it,
-    /// `(Tcp, 502)` is always absent against the stub (vacuously true).
+    /// `(Tcp, 502)` being absent would be trivially true (no count was ever attempted).
     ///
-    /// FAILS against stub: the None-target close on port 9001 triggers todo!().
+    /// Regression guard: the None-target close on port 9001 increments the counter.
     #[test]
     fn test_BC_2_05_011_no_increment_classified_flow() {
         let mut dispatcher = gaps_dispatcher();
@@ -2132,7 +2131,7 @@ mod story_153 {
     ///
     /// Both flows must produce key `(Tcp, 1234)`: total count == 2.
     ///
-    /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+    /// Regression guard: on_flow_close None-target arm correctly normalizes port keys.
     #[test]
     fn test_BC_2_05_010_lower_port_normalization() {
         let mut dispatcher = gaps_dispatcher();
@@ -2168,7 +2167,7 @@ mod story_153 {
     /// When `coverage_gaps_enabled = false`, a None-target flow close must NOT
     /// increment `unclassified_port_counts` (inner gate not entered).
     ///
-    /// GREEN against stub: `coverage_gaps = false` bypasses the `todo!()` inner block.
+    /// Regression guard: `coverage_gaps = false` bypasses the inner counting block; map stays empty.
     #[test]
     fn test_BC_2_05_010_coverage_gaps_disabled_no_increment() {
         let mut dispatcher = no_gaps_dispatcher();
@@ -2191,8 +2190,8 @@ mod story_153 {
     /// Every key in `unclassified_port_counts` has `key.0 == TransportProto::Tcp`.
     /// No `TransportProto::Udp` key may appear in the TCP dispatcher map.
     ///
-    /// FAILS against stub: todo!() fires on the first None-target on_flow_close call
-    /// with `coverage_gaps_enabled = true`.
+    /// Regression guard: on_flow_close None-target closes with `coverage_gaps_enabled = true`
+    /// only ever insert `TransportProto::Tcp` keys into the map.
     #[test]
     fn test_BC_2_05_011_tcp_map_key_purity() {
         let mut dispatcher = gaps_dispatcher();
@@ -2215,7 +2214,7 @@ mod story_153 {
     /// BC-2.05.010 PC-2 / EC-001 (BACnet/IP):
     /// `udp_gap_key` returns `Some((Udp, min_port))` for an unhandled UDP packet.
     ///
-    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    /// Regression guard: `udp_gap_key` returns the correct `(Udp, min_port)` key.
     #[test]
     fn test_BC_2_05_010_udp_counter_unhandled() {
         // BACnet/IP: src=61000 (client ephemeral), dst=47808 (BACnet port)
@@ -2232,7 +2231,7 @@ mod story_153 {
     /// BC-2.05.010 Invariant 7 / ADR-012 Decision 10:
     /// `udp_gap_key` returns `None` when `dns_handles = true` (DNS accepted the packet).
     ///
-    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    /// Regression guard: `udp_gap_key` returns `None` when `dns_handles = true`.
     #[test]
     fn test_BC_2_05_010_udp_dns_not_counted() {
         // DNS response direction: src=53 (server), dst=60000 (client ephemeral)
@@ -2249,7 +2248,7 @@ mod story_153 {
     /// `udp_gap_key` normalizes to `min(src_port, dst_port)` so query and response
     /// directions both produce the same key `(Udp, 47808)`.
     ///
-    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    /// Regression guard: `udp_gap_key` normalizes to `min(src_port, dst_port)` for both directions.
     #[test]
     fn test_BC_2_05_010_udp_lower_port_normalization() {
         // Query: src=61000 (ephemeral), dst=47808 (BACnet) → min=47808
@@ -2280,7 +2279,7 @@ mod story_153 {
     /// All `Some(_)` returns from `udp_gap_key` carry `TransportProto::Udp`.
     /// A non-UDP `ParsedPacket` returns `None` (no Tcp key ever appears).
     ///
-    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    /// Regression guard: all `Some(_)` returns from `udp_gap_key` carry `TransportProto::Udp`.
     #[test]
     fn test_BC_2_05_011_udp_map_key_purity() {
         let cases = [
@@ -2336,7 +2335,7 @@ mod story_153 {
         /// VP-042 Sub-A: `unclassified_port_counts.values().sum() == N` after N
         /// None-target `on_flow_close` calls with `coverage_gaps = true` and ≥1 analyzer.
         ///
-        /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+        /// Regression guard: on_flow_close None-target arm accumulates counts correctly.
         #[test]
         fn proptest_vp042_total_count_equals_n(
             n in 1u64..=50u64,
@@ -2359,7 +2358,7 @@ mod story_153 {
         /// VP-042 Sub-B: for each port P in a generated sequence, the count for `(Tcp, P)`
         /// equals the number of times P appears in the sequence (exactness property).
         ///
-        /// FAILS against stub: on_flow_close None-target arm has todo!().
+        /// Regression guard: on_flow_close None-target arm tracks per-port frequencies correctly.
         #[test]
         fn proptest_vp042_per_port_count_equals_frequency(
             ports in proptest::collection::vec(1024u16..=9000u16, 1..=20usize),
@@ -2404,9 +2403,8 @@ mod story_153 {
         /// (Http via content detection) must NOT change the count for `(Tcp, P)` even when
         /// None-target closes on the same port have already incremented it.
         ///
-        /// FAILS against stub: for k > 0, the None-target close triggers todo!().
-        /// For k = 0, the test passes (no todo! triggered); proptest will generate k > 0
-        /// cases and record a failure, so the harness is Red overall.
+        /// Regression guard: classified `on_flow_close` must not change the count established
+        /// by preceding None-target closes; k = 0 validates the zero-base case.
         #[test]
         fn proptest_vp042_no_count_spurious_on_classified_flows(
             service_port in 1024u16..=9000u16,
@@ -2459,7 +2457,7 @@ mod story_153 {
         /// Calls the production seam directly (non-vacuous: `udp_unclassified_counts`
         /// in main.rs is unreachable from integration tests).
         ///
-        /// FAILS against stub: `udp_gap_key` has `todo!()`.
+        /// Regression guard: `udp_gap_key` consistently returns `Some((Udp, Q))` for all N calls.
         #[test]
         fn proptest_vp043_total_count_equals_n(
             n in 1usize..=256usize,
@@ -2485,7 +2483,7 @@ mod story_153 {
         /// For any UDP packet, `udp_gap_key(parsed, true)` returns `None`.
         /// The seam guards the main.rs loop: `dns_handles = true` → counter not incremented.
         ///
-        /// FAILS against stub: `udp_gap_key` has `todo!()`.
+        /// Regression guard: `udp_gap_key` returns `None` for any packet when `dns_handles = true`.
         #[test]
         fn proptest_vp043_no_increment_on_classified_udp(
             src_port in 1u16..=60000u16,
