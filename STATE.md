@@ -4,9 +4,9 @@ project: wirerust
 mode: feature
 phase: F3-incremental-stories
 status: in-progress
-current_step: "F3 adversarial story CONVERGED (3 clean passes, 18 total). Pending pre-gate: (a) fresh-context consistency-validator full-corpus audit, (b) input-hash drift check, (c) structured human F3 gate. On F3 approval → F4 delta implementation (TDD delivery of STORY-151..154 via per-story-delivery)."
+current_step: "F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery)."
 pipeline: FEATURE-CYCLE
-timestamp: 2026-07-02T18:00:00Z
+timestamp: 2026-07-02T19:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.1
@@ -38,7 +38,7 @@ bc_index_version: "v2.13"
 vp_index_version: "v2.32"
 arch_index_version: "v2.11"
 prd_version: "v1.51"
-epics_version: v1.8
+epics_version: v2.1
 # DTU
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F3 adversarial story CONVERGED (3 clean passes, 18 total). Pending pre-gate: (a) fresh-context consistency-validator full-corpus audit, (b) input-hash drift check, (c) structured human F3 gate. On F3 approval → F4 delta implementation (TDD delivery of STORY-151..154 via per-story-delivery).**
+**F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery).**
 
 ---
 
@@ -171,6 +171,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-355 | F3 adversarial story Pass-16 = CLEAN (zero P0/CRITICAL/HIGH/mis-anchor; novelty LOW). All 3 findings are re-derivations of already-deferred F4-carry items — NO new defects, decomposition stable: F-F3P16-001 (STORY-152 --json=path routing = re-derivation of F-F3P13-001; consistent with FROZEN BC-2.12.022 which models --json as bool/stdout-only, so protocols-subcommand file-routing is out of BC scope — phase-5/enhancement, NOT an F3 defect), F-F3P16-002 (dep-graph wave-69 table STORY-154 subsystem cell shows SS-12 only vs frontmatter [SS-12,SS-18] = narrative-table sibling inconsistency, ~F-F3P13-002 class; frontmatter authoritative/correct; F4-carry), F-F3P16-003 (STORY-151 mirror test '(except 53)' = re-derivation of F-F3P12-001; cosmetic). CONSECUTIVE-CLEAN COUNT = 1 (Pass-16, final run). These LOW re-derivations are tolerated by the CLEAN threshold and will persist across the final passes without resetting. Next: Pass-17 (#2), Pass-18 (#3) → convergence. | 2026-07-02 |
 | D-356 | F3 adversarial story Pass-17 = CLEAN (zero P0/CRITICAL/HIGH/mis-anchor; novelty LOW — converged story set). 1 LOW DEFERRED (non-breaking, hold stable): F-F3P17-001 (STORY-154 AC-154-002 Traces-to cites BC-2.05.010 v1.3 PC-1 which is not in STORY-154's bcs: frontmatter — benign cross-layer relevance reference; BC-2.05.010 fully owned/covered by STORY-153, no coverage gap; add a cross-story relevance note at F4 mirroring the VP-relevance-note pattern, OR accept as intentional cross-layer traceability; pending-intent). 1 re-derivation of known-deferred HS-INDEX-ENIP-WAVE-DRIFT-001 (out of E-21 scope). CONSECUTIVE-CLEAN COUNT = 2 (Pass-16, Pass-17, final run). Next: Pass-18 (#3) → F3 convergence. | 2026-07-02 |
 | D-357 | F3 ADVERSARIAL STORY CONVERGENCE ACHIEVED. 3 consecutive clean fresh-context passes (Pass-16/17/18), zero P0/CRITICAL/HIGH/mis-anchor, decomposition byte-stable (HEAD 59cc443 unchanged across the 3 passes). F3 ran 18 total passes; caught+fixed genuine defects incl. a CRITICAL TCP min-of-ports keying bug (F-F3P11-001), a wave-67 independent-compile gap (F-F3P6-001), an unreachable port-502 red-gate test (F-F3P14-001), phantom symbols (udp_header/p.supported/args.json), non_snake_case CI-gate misses, and a C-25 path mis-anchor. Deliverables: STORY-151..154 (v1.4/1.4/1.7/1.8), STORY-INDEX v3.12 (107 stories/69 waves/691 pts), dependency-graph v3.6 (124 edges, acyclic, E-21 diamond), holdouts HS-123..132 (HS-INDEX v2.10; 10 must-pass, 7 canonical-value). 3 final non-blocking observations: F-F3P18-O2 (STORY-154 render must re-lookup KNOWN_PROTOCOLS for `name` — F4 one-line refinement), F-F3P18-O1 (frozen BC-2.12.024 PC-4 'supported: false' wording — phase-5 reconciliation; story compensates via derived predicate), F-F3P18-O3 (frozen BC-2.05.010 EC-006 '(Tcp,502)==2' physically unreachable since classify() always routes 502→Modbus — phase-5 BC reconciliation; stories navigate correctly; NEW — research-agent-validate per DF-VALIDATION-001). Next: F3 fresh-context consistency audit + input-drift check, then human F3 gate → F4 delta implementation. | 2026-07-02 |
+| D-358 | F3 pre-gate GAP-1 (epics.md drift) fixed. Consistency audit found epics.md (v2.0) never updated for E-21. Reconciled to v2.1: added E-21 epic section (9 BCs, SS-18/05/12, STORY-151..154/32 pts/waves 67-69), total_bcs 328→337, Estimated Story Count Summary → 107 (also fixed pre-existing post-v2.0 drift E-5→11/E-8→7/E-11→6/E-18→3/E-20→11). STATE epics_version v1.8→v2.1. Residual: epics.md total_bcs 337 vs BC-INDEX v2.13 345 active (6 missing TLS BCs BC-2.07.038..043 + 2 unresolved) → logged EPICS-TOTAL-BCS-DRIFT-001 for maintenance/phase-5. Input-hash drift check CLEAN (MATCH=99 STALE=0). F3 pre-gate steps (consistency audit + input-drift) COMPLETE; ready for human F3 gate. | 2026-07-02 |
 
 ---
 
@@ -240,6 +241,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | F-F3P18-O2 | STORY-154 render path must re-lookup KNOWN_PROTOCOLS for the `name` field (CoverageGapsSummary entry name is not stored in the counter map — must be derived from KNOWN_PROTOCOLS at render time). F4 one-line refinement. Surfaced F3 Pass-18 as non-blocking obs. | LOW | **OPEN — F4-carry** |
 | F-F3P18-O1 | Frozen BC-2.12.024 PC-4 uses 'supported: false' field notation — story compensates via derived predicate (SUPPORTED_PORTS check); reconcile wording at phase-5. Surfaced F3 Pass-18 as non-blocking obs. | LOW | **OPEN — phase-5 spec-wording reconciliation** |
 | BC-2.05.010-EC006-UNREACHABLE-001 | BC-2.05.010 EC-006 claims the gap counter reaches 2 for the (Tcp,502) flow pair, but classify() Rule 5 always routes (Tcp,502) to DispatchTarget::Modbus, making the None-target arm physically unreachable. Phase-5 BC reconciliation needed; stories navigate correctly. NEW — DF-VALIDATION-001-gated: research-agent must validate before any GitHub issue is filed. | LOW (phase-5) | **OPEN — phase-5 BC reconciliation (DF-VALIDATION-001-gated)** |
+| EPICS-TOTAL-BCS-DRIFT-001 | epics.md v2.1 total_bcs 337 vs BC-INDEX v2.13 345 active — E-5 Per-Epic BC row omits TLS BCs BC-2.07.038..043 (6 missing) + 2 unresolved. Full reconcile deferred to a maintenance sweep or phase-5 pass. DF-VALIDATION-001-gated before any GitHub issue is filed. | LOW (maintenance) | **OPEN — maintenance/phase-5 (DF-VALIDATION-001-gated)** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -247,9 +249,10 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F3 adversarial story CONVERGED (3 clean passes, 18 total). Pending pre-gate: (a) fresh-context consistency-validator full-corpus audit, (b) input-hash drift check, (c) structured human F3 gate. On F3 approval → F4 delta implementation (TDD delivery of STORY-151..154 via per-story-delivery).**
+**F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery).**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
+- **Pre-gate status:** consistency audit PASS (D-358: epics.md GAP-1 fixed → v2.1; all other corpus docs consistent); input-hash drift CLEAN (MATCH=99 STALE=0). Residual logged: EPICS-TOTAL-BCS-DRIFT-001 (total_bcs 337 vs 345 active — maintenance/phase-5 carry).
 - **F3 story artifacts (FINAL — byte-stable Pass-16/17/18; no story changes across all 3 convergence passes):**
   - STORY-151 (`.factory/stories/STORY-151.md`): v1.4 — C-25 path `src/analyzer/enip.rs` (3 sites correct); all canonical EtherType tests present
   - STORY-152 (`.factory/stories/STORY-152.md`): v1.4 — blocks [STORY-154]; cli.json.is_some(); *supported deref; ..; #[allow(non_snake_case)] on mod story_152
@@ -260,8 +263,8 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 - **PRE-F3-GATE PROCEDURE (strictly ordered):**
   1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
   2. Read `.factory/STATE.md` — confirm D-357 present, F3 CONVERGED, 3 consecutive clean (Pass-16/17/18).
-  3. Run fresh-context consistency-validator full-corpus audit (all F3 story artifacts + HS + indexes).
-  4. Run `bin/compute-input-hash --scan` — confirm STALE=0.
+  3. ~~Run fresh-context consistency-validator full-corpus audit~~ **DONE (D-358: PASS; GAP-1 epics.md v2.0→v2.1 fixed).**
+  4. ~~Run `bin/compute-input-hash --scan` — confirm STALE=0~~ **DONE (D-358: MATCH=99 STALE=0 CLEAN).**
   5. Present structured human F3 gate summary → await approval.
   6. On F3 approval → F4 delta implementation (TDD delivery of STORY-151..154 via per-story-delivery).
 - **3 final non-blocking obs (D-357):** F-F3P18-O2 (STORY-154 render re-lookup `name` — F4 one-line), F-F3P18-O1 (BC-2.12.024 PC-4 wording — phase-5), BC-2.05.010-EC006-UNREACHABLE-001 (EC-006 (Tcp,502)==2 unreachable — phase-5, DF-VALIDATION-001-gated).

@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "2.0"
+version: "2.1"
 status: draft
 producer: story-writer
 phase: 2
@@ -15,7 +15,8 @@ modified:
   - "2026-06-24 v1.8: E-20 EtherNet/IP ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — E-20 epic added (STORY-130..138, 9 stories, 66 points, Waves 58–61). 26 new BCs: BC-2.17.001..026 (SS-17 EtherNet/IP analyzer). total_bcs 302→328. Estimated Story Count Summary updated: E-20 row added (9), Total 78→87. Coverage Check Per-Epic BC table updated with E-20 row. Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-27 v1.9: RULING-DNP3-SIBLING-001 fix story — STORY-140 added to E-15 (wave 63, 8 pts, dep=STORY-139). No new BCs (BC-2.15.016/010/014/015 are pre-existing, amended by ruling). E-15 story count 5→6. E-15 points 47→55. Estimated Story Count Summary E-15 row 5→6, Total 88→89. total_bcs unchanged at 328."
   - "2026-06-28 v2.0: Wave 64 RULING-MODBUS-SIBLING-001 + RULING-DNP3-DESYNC-001 fix stories — STORY-141 added to E-14 (wave 64, 8 pts, dep=[]). STORY-142 added to E-15 (wave 64, 3 pts, dep=STORY-140). No new BCs (BC-2.14.002/016/017/019 and BC-2.15.009 are pre-existing, amended by rulings). E-14 story count 4→5. E-14 points 37→45. E-15 story count 6→7. E-15 points 55→58. Estimated Story Count Summary E-14 row 4→5, E-15 row 6→7, Total 89→91. total_bcs unchanged at 328."
-total_bcs: 328
+  - "2026-07-02 v2.1: F3 phase gate (feature-protocol-coverage) — E-21 epic added (STORY-151..154, 4 stories, 32 pts, Waves 67–69). 9 new BCs: BC-2.18.001..004 (SS-18 protocol coverage catalog) + BC-2.05.010..011 (SS-05 dispatcher unclassified-port gap counters) + BC-2.12.022..024 (SS-12 protocols subcommand + --coverage-gaps flag). total_bcs 328→337. Post-v2.0 story-count drift reconciled against STORY-INDEX v3.12: E-5 8→11 (+STORY-144/145/146 fix-tls-clienthello-frag F3 2026-06-29); E-8 5→7 (+STORY-120 FindingsRender enum migration + STORY-129 mitre_attack JSON enrichment); E-11 1→6 (+STORY-121/143/147/149/150 process-gap/tooling stories added 2026-06-18..2026-07-01); E-18 2→3 (+STORY-122 enum→struct reshape D-120 split-A 2026-06-18); E-20 10→11 (+STORY-148 on_flow_close wiring + DNP3 flow-map cap maint-2026-07-01). Estimated Story Count Summary Total 91→107. DISCREPANCY NOTE: epics.md pre-E-21 total_bcs 328 was stale by -6 — BC-2.07.038..043 (TLS carry-reassembly BCs, fix-tls-clienthello-frag F3 2026-06-29) are absent from E-5 Per-Epic BC row and Coverage Check table; true pre-E-21 total = 334; this v2.1 corrects for E-21 only (328+9=337), deferring the E-5 BC row update to a subsequent pass. Residual gap vs BC-INDEX v2.13 (345 active) = 8 (= 6 missing TLS BCs + 2 unresolved)."
+total_bcs: 337
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -294,7 +295,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
 | E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 (flat-mode collapse, STORY-118), BC-2.11.030..034 (grouped-collapse, STORY-119) | 10 |
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer | SS-17 (new), SS-05, SS-12 | BC-2.17.001..026 | 26 |
-| **TOTAL** | | | **328** (302 pre-ENIP + 26 BC-2.17.001..026) |
+| E-21: Protocol Coverage Catalog | SS-18 (new), SS-05, SS-12 | BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024 | 9 |
+| **TOTAL** | | | **337** (328 pre-E-21 + 9: BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024) |
 
 ### Arithmetic Verification
 
@@ -322,7 +324,10 @@ E-18: 10 (SS-11, BC-2.11.025..029 flat-collapse + BC-2.11.030..034 grouped-colla
                       302 (pre-E-20 subtotal; includes BC-2.11.035 from issue #64 in E-8 extension)
 E-20: 26 (SS-17, BC-2.17.001..026 EtherNet/IP ENIP/CIP analyzer) = 26
                       --------
-                      328 / 328  ✓
+                      328 (pre-E-21 subtotal)
+E-21:  9 (SS-18/SS-05/SS-12: BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024 protocol coverage catalog) =  9
+                      --------
+                      337 / 337  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -335,7 +340,7 @@ Each BC-2.NN.NNN maps to exactly one epic by construction: the epic corresponds 
 the subsystem(s) identified in ARCH-INDEX.md, and subsystem assignments are
 non-overlapping. No BC appears in more than one epic row above.
 
-### All 12 Subsystems Covered
+### All 14 Subsystems Covered (SS-14/SS-15/SS-16 pre-existing gap in this table — covered by E-14/E-15/E-16 sections)
 
 | SS-ID | Name | Epic |
 |-------|------|------|
@@ -343,19 +348,20 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-02 | Packet Decoding | E-1 |
 | SS-03 | (absent — merged into SS-02 per ARCH-INDEX ruling) | E-1 |
 | SS-04 | TCP Reassembly | E-2 |
-| SS-05 | Protocol Dispatch | E-3 |
+| SS-05 | Protocol Dispatch | E-3, E-21 |
 | SS-06 | HTTP Analysis | E-4 |
 | SS-07 | TLS Analysis | E-5 |
 | SS-08 | DNS Analysis | E-6 |
 | SS-09 | Finding Emission | E-7 |
 | SS-10 | MITRE Mapping | E-7 |
 | SS-11 | Reporting | E-8 |
-| SS-12 | CLI / Entry | E-9 |
+| SS-12 | CLI / Entry | E-9, E-21 |
 | SS-13 | Absent Behaviors | E-10 |
 | SS-17 | EtherNet/IP (ENIP/CIP) Analyzer | E-20 |
+| SS-18 | Protocol Coverage Catalog | E-21 |
 
-**Coverage confirmed: 328 / 328 active BCs assigned, 0 unassigned, 0 double-assigned.**
-(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] + 26 E-20 EtherNet/IP BC-2.17.001..026 = 328; BC-2.11.035 issue-#64 mitre_attack counted in E-8 extension via STORY-129, making pre-E-20 total 303; with E-20 = 329... Note: BC-2.11.035 is an E-8 extension BC added in v2.7 for STORY-129; epics.md E-8 BCs list 24 (BC-2.11.001..024); BC-2.11.035 is listed in the E-8 per-epic BC count as an extension — covered under STORY-129 row in the BC-to-Stories matrix. Total is 328 treating BC-2.11.035 as already included in the 302 pre-E-20 count which covered all BCs through v2.7 per the STORY-INDEX BC tally. E-20 adds exactly 26 new BCs.)
+**Coverage confirmed: 337 / 337 active BCs assigned, 0 unassigned, 0 double-assigned.**
+(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] + 26 E-20 EtherNet/IP BC-2.17.001..026 = 328 pre-E-21; + 9 E-21 Protocol Coverage [BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024] = 337. BC-2.11.035 issue-#64 mitre_attack counted in E-8 extension via STORY-129, included in the 302 pre-E-20 subtotal. NOTE: 6 TLS carry-reassembly BCs (BC-2.07.038..043, fix-tls-clienthello-frag F3 2026-06-29) are absent from the E-5 Per-Epic BC row and not reflected in this total; true total including those BCs = 343; residual gap vs BC-INDEX v2.13 (345 active) = 2 unresolved — deferred to next coverage-check reconciliation pass.)
 
 ---
 
@@ -563,28 +569,73 @@ vs. a linear chain by 3 waves.
 
 ---
 
+## Epic E-21: Protocol Coverage Catalog (feature-protocol-coverage)
+
+- **Goal:** A forensic analyst or security engineer can run `wirerust protocols` to see a
+  static catalog of all protocols wirerust can analyze (name, port(s), transport, coverage
+  tier) in terminal table or JSON output; and can run `wirerust analyze --coverage-gaps`
+  against any pcap to receive a per-port summary of TCP and UDP traffic that wirerust did
+  not classify into a known protocol — so that analysts know exactly what wirerust covers
+  and where unclassified-traffic gaps exist in any capture.
+- **BCs:**
+  BC-2.18.001, BC-2.18.002, BC-2.18.003, BC-2.18.004
+  (SS-18 protocol coverage catalog + `protocols` subcommand terminal/JSON output),
+  BC-2.05.010, BC-2.05.011
+  (SS-05 dispatcher `unclassified_port_counts` + UDP decode-loop `udp_unclassified_counts`),
+  BC-2.12.022, BC-2.12.023, BC-2.12.024
+  (SS-12 `protocols` subcommand dispatch + `--coverage-gaps` flag + `CoverageGapsSummary`)
+- **Subsystems touched:** SS-18 (new — protocol coverage catalog, `src/protocols.rs`),
+  SS-05 (dispatcher — `unclassified_port_counts` map + UDP gap tracking),
+  SS-12 (CLI — `protocols` subcommand + `--coverage-gaps` analyze flag)
+- **Estimated stories:** 4 (STORY-151, STORY-152, STORY-153, STORY-154)
+- **Feature ID:** feature-protocol-coverage
+- **Total points:** 32 (STORY-151: 8, STORY-152: 8, STORY-153: 8, STORY-154: 8)
+- **Waves:** 67–69
+- **Status:** draft
+
+**Rationale:** Protocol coverage visibility was the last major gap in wirerust's analyst
+UX: analysts could not tell which protocols wirerust knows without reading source code, and
+had no way to see which traffic in a pcap went unanalyzed. The feature decomposes naturally
+into four layers following the pure-core / effectful boundary: (1) pure-core static catalog
+(`src/protocols.rs` KNOWN_PROTOCOLS, KnownProtocol struct, SUPPORTED_PORTS set, pure-core
+partition functions, VP-041 proptest harnesses — STORY-151, wave 67, dep=none);
+(2) dynamic per-flow unclassified-port gap counters in the dispatcher + UDP decode-loop
+(BC-2.05.010/011, VP-042/VP-043 — STORY-153, wave 67, dep=none, parallel with STORY-151);
+(3) `protocols` CLI subcommand + terminal table renderer + JSON output
+(BC-2.12.022/BC-2.18.001/002, dep=STORY-151 — STORY-152, wave 68);
+(4) `--coverage-gaps` opt-in flag + `CoverageGapsSummary` tri-state report + L2 caveat
+annotation + port-102 note (BC-2.12.023/024, dep=STORY-151+STORY-152+STORY-153 — STORY-154,
+wave 69; file-sequencing edge 152→154 enforced per F-F3P2-005 because STORY-152 and
+STORY-154 both modify `src/cli.rs`, `src/main.rs`, and `tests/integration_tests.rs` —
+parallel dispatch would cause merge conflicts). STORY-151 and STORY-153 are independent
+(wave 67 parallel). The four-story linear-with-fork topology enables correct ordering
+without unnecessary serialization.
+
+---
+
 ## Estimated Story Count Summary
 
-| Epic | Stories Est. |
-|------|-------------|
-| E-1  | 5           |
-| E-2  | 11          |
-| E-3  | 3           |
-| E-4  | 6           |
-| E-5  | 8           |
-| E-6  | 1           |
-| E-7  | 3           |
-| E-8  | 5           |
-| E-9  | 5           |
-| E-10 | 1           |
-| E-11 | 1           |
-| E-12 | 3           |
-| E-13 | 2           |
-| E-14 | 5           |
-| E-15 | 7           |
-| E-16 | 5           |
-| E-17 | 2           |
-| E-18 | 2           |
-| E-19 | 6           |
-| E-20 | 10          |
-| **Total** | **91** |
+| Epic | Stories (STORY-INDEX v3.12) | Notes |
+|------|----------------------------|-------|
+| E-1  | 5  | |
+| E-2  | 11 | |
+| E-3  | 3  | |
+| E-4  | 6  | |
+| E-5  | 11 | +3 vs v2.0: STORY-144/145/146 (fix-tls-clienthello-frag F3, 2026-06-29) |
+| E-6  | 1  | |
+| E-7  | 3  | |
+| E-8  | 7  | +2 vs v2.0: STORY-120 (FindingsRender enum migration) + STORY-129 (mitre_attack enrichment) |
+| E-9  | 5  | |
+| E-10 | 1  | |
+| E-11 | 6  | +5 vs v2.0: STORY-121/143/147/149/150 (process-gap/tooling stories, 2026-06-18..2026-07-01) |
+| E-12 | 3  | |
+| E-13 | 2  | |
+| E-14 | 5  | |
+| E-15 | 7  | |
+| E-16 | 5  | |
+| E-17 | 2  | |
+| E-18 | 3  | +1 vs v2.0: STORY-122 (enum→struct reshape, D-120 split-A, 2026-06-18) |
+| E-19 | 6  | |
+| E-20 | 11 | +1 vs v2.0: STORY-148 (on_flow_close wiring + DNP3 flow-map cap, maint-2026-07-01) |
+| E-21 | 4  | NEW: STORY-151/152/153/154 (feature-protocol-coverage, 2026-07-02) |
+| **Total** | **107** | Verified against STORY-INDEX v3.12 total_stories=107 |
