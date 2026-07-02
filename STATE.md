@@ -4,7 +4,7 @@ project: wirerust
 mode: feature
 phase: F2-spec-evolution
 status: paused
-current_step: "F2 adversarial Pass-6 REMEDIATED (D-329). 1 HIGH + 1 MEDIUM + 2 LOW (all version-metadata hygiene); full 9-BC version sweep done. BC-INDEX v2.10, PRD v1.50, ARCH-INDEX v2.9, VP-INDEX v2.31. Entering Pass-7 (0/3 consecutive clean passes)."
+current_step: "F2 adversarial Pass-7: NOT-CLEAN, 3 HIGH + 1 MEDIUM (PRD-narrative + ARCH-INDEX registry propagation gaps) — ALL remediated (D-330). BC-INDEX v2.11, PRD v1.51, ARCH-INDEX v2.10, VP-INDEX v2.31. Entering Pass-8 (0/3 consecutive clean passes)."
 pipeline: FEATURE-CYCLE
 timestamp: 2026-07-01T00:00:00Z
 
@@ -34,10 +34,10 @@ story_index_version: v3.10
 total_stories: 103
 story_index_note: "103 stories / 66 waves. STORY-148/149/150 added (maint-2026-07-01). IDX-003 total_points reconciled 656→659. develop=3a60317."
 # Spec versions (current)
-bc_index_version: "v2.10"
+bc_index_version: "v2.11"
 vp_index_version: "v2.31"
-arch_index_version: "v2.9"
-prd_version: "v1.50"
+arch_index_version: "v2.10"
+prd_version: "v1.51"
 epics_version: v1.8
 # DTU
 dtu_required: false
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F2 adversarial Pass-6 REMEDIATED (D-329). 1 HIGH + 1 MEDIUM + 2 LOW (all version-metadata hygiene); full 9-BC version sweep done; arch-delta snapshot disclaimer added. BC-INDEX v2.10, PRD v1.50, ARCH-INDEX v2.9, VP-INDEX v2.31. Entering Pass-7 (0/3 consecutive clean passes). See Session Resume Checkpoint below.**
+**F2 adversarial Pass-7 REMEDIATED (D-330). 3 HIGH + 1 MEDIUM (PRD-narrative + ARCH-INDEX registry propagation gaps); full registry sweep + PRD §2.18 + BC-INDEX bumped. BC-INDEX v2.11, PRD v1.51, ARCH-INDEX v2.10, VP-INDEX v2.31. ARCH-INDEX-COUNT-DRIFT-001 CLOSED. Entering Pass-8 (0/3 consecutive clean passes). See Session Resume Checkpoint below.**
 
 ---
 
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-06-22
 | Tag v0.11.1 | commit `4e2b285`; tag object `e8a8a2d4` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.1 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.10 (345 active / 346 on disk) / VP-INDEX v2.31 (43 VPs) / ARCH-INDEX v2.9 / PRD v1.50 |
+| Spec versions | BC-INDEX v2.11 (345 active / 346 on disk) / VP-INDEX v2.31 (43 VPs) / ARCH-INDEX v2.10 / PRD v1.51 |
 | Stories | 94 delivered / 103 total (STORY-INDEX v3.10) |
 
 ---
@@ -93,7 +93,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
-| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **IN PROGRESS** | Spec-layer DONE (D-323). Pass-1: NOT-CLEAN (14) REMEDIATED (D-324). Pass-2: NOT-CLEAN (8: 1H,4M,3L) REMEDIATED (D-325). Pass-3: NOT-CLEAN (4: 2H,2M) REMEDIATED (D-326). Pass-4: NOT-CLEAN (3: 2H,1M) REMEDIATED (D-327). Pass-5: NOT-CLEAN (6: 1H,3M,2L) REMEDIATED (D-328). Pass-6: NOT-CLEAN (1H+1M+2L version-metadata hygiene; core spec CONTENT converged) REMEDIATED (D-329). BC-INDEX v2.10, PRD v1.50, ARCH-INDEX v2.9. Entering Pass-7 (0/3 consecutive clean). Finding trajectory: 14→8→4→3→4→(1H+1M+2L). |
+| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **IN PROGRESS** | Spec-layer DONE (D-323). Pass-1: NOT-CLEAN (14) REMEDIATED (D-324). Pass-2: NOT-CLEAN (8: 1H,4M,3L) REMEDIATED (D-325). Pass-3: NOT-CLEAN (4: 2H,2M) REMEDIATED (D-326). Pass-4: NOT-CLEAN (3: 2H,1M) REMEDIATED (D-327). Pass-5: NOT-CLEAN (6: 1H,3M,2L) REMEDIATED (D-328). Pass-6: NOT-CLEAN (1H+1M+2L version-metadata hygiene; core spec CONTENT converged) REMEDIATED (D-329). Pass-7: NOT-CLEAN (3H+1M PRD-narrative + ARCH-INDEX registry propagation gaps) REMEDIATED (D-330). BC-INDEX v2.11, PRD v1.51, ARCH-INDEX v2.10. Entering Pass-8 (0/3 consecutive clean). Finding trajectory: 14→8→4→3→4→(1H+1M+2L)→(3H+1M). |
 
 ---
 
@@ -101,11 +101,11 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **F2 adversarial Pass-6: NOT-CLEAN, 1 HIGH + 1 MED + 2 LOW (all version-metadata hygiene) — ALL remediated; core spec CONTENT converged** | **DONE (D-329)** | HIGH F-F2P6-001: BC-2.18.004 file v1.0 vs BC-INDEX v1.1 — bumped to v1.1 (second VP-041 harness + non-vacuity note added to modified log). MED F-F2P6-002: BC-2.05.010 under-versioned at v1.0 vs index v1.2 — bumped to v1.2 (modified log backfilled). Full 9-BC sweep reconciled 5 BCs (BC-2.18.001→v1.3, .002→v1.1, .004→v1.1, BC-2.05.010→v1.2, BC-2.12.023→v1.1); all file versions now match BC-INDEX rows. LOW F-F2P6-003/004: architecture-delta given HISTORICAL SNAPSHOT disclaimer banner + ADR-012 Decision 10 added to §3 + stale ARCH-INDEX version ref annotated + broken BC path in §9.3 fixed; arch-delta version → v1.1. BC-INDEX v2.10. Adversary confirmed core spec CONTENT converged (scope, BC logic, symbol grounding, protocol constants, VP non-vacuity, cross-doc counts all clean). |
-| **F2 adversarial Pass-2: NOT-CLEAN, 8 findings (1 HIGH, 4 MED, 3 LOW) — ALL remediated** | **DONE (D-325)** | HIGH: BC-2.18.003 false VP-041 anti-drift claim corrected (classify() drift UNENFORCED per ADR-012 Dec-5). NEW ADR-012 Decision 10: can_decode() evaluated regardless of enable_dns. VP-041 2nd harness (partition_invariant) + non-vacuity note propagated. POWERLINK 0x88AB/34987 externally verified — [unverified] removed; L2 caveat now 5 protocols. BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. |
-| **F2 adversarial Pass-3: NOT-CLEAN, 4 findings (2 HIGH, 2 MED) — ALL remediated** | **DONE (D-326)** | HIGH F-F2P3-001: BC-2.18.001 EC-001 ARP LinkLayer self-contradiction fixed. HIGH F-F2P3-002: VP-043 phantom harness replaced with 2 canonical harnesses. MED F-F2P3-003: cap-18 L2 caveat POWERLINK added. MED F-F2P3-004: BC-INDEX citations updated. BC-INDEX v2.7, PRD v1.49. |
+| **F2 adversarial Pass-7: NOT-CLEAN, 3 HIGH + 1 MEDIUM (PRD-narrative + ARCH-INDEX registry propagation gaps) — ALL remediated** | **DONE (D-330)** | HIGH F-F2P7-001: ARCH-INDEX Subsystem Registry SS-05 9→11 (BC-2.05.010..011 never propagated), SS-12 21→24 (BC-2.12.022..024 never propagated). HIGH F-F2P7-002: PRD §2.18 L2 caveat had only 4 protocols; 5th Ethernet POWERLINK (0x88AB) added. HIGH F-F2P7-003: PRD §2.18 narrative + ARCH-INDEX SS-18 comment still cited VP-041 as single harness; corrected to two harnesses (oracle_cross_check + partition_invariant). MEDIUM F-F2P7-004: BC-2.18.003/004 partition-harness non-vacuity mislabel corrected (partition holds trivially; oracle_cross_check is the non-vacuous guard). ARCH-INDEX v2.10 (also swept SS-11 34→35 BC-2.11.035, SS-16 15→16 BC-2.16.016 — pre-existing ARCH-INDEX-COUNT-DRIFT-001 CLOSED). PRD v1.51. BC-INDEX v2.11. |
+| **F2 adversarial Pass-6: NOT-CLEAN, 1 HIGH + 1 MED + 2 LOW (all version-metadata hygiene) — ALL remediated; core spec CONTENT converged** | **DONE (D-329)** | HIGH F-F2P6-001: BC-2.18.004 file v1.0 vs BC-INDEX v1.1 — bumped to v1.1. MED F-F2P6-002: BC-2.05.010 under-versioned at v1.0 vs index v1.2. Full 9-BC sweep: BC-2.18.001→v1.3, .002→v1.1, .004→v1.1, BC-2.05.010→v1.2, BC-2.12.023→v1.1. LOW F-F2P6-003/004: arch-delta snapshot disclaimer + Decision 10 + path fix. BC-INDEX v2.10. Adversary confirmed core spec CONTENT converged. |
 | **F2 adversarial Pass-4: NOT-CLEAN, 3 findings (2 HIGH, 1 MED) — ALL remediated** | **DONE (D-327)** | HIGH F-F2P4-001: BC-2.05.011 phantom DispatchTarget::Arp/::Dns variants removed; real enum {Http,Tls,Modbus,Dnp3,Enip,None}; EC-008 reframed. HIGH F-F2P4-002: VP-042 false UDP-via-dispatcher clause deleted ×6 locations. MED F-F2P4-003: coverage-matrix (u16,u16)→(TransportProto,u16). BC-INDEX v2.8. |
-| **F2 adversarial Pass-5: NOT-CLEAN, 4 substantive findings (1 HIGH, 3 MED) + 2 LOW — ALL remediated** | **DONE (D-328)** | HIGH F-F2P5-001: SUPPORTED_PORTS reframed — not pure classify() mirror; DNS/53 = decode-loop, ARP = DecodedFrame::Arp, PERMANENT BY DESIGN; BC-2.18.003 doc-comment obligation reframed; EC-008 contradiction resolved. MED F-F2P5-002/003: arch-delta working doc synced (VP-041 non-vacuity claim removed, POWERLINK 5th L2, harness count 1→2). MED F-F2P5-004: BC-2.12.024 tri-state transport-aware — (Tcp,53)→unknown, (Tcp,47808)→unknown. LOW: PRD RTM 'the' fix + F3 forward obligation. BC-INDEX v2.9, PRD v1.50, ss-18 v1.4. |
+| **F2 adversarial Pass-5: NOT-CLEAN, 4 substantive findings (1 HIGH, 3 MED) + 2 LOW — ALL remediated** | **DONE (D-328)** | HIGH F-F2P5-001: SUPPORTED_PORTS reframed — not pure classify() mirror; DNS/53 = decode-loop, ARP = DecodedFrame::Arp, PERMANENT BY DESIGN. MED F-F2P5-002/003: arch-delta synced. MED F-F2P5-004: BC-2.12.024 tri-state transport-aware. BC-INDEX v2.9, PRD v1.50, ss-18 v1.4. |
+| **F2 adversarial Pass-3: NOT-CLEAN, 4 findings (2 HIGH, 2 MED) — ALL remediated** | **DONE (D-326)** | HIGH F-F2P3-001: BC-2.18.001 EC-001 ARP LinkLayer self-contradiction fixed. HIGH F-F2P3-002: VP-043 phantom harness replaced with 2 canonical harnesses. MED F-F2P3-003: cap-18 L2 caveat POWERLINK added. MED F-F2P3-004: BC-INDEX citations updated. BC-INDEX v2.7, PRD v1.49. |
 
 ---
 
@@ -143,6 +143,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-327 | F2 adversarial spec Pass-4 complete + remediated. F-F2P4-001..003 all fixed. HIGH F-F2P4-001: BC-2.05.011 referenced non-existent DispatchTarget::Arp/::Dns — real enum is {Http,Tls,Modbus,Dnp3,Enip,None}; ARP handled outside dispatcher via DecodedFrame::Arp; EC-008 corrected (TCP/53 None-target DOES increment — no DispatchTarget::Dns exists). HIGH F-F2P4-002: VP-042 text falsely claimed UDP-via-dispatcher (Udp,…) keys in 5 locations across VP-INDEX (×2), verification-architecture.md (×2), verification-coverage-matrix.md (×2) — contradicted TCP-only dispatcher invariant + ADR-012 Dec-6; deleted in all 6 locations; VP-042 now uniformly TCP-only (UDP is VP-043's sole responsibility). MEDIUM F-F2P4-003: verification-coverage-matrix.md stale (u16,u16) key type corrected to (TransportProto,u16); per-port-pair wording corrected to per-(TransportProto,u16)-key. BC-INDEX v2.8. PRD stays at v1.49 (no phantom variants found in PRD). VP-INDEX v2.31, ARCH-INDEX v2.9 unchanged (wording-only deletions, no version bump). Finding trajectory 13→8→4→3 (converging). Counter: 0 consecutive clean. Next: Pass-5 fresh-context adversary (need 3 consecutive clean). | 2026-07-01 |
 | D-328 | F2 adversarial spec Pass-5 complete + remediated. HIGH F-F2P5-001: SUPPORTED_PORTS reframed — it is NOT a pure mirror of classify(); port 53 (DNS) and ARP are dissected outside classify() by design (decode-loop / DecodedFrame::Arp), permanent-not-drift; BC-2.18.003 doc-comment obligation reframed to 'dissection path'; contradiction with BC-2.05.011 EC-008 resolved. MEDIUM F-F2P5-002/003: architecture-delta working doc synced (false VP-041 non-vacuity claim removed, POWERLINK 5th L2 added, VP-041 2-harness count). MEDIUM F-F2P5-004: BC-2.12.024 tri-state lookup now transport-aware (Tcp,53)→unknown, (Tcp,47808)→unknown. LOW: PRD RTM title 'the' fix; F3 forward obligation (main.rs can_decode enable_dns decoupling) recorded. BC-INDEX v2.9, PRD v1.50, ss-18 v1.4. Finding trajectory 14→8→4→3→4 (converging on quality; HIGH count 3→2→2→1→1). Counter: 0 consecutive clean. Next: Pass-6 fresh-context adversary (need 3 consecutive clean). | 2026-07-02 |
 | D-329 | F2 adversarial spec Pass-6 complete + remediated. Adversary confirmed core spec CONTENT converged (scope, BC logic, symbol grounding, protocol constants, VP non-vacuity, cross-doc counts all clean). Remaining findings were version-metadata hygiene: HIGH F-F2P6-001 BC-2.18.004 file v1.0 vs index v1.1; MEDIUM F-F2P6-002 BC-2.05.010 under-versioned. Full 9-BC version sweep reconciled 5 BCs (BC-2.18.001→v1.3, .002→v1.1, .004→v1.1, BC-2.05.010→v1.2, BC-2.12.023→v1.1); all file versions now match BC-INDEX rows. LOW F-F2P6-003/004: architecture-delta given a HISTORICAL SNAPSHOT disclaimer (durable fix — points to canonical docs) + Decision 10 summary + path fix. BC-INDEX v2.10. Finding trajectory 14→8→4→3→4→(1H+1M+2L). Counter: 0 consecutive clean. Next: Pass-7 fresh-context adversary (need 3 consecutive clean). | 2026-07-01 |
+| D-330 | F2 adversarial spec Pass-7 complete + remediated. Systematic propagation-sweep-gap surfaced: PRD §2.18 narrative + ARCH-INDEX subsystem registry were never swept by BC-centric earlier passes. HIGH F-F2P7-001: ARCH-INDEX SS-05 9→11 (BC-2.05.010..011 added), SS-12 21→24 (BC-2.12.022..024 added) — registry counts were never updated when BCs were authored. HIGH F-F2P7-002: PRD §2.18 L2 caveat had only 4 protocols; Ethernet POWERLINK (0x88AB) added as 5th (consistent with BCs v2.2→pass-2 and ADR-012 Decision 3a). HIGH F-F2P7-003: PRD §2.18 narrative + ARCH-INDEX SS-18 registry comment cited VP-041 as "single harness"; corrected to "two harnesses proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant". MEDIUM F-F2P7-004: BC-2.18.003/004 partition-harness "non-vacuous / oracle computed independently" mislabeling corrected — partition holds trivially (unsupported = KNOWN \ supported by definition); oracle_cross_check is the non-vacuous guard. Full sweep also closed ARCH-INDEX-COUNT-DRIFT-001: SS-11 34→35 (BC-2.11.035, never propagated from maint-2026-06-22 sweep) + SS-16 15→16 (BC-2.16.016, never propagated from Pass-1 ARP additions). ARCH-INDEX v2.10, PRD v1.51, BC-INDEX v2.11. Counter: 0 consecutive clean. Next: Pass-8. | 2026-07-01 |
 
 ---
 
@@ -173,7 +174,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | PERF-001/002 + BENCHMARK-GAP-001 | TLS carry-path +10.3% regression; HashMap + Vec alloc hotspots; no fragmented-handshake fixture. | HIGH | **→ STORY-149** (E-11, 5 pts, draft) |
 | TLS-DRAIN-DUP-001 | ~220-line C2S/S2C drain-loop duplication in tls.rs. | MEDIUM | **→ STORY-150** (E-11, 5 pts, draft) |
 | BC-ANCHOR-DRIFT-OUTOFCYCLE-001 | 12 stale tls.rs anchor sites; exact fixes in maintenance-log.md. | LOW | Deferred — next sweep or fold into STORY-150 |
-| ARCH-INDEX-COUNT-DRIFT-001 | SS-11 34→35, SS-16 15→16; SS-sum 334→336. | LOW | Deferred — next sweep |
+| ARCH-INDEX-COUNT-DRIFT-001 | SS-11 34→35, SS-16 15→16; SS-sum 334→336. | LOW | **RESOLVED 2026-07-01** (ARCH-INDEX v2.10 full registry sweep; fixed in Pass-7 remediation) |
 | TLS-SUMMARIZE-MAPTYPE-001 | BC-2.07.043 PC-4 HashMap vs impl BTreeMap; VP-040 Sub-D wording. | LOW | Deferred — spec-only gap |
 | SEC-004 + SEC-007 | 7+ counter `+= 1` → saturating_add; clippy hygiene MQ-003/004/005. | LOW | Deferred — trivial PR candidate |
 | PG-BC-ANCHOR-VALIDATION-001 | No automated anchor validation; 12 stale sites maint-2026-07-01. | LOW | Deferred — STORY-091 tooling candidate |
@@ -182,6 +183,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | SEC-001-ENIP | Unsafe split-borrow enip.rs `on_data`. | MEDIUM | v0.12.0 candidate |
 | TLS-FILLBUF-PUBLIC-SEAM-001 + MAINT-SC-001 | fill_buf_for_testing seam (W7.1); indicatif patch + 41 transitive updates; 8 stale deny.toml entries. | LOW | W7.1 backlog / optional dep-refresh |
 | PG-F2-ARCHDELTA-SYNC-001 | [process-gap] Phase-delta working docs drift across adversary passes (F-F2P6-003); mitigated via historical-snapshot disclaimer on arch-delta; consider codifying a policy that phase-delta docs either stay synced or carry a snapshot disclaimer — capture at cycle-close lessons (S-7.02). | LOW | cycle-close retrospective |
+| PG-F2-NARRATIVE-SWEEP-001 | [process-gap] PRD §2.18 narrative + ARCH-INDEX subsystem registry are non-BC artifacts that BC-centric remediation sweeps miss; DF-SIBLING-SWEEP / DF-CONSISTENCY-AUDIT sweeps should explicitly include PRD narrative blocks + ARCH-INDEX subsystem registry counts as sweep targets (surfaced F-F2P7-001/002/003). | LOW | cycle-close retrospective (S-7.02 lessons) |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -189,24 +191,23 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F2 adversarial Pass-6 REMEDIATED (D-329). 1 HIGH + 1 MEDIUM + 2 LOW (all version-metadata hygiene); full 9-BC version sweep done; arch-delta snapshot disclaimer added. BC-INDEX v2.10, PRD v1.50, ARCH-INDEX v2.9, VP-INDEX v2.31. Entering Pass-7 (0/3 consecutive clean passes). Finding trajectory: 14→8→4→3→4→(1H+1M+2L).**
+**F2 adversarial Pass-7 REMEDIATED (D-330). 3 HIGH + 1 MEDIUM (PRD-narrative + ARCH-INDEX registry propagation gaps); ARCH-INDEX-COUNT-DRIFT-001 CLOSED. BC-INDEX v2.11, PRD v1.51, ARCH-INDEX v2.10, VP-INDEX v2.31. Entering Pass-8 (0/3 consecutive clean passes). Finding trajectory: 14→8→4→3→4→(1H+1M+2L)→(3H+1M).**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
 - **F2 design-layer artifacts (DONE — D-321/D-322):**
-  - SS-18: `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` (v1.4; Pass-5: supported_protocols() derivation sentence reframed)
+  - SS-18: `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` (v1.4)
   - ADR-012 (Decision 5 reframed + Decision 10): `.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md`
-  - VP-041 (2nd harness proptest_vp041_partition_invariant), VP-042 (TCP-only; (TransportProto::Tcp,u16) key), VP-043 (main.rs UDP path, P1, 2 harnesses)
-  - Index: ARCH-INDEX v2.9; VP-INDEX v2.31.
-- **F2 spec-layer artifacts (DONE — D-323 through D-329 Pass-6 remediated):**
-  - BC-2.18.001..004 (SS-18), BC-2.05.010..011 (SS-05), BC-2.12.022..024 (SS-12), CAP-18
-  - BC-INDEX v2.10 (345 active / 346 on disk); PRD v1.50
-  - Pass-6 version sweep: BC-2.18.001 v1.3, BC-2.18.002 v1.1, BC-2.18.004 v1.1, BC-2.05.010 v1.2, BC-2.12.023 v1.1 — all file versions now match BC-INDEX rows. Arch-delta v1.1 (HISTORICAL SNAPSHOT disclaimer added; ADR-012 Decision 10 summary in §3; stale ARCH-INDEX version ref annotated; broken BC path in §9.3 fixed).
+  - VP-041 (2 harnesses: oracle_cross_check + partition_invariant), VP-042 (TCP-only), VP-043 (UDP main.rs, 2 harnesses)
+  - Index: ARCH-INDEX v2.10; VP-INDEX v2.31.
+- **F2 spec-layer artifacts (DONE — D-323 through D-330 Pass-7 remediated):**
+  - BC-2.18.001..004 (SS-18): BC-2.18.003 v1.3, BC-2.18.004 v1.2. BC-2.05.010..011 (SS-05), BC-2.12.022..024 (SS-12), CAP-18
+  - BC-INDEX v2.11 (345 active / 346 on disk); PRD v1.51; ARCH-INDEX v2.10 (SS-05=11, SS-12=24, SS-11=35, SS-16=16; sum=345)
   - Deferred-to-F3: AMB-001-ARP-ETHERTYPE, AMB-002-JSON-FLAG-SCOPE; DF-CANONICAL-FRAME-HOLDOUT-001 forward obligation (AMENDED for POWERLINK test).
 - **RESUME PROCEDURE (strictly ordered):**
   1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
-  2. Read `.factory/STATE.md` (this file) — confirm Pass-6 REMEDIATED state.
+  2. Read `.factory/STATE.md` (this file) — confirm Pass-7 REMEDIATED state.
   3. Verify git ground truth: `origin/develop=3a60317`, `origin/main=4e2b285`, no open PRs.
-  4. Dispatch Pass-7 fresh-context adversary (cannot see Pass-1..Pass-6 reports).
+  4. Dispatch Pass-8 fresh-context adversary (cannot see Pass-1..Pass-7 reports).
   5. Continue adversary passes until 3 consecutive clean passes, then human F2 gate approval, then F3.
 
 ---
@@ -222,4 +223,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Pass-1 REMEDIATED (D-324): 14 findings fixed, BC-INDEX v2.5, PRD v1.47, VP-043, VP-INDEX v2.31, ARCH-INDEX v2.8. F2 adversarial Pass-2 REMEDIATED (D-325): 8 findings fixed, BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. F2 adversarial Pass-3 REMEDIATED (D-326): 4 findings fixed (ARP EC-001 self-contradiction, VP-043 phantom harness, cap-18 POWERLINK, BC-INDEX citation), BC-INDEX v2.7, PRD v1.49. F2 adversarial Pass-4 REMEDIATED (D-327): 3 findings fixed (BC-2.05.011 phantom DispatchTarget::Arp/::Dns, VP-042 false UDP-via-dispatcher clause ×6 locations, coverage-matrix key type), BC-INDEX v2.8. F2 adversarial Pass-5 REMEDIATED (D-328): 6 findings fixed (SUPPORTED_PORTS reframe, BC-2.18.003 v1.2, BC-2.12.024 v1.1 transport-aware tri-state, arch-delta working doc sync, PRD RTM title), BC-INDEX v2.9, PRD v1.50. F2 adversarial Pass-6 REMEDIATED (D-329): 1H+1M+2L version-metadata hygiene; 9-BC version sweep (5 bumped); arch-delta snapshot disclaimer, BC-INDEX v2.10. Entering Pass-7 (0/3 consecutive clean). Finding trajectory: 14→8→4→3→4→(1H+1M+2L).
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Pass-1 REMEDIATED (D-324): 14 findings fixed, BC-INDEX v2.5, PRD v1.47, VP-043, VP-INDEX v2.31, ARCH-INDEX v2.8. F2 adversarial Pass-2 REMEDIATED (D-325): 8 findings fixed, BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. F2 adversarial Pass-3 REMEDIATED (D-326): 4 findings fixed (ARP EC-001 self-contradiction, VP-043 phantom harness, cap-18 POWERLINK, BC-INDEX citation), BC-INDEX v2.7, PRD v1.49. F2 adversarial Pass-4 REMEDIATED (D-327): 3 findings fixed (BC-2.05.011 phantom DispatchTarget::Arp/::Dns, VP-042 false UDP-via-dispatcher clause ×6 locations, coverage-matrix key type), BC-INDEX v2.8. F2 adversarial Pass-5 REMEDIATED (D-328): 6 findings fixed (SUPPORTED_PORTS reframe, BC-2.18.003 v1.2, BC-2.12.024 v1.1 transport-aware tri-state, arch-delta working doc sync, PRD RTM title), BC-INDEX v2.9, PRD v1.50. F2 adversarial Pass-6 REMEDIATED (D-329): 1H+1M+2L version-metadata hygiene; 9-BC version sweep (5 bumped); arch-delta snapshot disclaimer, BC-INDEX v2.10. F2 adversarial Pass-7 REMEDIATED (D-330): 3H+1M PRD-narrative + ARCH-INDEX registry propagation gaps; ARCH-INDEX v2.10 (SS-05=11, SS-12=24, SS-11=35, SS-16=16); PRD v1.51; BC-INDEX v2.11; ARCH-INDEX-COUNT-DRIFT-001 CLOSED. Entering Pass-8 (0/3 consecutive clean). Finding trajectory: 14→8→4→3→4→(1H+1M+2L)→(3H+1M).

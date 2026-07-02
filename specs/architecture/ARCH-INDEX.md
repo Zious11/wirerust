@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.9"
+version: "2.10"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -96,6 +96,9 @@ modified:
   - date: 2026-07-01
     actor: architect
     reason: "feature-protocol-coverage F2 adversarial Pass-2 remediation (F-F2P2-001/004/005): ADR-012 Decision 3a/3c updated — Ethernet POWERLINK (0x88AB) added as 5th L2/multicast protocol in all caveat enumerations. ADR-012 Decision 10 added — UDP gap classification decoupled from enable_dns (when --coverage-gaps active, dns_analyzer.can_decode() evaluated regardless of enable_dns for gap-accounting; finding-emission retains enable_dns gate). ADR-012 Consequences clap-shape updated to Commands::Protocols { filter: ProtocolFilter, json: bool } with ProtocolFilter enum. SS-18 v1.2: drift risk paragraph corrected (VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is documented convention NOT compile-time enforcement per ADR-012 Decision 5). VP-INDEX v2.31 changelog entry for VP-043 addition (2.30→2.31) added; stale arithmetic revised. Version bump 2.8→2.9."
+  - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 adversarial Pass-7 remediation (F-F2P7-001/003): Subsystem Registry BC counts reconciled against BC-INDEX v2.4 authoritative totals — SS-05 9→11 (BC-2.05.010..011 added), SS-12 21→24 (BC-2.12.022..024 added). Full sweep also found SS-11 34→35 (BC-2.11.035 mitre_attack JSON enrichment, issue #64, was added after the 2026-06-22 maintenance sweep but never propagated to ARCH-INDEX) and SS-16 15→16 (BC-2.16.016 fix-pc-013-014-015 ARP unbounded findings D-221 was added but never propagated). SS-18 registry comment updated: VP-041 now correctly cites both harnesses — proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant (F-F2P7-003; Pass-2 added partition harness; VP-INDEX is authoritative). Version bump 2.9→2.10."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -152,20 +155,20 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-01 | PCAP Ingestion | CAP-01 | reader.rs | 17 |
 | SS-02 | Packet Decoding | CAP-02 + CAP-03 | decoder.rs | 15 |
 | SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 55 |
-| SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 9 |
+| SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 11 |
 | SS-06 | HTTP Analysis | CAP-06 | analyzer/http.rs | 26 |
 | SS-07 | TLS Analysis | CAP-07 | analyzer/tls.rs | 43 | <!-- fix-tls-clienthello-frag F2: BC-2.07.038..042 added (5 new); BC-2.07.043 added (F2 scope-addition: buffer_saturation_drops telemetry); BC-2.07.001 v1.9 + BC-2.07.002 v1.6 amended (scope expansion); BC-2.07.005 v1.6 amended (Inv-3 scope); ADR-011 --> |
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
 | SS-09 | Finding Emission | CAP-09 | findings.rs | 7 |
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
-| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 34 |
-| SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
+| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 35 |
+| SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 24 |
 | SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
-| SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
+| SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 16 |
 | SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 26 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..026; TCP/44818 explicit messaging MVP; UDP/2222 deferred; F2 addendum: BC-2.17.026 --enip-error-burst-threshold --> |
-| SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 | <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004 (PO delivers next); C-26; VP-041 proptest oracle-cross-check (F-F2P1-008: non-vacuous; proptest_vp041_oracle_cross_check independent of supported_protocols()) + VP-042 proptest dispatcher port-count accumulation + VP-043 proptest main.rs UDP decode-loop accumulation (F-F2P1-011); ProtocolCategory = {ICS, IT} ONLY — NO L2 variant (F-F2P1-003); L2 detection expressed by transport:LinkLayer + port_detectable:false; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP+UDP dynamic detection (D-320 OQ-5); BACnet UDP/47808 IS flaggable; (TransportProto, u16) key = min(src_port, dst_port) (F-F2P1-006); L2/multicast port-undetectable --> |
+| SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 | <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004 (PO delivers next); C-26; VP-041 proptest oracle-cross-check + partition invariant (F-F2P1-008/F-F2P7-003: 2 harnesses — proptest_vp041_oracle_cross_check independent oracle + proptest_vp041_partition_invariant supported∪unsupported=KNOWN_PROTOCOLS) + VP-042 proptest dispatcher port-count accumulation + VP-043 proptest main.rs UDP decode-loop accumulation (F-F2P1-011); ProtocolCategory = {ICS, IT} ONLY — NO L2 variant (F-F2P1-003); L2 detection expressed by transport:LinkLayer + port_detectable:false; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP+UDP dynamic detection (D-320 OQ-5); BACnet UDP/47808 IS flaggable; (TransportProto, u16) key = min(src_port, dst_port) (F-F2P1-006); L2/multicast port-undetectable --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

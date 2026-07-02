@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.50"
+version: "1.51"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -424,6 +424,9 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.51 delta (2026-07-01 — F2 adversarial Pass-7 PRD-narrative reconciliation):**
+> F-F2P7-002 (HIGH) PRD §2.18 L2/multicast caveat: Ethernet POWERLINK (0x88AB) added as 5th structurally-absent L2 protocol — matches canonical 5-protocol list in ADR-012 Decision 3a, BC-2.12.024 PC-1, BC-2.18.001 EC-001, cap-18, and the PRD's own §2.18 scope line ("5 L2/multicast"). F-F2P7-003 (HIGH) PRD §2.18 formal-verification narrative: VP-041 "single harness `proptest_vp041_oracle_cross_check`" corrected to "two harnesses `proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`" — matches RTM rows at §2.18 and BC-2.18.003/004 VP tables (added Pass-2). BC-INDEX bumped to v2.11 for F-F2P7-004 (MEDIUM): BC-2.18.003 v1.2→v1.3 and BC-2.18.004 v1.1→v1.2 — partition harness `proptest_vp041_partition_invariant` "non-vacuous / oracle computed independently" mislabeling corrected; holds trivially by complement derivation per verification-architecture.md line 184; `proptest_vp041_oracle_cross_check` is the non-vacuous guard. No BC count change.
 >
 > **Version 1.50 delta (2026-07-01 — F2 adversarial Pass-5 BC-scope remediation):**
 > F-F2P5-001 (HIGH) BC-2.18.003 v1.1→v1.2: SUPPORTED_PORTS semantics reframed per architect's ADR-012 canonical wording — it is the full set of ports wirerust actively dissects by any mechanism, NOT a pure mirror of `dispatcher.rs::classify()`. Port 53 corresponds to the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) — no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`; DNS/53 being non-mirroring with respect to `classify()` is PERMANENT and BY DESIGN. Description updated; Precondition 3 updated; Invariant 1 updated. Architecture Anchor doc-comment obligation updated verbatim (list each port's dissection path: `DispatchTarget` variant OR "decode-loop"; ARP flagged via special case). EC-005 description clarified. F-F2P5-004 (MEDIUM) BC-2.12.024 v1.0→v1.1: PC-4 tri-state lookup transport-aware — must match BOTH transport AND port (`TransportProto::Tcp`→`Transport::Tcp`, `Udp`→`Udp`; `LinkLayer` entries never match port lookup); TCP observation of a UDP-only port yields `unknown`, not `known-unsupported`. EC-009 added: `(Tcp, 47808)` → `unknown`. EC-010 added: `(Tcp, 53)` → `unknown`. F-F2P5-006 (LOW) RTM §2.18.A BC-2.18.003 title corrected: "Exactly SUPPORTED_PORTS-Intersecting" → "Exactly the SUPPORTED_PORTS-Intersecting" (adds "the" to match H1 and BC-INDEX). BC-INDEX bumped to v2.9.
@@ -2162,7 +2165,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 >   ICCP/TASE.2 all share TCP/102 (ISO-on-TCP/TPKT). Gap reports on `(Tcp, 102)` cannot
 >   be attributed to a single protocol. CoverageGapsSummary MUST include this collision note.
 > - **L2/multicast protocols structurally absent:** GOOSE (0x88B8), Sampled Values (0x88BA),
->   PROFINET-RT/DCP (0x8892), EtherCAT (0x88A4) have no TCP/UDP port and are never reported
+>   PROFINET-RT/DCP (0x8892), EtherCAT (0x88A4), Ethernet POWERLINK (0x88AB) have no TCP/UDP port and are never reported
 >   by the dynamic gap detector. The mandatory caveat text directs operators to
 >   `wirerust protocols --unsupported` for L2 coverage information.
 
@@ -2180,7 +2183,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 > Appended to analysis output after all Findings.
 
 > **Formal verification:** VP-041 (proptest P1, draft — src/protocols.rs: catalog oracle cross-check;
-> single harness `proptest_vp041_oracle_cross_check`; oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || name=="ARP"`). VP-042 (proptest P1, draft — dispatcher.rs:
+> two harnesses `proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`; oracle_cross_check: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || name=="ARP"`; partition_invariant holds trivially by complement derivation). VP-042 (proptest P1, draft — dispatcher.rs:
 > per-port unclassified-flow count accumulation exactness; 3 harnesses). VP-043 (proptest P1, draft — main.rs UDP decode loop: UDP counter exactness, DNS exclusion, min-port key; 2 harnesses: `proptest_vp043_total_count_equals_n`, `proptest_vp043_no_increment_on_classified_udp`). VP-004 (Kani,
 > dispatcher `classify()`, P0, verified) MUST be re-run at F6 as regression confirmation
 > (classify() is unchanged, but new HashMap field changes StreamDispatcher struct size).

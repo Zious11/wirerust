@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P2-002 Pass-2 remediation — second VP-041 harness proptest_vp041_partition_invariant added; non-vacuity clarification. 2026-07-01"
+  - "v1.2: F-F2P7-004 Pass-7 remediation — partition harness non-vacuity mislabeling corrected: proptest_vp041_partition_invariant holds trivially by the complement derivation (unsupported = KNOWN \\ supported); proptest_vp041_oracle_cross_check is the non-vacuous guard. Invariant 4, VP table partition row, Architecture Anchors, VP Anchors updated. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,7 +59,7 @@ their outputs jointly exhaustive.
 1. The partition is STATIC — it depends only on compile-time constants (`KNOWN_PROTOCOLS`, `SUPPORTED_PORTS`). It cannot change at runtime.
 2. Adding a new entry to `KNOWN_PROTOCOLS` without updating `SUPPORTED_PORTS` will cause the new entry to appear in `unsupported_protocols()`. This is the intended drift-detection behavior.
 3. Adding a new port to `SUPPORTED_PORTS` without a corresponding `KNOWN_PROTOCOLS` entry with that port does NOT change the partition (the new port has no matching entry to move).
-4. VP-041 uses TWO harnesses: `proptest_vp041_oracle_cross_check` (per-entry oracle cross-check — guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency) and `proptest_vp041_partition_invariant` (partition/disjointness — guards union completeness and empty intersection of the two result sets). Both oracles are computed INDEPENDENTLY without calling `supported_protocols()` or `unsupported_protocols()` (non-vacuous). Both harnesses MUST pass.
+4. VP-041 uses TWO harnesses: `proptest_vp041_oracle_cross_check` (per-entry oracle cross-check — guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency; oracle computed INDEPENDENTLY without calling `supported_protocols()` or `unsupported_protocols()` — non-vacuous) and `proptest_vp041_partition_invariant` (partition/disjointness — verifies union completeness and empty intersection of the two function outputs; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`); `proptest_vp041_oracle_cross_check` provides the non-vacuous guard). Both harnesses MUST pass.
 
 ## Edge Cases
 
@@ -86,7 +87,7 @@ their outputs jointly exhaustive.
 | VP-NNN | Sub | Property | Proof Method |
 |--------|-----|----------|-------------|
 | VP-041 | oracle | Oracle cross-check (`proptest_vp041_oracle_cross_check`): for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"`. Oracle computed INDEPENDENTLY — does NOT call `supported_protocols()` or `unsupported_protocols()` (non-vacuous). Guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency. | proptest: `proptest_vp041_oracle_cross_check` |
-| VP-041 | partition | Partition/disjointness (`proptest_vp041_partition_invariant`): `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` and `supported_protocols() ∩ unsupported_protocols() == ∅`. Oracle computed independently without calling either function (non-vacuous). | proptest: `proptest_vp041_partition_invariant` |
+| VP-041 | partition | Partition/disjointness (`proptest_vp041_partition_invariant`): `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` and `supported_protocols() ∩ unsupported_protocols() == ∅`. Verifies union-completeness and disjointness of the two function outputs; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`). `proptest_vp041_oracle_cross_check` provides the non-vacuous guard. | proptest: `proptest_vp041_partition_invariant` |
 
 ## Traceability
 
@@ -103,7 +104,7 @@ their outputs jointly exhaustive.
 
 - `src/protocols.rs` — `KNOWN_PROTOCOLS`, `SUPPORTED_PORTS`, `supported_protocols()`, `unsupported_protocols()` — these four items are the complete scope of this invariant
 - `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`; oracle computed independently, does NOT call `supported_protocols()` or `unsupported_protocols()` — non-vacuous; guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency)
-- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_partition_invariant` (verifies `supported ∪ unsupported == KNOWN_PROTOCOLS` and `supported ∩ unsupported == ∅`; oracle computed independently without calling either function)
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_partition_invariant` (verifies `supported ∪ unsupported == KNOWN_PROTOCOLS` and `supported ∩ unsupported == ∅`; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`); non-vacuous guard is `proptest_vp041_oracle_cross_check`)
 
 ## Story Anchor
 
@@ -112,7 +113,7 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 ## VP Anchors
 
 - VP-041 — `proptest_vp041_oracle_cross_check` (per-entry canonical membership predicate; guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency; oracle computed independently — non-vacuous)
-- VP-041 — `proptest_vp041_partition_invariant` (partition/disjointness: `supported ∪ unsupported == KNOWN_PROTOCOLS`; `supported ∩ unsupported == ∅`; oracle computed independently)
+- VP-041 — `proptest_vp041_partition_invariant` (partition/disjointness: `supported ∪ unsupported == KNOWN_PROTOCOLS`; `supported ∩ unsupported == ∅`; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`); non-vacuous guard is `proptest_vp041_oracle_cross_check`)
 
 ## Purity Classification
 

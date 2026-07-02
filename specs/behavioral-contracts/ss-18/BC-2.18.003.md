@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,7 @@ introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P2-001/002 Pass-2 remediation — VP-041 anti-drift semantics corrected; second VP-041 harness added. 2026-07-01"
   - "v1.2: F-F2P5-001 Pass-5 remediation — SUPPORTED_PORTS semantics reframed per ADR-012 canonical wording (not a pure classify() mirror); DNS/53 decode-loop path documented; Architecture Anchor doc-comment obligation updated verbatim; EC-005 clarified. 2026-07-01"
+  - "v1.3: F-F2P7-004 Pass-7 remediation — partition harness non-vacuity mislabeling corrected: proptest_vp041_partition_invariant holds trivially by the complement derivation (unsupported = KNOWN \\ supported); proptest_vp041_oracle_cross_check is the non-vacuous guard. VP table partition row, Architecture Anchors, VP Anchors updated. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,7 +107,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-041 | Oracle cross-check (`proptest_vp041_oracle_cross_check`): for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"`. Oracle is computed INDEPENDENTLY — it does NOT call `supported_protocols()` or `unsupported_protocols()` (non-vacuous). Guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency. | proptest: `proptest_vp041_oracle_cross_check` |
-| VP-041 | Partition/disjointness (`proptest_vp041_partition_invariant`): `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` and `supported_protocols() ∩ unsupported_protocols() == ∅`. Oracle computed independently without calling `supported_protocols()` or `unsupported_protocols()` (non-vacuous). | proptest: `proptest_vp041_partition_invariant` |
+| VP-041 | Partition/disjointness (`proptest_vp041_partition_invariant`): `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` and `supported_protocols() ∩ unsupported_protocols() == ∅`. Verifies union-completeness and disjointness of the two function outputs; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`). `proptest_vp041_oracle_cross_check` provides the non-vacuous guard. | proptest: `proptest_vp041_partition_invariant` |
 | — | ARP always in supported set despite no port match | unit: `test_BC_2_18_003_arp_in_supported_set` |
 | — | `SUPPORTED_PORTS` entries each have a corresponding supported_protocols() entry | unit: `test_BC_2_18_003_supported_ports_mirror` |
 | — | BACnet/IP (47808 not in SUPPORTED_PORTS) is in unsupported_protocols() | unit: `test_BC_2_18_003_bacnet_unsupported` |
@@ -129,7 +130,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 - `src/protocols.rs` — `pub fn unsupported_protocols() -> Vec<&'static KnownProtocol>` — returns complement of `supported_protocols()` within `KNOWN_PROTOCOLS`
 - `src/protocols.rs` — `pub fn all_protocols() -> &'static [KnownProtocol]` — returns full `KNOWN_PROTOCOLS` slice
 - `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`; oracle computed independently, does NOT call `supported_protocols()` or `unsupported_protocols()` — non-vacuous)
-- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_partition_invariant` (verifies `supported ∪ unsupported == KNOWN_PROTOCOLS` and `supported ∩ unsupported == ∅`; oracle computed independently without calling either function)
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_partition_invariant` (verifies `supported ∪ unsupported == KNOWN_PROTOCOLS` and `supported ∩ unsupported == ∅`; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`); non-vacuous guard is `proptest_vp041_oracle_cross_check`)
 
 ## Story Anchor
 
@@ -138,7 +139,7 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 ## VP Anchors
 
 - VP-041 — `proptest_vp041_oracle_cross_check`: per-entry canonical membership predicate; guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency; oracle computed independently (non-vacuous — does NOT call `supported_protocols()`)
-- VP-041 — `proptest_vp041_partition_invariant`: partition/disjointness of `supported_protocols()` and `unsupported_protocols()` over `KNOWN_PROTOCOLS`; oracle computed independently
+- VP-041 — `proptest_vp041_partition_invariant`: partition/disjointness of `supported_protocols()` and `unsupported_protocols()` over `KNOWN_PROTOCOLS`; holds trivially by the complement derivation (`unsupported = KNOWN \ supported`); non-vacuous guard is `proptest_vp041_oracle_cross_check`
 
 ## Purity Classification
 
