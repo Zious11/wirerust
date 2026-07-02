@@ -79,6 +79,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 4. The counters are populated only at `DispatchTarget::None` close (TCP) or per-packet-unhandled (UDP). `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip` classified flows do NOT increment either counter.
 5. The TCP counter is populated at `on_flow_close`, NOT at `on_data`. This bounds overhead to closed flows, not packet volume.
 6. Both counters are bounded by the port space: at most 65,536 distinct TCP keys and 65,536 distinct UDP keys (combined max 131,072 unique `(TransportProto, u16)` pairs). (u16 range is 0–65535 = 65,536 distinct values.)
+7. (ADR-012 Decision 10) When `--coverage-gaps` is active, `dns_analyzer.can_decode()` is evaluated for UDP gap classification regardless of the `enable_dns` flag. A UDP packet for which `can_decode()` returns `true` MUST NOT be counted in the unclassified UDP gap counter. The `enable_dns` flag gates DNS finding-emission only; gap-classification (counter exclusion) is orthogonal to it. This means DNS/53 traffic is never counted in `udp_unclassified_counts` even when DNS analysis is disabled for finding purposes.
 
 ## Edge Cases
 
@@ -97,6 +98,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 | EC-011 | UDP/53 packet arrives, src=53 dst=60000 (response direction); `dns_analyzer.can_decode()` false | `lower_port = min(53, 60000) = 53`; key `(Udp, 53)` incremented only if dissector declines this packet |
 | EC-012 | UDP packet src=61000 dst=47808 (BACnet query direction) | `lower_port = min(61000, 47808) = 47808`; key `(Udp, 47808)` incremented |
 | EC-013 | UDP packet src=47808 dst=61000 (BACnet response direction) | `lower_port = min(47808, 61000) = 47808`; same key `(Udp, 47808)` — response and request merge into one counter |
+| EC-014 | `--coverage-gaps` set WITHOUT `--all` or DNS-enabled (`enable_dns=false`); UDP/53 DNS traffic arrives; `dns_analyzer.can_decode()` returns `true` | `(Udp, 53)` is NOT counted in `udp_unclassified_counts` — `can_decode()` gate is evaluated regardless of `enable_dns` (ADR-012 Decision 10); DNS/53 is classified (gap-excluded), not unclassified, even when DNS finding-emission is disabled |
 
 ## Canonical Test Vectors
 

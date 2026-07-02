@@ -34,9 +34,12 @@ complement: every entry NOT in `supported_protocols()`. Both functions are pure 
 deterministic; they have no I/O, no mutable state, and no runtime dependencies.
 
 This contract guards against drift between what the catalog reports as "supported" and what
-the dispatcher actually handles. The `SUPPORTED_PORTS` constant is the anti-drift mechanism:
-when a new analyzer is added, the implementer MUST update `SUPPORTED_PORTS` or VP-041 will
-fail.
+`supported_protocols()` computes from `SUPPORTED_PORTS`. VP-041 guards the consistency
+between `supported_protocols()` and `SUPPORTED_PORTS` only (ADR-012 Decision 5). It does
+NOT detect drift between `classify()` and `SUPPORTED_PORTS`: the VP-041 oracle itself
+references `SUPPORTED_PORTS`, so it cannot observe `classify()`-vs-`SUPPORTED_PORTS` drift.
+Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented convention
+(ADR-012 Decision 5); drift there is not auto-detected by any VP.
 
 ## Related BCs
 
@@ -63,7 +66,7 @@ fail.
 
 ## Invariants
 
-1. `SUPPORTED_PORTS` mirrors the port-fallback rules in `dispatcher.rs::classify()`. If a new `DispatchTarget` variant and port rule is added to `classify()`, `SUPPORTED_PORTS` MUST be updated. Failure to update causes VP-041 to detect the drift.
+1. `SUPPORTED_PORTS` is intended to mirror the port-fallback rules in `dispatcher.rs::classify()` (ADR-012 Decision 5 documented convention). If a new `DispatchTarget` variant and port rule is added to `classify()`, `SUPPORTED_PORTS` MUST be updated to maintain the convention. VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency ONLY. `classify()`-vs-`SUPPORTED_PORTS` drift is an UNENFORCED documented convention: the VP-041 oracle references `SUPPORTED_PORTS` directly and therefore cannot detect when `classify()` and `SUPPORTED_PORTS` diverge. Drift there is not auto-detected by any VP.
 2. `supported_protocols()` is pure and referentially transparent — the same call always returns the same result (given the same compile-time constants).
 3. The ARP special case is explicit in the implementation (e.g., `|| p.name == "ARP"` or via an ARP-port constant). It MUST NOT be omitted.
 4. `unsupported_protocols()` MUST NOT be a separate hand-maintained list; it must be derived as the complement of `supported_protocols()` within `KNOWN_PROTOCOLS`.
@@ -95,7 +98,8 @@ fail.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-041 | Oracle cross-check: for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"` (covers both partition correctness and disjoint invariant) | proptest: `proptest_vp041_oracle_cross_check` |
+| VP-041 | Oracle cross-check (`proptest_vp041_oracle_cross_check`): for each entry in KNOWN_PROTOCOLS, `entry ∈ supported_protocols() ⟺ entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) \|\| entry.name=="ARP"`. Oracle is computed INDEPENDENTLY — it does NOT call `supported_protocols()` or `unsupported_protocols()` (non-vacuous). Guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency. | proptest: `proptest_vp041_oracle_cross_check` |
+| VP-041 | Partition/disjointness (`proptest_vp041_partition_invariant`): `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` and `supported_protocols() ∩ unsupported_protocols() == ∅`. Oracle computed independently without calling `supported_protocols()` or `unsupported_protocols()` (non-vacuous). | proptest: `proptest_vp041_partition_invariant` |
 | — | ARP always in supported set despite no port match | unit: `test_BC_2_18_003_arp_in_supported_set` |
 | — | `SUPPORTED_PORTS` entries each have a corresponding supported_protocols() entry | unit: `test_BC_2_18_003_supported_ports_mirror` |
 | — | BACnet/IP (47808 not in SUPPORTED_PORTS) is in unsupported_protocols() | unit: `test_BC_2_18_003_bacnet_unsupported` |
@@ -117,7 +121,8 @@ fail.
 - `src/protocols.rs` — `pub fn supported_protocols() -> Vec<&'static KnownProtocol>` — returns entries matching SUPPORTED_PORTS intersection OR ARP special case
 - `src/protocols.rs` — `pub fn unsupported_protocols() -> Vec<&'static KnownProtocol>` — returns complement of `supported_protocols()` within `KNOWN_PROTOCOLS`
 - `src/protocols.rs` — `pub fn all_protocols() -> &'static [KnownProtocol]` — returns full `KNOWN_PROTOCOLS` slice
-- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`)
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_oracle_cross_check` (oracle: `entry.canonical_ports.iter().any(|p| SUPPORTED_PORTS.contains(p)) || entry.name=="ARP"`; oracle computed independently, does NOT call `supported_protocols()` or `unsupported_protocols()` — non-vacuous)
+- `tests/protocols_tests.rs` — VP-041 proptest harness `proptest_vp041_partition_invariant` (verifies `supported ∪ unsupported == KNOWN_PROTOCOLS` and `supported ∩ unsupported == ∅`; oracle computed independently without calling either function)
 
 ## Story Anchor
 
@@ -125,7 +130,8 @@ TBD (F3 story decomposition for feature-protocol-coverage)
 
 ## VP Anchors
 
-- VP-041 — `proptest_vp041_oracle_cross_check`: oracle checks each entry against the canonical membership predicate; verifies both partition correctness (union == KNOWN_PROTOCOLS) and disjoint (intersection == ∅) in a single pass
+- VP-041 — `proptest_vp041_oracle_cross_check`: per-entry canonical membership predicate; guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency; oracle computed independently (non-vacuous — does NOT call `supported_protocols()`)
+- VP-041 — `proptest_vp041_partition_invariant`: partition/disjointness of `supported_protocols()` and `unsupported_protocols()` over `KNOWN_PROTOCOLS`; oracle computed independently
 
 ## Purity Classification
 

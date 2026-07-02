@@ -69,6 +69,7 @@ existing downstream consumers of wirerust JSON output (ADR-012 Decision 8).
 3. The `CoverageGapsSummary` section is a NEW named report section (analogous to `reassembly_summary` in `AnalysisSummary`), NOT a set of `Finding` entries. This preserves the semantic correctness of the finding-severity-MITRE pipeline (ADR-012 Decision 9).
 4. When `--coverage-gaps` is set, the existing output (Findings, AnalysisSummary) is UNCHANGED. `CoverageGapsSummary` is purely additive (appended after).
 5. The `--coverage-gaps` flag is only valid on the `analyze` subcommand. `wirerust protocols --coverage-gaps` is a clap error.
+6. (ADR-012 Decision 10) Gap-classification (the `dns_analyzer.can_decode()` exclusion gate for the UDP unclassified counter) is orthogonal to the `enable_dns` flag. When `--coverage-gaps` is active, `dns_analyzer.can_decode()` is evaluated for every UDP packet to determine whether it counts as unclassified, regardless of whether `--all` or DNS-enabling flags are set. The `enable_dns` flag gates DNS finding-emission only; it does NOT gate the gap-classification check. DNS/53 traffic is never counted in the UDP gap counter whether or not `enable_dns` is true.
 
 ## Edge Cases
 

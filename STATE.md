@@ -4,9 +4,9 @@ project: wirerust
 mode: feature
 phase: F2-spec-evolution
 status: paused
-current_step: "F2 adversarial Pass-1 REMEDIATED (D-324). 13 findings (1 P0, 3 HIGH, 7 MED, 3 LOW) all fixed. BC-INDEX v2.5, PRD v1.47, VP-043 added, VP-INDEX v2.31, ARCH-INDEX v2.8. Entering Pass-2."
+current_step: "F2 adversarial Pass-2 REMEDIATED (D-325). 8 findings (1 HIGH, 4 MED, 3 LOW) all fixed. BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9, VP-INDEX v2.31. Entering Pass-3 (1/3 clean passes needed)."
 pipeline: FEATURE-CYCLE
-timestamp: 2026-07-01T21:30:00Z
+timestamp: 2026-07-01T22:30:00Z
 
 # Release chain (latest)
 released_version: v0.11.1
@@ -34,10 +34,10 @@ story_index_version: v3.10
 total_stories: 103
 story_index_note: "103 stories / 66 waves. STORY-148/149/150 added (maint-2026-07-01). IDX-003 total_points reconciled 656→659. develop=3a60317."
 # Spec versions (current)
-bc_index_version: "v2.5"
+bc_index_version: "v2.6"
 vp_index_version: "v2.31"
-arch_index_version: "v2.8"
-prd_version: "v1.47"
+arch_index_version: "v2.9"
+prd_version: "v1.48"
 epics_version: v1.8
 # DTU
 dtu_required: false
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F2 adversarial Pass-1 REMEDIATED (D-324). 13 findings fixed (1 P0, 3 HIGH, 7 MED, 3 LOW). BC-INDEX v2.5, PRD v1.47, VP-043 added, VP-INDEX v2.31, ARCH-INDEX v2.8. Entering Pass-2 (need 3 clean passes). See Session Resume Checkpoint below.**
+**F2 adversarial Pass-2 REMEDIATED (D-325). 8 findings fixed (1 HIGH, 4 MED, 3 LOW). BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9, VP-INDEX v2.31. Entering Pass-3 (1/3 consecutive clean needed). See Session Resume Checkpoint below.**
 
 ---
 
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-06-22
 | Tag v0.11.1 | commit `4e2b285`; tag object `e8a8a2d4` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.1 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.5 (345 active / 346 on disk) / VP-INDEX v2.31 (43 VPs) / ARCH-INDEX v2.8 / PRD v1.47 |
+| Spec versions | BC-INDEX v2.6 (345 active / 346 on disk) / VP-INDEX v2.31 (43 VPs) / ARCH-INDEX v2.9 / PRD v1.48 |
 | Stories | 94 delivered / 103 total (STORY-INDEX v3.10) |
 
 ---
@@ -93,7 +93,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
-| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **IN PROGRESS** | Spec-layer DONE (D-323). Adversarial Pass-1: NOT-CLEAN (13 findings: 1 P0, 3 HIGH, 7 MED, 3 LOW) — ALL REMEDIATED (D-324). BC-INDEX v2.5, PRD v1.47, VP-043 added, VP-INDEX v2.31, ARCH-INDEX v2.8. Entering Pass-2. |
+| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **IN PROGRESS** | Spec-layer DONE (D-323). Pass-1: NOT-CLEAN (13 findings) — ALL REMEDIATED (D-324). Pass-2: NOT-CLEAN (8 findings: 1 HIGH, 4 MED, 3 LOW) — ALL REMEDIATED (D-325). BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. Entering Pass-3 (1/3 consecutive clean). |
 
 ---
 
@@ -101,11 +101,11 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **Cycle feature-protocol-coverage STARTED** | **DONE (D-320)** | F1 delta-analysis complete. 5 source files, 9 new BCs, 2 new VPs (VP-041/042), ADR-012, SS-18. Scope gate approved. |
 | **F2 design-layer: SS-18 + ADR-012 + VP-041/042 + index bumps** | **DONE** | SS-18 (C-26 src/protocols.rs); ADR-012 (9 decisions); VP-041/042 authored; ARCH-INDEX v2.7; VP-INDEX v2.30. |
 | **Blocking issue F2-SCOPE-DRIFT-UDP-001 RESOLVED** | **DONE** | ADR-012 Decision 6 corrected TCP-only→TCP+UDP. (TransportProto, u16) key consistent. Product-owner unblocked for BC-2.05/BC-2.12. |
 | **F2 spec-layer authored (9 BCs, PRD v1.46, BC-INDEX v2.4)** | **DONE (D-323)** | BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024; CAP-18; (TransportProto,u16) keying. |
 | **F2 adversarial Pass-1: NOT-CLEAN, 13 findings (1 P0, 3 HIGH, 7 MED, 3 LOW) — ALL remediated** | **DONE (D-324)** | P0: BC-2.05.010 false DNS-53 premise + UDP key min(src,dst). HIGH: GOOSE ethertype 34992→35000, ProtocolCategory L2 removed, ARP iff weakened. VP-043 added. BC-INDEX v2.5, PRD v1.47, VP-INDEX v2.31, ARCH-INDEX v2.8. |
+| **F2 adversarial Pass-2: NOT-CLEAN, 8 findings (1 HIGH, 4 MED, 3 LOW) — ALL remediated** | **DONE (D-325)** | HIGH: BC-2.18.003 false VP-041 anti-drift claim corrected (classify() drift UNENFORCED per ADR-012 Dec-5). NEW ADR-012 Decision 10: can_decode() evaluated regardless of enable_dns. VP-041 2nd harness (partition_invariant) + non-vacuity note propagated. POWERLINK 0x88AB/34987 externally verified — [unverified] removed; L2 caveat now 5 protocols. BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. |
 
 ---
 
@@ -138,6 +138,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-322 | F2-SCOPE-DRIFT-UDP-001 RESOLVED. ADR-012 Decision 6 corrected TCP-only→TCP+UDP (D-320 OQ-5 approved scope). Decision 3a updated (TCP-only caveat→L2/multicast structural caveat). Consequences updated: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) 2-tuple. SS-18 Dynamic Detection Scope section, Bounded-Resource Note, and Subsystem Purpose updated. ARCH-INDEX v2.6→v2.7 (Bounded-Resource note, ADR-012 row, SS-18 registry comment, modified log). module-decomposition.md C-21 updated with new field and TransportProto note. architecture-delta.md OQ-5/SS-05/decisions/BC-2.05 anchoring/mandatory caveat all reconciled. BACnet/IP UDP/47808 is now flaggable. Product-owner unblocked for BC-2.05.010/011, BC-2.12.022/024. VP-042 flagged for harness key-type amendment at story-authoring time (property description valid; harnesses use new (TransportProto, u16) type). VP-041 unaffected. | 2026-07-01 |
 | D-323 | F2 spec-layer authored & integrated. 9 BCs (BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024) with (TransportProto,u16) keying + UDP counting; CAP-18; PRD v1.46; BC-INDEX v2.4. Deferred-to-F3: AMB-001-ARP-ETHERTYPE, AMB-002-JSON-FLAG-SCOPE. Next: F2 adversarial spec convergence. | 2026-07-01 |
 | D-324 | F2 adversarial spec Pass-1 complete + remediated. Findings F-F2P1-001..014 all fixed. P0 F-F2P1-002: BC-2.05.010 false no-UDP-dissector premise removed + DNS-53 mis-count + UDP key min(src,dst). HIGH: GOOSE ethertype 34992→35000 (0x88B8), ProtocolCategory L2-variant removed ({ICS,IT} only), ARP iff-invariant weakened to one-way implication. Design: VP-043 added (main.rs UDP path, proptest, P1), VP-041 oracle-reframe (proptest_vp041_oracle_cross_check), UDP key min(src,dst), --ics-only not shipping, tri-state known-supported, HART-IP single-canonical UDP:5094. BC-INDEX v2.5, PRD v1.47, VP-INDEX v2.31, ARCH-INDEX v2.8. Next: Pass-2 fresh-context adversary (need 3 clean passes). | 2026-07-01 |
+| D-325 | F2 adversarial spec Pass-2 complete + remediated. Findings F-F2P2-001..008 all fixed. HIGH F-F2P2-001: BC-2.18.003/ss-18 false 'VP-041 detects classify() drift' claim corrected to match ADR-012 Dec-5 (unenforced convention). NEW ADR-012 Decision 10: UDP gap-classification (can_decode) evaluated regardless of enable_dns when --coverage-gaps active (prevents false known-supported signals). VP-041 2nd harness (proptest_vp041_partition_invariant) propagated to BCs+PRD RTM. POWERLINK 0x88AB/34987 externally verified (IEEE RA registry, HIGH) — [unverified] removed; V1 0x3E3F excluded. L2 caveat now names 5 protocols. BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. Next: Pass-3 fresh-context adversary (0 consecutive clean; need 3). | 2026-07-01 |
 
 ---
 
@@ -173,7 +174,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | SEC-004 + SEC-007 | 7+ counter `+= 1` → saturating_add; clippy hygiene MQ-003/004/005. | LOW | Deferred — trivial PR candidate |
 | PG-BC-ANCHOR-VALIDATION-001 | No automated anchor validation; 12 stale sites maint-2026-07-01. | LOW | Deferred — STORY-091 tooling candidate |
 | DF-KANI-NONVACUITY-001-PROPTEST-GAP | No proptest/unit analog for DF-KANI-NONVACUITY-001. | LOW | Justified deferral — next Kani VP |
-| DF-CANONICAL-FRAME-HOLDOUT-001-F3-OBLIGATION | **F3 MUST add canonical-value ACs for port/ethertype-asserting BCs**: BC-2.18.001/002 (GOOSE ethertype=35000, HART-IP port=5094), BC-2.12.024 (--coverage-gaps canonical output example). Port/ethertype values verified correct at Pass-1; forward obligation only. Failure to add these ACs leaves concrete-value correctness untested in holdout. | HIGH | story-writer (F3 decomposition) | **OPEN — F3 prerequisite** |
+| DF-CANONICAL-FRAME-HOLDOUT-001-F3-OBLIGATION | **F3 MUST add canonical-value ACs for port/ethertype-asserting BCs**: BC-2.18.001/002 (GOOSE ethertype=35000, HART-IP port=5094), BC-2.12.024 (--coverage-gaps canonical output example). **AMENDED (D-325):** F3 must also add a test asserting POWERLINK EtherType == 0x88AB (34987); V1 0x3E3F intentionally excluded as obsolete. Port/ethertype values verified correct at Pass-2 (POWERLINK IEEE RA registry HIGH-confidence). Forward obligation only. Failure to add these ACs leaves concrete-value correctness untested in holdout. | HIGH | story-writer (F3 decomposition) | **OPEN — F3 prerequisite** |
 | SEC-001-ENIP | Unsafe split-borrow enip.rs `on_data`. | MEDIUM | v0.12.0 candidate |
 | TLS-FILLBUF-PUBLIC-SEAM-001 + MAINT-SC-001 | fill_buf_for_testing seam (W7.1); indicatif patch + 41 transitive updates; 8 stale deny.toml entries. | LOW | W7.1 backlog / optional dep-refresh |
 
@@ -183,25 +184,25 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F2 adversarial Pass-1 REMEDIATED (D-324). 13 findings fixed (1 P0: DNS-53 false premise, 3 HIGH: GOOSE ethertype/ProtocolCategory/ARP invariant). BC-INDEX v2.5, PRD v1.47, VP-043 added. Entering Pass-2 (need 3 clean passes).**
+**F2 adversarial Pass-2 REMEDIATED (D-325). 8 findings fixed (1 HIGH: VP-041 false classify()-drift claim, 4 MED, 3 LOW). BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. Entering Pass-3 (1/3 consecutive clean).**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **F2 design-layer artifacts (DONE — D-321/D-322, Pass-1 remediated):**
-  - SS-18: `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` (C-26, src/protocols.rs)
+- **F2 design-layer artifacts (DONE — D-321/D-322/D-325 Pass-2 remediated):**
+  - SS-18: `.factory/specs/architecture/ss-18-protocol-coverage-catalog.md` (v1.3; POWERLINK verified 0x88AB/34987)
   - Architecture delta: `.factory/phase-f2-spec-evolution/feature-protocol-coverage-architecture-delta.md`
-  - ADR-012 (Decision 6/7 remediated): `.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md`
-  - VP-041 (oracle-reframe, proptest_vp041_oracle_cross_check), VP-042 ((TransportProto,u16) key), VP-043 (main.rs UDP path, P1, draft)
-  - Index: ARCH-INDEX v2.8; VP-INDEX v2.31.
-- **F2 spec-layer artifacts (DONE — D-323, Pass-1 remediated):**
+  - ADR-012 (Decision 10 added — can_decode() independent of enable_dns): `.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md`
+  - VP-041 (2nd harness proptest_vp041_partition_invariant), VP-042 ((TransportProto,u16) key), VP-043 (main.rs UDP path, P1)
+  - Index: ARCH-INDEX v2.9; VP-INDEX v2.31.
+- **F2 spec-layer artifacts (DONE — D-323/D-324/D-325 Pass-2 remediated):**
   - BC-2.18.001..004 (SS-18), BC-2.05.010..011 (SS-05), BC-2.12.022..024 (SS-12), CAP-18
-  - BC-INDEX v2.5 (345 active / 346 on disk); PRD v1.47
-  - Pass-1 fixes: DNS-53 false premise removed (BC-2.05.010); GOOSE ethertype=35000; ProtocolCategory={ICS,IT} only; ARP iff weakened; UDP key=min(src,dst).
-  - Deferred-to-F3: AMB-001-ARP-ETHERTYPE, AMB-002-JSON-FLAG-SCOPE; DF-CANONICAL-FRAME-HOLDOUT-001 forward obligation (Open Items).
+  - BC-INDEX v2.6 (345 active / 346 on disk); PRD v1.48
+  - Pass-2 fixes: BC-2.18.003 false VP-041 anti-drift claim corrected; ADR-012 Decision 10 (can_decode() enable_dns-independent); VP-041 partition_invariant harness; POWERLINK 0x88AB verified; L2 caveat 5 protocols. Research: `phase-f1-delta-analysis/powerlink-ethertype-verification.md`.
+  - Deferred-to-F3: AMB-001-ARP-ETHERTYPE, AMB-002-JSON-FLAG-SCOPE; DF-CANONICAL-FRAME-HOLDOUT-001 forward obligation (Open Items, AMENDED for POWERLINK test).
 - **RESUME PROCEDURE (strictly ordered):**
   1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
-  2. Read `.factory/STATE.md` (this file) — confirm Pass-1 REMEDIATED state.
+  2. Read `.factory/STATE.md` (this file) — confirm Pass-2 REMEDIATED state.
   3. Verify git ground truth: `origin/develop=3a60317`, `origin/main=4e2b285`, no open PRs.
-  4. Dispatch Pass-2 fresh-context adversary (cannot see Pass-1 report).
+  4. Dispatch Pass-3 fresh-context adversary (cannot see Pass-1 or Pass-2 reports).
   5. Continue adversary passes until 3 consecutive clean passes, then human F2 gate approval, then F3.
 
 ---
@@ -217,4 +218,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Pass-1 REMEDIATED (D-324): 13 findings fixed, BC-INDEX v2.5, PRD v1.47, VP-043, VP-INDEX v2.31, ARCH-INDEX v2.8. Entering Pass-2.
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Pass-1 REMEDIATED (D-324): 13 findings fixed, BC-INDEX v2.5, PRD v1.47, VP-043, VP-INDEX v2.31, ARCH-INDEX v2.8. F2 adversarial Pass-2 REMEDIATED (D-325): 8 findings fixed, BC-INDEX v2.6, PRD v1.48, ARCH-INDEX v2.9. Entering Pass-3 (1/3 consecutive clean).

@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.47"
+version: "1.48"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -424,6 +424,9 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.48 delta (2026-07-01 — F2 adversarial Pass-2 BC-scope remediation):**
+> Fixes for F2 adversarial Pass-2 BC-scope findings: F-F2P2-001 (HIGH) BC-2.18.003 Description and Invariant 1 false VP-041 anti-drift claim corrected — VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` only; `classify()`-vs-`SUPPORTED_PORTS` drift is UNENFORCED documented convention (ADR-012 Decision 5). F-F2P2-002 (MED) BC-2.18.003/004 gain second VP-041 harness `proptest_vp041_partition_invariant`; non-vacuity clarification added. F-F2P2-004 (MED) BC-2.12.024 PC-1 L2 caveat updated verbatim per architect (adds Ethernet POWERLINK as 5th L2 entry). F-F2P2-005 (MED) BC-2.05.010 Invariant 7 + EC-014 encode ADR-012 Decision 10; BC-2.12.023 Invariant 6 states gap-classification orthogonal to `enable_dns`. F-F2P2-006 (LOW) BC-2.18.001 duplicate PC-8 → PC-9. F-F2P2-007 (LOW) BC-2.05.011 EC-009 rewritten as type-system-prevented state. RTM §7: BC-2.18.003/004 VP anchor updated to both VP-041 harnesses. BC-INDEX bumped to v2.6.
 >
 > **Version 1.47 delta (2026-07-01 — F2 adversarial Pass-1 BC-scope remediation):**
 > BC-scope fixes for F2 adversarial Pass-1 findings (F-F2P1-001..014): BC-2.05.010 Precondition 3 false "no UDP dissector" premise removed; DNS/53 handled by DnsAnalyzer not counted; UDP key changed to `min(src_port, dst_port)` (F-F2P1-002/006). BC-2.18.002 EC-003 GOOSE ethertype 34992→35000 (0x88B8=35000; F-F2P1-001). BC-2.18.002 Invariant 2 weakened from iff to one-way implication with ARP carve-out (F-F2P1-004). ProtocolCategory ∈ {ICS, IT} only; GOOSE.category=ICS; cap-18 doc fixed (F-F2P1-003). HART-IP single transport=UDP in BC-2.18.001 EC-007 (F-F2P1-005). VP-041 harness renamed to `proptest_vp041_oracle_cross_check` in BC-2.18.001..004 (F-F2P1-008). Catalog-declaration output ordering added to BC-2.18.001 PC-8, BC-2.18.002 PC-4 (F-F2P1-009). BC-2.05.010/011 VP Anchors cite VP-042 (TCP) + VP-043 (UDP) (F-F2P1-011). BC-2.05.010 Invariant 6: 65,535→65,536; 131,070→131,072 (F-F2P1-012). BC-INDEX BC-2.12.024 OQ-6→OQ-2 (F-F2P1-013). BC-INDEX BC-2.18.002 field list adds category+ethertype (F-F2P1-014). RTM VP anchors updated: BC-2.18.004→VP-041 oracle; BC-2.05.011→VP-042+VP-043. BC-INDEX bumped to v2.5.
@@ -2134,8 +2137,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.17.026 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
 | BC-2.18.001 | CAP-18 | SS-18 (protocols.rs) | P0 | unit |
 | BC-2.18.002 | CAP-18 | SS-18 (protocols.rs) | P1 | unit |
-| BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 oracle (`proptest_vp041_oracle_cross_check`) |
-| BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 oracle (`proptest_vp041_oracle_cross_check`) |
+| BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 (`proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`) |
+| BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 (`proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`) |
 
 
 ### 2.18 Protocol Coverage Catalog (CAP-18) [Feature — ADR-012, feature-protocol-coverage]

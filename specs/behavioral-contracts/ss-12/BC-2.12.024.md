@@ -27,8 +27,8 @@ removal_reason: null
 
 Whenever `CoverageGapsSummary` is rendered (terminal or JSON), it MUST include fixed
 mandatory caveat text. Two categories of caveats are required: (1) the structural L2/multicast
-limitation (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT are not present in the gap
-report because they have no TCP/UDP port), and (2) the port-102 four-way TCP collision
+limitation (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK are not
+present in the gap report because they have no TCP/UDP port), and (2) the port-102 four-way TCP collision
 ambiguity (a gap on TCP/102 cannot be attributed to a single protocol). These caveats are
 NOT optional warnings; they are required disclosures that prevent operators from making
 incorrect inferences about protocol coverage from the gap report alone. The caveat text
@@ -48,7 +48,7 @@ is fixed (not configurable by CLI flags).
 ## Postconditions
 
 1. **L2/multicast structural limitation caveat MUST appear.** The exact canonical text is:
-   > "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are not represented in the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
+   > "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (e.g., GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) have no TCP/UDP port and are not represented in the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
    
    This text (or a semantically identical localization of it) MUST be present in terminal output and in JSON output as a `"caveat_l2"` (or equivalent) field.
 

@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.8"
+version: "2.9"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -90,6 +90,9 @@ modified:
   - date: 2026-07-01
     actor: architect
     reason: "feature-protocol-coverage F2 adversarial Pass-1 remediation (F-F2P1-003/006/008/010/011/012): (F-F2P1-003) SS-18 registry comment: ProtocolCategory = {ICS, IT} ONLY — NO L2 variant; L2 detection expressed by transport:LinkLayer + port_detectable:false. (F-F2P1-006) Bounded-Resource Design SS-18 note: UDP key changed from (Udp, dst_port) → (Udp, min(src_port, dst_port)) symmetric with TCP; SS-18 registry comment updated with key=min(src_port,dst_port). (F-F2P1-008) SS-18 registry comment: VP-041 harness updated proptest_vp041_set_difference → proptest_vp041_oracle_cross_check (non-vacuous; independent oracle). (F-F2P1-011) SS-18 registry comment: VP-043 added (main.rs UDP decode-loop accumulation; OQ-5 UDP exactness jointly VP-042+VP-043). (F-F2P1-012) Bounded-Resource Design SS-18 note: combined bound corrected 2×65,535 → 2×65,536 (port space 0..=65535 = 65,536 values per transport). VP-INDEX updated to v2.31 (VP-043 added; VP-041 reframed; VP-042 key fixed; total 42→43, proptest 19→20, p1 28→29). Version bump 2.7→2.8."
+  - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 adversarial Pass-2 remediation (F-F2P2-001/004/005): ADR-012 Decision 3a/3c updated — Ethernet POWERLINK (0x88AB) added as 5th L2/multicast protocol in all caveat enumerations. ADR-012 Decision 10 added — UDP gap classification decoupled from enable_dns (when --coverage-gaps active, dns_analyzer.can_decode() evaluated regardless of enable_dns for gap-accounting; finding-emission retains enable_dns gate). ADR-012 Consequences clap-shape updated to Commands::Protocols { filter: ProtocolFilter, json: bool } with ProtocolFilter enum. SS-18 v1.2: drift risk paragraph corrected (VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is documented convention NOT compile-time enforcement per ADR-012 Decision 5). VP-INDEX v2.31 changelog entry for VP-043 addition (2.30→2.31) added; stale arithmetic revised. Version bump 2.8→2.9."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service

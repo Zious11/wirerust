@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.5"
+version: "2.6"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.6 2026-07-01 (F2 adversarial Pass-2 remediation — BC-scope fixes; PRD bumped to v1.48):**
+> Fixes for F2 adversarial Pass-2 BC-scope findings: F-F2P2-001 (HIGH) BC-2.18.003 Description and Invariant 1 false VP-041 anti-drift claim corrected — VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` only; `classify()`-vs-`SUPPORTED_PORTS` drift is UNENFORCED documented convention (ADR-012 Decision 5). F-F2P2-002 (MED) BC-2.18.003 and BC-2.18.004 gain second VP-041 harness `proptest_vp041_partition_invariant`; non-vacuity clarification added (oracle computed independently, does NOT call `supported_protocols()`/`unsupported_protocols()`). F-F2P2-004 (MED) BC-2.12.024 PC-1 L2 caveat text updated to verbatim architect wording including Ethernet POWERLINK as 5th L2 entry; Description updated to list 5 L2 protocols. F-F2P2-005 (MED) BC-2.05.010 Invariant 7 added encoding ADR-012 Decision 10 (`can_decode()` evaluated regardless of `enable_dns` for gap classification); EC-014 added. BC-2.12.023 Invariant 6 added (gap-classification orthogonal to `enable_dns`). F-F2P2-006 (LOW) BC-2.18.001 duplicate PC-8 renumbered to PC-9. F-F2P2-007 (LOW) BC-2.05.011 EC-009 rewritten as type-system-prevented degenerate state. PRD RTM updated: BC-2.18.003/004 both harnesses cited.
 >
 > **v2.5 2026-07-01 (F2 adversarial Pass-1 remediation — BC-scope fixes; PRD bumped to v1.47):**
 > Fixes for F2 adversarial Pass-1 BC-scope findings: F-F2P1-002 (P0) BC-2.05.010 Precondition 3 false DNS premise removed; UDP key changed to `min(src_port, dst_port)`; DNS edge case EC-010/011/012/013 added; VP-043 cited in VP Anchors. F-F2P1-001 (HIGH) BC-2.18.002 EC-003 GOOSE ethertype 34992→35000 (0x88B8 = 35000 decimal). F-F2P1-004 (HIGH) BC-2.18.002 Invariant 2 weakened from iff to one-way implication with ARP carve-out. F-F2P1-003 (HIGH) BC-2.18.001/002 category enum L2 removed; category ∈ {ICS, IT} only; GOOSE.category=ICS; cap-18 capability doc fixed. F-F2P1-005 (MED) BC-2.18.001 EC-007 HART-IP single transport=UDP. F-F2P1-006 (MED) BC-2.05.010/011/PRD: UDP key `dst_port`→`min(src_port, dst_port)`. F-F2P1-008 (MED) VP-041 harness renamed to `proptest_vp041_oracle_cross_check` in BC-2.18.001..004. F-F2P1-009 (MED) output ordering: catalog-declaration order added to BC-2.18.001 PC-8, BC-2.18.002 PC-4; BC-INDEX "alphabetical sort"→"catalog-declaration order". F-F2P1-011 (MED) BC-2.05.010/011 VP Anchors cite both VP-042 (TCP) and VP-043 (UDP). F-F2P1-012 (LOW) BC-2.05.010 Invariant 6: 65,535→65,536, 131,070→131,072. F-F2P1-013 (LOW) BC-2.12.024 comment OQ-6→OQ-2. F-F2P1-014 (LOW) BC-2.18.002 field comment adds category+ethertype.
@@ -764,7 +767,7 @@ traces_to: .factory/specs/prd.md
 > BC-2.18.002: JSON mode — structured protocol array output.
 > BC-2.18.003: supported_protocols() / unsupported_protocols() set-difference and ARP insertion.
 > BC-2.18.004: Catalog partition invariant — supported ∪ unsupported == KNOWN_PROTOCOLS, disjoint.
-> VP-041 (proptest P1, draft): catalog oracle cross-check (`proptest_vp041_oracle_cross_check`; single harness; src/protocols.rs).
+> VP-041 (proptest P1, draft): two harnesses — `proptest_vp041_oracle_cross_check` (per-entry oracle, guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency; non-vacuous) + `proptest_vp041_partition_invariant` (partition/disjointness of supported+unsupported sets over KNOWN_PROTOCOLS; non-vacuous); both in src/protocols_tests.rs.
 > KNOWN_PROTOCOLS ~30 entries: 7 supported + 9 ICS Tier-1 unsupported + 5 L2/multicast + 9 IT core.
 > Note: SS-05 extension (BC-2.05.010..011) and SS-12 extension (BC-2.12.022..024) are co-features.
 
@@ -772,8 +775,8 @@ traces_to: .factory/specs/prd.md
 |-------|-------|----------|--------|--------|
 | BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: terminal table with name/ports/status/transport/detection columns; one row per entry; catalog-declaration order -->
 | BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: --json flag; array of objects; fields: name/category/ports/status/transport/port_detectable/ethertype; catalog-declaration order -->
-| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: SUPPORTED_PORTS compile-time set mirrors classify() rules; ARP added unconditionally; VP-041 oracle (proptest_vp041_oracle_cross_check) -->
-| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: VP-041 proptest_vp041_oracle_cross_check (primary oracle); every KNOWN_PROTOCOLS entry in exactly one set -->
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only (ADR-012 Decision 5); classify()-vs-SUPPORTED_PORTS UNENFORCED; both VP-041 harnesses: proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant; non-vacuity clarification added -->
+| BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: VP-041 two harnesses: proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant; both oracles computed independently (non-vacuous); every KNOWN_PROTOCOLS entry in exactly one set -->
 
 ---
 

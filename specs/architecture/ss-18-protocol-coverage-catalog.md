@@ -3,12 +3,18 @@ artifact: architecture-section
 section: ss-18-protocol-coverage-catalog
 subsystem_id: SS-18
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-07-01T00:00:00Z
 feature_cycle: feature-protocol-coverage
 modified:
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-2 remediation (F-F2P2-008): Ethernet POWERLINK EtherType 0x88AB verified HIGH confidence against IEEE Registration Authority EtherType registry, IETF ietf-ethertypes YANG module, and Wireshark epan/etypes.h. [unverified] tag removed from catalog row; V2 (EPSG current standard) / V1 obsolete 0x3E3F note added. Full citations in .factory/phase-f1-delta-analysis/powerlink-ethertype-verification.md."
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-2 remediation: (F-F2P2-001) Drift risk paragraph reworded — VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is a documented convention NOT compile-time enforcement (ADR-012 Decision 5). (F-F2P2-004) L2 caveat updated to include Ethernet POWERLINK (0x88AB) as the 5th port_detectable:false catalog entry — both the prose list and the mandatory output caveat string now enumerate all 5 L2 protocols consistently with ADR-012 Decision 3a/3c."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-1 remediation: (F-F2P1-003) ProtocolCategory enum corrected to {ICS, IT} only — removed L2 variant; L2 detection expressed by transport:LinkLayer + port_detectable:false; (F-F2P1-005) HART-IP catalog entry changed from TCP+UDP to canonical UDP:5094 with TCP noted in description; §Transport Model section added documenting single-canonical-transport decision for HART-IP/IEC-104/BACnet; (F-F2P1-006) UDP counter key changed from (Udp, dst_port) to (Udp, min(src_port, dst_port)) — ephemeral-port guard symmetric with TCP lower_port; (F-F2P1-007) CoverageGapsSummary Output tri-state: 'known' corrected to 'known-supported' (authoritative per ADR-012 Decision 2 and BC-2.12.024); (F-F2P1-012) Bounded-Resource Note off-by-one: 2×65,535 → 2×65,536 (port space 0..=65535 = 65,536 values per transport)."
@@ -114,7 +120,7 @@ CLI help text MUST state this distinction explicitly (see ADR-012 Decision 3).
 | IEC 61850 Sampled Values | L2 multicast | 0x88BA | port_detectable: false |
 | PROFINET RT/DCP | L2 | 0x8892 | port_detectable: false |
 | EtherCAT | L2 | 0x88A4 | port_detectable: false |
-| Ethernet POWERLINK | L2 | 0x88AB [unverified] | port_detectable: false |
+| Ethernet POWERLINK | L2 | 0x88AB (34987) | port_detectable: false; V2 (EPSG current standard); obsolete V1 value 0x3E3F intentionally excluded — see `.factory/phase-f1-delta-analysis/powerlink-ethertype-verification.md` |
 
 ### IT Core Unsupported (9)
 
@@ -178,8 +184,14 @@ matched outside the dispatcher). This is a pure-core set-intersection over const
 
 **Drift risk:** If a new DispatchTarget variant is added to `dispatcher.rs`, the
 implementer MUST update `SUPPORTED_PORTS` in `protocols.rs`. This obligation is
-recorded in ADR-012 and gated by VP-041 (proptest set-difference correctness).
-A compile-time assertion may optionally enforce the count relationship.
+recorded in ADR-012 Decision 5. VP-041 (`proptest_vp041_oracle_cross_check`)
+detects `supported_protocols()`-vs-`SUPPORTED_PORTS` implementation drift only —
+it verifies that `supported_protocols()` returns exactly the entries whose ports are
+in `SUPPORTED_PORTS` (plus ARP). The `classify()`-vs-`SUPPORTED_PORTS` obligation
+(keeping `SUPPORTED_PORTS` accurately mirroring the port-fallback rules in
+`classify()`) is a **documented convention, NOT compile-time enforcement**
+(ADR-012 Decision 5). A compile-time assertion may optionally enforce the count
+relationship.
 
 ---
 
@@ -214,13 +226,14 @@ in the dynamic gap report. The `(Udp, 47808)` key is distinct from any TCP traff
 the same port, preventing false conflation.
 
 **Remaining structural limitation — L2/multicast protocols:** GOOSE, Sampled Values,
-PROFINET-RT/DCP, and EtherCAT have no TCP/UDP port and are structurally absent from
-the dynamic gap report regardless of transport scope. The report MUST include a fixed
-caveat:
+PROFINET-RT/DCP, EtherCAT, and Ethernet POWERLINK have no TCP/UDP port and are
+structurally absent from the dynamic gap report regardless of transport scope. The
+report MUST include a fixed caveat:
 
-> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE, Sampled
-> Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are not represented in
-> the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
+> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (e.g., GOOSE,
+> Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) have no TCP/UDP
+> port and are not represented in the gap report. Consult
+> `wirerust protocols --unsupported` for L2 protocol coverage."
 
 **Port-102 collision still applies to TCP:** The four-way TCP/102 collision (S7comm,
 S7comm-plus, IEC 61850 MMS, ICCP-TASE.2) is unresolved at the port level; a gap on

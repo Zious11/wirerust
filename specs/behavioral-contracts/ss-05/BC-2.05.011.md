@@ -73,7 +73,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 | EC-006 | Port 102: 5 None-target TCP flows | `(Tcp, 102)` count == 5 (exact); four-way collision noted at report time in BC-2.12.024 |
 | EC-007 | Enip-classified flow on port 44818 closed | `(Tcp, 44818)` count NOT incremented |
 | EC-008 | DNS-classified flow (Dns target on 53) closed | `(Tcp, 53)` count NOT incremented |
-| EC-009 | `--coverage-gaps` not set; then coverage_gaps_enabled=true later (within one run) | Counts reflect only the period when coverage_gaps_enabled was true; prior None-target closes before the flag was set were NOT counted |
+| EC-009 | Mid-run toggling of `coverage_gaps_enabled` (hypothetical degenerate state) | STRUCTURALLY IMPOSSIBLE: `coverage_gaps_enabled` is set once at `StreamDispatcher::new()` and is immutable for the lifetime of the run. The type system prevents modification after construction — no arm of `on_flow_close`, the UDP decode loop, or any other call site has write access to the field post-construction. This scenario is preserved here as documentation of the type-system invariant that eliminates it; no test coverage is required or possible via the public API. |
 | EC-010 | u64 counter at max (extremely unlikely; bounded by pcap size) | Saturating semantics preferred; no panic on overflow; u64 headroom is 1.8×10^19 |
 
 ## Canonical Test Vectors

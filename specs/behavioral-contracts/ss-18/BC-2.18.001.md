@@ -59,7 +59,7 @@ by a separate category variant.
 6. The output includes a fixed port-102 collision footnote: `"NOTE: TCP/102 hosts S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 — gap reports on port 102 cannot be attributed to a single protocol."` (exact text may differ in implementation; the semantic requirement is that the four-way collision is identified and named).
 7. The output includes a fixed link-layer/multicast note for entries with `port_detectable: false` (i.e., `transport=LinkLayer`): those entries are listed with `port_detectable: false` indicated (e.g., marker in a `[L2]` transport column or footnote), making clear they will never appear in the `CoverageGapsSummary` dynamic gap report.
 8. Output rows appear in catalog-declaration order (the order of entries in `KNOWN_PROTOCOLS`). No additional sort is applied at render time.
-8. Exit code is 0.
+9. Exit code is 0.
 
 ## Invariants
 

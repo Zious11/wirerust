@@ -7,6 +7,9 @@ date: 2026-07-01
 modified:
   - date: "2026-07-01"
     actor: architect
+    reason: "F2 adversarial Pass-2 remediation: (F-F2P2-004) Decision 3a and 3c caveat text updated to include Ethernet POWERLINK (0x88AB) as the 5th L2 protocol — catalog has 5 port_detectable:false entries; prior text named only 4. Decision 6 remaining-caveats list also updated. Wording changed to 'e.g.,' prefix for forward-compatibility. (F-F2P2-005) Decision 10 added — UDP gap classification decoupled from enable_dns: when --coverage-gaps is active, dns_analyzer.can_decode() is evaluated regardless of enable_dns for gap-accounting; finding-emission retains the enable_dns gate; rejects catalog-supported-port exclusion alternative. (Observation) Consequences clap-shape updated to Commands::Protocols { filter: ProtocolFilter, json: bool } with ProtocolFilter { All, Supported, Unsupported } enum."
+  - date: "2026-07-01"
+    actor: architect
     reason: "F2-SCOPE-DRIFT-UDP-001 resolution: corrected Decision 6 from TCP-only to TCP+UDP dynamic detection per approved scope D-320 OQ-5. Updated Decision 3a (TCP-only caveat updated to L2/multicast-only caveat; UDP-based protocols BACnet/IP, SNMP, NTP are now detectable). Updated Consequences section: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) to support transport-discriminated keying. BACnet/IP UDP/47808 is now flaggable in the dynamic gap report."
   - date: "2026-07-01"
     actor: architect
@@ -98,10 +101,10 @@ match*, which is semantically different but pragmatically the best fit.
 header and in the `protocols --help` text. They are not optional warnings.
 
 **3a. Transport scope — L2/multicast protocols are structurally absent:**
-> Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE,
-> Sampled Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are never
-> reported in the dynamic gap report regardless of TCP+UDP scope. Consult
-> `wirerust protocols --unsupported` for L2 protocol coverage.
+> Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (e.g., GOOSE,
+> Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) have no TCP/UDP
+> port and are never reported in the dynamic gap report regardless of TCP+UDP scope.
+> Consult `wirerust protocols --unsupported` for L2 protocol coverage.
 
 **3b. Port 102 collision:**
 Four distinct ICS protocols share TCP port 102: **S7comm, S7comm-plus, IEC 61850 MMS,
@@ -113,11 +116,12 @@ Research basis: Wireshark S7comm wiki [P2], scadaprotocols.com IEC 61850 MMS [P5
 PacketViper ICCP/TASE.2 [P1] (see feature-protocol-coverage-research.md references).
 
 **3c. L2/multicast protocols have no port:**
-GOOSE (0x88B8), Sampled Values (0x88BA), PROFINET-RT/DCP (0x8892), and EtherCAT
-(0x88A4) are EtherType-identified Layer-2 multicast frames. The dynamic gap detector
-operates on `(transport, port)` pairs extracted by the TCP dispatcher. These protocols
-are structurally invisible to it. The catalog lists them with `port_detectable: false`
-and the `protocols --unsupported` output marks them with a `[L2]` transport indicator.
+GOOSE (0x88B8), Sampled Values (0x88BA), PROFINET-RT/DCP (0x8892), EtherCAT
+(0x88A4), and Ethernet POWERLINK (0x88AB) are EtherType-identified Layer-2 frames.
+The dynamic gap detector operates on `(transport, port)` pairs extracted by the TCP
+dispatcher. These protocols are structurally invisible to it. The catalog lists them
+with `port_detectable: false` and the `protocols --unsupported` output marks them
+with a `[L2]` transport indicator.
 
 **3d. Port heuristics are not ground truth:**
 Port-based protocol identification is a heuristic [C1]. Services frequently run on
@@ -218,8 +222,9 @@ distinctly even when they share the same port number.
   to the VP-004 Kani-verified `classify()` function or `DispatchTarget` enum.
 
 **Remaining port caveats:**
-- L2/multicast protocols (GOOSE, SV, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port
-  and remain structurally absent from the dynamic gap report (Decision 3a, 3c).
+- L2/multicast protocols (GOOSE, SV, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK)
+  have no TCP/UDP port and remain structurally absent from the dynamic gap report
+  (Decision 3a, 3c).
 - Port-102 four-way TCP collision (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2)
   still applies to TCP entries keyed on `(Tcp, 102)` (Decision 3b).
 
@@ -287,6 +292,57 @@ section in the analysis output, NOT as individual `Finding` entries.
 
 ---
 
+## Decision 10: UDP Gap Classification Decoupled from `enable_dns`
+
+**Decision:** When `--coverage-gaps` is active, `dns_analyzer.can_decode()` is
+evaluated for UDP gap-accounting purposes **regardless of whether `enable_dns` is
+true**. Gap classification is decoupled from finding-emission. A UDP packet on
+port 53 for which `dns_analyzer.can_decode()` returns true is **NOT** counted in
+the unclassified UDP gap counter, even when `--all` / `--dns` is disabled.
+
+**Rationale:**
+
+- `--coverage-gaps` and `--all` / `enable_dns` are orthogonal flags (D-320 OQ-4).
+  Gap reporting expresses "what traffic was unclassifiable by available dissectors,"
+  not "what traffic was examined for findings."
+- Without this decoupling: if `enable_dns == false`, DNS/53 UDP packets are never
+  offered to `can_decode()`, so they enter the unclassified counter as `(Udp, 53)`.
+  The tri-state lookup (Decision 2) then classifies `(Udp, 53)` as `known-supported`
+  — a false dissector-bug signal. The `known-supported` state is reserved for
+  detecting actual dissector bugs (a supported protocol whose live dissector failed
+  to classify the traffic), not for "analyzer disabled."
+- Correct semantics: a UDP packet is **unclassified for gap purposes** iff no
+  available dissector `can_decode()` it, independent of which analyzers are enabled
+  for finding-emission.
+
+**Implementation pattern:**
+
+```rust
+// Evaluate can_decode unconditionally for gap classification.
+// Finding-emission retains the enable_dns gate.
+let classified_by_dns = dns_analyzer.can_decode(&parsed);
+if enable_dns && classified_by_dns {
+    all_findings.extend(dns_analyzer.analyze(&parsed));
+}
+if coverage_gaps && parsed.is_udp() && !classified_by_dns {
+    // increment UDP gap counter keyed on (Udp, min(src_port, dst_port))
+}
+```
+
+**Rejected alternative:** Exclude catalog-`supported` UDP ports from the unclassified
+counter entirely. Rejected because this eliminates the `known-supported` dissector-bug
+detection signal for all UDP-supported protocols — not just DNS — defeating
+Decision 2's sanity-check purpose.
+
+**VP-043 note:** VP-043's property ("NOT classified by `dns_analyzer.can_decode()`")
+remains correct — `can_decode()` is evaluated unconditionally for gap purposes, and
+the gate invariant (classified UDP does NOT increment) is unambiguous. Product-owner
+must encode in BC-2.05.010: when `--coverage-gaps` is active, `can_decode()` is
+evaluated regardless of `enable_dns`; a packet for which `can_decode()` returns true
+MUST NOT increment the gap counter.
+
+---
+
 ## Consequences
 
 - `src/protocols.rs` is a new pure-core module (C-26, SS-18). Zero external crates added.
@@ -300,9 +356,14 @@ section in the analysis output, NOT as individual `Finding` entries.
 - `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs`, independent of
   `protocols.rs::Transport` (which has a third `LinkLayer` variant and must not be
   imported into the dispatcher per the pure-core boundary rule).
-- `src/cli.rs` gains `Protocols { supported, unsupported, all }` variant (SS-12).
+- `src/cli.rs` gains `Commands::Protocols { filter: ProtocolFilter, json: bool }` variant
+  (SS-12), where `ProtocolFilter` is `{ All, Supported, Unsupported }` — an enum that
+  enforces mutual exclusion at the type level (or equivalent).
 - `src/main.rs` gains `run_protocols()` and a `Commands::Protocols` arm (SS-12).
 - `--coverage-gaps` flag added to `analyze` subcommand; absent by default (Decision 8).
+- When `--coverage-gaps` is active, `dns_analyzer.can_decode()` is evaluated for UDP
+  gap classification regardless of `enable_dns` — gap-accounting is decoupled from
+  finding-emission (Decision 10). Finding emission retains the `enable_dns` gate.
 - VP-041 guards catalog set-difference correctness (proptest, P1, SS-18).
 - VP-042 guards dispatcher port-count accumulation (proptest, P1, SS-05).
 - VP-004 (Kani, dispatcher `classify()`) is NOT affected — the `classify()` function
