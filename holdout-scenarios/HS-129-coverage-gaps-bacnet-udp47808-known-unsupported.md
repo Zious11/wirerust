@@ -11,7 +11,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.010.md
   - .factory/stories/STORY-153.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-129"
 category: "behavioral-subtleties"
@@ -33,7 +32,7 @@ fixture_needed: true
 fixture_note: "Requires two crafted pcap fixtures: (1) a pcap with a UDP flow to destination port 47808 (BACnet/IP port — no wirerust BACnet dissector, so it will be unclassified); (2) a pcap with a TCP flow to destination port 47808 (transport mismatch — BACnet/IP is UDP-only in catalog). These must be real pcap files with at least one packet each. The evaluator may craft them using scapy, tcpreplay, or any pcap construction tool."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP uses UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1 'BACnet/IP': 'The UDP port number 47808 (hex BAC0) shall be used for BACnet/IP communication.' The catalog entry for BACnet/IP has transport=UDP; a TCP observation on port 47808 does not match the catalog entry (transport mismatch → unknown)."
-input-hash: "704ff63"
+input-hash: "79d554c"
 ---
 
 # Holdout Scenario: `CoverageGapsSummary` — BACnet/IP UDP/47808 as `known-unsupported`; TCP/47808 as `unknown` (DF-CANONICAL-FRAME-HOLDOUT-001)

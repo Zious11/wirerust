@@ -9,7 +9,6 @@ phase: f3
 inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.001.md
   - .factory/stories/STORY-152.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-126"
 category: "integration-boundaries"
@@ -30,7 +29,7 @@ fixture_needed: false
 fixture_note: "No pcap fixture needed. Pure catalog command."
 canonical_value_scenario: true
 canonical_spec_citation: "TCP port 102 shared by S7comm (Siemens RFC), S7comm-plus (Siemens S7-400/S7-1500), IEC 61850 MMS (IEC 61850-8-1 via ISO-on-TCP/TPKT), and ICCP/TASE.2 (IEC 60870-6 via RFC 1006/TPKT). All four use ISO-on-TCP (RFC 1006) framing on port 102."
-input-hash: "8f890ab"
+input-hash: "eaa9379"
 ---
 
 # Holdout Scenario: `protocols` Terminal — Port-102 Collision Footnote Names All Four Protocols (DF-CANONICAL-FRAME-HOLDOUT-001)

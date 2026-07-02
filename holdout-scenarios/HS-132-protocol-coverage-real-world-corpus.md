@@ -12,7 +12,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.001.md
   - .factory/stories/STORY-152.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-132"
 category: "real-world-corpus"
@@ -35,7 +34,7 @@ fixture_needed: true
 fixture_note: "Two real-world corpus sources needed: (1) a known-good IT network pcap (e.g., Wireshark sample captures from the SampleCaptures archive — any public HTTP/HTTPS/DNS IT traffic pcap); (2) a known-problematic ICS pcap with BACnet/IP UDP/47808 traffic (BACnet capture from a building automation testbed, a Wireshark BACnet sample, or a researcher-released ICS capture with documented BACnet traffic). See scenario body for sources."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP uses UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1. The known-problematic corpus is expected to contain BACnet/IP UDP/47808 traffic that wirerust classifies as known-unsupported in CoverageGapsSummary."
-input-hash: "2047a08"
+input-hash: "94f7144"
 ---
 
 # Holdout Scenario: Protocol Coverage Real-World Corpus — Known-Good IT (Low False-Positive) and Known-Problematic with BACnet/IP (Known Gap Detection)

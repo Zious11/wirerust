@@ -11,7 +11,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.022.md
   - .factory/stories/STORY-151.md
   - .factory/stories/STORY-152.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-125"
 category: "behavioral-subtleties"
@@ -33,7 +32,7 @@ fixture_needed: false
 fixture_note: "No pcap fixture needed. Pure catalog command. jq must be available for JSON assertions."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1; Modbus/TCP port 502 per IANA registry and Modbus Application Protocol Specification v1.1b3 §4.3.1; GOOSE EtherType 35000 (0x88B8) per IEC 61850-8-1 §4 and IEEE RA registry."
-input-hash: "633b1ad"
+input-hash: "caf9421"
 ---
 
 # Holdout Scenario: `protocols --json` — Canonical Values for BACnet/IP, Modbus/TCP, and GOOSE (DF-CANONICAL-FRAME-HOLDOUT-001)

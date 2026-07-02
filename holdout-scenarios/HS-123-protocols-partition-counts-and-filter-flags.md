@@ -12,7 +12,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.022.md
   - .factory/stories/STORY-151.md
   - .factory/stories/STORY-152.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-123"
 category: "behavioral-subtleties"
@@ -33,7 +32,7 @@ assumption_source: null
 risk_source: null
 fixture_needed: false
 fixture_note: "No pcap fixture needed. `wirerust protocols` is a pure-catalog command that requires no input file. The evaluator requires only a correctly built wirerust binary."
-input-hash: "77d0911"
+input-hash: "58d7ab1"
 ---
 
 # Holdout Scenario: `protocols` Subcommand — Partition Counts and Filter Flag Semantics

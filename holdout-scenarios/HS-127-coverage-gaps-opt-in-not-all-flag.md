@@ -11,7 +11,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.022.md
   - .factory/stories/STORY-153.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-127"
 category: "behavioral-subtleties"
@@ -31,7 +30,7 @@ assumption_source: null
 risk_source: null
 fixture_needed: true
 fixture_note: "Requires at least one pcap file for the `wirerust analyze` test cases. Any non-empty pcap from the existing test suite (e.g., one used in prior CLI integration tests) is sufficient. An empty pcap (SHB + IDB, no packets) is also sufficient for the `--coverage-gaps` empty output test."
-input-hash: "79ebbcd"
+input-hash: "157f48f"
 ---
 
 # Holdout Scenario: `--coverage-gaps` Opt-In Semantics — Not Auto-Enabled by `--all`; Subcommand Scope Gating

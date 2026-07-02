@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-154
 title: "`--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024)"
 epic_id: E-21
-wave: 68
+wave: 69
 points: 8
 phase: f3
 tdd_mode: strict
@@ -12,7 +12,7 @@ feature_id: feature-protocol-coverage
 github_issue: feature-protocol-coverage
 subsystems: [SS-12, SS-18]
 target_module: main
-depends_on: [STORY-151, STORY-153]
+depends_on: [STORY-151, STORY-152, STORY-153]
 blocks: []
 behavioral_contracts:
   - BC-2.12.023
@@ -81,8 +81,9 @@ does NOT imply `--coverage-gaps`. The two flags are independent.
 ### AC-154-002: `--coverage-gaps` wired to `StreamDispatcher::new(coverage_gaps_enabled=true)` and decode loop
 **Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.3 PC-1; ADR-012 Decision 8
 
-In `src/main.rs`, `run_analyze()` (or the main dispatch block) passes `args.coverage_gaps` as
-the `coverage_gaps_enabled` parameter to `StreamDispatcher::new()`.
+In `src/main.rs`, `run_analyze()` wires `args.coverage_gaps` using the builder method added by
+STORY-153: `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`.
+This leaves all other `StreamDispatcher::new()` call sites untouched (no blast radius).
 The decode loop's `coverage_gaps: bool` local variable is set from `args.coverage_gaps`.
 
 When `--coverage-gaps` is set: `unclassified_port_counts` (TCP) and `udp_unclassified_counts`
@@ -348,8 +349,10 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - NOT in `--all` group
    - Verify: clap help shows flag; `protocols --coverage-gaps` yields clap error; binary compiles
 
-3. **Wire `coverage_gaps` to `StreamDispatcher::new()` and decode loop (AC-154-002)**
-   - In `run_analyze()`, pass `args.coverage_gaps` to `StreamDispatcher::new()`
+3. **Wire `coverage_gaps` to `StreamDispatcher` builder + decode loop (AC-154-002)**
+   - In `run_analyze()`, wire `args.coverage_gaps` using the builder method from STORY-153:
+     `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`
+     (Do NOT change `StreamDispatcher::new()` signature — builder preserves all existing call sites)
    - In the decode loop, use `args.coverage_gaps` to gate `udp_unclassified_counts` increments
    - Verify: `test_BC_2_12_023_coverage_gaps_counts_unclassified` turns GREEN (with a test pcap)
 
@@ -378,7 +381,7 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - `cargo fmt --check` — clean
    - Verify `analyze` output without `--coverage-gaps` is identical to pre-feature behavior
 
-8. **Micro-commit and PR** targeting `develop` (wave 68, parallel with STORY-152)
+8. **Micro-commit and PR** targeting `develop` (wave 69, after STORY-152 — file-sequencing edge 152→154)
 
 ## Previous Story Intelligence
 
@@ -391,8 +394,10 @@ lookup only checks `Transport::Tcp` and `Transport::Udp` entries.
 
 **From STORY-153 (direct predecessor):**
 Provides `TransportProto` enum, `unclassified_port_counts()` accessor on `StreamDispatcher`,
-`udp_unclassified_counts` map in the decode loop, and `StreamDispatcher::new(coverage_gaps_enabled)`
-parameter. The transport mapping in `lookup_protocol_state()` must use `TransportProto::Tcp →
+`udp_unclassified_counts` map in the decode loop, and the `with_coverage_gaps(enabled: bool) -> Self`
+builder method on `StreamDispatcher` (NOT a new `new()` parameter — builder pattern preserves all
+existing call sites). Wire via `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`.
+The transport mapping in `lookup_protocol_state()` must use `TransportProto::Tcp →
 protocols::Transport::Tcp` and `TransportProto::Udp → protocols::Transport::Udp`.
 
 **Key lesson from BC-2.12.023 v1.2 (Pass-8 remediation):**
@@ -448,3 +453,4 @@ No new source files.
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | LOW: Fixed duplicate "3." in Tasks — renumbered second task-3 (ProtocolGapState) to 4, and all subsequent tasks shifted (4→5, 5→6, 6→7, 7→8). | LOW-STORY-154-TASKS |
+| v1.2 | 2026-07-02 | F-F3P2-004 cascade (MEDIUM): Fixed AC-154-002 + Task 3 + Previous Story Intelligence (STORY-153 paragraph) to use STORY-153's `with_coverage_gaps(enabled: bool) -> Self` builder method instead of `StreamDispatcher::new()` parameter. F-F3P2-005 (MEDIUM): `wave: 68` → `wave: 69` and `depends_on` updated to include STORY-152 (file-sequencing edge 152→154 added to dep-graph: both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; placing 154 in wave 69 eliminates the parallel-edit collision). | F-F3P2-004, F-F3P2-005 |

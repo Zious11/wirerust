@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.3"
+version: "3.4"
 status: draft
 producer: story-writer
 phase: 3
@@ -26,11 +26,12 @@ modified:
   - "2026-06-24 v3.1: E-20 ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — STORY-130..138 added. 9 new product stories: STORY-130 (W58, depends_on=[], 8pts), STORY-131 (W58, depends_on=[], 8pts), STORY-132 (W59, depends_on=[130], 8pts), STORY-133 (W59, depends_on=[131], 5pts), STORY-134 (W60, depends_on=[132,133], 8pts), STORY-135 (W60, depends_on=[132,133], 8pts), STORY-136 (W60, depends_on=[132,133], 5pts), STORY-137 (W60, depends_on=[132,133], 8pts), STORY-138 (W61, depends_on=[134,135,136,137], 8pts). total_stories 79→89 (product; STORY-129 isolated vertex W57 also counted; all-stories 81→91). +14 intra-E-20 edges: 130→132, 131→133, 132→134, 132→135, 132→136, 132→137, 133→134, 133→135, 133→136, 133→137, 134→138, 135→138, 136→138, 137→138. total_edges 106→120. intra_epic_edges 85→99. cross_epic_edges unchanged at 21. number_of_waves 56→61 (waves 57 for STORY-129; 58-61 for E-20). total_points 516→587 (product scheduled; +5 STORY-129 +66 E-20)."
   - "2026-07-02 v3.2: E-21 Protocol Coverage Catalog (feature-protocol-coverage) — STORY-151..154 added. 4 new product stories: STORY-151 (W67, depends_on=[], 8pts, SS-18 protocols.rs catalog + VP-041), STORY-153 (W67, depends_on=[], 8pts, SS-05 dispatcher gap counters + VP-042/VP-043), STORY-152 (W68, depends_on=[151], 8pts, SS-12 protocols CLI subcommand), STORY-154 (W68, depends_on=[151,153], 8pts, SS-12 --coverage-gaps + CoverageGapsSummary). total_stories 89→93 (product; all-stories 91→95). +3 intra-E-21 edges: 151→152, 151→154, 153→154. total_edges 120→123. intra_epic_edges 99→102. cross_epic_edges unchanged at 21. number_of_waves 61→68 (waves 62-66 were added by post-v3.1 fix stories STORY-139..146; waves 67-68 added for E-21). BCs: BC-2.18.003/004 (STORY-151), BC-2.12.022/BC-2.18.001/002 (STORY-152), BC-2.05.010/011 (STORY-153), BC-2.12.023/024 (STORY-154). VPs: VP-041 (STORY-151/152/154), VP-042 (STORY-153/154), VP-043 (STORY-153/154)."
   - "2026-07-02 v3.3: F-F3P1-007 remediation — reconcile global story counts to STORY-INDEX (authoritative = 107). total_stories 93→107 (STORY-INDEX authoritative; wave tables in this file cover waves 1-68; STORY-139..150 and STORY-143/147/148/149/150 are wave-TBD stories tracked in STORY-INDEX but not yet in dep-graph wave schedule). Brownfield context note and Summary Table 'all-stories' count updated to 107. Edges, waves, and per-epic story tables are unchanged."
-total_stories: 107  # STORY-INDEX authoritative (107); wave tables cover waves 1-68; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 tracked in STORY-INDEX but not in wave schedule
-total_edges: 123
-intra_epic_edges: 102
+  - "2026-07-02 v3.4: F-F3P2-005 remediation — file-sequencing edge 152→154 added. STORY-154 moved from wave 68 to wave 69 (both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; parallel dispatch in wave 68 would cause merge conflicts on shared files). total_edges 123→124 (+1 intra-E-21: STORY-152→STORY-154). intra_epic_edges 102→103. number_of_waves 68→69. STORY-154 depends_on updated [151,153]→[151,152,153] in story frontmatter. Wave 68 now contains STORY-152 only; Wave 69 contains STORY-154."
+total_stories: 107  # STORY-INDEX authoritative (107); wave tables cover waves 1-69; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 tracked in STORY-INDEX but not in wave schedule
+total_edges: 124
+intra_epic_edges: 103
 cross_epic_edges: 21
-number_of_waves: 68
+number_of_waves: 69
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -44,7 +45,7 @@ traces_to:
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
 > All 107 stories (STORY-INDEX authoritative) formalize behavioral contracts for existing and new shipped code
 > (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage feature additions
-> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21; wave tables in this file cover waves 1-68;
+> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21; wave tables in this file cover waves 1-69;
 > wave-TBD stories STORY-091 + STORY-121 + STORY-139..150 tracked in STORY-INDEX — all-stories total = 107).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
@@ -56,13 +57,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 107 (STORY-INDEX authoritative; wave tables cover waves 1-68; wave-TBD stories STORY-091+STORY-121+STORY-139..150 tracked in STORY-INDEX but not yet in wave schedule) |
-| Total dependency edges | 123 |
-| Intra-epic edges | 102 |
+| Total stories | 107 (STORY-INDEX authoritative; wave tables cover waves 1-69; wave-TBD stories STORY-091+STORY-121+STORY-139..150 tracked in STORY-INDEX but not yet in wave schedule) |
+| Total dependency edges | 124 |
+| Intra-epic edges | 103 |
 | Cross-epic edges | 21 |
-| Number of parallel waves | 68 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–68 for E-21 Protocol Coverage Catalog: STORY-151∥STORY-153 wave 67, STORY-152∥STORY-154 wave 68) |
-| Graph is acyclic | Yes (Kahn topological sort verified; E-21 diamond: {STORY-151∥STORY-153} (wave 67, no deps) → {STORY-152 (dep=151)∥STORY-154 (dep=151+153)} (wave 68); no back-edges into existing graph) |
-| Total story points | 662 (product scheduled through wave 68; E-21 adds 32 pts [8+8+8+8]) |
+| Number of parallel waves | 69 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–69 for E-21 Protocol Coverage Catalog: STORY-151∥STORY-153 wave 67, STORY-152 wave 68, STORY-154 wave 69) |
+| Graph is acyclic | Yes (Kahn topological sort verified; E-21 chain: {STORY-151∥STORY-153} (wave 67, no deps) → {STORY-152 (dep=151)} (wave 68) → {STORY-154 (dep=151+152+153)} (wave 69); no back-edges into existing graph) |
+| Total story points | 662 (product scheduled through wave 69; E-21 adds 32 pts [8+8+8+8]) |
 
 ---
 
@@ -89,7 +90,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (102 edges)
+### Intra-Epic Edges (103 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -272,6 +273,7 @@ Dependencies in this graph respect the layer rules from
 | STORY-151 | STORY-152 | STORY-152 (`protocols` CLI subcommand + terminal/JSON renderer) calls `all_protocols()`, `supported_protocols()`, `unsupported_protocols()` and reads `KnownProtocol` struct fields including `ethertype` and `transport` — all defined in `src/protocols.rs` by STORY-151. Compile-order dependency: the CLI renderer cannot be implemented before the catalog module and its public API exist. |
 | STORY-151 | STORY-154 | STORY-154 (`--coverage-gaps` flag + `CoverageGapsSummary` render) calls `lookup_protocol_state()` which queries `KNOWN_PROTOCOLS` and uses `Transport`/`TransportProto` types and `canonical_ports` fields from `src/protocols.rs`; also calls `supported_protocols()` and `unsupported_protocols()` to drive the tri-state gap classification. Compile-order dependency on the `protocols` module and its public API from STORY-151. |
 | STORY-153 | STORY-154 | STORY-154 reads `dispatcher.unclassified_port_counts()` and `udp_unclassified_counts` — both `HashMap<(TransportProto, u16), u64>` — populated by STORY-153's `StreamDispatcher` augmentation and `main.rs` UDP decode-loop additions. STORY-154 cannot render `CoverageGapsSummary` entries before the counter data structures and their population logic exist. Compile-order + runtime-data dependency. |
+| STORY-152 | STORY-154 | File-sequencing edge (F-F3P2-005): both STORY-152 and STORY-154 edit `src/cli.rs` (STORY-152 adds `Commands::Protocols` variant + `ProtocolsArgs`; STORY-154 adds `coverage_gaps: bool` field to `AnalyzeArgs`), `src/main.rs` (STORY-152 adds `run_protocols()` dispatch arm; STORY-154 adds `render_coverage_gaps_summary()` call), and `tests/integration_tests.rs` (STORY-152 adds `test_protocols_*` cases; STORY-154 adds `test_coverage_gaps_*` cases). Dispatching both stories in the same wave causes merge conflicts on three shared files. STORY-152 must complete and merge before STORY-154 begins. |
 
 ---
 
@@ -803,14 +805,21 @@ and can be dispatched in parallel.
 
 > **Note:** STORY-151 and STORY-153 both have `depends_on: []`. They are the two parallel roots of the E-21 dependency graph (Wave 67 = max(66)+1 for these isolated stories). STORY-151 builds the pure-core `src/protocols.rs` module (SS-18); STORY-153 augments the `StreamDispatcher` with gap counters and extends the main.rs UDP decode-loop (SS-05). They touch independent files (`src/protocols.rs` vs `src/dispatcher.rs` + UDP section of `src/main.rs`) and have no shared dependency within the wave. VP-041 proptest harnesses land in STORY-151; VP-042/VP-043 proptest harnesses land in STORY-153.
 
-### Wave 68 — 2 stories | Epic: E-21
+### Wave 68 — 1 story | Epic: E-21
 
 | Story | Epic | Points | Subsystem | Description |
 |-------|------|--------|-----------|-------------|
 | STORY-152 | E-21 | 8 | SS-12, SS-18 | `protocols` CLI Subcommand — CLI Dispatch Wiring + Terminal Table Renderer + JSON Output |
+
+> **Note:** STORY-152 depends on STORY-151 (wave 68 = max(67)+1 via the STORY-151→STORY-152 edge). STORY-154 was moved to Wave 69 (file-sequencing edge 152→154 added in v3.4): both stories edit `src/cli.rs`, `src/main.rs`, and `tests/integration_tests.rs`; dispatching them in parallel would cause merge conflicts. STORY-152 must complete and merge before STORY-154 begins.
+
+### Wave 69 — 1 story | Epic: E-21
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
 | STORY-154 | E-21 | 8 | SS-12 | `--coverage-gaps` Flag + `CoverageGapsSummary` Renderer — BC-2.12.023 + BC-2.12.024 |
 
-> **Note:** STORY-152 depends on STORY-151 (wave 68 = max(67)+1 via the STORY-151→STORY-152 edge). STORY-154 depends on both STORY-151 and STORY-153 (wave 68 = max(67)+1 via both edges). STORY-152 and STORY-154 are independent of each other within Wave 68 — STORY-152 renders the static catalog via the `protocols` subcommand; STORY-154 wires the `--coverage-gaps` flag and renders the dynamic counter summary. They can be dispatched in parallel once Wave 67 is complete.
+> **Note:** STORY-154 depends on STORY-151, STORY-152, and STORY-153 (wave 69 = max(68)+1 via three edges: 151→154 compile-order on protocols.rs API, 153→154 compile-order + runtime-data on dispatcher counters, 152→154 file-sequencing on cli.rs/main.rs/integration_tests.rs). STORY-154 is the terminal leaf of the E-21 graph, integrating both the catalog module (STORY-151) and the gap counters (STORY-153), after STORY-152 has established the shared CLI/main.rs scaffolding.
 
 ---
 
@@ -847,7 +856,8 @@ STORY-116 -> STORY-117
 [Wave 61: STORY-138 (dep=134+135+136+137)]
 [Waves 62–66 (post-v3.1 fix stories, STORY-139..146 — see STORY-INDEX wave table)]
 [Wave 67 (independent): STORY-151 ∥ STORY-153] ->
-[Wave 68: STORY-152 (dep=151) ∥ STORY-154 (dep=151+153)]
+[Wave 68: STORY-152 (dep=151)] ->
+[Wave 69: STORY-154 (dep=151+152+153)]
 ```
 
 > **Cycle check:** All 93 product nodes processed by Kahn's algorithm. No node remained
@@ -876,9 +886,10 @@ STORY-116 -> STORY-117
 > wave-60 stories (wave 61 = max(60)+1). E-21 chain (STORY-151..154, Protocol Coverage
 > Catalog, feature-protocol-coverage): STORY-151 and STORY-153 have `depends_on=[]`
 > (wave 67, two parallel roots; no predecessor required); STORY-152 depends on STORY-151
-> (wave 68 = max(67)+1); STORY-154 depends on STORY-151+STORY-153 (wave 68 = max(67)+1).
-> No edge in E-21 points to any existing node (waves 1–66). All 3 new edges are intra-E-21.
-> No back-edges exist. Graph is acyclic.
+> (wave 68 = max(67)+1); STORY-154 depends on STORY-151+STORY-152+STORY-153
+> (wave 69 = max(68)+1 via 3 edges: 151→154 compile-order, 153→154 runtime-data,
+> 152→154 file-sequencing). No edge in E-21 points to any existing node (waves 1–66).
+> All 4 new edges are intra-E-21. No back-edges exist. Graph is acyclic.
 
 ---
 
@@ -941,11 +952,13 @@ iteratively. Result:
   (Wave 67, in-degree=0). Two parallel roots; neither depends on the other. They occupy
   Wave 67 = max(62..66)+1 (the wave number exceeds all post-v3.1 fix stories in waves 62–66).
   STORY-152 depends_on=[STORY-151] (Wave 68 = max(67)+1, in-degree=1). STORY-154
-  depends_on=[STORY-151, STORY-153] (Wave 68 = max(67)+1, in-degree=2). STORY-152 and
-  STORY-154 are independent of each other within Wave 68 (different feature scope: static
-  catalog display vs dynamic counter summary). All 3 new edges point forward through waves
-  67→68; no edge points to any existing node (waves 1–66). All edges are intra-E-21.
-  No back-edges exist. Wave constraint satisfied at every node. No cycle is possible.
+  depends_on=[STORY-151, STORY-152, STORY-153] (Wave 69 = max(68)+1, in-degree=3).
+  The STORY-152→STORY-154 edge is a file-sequencing edge (F-F3P2-005): both stories
+  edit src/cli.rs, src/main.rs, and tests/integration_tests.rs; the edge prevents
+  parallel dispatch that would cause merge conflicts on those shared files. All 4 new
+  edges point forward through waves 67→68→69; no edge points to any existing node
+  (waves 1–66). All edges are intra-E-21. No back-edges exist. Wave constraint
+  satisfied at every node (67 < 68 < 69). No cycle is possible.
 
 ---
 
@@ -1204,11 +1217,11 @@ E-20 (SS-17 ENIP/CIP analyzer + SS-05 dispatcher Rule 7 + SS-12 CLI) — diamond
   of each other (separate detection domains, no shared per-detection state).
   STORY-138 is the terminal leaf, aggregating all detection counters into summarize().
 
-E-21 (SS-18 protocol catalog + SS-05 gap counters + SS-12 CLI) — diamond topology (Waves 67-68, feature-protocol-coverage):
+E-21 (SS-18 protocol catalog + SS-05 gap counters + SS-12 CLI) — linear chain topology (Waves 67-69, feature-protocol-coverage):
   STORY-151 (Wave 67) [protocols.rs pure-core catalog, depends_on=[]]  ∥
   STORY-153 (Wave 67) [dispatcher gap counters + UDP decode-loop, depends_on=[]]
-    -> STORY-152 (Wave 68) [protocols CLI subcommand + renderer; depends_on=[151]]  ∥
-    -> STORY-154 (Wave 68) [--coverage-gaps + CoverageGapsSummary; depends_on=[151,153]]
+    -> STORY-152 (Wave 68) [protocols CLI subcommand + renderer; depends_on=[151]]
+    -> STORY-154 (Wave 69) [--coverage-gaps + CoverageGapsSummary; depends_on=[151,152,153]]
   STORY-151 and STORY-153 have NO upstream dependency (depends_on=[]); they are the
   two parallel roots of the E-21 graph. STORY-151 builds the SS-18 pure-core protocols
   module (new src/protocols.rs + lib.rs mod declaration); STORY-153 augments the SS-05
@@ -1217,8 +1230,9 @@ E-21 (SS-18 protocol catalog + SS-05 gap counters + SS-12 CLI) — diamond topol
   share no intra-wave dependency.
   STORY-152 depends_on=[STORY-151] (CLI renderer calls all_protocols/supported_protocols/
   unsupported_protocols and renders KnownProtocol fields); STORY-154 depends_on=[STORY-151,
-  STORY-153] (gap renderer calls lookup_protocol_state from protocols.rs AND reads counter
-  maps from dispatcher + main.rs). They are independent of each other within Wave 68.
+  STORY-152, STORY-153] (gap renderer calls lookup_protocol_state from protocols.rs AND
+  reads counter maps from dispatcher + main.rs; file-sequencing edge 152→154 prevents
+  parallel edit of src/cli.rs + src/main.rs + tests/integration_tests.rs).
   STORY-154 is the terminal leaf, integrating both the catalog module and the counters.
 ```
 

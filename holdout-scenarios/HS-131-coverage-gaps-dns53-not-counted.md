@@ -12,7 +12,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.024.md
   - .factory/stories/STORY-153.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-131"
 category: "behavioral-subtleties"
@@ -35,7 +34,7 @@ fixture_needed: true
 fixture_note: "Requires two crafted pcap fixtures: (1) a pcap with valid DNS/53 UDP traffic (at least one DNS query or response on UDP/53 that dns_analyzer.can_decode() accepts — a standard DNS query pcap); (2) a pcap with TCP traffic to port 53 (DNS-over-TCP or simply a TCP flow to port 53 that wirerust has no TCP dissector for)."
 canonical_value_scenario: true
 canonical_spec_citation: "DNS uses UDP port 53 per RFC 1035 §4.2.1 'Server' ('Domain servers should receive 53 as the default UDP/TCP port'). DNS is a known-supported protocol in wirerust (dns_analyzer active on UDP/53). DNS traffic accepted by dns_analyzer.can_decode() must NOT appear in the gap report (it is classified, not a gap). TCP/53 is not in the wirerust catalog as TCP — DNS is UDP-only in the protocol catalog — so (Tcp, 53) → unknown (transport mismatch)."
-input-hash: "e73b5d2"
+input-hash: "2d69b79"
 ---
 
 # Holdout Scenario: DNS/53 UDP Not Counted in Gap Report; TCP/53 → `unknown` (DF-CANONICAL-FRAME-HOLDOUT-001)

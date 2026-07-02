@@ -265,16 +265,28 @@ by the complement derivation (unsupported = KNOWN \ supported).
 
 (traces to BC-2.18.004 v1.2 Invariant 4; BC-2.18.003 v1.3 VP table)
 
-### AC-151-008: ARCH-INDEX document-map component count doc-fix (F3-carry)
+### AC-151-008: ARCH-INDEX module-criticality row doc-fix (F3-carry)
 **Traces to:** ADR-012 Decision 1; BC-2.18.003 v1.3 Architecture Anchors; DF-SIBLING-SWEEP-001
 
-F3-carry item: ARCH-INDEX.md Document Map still shows "24 components" (pre-SS-18). With C-26
-`src/protocols.rs` (SS-18, new in F2 design layer) and C-27 being the next, the component count
-is 26. This story adds the `pub mod protocols;` declaration to `src/lib.rs`, which is the
-implementation anchor for C-26.
+F3-carry item: ARCH-INDEX.md Architecture Section Document Map already shows "26 components
+C-1..C-26" in the `module-decomposition.md` row (updated in F2: C-25 = `src/enip.rs` EtherNet/IP
++ CIP from feature-enip-v0.11.0 issue #316; C-26 = `src/protocols.rs` SS-18 from
+feature-protocol-coverage F2 design layer). The Document Map row requires no change.
 
-Task: Update `ARCH-INDEX.md` Document Map "24 components" → "26 components" as part of this
-story's implementation.
+The stale "24 components" is in the **`module-criticality.md` row** of the Document Map:
+```
+| .factory/specs/module-criticality.md | Module kill-rate tier classification (CRITICAL/HIGH/MEDIUM/LOW) for all 24 components | ~500 |
+```
+
+This story adds `pub mod protocols;` to `src/lib.rs`, which is the implementation anchor for C-26.
+
+Task: Update the `module-criticality.md` row in `specs/architecture/ARCH-INDEX.md` from
+"for all **24** components" → "for all **26** components".
+The `module-decomposition.md` row already correctly shows "26 components C-1..C-26" — no change needed there.
+
+**Component identities (authoritative):**
+- C-25 = `src/enip.rs` (EtherNet/IP + CIP Analysis, SS-17, feature-enip-v0.11.0 issue #316)
+- C-26 = `src/protocols.rs` (Protocol Coverage Catalog, SS-18, feature-protocol-coverage — this story)
 
 (traces to ADR-012 Decision 1; DF-SIBLING-SWEEP-001 sibling sweep)
 
@@ -383,8 +395,11 @@ Fits comfortably within a 200k context window (~17%). New file — no pre-existi
    - Verify: `cargo test --all-targets` ALL GREEN
 
 5. **ARCH-INDEX doc-fix (AC-151-008)**
-   - Update `specs/architecture/ARCH-INDEX.md` Document Map "24 components" → "26 components"
-   - This reflects C-25 (`src/reader.rs` pcapng reader from E-19) and C-26 (`src/protocols.rs` new)
+   - The Document Map `module-decomposition.md` row already shows "26 components C-1..C-26" — no change needed there
+   - Update the `module-criticality.md` row description in `specs/architecture/ARCH-INDEX.md`:
+     "for all 24 components" → "for all 26 components"
+   - C-25 = `src/enip.rs` (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0) — NOT reader.rs
+   - C-26 = `src/protocols.rs` (Protocol Coverage Catalog, SS-18, this story)
 
 6. **Full regression sweep**
    - `cargo test --all-targets` — ALL tests GREEN (protocols_tests.rs + all existing tests)
@@ -451,3 +466,4 @@ standalone pure-core catalog.
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-001/006 (P0/MEDIUM): Added EtherCAT, PROFINET-DCP, SV canonical EtherType tests (34980/34962/35002) to AC-151-003 canonical block and Task 1 test list. F-F3P1-005 (MEDIUM): Removed misplaced Task 0 (VP-042 carry belongs to STORY-153) and VP-042(d) note from AC-151-007. LOW: Fixed AC-151-003 cross-ref BC-2.18.001 PC-8 → BC-2.18.003 v1.3 PC-2. | F-F3P1-001, F-F3P1-005, F-F3P1-006 |
+| v1.2 | 2026-07-02 | F-F3P2-002 (HIGH): Fixed AC-151-008 + Task 5 — re-targeted ARCH-INDEX doc-fix from Document Map row (already "26 components C-1..C-26") to the `module-criticality.md` row (still "24 components"); removed incorrect "Document Map" target and "C-25=reader.rs" rationale; stated correct C-25=enip.rs (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0 issue #316) and C-26=protocols.rs (SS-18, this story). | F-F3P2-002 |

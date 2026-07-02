@@ -10,7 +10,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.024.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.023.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-128"
 category: "behavioral-subtleties"
@@ -30,7 +29,7 @@ assumption_source: null
 risk_source: null
 fixture_needed: true
 fixture_note: "Requires: (1) an empty or near-empty pcap (no TCP/UDP traffic) to test L2 caveat with empty entries array; (2) any pcap with at least one unclassified TCP or UDP flow to test L2 caveat with non-empty entries."
-input-hash: "d4fbaeb"
+input-hash: "dc5fc2b"
 ---
 
 # Holdout Scenario: `CoverageGapsSummary` — Mandatory L2/Multicast Caveat Always Present

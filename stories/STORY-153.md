@@ -80,21 +80,35 @@ unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
 coverage_gaps_enabled: bool,
 ```
 
-Both fields initialized in `StreamDispatcher::new()`:
-- `unclassified_port_counts: HashMap::new()` (or `HashMap::default()`)
-- `coverage_gaps_enabled: bool` — passed as a parameter to `StreamDispatcher::new()`
+Both fields initialized in `StreamDispatcher`:
+- `unclassified_port_counts: HashMap::new()` (or `HashMap::default()`) — initialized in `new()`
+- `coverage_gaps_enabled: bool` — default `false` in `new()`; set via the builder method below
 
-`StreamDispatcher::new()` signature gains a `coverage_gaps_enabled: bool` parameter
-(or equivalent; the field is set once at construction time — immutable for the lifetime of the run,
-per BC-2.05.011 EC-009 structural-impossibility note).
+**PREFERRED implementation (lower blast radius — builder pattern):**
+```rust
+pub fn with_coverage_gaps(mut self, enabled: bool) -> Self {
+    self.coverage_gaps_enabled = enabled;
+    self
+}
+```
+This is consistent with the existing `with_max_classification_attempts(mut self, ...) -> Self`
+builder and BC-2.05.011 EC-009's "or equivalent" wording. All existing `StreamDispatcher::new()`
+call sites remain untouched. STORY-154 wires the flag by calling
+`StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)` at its single `run_analyze()` site.
+
+If the `new()` parameter approach is used instead, ALL 8 existing call sites must be updated:
+`tests/bc_2_14_105_modbus_dispatch_tests.rs`, `tests/tls_integration_tests.rs`,
+`tests/timestamp_threading_tests.rs`, `tests/multi_analyzer_e2e_tests.rs`,
+`tests/enip_e2e_real_pcaps_tests.rs`, `tests/enip_analyzer_tests.rs`,
+`tests/bc_2_15_110_dnp3_dispatcher_tests.rs`, `benches/pipeline.rs`.
 
 **Accessor:** `pub fn unclassified_port_counts(&self) -> &HashMap<(TransportProto, u16), u64>`
 
-(traces to BC-2.05.010 v1.3 PC-1, PC-4 (dual-gate); BC-2.05.011 v1.1 PC-1, PC-3; ADR-012 Decision 6 Clarification)
+(traces to BC-2.05.010 v1.3 PC-1, PC-4; BC-2.05.011 v1.1 PC-1, PC-3; ADR-012 Decision 6 Clarification)
 
 **Red-Gate test:**
-- `test_BC_2_05_010_fields_accessible` — construct dispatcher with `coverage_gaps_enabled=true`; accessor returns empty map
-- `test_BC_2_05_010_coverage_gaps_disabled_map_empty` — construct with `coverage_gaps_enabled=false`; after simulated None-target flow close, map still empty
+- `test_BC_2_05_010_fields_accessible` — construct dispatcher with `.with_coverage_gaps(true)`; accessor returns empty map
+- `test_BC_2_05_010_coverage_gaps_disabled_map_empty` — construct without `.with_coverage_gaps()`; after simulated None-target flow close, map still empty
 
 ### AC-153-003: TCP counter populated at `on_flow_close` for None-target flows — dual-gate + `lower_port`
 **Traces to:** BC-2.05.010 v1.3 PC-1, Postconditions 1–4, Invariants 1–6; BC-2.05.011 v1.1 Postconditions 1, 3, 6; ADR-012 Decision 6 Clarification
@@ -102,18 +116,18 @@ per BC-2.05.011 EC-009 structural-impossibility note).
 In `on_flow_close`, the existing `None` arm (which already increments `self.unclassified_flows`):
 ```rust
 Some(DispatchTarget::None) | None => {
-    if self.coverage_gaps_enabled                              // gate (a)
-        && (self.http.is_some() || self.tls.is_some()
-            || self.modbus.is_some() || self.dnp3.is_some()
-            || self.enip.is_some())                           // gate (b) analyzer-present guard
+    if self.http.is_some() || self.tls.is_some() || self.modbus.is_some()
+        || self.dnp3.is_some() || self.enip.is_some()    // analyzer-present guard ONLY
     {
-        self.unclassified_flows += 1;  // existing counter (unchanged)
-        // NEW: per-port tracking
-        let lower_port = flow_key.lower_port();               // F3-carry: use existing lower_port() method
-        self.unclassified_port_counts
-            .entry((TransportProto::Tcp, lower_port))
-            .or_insert(0)
-            .saturating_add_assign(1);                        // or: *count += 1 (u64 overflow risk is negligible)
+        self.unclassified_flows += 1;                    // existing counter — NOT gated on coverage_gaps_enabled
+        if self.coverage_gaps_enabled {
+            // NEW: per-(Tcp, lower_port) unclassified_port_counts increment
+            let lower_port = flow_key.lower_port();      // F3-carry: use existing lower_port() method
+            let c = self.unclassified_port_counts
+                .entry((TransportProto::Tcp, lower_port))
+                .or_insert(0);
+            *c = c.saturating_add(1);                    // saturating_add (EC-153-10; no panic on u64 overflow)
+        }
     }
 }
 ```
@@ -124,10 +138,16 @@ exists on `FlowKey` in the real codebase, confirmed by `grep` in dispatcher.rs l
 or `flow_key.dst_port` directly. The `lower_port()` method gives `min(src_port, dst_port)`,
 which is the direction-normalized server/service port.
 
-Dual-gate (ADR-012 Decision 6 Clarification): the increment is gated on BOTH:
-- (a) `self.coverage_gaps_enabled == true`
-- (b) the analyzer-present guard (same guard that gates `unclassified_flows`)
-When no analyzers are configured, neither `unclassified_flows` nor `unclassified_port_counts` fires.
+Gating structure (ADR-012 Decision 6 Clarification EXACT):
+- `unclassified_flows += 1` is gated on the **analyzer-present guard ONLY** — NOT on `coverage_gaps_enabled`.
+- `unclassified_port_counts` increment is gated on BOTH: (outer) analyzer-present guard AND (inner) `if self.coverage_gaps_enabled`.
+- When no analyzers are configured: neither `unclassified_flows` nor `unclassified_port_counts` fires.
+- When analyzers are present but `coverage_gaps_enabled=false`: `unclassified_flows` fires; the port counter does NOT.
+
+> **REGRESSION WARNING:** Placing `unclassified_flows += 1` inside `if self.coverage_gaps_enabled`
+> would zero `unclassified_flows` on all normal (coverage_gaps=false) runs, breaking BC-2.05.009
+> and greenfield holdouts HS-040/HS-095. The code above is the ONLY correct structure per
+> ADR-012 Decision 6 Clarification.
 
 (traces to BC-2.05.010 v1.3 PC-1, PC-2, Postconditions 1, 3–4; BC-2.05.011 v1.1 PC-1, PC-3;
 BC-2.05.011 Invariant 1; ADR-012 Decision 6 Clarification)
@@ -213,8 +233,8 @@ BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 10)
 Three proptest harnesses in `tests/dispatcher_tests.rs` inside `mod story_153 { ... }`:
 
 **Sub-A — `proptest_vp042_total_count_equals_n`**:
-After N `on_flow_close` calls with `DispatchTarget::None` (with `coverage_gaps_enabled=true`
-AND ≥1 analyzer is_some() — dual-gate precondition per ADR-012 Decision 6 Clarification),
+After N `on_flow_close` calls with `DispatchTarget::None` (with `.with_coverage_gaps(true)`
+AND ≥1 analyzer is_some() — precondition per ADR-012 Decision 6 Clarification),
 `unclassified_port_counts.values().sum() == N`.
 
 **Sub-B — `proptest_vp042_per_port_count_equals_frequency`**:
@@ -335,20 +355,33 @@ NOT change.
    - `proptest_vp043_no_increment_on_classified_udp` — (proptest, FAILS)
    All tests MUST FAIL (struct field doesn't exist yet; TransportProto undefined).
 
-2. **Add `TransportProto` enum + fields + accessor to `src/dispatcher.rs` (AC-153-001 through AC-153-002)**
+2. **Add `TransportProto` enum + fields + builder + accessor to `src/dispatcher.rs` (AC-153-001 through AC-153-002)**
    - Define `pub enum TransportProto { Tcp, Udp }` in dispatcher.rs (NOT imported from protocols.rs)
    - Add `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` field to `StreamDispatcher`
-   - Add `coverage_gaps_enabled: bool` field to `StreamDispatcher`
-   - Update `StreamDispatcher::new()` to accept `coverage_gaps_enabled: bool` parameter
+   - Add `coverage_gaps_enabled: bool` field to `StreamDispatcher` (default `false` in `new()`)
+   - Add builder method `pub fn with_coverage_gaps(mut self, enabled: bool) -> Self`
+     (consistent with existing `with_max_classification_attempts` builder pattern in dispatcher.rs)
+   - Do NOT modify `StreamDispatcher::new()` signature — all existing call sites remain untouched
    - Add `pub fn unclassified_port_counts(&self) -> &HashMap<(TransportProto, u16), u64>` accessor
-   - Update all `StreamDispatcher::new()` call sites to pass `coverage_gaps_enabled`
-   - Verify: struct tests compile; accessor tests GREEN; proptest harnesses still fail
+   - Verify: struct tests compile; `test_BC_2_05_010_fields_accessible` (`.with_coverage_gaps(true)`) GREEN; proptest harnesses still fail
 
-3. **Augment `on_flow_close` None-target arm with dual-gate TCP counter (AC-153-003 through AC-153-004)**
-   - Inside the existing `None` arm, AFTER `self.unclassified_flows += 1`, add:
-     `let lower_port = flow_key.lower_port(); self.unclassified_port_counts.entry((TransportProto::Tcp, lower_port)).or_insert(0) += 1;`
-     INSIDE the `if self.coverage_gaps_enabled && (self.http.is_some() || ...)` guard
-   - Use `flow_key.lower_port()` (the existing method on FlowKey — F3-carry anchor)
+3. **Augment `on_flow_close` None-target arm — CORRECT gating structure (AC-153-003 through AC-153-004)**
+   - The existing analyzer-present guard wraps `unclassified_flows += 1`. The CORRECT structure is:
+     ```
+     if analyzer-present guard {                              // outer gate: analyzer-present ONLY
+         self.unclassified_flows += 1;                       // NOT gated on coverage_gaps_enabled
+         if self.coverage_gaps_enabled {                     // inner gate: port counter only
+             let lower_port = flow_key.lower_port();
+             let c = self.unclassified_port_counts
+                 .entry((TransportProto::Tcp, lower_port))
+                 .or_insert(0);
+             *c = c.saturating_add(1);
+         }
+     }
+     ```
+   - Do NOT put `unclassified_flows += 1` inside `if self.coverage_gaps_enabled` — that is a
+     regression breaking BC-2.05.009 + holdouts HS-040/HS-095
+   - Use `flow_key.lower_port()` (the existing FlowKey method — F3-carry anchor)
    - Do NOT change `classify()`, `DispatchTarget`, or the classification logic
    - Verify: TCP counter tests GREEN; classified-flow tests GREEN; key-purity test GREEN
 
@@ -365,7 +398,7 @@ NOT change.
    - Verify: UDP counter tests GREEN
 
 5. **Implement VP-042 (3 harnesses) and VP-043 (2 harnesses) proptest (AC-153-006 through AC-153-007)**
-   - All 5 proptest harnesses use `coverage_gaps_enabled=true` + ≥1 analyzer `is_some()` precondition
+   - All 5 proptest harnesses use `.with_coverage_gaps(true)` + ≥1 analyzer `is_some()` precondition
    - Sub-C: must verify that a classified close on port P where None-target flows have ALSO
      closed does NOT change the count (mixed-port scenario)
    - VP-042 sub-property (d) is dropped — implement EXACTLY 3 subs (A, B, C)
@@ -388,8 +421,12 @@ Key lessons from analogous prior work:
 **From STORY-033 (E-3, `unclassified_flows` counter):**
 The existing `unclassified_flows` counter in `StreamDispatcher` lives in the same `None` arm of
 `on_flow_close`. This story adds `unclassified_port_counts` ALONGSIDE it (not replacing it).
-The dual-gate condition (`self.coverage_gaps_enabled && analyzer-present guard`) is the SAME guard
-that already wraps `unclassified_flows += 1` — augment within the same if-block.
+CRITICAL: `unclassified_flows += 1` is gated ONLY on the analyzer-present guard — NOT on
+`coverage_gaps_enabled`. The NEW `unclassified_port_counts` increment is in a NESTED
+`if self.coverage_gaps_enabled { ... }` block inside the analyzer-present guard. Do NOT
+move `unclassified_flows` inside the `coverage_gaps_enabled` block — that would zero the
+counter on all normal (coverage_gaps=false) runs, breaking BC-2.05.009 + greenfield holdouts
+HS-040/HS-095 (regression).
 
 **From STORY-031/032 (E-3, dispatcher):**
 `classify()` function and `DispatchTarget` enum are VP-004 Kani-verified. DO NOT TOUCH THEM.
@@ -401,10 +438,11 @@ state only.
 The existing `classify()` function uses `flow_key.lower_port()` (grep confirms: `let ports = [flow_key.lower_port(), flow_key.upper_port()]`). Reuse this pattern.
 
 **From STORY-088 (run_analyze orchestration):**
-`StreamDispatcher::new()` is called in `run_analyze()`. When adding `coverage_gaps_enabled`
-as a new parameter, update the call site in `run_analyze()` to pass `args.coverage_gaps`
-(this ties to STORY-154's `--coverage-gaps` flag). For now, pass `false` as a default
-(STORY-154 will wire the actual flag).
+`StreamDispatcher::new()` is called in `run_analyze()`. With the builder approach, NO changes
+to existing `StreamDispatcher::new()` call sites in this story. STORY-154 wires the flag by
+adding `.with_coverage_gaps(args.coverage_gaps)` at the specific `run_analyze()` call site.
+The `with_coverage_gaps` builder is consistent with the existing
+`with_max_classification_attempts(mut self, ...) -> Self` pattern in dispatcher.rs.
 
 ## Architecture Compliance Rules
 
@@ -412,13 +450,14 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.05.010/011
 
 1. **`TransportProto` MUST be defined in `src/dispatcher.rs`** — NOT imported from `protocols.rs` (BC-2.05.010 PC-4, Invariant 1). Cross-importing would violate the SS-18 pure-core boundary and introduce a dependency on a module that must remain dependency-free.
 2. **`classify()` and `DispatchTarget` MUST NOT be changed** — VP-004 Kani proofs depend on these exact types and logic. Any change breaks the proofs.
-3. **TCP counter increment is inside the EXISTING analyzer-present guard** — same guard that wraps `unclassified_flows += 1` (ADR-012 Decision 6 Clarification; dual-gate: `coverage_gaps_enabled` AND analyzer-present).
+3. **`unclassified_flows += 1` is inside the analyzer-present guard ONLY** — NOT gated on `coverage_gaps_enabled` (ADR-012 Decision 6 Clarification EXACT). The NEW `unclassified_port_counts` increment is nested inside BOTH: (outer) analyzer-present guard AND (inner) `if self.coverage_gaps_enabled { ... }`. Placing `unclassified_flows` inside `coverage_gaps_enabled` would break BC-2.05.009 + holdouts HS-040/HS-095.
 4. **TCP counter key: `(TransportProto::Tcp, flow_key.lower_port())`** — use `flow_key.lower_port()` (the existing FlowKey method), NOT `flow_key.src_port` or `flow_key.dst_port` directly.
 5. **UDP counter per-packet, not per-flow** — UDP has no flow lifecycle in wirerust; increment per declined packet.
 6. **ADR-012 Decision 10: `dns_analyzer.can_decode()` evaluated regardless of `enable_dns`** — the `enable_dns` flag gates DNS finding-emission only; gap-classification (whether to count the packet) is orthogonal. DNS/53 packets that `can_decode()` returns true for are NOT counted in `udp_unclassified_counts`.
 7. **VP-042 has exactly 3 sub-properties (A, B, C)** — not 4. The "(d)" row is dropped per Pass-9 adversarial convergence. Implement 3 harnesses only.
 8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_153 { ... }` wrapper.
-9. **No panic on u64 overflow** — use `saturating_add` semantics for counter increments (BC-2.05.011 EC-010; SEC-003 sibling-consistency pattern).
+9. **No panic on u64 overflow** — use `saturating_add` semantics for counter increments (BC-2.05.011 EC-010; SEC-003 sibling-consistency pattern). Use `let c = map.entry(k).or_insert(0); *c = c.saturating_add(1);` — `.saturating_add_assign()` is NOT a real std method on `u64`.
+10. **`DispatchTarget` and `classify()` are module-private in `src/dispatcher.rs`** — tests in `tests/` CANNOT directly construct `DispatchTarget` variants or call `classify()`. All test flows must be driven via the public API: `dispatcher.on_data(flow_key, payload)` / `dispatcher.on_flow_close(flow_key)` + the new `pub fn unclassified_port_counts()` accessor + `pub enum TransportProto`. Proptest harnesses in Task 5 must only use the public interface.
 
 ## Library & Framework Requirements
 
@@ -437,7 +476,7 @@ The `TransportProto` enum in `dispatcher.rs` is INDEPENDENT of `protocols::Trans
 | File | Change Type | Purpose |
 |------|------------|---------|
 | `src/dispatcher.rs` | Modify | `TransportProto` enum; `unclassified_port_counts` field; `coverage_gaps_enabled` field; `on_flow_close` augmentation; accessor method |
-| `src/main.rs` | Modify | `udp_unclassified_counts` map; UDP decode-loop increment; `StreamDispatcher::new()` call site update |
+| `src/main.rs` | Modify | `udp_unclassified_counts` map; UDP decode-loop increment (STORY-154 adds `.with_coverage_gaps(args.coverage_gaps)` builder call — not in scope for this story) |
 | `tests/dispatcher_tests.rs` | Modify | VP-042 (3 harnesses) + VP-043 (2 harnesses) + unit tests in `mod story_153 { ... }` |
 
 No new source files.
@@ -448,3 +487,4 @@ No new source files.
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-002 (HIGH): Fixed AC-153-005 phantom `udp_header` → `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport` pattern inside existing `Ok(DecodedFrame::Ip(parsed))` arm; clarified there is NO separate UDP loop in main.rs; updated Task 4 accordingly. F-F3P1-004 (MEDIUM): None-target tests (tcp_counter_none_target, lower_port_normalization) changed from port 502 to neutral port 9999; port 502 reserved exclusively for Modbus-classified no-increment test. Fixed AC-153-003 Red-Gate tests: Http/80 → Modbus/502 in no_increment_classified_flow annotation (EC-002 label fix). | F-F3P1-002, F-F3P1-004 |
+| v1.2 | 2026-07-02 | F-F3P2-001 (CRITICAL): Fixed AC-153-003 code snippet — `unclassified_flows += 1` moved OUTSIDE `coverage_gaps_enabled` gate to analyzer-present guard only; `unclassified_port_counts` increment now nested in inner `if self.coverage_gaps_enabled { }` block (matches ADR-012 Decision 6 Clarification exactly). Removed regression warning + updated descriptive text. Fixed LOW `.saturating_add_assign(1)` (non-real std method) → `let c = ...; *c = c.saturating_add(1)`. F-F3P2-004 (MEDIUM): Changed AC-153-002 / Task 2 / Previous Story Intelligence to use builder method `with_coverage_gaps(mut self, enabled: bool) -> Self` instead of new `new()` parameter — no blast to 8 existing call sites. Updated Architecture Compliance Rule 3 + Previous Story Intelligence STORY-033/088 paragraphs + VP-042 proptest precondition language. Added ACR-10 (module-private `DispatchTarget`/`classify()` note; tests must use public `on_data`/`on_flow_close` + accessor). | F-F3P2-001, F-F3P2-004, LOW |

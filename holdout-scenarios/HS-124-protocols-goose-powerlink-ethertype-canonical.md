@@ -35,7 +35,7 @@ canonical_spec_citation: "GOOSE EtherType 0x88B8 = 35000 decimal per IEC 61850-8
 input-hash: "80107d1"
 ---
 
-# Holdout Scenario: `protocols` Terminal — GOOSE, POWERLINK, EtherCAT, and PROFINET-DCP EtherType Canonical Values (DF-CANONICAL-FRAME-HOLDOUT-001)
+# Holdout Scenario: `protocols` Terminal — GOOSE, POWERLINK, EtherCAT, PROFINET-DCP, and IEC 61850 Sampled Values EtherType Canonical Values (DF-CANONICAL-FRAME-HOLDOUT-001)
 
 > **WARNING:** This file must NEVER be shown to the implementer or test-writer agents.
 

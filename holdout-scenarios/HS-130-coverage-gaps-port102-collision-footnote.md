@@ -11,7 +11,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.010.md
   - .factory/stories/STORY-153.md
   - .factory/stories/STORY-154.md
-input-hash: "tbd"
 traces_to: .factory/specs/prd.md
 id: "HS-130"
 category: "behavioral-subtleties"
@@ -33,7 +32,7 @@ fixture_needed: true
 fixture_note: "Requires two crafted pcap fixtures: (1) a pcap with at least one TCP flow to port 102 that closes without being classified (no S7comm/MMS/ICCP dissector in wirerust, so it becomes DispatchTarget::None); (2) a pcap with no TCP/102 traffic, to verify the footnote is absent."
 canonical_value_scenario: true
 canonical_spec_citation: "TCP port 102 is used by S7comm (Siemens S7 PLC communication), S7comm-plus (Siemens S7-1200/S7-1500), IEC 61850 MMS per IEC 61850-8-1 via ISO-on-TCP (RFC 1006), and ICCP/TASE.2 per IEC 60870-6 via ISO-on-TCP (RFC 1006 / TPKT framing). All four protocols multiplex on TCP/102 using the ISO Transport Service on top of TCP, making port-102 gap reports unattributable to a single protocol."
-input-hash: "704ff63"
+input-hash: "79d554c"
 ---
 
 # Holdout Scenario: `CoverageGapsSummary` — Port-102 Collision Footnote Triggered by TCP/102 Traffic (DF-CANONICAL-FRAME-HOLDOUT-001)
