@@ -220,11 +220,22 @@ BACnet/IP is catalogued as `Udp/47808` — transport mismatch (BC-2.12.024 EC-00
 
 (traces to BC-2.12.024 v1.1 PC-4, Postcondition 4, Invariants 4–5; ADR-012 Decision 2)
 
-**Red-Gate tests:**
+**Red-Gate tests (integration — CLI-reachable classifier cases; all three key on ports NOT in `classify()`'s port set):**
 - `test_BC_2_12_024_bacnet_known_unsupported` — `(Udp, 47808)` classifies as `known-unsupported` with name "BACnet/IP"
 - `test_BC_2_12_024_unknown_port_state` — `(Tcp, 9600)` (no catalog match) classifies as `unknown`
 - `test_BC_2_12_024_tcp_47808_is_unknown` — `(Tcp, 47808)` is `unknown` (transport mismatch; BACnet is UDP-only)
-- `test_BC_2_12_024_known_supported_is_bug_signal` — `(Tcp, 502)` is `known-supported` (Modbus normally classified; its presence in gap report signals a dissector failure)
+- `test_BC_2_12_024_tcp_502_absent_from_gap_report` — `--coverage-gaps` on a pcap with TCP/502 traffic:
+  `(Tcp, 502)` is ABSENT from `CoverageGapsSummary` (Rule 5 in `classify()` always routes port-502
+  flows to `DispatchTarget::Modbus` before the `None`-target arm can fire for port 502; see EC-154-11)
+
+> **NOTE — `known-supported` is unit-only (F-F3P14-001):** The `known-supported`
+> (dissector-bug-signal) state for `(Tcp, 502)` is only assertable at the pure-function/unit
+> level via `test_BC_2_12_024_known_supported_is_bug_signal_unit` (inline `mod story_154_unit`
+> in `src/main.rs`, direct `lookup_protocol_state(Tcp, 502)` call). Under the analyze pipeline,
+> `classify()` Rule 5 routes every port-502 flow to `DispatchTarget::Modbus` — the `None`-target
+> arm never fires for port 502, so `(Tcp, 502)` can NEVER enter `unclassified_port_counts`.
+> No analyze-pipeline injection mechanism exists for this state (a Modbus-classified flow with
+> an absent analyzer still has `target = Modbus`, not `None`).
 
 > **DF-CANONICAL-FRAME-HOLDOUT-001 — BACnet/IP UDP/47808:**
 > BACnet/IP uses UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1. The catalog
@@ -306,7 +317,7 @@ Layer: L0 Entry → L3 domain (catalog lookup) + L3 dispatcher (counter read).
 | EC-154-8 | BC-2.12.024 EC-002 | UDP/47808 (BACnet/IP) only | Entry: known-unsupported, name=BACnet/IP; L2 caveat; no port-102 footnote |
 | EC-154-9 | BC-2.12.024 EC-003 | TCP/102 with non-zero count | Entry: known-unsupported + port-102 collision footnote naming all four protocols |
 | EC-154-10 | BC-2.12.024 EC-004 | TCP/9600 (no catalog match) | Entry: unknown; no name |
-| EC-154-11 | BC-2.12.024 EC-005 | TCP/502 in gap report (Modbus dissector failed) | Entry: known-supported (BUG signal); entry NOT suppressed |
+| EC-154-11 | BC-2.12.024 EC-005 | TCP/502 in gap report (Modbus dissector failed) — `known-supported` state is only assertable at pure-function/unit level; NO analyze-pipeline injection mechanism exists (`classify()` Rule 5 always routes port-502 flows to `DispatchTarget::Modbus`; the `None`-target arm never fires for port 502) | Unit-only: `lookup_protocol_state(Tcp, 502)` → `known-supported` (BUG signal) via `test_BC_2_12_024_known_supported_is_bug_signal_unit`. Under analyze pipeline: `(Tcp, 502)` is ABSENT from CoverageGapsSummary (Modbus classifier fires first). |
 | EC-154-12 | BC-2.12.024 EC-007 | GOOSE (EtherType 0x88B8) traffic in pcap | GOOSE does NOT appear in gap report (no TCP/UDP port); L2 caveat explains absence |
 | EC-154-13 | BC-2.12.024 EC-009 | TCP/47808 (BACnet is UDP-only in catalog) | State: unknown (NOT known-unsupported — transport mismatch) |
 | EC-154-14 | BC-2.12.024 EC-010 | TCP/53 (DNS is UDP-only in catalog) | State: unknown (NOT known-supported — DNS is UDP-only) |
@@ -356,7 +367,7 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - `test_BC_2_12_024_bacnet_known_unsupported` — (Udp, 47808) → known-unsupported + name=BACnet/IP (DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_12_024_unknown_port_state` — (Tcp, 9600) → unknown
    - `test_BC_2_12_024_tcp_47808_is_unknown` — (Tcp, 47808) → unknown (transport mismatch)
-   - `test_BC_2_12_024_known_supported_is_bug_signal` — (Tcp, 502) in gap report → known-supported
+   - `test_BC_2_12_024_tcp_502_absent_from_gap_report` — (Tcp, 502) ABSENT from gap report under normal operation (Rule 5 routes port-502 to Modbus; known-supported is unit-only; see EC-154-11)
    - `test_BC_2_12_024_json_has_caveat_field` — `--json --coverage-gaps` → `"coverage_gaps"."caveat_l2"` non-null
    - `test_BC_2_12_023_json_coverage_gaps_key` — JSON has `"coverage_gaps"` key
    All tests MUST FAIL (`--coverage-gaps` flag doesn't exist yet).
@@ -492,3 +503,4 @@ No new source files.
 | v1.5 | 2026-07-02 | F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-154-002 body, Task 3, and Previous Story Intelligence (PSI). F-F3P6-005 (LOW): Replaced `args.coverage_gaps` phantom struct-field ref with `coverage_gaps` (flat scalar param) in AC-154-002, Task 3, and PSI. Clarified that STORY-154's wiring change is flipping the STORY-153 default-false call-site value to `*coverage_gaps` from `Commands::Analyze { ..., coverage_gaps, ... }` destructure. | F-F3P6-003, F-F3P6-005 |
 | v1.6 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 (both `mod story_154` in `tests/integration_tests.rs` AND inline `mod story_154_unit` in `src/main.rs`) and Architecture Compliance Rule 8 — `tests/integration_tests.rs` carries no file-level allow (confirmed by grep); `src/main.rs` `mod tests` (line 708) is lowercase-no-allow; both new modules use uppercase `test_BC_…` names that violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |
 | v1.7 | 2026-07-02 | F-F3P11-002 (LOW): Fixed AC-154-007 JSON schema `name` field rule — the TCP/102 collision entry example already omitted `name` (correctly using `collision_note` instead) but the schema prose stated `name` is present for all `known-unsupported` entries without exception. Added explicit exception: "TCP/102 collision entry SHALL omit `name` and use `collision_note` instead (four protocols share port 102; naming one would be misleading)." | F-F3P11-002 |
+| v1.8 | 2026-07-02 | F-F3P14-001 (MEDIUM, F4-breaker): Removed physically-unreachable integration test `test_BC_2_12_024_known_supported_is_bug_signal` from AC-154-006 Red-Gate list and Task 1 integration list. `classify()` Rule 5 always routes port-502 flows to `DispatchTarget::Modbus` — the `None`-target arm never fires for port 502, so `(Tcp, 502)` can never enter `unclassified_port_counts` via the analyze pipeline. Replaced with CLI-reachable integration test `test_BC_2_12_024_tcp_502_absent_from_gap_report` (asserts `(Tcp, 502)` is absent from CoverageGapsSummary under normal operation). Added NOTE block in AC-154-006 clarifying that `known-supported` for `(Tcp, 502)` is assertable only at pure-function/unit level via the already-specified `test_BC_2_12_024_known_supported_is_bug_signal_unit`. Updated EC-154-11 to state that the state is unit-only with no analyze-pipeline injection mechanism. Unit test `test_BC_2_12_024_known_supported_is_bug_signal_unit` (Task 1, `mod story_154_unit`) unchanged — it remains the assertion vehicle for the known-supported branch. | F-F3P14-001 |
