@@ -54,6 +54,13 @@ gaps exist in my network environment, without running a capture.
 | BC-2.18.001 | v1.4 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | Primary: terminal table renderer with filter flags, [L2] indicator, EtherType column, port-102 footnote |
 | BC-2.18.002 | v1.1 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | Primary: JSON output schema under `"protocols"` key |
 
+> **VP Reference Note (Obs-1):** `verification_properties: [VP-041]` is a *regression/relevance*
+> reference only. VP-041 proptest harnesses are authored and anchored by STORY-151 (the story
+> that builds `src/protocols.rs`). STORY-152 exercises VP-041 indirectly — it consumes
+> `supported_protocols()` and `unsupported_protocols()`, the exact functions VP-041 validates.
+> Future adversarial passes MUST NOT re-flag this as mis-anchoring; VP-041's anchor story is
+> STORY-151.
+
 ## Acceptance Criteria
 
 ### AC-152-001: `Commands::Protocols { filter, json }` variant added to `src/cli.rs`
@@ -458,3 +465,4 @@ No new source files.
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-003 (MEDIUM): Fixed AC-152-002 `args.json` phantom bool → `args.json.is_some()` with note about `Option<Option<PathBuf>>` type and `--json=path` file routing. LOW: Task 3 stub guidance clarified — empty `{ let _ = (filter, json); }` stub replaces contradictory todo!()/stub text. | F-F3P1-003 |
+| v1.2 | 2026-07-02 | Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying `verification_properties: [VP-041]` is a regression/relevance reference (VP-041 harnesses authored/anchored by STORY-151). | Obs-1 |

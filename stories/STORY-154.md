@@ -56,6 +56,14 @@ generating false impressions from silently-absent L2 protocols or ambiguous shar
 | BC-2.12.023 | v1.2 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | Primary: flag wiring, opt-in semantics, analyze --all independence, CoverageGapsSummary as named section |
 | BC-2.12.024 | v1.1 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | Primary: L2 caveat always present, port-102 footnote conditional, tri-state classification, JSON schema |
 
+> **VP Reference Note (Obs-1):** `verification_properties: [VP-041, VP-042, VP-043]` are
+> *regression/relevance* references only. VP-041 harnesses are authored and anchored by STORY-151;
+> VP-042 and VP-043 harnesses are authored and anchored by STORY-153. STORY-154 exercises these
+> VPs indirectly — it consumes the protocol catalog (VP-041 domain), the dispatcher counters
+> (VP-042 domain), and the `udp_gap_key` seam (VP-043 domain) that those stories build.
+> Future adversarial passes MUST NOT re-flag these as mis-anchoring; VP anchor stories are
+> the stories that build and own the harness files.
+
 ## Acceptance Criteria
 
 ### AC-154-001: `--coverage-gaps` flag added to `analyze` subcommand — NOT in `--all` expansion
@@ -78,7 +86,7 @@ does NOT imply `--coverage-gaps`. The two flags are independent.
 - `test_BC_2_12_023_all_without_coverage_gaps` — `wirerust analyze test.pcap --all` produces no `CoverageGapsSummary`
 - `test_BC_2_12_023_protocols_coverage_gaps_error` — `wirerust protocols --coverage-gaps` exits non-zero (clap error)
 
-### AC-154-002: `--coverage-gaps` wired to `StreamDispatcher::new(coverage_gaps_enabled=true)` and decode loop
+### AC-154-002: `--coverage-gaps` wired via `.with_coverage_gaps(...)` builder to `StreamDispatcher` and decode loop
 **Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.3 PC-1; ADR-012 Decision 8
 
 In `src/main.rs`, `run_analyze()` wires `args.coverage_gaps` using the builder method added by
@@ -345,11 +353,13 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - `test_BC_2_12_023_json_coverage_gaps_key` — JSON has `"coverage_gaps"` key
    All tests MUST FAIL (`--coverage-gaps` flag doesn't exist yet).
 
-   Add pure-function unit tests in `mod story_154_unit { ... }` in `tests/` or inline:
-   - `test_BC_2_12_024_bacnet_known_unsupported` (unit, direct `lookup_protocol_state()` call)
-   - `test_BC_2_12_024_tcp_47808_is_unknown` (unit, direct call)
-   - `test_BC_2_12_024_unknown_port_state` (unit, direct call)
-   - `test_BC_2_12_024_known_supported_is_bug_signal` (unit, direct call)
+   Add pure-function unit tests in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs`
+   (NOT in `tests/` — `lookup_protocol_state()` is a binary-private function defined in `src/main.rs`
+   and is NOT reachable from `tests/integration_tests.rs` or any other `tests/` file):
+   - `test_BC_2_12_024_bacnet_known_unsupported_unit` (unit, direct `lookup_protocol_state()` call; `_unit` suffix disambiguates from identically-named integration test in `mod story_154`)
+   - `test_BC_2_12_024_tcp_47808_is_unknown_unit` (unit, direct call; `_unit` suffix)
+   - `test_BC_2_12_024_unknown_port_state_unit` (unit, direct call; `_unit` suffix)
+   - `test_BC_2_12_024_known_supported_is_bug_signal_unit` (unit, direct call; `_unit` suffix)
 
 2. **Add `--coverage-gaps` flag to `Analyze` subcommand in `src/cli.rs` (AC-154-001)**
    - Add `#[arg(long)] pub coverage_gaps: bool` to the `Analyze` struct
@@ -429,7 +439,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.12.023/024
 5. **`L2_CAVEAT_TEXT` is ALWAYS present** — BC-2.12.024 Invariant 1. Even when entries array is empty (empty pcap). Not configurable.
 6. **`PORT_102_NOTE` is row-specific and conditional** — BC-2.12.024 Invariant 2. Present IF AND ONLY IF `(Tcp, 102)` has a non-zero count in the current gap report.
 7. **JSON schema: object form** — `{ "caveat_l2": "...", "entries": [...] }` (BC-2.12.023 PC-3 v1.2 corrected form). NOT a flat dict.
-8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_154 { ... }` (integration) and `mod story_154_unit { ... }` (unit) wrappers.
+8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL integration test functions in `mod story_154 { ... }` wrapper in `tests/integration_tests.rs`. Unit tests for `lookup_protocol_state()` MUST be in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs` — `lookup_protocol_state()` is binary-private (defined in `src/main.rs`, not re-exported from the library crate) and is NOT callable from `tests/`. Test names in `mod story_154_unit` carry a `_unit` suffix (e.g., `test_BC_2_12_024_bacnet_known_unsupported_unit`) to disambiguate from identically-named integration tests in `mod story_154` (DF-AC-TEST-NAME-SYNC-001 unique-resolution).
 9. **BACnet/IP classification must use UDP transport lookup** — `(Udp, 47808)` → `known-unsupported`; `(Tcp, 47808)` → `unknown`. This directly tests the transport-aware lookup correctness (DF-CANONICAL-FRAME-HOLDOUT-001 + BC-2.12.024 EC-009).
 
 ## Library & Framework Requirements
@@ -462,3 +472,4 @@ No new source files.
 | v1.1 | 2026-07-02 | LOW: Fixed duplicate "3." in Tasks — renumbered second task-3 (ProtocolGapState) to 4, and all subsequent tasks shifted (4→5, 5→6, 6→7, 7→8). | LOW-STORY-154-TASKS |
 | v1.2 | 2026-07-02 | F-F3P2-004 cascade (MEDIUM): Fixed AC-154-002 + Task 3 + Previous Story Intelligence (STORY-153 paragraph) to use STORY-153's `with_coverage_gaps(enabled: bool) -> Self` builder method instead of `StreamDispatcher::new()` parameter. F-F3P2-005 (MEDIUM): `wave: 68` → `wave: 69` and `depends_on` updated to include STORY-152 (file-sequencing edge 152→154 added to dep-graph: both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; placing 154 in wave 69 eliminates the parallel-edit collision). | F-F3P2-004, F-F3P2-005 |
 | v1.3 | 2026-07-02 | F-F3P3-001 (HIGH): Fixed AC-154-006 phantom `p.supported` field — `KnownProtocol` has no `supported` field; supportedness is DERIVED. Replaced `Some(p) if p.supported` guard with `Some(p) if p.canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || p.name == "ARP"` (mirrors `supported_protocols()` predicate per STORY-151 AC-151-005 / BC-2.18.003). Updated vocabulary bullet descriptions to use `supported_protocols()` set membership language instead of stale `supported: true/false` field notation. Added NOTE block clarifying that supportedness is DERIVED, not a struct field. | F-F3P3-001 |
+| v1.4 | 2026-07-02 | F-F3P4-002 (MEDIUM): Fixed AC-154-002 heading from forbidden `StreamDispatcher::new(coverage_gaps_enabled=true)` form to `.with_coverage_gaps(...)` builder, consistent with body/Task 3/PSI which already used the correct builder pattern. F-F3P4-003 (MEDIUM): Narrowed unit test location in Task 1 from "in tests/ or inline" to "inline `#[cfg(test)] mod story_154_unit` in `src/main.rs`" (binary-private `lookup_protocol_state()` is NOT callable from `tests/`); added `_unit` suffix to 4 unit test names to eliminate DF-AC-TEST-NAME-SYNC-001 collision with identically-named integration tests; updated Architecture Compliance Rule 8 accordingly. Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying VP-041/042/043 are regression/relevance references (harnesses authored/anchored by STORY-151/153). | F-F3P4-002, F-F3P4-003, Obs-1 |

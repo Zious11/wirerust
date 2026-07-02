@@ -179,53 +179,87 @@ invariant enforced by the single write site in `on_flow_close`.
 **Red-Gate test:**
 - `test_BC_2_05_011_tcp_map_key_purity` — `unclassified_port_counts.keys().all(|(t, _)| *t == TransportProto::Tcp)` == true
 
-### AC-153-005: UDP decode-loop counter `udp_unclassified_counts` in `src/main.rs`
+### AC-153-005: `udp_gap_key` seam function in `src/dispatcher.rs` + decode-loop counter in `src/main.rs`
 **Traces to:** BC-2.05.010 v1.3 PC-2..3, Postconditions 2–3, Invariants 3, 7; BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 6, Decision 10
 
-In the UDP packet processing path in `src/main.rs` decode loop, AFTER all UDP dissectors have
-declined the packet (i.e., `dns_analyzer.can_decode(&parsed)` returns false and any other UDP
-dissectors also decline):
+> **SEAM CONTRACT — VP-043 (non-vacuity):** `udp_unclassified_counts` is a local variable in
+> the `src/main.rs` binary-private decode loop. Tests in `tests/dispatcher_tests.rs` link only
+> the library crate and CANNOT reach it. Without a library-visible seam, VP-043 harnesses would
+> either fail to compile or silently replicate the decision logic — both are vacuous (violates
+> DF-KANI-NONVACUITY-001; the exact anti-pattern VP-041 was reframed to avoid).
+>
+> The fix is a library-visible pure decision function `pub fn udp_gap_key(...)` in
+> `src/dispatcher.rs`. VP-043 harnesses call this seam directly against production logic.
+> The `main.rs` decode loop calls the same seam and accumulates results.
+> BC-2.05.010 stays satisfied: the counter is still populated in the main.rs loop.
+> This mirrors the VP-039/VP-040 `fill_buf_for_testing` seam pattern (VP-INDEX lines ~189–240).
+
+**SEAM function definition (add to `src/dispatcher.rs`):**
+
+```rust
+/// Returns `Some((TransportProto::Udp, min(src_port, dst_port)))` when `parsed`
+/// is a UDP packet that is NOT handled by any registered dissector (`dns_handles == false`).
+/// Returns `None` when the packet is already classified (DNS accepted it) or is not UDP.
+///
+/// # SEAM CONTRACT (VP-043)
+/// This is the library-visible boundary that VP-043 proptest harnesses exercise directly.
+/// The `main.rs` decode loop calls `udp_gap_key(&parsed, dns_analyzer.can_decode(&parsed))`
+/// and accumulates `Some(key)` returns into `udp_unclassified_counts`.
+/// BC-2.05.010 is satisfied: the counter is populated in the main.rs loop via this seam.
+/// The seam itself is pure and stateless — it does NOT modify any `StreamDispatcher` state.
+pub fn udp_gap_key(
+    parsed: &crate::decoder::ParsedPacket,
+    dns_handles: bool,
+) -> Option<(TransportProto, u16)> {
+    if dns_handles {
+        return None;
+    }
+    match parsed.transport {
+        crate::decoder::TransportInfo::Udp { src_port, dst_port } => {
+            Some((TransportProto::Udp, src_port.min(dst_port)))
+        }
+        _ => None,
+    }
+}
+```
+
+This is a **free function** in `dispatcher.rs` (not a method on `StreamDispatcher`) — it does
+not depend on dispatcher state and must be callable from tests that have no `StreamDispatcher`
+instance. Placing it in `dispatcher.rs` (not a new module) keeps the protocol-coverage seams
+co-located with `TransportProto` (the key type they return).
+
+**Decode-loop integration in `src/main.rs`:**
 
 ```rust
 // Declare before the packet loop (main.rs):
-let mut udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new();
+let mut udp_unclassified_counts: HashMap<(wirerust::dispatcher::TransportProto, u16), u64> = HashMap::new();
 
 // Inside the Ok(DecodedFrame::Ip(parsed)) arm (~line 356 of main.rs):
-// There is NO separate UDP loop — UDP packets arrive via DecodedFrame::Ip(parsed).
-// Use if-let on parsed.transport to identify UDP frames.
 if coverage_gaps {
-    if let TransportInfo::Udp { src_port, dst_port } = parsed.transport {
-        // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of enable_dns
-        let dns_handles_this = dns_analyzer.can_decode(&parsed);
-        if !dns_handles_this {
-            let lower_port = src_port.min(dst_port);
-            let c = udp_unclassified_counts
-                .entry((TransportProto::Udp, lower_port))
-                .or_insert(0);
-            *c = c.saturating_add(1);
-        }
+    // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of enable_dns.
+    let dns_handles_this = dns_analyzer.can_decode(&parsed);
+    if let Some(key) = wirerust::dispatcher::udp_gap_key(&parsed, dns_handles_this) {
+        let c = udp_unclassified_counts.entry(key).or_insert(0);
+        *c = c.saturating_add(1);   // saturating_add (EC-153-10; no panic on u64 overflow)
     }
 }
 ```
 
 **Key invariants:**
 - Counter incremented per-packet (not per-flow)
-- Key: `(TransportProto::Udp, src_port.min(dst_port))` — derived from `TransportInfo::Udp { src_port, dst_port }` (NOT a phantom `udp_header` variable; use `parsed.transport` pattern match)
-- UDP packets arrive via `Ok(DecodedFrame::Ip(parsed))` arm in main.rs (~line 356) — there is no separate UDP loop; `if let TransportInfo::Udp { .. } = parsed.transport` identifies UDP frames inside that arm
-- `dns_analyzer.can_decode()` is evaluated for gap classification regardless of `enable_dns`
-  flag (ADR-012 Decision 10; BC-2.05.010 Invariant 7). A DNS/53 packet accepted by
-  `can_decode()` is NOT counted — DNS/53 is classified (gap-excluded), even when
-  DNS finding-emission is disabled.
+- Key: `(TransportProto::Udp, src_port.min(dst_port))` — derived inside the seam from `TransportInfo::Udp { src_port, dst_port }`
+- UDP packets arrive via `Ok(DecodedFrame::Ip(parsed))` arm in main.rs (~line 356); there is no separate UDP loop
+- `dns_analyzer.can_decode()` is evaluated regardless of `enable_dns` flag (ADR-012 Decision 10; BC-2.05.010 Invariant 7). DNS/53 packets accepted by `can_decode()` → `udp_gap_key` returns `None` → NOT counted (gap-excluded)
 - Counter only active when `coverage_gaps` flag is set (Postcondition 4)
 
 (traces to BC-2.05.010 v1.3 PC-2..3, PC-2, Postconditions 2–3, Invariants 3, 7;
 BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 10)
 
-**Red-Gate tests:**
-- `test_BC_2_05_010_udp_counter_unhandled` — UDP packet to port 47808 (no dissector); count == 1
-- `test_BC_2_05_010_udp_dns_not_counted` — UDP/53 packet that `dns_analyzer.can_decode()` accepts; NOT in udp_unclassified_counts
-- `test_BC_2_05_010_udp_lower_port_normalization` — UDP src=61000 dst=47808 AND src=47808 dst=61000 both yield key `(Udp, 47808)`
-- `test_BC_2_05_011_udp_map_key_purity` — all keys in `udp_unclassified_counts` have `TransportProto::Udp`
+**Red-Gate tests (calling `udp_gap_key` seam directly — all in `tests/dispatcher_tests.rs`):**
+- `test_BC_2_05_010_udp_counter_unhandled` — `udp_gap_key(&udp_47808_packet, false)` → `Some((Udp, 47808))`
+- `test_BC_2_05_010_udp_dns_not_counted` — `udp_gap_key(&udp_53_packet, true)` → `None`
+- `test_BC_2_05_010_udp_lower_port_normalization` — `udp_gap_key` with src=61000/dst=47808 AND src=47808/dst=61000 → both `Some((Udp, 47808))`
+- `test_BC_2_05_011_udp_map_key_purity` — collect `Some(key)` returns from several non-DNS UDP inputs; all have `key.0 == TransportProto::Udp`
 
 ### AC-153-006: VP-042 proptest harnesses — TCP dispatcher path exactness and monotonicity
 **Traces to:** BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.3 VP table; ADR-012 Decision 6
@@ -253,18 +287,22 @@ or `Enip`) on port P that ALSO has None-target flows does NOT change the count f
 
 (traces to BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.3 VP table; ADR-012 Decision 6 Clarification)
 
-### AC-153-007: VP-043 proptest harnesses — UDP decode-loop path exactness and DNS exclusion
+### AC-153-007: VP-043 proptest harnesses — UDP gap-key seam exactness and DNS exclusion
 **Traces to:** BC-2.05.010 v1.3 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10
 
-Two proptest harnesses in `tests/dispatcher_tests.rs` inside `mod story_153 { ... }`:
+Two proptest harnesses in `tests/dispatcher_tests.rs` inside `mod story_153 { ... }`,
+testing `udp_gap_key` directly (the VP-043 seam from AC-153-005):
 
 **`proptest_vp043_total_count_equals_n`**:
-After M UDP packets for which `min(src_port, dst_port) == Q` that are unhandled by all
-dissectors, `udp_unclassified_counts[(Udp, Q)] == M`.
+For M synthetic UDP `ParsedPacket`s with `min(src_port, dst_port) == Q` and `dns_handles=false`,
+call `udp_gap_key(parsed, false)` on each; assert all M calls return `Some((TransportProto::Udp, Q))`.
+This verifies total accumulation == M in production (each `Some` return is one counter increment
+in the main.rs loop). N ∈ [1, 256] per proptest strategy.
 
 **`proptest_vp043_no_increment_on_classified_udp`**:
-A UDP packet for which `dns_analyzer.can_decode()` returns `true` does NOT increment
-`udp_unclassified_counts`. The key `(Udp, 53)` remains absent (or unchanged) when DNS handles it.
+For a synthetic UDP `ParsedPacket` at port 53, call `udp_gap_key(parsed, true)` (simulating
+`dns_analyzer.can_decode()` returning `true`); assert result is `None`. The seam returns `None`
+→ the main.rs loop does NOT increment the counter → gate invariant holds.
 
 (traces to BC-2.05.010 v1.3 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10)
 
@@ -277,10 +315,11 @@ A UDP packet for which `dns_analyzer.can_decode()` returns `true` does NOT incre
 | `coverage_gaps_enabled: bool` field | `src/dispatcher.rs` (modify) | Effectful (control flag) |
 | `unclassified_port_counts()` accessor | `src/dispatcher.rs` (modify) | Pure (read-only) |
 | `on_flow_close` None-target arm augmentation (dual-gate) | `src/dispatcher.rs` (modify) | Effectful (mutation) |
+| `udp_gap_key(parsed, dns_handles)` seam function | `src/dispatcher.rs` (modify) | Pure (decision fn; VP-043 seam) |
 | `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` | `src/main.rs` (modify) | Effectful (mutable state) |
-| UDP decode-loop increment (post-all-dissectors-decline) | `src/main.rs` (modify) | Effectful (mutation) |
+| UDP decode-loop — calls `udp_gap_key`; accumulates result | `src/main.rs` (modify) | Effectful (mutation) |
 | VP-042 proptest harnesses (3 subs) | `tests/dispatcher_tests.rs` (modify) | Pure (proptest) |
-| VP-043 proptest harnesses (2) | `tests/dispatcher_tests.rs` (modify) | Pure (proptest) |
+| VP-043 proptest harnesses (2) — call `udp_gap_key` seam | `tests/dispatcher_tests.rs` (modify) | Pure (proptest) |
 
 SS-05 (dispatcher) + SS-12 (main.rs decode loop). VP-004 Kani proofs are NOT affected:
 `classify()` and `DispatchTarget` enum are NOT changed.
@@ -344,16 +383,16 @@ NOT change.
    - `test_BC_2_05_010_lower_port_normalization` — bidirectional flows → same key (use port 9999)
    - `test_BC_2_05_010_coverage_gaps_disabled_no_increment` — disabled → no increment
    - `test_BC_2_05_011_tcp_map_key_purity` — all keys Tcp
-   - `test_BC_2_05_010_udp_counter_unhandled` — UDP/47808 → count==1
-   - `test_BC_2_05_010_udp_dns_not_counted` — DNS/53 accepted → not counted
-   - `test_BC_2_05_010_udp_lower_port_normalization` — UDP bidirectional → same key
-   - `test_BC_2_05_011_udp_map_key_purity` — all UDP-map keys Udp
+   - `test_BC_2_05_010_udp_counter_unhandled` — `udp_gap_key(&udp_47808_packet, false)` → `Some((Udp, 47808))` (FAILS: seam fn not defined)
+   - `test_BC_2_05_010_udp_dns_not_counted` — `udp_gap_key(&udp_53_packet, true)` → `None` (FAILS: seam fn not defined)
+   - `test_BC_2_05_010_udp_lower_port_normalization` — seam with reversed ports → same key (FAILS: seam fn not defined)
+   - `test_BC_2_05_011_udp_map_key_purity` — all `Some(key)` returns have `key.0 == TransportProto::Udp` (FAILS)
    - `proptest_vp042_total_count_equals_n` — Sub-A (proptest, FAILS before impl)
    - `proptest_vp042_per_port_count_equals_frequency` — Sub-B (proptest, FAILS)
    - `proptest_vp042_no_count_spurious_on_classified_flows` — Sub-C (proptest, FAILS)
-   - `proptest_vp043_total_count_equals_n` — (proptest, FAILS)
-   - `proptest_vp043_no_increment_on_classified_udp` — (proptest, FAILS)
-   All tests MUST FAIL (struct field doesn't exist yet; TransportProto undefined).
+   - `proptest_vp043_total_count_equals_n` — calls `udp_gap_key` M times; counts Some() returns; asserts == M (proptest, FAILS)
+   - `proptest_vp043_no_increment_on_classified_udp` — `udp_gap_key(&udp_packet, true)` → `None` for all inputs (proptest, FAILS)
+   All tests MUST FAIL (struct field doesn't exist yet; `TransportProto` undefined; `udp_gap_key` undefined).
 
 2. **Add `TransportProto` enum + fields + builder + accessor to `src/dispatcher.rs` (AC-153-001 through AC-153-002)**
    - Define `pub enum TransportProto { Tcp, Udp }` in dispatcher.rs (NOT imported from protocols.rs)
@@ -385,17 +424,16 @@ NOT change.
    - Do NOT change `classify()`, `DispatchTarget`, or the classification logic
    - Verify: TCP counter tests GREEN; classified-flow tests GREEN; key-purity test GREEN
 
-4. **Add UDP `udp_unclassified_counts` to `src/main.rs` decode loop (AC-153-005)**
-   - Declare `udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new()` before the packet loop
-   - There is NO separate UDP loop in main.rs — UDP packets arrive via `Ok(DecodedFrame::Ip(parsed))`
-     arm (~line 356); add the UDP counter logic INSIDE that existing arm
-   - Use `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport { ... }` to identify
-     UDP packets; do NOT reference a phantom `udp_header` variable (real type is `TransportInfo::Udp`)
-   - Derive `lower_port` as `src_port.min(dst_port)` from the destructured `TransportInfo::Udp` fields
-   - ADR-012 Decision 10: `dns_analyzer.can_decode()` evaluated regardless of `enable_dns`; call it
-     independently of the DNS finding-emission gate
-   - Gate the increment on `coverage_gaps`
-   - Verify: UDP counter tests GREEN
+4. **Add `udp_gap_key` seam to `src/dispatcher.rs` + `udp_unclassified_counts` to `src/main.rs` decode loop (AC-153-005)**
+   - In `src/dispatcher.rs`: add the `pub fn udp_gap_key(parsed: &crate::decoder::ParsedPacket, dns_handles: bool) -> Option<(TransportProto, u16)>` free function (SEAM CONTRACT; pure; VP-043 non-vacuity)
+   - In `src/main.rs`: declare `let mut udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new();` before the packet loop
+   - Inside `Ok(DecodedFrame::Ip(parsed))` arm (~line 356): call
+     `wirerust::dispatcher::udp_gap_key(&parsed, dns_analyzer.can_decode(&parsed))`; if `Some(key)`, do
+     `let c = udp_unclassified_counts.entry(key).or_insert(0); *c = c.saturating_add(1);`
+   - Gate the entire block on `if coverage_gaps { ... }`
+   - ADR-012 Decision 10: `dns_analyzer.can_decode()` is called regardless of `enable_dns`
+   - Do NOT inline the UDP-packet-type-check in main.rs — the seam handles it
+   - Verify: Red-Gate UDP tests (calling `udp_gap_key` directly) GREEN; VP-043 proptest harnesses GREEN
 
 5. **Implement VP-042 (3 harnesses) and VP-043 (2 harnesses) proptest (AC-153-006 through AC-153-007)**
    - All 5 proptest harnesses use `.with_coverage_gaps(true)` + ≥1 analyzer `is_some()` precondition
@@ -458,6 +496,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.05.010/011
 8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_153 { ... }` wrapper.
 9. **No panic on u64 overflow** — use `saturating_add` semantics for counter increments (BC-2.05.011 EC-010; SEC-003 sibling-consistency pattern). Use `let c = map.entry(k).or_insert(0); *c = c.saturating_add(1);` — `.saturating_add_assign()` is NOT a real std method on `u64`.
 10. **`DispatchTarget` and `classify()` are module-private in `src/dispatcher.rs`** — tests in `tests/` CANNOT directly construct `DispatchTarget` variants or call `classify()`. All test flows must be driven via the public API: `dispatcher.on_data(flow_key, payload)` / `dispatcher.on_flow_close(flow_key)` + the new `pub fn unclassified_port_counts()` accessor + `pub enum TransportProto`. Proptest harnesses in Task 5 must only use the public interface.
+11. **`udp_gap_key` seam MUST be library-visible (`pub fn`) in `src/dispatcher.rs`** — `udp_unclassified_counts` is a local variable in the `main.rs` binary-private decode loop and is unreachable from `tests/`. The `pub fn udp_gap_key(...)` free function in `src/dispatcher.rs` is the library-visible boundary that VP-043 proptest harnesses call directly (DF-KANI-NONVACUITY-001). The main.rs decode loop calls the same production seam — no logic duplication. BC-2.05.010 is satisfied: the counter is populated in the main.rs loop via this seam.
 
 ## Library & Framework Requirements
 
@@ -475,7 +514,7 @@ The `TransportProto` enum in `dispatcher.rs` is INDEPENDENT of `protocols::Trans
 
 | File | Change Type | Purpose |
 |------|------------|---------|
-| `src/dispatcher.rs` | Modify | `TransportProto` enum; `unclassified_port_counts` field; `coverage_gaps_enabled` field; `on_flow_close` augmentation; accessor method |
+| `src/dispatcher.rs` | Modify | `TransportProto` enum; `unclassified_port_counts` field; `coverage_gaps_enabled` field; `on_flow_close` augmentation; accessor method; `pub fn udp_gap_key(parsed, dns_handles)` seam (VP-043 non-vacuity) |
 | `src/main.rs` | Modify | `udp_unclassified_counts` map; UDP decode-loop increment (STORY-154 adds `.with_coverage_gaps(args.coverage_gaps)` builder call — not in scope for this story) |
 | `tests/dispatcher_tests.rs` | Modify | VP-042 (3 harnesses) + VP-043 (2 harnesses) + unit tests in `mod story_153 { ... }` |
 
@@ -489,3 +528,4 @@ No new source files.
 | v1.1 | 2026-07-02 | F-F3P1-002 (HIGH): Fixed AC-153-005 phantom `udp_header` → `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport` pattern inside existing `Ok(DecodedFrame::Ip(parsed))` arm; clarified there is NO separate UDP loop in main.rs; updated Task 4 accordingly. F-F3P1-004 (MEDIUM): None-target tests (tcp_counter_none_target, lower_port_normalization) changed from port 502 to neutral port 9999; port 502 reserved exclusively for Modbus-classified no-increment test. Fixed AC-153-003 Red-Gate tests: Http/80 → Modbus/502 in no_increment_classified_flow annotation (EC-002 label fix). | F-F3P1-002, F-F3P1-004 |
 | v1.2 | 2026-07-02 | F-F3P2-001 (CRITICAL): Fixed AC-153-003 code snippet — `unclassified_flows += 1` moved OUTSIDE `coverage_gaps_enabled` gate to analyzer-present guard only; `unclassified_port_counts` increment now nested in inner `if self.coverage_gaps_enabled { }` block (matches ADR-012 Decision 6 Clarification exactly). Removed regression warning + updated descriptive text. Fixed LOW `.saturating_add_assign(1)` (non-real std method) → `let c = ...; *c = c.saturating_add(1)`. F-F3P2-004 (MEDIUM): Changed AC-153-002 / Task 2 / Previous Story Intelligence to use builder method `with_coverage_gaps(mut self, enabled: bool) -> Self` instead of new `new()` parameter — no blast to 8 existing call sites. Updated Architecture Compliance Rule 3 + Previous Story Intelligence STORY-033/088 paragraphs + VP-042 proptest precondition language. Added ACR-10 (module-private `DispatchTarget`/`classify()` note; tests must use public `on_data`/`on_flow_close` + accessor). | F-F3P2-001, F-F3P2-004, LOW |
 | v1.3 | 2026-07-02 | F-F3P3-003 (MEDIUM): Fixed AC-153-005 UDP snippet sibling-sweep gap — `udp_unclassified_counts.entry(...).or_insert(0) += 1` was non-compiling (bare `+= 1` on `Entry` return) and violated ACR-9 (saturating_add mandate). Replaced with `let c = ...; *c = c.saturating_add(1);` matching the AC-153-003 TCP sibling pattern (fixed in v1.2) and Architecture Compliance Rule 9. | F-F3P3-003 |
+| v1.4 | 2026-07-02 | F-F3P4-001 (HIGH): Introduced `pub fn udp_gap_key(parsed, dns_handles)` library-visible seam in `src/dispatcher.rs` (SEAM CONTRACT). VP-043 proptest harnesses in `tests/dispatcher_tests.rs` link only the library crate and CANNOT reach `udp_unclassified_counts` (main.rs binary-private). Without the seam VP-043 would be vacuous (DF-KANI-NONVACUITY-001). Redesigned AC-153-005 to show seam function definition + main.rs decode loop calling it. Updated AC-153-007 VP-043 harness descriptions to call seam directly. Updated Architecture Mapping (added udp_gap_key row), Task 1 (UDP seam-based test descriptions), Task 4 (seam-call pattern), Architecture Compliance Rule 11 (seam library-visibility mandate), File Structure Requirements (dispatcher.rs row). BC-2.05.010 not violated: counter still populated in main.rs loop via the seam. | F-F3P4-001 |
