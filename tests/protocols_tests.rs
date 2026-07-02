@@ -51,16 +51,15 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies that `KnownProtocol` is constructible via a struct literal
-    /// and that all seven public fields are accessible. Fails at Red Gate because
-    /// `KNOWN_PROTOCOLS` is empty (len 0, not 30); passes after implementation when the
-    /// first catalog entry can be accessed.
+    /// and that all seven public fields are accessible. Fails if `KNOWN_PROTOCOLS` is emptied
+    /// (len 0) or if any of the seven public fields is removed from the struct.
     #[test]
     fn test_BC_2_18_struct_fields_compile() {
-        // Red Gate guard: catalog must be non-empty before field-access assertions are
-        // meaningful. This fails against the stub (KNOWN_PROTOCOLS = &[]).
+        // Regression guard: catalog must be non-empty before field-access assertions are
+        // meaningful. Fails if KNOWN_PROTOCOLS is cleared or emptied.
         let first = KNOWN_PROTOCOLS
             .first()
-            .expect("KNOWN_PROTOCOLS must not be empty — AC-151-001 Red Gate");
+            .expect("KNOWN_PROTOCOLS must not be empty — AC-151-001 regression guard");
 
         // Access every public field to confirm the struct shape matches the AC.
         let _name: &'static str = first.name;
@@ -73,8 +72,8 @@ mod story_151 {
     }
 
     /// REGRESSION-GUARD: Verifies that `ProtocolCategory` has exactly the two variants
-    /// `ICS` and `IT` (no `L2` variant — ADR-012 Decision 7). Fails at Red Gate because
-    /// `KNOWN_PROTOCOLS` is empty and the catalog membership assertions cannot be satisfied.
+    /// `ICS` and `IT` (no `L2` variant — ADR-012 Decision 7). Fails if the 30-entry catalog
+    /// drops all ICS or all IT entries, or if a third variant is added.
     #[test]
     fn test_BC_2_18_category_variants_exactly_two() {
         // Compile-check: both variants are reachable.
@@ -86,8 +85,8 @@ mod story_151 {
             "ICS and IT must be distinct variants"
         );
 
-        // Red Gate guard: assert the catalog actually uses both variants — fails against
-        // the empty stub; passes once the 30-entry catalog is populated.
+        // Regression guard: assert the catalog uses both variants — fails if a future edit
+        // reclassifies every ICS or every IT entry.
         let has_ics = KNOWN_PROTOCOLS
             .iter()
             .any(|p| p.category == ProtocolCategory::ICS);
@@ -107,7 +106,7 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies `SUPPORTED_PORTS` contains exactly 8 port values —
-    /// 502, 20000, 44818, 443, 8443, 80, 8080, 53. Fails against the stub (&[]).
+    /// 502, 20000, 44818, 443, 8443, 80, 8080, 53. Fails if a port is added or removed.
     #[test]
     fn test_BC_2_18_003_supported_ports_len() {
         assert_eq!(
@@ -118,7 +117,7 @@ mod story_151 {
     }
 
     /// REGRESSION-GUARD: Verifies each of the 8 canonical port values is present in
-    /// `SUPPORTED_PORTS`. Fails against the stub (empty slice).
+    /// `SUPPORTED_PORTS`. Fails if any canonical port is removed from the constant.
     #[test]
     fn test_BC_2_18_003_supported_ports_contains_canonical() {
         assert!(
@@ -163,7 +162,7 @@ mod story_151 {
     /// - Port 20000 (DNP3):      IEEE Std 1815-2012 §10.3.2
     /// - Port 53   (DNS):        RFC 1035 §4.2.1
     ///
-    /// Fails against the stub (SUPPORTED_PORTS = &[]).
+    /// Fails if any of these canonical ports is removed from `SUPPORTED_PORTS`.
     #[test]
     fn test_BC_2_18_003_supported_ports_canonical() {
         // Port 502 — Modbus/TCP; IANA + Modbus App Protocol v1.1b3 §4.3.1 "Well-Known TCP
@@ -197,7 +196,7 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies `KNOWN_PROTOCOLS` contains exactly 30 entries.
-    /// Fails against the stub (empty slice).
+    /// Fails if an entry is added or removed from the catalog.
     #[test]
     fn test_BC_2_18_003_known_protocols_len() {
         assert_eq!(
@@ -207,9 +206,53 @@ mod story_151 {
         );
     }
 
+    /// REGRESSION-GUARD: Verifies `KNOWN_PROTOCOLS` entries 0..7 are the 7 supported
+    /// protocols in catalog-declaration order: Modbus/TCP, DNP3, EtherNet/IP + CIP, TLS,
+    /// ARP, DNS, HTTP (BC-2.18.003 v1.3 PC-2; ADR-012 Decision 4).
+    ///
+    /// Fails if the declaration order of the first 7 entries is changed, or if a supported
+    /// protocol is swapped with an unsupported one at the front of the catalog.
+    #[test]
+    fn test_BC_2_18_003_catalog_declaration_order() {
+        let expected_supported_names = [
+            "Modbus/TCP",
+            "DNP3",
+            "EtherNet/IP + CIP",
+            "TLS",
+            "ARP",
+            "DNS",
+            "HTTP",
+        ];
+
+        assert!(
+            KNOWN_PROTOCOLS.len() >= 7,
+            "KNOWN_PROTOCOLS must have at least 7 entries for declaration-order check"
+        );
+
+        let actual_first_seven: Vec<&str> = KNOWN_PROTOCOLS[0..7].iter().map(|p| p.name).collect();
+
+        assert_eq!(
+            actual_first_seven, expected_supported_names,
+            "KNOWN_PROTOCOLS[0..7] must be the 7 supported entries in catalog-declaration \
+             order (BC-2.18.003 v1.3 PC-2; ADR-012 Decision 4)"
+        );
+
+        // Regression guard on the unsupported tail: every entry at index 7..30 must NOT
+        // be one of the 7 supported names, confirming supported entries are front-loaded.
+        for (i, entry) in KNOWN_PROTOCOLS[7..].iter().enumerate() {
+            assert!(
+                !expected_supported_names.contains(&entry.name),
+                "KNOWN_PROTOCOLS[{}] (name={:?}) is a supported protocol but appears in the \
+                 unsupported tail (indices 7..30) — declaration order is violated",
+                i + 7,
+                entry.name
+            );
+        }
+    }
+
     /// REGRESSION-GUARD: Verifies the ARP entry has the expected LinkLayer fields:
     /// `canonical_ports` is empty, `port_detectable` is false, `transport` is LinkLayer.
-    /// Fails against the stub (no ARP entry in empty catalog).
+    /// Fails if the ARP entry is removed or its LinkLayer fields are altered.
     #[test]
     fn test_BC_2_18_003_arp_linkLayer_port_detectable_false() {
         let arp = KNOWN_PROTOCOLS
@@ -238,7 +281,7 @@ mod story_151 {
     /// Source: IEC 61850-8-1 §4; IEEE Registration Authority EtherType registry entry
     /// "IEC GOOSE". The decimal value 35000 == 0x88B8.
     ///
-    /// Fails against the stub (no GOOSE entry in empty catalog).
+    /// Fails if the GOOSE entry is removed or its EtherType value is altered.
     #[test]
     fn test_BC_2_18_003_goose_ethertype_canonical() {
         let goose = find_entry("GOOSE");
@@ -266,7 +309,7 @@ mod story_151 {
     /// `ETHERTYPE_EPL_V2 = 0x88AB`; confirmed by IETF `ietf-ethertypes` YANG module
     /// value 34987. The obsolete V1 value 0x3E3F is intentionally excluded.
     ///
-    /// Fails against the stub (no POWERLINK entry in empty catalog).
+    /// Fails if the POWERLINK entry is removed or its EtherType value is altered.
     #[test]
     fn test_BC_2_18_003_powerlink_ethertype_canonical() {
         let powerlink = find_entry("POWERLINK");
@@ -294,7 +337,7 @@ mod story_151 {
     /// Wrong-value guards check against PROFINET (34962 / 0x8892) and GOOSE (35000 / 0x88B8)
     /// — two visually similar values that could result from a copy-paste error.
     ///
-    /// Fails against the stub (no EtherCAT entry in empty catalog).
+    /// Fails if the EtherCAT entry is removed or its EtherType value is altered.
     #[test]
     fn test_BC_2_18_003_ethercat_ethertype_canonical() {
         // EtherCAT has no "PROFINET" in its name; distinguish L2 EtherCAT from other L2 entries.
@@ -334,7 +377,7 @@ mod story_151 {
     /// This test targets the L2 PROFINET RT/DCP entry specifically, identified by
     /// Transport::LinkLayer.
     ///
-    /// Fails against the stub (no PROFINET L2 entry in empty catalog).
+    /// Fails if the PROFINET RT/DCP entry is removed or its EtherType value is altered.
     #[test]
     fn test_BC_2_18_003_profinet_ethertype_canonical() {
         // Locate the L2 PROFINET entry (PROFINET RT/DCP, not PROFINET RPC which is UDP).
@@ -368,7 +411,7 @@ mod story_151 {
     /// GOOSE 0x88B8 (35000). The two values differ by 2; a transposition would be silent
     /// without this guard.
     ///
-    /// Fails against the stub (no SV entry in empty catalog).
+    /// Fails if the Sampled Values entry is removed or its EtherType value is altered.
     #[test]
     fn test_BC_2_18_003_sv_ethertype_canonical() {
         let sv = find_entry("Sampled Values");
@@ -396,7 +439,7 @@ mod story_151 {
     /// BACnet/IP is UDP-only by default; port 47808 is NOT in SUPPORTED_PORTS, so
     /// BACnet/IP appears in `unsupported_protocols()`.
     ///
-    /// Fails against the stub (no BACnet entry in empty catalog).
+    /// Fails if the BACnet/IP entry is removed or its transport/port fields are altered.
     #[test]
     fn test_BC_2_18_003_bacnet_udp_canonical() {
         let bacnet = find_entry("BACnet");
@@ -419,7 +462,7 @@ mod story_151 {
     /// None of these are in SUPPORTED_PORTS (port 102 is absent), so all four appear in
     /// `unsupported_protocols()`.
     ///
-    /// Fails against the stub (no entries in empty catalog).
+    /// Fails if any of the four port-102 protocols is removed or their canonical port changed.
     #[test]
     fn test_BC_2_18_003_port_102_four_protocols_present() {
         let port_102_count = KNOWN_PROTOCOLS
@@ -470,7 +513,7 @@ mod story_151 {
     /// unsupported entries: IEC 61850 GOOSE, IEC 61850 Sampled Values, PROFINET RT/DCP,
     /// EtherCAT, Ethernet POWERLINK. ARP is NOT counted here (ARP is a supported L2 entry).
     ///
-    /// Fails against the stub (no entries in empty catalog).
+    /// Fails if an L2 entry is added or removed, or if `port_detectable` is set incorrectly.
     #[test]
     fn test_BC_2_18_003_l2_port_detectable_false_exactly_five() {
         // Filter for non-ARP L2 entries (the 5 unsupported L2/multicast protocols).
@@ -495,7 +538,8 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies `all_protocols()` returns a slice of the same length as
-    /// `KNOWN_PROTOCOLS`. Fails against the stub (`all_protocols()` is `todo!()`).
+    /// `KNOWN_PROTOCOLS`. Fails if `all_protocols()` is reimplemented to return a filtered
+    /// or truncated view of the catalog rather than the full 30-entry slice.
     #[test]
     fn test_BC_2_18_004_all_protocols_len() {
         assert_eq!(
@@ -512,7 +556,8 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies `supported_protocols()` returns exactly 7 entries.
-    /// Fails against the stub (`supported_protocols()` is `todo!()`).
+    /// Fails if a port is added to or removed from `SUPPORTED_PORTS`, or if the ARP
+    /// special case is dropped.
     #[test]
     fn test_BC_2_18_003_supported_protocols_len() {
         assert_eq!(
@@ -526,7 +571,7 @@ mod story_151 {
     /// REGRESSION-GUARD: Verifies ARP is in `supported_protocols()` despite having
     /// `canonical_ports: &[]` — the ARP special case (`|| p.name == "ARP"`) must be
     /// present in the implementation (BC-2.18.003 Invariant 3).
-    /// Fails against the stub (`supported_protocols()` is `todo!()`).
+    /// Fails if the ARP special-case branch is removed from `supported_protocols()`.
     #[test]
     fn test_BC_2_18_003_arp_in_supported_set() {
         let supported = supported_protocols();
@@ -543,7 +588,8 @@ mod story_151 {
     /// the mirror (DNS entry has `canonical_ports = &[53]`; the decode-loop path note does
     /// not exempt DNS from the mirror check).
     ///
-    /// Fails against the stub (`supported_protocols()` is `todo!()`).
+    /// Fails if any port in `SUPPORTED_PORTS` is not mirrored by a `supported_protocols()`
+    /// entry, including if the DNS or ARP entries lose their canonical port membership.
     #[test]
     fn test_BC_2_18_003_supported_ports_mirror() {
         let supported = supported_protocols();
@@ -562,7 +608,8 @@ mod story_151 {
     /// REGRESSION-GUARD: Verifies BACnet/IP (port 47808) is NOT in `supported_protocols()`.
     /// Port 47808 is absent from `SUPPORTED_PORTS`, so BACnet/IP must appear only in
     /// `unsupported_protocols()` (BC-2.18.003 EC-003).
-    /// Fails against the stub (`supported_protocols()` is `todo!()`).
+    /// Fails if port 47808 is added to `SUPPORTED_PORTS`, which would incorrectly promote
+    /// BACnet/IP to the supported set.
     #[test]
     fn test_BC_2_18_003_bacnet_unsupported() {
         let supported = supported_protocols();
@@ -579,7 +626,8 @@ mod story_151 {
     // -----------------------------------------------------------------------
 
     /// REGRESSION-GUARD: Verifies `supported_protocols().len() + unsupported_protocols().len()
-    /// == KNOWN_PROTOCOLS.len()` (== 30). Fails against the stub (both functions are `todo!()`).
+    /// == KNOWN_PROTOCOLS.len()` (== 30). Fails if either function returns entries not
+    /// drawn from `KNOWN_PROTOCOLS` or if the two sets overlap.
     #[test]
     fn test_BC_2_18_003_partition_len() {
         let s = supported_protocols().len();
@@ -596,7 +644,8 @@ mod story_151 {
 
     /// REGRESSION-GUARD: Verifies `supported_protocols()` and `unsupported_protocols()` are
     /// disjoint — no entry name appears in both result sets.
-    /// Fails against the stub (functions are `todo!()`).
+    /// Fails if the complement derivation in `unsupported_protocols()` is broken and an
+    /// entry appears in both result sets simultaneously.
     #[test]
     fn test_BC_2_18_004_disjoint() {
         let supported = supported_protocols();
@@ -615,7 +664,8 @@ mod story_151 {
 
     /// REGRESSION-GUARD: Verifies that every entry returned by `unsupported_protocols()` has
     /// a name present in `KNOWN_PROTOCOLS` — no phantom entries may appear.
-    /// Fails against the stub (`unsupported_protocols()` is `todo!()`).
+    /// Fails if `unsupported_protocols()` returns an entry whose name is not in
+    /// `KNOWN_PROTOCOLS` (phantom entry guard).
     #[test]
     fn test_BC_2_18_004_no_phantom_entries() {
         let known_names: Vec<&str> = KNOWN_PROTOCOLS.iter().map(|p| p.name).collect();
@@ -650,7 +700,8 @@ mod story_151 {
     // Non-vacuity runtime guard: asserts KNOWN_PROTOCOLS is non-empty so the test
     // cannot pass silently against an unpopulated catalog.
     //
-    // Fails against the stub: all_protocols() is todo!() → panics on first invocation.
+    // Regression guard: asserts the oracle predicate and supported_protocols() agree for
+    // every catalog entry. Fails if supported_protocols() diverges from SUPPORTED_PORTS.
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(1000))]
         #[test]
@@ -663,8 +714,7 @@ mod story_151 {
                 "KNOWN_PROTOCOLS is empty — VP-041 oracle would be vacuously true"
             );
 
-            // Obtain all entries and supported set. At Red Gate, all_protocols() panics
-            // (todo!()); proptest treats the panic as a test failure.
+            // Obtain all entries and the supported set for the oracle cross-check.
             let all = all_protocols();
             let supported = supported_protocols();
 
@@ -699,7 +749,8 @@ mod story_151 {
     // This holds trivially by the complement derivation (unsupported = KNOWN \ supported).
     // The non-vacuous guard is proptest_vp041_oracle_cross_check.
     //
-    // Fails against the stub: supported_protocols() is todo!() → panics.
+    // Regression guard: verifies the counting and disjointness invariants hold across
+    // 1000 random inputs. Fails if the partition contract is broken.
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(1000))]
         #[test]
