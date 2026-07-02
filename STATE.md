@@ -2,11 +2,11 @@
 document_type: pipeline-state
 project: wirerust
 mode: feature
-phase: F3-incremental-stories
+phase: F4-delta-implementation
 status: in-progress
-current_step: "F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery)."
+current_step: "F3 GATE APPROVED (D-359, 2026-07-02). Entering F4 delta implementation (autonomous, wave-gated). Next: pre-F4 env prep (factory-worktree-health + verify ci.yml/branch-protection + create wave-67 worktrees for STORY-151 ∥ STORY-153), then per-story-delivery wave 67."
 pipeline: FEATURE-CYCLE
-timestamp: 2026-07-02T19:00:00Z
+timestamp: 2026-07-02T20:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.1
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery).**
+**F3 GATE APPROVED (D-359, 2026-07-02). Now in F4 delta implementation (autonomous, wave-gated). Next: pre-F4 env prep (devops-engineer: factory-worktree-health + verify ci.yml/branch-protection + create wave-67 worktrees for STORY-151 & STORY-153), then per-story-delivery wave 67 (STORY-151 ∥ STORY-153).**
 
 ---
 
@@ -94,7 +94,8 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
 | Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **APPROVED (D-338, 2026-07-02)** | Adversarial convergence: 3 consecutive clean passes (P11/P12/P13, 13 total). Input-hash STALE=0 (D-337). Consistency audit PASS. Human gate approved 2026-07-02. 4 LOW items carried into F3. Final spec: BC-INDEX v2.13 / PRD v1.51 / VP-INDEX v2.32 / ARCH-INDEX v2.11 / ss-18 v1.5; 9 BCs, CAP-18, ADR-012, VP-041/042/043. |
-| Feature cycle feature-protocol-coverage — F3 (incremental-stories) | **CONVERGED (adversarial) — D-357** | F3 decomp+holdout DONE (D-339). 18 passes total; trajectory 2→3→2→1→0 (reset×4) → final run Pass-16/17/18 all CLEAN. BC-5.39.001 SATISFIED: 3 consecutive clean fresh-context passes (Pass-16/17/18), 0 P0/CRITICAL/HIGH/mis-anchor, decomposition byte-stable (HEAD 59cc443 unchanged). Deliverables: STORY-151..154 (v1.4/1.4/1.7/1.8), STORY-INDEX v3.12 (107 stories/69 waves/691 pts), dep-graph v3.6 (124 edges, acyclic, E-21 diamond), HS-123..132 (HS-INDEX v2.10; 10 must-pass, 7 canonical-value). 3 final non-blocking obs (D-357). Pending F3 gate. |
+| Feature cycle feature-protocol-coverage — F3 (incremental-stories) | **APPROVED (D-359, 2026-07-02)** | F3 decomp+holdout DONE (D-339). 18 passes total; caught CRITICAL TCP-keying bug + multiple F4-breakers. BC-5.39.001 SATISFIED (Pass-16/17/18 consecutive clean). Human gate approved 2026-07-02. |
+| Feature cycle feature-protocol-coverage — F4 (delta-implementation) | **IN PROGRESS** | Autonomous wave-gated execution. Wave 67: STORY-151 (SS-18 catalog) ∥ STORY-153 (SS-05/main.rs counters) [parallel, disjoint files]. Wave 68: STORY-152. Wave 69: STORY-154. develop=3a60317. |
 
 ---
 
@@ -172,6 +173,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-356 | F3 adversarial story Pass-17 = CLEAN (zero P0/CRITICAL/HIGH/mis-anchor; novelty LOW — converged story set). 1 LOW DEFERRED (non-breaking, hold stable): F-F3P17-001 (STORY-154 AC-154-002 Traces-to cites BC-2.05.010 v1.3 PC-1 which is not in STORY-154's bcs: frontmatter — benign cross-layer relevance reference; BC-2.05.010 fully owned/covered by STORY-153, no coverage gap; add a cross-story relevance note at F4 mirroring the VP-relevance-note pattern, OR accept as intentional cross-layer traceability; pending-intent). 1 re-derivation of known-deferred HS-INDEX-ENIP-WAVE-DRIFT-001 (out of E-21 scope). CONSECUTIVE-CLEAN COUNT = 2 (Pass-16, Pass-17, final run). Next: Pass-18 (#3) → F3 convergence. | 2026-07-02 |
 | D-357 | F3 ADVERSARIAL STORY CONVERGENCE ACHIEVED. 3 consecutive clean fresh-context passes (Pass-16/17/18), zero P0/CRITICAL/HIGH/mis-anchor, decomposition byte-stable (HEAD 59cc443 unchanged across the 3 passes). F3 ran 18 total passes; caught+fixed genuine defects incl. a CRITICAL TCP min-of-ports keying bug (F-F3P11-001), a wave-67 independent-compile gap (F-F3P6-001), an unreachable port-502 red-gate test (F-F3P14-001), phantom symbols (udp_header/p.supported/args.json), non_snake_case CI-gate misses, and a C-25 path mis-anchor. Deliverables: STORY-151..154 (v1.4/1.4/1.7/1.8), STORY-INDEX v3.12 (107 stories/69 waves/691 pts), dependency-graph v3.6 (124 edges, acyclic, E-21 diamond), holdouts HS-123..132 (HS-INDEX v2.10; 10 must-pass, 7 canonical-value). 3 final non-blocking observations: F-F3P18-O2 (STORY-154 render must re-lookup KNOWN_PROTOCOLS for `name` — F4 one-line refinement), F-F3P18-O1 (frozen BC-2.12.024 PC-4 'supported: false' wording — phase-5 reconciliation; story compensates via derived predicate), F-F3P18-O3 (frozen BC-2.05.010 EC-006 '(Tcp,502)==2' physically unreachable since classify() always routes 502→Modbus — phase-5 BC reconciliation; stories navigate correctly; NEW — research-agent-validate per DF-VALIDATION-001). Next: F3 fresh-context consistency audit + input-drift check, then human F3 gate → F4 delta implementation. | 2026-07-02 |
 | D-358 | F3 pre-gate GAP-1 (epics.md drift) fixed. Consistency audit found epics.md (v2.0) never updated for E-21. Reconciled to v2.1: added E-21 epic section (9 BCs, SS-18/05/12, STORY-151..154/32 pts/waves 67-69), total_bcs 328→337, Estimated Story Count Summary → 107 (also fixed pre-existing post-v2.0 drift E-5→11/E-8→7/E-11→6/E-18→3/E-20→11). STATE epics_version v1.8→v2.1. Residual: epics.md total_bcs 337 vs BC-INDEX v2.13 345 active (6 missing TLS BCs BC-2.07.038..043 + 2 unresolved) → logged EPICS-TOTAL-BCS-DRIFT-001 for maintenance/phase-5. Input-hash drift check CLEAN (MATCH=99 STALE=0). F3 pre-gate steps (consistency audit + input-drift) COMPLETE; ready for human F3 gate. | 2026-07-02 |
+| D-359 | F3 (story decomposition) HUMAN GATE APPROVED (2026-07-02) → proceed to F4 delta implementation. Pre-gate satisfied: F3 adversarial convergence (3 consecutive clean, 18 total passes; caught+fixed a CRITICAL TCP-keying bug + multiple F4-breakers), fresh-context consistency audit PASS (epics.md GAP-1 reconciled v2.1), input-hash drift CLEAN. Human elected AUTONOMOUS F4 execution: drive STORY-151..154 wave-by-wave (67→68→69) via per-story-delivery, report at wave gates, stop only for blockers or the F4-holdout gate. F4 execution order: Wave 67 = STORY-151 (SS-18 catalog) ∥ STORY-153 (SS-05/main.rs counters) [disjoint files, parallel]; Wave 68 = STORY-152 (protocols subcommand); Wave 69 = STORY-154 (--coverage-gaps report). Each story: full per-story-delivery (worktree → stub-architect Red Gate → test-writer failing tests → implementer TDD → Step-4.5 per-story adversarial convergence 3 clean → demo-recorder per-AC demos → pr-manager 9-step PR w/ AI+security review → merge → worktree cleanup). DTU_REQUIRED=false. F4-carry refinements to apply during implementation: F-F3P18-O2 (STORY-154 render re-lookup name), F-F3P10-001 (STORY-153 unclassified_flows-fires-when-gaps-disabled Red-Gate test), F-F3P9-001/F-F3P13-001 (protocols --json stdout-only per frozen BC), F-F3P7-O1 (udp_unclassified_counts run_analyze() function-scope), F-F3P12-001 (mirror-test port-53), F-F3P13-002/F-F3P16-002 (STORY-154 subsystems SS-05 + dep-graph cell), F-F3P17-001 (STORY-154 AC-154-002 cross-layer trace note). | 2026-07-02 |
 
 ---
 
@@ -249,25 +251,18 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F3 CONVERGED + pre-gate COMPLETE (consistency audit PASS w/ epics.md GAP-1 fixed; input-drift CLEAN). READY FOR HUMAN F3 GATE. On approval → F4 delta implementation (TDD delivery STORY-151..154 via per-story-delivery).**
+**F3 GATE APPROVED (D-359, 2026-07-02). Now in F4 delta implementation (autonomous, wave-gated). Next: pre-F4 env prep (devops-engineer: factory-worktree-health + verify ci.yml/branch-protection + create wave-67 worktrees for STORY-151 & STORY-153), then per-story-delivery wave 67 (STORY-151 ∥ STORY-153).**
 
-- **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **Pre-gate status:** consistency audit PASS (D-358: epics.md GAP-1 fixed → v2.1; all other corpus docs consistent); input-hash drift CLEAN (MATCH=99 STALE=0). Residual logged: EPICS-TOTAL-BCS-DRIFT-001 (total_bcs 337 vs 345 active — maintenance/phase-5 carry).
-- **F3 story artifacts (FINAL — byte-stable Pass-16/17/18; no story changes across all 3 convergence passes):**
-  - STORY-151 (`.factory/stories/STORY-151.md`): v1.4 — C-25 path `src/analyzer/enip.rs` (3 sites correct); all canonical EtherType tests present
-  - STORY-152 (`.factory/stories/STORY-152.md`): v1.4 — blocks [STORY-154]; cli.json.is_some(); *supported deref; ..; #[allow(non_snake_case)] on mod story_152
-  - STORY-153 (`.factory/stories/STORY-153.md`): v1.7 — TCP gap-key lower_port().min(upper_port()); UDP src_port.min(dst_port); udp_gap_key seam in dispatcher.rs
-  - STORY-154 (`.factory/stories/STORY-154.md`): v1.8 — CLI-reachable absent-guard + unit-only bug-signal; EC-154-11 clarified; supportedness via derived predicate
-  - HS-124 v2.1 (input-hash: 10bbeba); HS-123 input-hash: 9e5778e; HS-125 input-hash: d786aa9
-  - dep-graph v3.6 (edges 124, waves 69); STORY-INDEX v3.12; HS-INDEX v2.10
-- **PRE-F3-GATE PROCEDURE (strictly ordered):**
-  1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
-  2. Read `.factory/STATE.md` — confirm D-357 present, F3 CONVERGED, 3 consecutive clean (Pass-16/17/18).
-  3. ~~Run fresh-context consistency-validator full-corpus audit~~ **DONE (D-358: PASS; GAP-1 epics.md v2.0→v2.1 fixed).**
-  4. ~~Run `bin/compute-input-hash --scan` — confirm STALE=0~~ **DONE (D-358: MATCH=99 STALE=0 CLEAN).**
-  5. Present structured human F3 gate summary → await approval.
-  6. On F3 approval → F4 delta implementation (TDD delivery of STORY-151..154 via per-story-delivery).
-- **3 final non-blocking obs (D-357):** F-F3P18-O2 (STORY-154 render re-lookup `name` — F4 one-line), F-F3P18-O1 (BC-2.12.024 PC-4 wording — phase-5), BC-2.05.010-EC006-UNREACHABLE-001 (EC-006 (Tcp,502)==2 unreachable — phase-5, DF-VALIDATION-001-gated).
+- **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD=`215cee0` (pre-F4; use `git -C .factory log -1 --format='%h %s'` for live HEAD). No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only. F4 will create per-story worktrees + PRs targeting develop.
+- **F3 gate satisfied (D-359):** adversarial convergence PASS (18 passes, 3 consecutive clean Pass-16/17/18; CRITICAL TCP-keying bug F-F3P11-001 caught+fixed); consistency audit PASS (D-358: epics.md GAP-1 → v2.1); input-hash drift CLEAN (MATCH=99 STALE=0).
+- **F4 execution plan (autonomous, wave-gated):**
+  - Wave 67 (parallel): STORY-151 (SS-18 catalog, BC-2.18.003/004, VP-041) ∥ STORY-153 (SS-05/main.rs counters, BC-2.05.010/011, VP-042/043) — disjoint file sets, safe to parallelize
+  - Wave 68: STORY-152 (protocols subcommand, BC-2.12.022 + BC-2.18.001/002)
+  - Wave 69: STORY-154 (--coverage-gaps + CoverageGapsSummary, BC-2.12.023/024)
+  - Each story: per-story-delivery (worktree → stub-architect Red Gate → test-writer → implementer TDD → Step-4.5 per-story adversarial 3 clean → demo-recorder → pr-manager 9-step PR → merge → cleanup)
+  - Report at each wave gate; stop only for blockers or F4-holdout gate. DTU_REQUIRED=false.
+- **F3 story artifacts (FINAL — unchanged entering F4):** STORY-151 v1.4 / STORY-152 v1.4 / STORY-153 v1.7 / STORY-154 v1.8; STORY-INDEX v3.12; dep-graph v3.6 (124 edges, 69 waves); HS-INDEX v2.10 (HS-123..132).
+- **F4-carry refinements:** F-F3P18-O2 (STORY-154 render re-lookup name), F-F3P10-001 (STORY-153 unclassified_flows-fires-when-gaps-disabled Red-Gate test), F-F3P9-001/F-F3P13-001 (protocols --json stdout-only), F-F3P7-O1 (udp_unclassified_counts function-scope), F-F3P12-001 (mirror-test port-53), F-F3P13-002/F-F3P16-002 (STORY-154 subsystems SS-05 + dep-graph cell), F-F3P17-001 (AC-154-002 cross-layer trace note).
 
 ---
 
