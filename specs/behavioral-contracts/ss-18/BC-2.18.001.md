@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,10 @@ subsystem: SS-18
 capability: CAP-18
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P1-003/005/008/009 Pass-1 remediation — ProtocolCategory enum L2 variant removed (two variants: ICS/IT; L2-ness expressed via transport column); EC-007 HART-IP transport=UDP; VP-041 harness renamed to proptest_vp041_oracle_cross_check; PC-8 catalog-declaration order added. 2026-07-01"
+  - "v1.2: F-F2P2-006 Pass-2 remediation — duplicate PC-8 (exit-code precondition) renumbered to PC-9. 2026-07-01"
+  - "v1.3: F-F2P3-001 Pass-3 remediation — EC-001 reworded (ARP IS a transport=LinkLayer supported entry; EC-001 now states no L2/multicast PROTOCOL entries in --supported set; ARP noted as sole LinkLayer supported entry); PC-5 amended to note LinkLayer entries with ethertype=None (ARP) render — in EtherType column. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null

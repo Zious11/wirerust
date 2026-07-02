@@ -4,8 +4,12 @@ feature_id: feature-protocol-coverage
 gate: D-320
 title: "F2 Architecture Delta — Protocol Coverage Catalog (SS-18)"
 status: draft
+version: "1.1"
 producer: architect
 created: 2026-07-01
+modified:
+  - date: "2026-07-01"
+    reason: "Pass-6 sync (F-F2P6-003, F-F2P6-004): added historical-snapshot disclaimer banner, added ADR-012 Decision 10 to §3 key-decisions summary, annotated stale ARCH-INDEX version reference in §5 (v2.5→v2.6 at authoring; current v2.9), fixed broken BC path in §9.3 (.factory/specs/bcs/ → .factory/specs/behavioral-contracts/ss-05/)."
 branch: develop
 traces_to:
   - .factory/specs/architecture/ARCH-INDEX.md
@@ -14,6 +18,16 @@ traces_to:
 ---
 
 # F2 Architecture Delta — Protocol Coverage Catalog (feature-protocol-coverage)
+
+> **HISTORICAL SNAPSHOT — F2 design-layer working document.** This delta captures the
+> F2 design decisions as authored during the F2P1-era design pass. The CANONICAL,
+> current source of truth for each artifact is: ADR-012
+> (`.factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md`) for
+> decisions; VP-INDEX / verification-architecture for verification properties; BC-INDEX
+> + the BC files for behavioral contracts; ARCH-INDEX for subsystem/version state.
+> Where this snapshot and a canonical doc disagree, the canonical doc wins. Version
+> references in this snapshot (e.g., ARCH-INDEX v2.5→v2.6) reflect the state at
+> authoring time, not current.
 
 ## 1. Overview
 
@@ -133,6 +147,12 @@ Key decisions recorded:
    only; F-F2P1-010)
 8. `--coverage-gaps` explicit flag (NOT auto under `--all`)
 9. `CoverageGapsSummary` as report section (NOT Finding entries)
+10. UDP gap classification decoupled from `enable_dns` — when `--coverage-gaps` is
+    active, `dns_analyzer.can_decode()` is evaluated for gap-accounting regardless of
+    `enable_dns`; a UDP packet for which `can_decode()` returns true MUST NOT increment
+    the unclassified gap counter even when finding-emission is disabled; gap-accounting
+    and finding-emission are orthogonal gates (F-F2P2-005; relied on by BC-2.05.010
+    Inv-7, BC-2.12.023 Inv-6, BC-2.12.024)
 
 ## 4. New Verification Properties
 
@@ -217,7 +237,7 @@ covers dispatcher path, VP-043 covers decode-loop path).
 
 ## 5. ARCH-INDEX.md Updates
 
-Updated: `.factory/specs/architecture/ARCH-INDEX.md` (v2.5 → v2.6)
+Updated: `.factory/specs/architecture/ARCH-INDEX.md` (v2.5 → v2.6 at authoring time; current: v2.9 — see disclaimer above)
 
 Changes applied:
 - Version 2.5 → 2.6
@@ -382,7 +402,7 @@ Use `subsystem: SS-12` in frontmatter.
 **Product-owner BC files requiring alignment (PO scope — NOT modified by architect):**
 | File | Finding | Change needed |
 |------|---------|---------------|
-| `.factory/specs/bcs/BC-2.05.010.md` | F-F2P1-012 | Line 81: `2 × 65,535` → `2 × 65,536`; also adopt `min(src_port, dst_port)` UDP key per F-F2P1-006 |
+| `.factory/specs/behavioral-contracts/ss-05/BC-2.05.010.md` | F-F2P1-012 | Line 81: `2 × 65,535` → `2 × 65,536`; also adopt `min(src_port, dst_port)` UDP key per F-F2P1-006 |
 | `.factory/specs/prd.md` | F-F2P1-006 | Line 2162: `(Udp, dst_port)` → `(Udp, min(src_port, dst_port))` |
 
 ## 10. Design Decisions for Product-Owner BC Alignment

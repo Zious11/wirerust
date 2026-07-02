@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-18
 capability: CAP-18
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P1-001/003/004/008/009/014 Pass-1 remediation — EC-003 GOOSE ethertype corrected 34992→35000 (0x88B8 = 35000 decimal); Invariant 2 weakened from iff to one-way implication with ARP carve-out; ProtocolCategory enum L2 variant removed (two variants: ICS/IT); VP-041 harness renamed to proptest_vp041_oracle_cross_check; PC-4 catalog-declaration order added; field comment adds category+ethertype context. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null

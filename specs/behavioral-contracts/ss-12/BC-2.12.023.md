@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-12
 capability: CAP-12
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P2-005 Pass-2 remediation — Invariant 6 added encoding ADR-012 Decision 10 (gap-classification orthogonal to enable_dns; can_decode() evaluated regardless of enable_dns flag). 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null

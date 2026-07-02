@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,9 @@ subsystem: SS-05
 capability: CAP-05
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P1-002 Pass-1 remediation — DNS premise removed from PC-3; UDP key changed to min(src_port, dst_port); EC-010/011/012/013 added; VP-043 cited in VP Anchors. 2026-07-01"
+  - "v1.2: F-F2P2-005 Pass-2 remediation — Invariant 7 added encoding ADR-012 Decision 10 (can_decode() evaluated regardless of enable_dns for gap classification); EC-014 added. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
