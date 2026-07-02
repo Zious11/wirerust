@@ -13,6 +13,9 @@ modified:
     reason: "F2-SCOPE-DRIFT-UDP-001 resolution: corrected Decision 6 from TCP-only to TCP+UDP dynamic detection per approved scope D-320 OQ-5. Updated Decision 3a (TCP-only caveat updated to L2/multicast-only caveat; UDP-based protocols BACnet/IP, SNMP, NTP are now detectable). Updated Consequences section: HashMap key type changed from (u16, u16) direction-normalized port pair to (TransportProto, u16) to support transport-discriminated keying. BACnet/IP UDP/47808 is now flaggable in the dynamic gap report."
   - date: "2026-07-01"
     actor: architect
+    reason: "F2 adversarial Pass-5 remediation (F-F2P5-001): Decision 5 reframed — 'SUPPORTED_PORTS mirrors classify()' was false because port 53 (DNS) has no classify() rule and no DispatchTarget variant; DNS is handled in main.rs decode loop like ARP. Decision 5 now states SUPPORTED_PORTS = classify() TCP port-fallback rules PLUS decode-loop DNS path (port 53). Doc-comment obligation reframed to permit port → dissection path (classify() variant OR decode-loop)."
+  - date: "2026-07-01"
+    actor: architect
     reason: "F2 adversarial Pass-1 remediation: (F-F2P1-003) Decision 7 rewritten — removed `L2` category variant; ProtocolCategory is now {ICS, IT} only; L2 detection-class expressed solely by transport:LinkLayer + port_detectable:false; GOOSE.category=ICS; (F-F2P1-010) Decision 7 note updated — no category-based CLI filter ships this cycle per D-320 scope; (F-F2P1-006) Decision 6 UDP key changed from (Udp, dst_port) to (Udp, min(src_port, dst_port)) — ephemeral-port guard symmetric with TCP lower_port convention; Consequences section updated to match."
 subsystems_affected:
   - SS-18
@@ -153,12 +156,21 @@ complete table.
 
 ---
 
-## Decision 5: Supported-Set Derivation — Static `SUPPORTED_PORTS` Mirror
+## Decision 5: Supported-Set Derivation — Static `SUPPORTED_PORTS`
 
 **Decision:** `supported_protocols()` derives the supported set by intersecting
-`KNOWN_PROTOCOLS` with a compile-time `SUPPORTED_PORTS: &[u16]` constant that mirrors
-the port-fallback rules in `dispatcher.rs::classify()`. It does NOT use runtime
-introspection of the dispatcher.
+`KNOWN_PROTOCOLS` with a compile-time `SUPPORTED_PORTS: &[u16]` constant equal to
+the full set of ports wirerust actively dissects: the TCP port-fallback rules in
+`dispatcher.rs::classify()` PLUS the decode-loop DNS path (port 53, handled in
+`main.rs` like ARP — outside `classify()`, with no `DispatchTarget` variant). It does
+NOT use runtime introspection of the dispatcher.
+
+**Semantics clarification:** `SUPPORTED_PORTS` is NOT a pure mirror of
+`classify()` port-fallback rules. It equals `classify()` TCP port-fallback rules
+∪ {53} (DNS decode-loop). DNS/53 and ARP are dissected outside `classify()` by
+design; they are permanently and intentionally non-mirroring with respect to
+`classify()`. This is NOT drift — it is the correct invariant: SUPPORTED_PORTS =
+the set of ports wirerust actively dissects by any mechanism.
 
 **Rationale:**
 - `dispatcher.rs::classify()` is an effectful method (it has state). Runtime
@@ -168,10 +180,13 @@ introspection of the dispatcher.
 - VP-041 (proptest) can verify the set-difference property without runtime dependency.
 
 **Drift risk:** If a new analyzer is integrated (new `DispatchTarget` variant and port
-rule in `classify()`), the implementer MUST update `SUPPORTED_PORTS` in `protocols.rs`.
-This is a documented convention, not a compile-time enforcement. To make the obligation
-visible, the `SUPPORTED_PORTS` constant carries a doc-comment listing each port and
-the corresponding `DispatchTarget` variant it mirrors.
+rule in `classify()`, OR a new decode-loop dissector path), the implementer MUST update
+`SUPPORTED_PORTS` in `protocols.rs`. This is a documented convention, not a
+compile-time enforcement. To make the obligation visible, the `SUPPORTED_PORTS`
+constant carries a doc-comment listing each port and its dissection path: either a
+`DispatchTarget` variant (for TCP ports handled by `classify()`) or "decode-loop"
+(for ports handled outside `classify()`, e.g., port 53 → DNS decode-loop,
+no `DispatchTarget` variant; port-independent ARP → `DecodedFrame::Arp`).
 
 **ARP handling:** ARP is supported via `DecodedFrame::Arp` outside the dispatcher.
 The ARP entry in `KNOWN_PROTOCOLS` carries `canonical_ports: &[]` and is flagged

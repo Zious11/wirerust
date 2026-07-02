@@ -42,7 +42,7 @@ Approved scope (human gate D-320):
 - OQ-4: dynamic gap detection gated behind `--coverage-gaps` flag; NOT auto under --all
 - OQ-5: TCP+UDP dynamic detection this cycle (D-320 approved scope; BACnet/IP UDP/47808
   IS flaggable); `(TransportProto, u16)` key distinguishes TCP vs UDP on same port;
-  L2/multicast port-undetectable caveats remain (GOOSE/SV/PROFINET-RT/EtherCAT)
+  L2/multicast port-undetectable caveats remain (GOOSE/SV/PROFINET-RT/EtherCAT/Ethernet POWERLINK)
 
 ## 2. New Subsystem: SS-18 (Protocol Coverage Catalog)
 
@@ -61,7 +61,7 @@ This file is the canonical specification for SS-18. It defines:
 - The full ~30-entry catalog table
 - The `SUPPORTED_PORTS` compile-time constant derivation approach
 - Port 102 four-way collision (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2)
-- L2/multicast `port_detectable: false` entries (GOOSE, SV, PROFINET-RT/DCP, EtherCAT)
+- L2/multicast `port_detectable: false` entries (GOOSE, SV, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK)
 - Dynamic detection scope (TCP+UDP; L2/multicast structurally absent; port-102 collision caveat)
 - Bounded-resource note for `unclassified_port_counts` HashMap (SS-05)
 
@@ -83,7 +83,7 @@ pub struct KnownProtocol {
     pub description:     &'static str,
 }
 
-// Compile-time constant mirrors dispatcher.rs::classify() port rules
+// Compile-time constant: classify() TCP port-fallback rules + decode-loop DNS path (port 53, no DispatchTarget)
 const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53];
 // ARP is supported via DecodedFrame::Arp; flagged separately in supported_protocols()
 
@@ -124,7 +124,7 @@ Key decisions recorded:
    L2/multicast NOT port-detectable (only structural limitation remaining); heuristic
    disclaimer
 4. ICS + core-IT scope (not ICS-only, not all-IANA)
-5. SUPPORTED_PORTS compile-time mirror of classify() — drift guarded by VP-041
+5. SUPPORTED_PORTS compile-time constant = classify() TCP port-fallback rules + decode-loop DNS path (port 53); NOT a pure mirror of classify() — port 53 has no DispatchTarget variant; VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS (ADR-012 Decision 5, F-F2P5-001)
 6. TCP+UDP dynamic detection (D-320 OQ-5); (TransportProto, u16) key; BACnet/IP
    UDP/47808 IS flaggable; L2/multicast still port-undetectable (structural)
 7. Category tagging (ICS / IT) — NO L2 variant in ProtocolCategory; L2 detection
@@ -155,11 +155,15 @@ let oracle_supported: bool =
 assert_eq!(is_supported_by_catalog(entry), oracle_supported);
 ```
 
-**Harnesses:** 1 proptest harness
+**Harnesses:** 2 proptest harnesses (proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant)
 - `proptest_vp041_oracle_cross_check` — for every KNOWN_PROTOCOLS entry, independently
   computes `oracle_supported` without calling `supported_protocols()` /
-  `unsupported_protocols()`; non-vacuous (falsifiable if SUPPORTED_PORTS diverges from
-  classify())
+  `unsupported_protocols()`; non-vacuous and falsifiable if `supported_protocols()`
+  diverges from the SUPPORTED_PORTS-intersection rule; does NOT detect
+  `classify()`-vs-`SUPPORTED_PORTS` drift (ADR-012 Decision 5 — that gap is a documented
+  convention, intentionally non-enforced at compile time)
+- `proptest_vp041_partition_invariant` — supported∪unsupported = KNOWN_PROTOCOLS
+  (partition completeness) AND supported∩unsupported = ∅ (disjoint)
 
 **Traces:** BC-2.18.003, BC-2.18.004
 
@@ -332,12 +336,13 @@ Use `subsystem: SS-12` in frontmatter.
 |-------|----------------|
 | BC-2.12.022 | `protocols` subcommand: `wirerust protocols` prints terminal table; `wirerust protocols --json` prints JSON |
 | BC-2.12.023 | `--coverage-gaps` flag: when passed with `analyze`, appends CoverageGapsSummary section to output; NOT auto-enabled under `--all` |
-| BC-2.12.024 | CoverageGapsSummary includes mandatory caveats: TCP+UDP scope; L2/multicast (GOOSE/SV/PROFINET-RT/EtherCAT) structurally absent from gap report (no TCP/UDP port); port-102 four-way TCP collision ambiguity |
+| BC-2.12.024 | CoverageGapsSummary includes mandatory caveats: TCP+UDP scope; L2/multicast (GOOSE/SV/PROFINET-RT/EtherCAT/Ethernet POWERLINK) structurally absent from gap report (no TCP/UDP port); port-102 four-way TCP collision ambiguity |
 
 **CoverageGapsSummary mandatory caveat text (fixed string — updated for TCP+UDP scope):**
-> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (GOOSE, Sampled
-> Values, PROFINET-RT/DCP, EtherCAT) have no TCP/UDP port and are not represented in
-> the gap report. Consult `wirerust protocols --unsupported` for L2 protocol coverage."
+> "Dynamic gap detection covers TCP and UDP flows. Layer-2 protocols (e.g., GOOSE,
+> Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) have no TCP/UDP
+> port and are not represented in the gap report. Consult
+> `wirerust protocols --unsupported` for L2 protocol coverage."
 
 ## 9. Files Modified in This Delta
 
@@ -415,14 +420,24 @@ The authoritative tri-state terms (Suricata-derived, ADR-012 Decision 2) are:
 `known-supported`, NOT `known`. BC-2.12.023/024 and any BC referencing the
 CoverageGapsSummary output schema must use `known-supported`.
 
-### D-F2P1-005: VP-041 is a non-vacuous oracle cross-check (F-F2P1-008)
+### D-F2P1-005: VP-041 is a non-vacuous oracle cross-check (F-F2P1-008; updated F-F2P5-002)
 
 The original partition/disjoint formulation of VP-041 was vacuously true by
 construction. The harness is reframed to `proptest_vp041_oracle_cross_check`: an
 independent oracle computes `oracle_supported` without calling
-`supported_protocols()` or `unsupported_protocols()`, then asserts agreement. This
-is falsifiable if `SUPPORTED_PORTS` diverges from `classify()`. BC-2.18.003/004
-postconditions remain valid but the VP proof strategy changed.
+`supported_protocols()` or `unsupported_protocols()`, then asserts agreement.
+
+VP-041 is falsifiable if `supported_protocols()` diverges from the
+SUPPORTED_PORTS-intersection rule; it does NOT detect `classify()`-vs-`SUPPORTED_PORTS`
+drift (that is a documented convention per ADR-012 Decision 5, intentionally
+non-enforced at compile time — port 53/DNS lives in SUPPORTED_PORTS but has no
+`classify()` rule and no `DispatchTarget` variant, by design).
+
+A second harness, `proptest_vp041_partition_invariant`, guards partition completeness
+(supported∪unsupported = KNOWN_PROTOCOLS) and disjointness (supported∩unsupported = ∅).
+VP-041 therefore uses 2 proptest harnesses total (Pass-2 fix F-F2P2-001 propagated
+here at Pass-5). BC-2.18.003/004 postconditions remain valid but the VP proof strategy
+uses 2 harnesses.
 
 ### D-F2P1-006: VP-042 covers only dispatcher.rs on_flow_close; VP-043 covers main.rs UDP (F-F2P1-011)
 

@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.8"
+version: "2.9"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.9 2026-07-01 (F2 adversarial Pass-5 remediation — BC-scope fixes; PRD bumped to v1.50):**
+> F-F2P5-001 (HIGH) BC-2.18.003 v1.1→v1.2: SUPPORTED_PORTS semantics reframed per architect's ADR-012 canonical wording — it is the full set of actively-dissected ports by any mechanism, NOT a pure mirror of `classify()`. Port 53 is handled via the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) — no `DispatchTarget::Dns` variant, no port-53 rule in `classify()`; DNS/53 non-mirroring with `classify()` is PERMANENT and BY DESIGN. Description, Precondition 3, and Invariant 1 updated accordingly. Architecture Anchor doc-comment obligation updated verbatim per architect (list dissection path per port: `DispatchTarget` variant OR "decode-loop"; ARP flagged separately). EC-005 description clarified (removes confusing "new dissector / already present" conflation). F-F2P5-004 (MEDIUM) BC-2.12.024 v1.0→v1.1: PC-4 tri-state lookup is now transport-aware — must match BOTH transport AND port against `KNOWN_PROTOCOLS` (`TransportProto::Tcp`→`Transport::Tcp`, `Udp`→`Udp`; `LinkLayer` entries never match a port key); TCP observation of a UDP-only port yields `unknown`, not `known-unsupported`. EC-009 added: `(Tcp, 47808)` → `unknown` (BACnet/IP is `Udp`-only). EC-010 added: `(Tcp, 53)` → `unknown` (DNS is `Udp`-only; no TCP/53 dissector). F-F2P5-006 (LOW) PRD RTM §2.18.A BC-2.18.003 title: adds missing "the" to match H1 and BC-INDEX. PRD bumped to v1.50. No BC count change (346 on disk; 345 active).
 >
 > **v2.8 2026-07-01 (F2 adversarial Pass-4 remediation — BC-scope fix; PRD unchanged at v1.49):**
 > F-F2P4-001 (HIGH) BC-2.05.011 v1.0→v1.1: three phantom-variant defects corrected. (1) Precondition 3: dropped non-existent `DispatchTarget::Arp`; note added that the real enum is `{Http, Tls, Modbus, Dnp3, Enip, None}` — ARP is handled outside the dispatcher via `DecodedFrame::Arp`, and there is no `Dns` variant. (2) Postcondition 4: dropped `Arp` from the classified-variant list; enumeration now matches BC-2.05.010 Invariant 4 and the real dispatcher enum exactly: `{Http, Tls, Modbus, Dnp3, Enip}`. (3) EC-008 reframed: the phantom "DNS-classified flow (`Dns` target on 53) closed / count NOT incremented" was wrong on two counts — no `DispatchTarget::Dns` exists, and a real TCP/53 flow closes as `None` (no classify() rule for port 53) and DOES increment `(Tcp, 53)`. EC-008 now correctly describes this as an unclassified-gap case that DOES increment. No BC count change (346 on disk; 345 active). PRD stays at v1.49 (no phantom variant references found in PRD — all `::Arp` references in PRD are `DecodedFrame::Arp`, which is correct). Sibling-sweep confirmed: no other SS-05 BCs carry phantom `DispatchTarget::Arp` or `DispatchTarget::Dns` references.
@@ -574,7 +577,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.021 | Summary Serializes with total_packets/total_bytes/skipped_packets Fields | P1 | [WRITTEN] | BC-SUM-004 |
 | BC-2.12.022 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; cli.rs/main.rs; `protocols` subcommand wired to run_protocols(); --json produces JSON array output -->
 | BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 8; existing --all consumers unaffected; CoverageGapsSummary appended post-findings -->
-| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; ADR-012 Decision 9; Suricata tri-state vocabulary (known-unsupported/unknown/known-supported) per D-320 OQ-2 (report what was seen vs what is knowable) -->
+| BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: F-F2P5-004 — PC-4 tri-state lookup transport-aware (match both transport+port; LinkLayer entries never match port key; TCP/47808 → unknown; TCP/53 → unknown); EC-009 + EC-010 added -->
 
 ## ss-13: Absent / Unwired Feature Contracts
 
@@ -781,7 +784,7 @@ traces_to: .factory/specs/prd.md
 |-------|-------|----------|--------|--------|
 | BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: terminal table with name/ports/status/transport/detection columns; one row per entry; catalog-declaration order -->
 | BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: --json flag; array of objects; fields: name/category/ports/status/transport/port_detectable/ethertype; catalog-declaration order -->
-| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only (ADR-012 Decision 5); classify()-vs-SUPPORTED_PORTS UNENFORCED; both VP-041 harnesses: proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant; non-vacuity clarification added -->
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.2: F-F2P5-001 — SUPPORTED_PORTS semantics reframed (not a pure classify() mirror; port 53 = DNS decode-loop, no DispatchTarget::Dns; non-mirroring is PERMANENT BY DESIGN); Architecture Anchor doc-comment obligation updated verbatim; EC-005 clarified -->
 | BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: VP-041 two harnesses: proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant; both oracles computed independently (non-vacuous); every KNOWN_PROTOCOLS entry in exactly one set -->
 
 ---

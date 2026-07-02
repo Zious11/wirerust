@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.49"
+version: "1.50"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -424,6 +424,9 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.50 delta (2026-07-01 — F2 adversarial Pass-5 BC-scope remediation):**
+> F-F2P5-001 (HIGH) BC-2.18.003 v1.1→v1.2: SUPPORTED_PORTS semantics reframed per architect's ADR-012 canonical wording — it is the full set of ports wirerust actively dissects by any mechanism, NOT a pure mirror of `dispatcher.rs::classify()`. Port 53 corresponds to the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) — no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`; DNS/53 being non-mirroring with respect to `classify()` is PERMANENT and BY DESIGN. Description updated; Precondition 3 updated; Invariant 1 updated. Architecture Anchor doc-comment obligation updated verbatim (list each port's dissection path: `DispatchTarget` variant OR "decode-loop"; ARP flagged via special case). EC-005 description clarified. F-F2P5-004 (MEDIUM) BC-2.12.024 v1.0→v1.1: PC-4 tri-state lookup transport-aware — must match BOTH transport AND port (`TransportProto::Tcp`→`Transport::Tcp`, `Udp`→`Udp`; `LinkLayer` entries never match port lookup); TCP observation of a UDP-only port yields `unknown`, not `known-unsupported`. EC-009 added: `(Tcp, 47808)` → `unknown`. EC-010 added: `(Tcp, 53)` → `unknown`. F-F2P5-006 (LOW) RTM §2.18.A BC-2.18.003 title corrected: "Exactly SUPPORTED_PORTS-Intersecting" → "Exactly the SUPPORTED_PORTS-Intersecting" (adds "the" to match H1 and BC-INDEX). BC-INDEX bumped to v2.9.
 >
 > **Version 1.48 delta (2026-07-01 — F2 adversarial Pass-2 BC-scope remediation):**
 > Fixes for F2 adversarial Pass-2 BC-scope findings: F-F2P2-001 (HIGH) BC-2.18.003 Description and Invariant 1 false VP-041 anti-drift claim corrected — VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` only; `classify()`-vs-`SUPPORTED_PORTS` drift is UNENFORCED documented convention (ADR-012 Decision 5). F-F2P2-002 (MED) BC-2.18.003/004 gain second VP-041 harness `proptest_vp041_partition_invariant`; non-vacuity clarification added. F-F2P2-004 (MED) BC-2.12.024 PC-1 L2 caveat updated verbatim per architect (adds Ethernet POWERLINK as 5th L2 entry). F-F2P2-005 (MED) BC-2.05.010 Invariant 7 + EC-014 encode ADR-012 Decision 10; BC-2.12.023 Invariant 6 states gap-classification orthogonal to `enable_dns`. F-F2P2-006 (LOW) BC-2.18.001 duplicate PC-8 → PC-9. F-F2P2-007 (LOW) BC-2.05.011 EC-009 rewritten as type-system-prevented state. RTM §7: BC-2.18.003/004 VP anchor updated to both VP-041 harnesses. BC-INDEX bumped to v2.6.
@@ -2188,7 +2191,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 |-------|-------|----------|--------|
 | BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | feature-protocol-coverage-F2 |
 | BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | feature-protocol-coverage-F2 |
-| BC-2.18.003 | `supported_protocols()` Returns Exactly SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | feature-protocol-coverage-F2 |
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | feature-protocol-coverage-F2 |
 | BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | feature-protocol-coverage-F2 |
 
 #### 2.18.B Dispatcher Extension — TCP+UDP Dynamic Gap Counting (Group B, SS-05)

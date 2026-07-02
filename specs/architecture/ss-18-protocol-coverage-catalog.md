@@ -3,7 +3,7 @@ artifact: architecture-section
 section: ss-18-protocol-coverage-catalog
 subsystem_id: SS-18
 traces_to: ARCH-INDEX.md
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-07-01T00:00:00Z
@@ -12,6 +12,9 @@ modified:
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-2 remediation (F-F2P2-008): Ethernet POWERLINK EtherType 0x88AB verified HIGH confidence against IEEE Registration Authority EtherType registry, IETF ietf-ethertypes YANG module, and Wireshark epan/etypes.h. [unverified] tag removed from catalog row; V2 (EPSG current standard) / V1 obsolete 0x3E3F note added. Full citations in .factory/phase-f1-delta-analysis/powerlink-ethertype-verification.md."
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-5 remediation (F-F2P5-001): `supported_protocols()` Derivation section opening sentence reframed — SUPPORTED_PORTS is NOT a mirror of classify() port-fallback rules; it equals classify() TCP rules + decode-loop DNS path (port 53). DNS/53 and ARP are dissected outside classify() by design; this is permanently intentional, NOT drift."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-2 remediation: (F-F2P2-001) Drift risk paragraph reworded — VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is a documented convention NOT compile-time enforcement (ADR-012 Decision 5). (F-F2P2-004) L2 caveat updated to include Ethernet POWERLINK (0x88AB) as the 5th port_detectable:false catalog entry — both the prose list and the mandatory output caveat string now enumerate all 5 L2 protocols consistently with ADR-012 Decision 3a/3c."
@@ -171,7 +174,10 @@ documented in ADR-012.
 between it and the actual dispatcher would silently misreport coverage.
 
 **Implementation:** `protocols.rs` declares a `SUPPORTED_PORTS: &[u16]` compile-time
-constant that mirrors the port-fallback rules in `dispatcher.rs::classify()`:
+constant equal to the full set of ports wirerust actively dissects — the TCP
+port-fallback rules in `dispatcher.rs::classify()` PLUS the decode-loop DNS path
+(port 53, dissected in `main.rs` outside `classify()`, as with ARP; port 53 has no
+`DispatchTarget` variant — this is intentional, not drift; ADR-012 Decision 5):
 
 ```rust
 const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53];

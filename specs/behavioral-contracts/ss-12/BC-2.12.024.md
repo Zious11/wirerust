@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-12
 capability: CAP-12
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P5-004 Pass-5 remediation — PC-4 tri-state lookup transport-aware (match both transport+port; LinkLayer entries never match port key; TCP on UDP-only port → unknown); EC-009 + EC-010 added. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,11 +61,11 @@ is fixed (not configurable by CLI flags).
 3. **Port-102 caveat when TCP/102 count is zero or absent:** The port-102 collision footnote does NOT need to appear when there are no TCP/102 unclassified flows (the caveat is row-specific, not a global header). If TCP/102 is not in the gap report (count == 0 or key absent), the footnote is omitted.
 
 4. **Tri-state classification in gap report:** Each entry in the gap report MUST be classified using the Suricata-derived vocabulary:
-   - `known-unsupported` — the port matches a catalog entry with `supported: false` (e.g., BACnet/IP 47808)
-   - `unknown` — the port matches no catalog entry (completely unrecognized port)
-   - `known-supported` — the port matches a catalog entry with `supported: true` (should never appear in the gap report; present as a sanity-check signal if it does)
+   - `known-unsupported` — the `(transport, port)` pair matches a catalog entry with `supported: false` (e.g., `(Udp, 47808)` → BACnet/IP)
+   - `unknown` — the `(transport, port)` pair matches no catalog entry (completely unrecognized, or transport mismatch on a known port)
+   - `known-supported` — the `(transport, port)` pair matches a catalog entry with `supported: true` (should never appear in the gap report; present as a sanity-check signal if it does)
    
-   The classification is determined by looking up the `(TransportProto, port)` key against `KNOWN_PROTOCOLS`.
+   The classification is determined by looking up the `(TransportProto, port)` key against `KNOWN_PROTOCOLS`, matching BOTH transport AND port. The transport mapping is: `TransportProto::Tcp` → `Transport::Tcp`, `TransportProto::Udp` → `Transport::Udp`. `LinkLayer` catalog entries (e.g., ARP, GOOSE) NEVER match a port-keyed lookup — they require a separate EtherType-based path. Consequence: a port listed in the catalog only under `Udp` will NOT match a `Tcp` observation of the same port number; the `Tcp` observation yields `unknown`, not `known-unsupported`.
 
 5. **JSON representation:** In JSON mode, caveats appear as structured fields in the `"coverage_gaps"` object, not as free-text. Example:
    ```json
@@ -101,6 +102,8 @@ is fixed (not configurable by CLI flags).
 | EC-006 | Multiple unclassified ports including TCP/102 and UDP/47808 | Both entries present; TCP/102 has collision footnote; UDP/47808 is classified as known-unsupported; L2 caveat present |
 | EC-007 | GOOSE (EtherType 0x88B8) traffic in the pcap | GOOSE does NOT appear in the gap report (no TCP/UDP port); L2 caveat explains this absence |
 | EC-008 | `--json --coverage-gaps` | JSON output has structured `caveat_l2` field and `entries` array; port-102 collision note in relevant entry as `collision_note` field |
+| EC-009 | TCP traffic on BACnet/IP's UDP-only port 47808 — `(Tcp, 47808)` has non-zero count | State: `unknown` (NOT `known-unsupported`): BACnet/IP is catalog-registered as `Udp/47808` only; the `Tcp` transport does not match the catalog entry for port 47808 |
+| EC-010 | TCP traffic on DNS's UDP-only port 53 — `(Tcp, 53)` has non-zero count | State: `unknown` (NOT `known-supported`): DNS is UDP-only in the catalog (`Udp/53`); a `Tcp` observation of port 53 has no transport match; note that DNS/53 being in `SUPPORTED_PORTS` refers to UDP dissection via the decode-loop — there is no supported TCP/53 dissector |
 
 ## Canonical Test Vectors
 
