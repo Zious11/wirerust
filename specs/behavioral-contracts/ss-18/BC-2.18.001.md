@@ -116,7 +116,7 @@ by a separate category variant.
 | L2 Domain Invariants | None directly (pure-core output; no domain invariants from the brownfield spec apply) |
 | Architecture Module | SS-18 (src/protocols.rs C-26; run_protocols() in src/main.rs) |
 | ADR | ADR-012 Decision 1 (hand-curated static array), Decision 3 (port-102 + L2/multicast caveats), Decision 4 (ICS+IT scope), Decision 7 (category tagging) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-152 (F3 feature-protocol-coverage — protocols CLI subcommand + terminal table renderer + JSON output) |
 
 ## Architecture Anchors
 

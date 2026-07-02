@@ -106,7 +106,7 @@ subcommand semantics are changed.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (src/cli.rs — `Commands::Protocols` variant; src/main.rs — `run_protocols()` function + dispatch arm); SS-18 (src/protocols.rs — catalog functions called by run_protocols) |
 | ADR | ADR-012 Decision 3 (OQ-3 resolution: terminal + --json output modes) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-152 (F3 feature-protocol-coverage — protocols CLI subcommand dispatch wiring + run_protocols() function) |
 
 ## Architecture Anchors
 

@@ -1,12 +1,12 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.6"  # F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
+version: "2.7"  # F3 feature-protocol-coverage: added HS-123..HS-132 (10 concrete holdout files for E-21 protocol coverage catalog; waves 67-68). Also adds Feature Holdouts section for EtherNet/IP (HS-110..HS-122, v0.11.0-feature-enip, 13 files authored in prior cycle but not previously registered in HS-INDEX). Updated all-namespace total 182→205. Updated maintenance note table to reflect on-disk status. Prior v2.6: F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
 phase: 2
-total_scenarios: 109  # greenfield namespace only; all-namespace total = 182 (see feature_holdout_seeds + Totals table)
+total_scenarios: 109  # greenfield namespace only; all-namespace total = 205 (see feature_holdout_seeds + Totals table)
 must_pass_count: 108
 should_pass_count: 1
 total_waves: 27
@@ -14,6 +14,8 @@ feature_holdout_seeds:
   dnp3_waves_35_39: 32
   arp_waves_40_44: 28
   finding_collapse_wave_47: 13
+  enip_feature_e20: 13  # concrete HS files HS-110..HS-122 (v0.11.0-feature-enip; E-20)
+  protocol_coverage_feature_e21: 10  # concrete HS files HS-123..HS-132 (v0.12.0-feature-protocol-coverage; E-21; waves 67-68)
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -60,7 +62,9 @@ traces_to:
 | Feature holdouts — DNP3 (waves 35-39) | 32 |
 | Feature holdouts — ARP (waves 40-44) | 28 |
 | Feature holdouts — finding-collapse (wave 47) | 13 |
-| **All-namespace total** | **182** |
+| Feature holdouts — EtherNet/IP E-20 (HS-110..HS-122) | 13 |
+| Feature holdouts — Protocol Coverage E-21 (HS-123..HS-132) | 10 |
+| **All-namespace total** | **205** |
 
 ### By Category
 
@@ -720,4 +724,100 @@ This note records the gap; it does not authorize removal of any seed row.
 - PO-S4-007: Modbus — MEDIUM severity gap (no seeds, no coverage)
 
 Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
+
+| Feature | Seeds declared | HS files on disk | Status |
+|---------|---------------|-----------------|--------|
+| EtherNet/IP (waves 63-68) | 13 seeds (DNP3 convention) | 13 (HS-110..HS-122) | CONCRETE — authored v0.11.0-feature-enip |
+| Protocol Coverage Catalog (waves 67-68) | 10 | 10 (HS-123..HS-132) | CONCRETE — authored v0.12.0-feature-protocol-coverage (F3 2026-07-02) |
+
+---
+
+## Feature Holdouts (SS-17 EtherNet/IP, v0.11.0-feature-enip)
+
+> **Individual files:** HS-110..HS-122 in `.factory/holdout-scenarios/` (individual files, same directory as greenfield set).
+> Authored during the v0.11.0 EtherNet/IP feature cycle (E-20). These 13 holdouts were authored
+> as concrete individual files but not previously registered in HS-INDEX. Registered retroactively
+> in v2.7.
+> BCs covered: BC-2.17.001 through BC-2.17.022 (EtherNet/IP + CIP analyzer).
+> Stories: STORY-131..STORY-141 (waves 63-68).
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| [HS-110](HS-110-enip-canonical-frame-le-header-decode.md) | ENIP Canonical Frame — LE Header Decode | P0 | BC-2.17.001, BC-2.17.002 |
+| [HS-111](HS-111-enip-cip-stop-t0858.md) | ENIP CIP Stop T0858 | P0 | BC-2.17.011 |
+| [HS-112](HS-112-enip-cip-reset-t0816.md) | ENIP CIP Reset T0816 | P0 | BC-2.17.011 |
+| [HS-113](HS-113-enip-cip-write-burst-t0836-threshold.md) | ENIP CIP Write Burst T0836 Threshold | P0 | BC-2.17.012 |
+| [HS-114](HS-114-enip-listidentity-t0846-one-shot.md) | ENIP ListIdentity T0846 One-Shot | P0 | BC-2.17.010 |
+| [HS-115](HS-115-enip-error-burst-t0888-threshold.md) | ENIP Error Burst T0888 Threshold | P0 | BC-2.17.016 |
+| [HS-116](HS-116-enip-forwardopen-close-empty-mitre.md) | ENIP ForwardOpen/Close Empty MITRE | P0 | BC-2.17.015 |
+| [HS-117](HS-117-enip-malformed-t0814-structural-anomaly.md) | ENIP Malformed T0814 Structural Anomaly | P0 | BC-2.17.018 |
+| [HS-118](HS-118-enip-oversize-frame-carry-skip.md) | ENIP Oversize Frame Carry Skip | P0 | BC-2.17.002 |
+| [HS-119](HS-119-enip-0x00b1-deferral-negative.md) | ENIP 0x00B1 Deferral Negative | P0 | BC-2.17.009 |
+| [HS-120](HS-120-enip-dispatch-port-44818.md) | ENIP Dispatch Port 44818 | P0 | BC-2.17.019, BC-2.17.020 |
+| [HS-121](HS-121-enip-max-findings-dos-bound.md) | ENIP Max Findings DoS Bound | P0 | BC-2.17.022 |
+| [HS-122](HS-122-enip-real-world-corpus.md) | ENIP Real-World Corpus (Known-Good + Known-Problematic) | P0 | BC-2.17.010, BC-2.17.011, BC-2.17.018, BC-2.17.019 |
+
+### EtherNet/IP Feature Holdout Summary
+
+| Metric | Count |
+|--------|-------|
+| Total ENIP feature holdouts | 13 |
+| P0 must-pass | 13 |
+| P1 nice-to-have | 0 |
+| Epic | E-20 |
+| Stories | STORY-131..STORY-141 |
+| Files | HS-110..HS-122 (individual files in holdout-scenarios/) |
+
+---
+
+## Feature Holdouts (SS-18/SS-05/SS-12 Protocol Coverage Catalog, v0.12.0-feature-protocol-coverage)
+
+> **Individual files:** HS-123..HS-132 in `.factory/holdout-scenarios/` (individual files, same
+> directory as greenfield set). Authored 2026-07-02 for E-21 (feature-protocol-coverage) F3 phase.
+> These 10 holdouts cover: `protocols` subcommand (SS-18 catalog + SS-12 CLI), `--coverage-gaps`
+> flag and `CoverageGapsSummary` tri-state (SS-12/SS-05), and canonical protocol framing values
+> per DF-CANONICAL-FRAME-HOLDOUT-001.
+> BCs covered: BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024.
+> Stories: STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 68).
+
+| HS ID | Title | Priority | Canonical-Value | BCs |
+|-------|-------|----------|----------------|-----|
+| [HS-123](HS-123-protocols-partition-counts-and-filter-flags.md) | `protocols` Subcommand — Partition Counts (7+23=30) and Filter Flag Semantics | P0 | No | BC-2.18.003, BC-2.18.004, BC-2.12.022 |
+| [HS-124](HS-124-protocols-goose-powerlink-ethertype-canonical.md) | `protocols` Terminal — GOOSE 0x88B8 (35000) and POWERLINK 0x88AB (34987) EtherType Canonical Values | P0 | **YES** (IEC 61850-8-1 §4; IEEE RA) | BC-2.18.001, BC-2.18.003 |
+| [HS-125](HS-125-protocols-json-canonical-bacnet-modbus-goose.md) | `protocols --json` — BACnet/IP UDP/47808, Modbus/TCP 502, GOOSE ethertype=35000 JSON Canonical Values | P0 | **YES** (ASHRAE §J.2.1; Modbus v1.1b3 §4.3.1; IEC 61850-8-1 §4) | BC-2.18.002, BC-2.12.022 |
+| [HS-126](HS-126-protocols-port-102-collision-footnote.md) | `protocols` Terminal — Port-102 Collision Footnote Names All Four Protocols (S7comm, S7comm-plus, MMS, ICCP) | P0 | **YES** (RFC 1006 / ISO-on-TCP) | BC-2.18.001 |
+| [HS-127](HS-127-coverage-gaps-opt-in-not-all-flag.md) | `--coverage-gaps` Opt-In Semantics — NOT Auto-Enabled by `--all`; `protocols` Scope Rejection | P0 | No | BC-2.12.023, BC-2.12.022 |
+| [HS-128](HS-128-coverage-gaps-l2-mandatory-caveat.md) | `CoverageGapsSummary` — Mandatory L2/Multicast Caveat Always Present (Including Empty Entries) | P0 | No | BC-2.12.024, BC-2.12.023 |
+| [HS-129](HS-129-coverage-gaps-bacnet-udp47808-known-unsupported.md) | `CoverageGapsSummary` — BACnet/IP UDP/47808 → `known-unsupported`; TCP/47808 → `unknown` (Transport-Aware) | P0 | **YES** (ASHRAE 135-2016 Annex J §J.2.1) | BC-2.12.024, BC-2.05.010 |
+| [HS-130](HS-130-coverage-gaps-port102-collision-footnote.md) | `CoverageGapsSummary` — TCP/102 Collision Footnote Names All Four RFC 1006 Protocols | P0 | **YES** (RFC 1006 / ISO-on-TCP) | BC-2.12.024, BC-2.05.010 |
+| [HS-131](HS-131-coverage-gaps-dns53-not-counted.md) | `CoverageGapsSummary` — DNS/53 UDP NOT Counted (Supported-Not-Counted); TCP/53 → `unknown` | P0 | **YES** (RFC 1035 §4.2.1) | BC-2.05.010, BC-2.05.011, BC-2.12.024 |
+| [HS-132](HS-132-protocol-coverage-real-world-corpus.md) | Protocol Coverage Real-World Corpus — Known-Good IT + Known-Problematic BACnet/IP ICS | P0 | **YES** (ASHRAE 135-2016 Annex J §J.2.1) | BC-2.12.023, BC-2.12.024, BC-2.18.001 |
+
+### Protocol Coverage Canonical-Value BC Coverage (DF-CANONICAL-FRAME-HOLDOUT-001)
+
+| BC with Framing Invariant | Canonical-Value HS | Spec Citation |
+|---------------------------|-------------------|---------------|
+| BC-2.18.003 (GOOSE ethertype: Some(35000)) | HS-124 Case A | IEC 61850-8-1 §4; IEEE RA "IEC GOOSE" |
+| BC-2.18.003 (POWERLINK ethertype: Some(34987)) | HS-124 Case B | IEEE RA "ETHERNET Powerlink"; Wireshark ETHERTYPE_EPL_V2 |
+| BC-2.18.002 (GOOSE JSON ethertype: 35000 integer) | HS-125 Case D | IEC 61850-8-1 §4; IEEE RA "IEC GOOSE" |
+| BC-2.18.002 (BACnet/IP JSON: transport=UDP, port=47808) | HS-125 Case B | ASHRAE 135-2016 Annex J §J.2.1 |
+| BC-2.18.002 (Modbus/TCP JSON: transport=TCP, port=502) | HS-125 Case C | Modbus App Protocol v1.1b3 §4.3.1 |
+| BC-2.18.001 (port-102 footnote names all four protocols) | HS-126 Case A | RFC 1006; IEC 61850-8-1; IEC 60870-6 |
+| BC-2.12.024 (BACnet/IP UDP/47808 → known-unsupported) | HS-129 Case A | ASHRAE 135-2016 Annex J §J.2.1 |
+| BC-2.12.024 (TCP/47808 → unknown transport mismatch) | HS-129 Case C | ASHRAE 135-2016 Annex J §J.2.1 |
+| BC-2.12.024 (TCP/102 footnote names all four protocols) | HS-130 Cases A, B | RFC 1006; ISO-on-TCP |
+| BC-2.05.010 (DNS/53 UDP not counted — supported-not-counted) | HS-131 Case A | RFC 1035 §4.2.1 |
+| BC-2.12.024 (TCP/53 → unknown — DNS UDP-only in catalog) | HS-131 Case C | RFC 1035 §4.2.1 |
+
+### Protocol Coverage Feature Holdout Summary
+
+| Metric | Count |
+|--------|-------|
+| Total protocol-coverage holdouts | 10 |
+| P0 must-pass | 10 |
+| P1 nice-to-have | 0 |
+| Canonical-value scenarios (DF-CANONICAL-FRAME-HOLDOUT-001) | 7 (HS-124, HS-125, HS-126, HS-129, HS-130, HS-131, HS-132) |
+| Epic | E-21 |
+| Stories | STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 68) |
+| Files | HS-123..HS-132 (individual files in holdout-scenarios/) |
 No GitHub issues filed — pending research-agent validation per DF-VALIDATION-001.

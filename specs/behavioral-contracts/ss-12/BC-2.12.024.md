@@ -135,7 +135,7 @@ is fixed (not configurable by CLI flags).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (src/main.rs — `CoverageGapsSummary` rendering function; caveat text constants); SS-18 (src/protocols.rs — catalog lookup for tri-state classification) |
 | ADR | ADR-012 Decision 2 (Suricata tri-state vocabulary), Decision 3 (mandatory caveats — 3a L2/multicast, 3b port-102 collision, 3d heuristic disclaimer), Decision 3a (exact canonical L2 caveat text), Decision 9 (CoverageGapsSummary as named section) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-154 (F3 feature-protocol-coverage — tri-state classification + L2 caveat + port-102 note + JSON schema for coverage gaps) |
 
 ## Architecture Anchors
 

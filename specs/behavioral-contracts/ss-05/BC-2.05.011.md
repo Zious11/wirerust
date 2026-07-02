@@ -109,7 +109,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-05 (src/dispatcher.rs C-21 — `StreamDispatcher.unclassified_port_counts` on_flow_close None-target arm); SS-12 (src/main.rs decode loop — `udp_unclassified_counts` per-packet) |
 | ADR | ADR-012 Decision 6 (TCP+UDP dynamic detection; exactness/monotonicity implied by counter semantics; key-type identity via TransportProto discriminant) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-153 (F3 feature-protocol-coverage — exactness/monotonicity/key-purity invariants, VP-042/VP-043 proptest harnesses) |
 
 ## Architecture Anchors
 

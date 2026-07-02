@@ -138,7 +138,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-05 (src/dispatcher.rs C-21 — `StreamDispatcher.unclassified_port_counts`); SS-12 (src/main.rs decode loop — `udp_unclassified_counts`) |
 | ADR | ADR-012 Decision 6 (TCP+UDP dynamic detection; (TransportProto, u16) key; BACnet/IP UDP/47808 flaggable; L2/multicast structurally absent; TransportProto minimal enum) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-153 (F3 feature-protocol-coverage — dispatcher unclassified_port_counts + UDP decode-loop udp_unclassified_counts + VP-042/VP-043) |
 
 ## Architecture Anchors
 

@@ -111,7 +111,7 @@ than as free-text footnotes.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-18 (src/protocols.rs C-26); SS-12 (src/main.rs `run_protocols()`) |
 | ADR | ADR-012 Decision 1 (hand-curated static array), Decision 3 (port-102 + L2/multicast caveats encoded via `port_detectable`/`ethertype` fields), Decision 7 (category tagging) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-152 (F3 feature-protocol-coverage — protocols CLI subcommand JSON output mode) |
 
 ## Architecture Anchors
 

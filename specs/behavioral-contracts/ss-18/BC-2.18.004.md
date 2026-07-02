@@ -98,7 +98,7 @@ their outputs jointly exhaustive.
 | L2 Domain Invariants | None directly (pure-core invariant; no domain-level brownfield invariants apply) |
 | Architecture Module | SS-18 (src/protocols.rs C-26) |
 | ADR | ADR-012 Decision 5 (SUPPORTED_PORTS compile-time mirror; VP-041 guards set-difference property) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-151 (F3 feature-protocol-coverage — catalog partition invariant, VP-041 proptest harnesses) |
 
 ## Architecture Anchors
 

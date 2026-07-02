@@ -114,7 +114,7 @@ existing downstream consumers of wirerust JSON output (ADR-012 Decision 8).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (src/cli.rs — `--coverage-gaps` flag definition; src/main.rs — flag wiring to `coverage_gaps_enabled`); SS-05 (src/dispatcher.rs — `coverage_gaps_enabled` field controls counter population); SS-12 (src/main.rs — CoverageGapsSummary rendering) |
 | ADR | ADR-012 Decision 8 (`--coverage-gaps` explicit flag; NOT auto under `--all`); Decision 9 (CoverageGapsSummary as named section, not Finding entries) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-154 (F3 feature-protocol-coverage — --coverage-gaps opt-in flag + CoverageGapsSummary rendering) |
 
 ## Architecture Anchors
 

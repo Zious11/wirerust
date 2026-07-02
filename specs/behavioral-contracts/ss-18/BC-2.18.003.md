@@ -121,7 +121,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 | L2 Domain Invariants | None directly (pure-core; no domain-level invariants from brownfield spec apply) |
 | Architecture Module | SS-18 (src/protocols.rs C-26); `SUPPORTED_PORTS` compile-time constant; `supported_protocols()` and `unsupported_protocols()` functions |
 | ADR | ADR-012 Decision 5 (SUPPORTED_PORTS compile-time mirror; drift risk; ARP special-case handling) |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-151 (F3 feature-protocol-coverage — src/protocols.rs KNOWN_PROTOCOLS catalog + SUPPORTED_PORTS + pure-core partition functions) |
 
 ## Architecture Anchors
 
