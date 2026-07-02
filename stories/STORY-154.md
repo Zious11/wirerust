@@ -172,10 +172,14 @@ In JSON mode, it appears as `"collision_note": "TCP/102 gap: ..."` in the TCP/10
 **Traces to:** BC-2.12.024 v1.1 Postcondition 4, Invariants 4–5; ADR-012 Decision 2
 
 Each entry in `CoverageGapsSummary` is classified using the Suricata-derived vocabulary:
-- `known-unsupported` — `(transport, port)` matches a catalog entry with `supported: false`
+- `known-unsupported` — `(transport, port)` matches a catalog entry that is NOT in `supported_protocols()` (i.e., `canonical_ports ∩ SUPPORTED_PORTS = ∅` and `name ≠ "ARP"`)
 - `unknown` — `(transport, port)` matches no catalog entry (completely unrecognized)
-- `known-supported` — `(transport, port)` matches a catalog entry with `supported: true`
+- `known-supported` — `(transport, port)` matches a catalog entry in `supported_protocols()` (i.e., `canonical_ports ∩ SUPPORTED_PORTS ≠ ∅` OR `name == "ARP"`)
   (signals a BUG: a dissector failed to classify traffic it should handle)
+
+> **NOTE:** `KnownProtocol` has NO `supported` field. Supportedness is DERIVED:
+> a protocol is supported iff `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || name == "ARP"`
+> (see STORY-151 AC-151-005 / BC-2.18.003; `supported_protocols()` applies exactly this predicate).
 
 The classification function:
 ```rust
@@ -183,11 +187,14 @@ fn lookup_protocol_state(transport: TransportProto, port: u16) -> ProtocolGapSta
     // Transport mapping: TransportProto::Tcp → Transport::Tcp; TransportProto::Udp → Transport::Udp
     // LinkLayer catalog entries NEVER match a port-keyed lookup
     // A port catalogued under UDP only will NOT match a TCP observation (→ unknown)
+    // Supportedness is DERIVED (no `supported` field on KnownProtocol): a protocol is
+    // supported iff canonical_ports ∩ SUPPORTED_PORTS ≠ ∅ OR name == "ARP" (BC-2.18.003).
     let catalog_transport = match transport { Tcp => Transport::Tcp, Udp => Transport::Udp };
     match KNOWN_PROTOCOLS.iter().find(|p| {
         p.transport == catalog_transport && p.canonical_ports.contains(&port)
     }) {
-        Some(p) if p.supported => ProtocolGapState::KnownSupported,  // BUG signal
+        Some(p) if p.canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp))
+            || p.name == "ARP" => ProtocolGapState::KnownSupported,  // BUG signal
         Some(_) => ProtocolGapState::KnownUnsupported,
         None => ProtocolGapState::Unknown,
     }
@@ -454,3 +461,4 @@ No new source files.
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | LOW: Fixed duplicate "3." in Tasks — renumbered second task-3 (ProtocolGapState) to 4, and all subsequent tasks shifted (4→5, 5→6, 6→7, 7→8). | LOW-STORY-154-TASKS |
 | v1.2 | 2026-07-02 | F-F3P2-004 cascade (MEDIUM): Fixed AC-154-002 + Task 3 + Previous Story Intelligence (STORY-153 paragraph) to use STORY-153's `with_coverage_gaps(enabled: bool) -> Self` builder method instead of `StreamDispatcher::new()` parameter. F-F3P2-005 (MEDIUM): `wave: 68` → `wave: 69` and `depends_on` updated to include STORY-152 (file-sequencing edge 152→154 added to dep-graph: both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; placing 154 in wave 69 eliminates the parallel-edit collision). | F-F3P2-004, F-F3P2-005 |
+| v1.3 | 2026-07-02 | F-F3P3-001 (HIGH): Fixed AC-154-006 phantom `p.supported` field — `KnownProtocol` has no `supported` field; supportedness is DERIVED. Replaced `Some(p) if p.supported` guard with `Some(p) if p.canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || p.name == "ARP"` (mirrors `supported_protocols()` predicate per STORY-151 AC-151-005 / BC-2.18.003). Updated vocabulary bullet descriptions to use `supported_protocols()` set membership language instead of stale `supported: true/false` field notation. Added NOTE block clarifying that supportedness is DERIVED, not a struct field. | F-F3P3-001 |

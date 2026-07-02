@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.9"  # F3P2-003 remediation (LOW): HS-124 title and HS-INDEX title cell updated to enumerate IEC 61850 Sampled Values 0x88BA (35002) — Case E was already present in HS-124 but omitted from title enumerations; BC Coverage table gains SV row (BC-2.18.001 Case E; guards GOOSE/SV transposition). Prior v2.8: F3P1-001 remediation: HS-124 extended to v2.0 — added Cases F (EtherCAT 0x88A4=34980) and G (PROFINET-DCP 0x8892=34962) with wrong-value guards; HS-124 title updated; BC Coverage table gains EtherCAT + PROFINET rows. EtherCAT/PROFINET values derived independently from IEEE RA EtherType registry (not from project BCs) per DF-CANONICAL-FRAME-HOLDOUT-001. Prior v2.7: F3 feature-protocol-coverage: added HS-123..HS-132 (10 concrete holdout files for E-21 protocol coverage catalog; waves 67-68). Also adds Feature Holdouts section for EtherNet/IP (HS-110..HS-122, v0.11.0-feature-enip, 13 files authored in prior cycle but not previously registered in HS-INDEX). Updated all-namespace total 182→205. Updated maintenance note table to reflect on-disk status. Prior v2.6: F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
+version: "2.10"  # F3P3-002+F3P3-005 remediation: wave propagation + total reconciliation. STORY-154 corrected from wave 68 → wave 69 in all HS-INDEX locations (frontmatter comment line 18, Feature Holdouts table row, section description, Protocol Coverage summary table). Protocol Coverage wave range corrected "waves 67-68" → "waves 67-69" everywhere. Closing Note updated: all-namespace total 182 → 205, breakdown now includes ENIP=13 and Protocol-Coverage=10 to match Totals table. Prior v2.9: F3P2-003 remediation (LOW): HS-124 title and HS-INDEX title cell updated to enumerate IEC 61850 Sampled Values 0x88BA (35002) — Case E was already present in HS-124 but omitted from title enumerations; BC Coverage table gains SV row (BC-2.18.001 Case E; guards GOOSE/SV transposition). Prior v2.8: F3P1-001 remediation: HS-124 extended to v2.0 — added Cases F (EtherCAT 0x88A4=34980) and G (PROFINET-DCP 0x8892=34962) with wrong-value guards; HS-124 title updated; BC Coverage table gains EtherCAT + PROFINET rows. EtherCAT/PROFINET values derived independently from IEEE RA EtherType registry (not from project BCs) per DF-CANONICAL-FRAME-HOLDOUT-001. Prior v2.7: F3 feature-protocol-coverage: added HS-123..HS-132 (10 concrete holdout files for E-21 protocol coverage catalog; waves 67-68). Also adds Feature Holdouts section for EtherNet/IP (HS-110..HS-122, v0.11.0-feature-enip, 13 files authored in prior cycle but not previously registered in HS-INDEX). Updated all-namespace total 182→205. Updated maintenance note table to reflect on-disk status. Prior v2.6: F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
@@ -15,7 +15,7 @@ feature_holdout_seeds:
   arp_waves_40_44: 28
   finding_collapse_wave_47: 13
   enip_feature_e20: 13  # concrete HS files HS-110..HS-122 (v0.11.0-feature-enip; E-20)
-  protocol_coverage_feature_e21: 10  # concrete HS files HS-123..HS-132 (v0.12.0-feature-protocol-coverage; E-21; waves 67-68)
+  protocol_coverage_feature_e21: 10  # concrete HS files HS-123..HS-132 (v0.12.0-feature-protocol-coverage; E-21; waves 67-69)
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -395,8 +395,8 @@ All other checks passed for the greenfield set:
 - HS-001..100 carry concrete per-file `inputs`; HS-101..109 carry BC `inputs` (story inputs added after story decomposition)
 
 > **Note:** This index covers the v0.1.0 greenfield holdout set (HS-NNN sequence, waves 1-27).
-> Greenfield total is 109 (HS-001..HS-109). All-namespace total is 182 (greenfield=109,
-> feature DNP3=32 + ARP=28 + collapse=13 = 73).
+> Greenfield total is 109 (HS-001..HS-109). All-namespace total is 205 (greenfield=109,
+> feature DNP3=32 + ARP=28 + collapse=13 + ENIP=13 + Protocol-Coverage=10 = 96).
 > Feature-mode holdouts for SS-15 DNP3 (v0.6.0, waves 35-39) use the HS-W35-NNN / HS-W38-NNN
 > namespace and are tracked separately in the feature holdout tree — see the
 > "Feature Holdouts (SS-15 DNP3, waves 35-39)" section below.
@@ -728,7 +728,7 @@ Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
 | Feature | Seeds declared | HS files on disk | Status |
 |---------|---------------|-----------------|--------|
 | EtherNet/IP (waves 63-68) | 13 seeds (DNP3 convention) | 13 (HS-110..HS-122) | CONCRETE — authored v0.11.0-feature-enip |
-| Protocol Coverage Catalog (waves 67-68) | 10 | 10 (HS-123..HS-132) | CONCRETE — authored v0.12.0-feature-protocol-coverage (F3 2026-07-02) |
+| Protocol Coverage Catalog (waves 67-69) | 10 | 10 (HS-123..HS-132) | CONCRETE — authored v0.12.0-feature-protocol-coverage (F3 2026-07-02) |
 
 ---
 
@@ -778,7 +778,7 @@ Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
 > flag and `CoverageGapsSummary` tri-state (SS-12/SS-05), and canonical protocol framing values
 > per DF-CANONICAL-FRAME-HOLDOUT-001.
 > BCs covered: BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024.
-> Stories: STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 68).
+> Stories: STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 69).
 
 | HS ID | Title | Priority | Canonical-Value | BCs |
 |-------|-------|----------|----------------|-----|
@@ -821,6 +821,6 @@ Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
 | P1 nice-to-have | 0 |
 | Canonical-value scenarios (DF-CANONICAL-FRAME-HOLDOUT-001) | 7 (HS-124, HS-125, HS-126, HS-129, HS-130, HS-131, HS-132) |
 | Epic | E-21 |
-| Stories | STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 68) |
+| Stories | STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 69) |
 | Files | HS-123..HS-132 (individual files in holdout-scenarios/) |
 No GitHub issues filed — pending research-agent validation per DF-VALIDATION-001.

@@ -199,10 +199,10 @@ if coverage_gaps {
         let dns_handles_this = dns_analyzer.can_decode(&parsed);
         if !dns_handles_this {
             let lower_port = src_port.min(dst_port);
-            udp_unclassified_counts
+            let c = udp_unclassified_counts
                 .entry((TransportProto::Udp, lower_port))
-                .or_insert(0)
-                += 1;
+                .or_insert(0);
+            *c = c.saturating_add(1);
         }
     }
 }
@@ -488,3 +488,4 @@ No new source files.
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-002 (HIGH): Fixed AC-153-005 phantom `udp_header` → `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport` pattern inside existing `Ok(DecodedFrame::Ip(parsed))` arm; clarified there is NO separate UDP loop in main.rs; updated Task 4 accordingly. F-F3P1-004 (MEDIUM): None-target tests (tcp_counter_none_target, lower_port_normalization) changed from port 502 to neutral port 9999; port 502 reserved exclusively for Modbus-classified no-increment test. Fixed AC-153-003 Red-Gate tests: Http/80 → Modbus/502 in no_increment_classified_flow annotation (EC-002 label fix). | F-F3P1-002, F-F3P1-004 |
 | v1.2 | 2026-07-02 | F-F3P2-001 (CRITICAL): Fixed AC-153-003 code snippet — `unclassified_flows += 1` moved OUTSIDE `coverage_gaps_enabled` gate to analyzer-present guard only; `unclassified_port_counts` increment now nested in inner `if self.coverage_gaps_enabled { }` block (matches ADR-012 Decision 6 Clarification exactly). Removed regression warning + updated descriptive text. Fixed LOW `.saturating_add_assign(1)` (non-real std method) → `let c = ...; *c = c.saturating_add(1)`. F-F3P2-004 (MEDIUM): Changed AC-153-002 / Task 2 / Previous Story Intelligence to use builder method `with_coverage_gaps(mut self, enabled: bool) -> Self` instead of new `new()` parameter — no blast to 8 existing call sites. Updated Architecture Compliance Rule 3 + Previous Story Intelligence STORY-033/088 paragraphs + VP-042 proptest precondition language. Added ACR-10 (module-private `DispatchTarget`/`classify()` note; tests must use public `on_data`/`on_flow_close` + accessor). | F-F3P2-001, F-F3P2-004, LOW |
+| v1.3 | 2026-07-02 | F-F3P3-003 (MEDIUM): Fixed AC-153-005 UDP snippet sibling-sweep gap — `udp_unclassified_counts.entry(...).or_insert(0) += 1` was non-compiling (bare `+= 1` on `Entry` return) and violated ACR-9 (saturating_add mandate). Replaced with `let c = ...; *c = c.saturating_add(1);` matching the AC-153-003 TCP sibling pattern (fixed in v1.2) and Architecture Compliance Rule 9. | F-F3P3-003 |

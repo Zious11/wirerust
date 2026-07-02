@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.4"
+version: "3.5"
 status: draft
 producer: story-writer
 phase: 3
@@ -27,6 +27,7 @@ modified:
   - "2026-07-02 v3.2: E-21 Protocol Coverage Catalog (feature-protocol-coverage) — STORY-151..154 added. 4 new product stories: STORY-151 (W67, depends_on=[], 8pts, SS-18 protocols.rs catalog + VP-041), STORY-153 (W67, depends_on=[], 8pts, SS-05 dispatcher gap counters + VP-042/VP-043), STORY-152 (W68, depends_on=[151], 8pts, SS-12 protocols CLI subcommand), STORY-154 (W68, depends_on=[151,153], 8pts, SS-12 --coverage-gaps + CoverageGapsSummary). total_stories 89→93 (product; all-stories 91→95). +3 intra-E-21 edges: 151→152, 151→154, 153→154. total_edges 120→123. intra_epic_edges 99→102. cross_epic_edges unchanged at 21. number_of_waves 61→68 (waves 62-66 were added by post-v3.1 fix stories STORY-139..146; waves 67-68 added for E-21). BCs: BC-2.18.003/004 (STORY-151), BC-2.12.022/BC-2.18.001/002 (STORY-152), BC-2.05.010/011 (STORY-153), BC-2.12.023/024 (STORY-154). VPs: VP-041 (STORY-151/152/154), VP-042 (STORY-153/154), VP-043 (STORY-153/154)."
   - "2026-07-02 v3.3: F-F3P1-007 remediation — reconcile global story counts to STORY-INDEX (authoritative = 107). total_stories 93→107 (STORY-INDEX authoritative; wave tables in this file cover waves 1-68; STORY-139..150 and STORY-143/147/148/149/150 are wave-TBD stories tracked in STORY-INDEX but not yet in dep-graph wave schedule). Brownfield context note and Summary Table 'all-stories' count updated to 107. Edges, waves, and per-epic story tables are unchanged."
   - "2026-07-02 v3.4: F-F3P2-005 remediation — file-sequencing edge 152→154 added. STORY-154 moved from wave 68 to wave 69 (both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; parallel dispatch in wave 68 would cause merge conflicts on shared files). total_edges 123→124 (+1 intra-E-21: STORY-152→STORY-154). intra_epic_edges 102→103. number_of_waves 68→69. STORY-154 depends_on updated [151,153]→[151,152,153] in story frontmatter. Wave 68 now contains STORY-152 only; Wave 69 contains STORY-154."
+  - "2026-07-02 v3.5: F-F3P3-004 remediation — acyclicity-proof narrative stale counts corrected to 107 (STORY-INDEX authoritative). Three locations updated: (1) Wave Schedule intro callout 'all 73 product stories' → 'all 107 product stories (STORY-INDEX authoritative; wave tables cover waves 1–69)'; (2) E-21 Cycle-Check callout 'All 93 product nodes' → 'All 107 product nodes (STORY-INDEX authoritative)'; (3) Acyclicity Proof bullet 'all 93 product stories processed' → 'all 107 product stories processed (STORY-INDEX authoritative)'. All three nodes in disagreement with frontmatter total_stories: 107 and with each other — now self-consistent. Edges, waves, and story tables unchanged."
 total_stories: 107  # STORY-INDEX authoritative (107); wave tables cover waves 1-69; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 tracked in STORY-INDEX but not in wave schedule
 total_edges: 124
 intra_epic_edges: 103
@@ -316,7 +317,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 73 product stories. No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 107 product stories (STORY-INDEX authoritative; wave tables cover waves 1–69). No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -860,7 +861,7 @@ STORY-116 -> STORY-117
 [Wave 69: STORY-154 (dep=151+152+153)]
 ```
 
-> **Cycle check:** All 93 product nodes processed by Kahn's algorithm. No node remained
+> **Cycle check:** All 107 product nodes processed by Kahn's algorithm (STORY-INDEX authoritative). No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
@@ -900,7 +901,7 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 93 product stories processed, queue empty, no cycle detected
+- Final output: all 107 product stories processed, queue empty, no cycle detected (STORY-INDEX authoritative)
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
