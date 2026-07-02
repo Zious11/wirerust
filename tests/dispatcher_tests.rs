@@ -1850,3 +1850,659 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
         );
     }
 }
+
+// ── STORY-153 (BC-2.05.010 + BC-2.05.011 + VP-042 + VP-043) ───────────────────
+//
+// Red-Gate test suite for:
+//   - TransportProto enum (AC-153-001)
+//   - unclassified_port_counts field + dual-gate + lower_port normalization (AC-153-002/003)
+//   - TCP counter key purity (AC-153-004)
+//   - udp_gap_key seam (AC-153-005)
+//   - VP-042 proptest harnesses, 3 subs (AC-153-006)
+//   - VP-043 proptest harnesses, 2 harnesses (AC-153-007)
+//
+// Tests that exercise counting logic MUST FAIL against current stubs:
+//   on_flow_close inner block and udp_gap_key both have todo!().
+//
+// Structural/accessor tests are GREEN-by-design per BC-5.38.002/003;
+// see stub comments in dispatcher.rs for rationale.
+//
+// F-F3P10-001 regression guard is GREEN against the stub because the stub
+// already correctly places `unclassified_flows += 1` outside the
+// coverage_gaps_enabled block (ADR-012 Decision 6 Clarification EXACT).
+// ───────────────────────────────────────────────────────────────────────────────
+
+#[allow(non_snake_case)]
+mod story_153 {
+    use std::net::IpAddr;
+
+    use proptest::prelude::*;
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
+    use wirerust::dispatcher::{StreamDispatcher, TransportProto, udp_gap_key};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// `StreamDispatcher` with one HTTP analyzer and `coverage_gaps_enabled = true`.
+    /// Satisfies the dual-gate precondition (analyzer-present AND gaps enabled)
+    /// required by BC-2.05.010 PC-1 / ADR-012 Decision 6 Clarification.
+    fn gaps_dispatcher() -> StreamDispatcher {
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+            .with_coverage_gaps(true)
+    }
+
+    /// `StreamDispatcher` with one HTTP analyzer and `coverage_gaps_enabled = false`
+    /// (the default). Used by F-F3P10-001 and the coverage_gaps_disabled tests.
+    fn no_gaps_dispatcher() -> StreamDispatcher {
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+    }
+
+    /// Builds a `FlowKey` where `10.0.0.1` is always the lower IP (since `10.0.0.1 <
+    /// 10.0.0.9`), so `lower_port() == port_a` and `upper_port() == port_b`.
+    /// The normalized service port used by the gap counter is
+    /// `lower_port().min(upper_port()) = min(port_a, port_b)`.
+    fn keyed(port_a: u16, port_b: u16) -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            port_a,
+            "10.0.0.9".parse::<IpAddr>().unwrap(),
+            port_b,
+        )
+    }
+
+    /// Builds a synthetic `ParsedPacket` with `TransportInfo::Udp { src_port, dst_port }`.
+    /// Used by the UDP seam tests and VP-043 proptest harnesses.
+    fn make_udp_packet(src_port: u16, dst_port: u16) -> ParsedPacket {
+        ParsedPacket {
+            src_ip: "10.0.0.1".parse::<IpAddr>().unwrap(),
+            dst_ip: "10.0.0.9".parse::<IpAddr>().unwrap(),
+            protocol: Protocol::Udp,
+            transport: TransportInfo::Udp { src_port, dst_port },
+            payload: vec![],
+            packet_len: 8,
+        }
+    }
+
+    // ── AC-153-001: TransportProto enum ─────────────────────────────────────
+
+    /// BC-2.05.010 PC-4 / Invariant 1: `TransportProto` has `Tcp` and `Udp` variants,
+    /// distinct from `protocols::Transport` (which has a third `LinkLayer` variant).
+    /// GREEN-by-design: enum already defined in stub.
+    #[test]
+    fn test_BC_2_05_010_key_type_identity() {
+        assert_ne!(TransportProto::Tcp, TransportProto::Udp);
+        let t = TransportProto::Tcp;
+        assert_eq!(t, TransportProto::Tcp);
+        let u = TransportProto::Udp;
+        assert_eq!(u, TransportProto::Udp);
+    }
+
+    /// BC-2.05.010 PC-4 / ADR-012 Decision 6: `TransportProto` has EXACTLY 2 variants.
+    /// An exhaustive match without a wildcard arm proves this at compile time —
+    /// adding a third variant (e.g., `LinkLayer`) would cause a compile error here.
+    /// GREEN-by-design.
+    #[test]
+    fn test_BC_2_05_transport_proto_no_linkLayer() {
+        fn exhaustive(t: TransportProto) -> u8 {
+            // No wildcard arm: compiler enforces exhaustiveness.
+            match t {
+                TransportProto::Tcp => 0,
+                TransportProto::Udp => 1,
+            }
+        }
+        assert_eq!(exhaustive(TransportProto::Tcp), 0);
+        assert_eq!(exhaustive(TransportProto::Udp), 1);
+    }
+
+    // ── AC-153-002: Fields + accessor + builder ──────────────────────────────
+
+    /// BC-2.05.010 PC-1 / BC-2.05.011 PC-1: accessor exists and returns an empty map
+    /// after construction with coverage gaps enabled, before any `on_flow_close` calls.
+    /// GREEN-by-design: `unclassified_port_counts()` returns `&self.field` with no
+    /// branching — always succeeds; map starts empty.
+    #[test]
+    fn test_BC_2_05_010_fields_accessible() {
+        let dispatcher = gaps_dispatcher();
+        assert!(
+            dispatcher.unclassified_port_counts().is_empty(),
+            "unclassified_port_counts must be empty before any on_flow_close calls"
+        );
+    }
+
+    /// BC-2.05.010 PC-4 (conditional-population gate): when constructed WITHOUT
+    /// `.with_coverage_gaps(true)`, a None-target flow close must leave the map empty.
+    ///
+    /// GREEN against stub: `coverage_gaps_enabled = false` means the `if
+    /// self.coverage_gaps_enabled { todo!() }` inner block is never entered.
+    #[test]
+    fn test_BC_2_05_010_coverage_gaps_disabled_map_empty() {
+        let mut dispatcher = no_gaps_dispatcher();
+        // None-target close: no on_data → routes returns None → None arm fires.
+        // coverage_gaps_enabled = false → inner todo!() block skipped.
+        dispatcher.on_flow_close(&keyed(54321, 9999), CloseReason::Fin);
+        assert!(
+            dispatcher.unclassified_port_counts().is_empty(),
+            "coverage_gaps=false: map must remain empty after None-target close \
+             (dual-gate: inner coverage_gaps block must not fire)"
+        );
+    }
+
+    // ── F-F3P10-001: unclassified_flows must NOT be gated on coverage_gaps ───
+
+    /// F-F3P10-001 REGRESSION GUARD (ADR-012 Decision 6 Clarification EXACT):
+    /// `unclassified_flows()` increments on a None-target close even when
+    /// `coverage_gaps_enabled = false`. The per-port map must remain empty.
+    ///
+    /// REGRESSION: placing `unclassified_flows += 1` inside `if coverage_gaps_enabled`
+    /// would zero this counter on all normal runs, breaking BC-2.05.009 and
+    /// holdouts HS-040/HS-095.
+    ///
+    /// GREEN against stub: the stub correctly places `unclassified_flows += 1` outside
+    /// the `coverage_gaps_enabled` block — this test validates that structure.
+    #[test]
+    fn test_BC_2_05_010_unclassified_flows_fires_when_gaps_disabled() {
+        let mut dispatcher = no_gaps_dispatcher();
+        dispatcher.on_flow_close(&keyed(54321, 9999), CloseReason::Fin);
+        assert_eq!(
+            dispatcher.unclassified_flows(),
+            1,
+            "F-F3P10-001: unclassified_flows must increment regardless of coverage_gaps setting"
+        );
+        assert!(
+            dispatcher.unclassified_port_counts().is_empty(),
+            "F-F3P10-001: unclassified_port_counts must stay empty when coverage_gaps=false"
+        );
+    }
+
+    // ── AC-153-003: TCP counter at on_flow_close ─────────────────────────────
+
+    /// BC-2.05.010 PC-1 / Postcondition 1 — None-target close on neutral port 9999.
+    ///
+    /// Flow: client `10.0.0.1:54321` ↔ server `10.0.0.9:9999`.
+    /// FlowKey: lower_ip = 10.0.0.1 (IP-ordered), lower_port = 54321 (ephemeral),
+    /// upper_port = 9999. `lower_port().min(upper_port())` = min(54321, 9999) = 9999.
+    ///
+    /// IP-first ordering guard (F-F3P11-001): `lower_port()` alone = 54321 (wrong key).
+    /// Correct impl uses `lower_port().min(upper_port())` = 9999.
+    /// Port 9999 is neutral — not a classify() port rule target.
+    /// Port 502 is RESERVED EXCLUSIVELY for `test_BC_2_05_011_no_increment_classified_flow`.
+    ///
+    /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+    #[test]
+    fn test_BC_2_05_010_tcp_counter_none_target() {
+        let mut dispatcher = gaps_dispatcher();
+        // FlowKey: lower_ip=10.0.0.1, lower_port=54321, upper_ip=10.0.0.9, upper_port=9999
+        // lower_port().min(upper_port()) = min(54321, 9999) = 9999 (service port).
+        let fk = FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            54321,
+            "10.0.0.9".parse::<IpAddr>().unwrap(),
+            9999,
+        );
+        dispatcher.on_flow_close(&fk, CloseReason::Fin);
+        assert_eq!(
+            dispatcher
+                .unclassified_port_counts()
+                .get(&(TransportProto::Tcp, 9999)),
+            Some(&1),
+            "BC-2.05.010 PC-1: (Tcp, 9999) count must be 1 after 1 None-target close; \
+             IP-first guard: lower_port() alone = 54321 (wrong); \
+             correct impl keys on min(54321, 9999) = 9999"
+        );
+    }
+
+    /// BC-2.05.011 PC-1 + Invariant 1 (monotonically non-decreasing):
+    /// Three successive None-target closes on the same port produce count == 3.
+    ///
+    /// FAILS against stub: todo!() in on_flow_close inner block.
+    #[test]
+    fn test_BC_2_05_011_monotonic_increment() {
+        let mut dispatcher = gaps_dispatcher();
+        // keyed(60000, 7777): lower_port=60000, upper_port=7777, min=7777
+        let fk = keyed(60000, 7777);
+        for _ in 0..3 {
+            dispatcher.on_flow_close(&fk, CloseReason::Fin);
+        }
+        assert_eq!(
+            dispatcher
+                .unclassified_port_counts()
+                .get(&(TransportProto::Tcp, 7777)),
+            Some(&3),
+            "BC-2.05.011 PC-1 / Invariant 1: count must be exactly 3 after 3 None-target closes"
+        );
+    }
+
+    /// BC-2.05.011 PC-4 / EC-002 label fix: a Modbus-classified flow close on port 502
+    /// must NOT increment `unclassified_port_counts`.
+    ///
+    /// EC-002 label fix: BC-2.05.011 EC-002 says "Http/502" but the correct
+    /// `DispatchTarget` for port 502 is `Modbus`. This test uses Modbus/502.
+    ///
+    /// A None-target close on port 9001 makes the test non-vacuous: without it,
+    /// `(Tcp, 502)` is always absent against the stub (vacuously true).
+    ///
+    /// FAILS against stub: the None-target close on port 9001 triggers todo!().
+    #[test]
+    fn test_BC_2_05_011_no_increment_classified_flow() {
+        let mut dispatcher = gaps_dispatcher();
+
+        // POSITIVE — makes test non-vacuous: None-target close on port 9001.
+        // keyed(60001, 9001): lower_port=60001, upper_port=9001, min=9001
+        dispatcher.on_flow_close(&keyed(60001, 9001), CloseReason::Fin);
+        // After impl: (Tcp, 9001) == Some(&1).
+
+        // NEGATIVE: classify a flow on port 502 as Modbus (Rule 5) then close it.
+        // Non-TLS (0x00 != 0x16), non-HTTP → Rule 5 (port 502) → Modbus.
+        // keyed(54321, 502): upper_port=502; Modbus arm fires, None arm does NOT.
+        let fk_modbus = keyed(54321, 502);
+        let modbus_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x00, 0x01];
+        dispatcher.on_data(&fk_modbus, Direction::ClientToServer, &modbus_data, 0, 0);
+        dispatcher.on_flow_close(&fk_modbus, CloseReason::Fin);
+
+        // The None-target close on port 9001 must have been counted.
+        assert_eq!(
+            dispatcher
+                .unclassified_port_counts()
+                .get(&(TransportProto::Tcp, 9001)),
+            Some(&1),
+            "None-target close on port 9001 must produce count == 1"
+        );
+        // The Modbus-classified close on port 502 must NOT have been counted.
+        // (EC-002 label fix: BC-2.05.011 EC-002 says Http/502; correct target is Modbus/502)
+        assert!(
+            !dispatcher
+                .unclassified_port_counts()
+                .contains_key(&(TransportProto::Tcp, 502)),
+            "BC-2.05.011 PC-4 / EC-002 label fix: Modbus-classified close on port 502 \
+             must NOT add (Tcp, 502) to unclassified_port_counts"
+        );
+    }
+
+    /// BC-2.05.010 PC-1 / F-F3P11-001: `lower_port().min(upper_port())` normalization.
+    ///
+    /// Sub-case (a) direction normalization:
+    ///   `keyed(1234, 9999)`: lower_port=1234, upper_port=9999, min=1234
+    ///
+    /// Sub-case (b) client-has-lower-IP guard — the core F-F3P11-001 case:
+    ///   `keyed(9999, 1234)`: lower_port=9999, upper_port=1234 (IP-first ordering!).
+    ///   `lower_port()` alone = 9999 (WRONG — lower_ip's ephemeral port).
+    ///   `lower_port().min(upper_port())` = min(9999, 1234) = 1234 (CORRECT — service port).
+    ///
+    /// Both flows must produce key `(Tcp, 1234)`: total count == 2.
+    ///
+    /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+    #[test]
+    fn test_BC_2_05_010_lower_port_normalization() {
+        let mut dispatcher = gaps_dispatcher();
+
+        // Sub-case (a): lower_ip=10.0.0.1, lower_port=1234, upper_port=9999, min=1234
+        dispatcher.on_flow_close(&keyed(1234, 9999), CloseReason::Fin);
+
+        // Sub-case (b) — IP-first ordering guard:
+        // lower_ip=10.0.0.1, lower_port=9999, upper_port=1234
+        // lower_port() alone = 9999 (wrong); lower_port().min(upper_port()) = 1234 (correct)
+        dispatcher.on_flow_close(&keyed(9999, 1234), CloseReason::Fin);
+
+        assert_eq!(
+            dispatcher
+                .unclassified_port_counts()
+                .get(&(TransportProto::Tcp, 1234)),
+            Some(&2),
+            "F-F3P11-001: both flows (keyed(1234,9999) and keyed(9999,1234)) must produce \
+             key (Tcp, 1234) = min(1234,9999); two closes → count == 2"
+        );
+        // Port 9999 must NOT appear: that would indicate lower_port() alone was used.
+        assert!(
+            !dispatcher
+                .unclassified_port_counts()
+                .contains_key(&(TransportProto::Tcp, 9999)),
+            "F-F3P11-001: (Tcp, 9999) must NOT appear — lower_port() alone on \
+             keyed(9999,1234) = 9999 is the IP-first ordering bug; \
+             correct key is (Tcp, min(9999,1234)) = (Tcp, 1234)"
+        );
+    }
+
+    /// BC-2.05.010 PC-4 (coverage_gaps disabled, no-increment variant):
+    /// When `coverage_gaps_enabled = false`, a None-target flow close must NOT
+    /// increment `unclassified_port_counts` (inner gate not entered).
+    ///
+    /// GREEN against stub: `coverage_gaps = false` bypasses the `todo!()` inner block.
+    #[test]
+    fn test_BC_2_05_010_coverage_gaps_disabled_no_increment() {
+        let mut dispatcher = no_gaps_dispatcher();
+        dispatcher.on_flow_close(&keyed(60000, 8888), CloseReason::Fin);
+        assert!(
+            !dispatcher
+                .unclassified_port_counts()
+                .contains_key(&(TransportProto::Tcp, 8888)),
+            "coverage_gaps=false: (Tcp, 8888) must NOT be added to unclassified_port_counts"
+        );
+        assert!(
+            dispatcher.unclassified_port_counts().is_empty(),
+            "coverage_gaps=false: map must remain empty after any number of None-target closes"
+        );
+    }
+
+    // ── AC-153-004: TCP map key purity ───────────────────────────────────────
+
+    /// BC-2.05.010 PC-3 / BC-2.05.011 PC-5 / Invariant 4:
+    /// Every key in `unclassified_port_counts` has `key.0 == TransportProto::Tcp`.
+    /// No `TransportProto::Udp` key may appear in the TCP dispatcher map.
+    ///
+    /// FAILS against stub: todo!() fires on the first None-target on_flow_close call
+    /// with `coverage_gaps_enabled = true`.
+    #[test]
+    fn test_BC_2_05_011_tcp_map_key_purity() {
+        let mut dispatcher = gaps_dispatcher();
+        for &svc_port in &[7777u16, 8888, 9000] {
+            // keyed(60000, svc_port): lower_port=60000, upper_port=svc_port, min=svc_port
+            dispatcher.on_flow_close(&keyed(60000, svc_port), CloseReason::Fin);
+        }
+        assert!(
+            dispatcher
+                .unclassified_port_counts()
+                .keys()
+                .all(|(t, _)| *t == TransportProto::Tcp),
+            "BC-2.05.011 Invariant 4: all keys in unclassified_port_counts must \
+             carry TransportProto::Tcp — no Udp key may appear in the TCP map"
+        );
+    }
+
+    // ── AC-153-005: UDP gap-key seam (udp_gap_key) ───────────────────────────
+
+    /// BC-2.05.010 PC-2 / EC-001 (BACnet/IP):
+    /// `udp_gap_key` returns `Some((Udp, min_port))` for an unhandled UDP packet.
+    ///
+    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    #[test]
+    fn test_BC_2_05_010_udp_counter_unhandled() {
+        // BACnet/IP: src=61000 (client ephemeral), dst=47808 (BACnet port)
+        // min(61000, 47808) = 47808 → expected key (Udp, 47808)
+        let packet = make_udp_packet(61000, 47808);
+        let result = udp_gap_key(&packet, false);
+        assert_eq!(
+            result,
+            Some((TransportProto::Udp, 47808)),
+            "BC-2.05.010 PC-2: unhandled UDP/47808 must return Some((Udp, 47808))"
+        );
+    }
+
+    /// BC-2.05.010 Invariant 7 / ADR-012 Decision 10:
+    /// `udp_gap_key` returns `None` when `dns_handles = true` (DNS accepted the packet).
+    ///
+    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    #[test]
+    fn test_BC_2_05_010_udp_dns_not_counted() {
+        // DNS response direction: src=53 (server), dst=60000 (client ephemeral)
+        let packet = make_udp_packet(53, 60000);
+        let result = udp_gap_key(&packet, true);
+        assert_eq!(
+            result, None,
+            "BC-2.05.010 Invariant 7 / ADR-012 Decision 10: \
+             dns_handles=true must return None (DNS gap-excluded)"
+        );
+    }
+
+    /// BC-2.05.010 PC-2 / EC-012/EC-013 (BACnet bidirectionality):
+    /// `udp_gap_key` normalizes to `min(src_port, dst_port)` so query and response
+    /// directions both produce the same key `(Udp, 47808)`.
+    ///
+    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    #[test]
+    fn test_BC_2_05_010_udp_lower_port_normalization() {
+        // Query: src=61000 (ephemeral), dst=47808 (BACnet) → min=47808
+        let packet_query = make_udp_packet(61000, 47808);
+        // Response: src=47808 (BACnet), dst=61000 (ephemeral) → min=47808
+        let packet_response = make_udp_packet(47808, 61000);
+
+        let result_query = udp_gap_key(&packet_query, false);
+        let result_response = udp_gap_key(&packet_response, false);
+
+        assert_eq!(
+            result_query,
+            Some((TransportProto::Udp, 47808)),
+            "Query direction src=61000/dst=47808 must return Some((Udp, 47808))"
+        );
+        assert_eq!(
+            result_response,
+            Some((TransportProto::Udp, 47808)),
+            "Response direction src=47808/dst=61000 must return same key Some((Udp, 47808))"
+        );
+        assert_eq!(
+            result_query, result_response,
+            "BC-2.05.010 PC-2: both directions must produce the same key (Udp, 47808)"
+        );
+    }
+
+    /// BC-2.05.010 PC-3 / BC-2.05.011 Invariant 4 (UDP key purity):
+    /// All `Some(_)` returns from `udp_gap_key` carry `TransportProto::Udp`.
+    /// A non-UDP `ParsedPacket` returns `None` (no Tcp key ever appears).
+    ///
+    /// FAILS against stub: `udp_gap_key` has `todo!()`.
+    #[test]
+    fn test_BC_2_05_011_udp_map_key_purity() {
+        let cases = [
+            make_udp_packet(61000, 47808), // BACnet/IP → (Udp, 47808)
+            make_udp_packet(61001, 161),   // SNMP → (Udp, 161)
+            make_udp_packet(9999, 8888),   // neutral ports → (Udp, 8888)
+            make_udp_packet(47808, 61000), // BACnet response direction → (Udp, 47808)
+        ];
+        for pkt in &cases {
+            let result = udp_gap_key(pkt, false);
+            assert!(
+                matches!(result, Some((TransportProto::Udp, _))),
+                "BC-2.05.011 Invariant 4: udp_gap_key must return \
+                 Some((TransportProto::Udp, _)) for unhandled UDP packets; got {result:?}"
+            );
+        }
+        // DNS packet with dns_handles=true must return None — gap-excluded.
+        let dns_pkt = make_udp_packet(53, 60000);
+        assert_eq!(
+            udp_gap_key(&dns_pkt, true),
+            None,
+            "DNS-handled packet must return None (no counter increment)"
+        );
+        // A TCP ParsedPacket (non-UDP transport) must return None — seam is UDP-only.
+        let tcp_pkt = ParsedPacket {
+            src_ip: "10.0.0.1".parse::<IpAddr>().unwrap(),
+            dst_ip: "10.0.0.9".parse::<IpAddr>().unwrap(),
+            protocol: Protocol::Tcp,
+            transport: TransportInfo::Tcp {
+                src_port: 12345,
+                dst_port: 80,
+                seq_number: 0,
+                syn: false,
+                ack: true,
+                fin: false,
+                rst: false,
+            },
+            payload: vec![],
+            packet_len: 20,
+        };
+        assert_eq!(
+            udp_gap_key(&tcp_pkt, false),
+            None,
+            "Non-UDP ParsedPacket must return None from udp_gap_key"
+        );
+    }
+
+    // ── AC-153-006: VP-042 proptest harnesses (TCP dispatcher path) ───────────
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(1000))]
+
+        /// VP-042 Sub-A: `unclassified_port_counts.values().sum() == N` after N
+        /// None-target `on_flow_close` calls with `coverage_gaps = true` and ≥1 analyzer.
+        ///
+        /// FAILS against stub: on_flow_close None-target arm has todo!() for port counting.
+        #[test]
+        fn proptest_vp042_total_count_equals_n(
+            n in 1u64..=50u64,
+            service_port in 1024u16..=19999u16,
+        ) {
+            let mut dispatcher = gaps_dispatcher();
+            // keyed(50000, service_port): lower_port=50000, upper_port=service_port.
+            // min(50000, service_port) = service_port (service_port ≤ 19999 < 50000).
+            let fk = keyed(50000, service_port);
+            for _ in 0..n {
+                dispatcher.on_flow_close(&fk, CloseReason::Fin);
+            }
+            let total: u64 = dispatcher.unclassified_port_counts().values().sum();
+            prop_assert_eq!(
+                total, n,
+                "VP-042 Sub-A: sum of all counts must equal N after N None-target closes"
+            );
+        }
+
+        /// VP-042 Sub-B: for each port P in a generated sequence, the count for `(Tcp, P)`
+        /// equals the number of times P appears in the sequence (exactness property).
+        ///
+        /// FAILS against stub: on_flow_close None-target arm has todo!().
+        #[test]
+        fn proptest_vp042_per_port_count_equals_frequency(
+            ports in proptest::collection::vec(1024u16..=9000u16, 1..=20usize),
+        ) {
+            let mut dispatcher = gaps_dispatcher();
+            for (i, &service_port) in ports.iter().enumerate() {
+                // keyed(50000+i, service_port): min(50000+i, service_port) = service_port.
+                // (service_port ≤ 9000 < 50000+i; i ≤ 19 so 50000+i ≤ 50019 ≤ u16::MAX)
+                dispatcher.on_flow_close(
+                    &keyed(50000 + i as u16, service_port),
+                    CloseReason::Fin,
+                );
+            }
+            // Build the expected frequency map from the input port sequence.
+            let mut freq: std::collections::HashMap<u16, u64> = std::collections::HashMap::new();
+            for &p in &ports {
+                *freq.entry(p).or_insert(0) += 1;
+            }
+            // Each port's counter must equal its frequency.
+            for (&p, &expected) in &freq {
+                let got = dispatcher
+                    .unclassified_port_counts()
+                    .get(&(TransportProto::Tcp, p))
+                    .copied()
+                    .unwrap_or(0);
+                prop_assert_eq!(
+                    got, expected,
+                    "VP-042 Sub-B: count for (Tcp, {}) must equal input frequency {}",
+                    p,
+                    expected
+                );
+            }
+            // No spurious extra keys.
+            prop_assert_eq!(
+                dispatcher.unclassified_port_counts().len(),
+                freq.len(),
+                "VP-042 Sub-B: map must contain exactly as many keys as distinct ports"
+            );
+        }
+
+        /// VP-042 Sub-C (BC-2.05.011 Invariant 5): a classified `on_flow_close` on port P
+        /// (Http via content detection) must NOT change the count for `(Tcp, P)` even when
+        /// None-target closes on the same port have already incremented it.
+        ///
+        /// FAILS against stub: for k > 0, the None-target close triggers todo!().
+        /// For k = 0, the test passes (no todo! triggered); proptest will generate k > 0
+        /// cases and record a failure, so the harness is Red overall.
+        #[test]
+        fn proptest_vp042_no_count_spurious_on_classified_flows(
+            service_port in 1024u16..=9000u16,
+            k in 0u64..=10u64,
+        ) {
+            let mut dispatcher = gaps_dispatcher();
+            // k None-target closes on service_port.
+            // keyed(50000, service_port): min(50000, service_port) = service_port.
+            let fk_none = keyed(50000, service_port);
+            for _ in 0..k {
+                dispatcher.on_flow_close(&fk_none, CloseReason::Fin);
+            }
+            // Classify a flow on the SAME service_port via HTTP content (Rule 2).
+            // "GET " fires Rule 2 regardless of port — content-first wins over all port rules.
+            let fk_classified = keyed(49999, service_port);
+            let http_data = b"GET / HTTP/1.1\r\nHost: x\r\n\r\n";
+            dispatcher.on_data(
+                &fk_classified,
+                Direction::ClientToServer,
+                http_data,
+                0,
+                0,
+            );
+            dispatcher.on_flow_close(&fk_classified, CloseReason::Fin);
+            // Count must still equal k — the classified close must not increment the counter.
+            let count = dispatcher
+                .unclassified_port_counts()
+                .get(&(TransportProto::Tcp, service_port))
+                .copied()
+                .unwrap_or(0);
+            prop_assert_eq!(
+                count, k,
+                "VP-042 Sub-C / BC-2.05.011 Invariant 5: classified Http close on port \
+                 {} must not change the count from {}",
+                service_port,
+                k
+            );
+        }
+    }
+
+    // ── AC-153-007: VP-043 proptest harnesses (udp_gap_key seam) ─────────────
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(1000))]
+
+        /// VP-043 / DF-KANI-NONVACUITY-001: for M calls to `udp_gap_key` on a UDP packet
+        /// with `min(src_port, dst_port) == Q` and `dns_handles = false`, all M calls return
+        /// `Some((TransportProto::Udp, Q))`.
+        ///
+        /// Calls the production seam directly (non-vacuous: `udp_unclassified_counts`
+        /// in main.rs is unreachable from integration tests).
+        ///
+        /// FAILS against stub: `udp_gap_key` has `todo!()`.
+        #[test]
+        fn proptest_vp043_total_count_equals_n(
+            n in 1usize..=256usize,
+            q in 1024u16..=9000u16,
+        ) {
+            // src = q + 10000 → min(src, q) = q. (q ≤ 9000, src = q+10000 ≤ 19000 ≤ u16::MAX)
+            let src = q + 10000;
+            let packet = make_udp_packet(src, q);
+            for _ in 0..n {
+                let result = udp_gap_key(&packet, false);
+                prop_assert_eq!(
+                    result,
+                    Some((TransportProto::Udp, q)),
+                    "VP-043: udp_gap_key must return Some((Udp, {})) for unhandled \
+                     UDP packet with min(src, dst) == {}",
+                    q,
+                    q
+                );
+            }
+        }
+
+        /// VP-043 / ADR-012 Decision 10 (DNS exclusion gate):
+        /// For any UDP packet, `udp_gap_key(parsed, true)` returns `None`.
+        /// The seam guards the main.rs loop: `dns_handles = true` → counter not incremented.
+        ///
+        /// FAILS against stub: `udp_gap_key` has `todo!()`.
+        #[test]
+        fn proptest_vp043_no_increment_on_classified_udp(
+            src_port in 1u16..=60000u16,
+            dst_port in 1u16..=65535u16,
+        ) {
+            let packet = make_udp_packet(src_port, dst_port);
+            // dns_handles=true: dissector accepted this packet — must not be counted.
+            let result = udp_gap_key(&packet, true);
+            prop_assert_eq!(
+                result,
+                None,
+                "VP-043 / ADR-012 Decision 10: dns_handles=true must return None; \
+                 got {:?} for src={} dst={}",
+                result,
+                src_port,
+                dst_port
+            );
+        }
+    }
+}

@@ -151,12 +151,10 @@ impl StreamDispatcher {
     /// Consistent with the existing `with_max_classification_attempts` builder pattern.
     /// All existing `StreamDispatcher::new()` call sites remain untouched (ADR-012 Decision 6 Clarification).
     ///
-    /// WIRING-EXEMPT (BC-5.38.003): single field assignment returning self — no branching,
-    /// no I/O, no domain logic. BC-5.38.005 self-check: "If I include this real implementation,
-    /// will the test for this function pass trivially without any implementer work?" — the
-    /// structural accessor test passes trivially; all counting tests still fail (todo!() in
-    /// on_flow_close). WIRING-EXEMPT classification applies: builder setter, mirrors
-    /// with_max_classification_attempts pattern.
+    /// When `enabled = true`, `on_flow_close` for None-target flows populates
+    /// `unclassified_port_counts` with `(TransportProto::Tcp, min(lower_port, upper_port))`
+    /// entries (F-F3P11-001; BC-2.05.010 PC-1; ADR-012 Decision 6 Clarification).
+    /// When `enabled = false` (the default), the port counter is never incremented.
     pub fn with_coverage_gaps(mut self, enabled: bool) -> Self {
         self.coverage_gaps_enabled = enabled;
         self
@@ -166,12 +164,12 @@ impl StreamDispatcher {
         self.unclassified_flows
     }
 
-    /// Returns the per-(TransportProto, port) unclassified flow counts for TCP flows
-    /// that closed as DispatchTarget::None (STORY-153, BC-2.05.010 PC-1).
+    /// Returns the per-`(TransportProto::Tcp, port)` unclassified flow counts accumulated
+    /// by `on_flow_close` for None-target flows when `coverage_gaps_enabled = true`
+    /// (STORY-153, BC-2.05.010 PC-1).
     ///
-    /// GREEN-BY-DESIGN (BC-5.38.002): 1 line, zero branching, no I/O, no helpers.
-    /// Returns `&self.unclassified_port_counts` — the field is empty until real
-    /// implementation adds counts in on_flow_close.
+    /// Keys are `(TransportProto::Tcp, min(lower_port, upper_port))` (F-F3P11-001).
+    /// Returns an empty map when `coverage_gaps_enabled = false` (the default).
     pub fn unclassified_port_counts(&self) -> &HashMap<(TransportProto, u16), u64> {
         &self.unclassified_port_counts
     }
