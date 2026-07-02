@@ -136,6 +136,10 @@ order. Each row contains at minimum:
 - **EtherType** — hex+decimal display for LinkLayer entries with non-None ethertype (e.g., `0x88B8 (35000)`); `—` for TCP/UDP entries and ARP (ARP has `ethertype: None`)
 - **Supported** — `yes` / `no`
 
+> **NOTE:** `KnownProtocol` has NO `supported` field. The per-row `supported` value is DERIVED
+> via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || name == "ARP"`
+> (BC-2.18.003) — or via `supported_protocols()` set membership.
+
 Filter semantics:
 - `--all` or no flag: all 30 entries
 - `--supported`: only 7 entries (those in `supported_protocols()`)
@@ -249,6 +253,10 @@ JSON schema requirements per BC-2.18.002:
 - `"supported"`: boolean
 - Array elements in catalog-declaration order
 - Output valid JSON (parseable by `jq`)
+
+> **NOTE:** `KnownProtocol` has NO `supported` field; the `"supported"` boolean is DERIVED
+> via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || name == "ARP"`
+> (BC-2.18.003) — or via `supported_protocols()` membership.
 
 (traces to BC-2.18.002 v1.1 PC-1..3, Postconditions 1–6, Invariants 1–5)
 
@@ -466,3 +474,4 @@ No new source files.
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-003 (MEDIUM): Fixed AC-152-002 `args.json` phantom bool → `args.json.is_some()` with note about `Option<Option<PathBuf>>` type and `--json=path` file routing. LOW: Task 3 stub guidance clarified — empty `{ let _ = (filter, json); }` stub replaces contradictory todo!()/stub text. | F-F3P1-003 |
 | v1.2 | 2026-07-02 | Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying `verification_properties: [VP-041]` is a regression/relevance reference (VP-041 harnesses authored/anchored by STORY-151). | Obs-1 |
+| v1.3 | 2026-07-02 | F-F3P6-002 (MEDIUM): Added DERIVED-value NOTE to AC-152-003 (`supported` terminal column) and AC-152-007 (JSON `"supported"` field): `KnownProtocol` has no `supported` field; value is derived via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) \|\| name == "ARP"` (BC-2.18.003). Sibling-sweep fix matching STORY-154 v1.3 F-F3P3-001. | F-F3P6-002 |

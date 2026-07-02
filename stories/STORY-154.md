@@ -89,10 +89,15 @@ does NOT imply `--coverage-gaps`. The two flags are independent.
 ### AC-154-002: `--coverage-gaps` wired via `.with_coverage_gaps(...)` builder to `StreamDispatcher` and decode loop
 **Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.3 PC-1; ADR-012 Decision 8
 
-In `src/main.rs`, `run_analyze()` wires `args.coverage_gaps` using the builder method added by
-STORY-153: `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`.
-This leaves all other `StreamDispatcher::new()` call sites untouched (no blast radius).
-The decode loop's `coverage_gaps: bool` local variable is set from `args.coverage_gaps`.
+In `src/main.rs`, `run_analyze()` receives `coverage_gaps: bool` as a scalar parameter
+(introduced by STORY-153 as default `false`). STORY-154 changes the call-site in `main()` to
+pass `*coverage_gaps` destructured from `Commands::Analyze { ..., coverage_gaps, ... }`.
+
+The `StreamDispatcher` is constructed using the builder method from STORY-153:
+`StreamDispatcher::new(/* existing 5 analyzer args */).with_coverage_gaps(coverage_gaps)`
+at the existing call site (main.rs:306). This leaves all other `StreamDispatcher::new()`
+call sites untouched (no blast radius). The decode loop's `if coverage_gaps { ... }` gate
+already uses the same scalar parameter — no additional threading required.
 
 When `--coverage-gaps` is set: `unclassified_port_counts` (TCP) and `udp_unclassified_counts`
 (UDP) are populated per BC-2.05.010. When NOT set: both maps remain empty.
@@ -367,10 +372,13 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - Verify: clap help shows flag; `protocols --coverage-gaps` yields clap error; binary compiles
 
 3. **Wire `coverage_gaps` to `StreamDispatcher` builder + decode loop (AC-154-002)**
-   - In `run_analyze()`, wire `args.coverage_gaps` using the builder method from STORY-153:
-     `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`
+   - In `main()`, change the `run_analyze()` call-site to pass `*coverage_gaps` (from
+     `Commands::Analyze { ..., coverage_gaps, ... }` destructure) instead of the STORY-153
+     default `false`
+   - At the existing `StreamDispatcher::new()` call site (main.rs:306), apply the STORY-153 builder:
+     `StreamDispatcher::new(/* existing 5 analyzer args */).with_coverage_gaps(coverage_gaps)`
      (Do NOT change `StreamDispatcher::new()` signature — builder preserves all existing call sites)
-   - In the decode loop, use `args.coverage_gaps` to gate `udp_unclassified_counts` increments
+   - The decode loop `if coverage_gaps { ... }` gate already uses the scalar parameter (no change)
    - Verify: `test_BC_2_12_023_coverage_gaps_counts_unclassified` turns GREEN (with a test pcap)
 
 4. **Implement `ProtocolGapState` and `lookup_protocol_state()` (AC-154-006)**
@@ -413,7 +421,9 @@ lookup only checks `Transport::Tcp` and `Transport::Udp` entries.
 Provides `TransportProto` enum, `unclassified_port_counts()` accessor on `StreamDispatcher`,
 `udp_unclassified_counts` map in the decode loop, and the `with_coverage_gaps(enabled: bool) -> Self`
 builder method on `StreamDispatcher` (NOT a new `new()` parameter — builder pattern preserves all
-existing call sites). Wire via `StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)`.
+existing call sites). Wire via `StreamDispatcher::new(/* existing 5 analyzer args */).with_coverage_gaps(coverage_gaps)`
+(using the `coverage_gaps` scalar parameter — NOT `args.coverage_gaps`; `run_analyze()` takes
+flat scalar params, not a struct arg).
 The transport mapping in `lookup_protocol_state()` must use `TransportProto::Tcp →
 protocols::Transport::Tcp` and `TransportProto::Udp → protocols::Transport::Udp`.
 
@@ -473,3 +483,4 @@ No new source files.
 | v1.2 | 2026-07-02 | F-F3P2-004 cascade (MEDIUM): Fixed AC-154-002 + Task 3 + Previous Story Intelligence (STORY-153 paragraph) to use STORY-153's `with_coverage_gaps(enabled: bool) -> Self` builder method instead of `StreamDispatcher::new()` parameter. F-F3P2-005 (MEDIUM): `wave: 68` → `wave: 69` and `depends_on` updated to include STORY-152 (file-sequencing edge 152→154 added to dep-graph: both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; placing 154 in wave 69 eliminates the parallel-edit collision). | F-F3P2-004, F-F3P2-005 |
 | v1.3 | 2026-07-02 | F-F3P3-001 (HIGH): Fixed AC-154-006 phantom `p.supported` field — `KnownProtocol` has no `supported` field; supportedness is DERIVED. Replaced `Some(p) if p.supported` guard with `Some(p) if p.canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || p.name == "ARP"` (mirrors `supported_protocols()` predicate per STORY-151 AC-151-005 / BC-2.18.003). Updated vocabulary bullet descriptions to use `supported_protocols()` set membership language instead of stale `supported: true/false` field notation. Added NOTE block clarifying that supportedness is DERIVED, not a struct field. | F-F3P3-001 |
 | v1.4 | 2026-07-02 | F-F3P4-002 (MEDIUM): Fixed AC-154-002 heading from forbidden `StreamDispatcher::new(coverage_gaps_enabled=true)` form to `.with_coverage_gaps(...)` builder, consistent with body/Task 3/PSI which already used the correct builder pattern. F-F3P4-003 (MEDIUM): Narrowed unit test location in Task 1 from "in tests/ or inline" to "inline `#[cfg(test)] mod story_154_unit` in `src/main.rs`" (binary-private `lookup_protocol_state()` is NOT callable from `tests/`); added `_unit` suffix to 4 unit test names to eliminate DF-AC-TEST-NAME-SYNC-001 collision with identically-named integration tests; updated Architecture Compliance Rule 8 accordingly. Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying VP-041/042/043 are regression/relevance references (harnesses authored/anchored by STORY-151/153). | F-F3P4-002, F-F3P4-003, Obs-1 |
+| v1.5 | 2026-07-02 | F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-154-002 body, Task 3, and Previous Story Intelligence (PSI). F-F3P6-005 (LOW): Replaced `args.coverage_gaps` phantom struct-field ref with `coverage_gaps` (flat scalar param) in AC-154-002, Task 3, and PSI. Clarified that STORY-154's wiring change is flipping the STORY-153 default-false call-site value to `*coverage_gaps` from `Commands::Analyze { ..., coverage_gaps, ... }` destructure. | F-F3P6-003, F-F3P6-005 |

@@ -93,8 +93,19 @@ pub fn with_coverage_gaps(mut self, enabled: bool) -> Self {
 ```
 This is consistent with the existing `with_max_classification_attempts(mut self, ...) -> Self`
 builder and BC-2.05.011 EC-009's "or equivalent" wording. All existing `StreamDispatcher::new()`
-call sites remain untouched. STORY-154 wires the flag by calling
-`StreamDispatcher::new().with_coverage_gaps(args.coverage_gaps)` at its single `run_analyze()` site.
+call sites remain untouched.
+
+**F-F3P6-001 (wave-67 compile fix):** STORY-153 also introduces `coverage_gaps: bool` as a NEW
+scalar parameter on `run_analyze()`, passed as `false` from the `Commands::Analyze` dispatch arm
+in `main()`. This makes the `if coverage_gaps { ... }` gates in the decode loop compile at
+wave 67 independently — before the `--coverage-gaps` CLI flag is added by STORY-154. STORY-154
+(wave 69) changes the call-site to pass `*coverage_gaps` destructured from
+`Commands::Analyze { ..., coverage_gaps, ... }`.
+
+STORY-154 wires the flag by calling
+`StreamDispatcher::new(/* existing 5 analyzer args */).with_coverage_gaps(coverage_gaps)` at the
+single `StreamDispatcher::new()` call site in `run_analyze()` (main.rs:306), using the
+`coverage_gaps` scalar parameter (not `args.coverage_gaps` — `run_analyze()` takes flat scalars).
 
 If the `new()` parameter approach is used instead, ALL 8 existing call sites must be updated:
 `tests/bc_2_14_105_modbus_dispatch_tests.rs`, `tests/tls_integration_tests.rs`,
@@ -235,6 +246,9 @@ co-located with `TransportProto` (the key type they return).
 let mut udp_unclassified_counts: HashMap<(wirerust::dispatcher::TransportProto, u16), u64> = HashMap::new();
 
 // Inside the Ok(DecodedFrame::Ip(parsed)) arm (~line 356 of main.rs):
+// `coverage_gaps` is the run_analyze() scalar param introduced by STORY-153 (passed as
+// `false` from main()). STORY-154 changes the call-site to `*coverage_gaps` from
+// `Commands::Analyze { ..., coverage_gaps, ... }` once the --coverage-gaps CLI flag exists.
 if coverage_gaps {
     // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of enable_dns.
     let dns_handles_this = dns_analyzer.can_decode(&parsed);
@@ -430,7 +444,11 @@ NOT change.
    - Inside `Ok(DecodedFrame::Ip(parsed))` arm (~line 356): call
      `wirerust::dispatcher::udp_gap_key(&parsed, dns_analyzer.can_decode(&parsed))`; if `Some(key)`, do
      `let c = udp_unclassified_counts.entry(key).or_insert(0); *c = c.saturating_add(1);`
-   - Gate the entire block on `if coverage_gaps { ... }`
+   - Gate the entire block on `if coverage_gaps { ... }` — **F-F3P6-001**: `coverage_gaps` is the
+     new `run_analyze()` scalar parameter introduced by STORY-153 and passed as `false` from the
+     `Commands::Analyze` call site in `main()`. This makes wave-67 code compile independently
+     before the `--coverage-gaps` CLI flag exists. STORY-154 (wave 69) changes the call-site
+     value to `*coverage_gaps` from the `Commands::Analyze { ..., coverage_gaps, ... }` destructure.
    - ADR-012 Decision 10: `dns_analyzer.can_decode()` is called regardless of `enable_dns`
    - Do NOT inline the UDP-packet-type-check in main.rs — the seam handles it
    - Verify: Red-Gate UDP tests (calling `udp_gap_key` directly) GREEN; VP-043 proptest harnesses GREEN
@@ -478,7 +496,10 @@ The existing `classify()` function uses `flow_key.lower_port()` (grep confirms: 
 **From STORY-088 (run_analyze orchestration):**
 `StreamDispatcher::new()` is called in `run_analyze()`. With the builder approach, NO changes
 to existing `StreamDispatcher::new()` call sites in this story. STORY-154 wires the flag by
-adding `.with_coverage_gaps(args.coverage_gaps)` at the specific `run_analyze()` call site.
+changing the call-site in `main()` to pass `*coverage_gaps` and applying
+`.with_coverage_gaps(coverage_gaps)` at `StreamDispatcher::new(/* existing 5 analyzer args */)`
+(main.rs:306). Note: `coverage_gaps` is the scalar parameter on `run_analyze()`, NOT
+`args.coverage_gaps` — `run_analyze()` takes flat scalar params, not a struct arg.
 The `with_coverage_gaps` builder is consistent with the existing
 `with_max_classification_attempts(mut self, ...) -> Self` pattern in dispatcher.rs.
 
@@ -515,7 +536,7 @@ The `TransportProto` enum in `dispatcher.rs` is INDEPENDENT of `protocols::Trans
 | File | Change Type | Purpose |
 |------|------------|---------|
 | `src/dispatcher.rs` | Modify | `TransportProto` enum; `unclassified_port_counts` field; `coverage_gaps_enabled` field; `on_flow_close` augmentation; accessor method; `pub fn udp_gap_key(parsed, dns_handles)` seam (VP-043 non-vacuity) |
-| `src/main.rs` | Modify | `udp_unclassified_counts` map; UDP decode-loop increment (STORY-154 adds `.with_coverage_gaps(args.coverage_gaps)` builder call — not in scope for this story) |
+| `src/main.rs` | Modify | new `coverage_gaps: bool` scalar param on `run_analyze()` (passed as `false` from `main()` — STORY-154 changes call-site to `*coverage_gaps`); `udp_unclassified_counts` map; UDP decode-loop increment gated on `coverage_gaps`; STORY-154 adds `.with_coverage_gaps(coverage_gaps)` at the `StreamDispatcher::new(/* existing 5 analyzer args */)` call site (main.rs:306) |
 | `tests/dispatcher_tests.rs` | Modify | VP-042 (3 harnesses) + VP-043 (2 harnesses) + unit tests in `mod story_153 { ... }` |
 
 No new source files.
@@ -529,3 +550,4 @@ No new source files.
 | v1.2 | 2026-07-02 | F-F3P2-001 (CRITICAL): Fixed AC-153-003 code snippet — `unclassified_flows += 1` moved OUTSIDE `coverage_gaps_enabled` gate to analyzer-present guard only; `unclassified_port_counts` increment now nested in inner `if self.coverage_gaps_enabled { }` block (matches ADR-012 Decision 6 Clarification exactly). Removed regression warning + updated descriptive text. Fixed LOW `.saturating_add_assign(1)` (non-real std method) → `let c = ...; *c = c.saturating_add(1)`. F-F3P2-004 (MEDIUM): Changed AC-153-002 / Task 2 / Previous Story Intelligence to use builder method `with_coverage_gaps(mut self, enabled: bool) -> Self` instead of new `new()` parameter — no blast to 8 existing call sites. Updated Architecture Compliance Rule 3 + Previous Story Intelligence STORY-033/088 paragraphs + VP-042 proptest precondition language. Added ACR-10 (module-private `DispatchTarget`/`classify()` note; tests must use public `on_data`/`on_flow_close` + accessor). | F-F3P2-001, F-F3P2-004, LOW |
 | v1.3 | 2026-07-02 | F-F3P3-003 (MEDIUM): Fixed AC-153-005 UDP snippet sibling-sweep gap — `udp_unclassified_counts.entry(...).or_insert(0) += 1` was non-compiling (bare `+= 1` on `Entry` return) and violated ACR-9 (saturating_add mandate). Replaced with `let c = ...; *c = c.saturating_add(1);` matching the AC-153-003 TCP sibling pattern (fixed in v1.2) and Architecture Compliance Rule 9. | F-F3P3-003 |
 | v1.4 | 2026-07-02 | F-F3P4-001 (HIGH): Introduced `pub fn udp_gap_key(parsed, dns_handles)` library-visible seam in `src/dispatcher.rs` (SEAM CONTRACT). VP-043 proptest harnesses in `tests/dispatcher_tests.rs` link only the library crate and CANNOT reach `udp_unclassified_counts` (main.rs binary-private). Without the seam VP-043 would be vacuous (DF-KANI-NONVACUITY-001). Redesigned AC-153-005 to show seam function definition + main.rs decode loop calling it. Updated AC-153-007 VP-043 harness descriptions to call seam directly. Updated Architecture Mapping (added udp_gap_key row), Task 1 (UDP seam-based test descriptions), Task 4 (seam-call pattern), Architecture Compliance Rule 11 (seam library-visibility mandate), File Structure Requirements (dispatcher.rs row). BC-2.05.010 not violated: counter still populated in main.rs loop via the seam. | F-F3P4-001 |
+| v1.5 | 2026-07-02 | F-F3P6-001 (MEDIUM): Fixed independent-compile gap — STORY-153 now explicitly introduces `coverage_gaps: bool` as a new scalar parameter on `run_analyze()` (passed as `false` from `main()`), ensuring wave-67 code compiles before `--coverage-gaps` CLI flag is added by STORY-154. Added note in AC-153-002, code comment in AC-153-005 decode-loop snippet, Task 4 bullet, and File Structure. F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-153-002 reference and File Structure. F-F3P6-005 cascade: removed `args.coverage_gaps` phantom struct ref from all STORY-153 occurrences. | F-F3P6-001, F-F3P6-003 |
