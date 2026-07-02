@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.11"
+version: "2.12"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.12 2026-07-01 (F2 adversarial Pass-8 remediation — BC-2.12.023 v1.1→v1.2; PRD unchanged at v1.51):**
+> F-F2P8-001 (HIGH) BC-2.12.023 v1.1→v1.2: PC-3 `coverage_gaps` JSON schema corrected — removed contradictory flat-dict form (`"<transport>/<port>": { count, state }`) and replaced with the authoritative object form matching BC-2.12.024 PC-5: `{ "caveat_l2": <string>, "entries": [ { transport, port, count, state, name?, collision_note? } ] }`. The flat-dict form was structurally incompatible with the mandatory `caveat_l2` field (BC-2.12.024 Inv-1) and the per-entry `collision_note` (port-102 four-way collision). BC-2.12.023 PC-3 now references BC-2.12.024 PC-5 as the field-level authority. No BC count change (346 on disk; 345 active). PRD §2.18 narrative does not describe the coverage_gaps JSON schema shape — no PRD change needed.
 >
 > **v2.11 2026-07-01 (F2 adversarial Pass-7 remediation — BC-2.18.003 v1.2→v1.3, BC-2.18.004 v1.1→v1.2; PRD bumped to v1.51):**
 > F-F2P7-004 (MEDIUM) BC-2.18.003 and BC-2.18.004: partition harness `proptest_vp041_partition_invariant` "non-vacuous / oracle computed independently" mislabeling corrected. The partition invariant holds trivially whenever `unsupported = KNOWN \ supported` by definition (verified per verification-architecture.md line 184); `proptest_vp041_oracle_cross_check` is the non-vacuous guard. Locations updated in each file: VP table partition row, Architecture Anchors partition entry, VP Anchors partition entry; additionally BC-2.18.004 Invariant 4. BC-2.18.003 v1.2→v1.3; BC-2.18.004 v1.1→v1.2. BC-INDEX rows updated. PRD §2.18 narrative fixes: F-F2P7-002 L2 caveat adds Ethernet POWERLINK (0x88AB) as 5th structurally-absent L2 protocol; F-F2P7-003 VP-041 "single harness" corrected to "two harnesses `proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`". PRD bumped to v1.51. No BC count change (346 on disk; 345 active).
@@ -582,7 +585,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.020 | Summary::unique_hosts Returns Sorted Deduplicated Vec<IpAddr> | P1 | [WRITTEN] | BC-SUM-003 |
 | BC-2.12.021 | Summary Serializes with total_packets/total_bytes/skipped_packets Fields | P1 | [WRITTEN] | BC-SUM-004 |
 | BC-2.12.022 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; cli.rs/main.rs; `protocols` subcommand wired to run_protocols(); --json produces JSON array output -->
-| BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: F-F2P2-005 Pass-2 remediation — Invariant 6 added (gap-classification orthogonal to enable_dns; can_decode() checked regardless of enable_dns setting; ADR-012 Decision 10) -->
+| BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.2: F-F2P8-001 Pass-8 remediation — PC-3 coverage_gaps JSON schema corrected from flat-dict to authoritative object form (caveat_l2 + entries[]) matching BC-2.12.024 PC-5. v1.1: F-F2P2-005 Pass-2 remediation — Invariant 6 added (gap-classification orthogonal to enable_dns; can_decode() checked regardless of enable_dns setting; ADR-012 Decision 10) -->
 | BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: F-F2P5-004 — PC-4 tri-state lookup transport-aware (match both transport+port; LinkLayer entries never match port key; TCP/47808 → unknown; TCP/53 → unknown); EC-009 + EC-010 added -->
 
 ## ss-13: Absent / Unwired Feature Contracts

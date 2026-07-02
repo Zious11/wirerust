@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P2-005 Pass-2 remediation — Invariant 6 added encoding ADR-012 Decision 10 (gap-classification orthogonal to enable_dns; can_decode() evaluated regardless of enable_dns flag). 2026-07-01"
+  - "v1.2: F-F2P8-001 Pass-8 remediation — PC-3 coverage_gaps JSON schema corrected from flat-dict form to authoritative object form (caveat_l2 string + entries[] array matching BC-2.12.024 PC-5); old dict-of-string-keys schema removed. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,7 +62,7 @@ existing downstream consumers of wirerust JSON output (ADR-012 Decision 8).
    - `analyze --all` output is IDENTICAL to prior behavior (no new section, no new keys in JSON).
    - Exit code is unchanged.
 
-3. **`--coverage-gaps` with `--json`:** `CoverageGapsSummary` appears as a JSON object in the analysis output under a `"coverage_gaps"` key (or equivalent named key); schema is a dict of `"<transport>/<port>": { "count": N, "state": "known-unsupported" | "unknown" | "known-supported" }` entries.
+3. **`--coverage-gaps` with `--json`:** `CoverageGapsSummary` appears as a JSON object in the analysis output under a `"coverage_gaps"` key. The `"coverage_gaps"` value is an object with a `"caveat_l2"` string field and an `"entries"` array of `{ transport, port, count, state, name, collision_note }` objects (where `state` ∈ `"known-supported" | "known-unsupported" | "unknown"` and `name` / `collision_note` are optional per-entry fields). The full field-level JSON schema is authoritative in BC-2.12.024 PC-5.
 
 ## Invariants
 
