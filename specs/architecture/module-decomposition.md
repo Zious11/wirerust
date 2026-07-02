@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: module-decomposition
 traces_to: ARCH-INDEX.md
-version: "1.8"
+version: "1.9"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -34,13 +34,16 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-29 A-01: C-24 DNP3 analyzer technique set corrected — T1692.001 was omitted, leaving set incomplete as T1691.001/T0827/T0836/T0814. Canonical 5-ID set (ADR-007 Decision 5 + dnp3.rs lines 782/1092/1159/823/862/934/1044) is T1692.001/T1691.001/T0814/T0836/T0827. Version bump 1.7→1.8."
+  - date: 2026-07-01
+    actor: architect
+    reason: "F2 Pass-10 inventory reconciliation (F-F2P10-002): C-25 (EnipAnalyzer, src/analyzer/enip.rs, SS-17, shipped v0.11.0) and C-26 (protocols.rs, SS-18, PLANNED — feature-protocol-coverage D-320; not yet in src tree) rows added to L3 Domain Layer table; Component Inventory preamble count updated 24→26 (24 shipped: C-23 and C-26 planned). ARCH-INDEX Document Map already claimed 26 components C-1..C-26 (correct since 2026-07-01 v2.6 entry); this edit brings module-decomposition.md into agreement. Version bump 1.8→1.9."
 ---
 
 # Module Decomposition
 
 ## Component Inventory
 
-All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by ADR 0001), C-22 (ModbusAnalyzer, added F2 issue #7), C-23 (ArpAnalyzer, added F2 issue #9 — **PLANNED; not yet in src tree, see STORY-112/ADR-008**), and C-24 (Dnp3Analyzer, shipped v0.6.0 — see note on C-24 below for non-chronological C-ID assignment). 24 components total (23 shipped; C-23 planned).
+All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by ADR 0001), C-22 (ModbusAnalyzer, added F2 issue #7), C-23 (ArpAnalyzer, added F2 issue #9 — **PLANNED; not yet in src tree, see STORY-112/ADR-008**), C-24 (Dnp3Analyzer, shipped v0.6.0 — see note on C-24 below for non-chronological C-ID assignment), C-25 (EnipAnalyzer, shipped v0.11.0, feature-enip-v0.11.0 issue #316), and C-26 (protocols.rs — **PLANNED; not yet in src tree, feature-protocol-coverage D-320**). 26 components total (24 shipped; C-23 and C-26 planned).
 
 ### L0 Entry Layer
 
@@ -84,6 +87,8 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 (T0888 = recon FC 0x11/0x12/0x2B, Remote System Information Discovery; ADR-005 D12) | Pure core |
 | C-23 | src/analyzer/arp.rs | SS-16 | **[PLANNED — STORY-112/ADR-008; not yet in src tree]** `ArpAnalyzer`: direct `process_arp(&ArpFrame)` method (not ProtocolAnalyzer/StreamAnalyzer); binding table (HashMap<[u8;4], BindingEntry>, LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch detection; T0830+T1557.002 findings (ADR-008) | Pure core |
 | C-24 | src/analyzer/dnp3.rs | SS-15 | `Dnp3Analyzer`: `StreamHandler`; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; function-code classification; ICS MITRE findings T1692.001/T1691.001/T0814/T0836/T0827; per-flow master-address tracking (MAX_MASTER_ADDRS); VP-023 Kani obligation (ADR-007). **Note — non-chronological C-ID:** DNP3 shipped before ARP (v0.6.0 vs v0.7.0-planned) but C-IDs are assigned by factory-registration order; C-22 (Modbus) and C-23 (ARP) were registered first. DNP3 receives C-24 by registration sequence, not deployment sequence. Do not renumber C-23 — it is cited in arp-architecture-delta, ARCH-INDEX, module-criticality, and BC-INDEX. | Pure core |
+| C-25 | src/analyzer/enip.rs | SS-17 | `EnipAnalyzer`: `StreamHandler`; two-level ENIP→CPF→CIP manual binary parser; `MAX_ENIP_CARRY_BYTES = 600` carry buffer; `MALFORMED_ANOMALY_THRESHOLD = 3` windowed T0814 gate; ForwardOpen connection-lifecycle tracking; `EnipFlowState`, `EnipSummary`, `EnipHeader`, `EnipCommandClass`, `CpfItem`, `CipHeader`, `CipServiceClass`, `CipPathSegment`; findings for T0858/T0816/T1693.001/T1692.001/T0814/T0846 (ADR-010). Shipped v0.11.0. | Pure core |
+| C-26 | src/protocols.rs | SS-18 | **[PLANNED — feature-protocol-coverage D-320; not yet in src tree]** `KNOWN_PROTOCOLS` static compile-time array (~30 entries: 7 supported + 9 ICS + 5 L2-flagged + 9 IT); `SUPPORTED_PORTS: &[u16]` compile-time constant (= classify() TCP port-fallback rules ∪ {53 decode-loop}; NOT a pure mirror of classify() — DNS/53 and ARP dissected outside classify() by design; ADR-012 Decision 5); `supported_protocols()`, `unsupported_protocols()`, `all_protocols()` pure-core query functions; tri-state vocabulary (known-supported / known-unsupported / unknown); VP-041 proptest anchor (ADR-012). | Pure core |
 
 ### L4 Output Layer
 

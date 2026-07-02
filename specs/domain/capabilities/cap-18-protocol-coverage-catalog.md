@@ -7,7 +7,7 @@ feature: feature-protocol-coverage
 adr: ADR-012
 introduced: v0.12.0
 producer: product-owner
-timestamp: 2026-07-01T18:00:00Z
+timestamp: 2026-07-01T19:30:00Z
 ---
 
 # CAP-18: Protocol Coverage Catalog
@@ -15,7 +15,7 @@ timestamp: 2026-07-01T18:00:00Z
 ## Description
 
 wirerust maintains a static, hand-curated compile-time catalog (`KNOWN_PROTOCOLS`) of
-approximately 30 ICS/IT protocols (including 5 with `transport=LinkLayer`) that are known
+approximately 30 ICS/IT protocols (including 5 L2/multicast protocols with `transport=LinkLayer ∧ port_detectable:false`; ARP is a 6th `transport=LinkLayer` entry that is supported) that are known
 to the tool — including those it actively dissects and those it does not. `ProtocolCategory`
 has exactly two variants: `ICS` and `IT`. Link-layer/multicast protocols (GOOSE, etc.) are
 ICS-category entries with `transport=LinkLayer`, not a third category. The catalog enables two coverage surfaces:
