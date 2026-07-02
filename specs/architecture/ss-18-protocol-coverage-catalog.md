@@ -3,12 +3,15 @@ artifact: architecture-section
 section: ss-18-protocol-coverage-catalog
 subsystem_id: SS-18
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-07-01T00:00:00Z
 feature_cycle: feature-protocol-coverage
 modified:
+  - date: "2026-07-01"
+    actor: architect
+    reason: "F2 adversarial Pass-9 remediation (F-F2P9-002/F-F2P9-003): (F-F2P9-002) changelog entry corrected — 'the 5th port_detectable:false catalog entry' → 'the 5th L2/multicast (port_detectable:false) catalog entry'; ARP is a 6th port_detectable:false entry overall (supported L2 protocol); POWERLINK is correctly the 5th within the L2/multicast group only. (F-F2P9-003 cross-reference) Bounded-Resource Note TCP counter description updated — unclassified_port_counts increment is placed INSIDE the same analyzer-present guard as unclassified_flows += 1; both counters increment together when ≥1 analyzer configured AND coverage_gaps_enabled=true; see ADR-012 Decision 6 Clarification; VP-042(d) precondition documented. Version bump 1.4→1.5."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-2 remediation (F-F2P2-008): Ethernet POWERLINK EtherType 0x88AB verified HIGH confidence against IEEE Registration Authority EtherType registry, IETF ietf-ethertypes YANG module, and Wireshark epan/etypes.h. [unverified] tag removed from catalog row; V2 (EPSG current standard) / V1 obsolete 0x3E3F note added. Full citations in .factory/phase-f1-delta-analysis/powerlink-ethertype-verification.md."
@@ -17,7 +20,7 @@ modified:
     reason: "F2 adversarial Pass-5 remediation (F-F2P5-001): `supported_protocols()` Derivation section opening sentence reframed — SUPPORTED_PORTS is NOT a mirror of classify() port-fallback rules; it equals classify() TCP rules + decode-loop DNS path (port 53). DNS/53 and ARP are dissected outside classify() by design; this is permanently intentional, NOT drift."
   - date: "2026-07-01"
     actor: architect
-    reason: "F2 adversarial Pass-2 remediation: (F-F2P2-001) Drift risk paragraph reworded — VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is a documented convention NOT compile-time enforcement (ADR-012 Decision 5). (F-F2P2-004) L2 caveat updated to include Ethernet POWERLINK (0x88AB) as the 5th port_detectable:false catalog entry — both the prose list and the mandatory output caveat string now enumerate all 5 L2 protocols consistently with ADR-012 Decision 3a/3c."
+    reason: "F2 adversarial Pass-2 remediation: (F-F2P2-001) Drift risk paragraph reworded — VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is a documented convention NOT compile-time enforcement (ADR-012 Decision 5). (F-F2P2-004) L2 caveat updated to include Ethernet POWERLINK (0x88AB) as the 5th L2/multicast (port_detectable:false) catalog entry — both the prose list and the mandatory output caveat string now enumerate all 5 L2 protocols consistently with ADR-012 Decision 3a/3c."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-1 remediation: (F-F2P1-003) ProtocolCategory enum corrected to {ICS, IT} only — removed L2 variant; L2 detection expressed by transport:LinkLayer + port_detectable:false; (F-F2P1-005) HART-IP catalog entry changed from TCP+UDP to canonical UDP:5094 with TCP noted in description; §Transport Model section added documenting single-canonical-transport decision for HART-IP/IEC-104/BACnet; (F-F2P1-006) UDP counter key changed from (Udp, dst_port) to (Udp, min(src_port, dst_port)) — ephemeral-port guard symmetric with TCP lower_port; (F-F2P1-007) CoverageGapsSummary Output tri-state: 'known' corrected to 'known-supported' (authoritative per ADR-012 Decision 2 and BC-2.12.024); (F-F2P1-012) Bounded-Resource Note off-by-one: 2×65,535 → 2×65,536 (port space 0..=65535 = 65,536 values per transport)."
@@ -281,8 +284,13 @@ It is a leaf in the dependency graph. Consuming modules:
 Two counters back the dynamic gap report:
 
 1. **TCP counter** — `StreamDispatcher.unclassified_port_counts: HashMap<(TransportProto, u16), u64>`
-   (SS-05): populated only at `on_flow_close` for `DispatchTarget::None` TCP flows;
-   key is `(Tcp, lower_port)`. Overhead is proportional to closed unclassified TCP flows,
+   (SS-05): populated only at `on_flow_close` for `DispatchTarget::None` TCP flows **when
+   at least one analyzer is configured** (analyzer-present guard: `self.http.is_some() ||
+   self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some() ||
+   self.enip.is_some()`) — the same guard that gates `unclassified_flows += 1`. Both
+   counters increment together; neither fires on an analyzer-less dispatcher run
+   (F-F2P9-003; ADR-012 Decision 6 Clarification; VP-042(d) precondition).
+   Key is `(Tcp, lower_port)`. Overhead is proportional to closed unclassified TCP flows,
    not packet volume.
 
 2. **UDP counter** — `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in

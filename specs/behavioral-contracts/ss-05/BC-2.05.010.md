@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,7 @@ introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P1-002 Pass-1 remediation — DNS premise removed from PC-3; UDP key changed to min(src_port, dst_port); EC-010/011/012/013 added; VP-043 cited in VP Anchors. 2026-07-01"
   - "v1.2: F-F2P2-005 Pass-2 remediation — Invariant 7 added encoding ADR-012 Decision 10 (can_decode() evaluated regardless of enable_dns for gap classification); EC-014 added. 2026-07-01"
+  - "v1.3: F-F2P9-003 Pass-9 remediation — PC-1 and Architecture Anchor updated with ADR-012 Decision 6 Clarification: unclassified_port_counts increment is gated on both (a) coverage_gaps_enabled=true and (b) analyzer-present guard; when no analyzers are configured neither counter fires; VP-042 proptest precondition is ≥1 analyzer is_some() AND coverage_gaps_enabled=true. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,6 +62,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
    - Let `lower_port = min(flow_key.src_port, flow_key.dst_port)` (direction-normalized; approximates the server/service port).
    - `StreamDispatcher.unclassified_port_counts.entry((TransportProto::Tcp, lower_port)).or_insert(0) += 1`.
    - The map is updated ONLY for `DispatchTarget::None` flows; classified flows (Http, Tls, Modbus, etc.) do NOT trigger this increment.
+   - **Dual-gate (ADR-012 Decision 6 Clarification):** The increment is gated on BOTH (a) `coverage_gaps_enabled=true` AND (b) the analyzer-present guard (`self.http.is_some() || self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some() || self.enip.is_some()`). When no analyzers are configured, neither counter fires. The VP-042 proptest harness precondition is ≥1 analyzer `is_some()` AND `coverage_gaps_enabled=true`.
 
 2. **UDP counter — per-packet in decode loop:**
    - Let `lower_port = min(udp_header.src_port, udp_header.dst_port)` (direction-normalized; same approach as TCP; computed per-packet from the UDP header).
@@ -140,9 +142,9 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs` — `StreamDispatcher` struct gains `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` field; populated at `on_flow_close` when `target == DispatchTarget::None && self.coverage_gaps_enabled`
+- `src/dispatcher.rs` — `StreamDispatcher` struct gains `unclassified_port_counts: HashMap<(TransportProto, u16), u64>` field; populated at `on_flow_close` when `target == DispatchTarget::None && self.coverage_gaps_enabled && <analyzer-present guard>` (dual-gate per ADR-012 Decision 6 Clarification; full guard expression in the increment-site anchor below)
 - `src/dispatcher.rs` — `TransportProto` enum: `pub enum TransportProto { Tcp, Udp }` — minimal, defined here, NOT imported from `protocols.rs`
-- `src/dispatcher.rs` — `on_flow_close` None-target arm: after incrementing `unclassified_flows`, also increment `(Tcp, lower_port)` key in `unclassified_port_counts`; `lower_port = min(flow_key.src_port, flow_key.dst_port)`
+- `src/dispatcher.rs` — `on_flow_close` None-target arm: the `unclassified_port_counts` increment is co-located with `unclassified_flows += 1` and is gated on both (a) `self.coverage_gaps_enabled` and (b) the analyzer-present guard (`self.http.is_some() || self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some() || self.enip.is_some()`); `lower_port = min(flow_key.src_port, flow_key.dst_port)`; when no analyzers are configured neither `unclassified_flows` nor `unclassified_port_counts` fire (ADR-012 Decision 6 Clarification)
 - `src/main.rs` — decode loop UDP path: for each UDP packet after all dissectors decline (i.e., after `dns_analyzer.can_decode(&parsed)` returns false and any other UDP dissectors decline), compute `lower_port = min(udp_header.src_port, udp_header.dst_port)` and increment `udp_unclassified_counts.entry((TransportProto::Udp, lower_port)).or_insert(0) += 1`
 - VP-042: `proptest_vp042_total_count_equals_n`, `proptest_vp042_per_port_count_equals_frequency`, `proptest_vp042_no_count_spurious_on_classified_flows` (all in `tests/dispatcher_tests.rs` or equivalent)
 

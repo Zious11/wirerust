@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -16,6 +16,7 @@ modified:
   - "v1.1: F-F2P1-003/005/008/009 Pass-1 remediation — ProtocolCategory enum L2 variant removed (two variants: ICS/IT; L2-ness expressed via transport column); EC-007 HART-IP transport=UDP; VP-041 harness renamed to proptest_vp041_oracle_cross_check; PC-8 catalog-declaration order added. 2026-07-01"
   - "v1.2: F-F2P2-006 Pass-2 remediation — duplicate PC-8 (exit-code precondition) renumbered to PC-9. 2026-07-01"
   - "v1.3: F-F2P3-001 Pass-3 remediation — EC-001 reworded (ARP IS a transport=LinkLayer supported entry; EC-001 now states no L2/multicast PROTOCOL entries in --supported set; ARP noted as sole LinkLayer supported entry); PC-5 amended to note LinkLayer entries with ethertype=None (ARP) render — in EtherType column. 2026-07-01"
+  - "v1.4: F-F2P9-001 Pass-9 remediation — PC-6 reworded from unconditional to conditional: footnote appears ONLY when any port-102 entry (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2) is present in the printed set; consistent with Inv-3, EC-001 (--supported has no port-102 entries → no footnote), EC-002/003, and test_BC_2_18_001_port102_footnote unit test. Description sentence updated to match. 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,8 +34,10 @@ prints a terminal table of catalog entries from `KNOWN_PROTOCOLS`. Each row disp
 protocol name, category (`ICS` or `IT`), transport (`TCP`, `UDP`, or `LinkLayer`), canonical
 port(s) or "—" for link-layer protocols, and supported status. Link-layer entries (those
 with `transport=LinkLayer`, i.e., `port_detectable: false`) are marked with `[L2]` in the
-transport column as a display convention. The table includes a fixed footnote warning about
-the port-102 four-way collision and a note that link-layer/multicast protocols (`transport=LinkLayer`)
+transport column as a display convention. When port-102 entries (S7comm / S7comm-plus /
+IEC 61850 MMS / ICCP-TASE.2) are present in the printed set, the output includes a
+port-102 collision footnote; when none are present (e.g., `--supported` output), no footnote
+appears. The output includes a note that link-layer/multicast protocols (`transport=LinkLayer`)
 are never detectable in the dynamic gap report. `ProtocolCategory` has exactly two variants:
 `ICS` and `IT`. L2-ness is indicated by `transport=LinkLayer ∧ port_detectable:false`, not
 by a separate category variant.
@@ -59,7 +62,7 @@ by a separate category variant.
 3. For `--unsupported`: only entries where `supported == false` (i.e., `unsupported_protocols()` result) are printed.
 4. Each printed row contains: name, category (`ICS` or `IT`), transport indicator (`TCP`, `UDP`, or `[L2]` for `LinkLayer` entries), canonical port(s) (comma-separated u16 values, or `—` for entries with `canonical_ports: &[]`), and a supported indicator (`yes` / `no`). `ProtocolCategory` has only two variants (`ICS`, `IT`); L2-ness is expressed via the transport column, not via a third category.
 5. EtherType is printed for link-layer entries (`transport=LinkLayer`) where `ethertype` is non-`None` (e.g., `0x88B8 (35000)` for GOOSE); the EtherType column is `—` for non-link-layer (TCP/UDP) entries AND for LinkLayer entries with `ethertype=None` (ARP renders `—` in the EtherType column).
-6. The output includes a fixed port-102 collision footnote: `"NOTE: TCP/102 hosts S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 — gap reports on port 102 cannot be attributed to a single protocol."` (exact text may differ in implementation; the semantic requirement is that the four-way collision is identified and named).
+6. When any port-102 entry (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2) is present in the printed set, the output includes a fixed port-102 collision footnote: `"NOTE: TCP/102 hosts S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 — gap reports on port 102 cannot be attributed to a single protocol."` (exact text may differ in implementation; the semantic requirement is that the four-way collision is identified and named). When no port-102 entry is in the printed set (e.g., `--supported` output where none of the four TCP/102 protocols are supported), no footnote appears.
 7. The output includes a fixed link-layer/multicast note for entries with `port_detectable: false` (i.e., `transport=LinkLayer`): those entries are listed with `port_detectable: false` indicated (e.g., marker in a `[L2]` transport column or footnote), making clear they will never appear in the `CoverageGapsSummary` dynamic gap report.
 8. Output rows appear in catalog-declaration order (the order of entries in `KNOWN_PROTOCOLS`). No additional sort is applied at render time.
 9. Exit code is 0.

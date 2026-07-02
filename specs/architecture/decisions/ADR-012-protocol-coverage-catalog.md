@@ -7,6 +7,9 @@ date: 2026-07-01
 modified:
   - date: "2026-07-01"
     actor: architect
+    reason: "F2 adversarial Pass-9 remediation (F-F2P9-003): Decision 6 Clarification added — unclassified_port_counts increment is placed INSIDE the same analyzer-present guard as unclassified_flows += 1; both counters increment together when ≥1 analyzer configured AND coverage_gaps_enabled=true; VP-042(d) precondition documented; BC-2.05.010 Architecture Anchor wording specified."
+  - date: "2026-07-01"
+    actor: architect
     reason: "F2 adversarial Pass-2 remediation: (F-F2P2-004) Decision 3a and 3c caveat text updated to include Ethernet POWERLINK (0x88AB) as the 5th L2 protocol — catalog has 5 port_detectable:false entries; prior text named only 4. Decision 6 remaining-caveats list also updated. Wording changed to 'e.g.,' prefix for forward-compatibility. (F-F2P2-005) Decision 10 added — UDP gap classification decoupled from enable_dns: when --coverage-gaps is active, dns_analyzer.can_decode() is evaluated regardless of enable_dns for gap-accounting; finding-emission retains the enable_dns gate; rejects catalog-supported-port exclusion alternative. (Observation) Consequences clap-shape updated to Commands::Protocols { filter: ProtocolFilter, json: bool } with ProtocolFilter { All, Supported, Unsupported } enum."
   - date: "2026-07-01"
     actor: architect
@@ -249,6 +252,45 @@ is therefore a minimal enum defined independently in `dispatcher.rs` (or a share
 low-level module), containing only `Tcp` and `Udp` variants. It is NOT the `Transport`
 enum from `protocols.rs` (which has a third `LinkLayer` variant unsuitable for the
 dispatcher context).
+
+**Decision 6 Clarification — Increment-Site Semantics (F-F2P9-003):**
+
+The `unclassified_port_counts` HashMap increment MUST be placed **INSIDE** the same
+analyzer-present guard as the existing `unclassified_flows += 1` statement. Both
+increments are co-located within the guard:
+
+```
+Some(DispatchTarget::None) | None => {
+    if self.http.is_some() || self.tls.is_some() || self.modbus.is_some()
+        || self.dnp3.is_some() || self.enip.is_some()
+    {
+        self.unclassified_flows += 1;
+        if coverage_gaps_enabled {
+            *self.unclassified_port_counts.entry((TransportProto::Tcp, lower_port))
+                .or_insert(0) += 1;
+        }
+    }
+}
+```
+
+**Rationale:** `--coverage-gaps` answers "which ports had TCP flows that no configured
+analyzer classified?" When zero analyzers are configured, all flows are trivially
+`DispatchTarget::None` regardless of port — per-port counting would be noise, not a
+coverage gap signal. Placing the increment inside the guard preserves semantic symmetry:
+both counters count the same population (None-target flows where analyzers were present
+but could not classify the traffic).
+
+**VP-042(d) precondition:** Sub-property (d) ("both counters consistent") holds only
+given the harness precondition: ≥1 analyzer configured (`is_some()`) AND
+`coverage_gaps_enabled=true`. The proptest harness MUST construct the dispatcher with at
+least one analyzer enabled and `coverage_gaps_enabled=true` to make sub-property (d)
+reachable.
+
+**BC-2.05.010 Architecture Anchor wording:** PC-1 MUST state that the
+`unclassified_port_counts` increment is gated on both (a) `coverage_gaps_enabled=true`
+and (b) the analyzer-present guard. When no analyzers are configured, neither counter
+fires. The VP-042 proptest harness precondition is ≥1 analyzer `is_some()` AND
+`coverage_gaps_enabled=true`.
 
 ---
 

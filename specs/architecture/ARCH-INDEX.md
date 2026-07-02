@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.10"
+version: "2.11"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -97,6 +97,9 @@ modified:
     actor: architect
     reason: "feature-protocol-coverage F2 adversarial Pass-2 remediation (F-F2P2-001/004/005): ADR-012 Decision 3a/3c updated — Ethernet POWERLINK (0x88AB) added as 5th L2/multicast protocol in all caveat enumerations. ADR-012 Decision 10 added — UDP gap classification decoupled from enable_dns (when --coverage-gaps active, dns_analyzer.can_decode() evaluated regardless of enable_dns for gap-accounting; finding-emission retains enable_dns gate). ADR-012 Consequences clap-shape updated to Commands::Protocols { filter: ProtocolFilter, json: bool } with ProtocolFilter enum. SS-18 v1.2: drift risk paragraph corrected (VP-041 guards supported_protocols()-vs-SUPPORTED_PORTS only; classify()-vs-SUPPORTED_PORTS is documented convention NOT compile-time enforcement per ADR-012 Decision 5). VP-INDEX v2.31 changelog entry for VP-043 addition (2.30→2.31) added; stale arithmetic revised. Version bump 2.8→2.9."
   - date: 2026-07-01
+    actor: architect
+    reason: "feature-protocol-coverage F2 adversarial Pass-9 remediation (F-F2P9-002/F-F2P9-003): ADR-012 Decision 6 Clarification added — increment-site semantics pinned: unclassified_port_counts increment INSIDE analyzer-present guard (same scope as unclassified_flows += 1); VP-042(d) precondition documented (≥1 analyzer is_some() AND coverage_gaps_enabled=true); BC-2.05.010 Architecture Anchor wording specified. ss-18 v1.4→v1.5: Bounded-Resource Note TCP counter updated; changelog wording corrected (5th L2/multicast port_detectable:false entry, not 5th port_detectable:false entry overall — ARP is 6th). VP-INDEX v2.31→v2.32: VP-042(d) precondition added. Version bump 2.10→2.11."
+  - date: "2026-07-01"
     actor: architect
     reason: "feature-protocol-coverage F2 adversarial Pass-7 remediation (F-F2P7-001/003): Subsystem Registry BC counts reconciled against BC-INDEX v2.4 authoritative totals — SS-05 9→11 (BC-2.05.010..011 added), SS-12 21→24 (BC-2.12.022..024 added). Full sweep also found SS-11 34→35 (BC-2.11.035 mitre_attack JSON enrichment, issue #64, was added after the 2026-06-22 maintenance sweep but never propagated to ARCH-INDEX) and SS-16 15→16 (BC-2.16.016 fix-pc-013-014-015 ARP unbounded findings D-221 was added but never propagated). SS-18 registry comment updated: VP-041 now correctly cites both harnesses — proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant (F-F2P7-003; Pass-2 added partition harness; VP-INDEX is authoritative). Version bump 2.9→2.10."
 phase: 1c

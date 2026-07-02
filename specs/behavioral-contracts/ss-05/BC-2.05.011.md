@@ -113,7 +113,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs` — `on_flow_close` `None` arm: `self.unclassified_port_counts.entry((TransportProto::Tcp, lower_port)).or_insert(0) += 1` — note that `+=1` is the ONLY mutation site for this counter (monotonicity follows)
+- `src/dispatcher.rs` — `on_flow_close` `None` arm: `self.unclassified_port_counts.entry((TransportProto::Tcp, lower_port)).or_insert(0) += 1` — note that `+=1` is the ONLY mutation site for this counter (monotonicity follows); this increment is itself gated on both `coverage_gaps_enabled=true` and the analyzer-present guard per BC-2.05.010 PC-1 (ADR-012 Decision 6 Clarification)
 - `src/dispatcher.rs` — NO `on_data` path increments `unclassified_port_counts` (only `on_flow_close` does)
 - `src/main.rs` — UDP decode loop: `udp_unclassified_counts.entry((TransportProto::Udp, min(src_port, dst_port))).or_insert(0) += 1` per-packet (only for packets all dissectors decline)
 - `tests/dispatcher_tests.rs` — VP-042 proptest harnesses, plus `test_BC_2_05_011_tcp_map_key_purity`, `test_BC_2_05_011_udp_map_key_purity`, `test_BC_2_05_011_monotonic_increment`
