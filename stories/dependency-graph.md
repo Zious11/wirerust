@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.2"
+version: "3.3"
 status: draft
 producer: story-writer
 phase: 3
@@ -25,7 +25,8 @@ modified:
   - "2026-06-20 v3.0: FE-001 INTEGRATE sub-burst — E-19 pcapng reader support (STORY-123..128) added. 6 new product stories: STORY-123 (W51, depends_on=[], 5pts), STORY-124 (W52, depends_on=[123], 8pts), STORY-125 (W53, depends_on=[123,124], 8pts), STORY-126 (W54, depends_on=[123,124], 8pts), STORY-127 (W55, depends_on=[123,124,125,126], 5pts), STORY-128 (W56, depends_on=[127], 3pts). total_stories 73→79 (product; all-stories 75→81). total_edges 96→106 (+10 intra-E-19: (123,124),(123,125),(123,126),(123,127),(124,125),(124,126),(124,127),(125,127),(126,127),(127,128) — all intra-E-19, 0 cross-epic). intra_epic_edges 75→85. cross_epic_edges unchanged at 21. number_of_waves 50→56. total_points 479→516 (product scheduled, +37). Acyclicity re-verified."
   - "2026-06-24 v3.1: E-20 ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — STORY-130..138 added. 9 new product stories: STORY-130 (W58, depends_on=[], 8pts), STORY-131 (W58, depends_on=[], 8pts), STORY-132 (W59, depends_on=[130], 8pts), STORY-133 (W59, depends_on=[131], 5pts), STORY-134 (W60, depends_on=[132,133], 8pts), STORY-135 (W60, depends_on=[132,133], 8pts), STORY-136 (W60, depends_on=[132,133], 5pts), STORY-137 (W60, depends_on=[132,133], 8pts), STORY-138 (W61, depends_on=[134,135,136,137], 8pts). total_stories 79→89 (product; STORY-129 isolated vertex W57 also counted; all-stories 81→91). +14 intra-E-20 edges: 130→132, 131→133, 132→134, 132→135, 132→136, 132→137, 133→134, 133→135, 133→136, 133→137, 134→138, 135→138, 136→138, 137→138. total_edges 106→120. intra_epic_edges 85→99. cross_epic_edges unchanged at 21. number_of_waves 56→61 (waves 57 for STORY-129; 58-61 for E-20). total_points 516→587 (product scheduled; +5 STORY-129 +66 E-20)."
   - "2026-07-02 v3.2: E-21 Protocol Coverage Catalog (feature-protocol-coverage) — STORY-151..154 added. 4 new product stories: STORY-151 (W67, depends_on=[], 8pts, SS-18 protocols.rs catalog + VP-041), STORY-153 (W67, depends_on=[], 8pts, SS-05 dispatcher gap counters + VP-042/VP-043), STORY-152 (W68, depends_on=[151], 8pts, SS-12 protocols CLI subcommand), STORY-154 (W68, depends_on=[151,153], 8pts, SS-12 --coverage-gaps + CoverageGapsSummary). total_stories 89→93 (product; all-stories 91→95). +3 intra-E-21 edges: 151→152, 151→154, 153→154. total_edges 120→123. intra_epic_edges 99→102. cross_epic_edges unchanged at 21. number_of_waves 61→68 (waves 62-66 were added by post-v3.1 fix stories STORY-139..146; waves 67-68 added for E-21). BCs: BC-2.18.003/004 (STORY-151), BC-2.12.022/BC-2.18.001/002 (STORY-152), BC-2.05.010/011 (STORY-153), BC-2.12.023/024 (STORY-154). VPs: VP-041 (STORY-151/152/154), VP-042 (STORY-153/154), VP-043 (STORY-153/154)."
-total_stories: 93  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 95)
+  - "2026-07-02 v3.3: F-F3P1-007 remediation — reconcile global story counts to STORY-INDEX (authoritative = 107). total_stories 93→107 (STORY-INDEX authoritative; wave tables in this file cover waves 1-68; STORY-139..150 and STORY-143/147/148/149/150 are wave-TBD stories tracked in STORY-INDEX but not yet in dep-graph wave schedule). Brownfield context note and Summary Table 'all-stories' count updated to 107. Edges, waves, and per-epic story tables are unchanged."
+total_stories: 107  # STORY-INDEX authoritative (107); wave tables cover waves 1-68; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 tracked in STORY-INDEX but not in wave schedule
 total_edges: 123
 intra_epic_edges: 102
 cross_epic_edges: 21
@@ -41,10 +42,10 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 93 product stories formalize behavioral contracts for existing and new shipped code
+> All 107 stories (STORY-INDEX authoritative) formalize behavioral contracts for existing and new shipped code
 > (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage feature additions
-> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21;
-> excludes STORY-091 + STORY-121 tooling stories — all-stories total = 95).
+> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21; wave tables in this file cover waves 1-68;
+> wave-TBD stories STORY-091 + STORY-121 + STORY-139..150 tracked in STORY-INDEX — all-stories total = 107).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -55,7 +56,7 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 93 (product; +STORY-091 tooling +STORY-121 tooling = 95 all-stories; note: E-11/E-5/E-20/E-15/E-14 fix stories added post-v3.1 are tracked in STORY-INDEX but wave tables here are current through v3.2/E-21) |
+| Total stories | 107 (STORY-INDEX authoritative; wave tables cover waves 1-68; wave-TBD stories STORY-091+STORY-121+STORY-139..150 tracked in STORY-INDEX but not yet in wave schedule) |
 | Total dependency edges | 123 |
 | Intra-epic edges | 102 |
 | Cross-epic edges | 21 |

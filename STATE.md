@@ -4,7 +4,7 @@ project: wirerust
 mode: feature
 phase: F3-incremental-stories
 status: in-progress
-current_step: "F3 decomposition + holdout authoring COMPLETE (D-339, 2026-07-02). 4 stories STORY-151..154 (32 pts, waves 67/68, E-21). 10 holdout scenarios HS-123..132 (all must_pass, 7 canonical-value). STORY-INDEX v3.11 (107/68/691). dependency-graph v3.2 (edges 123, waves 68, acyclic). BC story-anchor backlinks updated in all 9 feature BCs. Input-hash STALE=0. Next: F3 adversarial story convergence (3 consecutive clean passes) → human F3 gate."
+current_step: "F3 adversarial story Pass-1 remediated (D-340, 2026-07-02): 7 findings (1 P0, 1 HIGH, 5 MEDIUM/LOW) all fixed. EtherCAT/PROFINET-DCP/SV canonical EtherType tests + holdout HS-124 Cases F/G added; STORY-153 UDP real-symbols (TransportInfo::Udp); dep-graph v3.3 (total_stories 107). Next: F3 adversarial story Pass-2."
 pipeline: FEATURE-CYCLE
 timestamp: 2026-07-02T00:00:00Z
 
@@ -32,7 +32,7 @@ adversary_convergence_counter: SATISFIED
 stories_delivered: 94
 story_index_version: v3.11
 total_stories: 107
-story_index_note: "107 stories / 68 waves / 691 pts. STORY-151..154 added (E-21, feature-protocol-coverage F3). dependency-graph v3.2 (edges 123). HS-INDEX v2.7 (HS-123..132 added)."
+story_index_note: "107 stories / 68 waves / 691 pts. STORY-151..154 added (E-21, feature-protocol-coverage F3). dependency-graph v3.3 (edges 123, total_stories 107). HS-INDEX v2.8 (HS-124 v2.0: EtherCAT/PROFINET-DCP Cases F/G added)."
 # Spec versions (current)
 bc_index_version: "v2.13"
 vp_index_version: "v2.32"
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F3 decomposition + holdout authoring COMPLETE (D-339, 2026-07-02). 4 stories STORY-151..154 (32 pts, waves 67/68, E-21, diamond-acyclic): STORY-151=SS-18 catalog (BC-2.18.003/004, VP-041), STORY-152=protocols subcommand (BC-2.12.022+BC-2.18.001/002), STORY-153=SS-05 dispatcher+main.rs counters (BC-2.05.010/011, VP-042/043), STORY-154=--coverage-gaps+CoverageGapsSummary (BC-2.12.023/024). 10 holdout scenarios HS-123..132 (all must_pass, 7 canonical-value). STORY-INDEX v3.11, dependency-graph v3.2, HS-INDEX v2.7. Input-hash STALE=0 (scan post-BC-anchor-edits). Next: dispatch F3 adversarial story convergence (3 consecutive clean passes) → present human F3 gate summary. See Session Resume Checkpoint below.**
+**F3 adversarial story Pass-1 REMEDIATED (D-340, 2026-07-02) — entering F3 Pass-2. 7 findings resolved: P0 F-F3P1-001 EtherCAT(0x88A4/34980)+PROFINET-DCP(0x8892/34962) canonical EtherType tests added (STORY-151 + HS-124 Cases F/G); HIGH F-F3P1-002 STORY-153 phantom udp_header → TransportInfo::Udp; MEDIUM: --json Option<Option<PathBuf>> (F-003), port-502 dataless trap→9999 (F-004), VP-042(d) removed from STORY-151 (F-005), dep-graph total_stories 93→107 (F-007); SV 0x88BA/35002 symmetry (F-006). dep-graph v3.3, HS-124 v2.0, HS-INDEX v2.8. stories_delivered=94 (STORY-151..154 still draft). Next: F3 adversarial story Pass-2.**
 
 ---
 
@@ -94,7 +94,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
 | Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **APPROVED (D-338, 2026-07-02)** | Adversarial convergence: 3 consecutive clean passes (P11/P12/P13, 13 total). Input-hash STALE=0 (D-337). Consistency audit PASS. Human gate approved 2026-07-02. 4 LOW items carried into F3. Final spec: BC-INDEX v2.13 / PRD v1.51 / VP-INDEX v2.32 / ARCH-INDEX v2.11 / ss-18 v1.5; 9 BCs, CAP-18, ADR-012, VP-041/042/043. |
-| Feature cycle feature-protocol-coverage — F3 (incremental-stories) | **IN PROGRESS** | F3 decomposition + holdout authoring COMPLETE (D-339, 2026-07-02). STORY-151..154 (32 pts, waves 67/68, E-21). HS-123..132. STORY-INDEX v3.11 (107/68/691). dep-graph v3.2. Next: F3 adversarial convergence. |
+| Feature cycle feature-protocol-coverage — F3 (incremental-stories) | **IN PROGRESS** | F3 decomp+holdout DONE (D-339). Story Pass-1 remediated (D-340): 7 findings (1 P0 + 1 HIGH + 5 M/L); EtherCAT/PROFINET/SV canonical EtherType tests, STORY-153 UDP real-symbols, dep-graph v3.3, HS-124 v2.0, HS-INDEX v2.8. Counter: 0 consecutive clean. Pass-2 next. |
 
 ---
 
@@ -102,11 +102,11 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **F3 adversarial story Pass-1 REMEDIATED — entering Pass-2** | **DONE (D-340)** | 7 findings: P0 F-F3P1-001 EtherCAT/PROFINET canonical EtherType (STORY-151+HS-124 Cases F/G); HIGH F-F3P1-002 STORY-153 phantom udp_header→TransportInfo::Udp; MEDIUM: --json Option<Option<PathBuf>>, port-502→9999 neutral, VP-042(d) removed, dep-graph 93→107, SV 0x88BA symmetry. dep-graph v3.3, HS-124 v2.0, HS-INDEX v2.8. Counter: 0 clean. |
 | **F3 decomposition + holdout authoring COMPLETE — STORY-151..154 + HS-123..132** | **DONE (D-339)** | 4 stories (32 pts, waves 67/68, E-21, diamond-acyclic). 10 holdouts (all must_pass, 7 canonical-value). STORY-INDEX v3.11 (107/68/691), dep-graph v3.2 (edges 123), HS-INDEX v2.7. BC story-anchor backlinks updated in all 9 feature BCs. Input-hash STALE=0. 4 F3-carry items folded in. |
 | **F2 HUMAN GATE APPROVED → F3 kickoff** | **DONE (D-338)** | Pre-gate satisfied: adversarial convergence (3 consecutive clean passes, 13 total), consistency audit PASS, STALE=0 (D-337). 4 LOW deferred items carried. F3 scope: 4 stories / 32 pts / 2 waves. |
 | **F2 adversarial spec convergence ACHIEVED — 3 consecutive clean passes (Pass-11/12/13), byte-stable** | **DONE (D-336)** | BC-5.39.001 SATISFIED. Full trajectory: 14→8→4→3→4→4→4→1→0→0→0→0→0. Deferred F3-carry: lower_port(), EC-002 label, ARCH-INDEX docmap 24→26, VP-042(d) harness. |
 | **F2 adversarial Pass-12/13 CLEAN — spec held byte-stable** | **DONE (D-335/D-336)** | Consecutive-clean #2/#3 on stable spec. Same 2 LOW independently re-derived. New obs: ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001. Convergence ACHIEVED at Pass-13. |
-| **F2 adversarial Pass-9/10/11 CLEAN — 0 HIGH/CRITICAL each** | **DONE (D-332/333/334)** | Pass-9: BC-2.18.001 PC-6 conditional + BC-2.05.010 dual-gate + ss-18; BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32. Pass-10: cap-18 LinkLayer 5→6, module-decomp C-25/C-26. Pass-11: 2 LOW deferred. Consecutive-clean #0/0/1. |
 
 ---
 
@@ -154,6 +154,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-337 | F2 pre-gate input-hash drift resolved. 10 delivered stories (STORY-002/003/004/005/076/077/078/079/080/129) went STALE because they list prd.md as an input and F2 changed prd.md v1.45→v1.51. Re-baselined mechanically via bin/compute-input-hash --write --scan (no version bump — hash rewrite is mechanical per DF-INPUT-HASH-CANONICAL-001). Post-fix scan: MATCH=95 STALE=0 ERROR=3. 3 PRE-EXISTING ERRORs (NOT F2-caused) logged for maintenance: STORY-001 (inputs cite retired BC-2.01.004 → should re-point to superseding BC-2.01.009), STORY-091 + STORY-121 (no inputs: block). These predate feature-protocol-coverage and do NOT block F2. | 2026-07-01 |
 | D-338 | F2 (spec-evolution) HUMAN GATE APPROVED (2026-07-02) → proceed to F3 story decomposition. Pre-gate satisfied: adversarial convergence (3 consecutive clean passes, 13 total), fresh-context consistency audit PASS (corpus consistently integrated), input-hash drift resolved (10 stories re-baselined, STALE=0). Human elected to CARRY the 4 deferred LOW items into F3 (not fix-now): F-F2P11/13-001 (BC-2.05.010 flow_key.lower_port()), F-F2P11/13-002 (BC-2.05.011 EC-002 Modbus/502 label), ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001 (24→26), F-F2P13-OBS-VP042D (VP-042 sub-property (d) harness). Final F2 spec state: BC-INDEX v2.13 / PRD v1.51 / VP-INDEX v2.32 / ARCH-INDEX v2.11 / ss-18 v1.5; 9 BCs, CAP-18, ADR-012, VP-041/042/043. | 2026-07-02 |
 | D-339 | F3 decomposition + holdout authoring COMPLETE (2026-07-02). 4 stories STORY-151..154 (32 pts, waves 67/68, E-21, diamond-acyclic): 151=SS-18 catalog (BC-2.18.003/004, VP-041), 152=protocols subcommand (BC-2.12.022+BC-2.18.001/002), 153=SS-05 dispatcher+main.rs counters (BC-2.05.010/011, VP-042/043), 154=--coverage-gaps+CoverageGapsSummary (BC-2.12.023/024). Canonical-value ACs added per DF-CANONICAL-FRAME-HOLDOUT-001; 4 deferred F3-carry LOW items folded in (ARCH-INDEX 24→26 in STORY-151; lower_port() + EC-002 label + VP-042(d)=3-subs in STORY-153). 10 holdout scenarios HS-123..132 (all must_pass, 7 canonical-value; every framing/port/ethertype BC has >=1 canonical must-pass scenario). STORY-INDEX v3.11, dependency-graph v3.2, HS-INDEX v2.7. F1's 5th 'hardening' story dropped (VP harnesses are Red-Gate tests in impl stories). Point estimate 23->32 (F2 detail). Input-hash STALE=0 post-BC-anchor-edits. Next: F3 adversarial story convergence (3 clean passes) -> human F3 gate. | 2026-07-02 |
+| D-340 | F3 adversarial story Pass-1: NOT-CLEAN (1 P0, 1 HIGH, 5 MEDIUM + LOW) — ALL remediated. P0 F-F3P1-001: EtherCAT(0x88A4/34980)+PROFINET-DCP(0x8892/34962) canonical EtherType had no test/holdout — added story tests (STORY-151) + HS-124 Cases F/G (value+wrong-value guards, IEEE-RA cited); SV(0x88BA/35002) test added for symmetry (F-F3P1-006). HIGH F-F3P1-002: STORY-153 phantom udp_header → real TransportInfo::Udp in DecodedFrame::Ip arm, can_decode outside enable_dns (ADR-012 Dec-10). MEDIUM: --json Option<Option<PathBuf>> (F-F3P1-003); port-502 dataless trap→9999 neutral + annotation (F-F3P1-004); removed misplaced VP-042(d) Task 0+note from STORY-151 (F-F3P1-005); dep-graph total_stories 93→107 (F-F3P1-007). All 5 L2 EtherTypes now have symmetric story canonical tests + holdout coverage. dep-graph v3.3, HS-124 v2.0, HS-INDEX v2.8. Counter: 0 consecutive clean. Next: F3 Pass-2. | 2026-07-02 |
 
 ---
 
@@ -208,19 +209,19 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F3 decomposition + holdout authoring COMPLETE (D-339, 2026-07-02). STORY-151..154 authored (32 pts, waves 67/68, E-21). HS-123..132 authored (10, all must_pass, 7 canonical-value). STORY-INDEX v3.11 (107/68/691). dependency-graph v3.2. HS-INDEX v2.7. Input-hash STALE=0. Next: F3 adversarial story convergence (3 consecutive clean passes) then human F3 gate.**
+**F3 adversarial story Pass-1 REMEDIATED (D-340, 2026-07-02). 7 findings fixed: P0 EtherCAT/PROFINET canonical EtherType (STORY-151 + HS-124 Cases F/G); HIGH STORY-153 UDP real-symbols; MEDIUM --json/port-502/VP-042(d)/dep-graph. dep-graph v3.3. HS-124 v2.0. HS-INDEX v2.8. stories_delivered=94 (STORY-151..154 still draft). Counter: 0 consecutive clean. Next: F3 adversarial story Pass-2.**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **F3 story artifacts (COMPLETE):**
-  - STORY-151 (`.factory/stories/STORY-151.md`): SS-18 catalog, BC-2.18.003/004, VP-041, wave 67, 8 pts
-  - STORY-152 (`.factory/stories/STORY-152.md`): protocols CLI subcommand, BC-2.12.022+BC-2.18.001/002, wave 68, 8 pts
-  - STORY-153 (`.factory/stories/STORY-153.md`): dispatcher counters, BC-2.05.010/011, VP-042/043, wave 67, 8 pts
-  - STORY-154 (`.factory/stories/STORY-154.md`): --coverage-gaps+CoverageGapsSummary, BC-2.12.023/024, wave 68, 8 pts
-  - Holdouts: `.factory/holdout-scenarios/HS-123..132.md` (10 files; HS-127..132 need pcap fixtures at F4 per F4-FIXTURE-NEED-001)
+- **F3 story artifacts (REMEDIATED after Pass-1):**
+  - STORY-151 (`.factory/stories/STORY-151.md`): SS-18 catalog, BC-2.18.003/004, VP-041, wave 67, 8 pts — EtherCAT/PROFINET/SV canonical tests added; VP-042(d) Task 0 removed; AC-151-003 cross-ref fixed
+  - STORY-152 (`.factory/stories/STORY-152.md`): protocols CLI subcommand, BC-2.12.022+BC-2.18.001/002, wave 68, 8 pts — --json Option<Option<PathBuf>> fixed; Task 3 stub cleanup
+  - STORY-153 (`.factory/stories/STORY-153.md`): dispatcher counters, BC-2.05.010/011, VP-042/043, wave 67, 8 pts — UDP path rewritten to TransportInfo::Udp; can_decode outside enable_dns; port-502 trap→9999 neutral
+  - STORY-154 (`.factory/stories/STORY-154.md`): --coverage-gaps+CoverageGapsSummary, BC-2.12.023/024, wave 68, 8 pts — task renumber
+  - Holdouts: HS-124 v2.0 (Cases F/G: EtherCAT 34980 + PROFINET-DCP 34962, wrong-value guards, IEEE-RA cited); HS-INDEX v2.8
 - **F3 ADVERSARIAL CONVERGENCE PROCEDURE (strictly ordered):**
   1. Run `vsdd-factory:factory-worktree-health` — PASS required before any other step.
-  2. Read `.factory/STATE.md` — confirm D-339 present, STORY-INDEX v3.11.
-  3. Dispatch `vsdd-factory:phase-f3-adversarial-story-convergence` (or equivalent) — 3 consecutive clean passes.
+  2. Read `.factory/STATE.md` — confirm D-340 present, dep-graph v3.3, HS-INDEX v2.8.
+  3. Dispatch F3 adversarial story Pass-2 (fresh-context) — need 3 consecutive clean passes.
   4. On convergence, present human F3 gate summary → await approval → proceed to F4 holdout eval.
 
 ---
@@ -236,4 +237,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Not on crates.io (D-300). Squash-only on develop (D-289). Branch protection (D-290/D-315).
-- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Passes 1–13 complete: trajectory 14→8→4→3→4→4→4→1→0→0→0→0→0; BC-INDEX v2.13; PRD v1.51; VP-INDEX v2.32; ARCH-INDEX v2.11; ss-18 v1.5. BC-5.39.001 SATISFIED. F2 HUMAN GATE APPROVED (D-338, 2026-07-02). **F3 story decomposition COMPLETE (D-339, 2026-07-02). STORY-151..154 (32 pts, waves 67/68, E-21, diamond-acyclic). HS-123..132 (10 holdouts, all must_pass, 7 canonical-value). STORY-INDEX v3.11 (107/68/691). dependency-graph v3.2 (edges 123). HS-INDEX v2.7. 4 F3-carry LOW items folded in. Input-hash STALE=0. Next: F3 adversarial story convergence.**
+- Cycle `fix-tls-clienthello-frag` CLOSED (D-316). maint-2026-07-01 CLOSED (D-318). Cycle `feature-protocol-coverage` STARTED (D-320). F1 DONE. F2 design-layer DONE (D-321). Blocker F2-SCOPE-DRIFT-UDP-001 RESOLVED (D-322). F2 spec-layer DONE (D-323): 9 BCs, CAP-18. F2 adversarial Passes 1–13 complete: trajectory 14→8→4→3→4→4→4→1→0→0→0→0→0; BC-INDEX v2.13; PRD v1.51; VP-INDEX v2.32; ARCH-INDEX v2.11; ss-18 v1.5. BC-5.39.001 SATISFIED. F2 HUMAN GATE APPROVED (D-338, 2026-07-02). **F3 story decomposition COMPLETE (D-339, 2026-07-02). F3 adversarial story Pass-1 REMEDIATED (D-340, 2026-07-02): 7 findings (P0+HIGH+5M/L) — EtherCAT/PROFINET/SV canonical tests, STORY-153 UDP real-symbols, dep-graph v3.3, HS-124 v2.0, HS-INDEX v2.8. Counter: 0 consecutive clean. Next: F3 adversarial story Pass-2.**

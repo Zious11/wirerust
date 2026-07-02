@@ -98,9 +98,15 @@ Commands::Protocols { all, supported, unsupported } => {
     let filter = if supported { ProtocolFilter::Supported }
                  else if unsupported { ProtocolFilter::Unsupported }
                  else { ProtocolFilter::All };
-    run_protocols(filter, args.json);
+    run_protocols(filter, args.json.is_some());
 }
 ```
+
+Note: `Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59) — absent / `--json` stdout /
+`--json=path` file. The `json: bool` parameter to `run_protocols` is derived from `args.json.is_some()`.
+When `--json=path` is given the file-path routing is handled at the call site; BC-2.12.022 "Honors --json"
+means stdout when no path is given, file when path is given — this routing is outside `run_protocols` scope
+and follows the same pattern as the existing `run_analyze()` JSON path.
 
 New function `run_protocols(filter: ProtocolFilter, json: bool)` in `src/main.rs` calls:
 - `all_protocols()` for `ProtocolFilter::All`
@@ -356,11 +362,10 @@ Fits within a 200k context window (~27%).
    - Verify: `wirerust protocols --help` prints; mutual-exclusion test GREEN; binary still compiles
 
 3. **Add dispatch arm + `run_protocols()` stub in `src/main.rs` (AC-152-002)**
-   - Add `Commands::Protocols { ... }` match arm calling `run_protocols(filter, json)`
-   - Add `fn run_protocols(filter: ProtocolFilter, json: bool)` with `todo!()` body
-   - Verify: `wirerust protocols` compiles; exit-0 test GREEN (todo panics but let's ensure
-     the dispatch arm doesn't panic before reaching todo in the no-op case)
-   Actually: add minimal stub that prints empty output and returns; exit-0 will pass
+   - Add `Commands::Protocols { ... }` match arm calling `run_protocols(filter, args.json.is_some())`
+   - Add `fn run_protocols(filter: ProtocolFilter, json: bool) { let _ = (filter, json); }` — an
+     EMPTY non-panicking stub (NOT `todo!()`; a panic would fail the exit-0 test)
+   - Verify: `wirerust protocols` compiles; `test_BC_2_12_022_protocols_subcommand_exit_0` GREEN
 
 4. **Implement terminal table renderer (AC-152-003 through AC-152-005)**
    - Implement row formatting: Name | Category | Transport (`[L2]` for LinkLayer) | Port(s) | EtherType | Supported
@@ -452,3 +457,4 @@ No new source files.
 | Version | Date | Change | Finding IDs |
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
+| v1.1 | 2026-07-02 | F-F3P1-003 (MEDIUM): Fixed AC-152-002 `args.json` phantom bool → `args.json.is_some()` with note about `Option<Option<PathBuf>>` type and `--json=path` file routing. LOW: Task 3 stub guidance clarified — empty `{ let _ = (filter, json); }` stub replaces contradictory todo!()/stub text. | F-F3P1-003 |

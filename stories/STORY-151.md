@@ -127,7 +127,7 @@ pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53
 `KNOWN_PROTOCOLS` is a `pub const &[KnownProtocol]` with exactly 30 entries.
 Entries must appear in the order: first the 7 supported (Modbus/TCP, DNP3, EtherNet/IP+CIP,
 TLS, ARP, DNS, HTTP), then the 23 unsupported (including the 5 LinkLayer entries and the 4
-port-102 entries). This order is the catalog-declaration order per BC-2.18.001 PC-8/Postcondition 8.
+port-102 entries). This order is the catalog-declaration order per BC-2.18.003 v1.3 PC-2.
 
 The 7 supported entries:
 1. Modbus/TCP — ICS, TCP, `canonical_ports: &[502]`, `port_detectable: true`, `supported` via SUPPORTED_PORTS
@@ -167,6 +167,18 @@ all have `canonical_ports: &[102]`, `port_detectable: true`, `transport: TCP`.
 > `test_BC_2_18_003_powerlink_ethertype_canonical` — POWERLINK entry: `ethertype == Some(34987)`
 > (0x88AB; IEEE RA registry "ETHERNET Powerlink"; EPSG assignment; Wireshark ETHERTYPE_EPL_V2;
 > IETF ietf-ethertypes value 34987)
+>
+> `test_BC_2_18_003_ethercat_ethertype_canonical` — EtherCAT entry: `ethertype == Some(34980)`
+> (0x88A4; IEEE RA EtherType registry "EtherCAT Technology Group"); wrong-value guard: assert
+> `Some(34980)` NOT `Some(34962)` (PROFINET) and NOT `Some(35000)` (GOOSE)
+>
+> `test_BC_2_18_003_profinet_ethertype_canonical` — PROFINET-RT/DCP entry: `ethertype == Some(34962)`
+> (0x8892; IEEE RA registry "PROFINET Acyclic Real-Time / PROFINET-DCP"); wrong-value guard: assert
+> `Some(34962)` NOT `Some(34980)` (EtherCAT)
+>
+> `test_BC_2_18_003_sv_ethertype_canonical` — IEC 61850 SV entry: `ethertype == Some(35002)`
+> (0x88BA; IEC 61850-8-1 §4); GOOSE-transposition guard: `Some(35002)` MUST NOT equal `Some(35000)`
+> (GOOSE 0x88B8); SV is 0x88BA, not 0x88B8
 >
 > `test_BC_2_18_003_bacnet_udp_canonical` — BACnet/IP entry: `transport == Transport::Udp && canonical_ports == &[47808]` (ASHRAE 135-2016 Annex J §J.2.1 UDP port 0xBAC0 = 47808)
 
@@ -253,12 +265,6 @@ by the complement derivation (unsupported = KNOWN \ supported).
 
 (traces to BC-2.18.004 v1.2 Invariant 4; BC-2.18.003 v1.3 VP table)
 
-> **VP-042 sub-property (d) F3-carry resolution:** BC-2.05.010 originally enumerated VP-042
-> as having sub-properties (a), (b), (c), (d). After Pass-9 remediation, the VP-042 spec only
-> defines 3 Sub-properties (A, B, C in BC-2.05.011). The (d) enumeration was dropped to 3
-> sub-properties per the F3-carry item. This is a VP-INDEX documentation fix — no code change
-> in this story. See STORY-153 Task 0 for the wording fix.
-
 ### AC-151-008: ARCH-INDEX document-map component count doc-fix (F3-carry)
 **Traces to:** ADR-012 Decision 1; BC-2.18.003 v1.3 Architecture Anchors; DF-SIBLING-SWEEP-001
 
@@ -326,11 +332,6 @@ Fits comfortably within a 200k context window (~17%). New file — no pre-existi
 
 ## Tasks
 
-0. **[F3-carry doc-fix] Confirm VP-042 has 3 sub-properties (A, B, C) in BC-2.05.010/011**
-   - The original BC-2.05.010 VP table had a "(d)" row; after Pass-9 this was clarified to 3
-     sub-properties. No code change needed in this story; the VP-042 harnesses in STORY-153
-     will implement exactly 3 subs (A, B, C). Document this resolution in the revision history.
-
 1. **Write Red-Gate tests first (TDD Step 1 — all must FAIL before implementation)**
    Create `tests/protocols_tests.rs` with `mod story_151 { ... }` wrapper containing:
    - `test_BC_2_18_struct_fields_compile` — compile check
@@ -342,6 +343,9 @@ Fits comfortably within a 200k context window (~17%). New file — no pre-existi
    - `test_BC_2_18_003_arp_linkLayer_port_detectable_false` — ARP fields
    - `test_BC_2_18_003_goose_ethertype_canonical` — GOOSE ethertype == Some(35000) (DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_18_003_powerlink_ethertype_canonical` — POWERLINK ethertype == Some(34987) (DF-CANONICAL-FRAME-HOLDOUT-001)
+   - `test_BC_2_18_003_ethercat_ethertype_canonical` — EtherCAT ethertype == Some(34980) (0x88A4; IEEE RA; DF-CANONICAL-FRAME-HOLDOUT-001)
+   - `test_BC_2_18_003_profinet_ethertype_canonical` — PROFINET-RT/DCP ethertype == Some(34962) (0x8892; IEEE RA; DF-CANONICAL-FRAME-HOLDOUT-001)
+   - `test_BC_2_18_003_sv_ethertype_canonical` — IEC 61850 SV ethertype == Some(35002) (0x88BA; NOT GOOSE 35000; DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_18_003_bacnet_udp_canonical` — BACnet/IP transport=Udp, port=47808 (DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_18_004_all_protocols_len` — all_protocols().len() == len(KNOWN_PROTOCOLS)
    - `test_BC_2_18_003_supported_protocols_len` — 7
@@ -446,3 +450,4 @@ standalone pure-core catalog.
 | Version | Date | Change | Finding IDs |
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
+| v1.1 | 2026-07-02 | F-F3P1-001/006 (P0/MEDIUM): Added EtherCAT, PROFINET-DCP, SV canonical EtherType tests (34980/34962/35002) to AC-151-003 canonical block and Task 1 test list. F-F3P1-005 (MEDIUM): Removed misplaced Task 0 (VP-042 carry belongs to STORY-153) and VP-042(d) note from AC-151-007. LOW: Fixed AC-151-003 cross-ref BC-2.18.001 PC-8 → BC-2.18.003 v1.3 PC-2. | F-F3P1-001, F-F3P1-005, F-F3P1-006 |

@@ -133,10 +133,10 @@ When no analyzers are configured, neither `unclassified_flows` nor `unclassified
 BC-2.05.011 Invariant 1; ADR-012 Decision 6 Clarification)
 
 **Red-Gate tests:**
-- `test_BC_2_05_010_tcp_counter_none_target` — after 1 None-target flow close on port 502 (with analyzers configured + gaps enabled): `(Tcp, 502)` count == 1
+- `test_BC_2_05_010_tcp_counter_none_target` — after 1 None-target flow close on port 9999 (neutral non-classify() port, no payload; with analyzers configured + gaps enabled): `(Tcp, 9999)` count == 1 (port 502 is reserved exclusively for the Modbus-classified no-increment test)
 - `test_BC_2_05_011_monotonic_increment` — after 3 None-target flow closes on same port P: `(Tcp, P)` count == 3
-- `test_BC_2_05_011_no_increment_classified_flow` — Http-classified flow close: `(Tcp, 80)` key absent
-- `test_BC_2_05_010_lower_port_normalization` — flow with src=1234, dst=502 (lower_port=502) AND flow with src=502, dst=1234 both produce key `(Tcp, 502)` (direction-normalized)
+- `test_BC_2_05_011_no_increment_classified_flow` — Modbus-classified flow close (DispatchTarget::Modbus, port 502 with data): `(Tcp, 502)` key absent (EC-002 label fix: BC-2.05.011 EC-002 says "Http/502" but correct target is Modbus/502; port 502 ONLY appears in this test)
+- `test_BC_2_05_010_lower_port_normalization` — flow with src=1234, dst=9999 (lower_port=9999) AND flow with src=9999, dst=1234 both produce key `(Tcp, 9999)` (direction-normalized; neutral port 9999 avoids classify() Rule 5 Modbus/502 interference)
 - `test_BC_2_05_010_coverage_gaps_disabled_no_increment` — `coverage_gaps_enabled=false`; None-target flow; map remains empty
 
 > **F3-carry item — EC-002 label fix (BC-2.05.011 EC-002):**
@@ -167,26 +167,31 @@ declined the packet (i.e., `dns_analyzer.can_decode(&parsed)` returns false and 
 dissectors also decline):
 
 ```rust
-// UDP decode loop (main.rs):
+// Declare before the packet loop (main.rs):
 let mut udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new();
 
-// Per-packet (only when coverage_gaps is set AND all dissectors declined):
+// Inside the Ok(DecodedFrame::Ip(parsed)) arm (~line 356 of main.rs):
+// There is NO separate UDP loop — UDP packets arrive via DecodedFrame::Ip(parsed).
+// Use if-let on parsed.transport to identify UDP frames.
 if coverage_gaps {
-    // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of enable_dns
-    let dns_handles_this = dns_analyzer.can_decode(&parsed);
-    if !dns_handles_this {
-        let lower_port = min(udp_header.src_port, udp_header.dst_port);
-        udp_unclassified_counts
-            .entry((TransportProto::Udp, lower_port))
-            .or_insert(0)
-            += 1;
+    if let TransportInfo::Udp { src_port, dst_port } = parsed.transport {
+        // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of enable_dns
+        let dns_handles_this = dns_analyzer.can_decode(&parsed);
+        if !dns_handles_this {
+            let lower_port = src_port.min(dst_port);
+            udp_unclassified_counts
+                .entry((TransportProto::Udp, lower_port))
+                .or_insert(0)
+                += 1;
+        }
     }
 }
 ```
 
 **Key invariants:**
 - Counter incremented per-packet (not per-flow)
-- Key: `(TransportProto::Udp, min(src_port, dst_port))`
+- Key: `(TransportProto::Udp, src_port.min(dst_port))` — derived from `TransportInfo::Udp { src_port, dst_port }` (NOT a phantom `udp_header` variable; use `parsed.transport` pattern match)
+- UDP packets arrive via `Ok(DecodedFrame::Ip(parsed))` arm in main.rs (~line 356) — there is no separate UDP loop; `if let TransportInfo::Udp { .. } = parsed.transport` identifies UDP frames inside that arm
 - `dns_analyzer.can_decode()` is evaluated for gap classification regardless of `enable_dns`
   flag (ADR-012 Decision 10; BC-2.05.010 Invariant 7). A DNS/53 packet accepted by
   `can_decode()` is NOT counted — DNS/53 is classified (gap-excluded), even when
@@ -313,10 +318,10 @@ NOT change.
    - `test_BC_2_05_transport_proto_no_linkLayer` — exhaustive match compiles with 2 arms
    - `test_BC_2_05_010_fields_accessible` — accessor exists
    - `test_BC_2_05_010_coverage_gaps_disabled_map_empty` — map empty when disabled
-   - `test_BC_2_05_010_tcp_counter_none_target` — 1 None-target → count==1
+   - `test_BC_2_05_010_tcp_counter_none_target` — 1 None-target → count==1 (use port 9999, NOT 502; port 502 only for Modbus-classified no-increment test)
    - `test_BC_2_05_011_monotonic_increment` — 3 None-target → count==3
-   - `test_BC_2_05_011_no_increment_classified_flow` — Modbus-classified → map unchanged (EC-002 Modbus/502 label fix)
-   - `test_BC_2_05_010_lower_port_normalization` — bidirectional flows → same key
+   - `test_BC_2_05_011_no_increment_classified_flow` — Modbus-classified flow (port 502 with data, DispatchTarget::Modbus) → map unchanged (EC-002 Modbus/502 label fix; port 502 reserved exclusively for this test)
+   - `test_BC_2_05_010_lower_port_normalization` — bidirectional flows → same key (use port 9999)
    - `test_BC_2_05_010_coverage_gaps_disabled_no_increment` — disabled → no increment
    - `test_BC_2_05_011_tcp_map_key_purity` — all keys Tcp
    - `test_BC_2_05_010_udp_counter_unhandled` — UDP/47808 → count==1
@@ -348,11 +353,15 @@ NOT change.
    - Verify: TCP counter tests GREEN; classified-flow tests GREEN; key-purity test GREEN
 
 4. **Add UDP `udp_unclassified_counts` to `src/main.rs` decode loop (AC-153-005)**
-   - Declare `udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new()`
-   - In the UDP packet path, after `dns_analyzer.can_decode(&parsed)` returns false (and other
-     dissectors decline), gate on `coverage_gaps` and increment per-packet
-   - ADR-012 Decision 10: `dns_analyzer.can_decode()` evaluated regardless of `enable_dns`
-   - Use `std::cmp::min(udp_header.src_port, udp_header.dst_port)` for lower_port
+   - Declare `udp_unclassified_counts: HashMap<(TransportProto, u16), u64> = HashMap::new()` before the packet loop
+   - There is NO separate UDP loop in main.rs — UDP packets arrive via `Ok(DecodedFrame::Ip(parsed))`
+     arm (~line 356); add the UDP counter logic INSIDE that existing arm
+   - Use `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport { ... }` to identify
+     UDP packets; do NOT reference a phantom `udp_header` variable (real type is `TransportInfo::Udp`)
+   - Derive `lower_port` as `src_port.min(dst_port)` from the destructured `TransportInfo::Udp` fields
+   - ADR-012 Decision 10: `dns_analyzer.can_decode()` evaluated regardless of `enable_dns`; call it
+     independently of the DNS finding-emission gate
+   - Gate the increment on `coverage_gaps`
    - Verify: UDP counter tests GREEN
 
 5. **Implement VP-042 (3 harnesses) and VP-043 (2 harnesses) proptest (AC-153-006 through AC-153-007)**
@@ -438,3 +447,4 @@ No new source files.
 | Version | Date | Change | Finding IDs |
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
+| v1.1 | 2026-07-02 | F-F3P1-002 (HIGH): Fixed AC-153-005 phantom `udp_header` → `if let TransportInfo::Udp { src_port, dst_port } = parsed.transport` pattern inside existing `Ok(DecodedFrame::Ip(parsed))` arm; clarified there is NO separate UDP loop in main.rs; updated Task 4 accordingly. F-F3P1-004 (MEDIUM): None-target tests (tcp_counter_none_target, lower_port_normalization) changed from port 502 to neutral port 9999; port 502 reserved exclusively for Modbus-classified no-increment test. Fixed AC-153-003 Red-Gate tests: Http/80 → Modbus/502 in no_increment_classified_flow annotation (EC-002 label fix). | F-F3P1-002, F-F3P1-004 |

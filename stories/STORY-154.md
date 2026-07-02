@@ -353,13 +353,13 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - In the decode loop, use `args.coverage_gaps` to gate `udp_unclassified_counts` increments
    - Verify: `test_BC_2_12_023_coverage_gaps_counts_unclassified` turns GREEN (with a test pcap)
 
-3. **Implement `ProtocolGapState` and `lookup_protocol_state()` (AC-154-006)**
+4. **Implement `ProtocolGapState` and `lookup_protocol_state()` (AC-154-006)**
    - Define `enum ProtocolGapState { KnownUnsupported, Unknown, KnownSupported }`
    - Implement `fn lookup_protocol_state(transport: TransportProto, port: u16) -> ProtocolGapState`
      using `KNOWN_PROTOCOLS` catalog with transport-aware lookup (no LinkLayer match)
    - Verify: unit tests for tri-state classification all GREEN
 
-4. **Implement `render_coverage_gaps_summary()` for terminal output (AC-154-003 through AC-154-005)**
+5. **Implement `render_coverage_gaps_summary()` for terminal output (AC-154-003 through AC-154-005)**
    - Render `L2_CAVEAT_TEXT` constant always present
    - Render each `(TransportProto, port)` entry with tri-state label
    - Add `PORT_102_NOTE` constant; append adjacent to TCP/102 entry when count > 0
@@ -367,18 +367,18 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
    - Call this function in `run_analyze()` after analysis, gated on `coverage_gaps`
    - Verify: terminal integration tests GREEN
 
-5. **Implement JSON CoverageGapsSummary (AC-154-007)**
+6. **Implement JSON CoverageGapsSummary (AC-154-007)**
    - In JSON output path: add `"coverage_gaps"` key with `caveat_l2` + `entries` array
    - Each entry: `transport`, `port`, `count`, `state`, optional `name`, optional `collision_note`
    - Verify: JSON integration tests GREEN
 
-6. **Full regression sweep**
+7. **Full regression sweep**
    - `cargo test --all-targets` — ALL tests GREEN (incl. STORY-151/152/153 tests)
    - `cargo clippy --all-targets -- -D warnings` — zero warnings
    - `cargo fmt --check` — clean
    - Verify `analyze` output without `--coverage-gaps` is identical to pre-feature behavior
 
-7. **Micro-commit and PR** targeting `develop` (wave 68, parallel with STORY-152)
+8. **Micro-commit and PR** targeting `develop` (wave 68, parallel with STORY-152)
 
 ## Previous Story Intelligence
 
@@ -447,3 +447,4 @@ No new source files.
 | Version | Date | Change | Finding IDs |
 |---------|------|--------|-------------|
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
+| v1.1 | 2026-07-02 | LOW: Fixed duplicate "3." in Tasks — renumbered second task-3 (ProtocolGapState) to 4, and all subsequent tasks shifted (4→5, 5→6, 6→7, 7→8). | LOW-STORY-154-TASKS |

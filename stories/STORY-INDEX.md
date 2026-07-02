@@ -196,7 +196,7 @@ traces_to:
 | STORY-151 | `src/protocols.rs` — KNOWN_PROTOCOLS Static Catalog + KnownProtocol Struct + SUPPORTED_PORTS + Pure-Core Functions + VP-041 proptest harnesses | E-21 | 67 | 8 | draft | — |
 | STORY-152 | `protocols` CLI Subcommand — CLI Dispatch Wiring + Terminal Table Renderer + JSON Output (BC-2.12.022 + BC-2.18.001 + BC-2.18.002) | E-21 | 68 | 8 | draft | STORY-151 |
 | STORY-153 | Dispatcher `unclassified_port_counts` + UDP Decode-Loop `udp_unclassified_counts` — BC-2.05.010 + BC-2.05.011 + VP-042/VP-043 | E-21 | 67 | 8 | draft | — |
-| STORY-154 | `--coverage-gaps` Flag + `CoverageGapsSummary` Renderer — BC-2.12.023 + BC-2.12.024 | E-21 | 68 | 8 | draft | STORY-151, STORY-153 |
+| STORY-154 | `--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024) | E-21 | 68 | 8 | draft | STORY-151, STORY-153 |
 
 ---
 
