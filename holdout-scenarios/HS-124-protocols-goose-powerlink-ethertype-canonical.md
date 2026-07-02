@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "2.0"
+version: "2.1"  # F3P15-001 cosmetic fix: Scenario intro paragraph updated to enumerate all 5 EtherType protocols (GOOSE 0x88B8, SV 0x88BA, EtherCAT 0x88A4, PROFINET-DCP 0x8892, POWERLINK 0x88AB) consistent with Cases A–G. Prior v2.0 intro named only GOOSE and POWERLINK.
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
@@ -32,7 +32,7 @@ fixture_needed: false
 fixture_note: "No pcap fixture needed. Pure catalog command."
 canonical_value_scenario: true
 canonical_spec_citation: "GOOSE EtherType 0x88B8 = 35000 decimal per IEC 61850-8-1 §4 and IEEE RA EtherType registry 'IEC GOOSE'; POWERLINK EtherType 0x88AB = 34987 decimal per IEEE RA registry 'ETHERNET Powerlink' (EPSG assignment), Wireshark ETHERTYPE_EPL_V2, IETF ietf-ethertypes value 34987; EtherCAT EtherType 0x88A4 = 34980 decimal per IEEE RA registry 'EtherCAT Protocol' (EtherCAT Technology Group / Beckhoff Automation GmbH), IEC 61158-3-12, Wireshark ETHERTYPE_ETHERCAT; PROFINET EtherType 0x8892 = 34962 decimal per IEEE RA registry entry for PROFINET (Siemens AG / PROFIBUS & PROFINET International PI), IEC 61158-4-10, Wireshark ETHERTYPE_PROFINET."
-input-hash: "80107d1"
+input-hash: "10bbeba"
 ---
 
 # Holdout Scenario: `protocols` Terminal — GOOSE, POWERLINK, EtherCAT, PROFINET-DCP, and IEC 61850 Sampled Values EtherType Canonical Values (DF-CANONICAL-FRAME-HOLDOUT-001)
@@ -80,12 +80,14 @@ These values are derived INDEPENDENTLY of the project's implementation:
 
 ## Scenario
 
-The terminal output of `wirerust protocols --unsupported` must display the EtherType values
-for IEC 61850 GOOSE and Ethernet POWERLINK using the canonical IEEE-assigned values. These
-values appear in an EtherType column rendered as `0xHHHH (DDDDD)` where HHHH is uppercase
-hex and DDDDD is decimal. ARP — despite being a Layer-2 protocol — has `ethertype: None`
-and must show `—` in the EtherType column. LinkLayer transport entries must show `[L2]` in
-the Transport column to indicate they are not port-detectable.
+The terminal output of `wirerust protocols --unsupported` must display canonical IEEE-assigned
+EtherType values for all five L2-transport protocol entries: IEC 61850 GOOSE (0x88B8 = 35000),
+IEC 61850 Sampled Values (0x88BA = 35002), EtherCAT (0x88A4 = 34980), PROFINET-RT/DCP
+(0x8892 = 34962), and Ethernet POWERLINK (0x88AB = 34987). These values appear in an EtherType
+column rendered as `0xHHHH (DDDDD)` where HHHH is uppercase hex and DDDDD is decimal. ARP —
+despite being a Layer-2 protocol — has `ethertype: None` and must show `—` in the EtherType
+column. LinkLayer transport entries must show `[L2]` in the Transport column to indicate they
+are not port-detectable.
 
 ### Case A — GOOSE Row: EtherType Column Shows `0x88B8 (35000)`
 

@@ -269,7 +269,7 @@ by the complement derivation (unsupported = KNOWN \ supported).
 **Traces to:** ADR-012 Decision 1; BC-2.18.003 v1.3 Architecture Anchors; DF-SIBLING-SWEEP-001
 
 F3-carry item: ARCH-INDEX.md Architecture Section Document Map already shows "26 components
-C-1..C-26" in the `module-decomposition.md` row (updated in F2: C-25 = `src/enip.rs` EtherNet/IP
+C-1..C-26" in the `module-decomposition.md` row (updated in F2: C-25 = `src/analyzer/enip.rs` EtherNet/IP
 + CIP from feature-enip-v0.11.0 issue #316; C-26 = `src/protocols.rs` SS-18 from
 feature-protocol-coverage F2 design layer). The Document Map row requires no change.
 
@@ -285,7 +285,7 @@ Task: Update the `module-criticality.md` row in `specs/architecture/ARCH-INDEX.m
 The `module-decomposition.md` row already correctly shows "26 components C-1..C-26" — no change needed there.
 
 **Component identities (authoritative):**
-- C-25 = `src/enip.rs` (EtherNet/IP + CIP Analysis, SS-17, feature-enip-v0.11.0 issue #316)
+- C-25 = `src/analyzer/enip.rs` (EtherNet/IP + CIP Analysis, SS-17, feature-enip-v0.11.0 issue #316)
 - C-26 = `src/protocols.rs` (Protocol Coverage Catalog, SS-18, feature-protocol-coverage — this story)
 
 (traces to ADR-012 Decision 1; DF-SIBLING-SWEEP-001 sibling sweep)
@@ -408,7 +408,7 @@ Fits comfortably within a 200k context window (~17%). New file — no pre-existi
    - The Document Map `module-decomposition.md` row already shows "26 components C-1..C-26" — no change needed there
    - Update the `module-criticality.md` row description in `specs/architecture/ARCH-INDEX.md`:
      "for all 24 components" → "for all 26 components"
-   - C-25 = `src/enip.rs` (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0) — NOT reader.rs
+   - C-25 = `src/analyzer/enip.rs` (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0) — NOT reader.rs
    - C-26 = `src/protocols.rs` (Protocol Coverage Catalog, SS-18, this story)
 
 6. **Full regression sweep**
@@ -478,3 +478,4 @@ standalone pure-core catalog.
 | v1.1 | 2026-07-02 | F-F3P1-001/006 (P0/MEDIUM): Added EtherCAT, PROFINET-DCP, SV canonical EtherType tests (34980/34962/35002) to AC-151-003 canonical block and Task 1 test list. F-F3P1-005 (MEDIUM): Removed misplaced Task 0 (VP-042 carry belongs to STORY-153) and VP-042(d) note from AC-151-007. LOW: Fixed AC-151-003 cross-ref BC-2.18.001 PC-8 → BC-2.18.003 v1.3 PC-2. | F-F3P1-001, F-F3P1-005, F-F3P1-006 |
 | v1.2 | 2026-07-02 | F-F3P2-002 (HIGH): Fixed AC-151-008 + Task 5 — re-targeted ARCH-INDEX doc-fix from Document Map row (already "26 components C-1..C-26") to the `module-criticality.md` row (still "24 components"); removed incorrect "Document Map" target and "C-25=reader.rs" rationale; stated correct C-25=enip.rs (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0 issue #316) and C-26=protocols.rs (SS-18, this story). | F-F3P2-002 |
 | v1.3 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/protocols_tests.rs` is a new file with no file-level allow; the uppercase `test_BC_…` names in `mod story_151` violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |
+| v1.4 | 2026-07-02 | F-F3P15-001 (MEDIUM, mis-anchor): Fixed C-25 path prefix at all 3 occurrences (AC-151-008 body line ~272, Component Identities block line ~288, Task 5 line ~411): `src/enip.rs` → `src/analyzer/enip.rs`. Component identity (C-25 = EtherNet/IP + CIP analyzer, SS-17) was correct; only the `src/` prefix was wrong (residual from the F-F3P2-002 fix that corrected C-25 identity reader.rs→enip but wrote wrong path prefix). C-26 = `src/protocols.rs` unaffected. | F-F3P15-001 |

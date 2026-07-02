@@ -32,7 +32,7 @@ assumption_source: null
 risk_source: null
 fixture_needed: false
 fixture_note: "No pcap fixture needed. `wirerust protocols` is a pure-catalog command that requires no input file. The evaluator requires only a correctly built wirerust binary."
-input-hash: "58d7ab1"
+input-hash: "9e5778e"
 ---
 
 # Holdout Scenario: `protocols` Subcommand — Partition Counts and Filter Flag Semantics

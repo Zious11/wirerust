@@ -32,7 +32,7 @@ fixture_needed: false
 fixture_note: "No pcap fixture needed. Pure catalog command. jq must be available for JSON assertions."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1; Modbus/TCP port 502 per IANA registry and Modbus Application Protocol Specification v1.1b3 §4.3.1; GOOSE EtherType 35000 (0x88B8) per IEC 61850-8-1 §4 and IEEE RA registry."
-input-hash: "caf9421"
+input-hash: "d786aa9"
 ---
 
 # Holdout Scenario: `protocols --json` — Canonical Values for BACnet/IP, Modbus/TCP, and GOOSE (DF-CANONICAL-FRAME-HOLDOUT-001)
