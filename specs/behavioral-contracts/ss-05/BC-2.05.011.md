@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-05
 capability: CAP-05
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: F-F2P4-001 (HIGH) Pass-4 remediation — Precondition 3 dropped phantom `Arp` variant; Postcondition 4 dropped phantom `Arp` variant and enumerated real classified variants as `{Http, Tls, Modbus, Dnp3, Enip}`; EC-008 reframed from phantom `DispatchTarget::Dns` to the correct TCP/53 None-target case which DOES increment `(Tcp, 53)` (no classify() rule for port 53 in the real dispatcher). 2026-07-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,14 +43,14 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 
 1. `--coverage-gaps` is set (`coverage_gaps_enabled == true` on `StreamDispatcher`).
 2. For the exactness property: a sequence of `on_flow_close` calls with `DispatchTarget::None` targeting port P has been made.
-3. For the classified-flow property: `on_flow_close` is called with a route other than `None` (e.g., `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip`, `Arp`).
+3. For the classified-flow property: `on_flow_close` is called with a route other than `None` (e.g., `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip`). The real `DispatchTarget` enum is `{ Http, Tls, Modbus, Dnp3, Enip, None }` — there is no `Arp` or `Dns` variant (ARP is handled outside the dispatcher via `DecodedFrame::Arp`; DNS is UDP-only).
 
 ## Postconditions
 
 1. **Exactness (TCP):** After exactly N `on_flow_close` calls with `DispatchTarget::None` and `lower_port == P`, `StreamDispatcher.unclassified_port_counts[(Tcp, P)] == N`. The count is exact, not an approximation.
 2. **Exactness (UDP):** After exactly M UDP packets for which `min(src_port, dst_port) == Q` that are unhandled by any dissector, `udp_unclassified_counts[(Udp, Q)] == M`. The key uses `min(src_port, dst_port)` so request and response direction packets on the same service port accumulate into the same counter.
 3. **Monotonicity:** Once a key `(TransportProto::Tcp, P)` has a value `V` in `unclassified_port_counts`, no subsequent operation decreases its value. The counter is monotonically non-decreasing over the lifetime of the analyzer run.
-4. **No classified-flow increment:** If `on_flow_close` is called with `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip`, `Arp`, or any classified variant (non-None), `unclassified_port_counts` is NOT modified. No key is added, no existing count is incremented.
+4. **No classified-flow increment:** If `on_flow_close` is called with any classified variant — i.e., `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, or `Enip` (the complete set of non-None variants; matches BC-2.05.010 Invariant 4 and the real enum `{Http, Tls, Modbus, Dnp3, Enip, None}`) — `unclassified_port_counts` is NOT modified. No key is added, no existing count is incremented.
 5. **TCP-map key purity:** Every key in `StreamDispatcher.unclassified_port_counts` has `key.0 == TransportProto::Tcp`. No `TransportProto::Udp` key ever appears in the dispatcher's TCP map. This is a structural invariant of the dispatcher's map (the UDP counter is a separate map in the decode loop, never interleaved with the dispatcher's map).
 6. **Zero-count absence:** A key `(TransportProto::Tcp, P)` is absent from `unclassified_port_counts` if and only if zero None-target flows on port P have closed. The map does NOT pre-populate keys with value 0 (uses `entry().or_insert(0) += 1` semantics).
 
@@ -72,7 +73,7 @@ first tuple element (not `TransportProto::Udp` and not any other variant).
 | EC-005 | No flows and no UDP packets | Both maps are empty (no keys with value 0) |
 | EC-006 | Port 102: 5 None-target TCP flows | `(Tcp, 102)` count == 5 (exact); four-way collision noted at report time in BC-2.12.024 |
 | EC-007 | Enip-classified flow on port 44818 closed | `(Tcp, 44818)` count NOT incremented |
-| EC-008 | DNS-classified flow (Dns target on 53) closed | `(Tcp, 53)` count NOT incremented |
+| EC-008 | TCP flow on port 53 — no classify() rule for port 53 exists in dispatcher.rs; flow closes as `DispatchTarget::None` (unclassified gap) | `(Tcp, 53)` count IS incremented. There is no `DispatchTarget::Dns` variant; DNS in wirerust is UDP-only and counted separately via `udp_unclassified_counts`. A TCP/53 None-target flow is a legitimate unclassified-gap event. |
 | EC-009 | Mid-run toggling of `coverage_gaps_enabled` (hypothetical degenerate state) | STRUCTURALLY IMPOSSIBLE: `coverage_gaps_enabled` is set once at `StreamDispatcher::new()` and is immutable for the lifetime of the run. The type system prevents modification after construction — no arm of `on_flow_close`, the UDP decode loop, or any other call site has write access to the field post-construction. This scenario is preserved here as documentation of the type-system invariant that eliminates it; no test coverage is required or possible via the public API. |
 | EC-010 | u64 counter at max (extremely unlikely; bounded by pcap size) | Saturating semantics preferred; no panic on overflow; u64 headroom is 1.8×10^19 |
 

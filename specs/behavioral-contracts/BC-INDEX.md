@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.7"
+version: "2.8"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.8 2026-07-01 (F2 adversarial Pass-4 remediation — BC-scope fix; PRD unchanged at v1.49):**
+> F-F2P4-001 (HIGH) BC-2.05.011 v1.0→v1.1: three phantom-variant defects corrected. (1) Precondition 3: dropped non-existent `DispatchTarget::Arp`; note added that the real enum is `{Http, Tls, Modbus, Dnp3, Enip, None}` — ARP is handled outside the dispatcher via `DecodedFrame::Arp`, and there is no `Dns` variant. (2) Postcondition 4: dropped `Arp` from the classified-variant list; enumeration now matches BC-2.05.010 Invariant 4 and the real dispatcher enum exactly: `{Http, Tls, Modbus, Dnp3, Enip}`. (3) EC-008 reframed: the phantom "DNS-classified flow (`Dns` target on 53) closed / count NOT incremented" was wrong on two counts — no `DispatchTarget::Dns` exists, and a real TCP/53 flow closes as `None` (no classify() rule for port 53) and DOES increment `(Tcp, 53)`. EC-008 now correctly describes this as an unclassified-gap case that DOES increment. No BC count change (346 on disk; 345 active). PRD stays at v1.49 (no phantom variant references found in PRD — all `::Arp` references in PRD are `DecodedFrame::Arp`, which is correct). Sibling-sweep confirmed: no other SS-05 BCs carry phantom `DispatchTarget::Arp` or `DispatchTarget::Dns` references.
 >
 > **v2.7 2026-07-01 (F2 adversarial Pass-3 remediation — BC-scope fixes; PRD bumped to v1.49):**
 > Fixes for F2 adversarial Pass-3 BC-scope findings: F-F2P3-001 (HIGH) BC-2.18.001 EC-001 reworded — ARP IS a `transport=LinkLayer` supported entry; EC-001 now correctly states no L2/multicast PROTOCOL entries (GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) in `--supported` set, and explicitly notes ARP is the sole `transport=LinkLayer` entry that IS supported. PC-5 amended to note LinkLayer entries with `ethertype=None` (ARP) also render `—` in the EtherType column. F-F2P3-002 (HIGH) stale single-harness VP-043 citation replaced with both canonical VP-043 harnesses (`proptest_vp043_total_count_equals_n` + `proptest_vp043_no_increment_on_classified_udp`) in BC-2.05.010 VP table + VP Anchors and BC-2.05.011 VP table + VP Anchors (4 locations); matches VP-INDEX v2.31 authoritative two-harness definition. F-F2P3-003 (MED) cap-18 §Key caveats L2 list updated to include Ethernet POWERLINK as 5th entry (e.g. forward-compatible phrasing per ADR-012 Decision 3a). F-F2P3-004 (MED) BC-INDEX BC-2.05.010 comment: `(Udp, dst_port)` → `(Udp, min(src_port, dst_port))`; VP-042 → VP-042 (TCP) + VP-043 (UDP). BC-2.05.011 comment: VP-042 Sub-A/B/C → VP-042 Sub-A/B/C (TCP) + VP-043 (UDP). PRD RTM §2.18.B narrative: phantom harness name replaced. PRD bumped to v1.49.
@@ -368,7 +371,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.05.008 | No Analyzer Configured: Dispatcher Early-Returns | P1 | [WRITTEN] | BC-DSP-008 | <!-- v1.6: Pass-18 B-01/B-02/B-03 anchor re-sync + four-analyzer guard prose; early-return guard :121-123→:256-259; guard widened http/tls→http/tls/modbus/dnp3 -->
 | BC-2.05.009 | on_flow_close Removes Route Entry and Forwards Close | P0 | [WRITTEN] | BC-DSP-009 | <!-- v1.4: Pass-18 B-01/B-02 anchor re-sync; on_flow_close :171-194→:322-361, removes :175-176→:326-327 -->
 | BC-2.05.010 | `unclassified_port_counts` Populated with (TransportProto, u16) Keys — TCP via Dispatcher None-Target, UDP via Decode-Loop | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; HashMap<(TransportProto, u16), u64>; TCP keyed on (Tcp, min_port) at on_flow_close None-target; UDP keyed on (Udp, min(src_port, dst_port)) in decode loop; VP-042 (TCP) + VP-043 (UDP) -->
-| BC-2.05.011 | Per-(TransportProto, Port) Counts Are Exact and Monotonically Non-Decreasing; Classified Flows Do Not Update TCP Counter; All TCP Entries Carry TransportProto::Tcp | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.0: feature-protocol-coverage F2 spec-layer; VP-042 Sub-A/B/C (TCP) + VP-043 (UDP) proptest harnesses -->
+| BC-2.05.011 | Per-(TransportProto, Port) Counts Are Exact and Monotonically Non-Decreasing; Classified Flows Do Not Update TCP Counter; All TCP Entries Carry TransportProto::Tcp | P0 | [WRITTEN] | feature-protocol-coverage-F2 | <!-- v1.1: F-F2P4-001 Pass-4 remediation — dropped phantom DispatchTarget::Arp from PC-3/PC-4; EC-008 reframed to TCP/53 None-target increments (Tcp,53); classified-variant list now {Http,Tls,Modbus,Dnp3,Enip} matching BC-2.05.010 Inv-4 and real enum; VP-042 Sub-A/B/C (TCP) + VP-043 (UDP) proptest harnesses -->
 
 ## ss-06: HTTP Traffic Analysis (CAP-06)
 
