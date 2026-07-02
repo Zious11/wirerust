@@ -345,7 +345,17 @@ Fits comfortably within a 200k context window (~17%). New file — no pre-existi
 ## Tasks
 
 1. **Write Red-Gate tests first (TDD Step 1 — all must FAIL before implementation)**
-   Create `tests/protocols_tests.rs` with `mod story_151 { ... }` wrapper containing:
+   Create `tests/protocols_tests.rs` with `mod story_151 { ... }` wrapper. The module MUST open
+   with `#[allow(non_snake_case)]` — CI enforces `-D warnings` and the uppercase `test_BC_…`
+   function names violate `non_snake_case`. This is a new file with no file-level allow inherited.
+   Module opening form:
+   ```rust
+   mod story_151 {
+       #[allow(non_snake_case)]
+       // ... tests ...
+   }
+   ```
+   Test contents:
    - `test_BC_2_18_struct_fields_compile` — compile check
    - `test_BC_2_18_category_variants_exactly_two` — no L2 variant
    - `test_BC_2_18_003_supported_ports_len` — len == 8
@@ -436,7 +446,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.18.003/004
 5. **No import from `src/dispatcher.rs`** — SS-18 must not depend on SS-05. The `Transport` enum in `protocols.rs` is independent of `TransportProto` in `dispatcher.rs` (BC-2.05.010 PC-4 pure-core boundary rule).
 6. **GOOSE EtherType is `Some(0x88B8)` = `Some(35000)`** — not 34992 (the pre-F2 erroneous value that BC-2.18.002 v1.1 corrected in F-F2P1-001). Use 35000 decimal (DF-CANONICAL-FRAME-HOLDOUT-001).
 7. **POWERLINK EtherType is `Some(0x88AB)` = `Some(34987)`** — the EPSG V2 value, not the obsolete V1 `0x3E3F` (confirmed by IEEE RA registry + Wireshark ETHERTYPE_EPL_V2; DF-CANONICAL-FRAME-HOLDOUT-001).
-8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions MUST be inside `mod story_151 { ... }` in `tests/protocols_tests.rs`.
+8. **Test namespace isolation + `non_snake_case` allow (DF-TEST-NAMESPACE-001):** ALL test functions MUST be inside `mod story_151 { ... }` in `tests/protocols_tests.rs`. The module block MUST carry `#[allow(non_snake_case)]` — CI enforces `-D warnings`; the uppercase `test_BC_…` names violate `non_snake_case`. `tests/protocols_tests.rs` is a new file with no file-level allow.
 
 ## Library & Framework Requirements
 
@@ -467,3 +477,4 @@ standalone pure-core catalog.
 | v1.0 | 2026-07-02 | Initial story authored for feature-protocol-coverage F3 decomposition | — |
 | v1.1 | 2026-07-02 | F-F3P1-001/006 (P0/MEDIUM): Added EtherCAT, PROFINET-DCP, SV canonical EtherType tests (34980/34962/35002) to AC-151-003 canonical block and Task 1 test list. F-F3P1-005 (MEDIUM): Removed misplaced Task 0 (VP-042 carry belongs to STORY-153) and VP-042(d) note from AC-151-007. LOW: Fixed AC-151-003 cross-ref BC-2.18.001 PC-8 → BC-2.18.003 v1.3 PC-2. | F-F3P1-001, F-F3P1-005, F-F3P1-006 |
 | v1.2 | 2026-07-02 | F-F3P2-002 (HIGH): Fixed AC-151-008 + Task 5 — re-targeted ARCH-INDEX doc-fix from Document Map row (already "26 components C-1..C-26") to the `module-criticality.md` row (still "24 components"); removed incorrect "Document Map" target and "C-25=reader.rs" rationale; stated correct C-25=enip.rs (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0 issue #316) and C-26=protocols.rs (SS-18, this story). | F-F3P2-002 |
+| v1.3 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/protocols_tests.rs` is a new file with no file-level allow; the uppercase `test_BC_…` names in `mod story_151` violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |

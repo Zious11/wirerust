@@ -13,7 +13,7 @@ github_issue: feature-protocol-coverage
 subsystems: [SS-12, SS-18]
 target_module: main
 depends_on: [STORY-151]
-blocks: []
+blocks: [STORY-154]
 behavioral_contracts:
   - BC-2.12.022
   - BC-2.18.001
@@ -101,16 +101,19 @@ CLI (not a new flag on the `protocols` subcommand).
 
 New dispatch arm in the main match block:
 ```rust
-Commands::Protocols { all, supported, unsupported } => {
-    let filter = if supported { ProtocolFilter::Supported }
-                 else if unsupported { ProtocolFilter::Unsupported }
+Commands::Protocols { supported, unsupported, .. } => {
+    let filter = if *supported { ProtocolFilter::Supported }
+                 else if *unsupported { ProtocolFilter::Unsupported }
                  else { ProtocolFilter::All };
-    run_protocols(filter, args.json.is_some());
+    run_protocols(filter, cli.json.is_some());
 }
 ```
 
 Note: `Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59) — absent / `--json` stdout /
-`--json=path` file. The `json: bool` parameter to `run_protocols` is derived from `args.json.is_some()`.
+`--json=path` file. The `json: bool` parameter to `run_protocols` is derived from `cli.json.is_some()`
+where `cli` is the top-level `Cli` binding (`let cli = Cli::parse();`) in `main()`. The match arm
+operates under `match &cli.command`, so the correct access is `cli.json` (not `args.json` — no `args`
+binding exists in `main()`).
 When `--json=path` is given the file-path routing is handled at the call site; BC-2.12.022 "Honors --json"
 means stdout when no path is given, file when path is given — this routing is outside `run_protocols` scope
 and follows the same pattern as the existing `run_analyze()` JSON path.
@@ -347,7 +350,9 @@ Fits within a 200k context window (~27%).
 ## Tasks
 
 1. **Write Red-Gate tests first (TDD Step 1 — all must FAIL before implementation)**
-   Add integration tests (new `mod story_152 { ... }` in `tests/integration_tests.rs` or `tests/cli_tests.rs`):
+   Add integration tests (new `mod story_152 { ... }` in `tests/integration_tests.rs` or `tests/cli_tests.rs`).
+   The module MUST open with `#[allow(non_snake_case)]` — CI enforces `-D warnings` and the uppercase
+   `test_BC_…` names violate `non_snake_case`. `tests/integration_tests.rs` carries no file-level allow:
    - `test_BC_2_12_022_protocols_subcommand_exit_0` — `wirerust protocols` exits 0
    - `test_BC_2_12_022_mutually_exclusive_flags_error` — conflicting flags → non-zero exit
    - `test_BC_2_12_022_protocols_supported_filter` — `--supported` → 7-row count in output
@@ -377,7 +382,7 @@ Fits within a 200k context window (~27%).
    - Verify: `wirerust protocols --help` prints; mutual-exclusion test GREEN; binary still compiles
 
 3. **Add dispatch arm + `run_protocols()` stub in `src/main.rs` (AC-152-002)**
-   - Add `Commands::Protocols { ... }` match arm calling `run_protocols(filter, args.json.is_some())`
+   - Add `Commands::Protocols { supported, unsupported, .. }` match arm calling `run_protocols(filter, cli.json.is_some())` — deref `&bool` destructures with `*supported`, `*unsupported` (match is on `&cli.command`; `cli` is the `Cli::parse()` binding); `all` is unused so use `..`
    - Add `fn run_protocols(filter: ProtocolFilter, json: bool) { let _ = (filter, json); }` — an
      EMPTY non-panicking stub (NOT `todo!()`; a panic would fail the exit-0 test)
    - Verify: `wirerust protocols` compiles; `test_BC_2_12_022_protocols_subcommand_exit_0` GREEN
@@ -443,7 +448,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.12.022/BC-2.18.0
 6. **GOOSE EtherType display: `0x88B8 (35000)`** — not `34992` (pre-F2 erroneous value; corrected in BC-2.18.002 v1.1; DF-CANONICAL-FRAME-HOLDOUT-001).
 7. **POWERLINK EtherType display: `0x88AB (34987)`** — IEEE RA assigned value (DF-CANONICAL-FRAME-HOLDOUT-001).
 8. **Port-102 footnote is row-presence-triggered** — it appears IF AND ONLY IF any of S7comm, S7comm-plus, IEC 61850 MMS, or ICCP/TASE.2 is in the printed set (BC-2.18.001 Invariant 3; Postcondition 6 v1.4).
-9. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_152 { ... }` wrapper.
+9. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_152 { ... }` wrapper. The module MUST carry `#[allow(non_snake_case)]` at the top of the `mod story_152 { }` block — CI enforces `-D warnings` and the uppercase `test_BC_…` function names violate `non_snake_case`. `tests/integration_tests.rs` carries no file-level allow (confirmed by grep), so the module-level attribute is mandatory.
 
 ## Library & Framework Requirements
 
@@ -475,3 +480,4 @@ No new source files.
 | v1.1 | 2026-07-02 | F-F3P1-003 (MEDIUM): Fixed AC-152-002 `args.json` phantom bool → `args.json.is_some()` with note about `Option<Option<PathBuf>>` type and `--json=path` file routing. LOW: Task 3 stub guidance clarified — empty `{ let _ = (filter, json); }` stub replaces contradictory todo!()/stub text. | F-F3P1-003 |
 | v1.2 | 2026-07-02 | Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying `verification_properties: [VP-041]` is a regression/relevance reference (VP-041 harnesses authored/anchored by STORY-151). | Obs-1 |
 | v1.3 | 2026-07-02 | F-F3P6-002 (MEDIUM): Added DERIVED-value NOTE to AC-152-003 (`supported` terminal column) and AC-152-007 (JSON `"supported"` field): `KnownProtocol` has no `supported` field; value is derived via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) \|\| name == "ARP"` (BC-2.18.003). Sibling-sweep fix matching STORY-154 v1.3 F-F3P3-001. | F-F3P6-002 |
+| v1.4 | 2026-07-02 | F-F3P8-001 (MEDIUM): `blocks: []` → `blocks: [STORY-154]` — reciprocal of dep-graph edge 152→154 (F-F3P2-005 file-sequencing; STORY-154 `depends_on` already lists STORY-152; sibling STORY-151 `blocks: [STORY-152, STORY-154]` and STORY-153 `blocks: [STORY-154]` were already correct). F-F3P8-002 (MEDIUM): Fixed `args.json` phantom in AC-152-002 dispatch arm (`args.json.is_some()` → `cli.json.is_some()`), the adjacent note, and Task 3 — `main()` binding is `let cli = Cli::parse()` (no `args` binding exists); match arm is under `match &cli.command`. F-F3P8-002 LOW: Sharpened AC-152-002 dispatch arm snippet — `&bool` destructures require `*` deref under `match &cli.command` (cf. main.rs `*hosts` pattern); unused `all` field replaced with `..` to avoid `-D warnings` unused-var error. F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 9 — `tests/integration_tests.rs` carries no file-level allow; the uppercase `test_BC_…` names in `mod story_152` violate `non_snake_case` under `-D warnings`. | F-F3P8-001, F-F3P8-002, F-F3P8-003 |

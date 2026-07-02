@@ -340,7 +340,10 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
 ## Tasks
 
 1. **Write Red-Gate tests first (TDD Step 1 — all must FAIL before implementation)**
-   Add to `tests/integration_tests.rs` in `mod story_154 { ... }`:
+   Add to `tests/integration_tests.rs` in `mod story_154 { ... }`. Open the module with
+   `#[allow(non_snake_case)]` — CI enforces `-D warnings`; `tests/integration_tests.rs` carries no
+   file-level allow; the uppercase `test_BC_…` names violate `non_snake_case`.
+   Integration tests:
    - `test_BC_2_12_023_all_without_coverage_gaps` — `--all` → no CoverageGapsSummary
    - `test_BC_2_12_023_protocols_coverage_gaps_error` — `protocols --coverage-gaps` → clap error
    - `test_BC_2_12_023_coverage_gaps_counts_unclassified` — `--coverage-gaps` → CoverageGapsSummary + ≥1 entry
@@ -360,7 +363,10 @@ output) and protocols.rs (STORY-151 output) — load only the sections needed.
 
    Add pure-function unit tests in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs`
    (NOT in `tests/` — `lookup_protocol_state()` is a binary-private function defined in `src/main.rs`
-   and is NOT reachable from `tests/integration_tests.rs` or any other `tests/` file):
+   and is NOT reachable from `tests/integration_tests.rs` or any other `tests/` file).
+   The `mod story_154_unit` block MUST carry `#[allow(non_snake_case)]` — `src/main.rs` `mod tests`
+   (line 708) is lowercase and carries no allow; the new inline module uses uppercase `test_BC_…_unit`
+   names that violate `non_snake_case` under `-D warnings`:
    - `test_BC_2_12_024_bacnet_known_unsupported_unit` (unit, direct `lookup_protocol_state()` call; `_unit` suffix disambiguates from identically-named integration test in `mod story_154`)
    - `test_BC_2_12_024_tcp_47808_is_unknown_unit` (unit, direct call; `_unit` suffix)
    - `test_BC_2_12_024_unknown_port_state_unit` (unit, direct call; `_unit` suffix)
@@ -449,7 +455,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.12.023/024
 5. **`L2_CAVEAT_TEXT` is ALWAYS present** — BC-2.12.024 Invariant 1. Even when entries array is empty (empty pcap). Not configurable.
 6. **`PORT_102_NOTE` is row-specific and conditional** — BC-2.12.024 Invariant 2. Present IF AND ONLY IF `(Tcp, 102)` has a non-zero count in the current gap report.
 7. **JSON schema: object form** — `{ "caveat_l2": "...", "entries": [...] }` (BC-2.12.023 PC-3 v1.2 corrected form). NOT a flat dict.
-8. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL integration test functions in `mod story_154 { ... }` wrapper in `tests/integration_tests.rs`. Unit tests for `lookup_protocol_state()` MUST be in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs` — `lookup_protocol_state()` is binary-private (defined in `src/main.rs`, not re-exported from the library crate) and is NOT callable from `tests/`. Test names in `mod story_154_unit` carry a `_unit` suffix (e.g., `test_BC_2_12_024_bacnet_known_unsupported_unit`) to disambiguate from identically-named integration tests in `mod story_154` (DF-AC-TEST-NAME-SYNC-001 unique-resolution).
+8. **Test namespace isolation + `non_snake_case` allow (DF-TEST-NAMESPACE-001):** ALL integration test functions in `mod story_154 { ... }` wrapper in `tests/integration_tests.rs`. Unit tests for `lookup_protocol_state()` MUST be in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs` — `lookup_protocol_state()` is binary-private (defined in `src/main.rs`, not re-exported from the library crate) and is NOT callable from `tests/`. Test names in `mod story_154_unit` carry a `_unit` suffix (e.g., `test_BC_2_12_024_bacnet_known_unsupported_unit`) to disambiguate from identically-named integration tests in `mod story_154` (DF-AC-TEST-NAME-SYNC-001 unique-resolution). BOTH modules MUST carry `#[allow(non_snake_case)]` at module scope — CI enforces `-D warnings`; the uppercase `test_BC_…` names violate `non_snake_case`. `tests/integration_tests.rs` carries no file-level allow (confirmed by grep); `src/main.rs` `mod tests` at line 708 is lowercase and carries no allow — the new `mod story_154_unit` needs its own.
 9. **BACnet/IP classification must use UDP transport lookup** — `(Udp, 47808)` → `known-unsupported`; `(Tcp, 47808)` → `unknown`. This directly tests the transport-aware lookup correctness (DF-CANONICAL-FRAME-HOLDOUT-001 + BC-2.12.024 EC-009).
 
 ## Library & Framework Requirements
@@ -484,3 +490,4 @@ No new source files.
 | v1.3 | 2026-07-02 | F-F3P3-001 (HIGH): Fixed AC-154-006 phantom `p.supported` field — `KnownProtocol` has no `supported` field; supportedness is DERIVED. Replaced `Some(p) if p.supported` guard with `Some(p) if p.canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || p.name == "ARP"` (mirrors `supported_protocols()` predicate per STORY-151 AC-151-005 / BC-2.18.003). Updated vocabulary bullet descriptions to use `supported_protocols()` set membership language instead of stale `supported: true/false` field notation. Added NOTE block clarifying that supportedness is DERIVED, not a struct field. | F-F3P3-001 |
 | v1.4 | 2026-07-02 | F-F3P4-002 (MEDIUM): Fixed AC-154-002 heading from forbidden `StreamDispatcher::new(coverage_gaps_enabled=true)` form to `.with_coverage_gaps(...)` builder, consistent with body/Task 3/PSI which already used the correct builder pattern. F-F3P4-003 (MEDIUM): Narrowed unit test location in Task 1 from "in tests/ or inline" to "inline `#[cfg(test)] mod story_154_unit` in `src/main.rs`" (binary-private `lookup_protocol_state()` is NOT callable from `tests/`); added `_unit` suffix to 4 unit test names to eliminate DF-AC-TEST-NAME-SYNC-001 collision with identically-named integration tests; updated Architecture Compliance Rule 8 accordingly. Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying VP-041/042/043 are regression/relevance references (harnesses authored/anchored by STORY-151/153). | F-F3P4-002, F-F3P4-003, Obs-1 |
 | v1.5 | 2026-07-02 | F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-154-002 body, Task 3, and Previous Story Intelligence (PSI). F-F3P6-005 (LOW): Replaced `args.coverage_gaps` phantom struct-field ref with `coverage_gaps` (flat scalar param) in AC-154-002, Task 3, and PSI. Clarified that STORY-154's wiring change is flipping the STORY-153 default-false call-site value to `*coverage_gaps` from `Commands::Analyze { ..., coverage_gaps, ... }` destructure. | F-F3P6-003, F-F3P6-005 |
+| v1.6 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 (both `mod story_154` in `tests/integration_tests.rs` AND inline `mod story_154_unit` in `src/main.rs`) and Architecture Compliance Rule 8 — `tests/integration_tests.rs` carries no file-level allow (confirmed by grep); `src/main.rs` `mod tests` (line 708) is lowercase-no-allow; both new modules use uppercase `test_BC_…` names that violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |
