@@ -132,8 +132,8 @@ Some(DispatchTarget::None) | None => {
     {
         self.unclassified_flows += 1;                    // existing counter — NOT gated on coverage_gaps_enabled
         if self.coverage_gaps_enabled {
-            // NEW: per-(Tcp, lower_port) unclassified_port_counts increment
-            let lower_port = flow_key.lower_port();      // F3-carry: use existing lower_port() method
+            // NEW: per-(Tcp, min-of-ports) unclassified_port_counts increment
+            let lower_port = flow_key.lower_port().min(flow_key.upper_port());   // BC-2.05.010 / F-F3P11-001: min-of-ports
             let c = self.unclassified_port_counts
                 .entry((TransportProto::Tcp, lower_port))
                 .or_insert(0);
@@ -143,11 +143,15 @@ Some(DispatchTarget::None) | None => {
 }
 ```
 
-**F3-carry item — Architecture Anchor:** Use `flow_key.lower_port()` (the method that already
-exists on `FlowKey` in the real codebase, confirmed by `grep` in dispatcher.rs line:
-`let ports = [flow_key.lower_port(), flow_key.upper_port()];`). Do NOT use `flow_key.src_port`
-or `flow_key.dst_port` directly. The `lower_port()` method gives `min(src_port, dst_port)`,
-which is the direction-normalized server/service port.
+**Architecture Anchor (F-F3P11-001):** Use `flow_key.lower_port().min(flow_key.upper_port())` —
+NOT `lower_port()` alone. `FlowKey::new` canonicalizes by `(ip, port)` tuple comparison with IP
+compared FIRST, so `lower_port()` is the port of the lower-IP endpoint, which may be an ephemeral
+(high) port. Example: client `10.0.0.1:54321` ↔ server `10.0.0.9:102` → `lower_port()==54321`
+(ephemeral), not 102. BC-2.05.010 PC-1's `min(src_port, dst_port)` intent is realized as
+`lower_port().min(upper_port())` = `min(54321, 102)` = 102 (the service port).
+Do NOT use `flow_key.src_port` or `flow_key.dst_port` (no such fields on `FlowKey`).
+(Confirmed: `dispatcher.rs:242` uses both `lower_port()` and `upper_port()` in `classify()` via
+`let ports = [flow_key.lower_port(), flow_key.upper_port()]`; gap-counting requires the min.)
 
 Gating structure (ADR-012 Decision 6 Clarification EXACT):
 - `unclassified_flows += 1` is gated on the **analyzer-present guard ONLY** — NOT on `coverage_gaps_enabled`.
@@ -164,10 +168,10 @@ Gating structure (ADR-012 Decision 6 Clarification EXACT):
 BC-2.05.011 Invariant 1; ADR-012 Decision 6 Clarification)
 
 **Red-Gate tests:**
-- `test_BC_2_05_010_tcp_counter_none_target` — after 1 None-target flow close on port 9999 (neutral non-classify() port, no payload; with analyzers configured + gaps enabled): `(Tcp, 9999)` count == 1 (port 502 is reserved exclusively for the Modbus-classified no-increment test)
+- `test_BC_2_05_010_tcp_counter_none_target` — flow: client `10.0.0.1:54321` ↔ server `10.0.0.9:9999`; 1 None-target close; `lower_port()`=54321 (IP-ordered, ephemeral), `upper_port()`=9999, `min`=9999; with analyzers configured + gaps enabled: `(Tcp, 9999)` count == 1 (guards IP-first ordering bug: `lower_port()` alone would key on 54321; port 9999 neutral — avoids classify() Rule 5 Modbus/502; port 502 reserved exclusively for the Modbus-classified no-increment test)
 - `test_BC_2_05_011_monotonic_increment` — after 3 None-target flow closes on same port P: `(Tcp, P)` count == 3
 - `test_BC_2_05_011_no_increment_classified_flow` — Modbus-classified flow close (DispatchTarget::Modbus, port 502 with data): `(Tcp, 502)` key absent (EC-002 label fix: BC-2.05.011 EC-002 says "Http/502" but correct target is Modbus/502; port 502 ONLY appears in this test)
-- `test_BC_2_05_010_lower_port_normalization` — flow with src=1234, dst=9999 (lower_port=9999) AND flow with src=9999, dst=1234 both produce key `(Tcp, 9999)` (direction-normalized; neutral port 9999 avoids classify() Rule 5 Modbus/502 interference)
+- `test_BC_2_05_010_lower_port_normalization` — (a) direction-normalization: flows with ports 1234/9999 in either direction both produce key `(Tcp, min(1234,9999)) = (Tcp, 1234)`; (b) client-has-lower-IP guard: client `10.0.0.1:9999` ↔ server `10.0.0.9:1234` → `lower_port()`=9999 (IP-ordered, ephemeral-like), `upper_port()`=1234, `min`=1234 → key `(Tcp, 1234)` — confirms `lower_port()` alone would give wrong answer 9999 but `lower_port().min(upper_port())` gives service port 1234 (guards IP-first ordering bug)
 - `test_BC_2_05_010_coverage_gaps_disabled_no_increment` — `coverage_gaps_enabled=false`; None-target flow; map remains empty
 
 > **F3-carry item — EC-002 label fix (BC-2.05.011 EC-002):**
@@ -380,10 +384,13 @@ NOT change.
 
 ## Tasks
 
-0. **[F3-carry] Confirm lower_port() method exists in FlowKey**
-   - `grep 'lower_port' src/dispatcher.rs` — confirms `flow_key.lower_port()` is already used
-     in the existing `classify()` call (line: `let ports = [flow_key.lower_port(), flow_key.upper_port()];`)
-   - This confirms the architecture anchor. Use `flow_key.lower_port()` in on_flow_close.
+0. **[F-F3P11-001] Confirm lower_port().min(upper_port()) is required for gap counter key**
+   - `grep 'lower_port' src/dispatcher.rs` — confirms both `lower_port()` and `upper_port()` exist on
+     `FlowKey` (line: `let ports = [flow_key.lower_port(), flow_key.upper_port()];` in `classify()`)
+   - CRITICAL: `lower_port()` alone is NOT `min(src_port, dst_port)`. `FlowKey::new` canonicalizes by
+     `(ip, port)` tuple (IP compared FIRST), so `lower_port()` is the port of the lower-IP endpoint,
+     which may be an ephemeral (high-numbered) port. Use `flow_key.lower_port().min(flow_key.upper_port())`
+     to realize BC-2.05.010 PC-1's `min(src_port, dst_port)` intent.
 
 1. **Write Red-Gate tests first (TDD Step 1 — all must FAIL before implementation)**
    Add to `tests/dispatcher_tests.rs` in `mod story_153 { ... }`. Open the module with
@@ -395,10 +402,10 @@ NOT change.
    - `test_BC_2_05_transport_proto_no_linkLayer` — exhaustive match compiles with 2 arms
    - `test_BC_2_05_010_fields_accessible` — accessor exists
    - `test_BC_2_05_010_coverage_gaps_disabled_map_empty` — map empty when disabled
-   - `test_BC_2_05_010_tcp_counter_none_target` — 1 None-target → count==1 (use port 9999, NOT 502; port 502 only for Modbus-classified no-increment test)
+   - `test_BC_2_05_010_tcp_counter_none_target` — client `10.0.0.1:54321` ↔ server `10.0.0.9:9999`; 1 None-target close; assert `(Tcp, 9999)` count==1 (`lower_port()`=54321 due to IP ordering; `min`=9999; guards IP-first bug; port 9999 avoids classify(); port 502 reserved for Modbus test)
    - `test_BC_2_05_011_monotonic_increment` — 3 None-target → count==3
    - `test_BC_2_05_011_no_increment_classified_flow` — Modbus-classified flow (port 502 with data, DispatchTarget::Modbus) → map unchanged (EC-002 Modbus/502 label fix; port 502 reserved exclusively for this test)
-   - `test_BC_2_05_010_lower_port_normalization` — bidirectional flows → same key (use port 9999)
+   - `test_BC_2_05_010_lower_port_normalization` — (a) ports 1234/9999 bidirectional → key `(Tcp, 1234)` (min(1234,9999)=1234); (b) client-has-lower-IP guard: client `10.0.0.1:9999` ↔ server `10.0.0.9:1234` → `lower_port()`=9999 but key `(Tcp, 1234)` (guards IP-first ordering bug)
    - `test_BC_2_05_010_coverage_gaps_disabled_no_increment` — disabled → no increment
    - `test_BC_2_05_011_tcp_map_key_purity` — all keys Tcp
    - `test_BC_2_05_010_udp_counter_unhandled` — `udp_gap_key(&udp_47808_packet, false)` → `Some((Udp, 47808))` (FAILS: seam fn not defined)
@@ -428,7 +435,7 @@ NOT change.
      if analyzer-present guard {                              // outer gate: analyzer-present ONLY
          self.unclassified_flows += 1;                       // NOT gated on coverage_gaps_enabled
          if self.coverage_gaps_enabled {                     // inner gate: port counter only
-             let lower_port = flow_key.lower_port();
+             let lower_port = flow_key.lower_port().min(flow_key.upper_port());   // F-F3P11-001: min-of-ports
              let c = self.unclassified_port_counts
                  .entry((TransportProto::Tcp, lower_port))
                  .or_insert(0);
@@ -438,7 +445,7 @@ NOT change.
      ```
    - Do NOT put `unclassified_flows += 1` inside `if self.coverage_gaps_enabled` — that is a
      regression breaking BC-2.05.009 + holdouts HS-040/HS-095
-   - Use `flow_key.lower_port()` (the existing FlowKey method — F3-carry anchor)
+   - Use `flow_key.lower_port().min(flow_key.upper_port())` (F-F3P11-001: min-of-ports, not lower_port() alone)
    - Do NOT change `classify()`, `DispatchTarget`, or the classification logic
    - Verify: TCP counter tests GREEN; classified-flow tests GREEN; key-purity test GREEN
 
@@ -494,8 +501,13 @@ The Kani oracle (`classify_oracle`) references `DispatchTarget` — any change t
 would require re-verifying the proofs. This story's changes are additive to `StreamDispatcher`
 state only.
 
-**Lower_port precedent:**
-The existing `classify()` function uses `flow_key.lower_port()` (grep confirms: `let ports = [flow_key.lower_port(), flow_key.upper_port()]`). Reuse this pattern.
+**Lower_port precedent (corrected by F-F3P11-001):**
+The existing `classify()` function uses BOTH `flow_key.lower_port()` AND `flow_key.upper_port()` via
+`let ports = [flow_key.lower_port(), flow_key.upper_port()]; ports.contains(&502)` etc. — it checks
+either port. For the gap counter, BC-2.05.010 PC-1 intent is `min(src_port, dst_port)`, realized as
+`flow_key.lower_port().min(flow_key.upper_port())`. Do NOT use `lower_port()` alone — `FlowKey`
+canonicalizes by `(ip, port)` tuple so `lower_port()` is the lower-IP endpoint's port, not necessarily
+the lower-numbered port.
 
 **From STORY-088 (run_analyze orchestration):**
 `StreamDispatcher::new()` is called in `run_analyze()`. With the builder approach, NO changes
@@ -514,7 +526,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.05.010/011
 1. **`TransportProto` MUST be defined in `src/dispatcher.rs`** — NOT imported from `protocols.rs` (BC-2.05.010 PC-4, Invariant 1). Cross-importing would violate the SS-18 pure-core boundary and introduce a dependency on a module that must remain dependency-free.
 2. **`classify()` and `DispatchTarget` MUST NOT be changed** — VP-004 Kani proofs depend on these exact types and logic. Any change breaks the proofs.
 3. **`unclassified_flows += 1` is inside the analyzer-present guard ONLY** — NOT gated on `coverage_gaps_enabled` (ADR-012 Decision 6 Clarification EXACT). The NEW `unclassified_port_counts` increment is nested inside BOTH: (outer) analyzer-present guard AND (inner) `if self.coverage_gaps_enabled { ... }`. Placing `unclassified_flows` inside `coverage_gaps_enabled` would break BC-2.05.009 + holdouts HS-040/HS-095.
-4. **TCP counter key: `(TransportProto::Tcp, flow_key.lower_port())`** — use `flow_key.lower_port()` (the existing FlowKey method), NOT `flow_key.src_port` or `flow_key.dst_port` directly.
+4. **TCP counter key: `(TransportProto::Tcp, flow_key.lower_port().min(flow_key.upper_port()))`** — `FlowKey::new` canonicalizes by `(ip, port)` tuple (IP first), so `lower_port()` alone is the lower-IP endpoint's port, NOT the lower-numbered port. Use `lower_port().min(upper_port())` to realize BC-2.05.010 PC-1's `min(src_port, dst_port)` intent. Do NOT use `flow_key.src_port` or `flow_key.dst_port` (no such fields on `FlowKey`). (F-F3P11-001)
 5. **UDP counter per-packet, not per-flow** — UDP has no flow lifecycle in wirerust; increment per declined packet.
 6. **ADR-012 Decision 10: `dns_analyzer.can_decode()` evaluated regardless of `enable_dns`** — the `enable_dns` flag gates DNS finding-emission only; gap-classification (whether to count the packet) is orthogonal. DNS/53 packets that `can_decode()` returns true for are NOT counted in `udp_unclassified_counts`.
 7. **VP-042 has exactly 3 sub-properties (A, B, C)** — not 4. The "(d)" row is dropped per Pass-9 adversarial convergence. Implement 3 harnesses only.
@@ -556,3 +568,4 @@ No new source files.
 | v1.4 | 2026-07-02 | F-F3P4-001 (HIGH): Introduced `pub fn udp_gap_key(parsed, dns_handles)` library-visible seam in `src/dispatcher.rs` (SEAM CONTRACT). VP-043 proptest harnesses in `tests/dispatcher_tests.rs` link only the library crate and CANNOT reach `udp_unclassified_counts` (main.rs binary-private). Without the seam VP-043 would be vacuous (DF-KANI-NONVACUITY-001). Redesigned AC-153-005 to show seam function definition + main.rs decode loop calling it. Updated AC-153-007 VP-043 harness descriptions to call seam directly. Updated Architecture Mapping (added udp_gap_key row), Task 1 (UDP seam-based test descriptions), Task 4 (seam-call pattern), Architecture Compliance Rule 11 (seam library-visibility mandate), File Structure Requirements (dispatcher.rs row). BC-2.05.010 not violated: counter still populated in main.rs loop via the seam. | F-F3P4-001 |
 | v1.5 | 2026-07-02 | F-F3P6-001 (MEDIUM): Fixed independent-compile gap — STORY-153 now explicitly introduces `coverage_gaps: bool` as a new scalar parameter on `run_analyze()` (passed as `false` from `main()`), ensuring wave-67 code compiles before `--coverage-gaps` CLI flag is added by STORY-154. Added note in AC-153-002, code comment in AC-153-005 decode-loop snippet, Task 4 bullet, and File Structure. F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-153-002 reference and File Structure. F-F3P6-005 cascade: removed `args.coverage_gaps` phantom struct ref from all STORY-153 occurrences. | F-F3P6-001, F-F3P6-003 |
 | v1.6 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/dispatcher_tests.rs` carries per-function allows (lines 858, 933, 1030, 1100, 1254, etc.); the new `mod story_153 { }` block must carry the allow at module scope for all its uppercase `test_BC_…` names under `-D warnings`. | F-F3P8-003 |
+| v1.7 | 2026-07-02 | F-F3P11-001 (CRITICAL): Fixed TCP gap-key — `lower_port()` alone returns the lower-IP endpoint's port (IP-first canonicalization in `FlowKey::new`), NOT `min(src_port, dst_port)`. Example: client 10.0.0.1:54321 ↔ server 10.0.0.9:102 → `lower_port()==54321` (wrong). Fixed all occurrences: (1) AC-153-003 code snippet: `lower_port = flow_key.lower_port()` → `lower_port = flow_key.lower_port().min(flow_key.upper_port())`; (2) removed false "lower_port() gives min(src_port,dst_port)" prose, replaced with correct IP-first ordering explanation; (3) test_BC_2_05_010_lower_port_normalization: assertion changed from `(Tcp, 9999)` to `(Tcp, 1234)` (ports 1234/9999, min=1234); added client-has-lower-IP guard sub-case; (4) test_BC_2_05_010_tcp_counter_none_target: added IP setup (client 10.0.0.1:54321 ↔ server 10.0.0.9:9999) to guard IP-first bug; (5) Architecture Compliance Rule 4 updated; (6) Task 0 updated; (7) Task 3 code updated; (8) Previous Story Intelligence updated. Note for orchestrator: frozen BC-2.05.010 PC-1 says `min(flow_key.src_port, flow_key.dst_port)` but `FlowKey` has no src_port/dst_port fields — BC wording should be reconciled at phase-5 spec pass (out of F3 scope). | F-F3P11-001 |
