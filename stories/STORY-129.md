@@ -38,7 +38,7 @@ inputs:
 #   by SS-11 per BC-2.11.035 Architecture Anchors — the mitre module is part of
 #   the reporter pipeline supporting data. ARCH-INDEX designates SS-11 as the
 #   Reporting and Output subsystem per CAP-11.
-input-hash: "26f7402"
+input-hash: "620dbb6"
 ---
 
 # STORY-129: Emit Per-Finding `mitre_attack` Array in JSON Output

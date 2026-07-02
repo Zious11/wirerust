@@ -4,9 +4,9 @@ project: wirerust
 mode: feature
 phase: F2-spec-evolution
 status: paused
-current_step: "F2 adversarial CONVERGED (3 clean passes). Pending pre-gate: (a) fresh-context consistency-validator full-corpus audit, (b) input-hash drift check, (c) structured human F2 gate. On F2 approval → F3 story decomposition."
+current_step: "F2 adversarial CONVERGED (D-336). (b) input-hash drift RESOLVED (D-337): STALE=0 MATCH=95 ERROR=3. Pending pre-gate: (a) fresh-context consistency-validator full-corpus audit, (c) structured human F2 gate. On F2 approval → F3 story decomposition."
 pipeline: FEATURE-CYCLE
-timestamp: 2026-07-01T23:30:00Z
+timestamp: 2026-07-01T23:50:00Z
 
 # Release chain (latest)
 released_version: v0.11.1
@@ -93,7 +93,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle fix-tls-clienthello-frag — F6 | **DONE** | Kani VP-039 3 proofs PASS; fuzz 1.9M execs clean; 100% real-gap mutation kill (mod f6_hardening, 12 tests); anyhow 1.0.103 (RUSTSEC-2026-0190 cleared). PRs #345+#346 merged. develop=52907bc. |
 | Feature cycle fix-tls-clienthello-frag — F7 | **DONE/CONVERGED (D-316)** | v0.11.1 released (PR #347 main, #348 back-merge); S-7.02 SATISFIED; cycle CLOSED. |
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
-| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **CONVERGED (adversarial)** | Spec-layer DONE (D-323). Pass-1..8: REMEDIATED (D-324..D-331). Pass-9..13: **CLEAN** (D-332..D-336). **3 CONSECUTIVE CLEAN passes (P11/P12/P13) — BC-5.39.001 SATISFIED**. BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32, ss-18 v1.5, PRD v1.51. 0 HIGH/CRITICAL. Finding trajectory: 14→8→4→3→4→4→4→1→0→0→0→0→0. Pending: pre-gate consistency audit + human F2 gate. |
+| Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **CONVERGED (adversarial)** | Spec-layer DONE (D-323). Pass-1..8: REMEDIATED (D-324..D-331). Pass-9..13: **CLEAN** (D-332..D-336). **3 CONSECUTIVE CLEAN passes (P11/P12/P13) — BC-5.39.001 SATISFIED**. BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32, ss-18 v1.5, PRD v1.51. 0 HIGH/CRITICAL. Trajectory: 14→8→4→3→4→4→4→1→0→0→0→0→0. Input-hash pre-gate: **RESOLVED D-337** (STALE=0). Pending: consistency audit + human F2 gate. |
 
 ---
 
@@ -150,6 +150,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-336 | F2 ADVERSARIAL SPEC CONVERGENCE ACHIEVED. 3 consecutive clean fresh-context passes (Pass-11/12/13), zero HIGH/CRITICAL, spec byte-stable (factory-artifacts HEAD 038bcb3 unchanged across the 3 passes). Full HIGH-decay trajectory across 13 passes: 14→8→4→3→4→4→4→1→0→0→0→0→0. Deferred F3-carry items (LOW, non-blocking): F-F2P11-001/F-F2P13-001 (BC-2.05.010 TCP path use flow_key.lower_port() not src_port/dst_port), F-F2P11-002/F-F2P13-002 (BC-2.05.011 EC-002 label Http/502→Modbus/502), ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001 (Document Map '24 components'→26), and NEW F-F2P13-OBS-VP042D (VP-042 sub-property (d) 'both counters consistent' is described in ADR-012 Decision 6 Clarification + VP-INDEX but not mapped to a dedicated named harness — folded into total_count_equals_n's precondition; F3/F6 to either add a (d) assertion or drop the (d) enumeration to 3 sub-properties). Next: mandatory phase-gate fresh-context consistency-validator audit + input-hash drift check, THEN human F2 gate. | 2026-07-01 |
 | D-332 | F2 adversarial spec Pass-9 = CLEAN (zero HIGH/CRITICAL; HIGH decay 3→1→0 across Pass-7/8/9). Fixed 3 non-blocking findings for spec quality rather than carry a known MEDIUM PC/Inv contradiction into convergence: F-F2P9-001 (BC-2.18.001 PC-6 port-102 footnote made conditional, consistent with Inv-3/ECs/test), F-F2P9-003 (BC-2.05.010 increment-site pinned INSIDE analyzer-present guard per new ADR-012 Decision 6 Clarification; VP-042(d) precondition added), F-F2P9-002 (ss-18 changelog wording). Fixing after a clean pass re-baselines the consecutive-clean count to 0. BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32, ss-18 v1.5. Next: Pass-10 (targeting 3 consecutive clean on the corrected, contradiction-free spec). | 2026-07-01 |
 | D-331 | F2 adversarial spec Pass-8 complete + remediated. HIGH F-F2P8-001: coverage_gaps --json schema contradiction — BC-2.12.023 PC-3 flat-dict (`"<transport>/<port>": { count, state }`) vs BC-2.12.024 PC-5 authoritative object form (`{ "caveat_l2": <string>, "entries": [ { transport, port, count, state, name?, collision_note? } ] }`); flat-dict structurally incompatible with mandatory caveat_l2 field (BC-2.12.024 Inv-1) and per-entry collision_note (port-102 four-way collision); reconciled BC-2.12.023 PC-3 to the authoritative object form; PC-3 now references BC-2.12.024 PC-5 as field-level authority. Adversary confirmed ALL other axes clean (protocol values, counts, index/version propagation, ARCH registry, PRD narrative, VP arithmetic, non-vacuity, anchors). BC-INDEX v2.12. Finding trajectory 14→8→4→3→4→4→4→1 (single HIGH). Counter: 0 consecutive clean. Next: Pass-9 (spec appears converged pending re-confirmation). | 2026-07-01 |
+| D-337 | F2 pre-gate input-hash drift resolved. 10 delivered stories (STORY-002/003/004/005/076/077/078/079/080/129) went STALE because they list prd.md as an input and F2 changed prd.md v1.45→v1.51. Re-baselined mechanically via bin/compute-input-hash --write --scan (no version bump — hash rewrite is mechanical per DF-INPUT-HASH-CANONICAL-001). Post-fix scan: MATCH=95 STALE=0 ERROR=3. 3 PRE-EXISTING ERRORs (NOT F2-caused) logged for maintenance: STORY-001 (inputs cite retired BC-2.01.004 → should re-point to superseding BC-2.01.009), STORY-091 + STORY-121 (no inputs: block). These predate feature-protocol-coverage and do NOT block F2. | 2026-07-01 |
 
 ---
 
@@ -195,6 +196,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | F-F2P11-002 | BC-2.05.011 EC-002 illustrative label 'Http/502' should be 'Modbus/502' — port-502 routes to DispatchTarget::Modbus; expected output unaffected by the label error. | LOW | F3-carry (spec-layer polish deferred to implementation) |
 | ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001 | ARCH-INDEX Document Map (~line 147) describes module-criticality.md as 'all 24 components' — system now has 26 (C-1..C-26; C-25 EnipAnalyzer + C-26 protocols.rs). Same derived-doc-lag class as PG-F2-DERIVED-DOC-SWEEP-001. Batch with derived-doc consistency sweep at F3. | LOW | F3-carry (folded into PG-F2-DERIVED-DOC-SWEEP-001) |
 | F-F2P13-OBS-VP042D | VP-042 sub-property (d) 'both counters consistent' is described in ADR-012 Decision 6 Clarification + VP-INDEX but not mapped to a dedicated named harness — folded into total_count_equals_n's precondition; F3/F6 to either add a (d) assertion or drop the (d) enumeration to 3 sub-properties. | LOW | F3-F6-carry |
+| INPUT-HASH-ERROR-STORIES-001 | STORY-001 retired-BC input reference (→BC-2.01.009); STORY-091/STORY-121 missing inputs: block. Pre-existing; validate via research-agent, fix in a maintenance sweep. | LOW | **OPEN — maintenance backlog (DF-VALIDATION-001-gated)** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -202,7 +204,7 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F2 adversarial CONVERGED (D-336). 3 consecutive clean passes (Pass-11/12/13), zero HIGH/CRITICAL, spec byte-stable (factory-artifacts HEAD 038bcb3 unchanged). Full HIGH-decay: 14→8→4→3→4→4→4→1→0→0→0→0→0. BC-5.39.001 SATISFIED. BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32, ss-18 v1.5, PRD v1.51 (all stable). Deferred F3-carry (LOW): F-F2P13-001 (flow_key.lower_port()), F-F2P13-002 (EC-002 label), ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001, F-F2P13-OBS-VP042D (VP-042 (d) sub-prop harness gap).**
+**F2 adversarial CONVERGED (D-336). 3 consecutive clean passes (Pass-11/12/13), zero HIGH/CRITICAL, spec byte-stable (factory-artifacts HEAD 038bcb3 unchanged). Full HIGH-decay: 14→8→4→3→4→4→4→1→0→0→0→0→0. BC-5.39.001 SATISFIED. BC-INDEX v2.13, ARCH-INDEX v2.11, VP-INDEX v2.32, ss-18 v1.5, PRD v1.51 (all stable). Deferred F3-carry (LOW): F-F2P13-001 (flow_key.lower_port()), F-F2P13-002 (EC-002 label), ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001, F-F2P13-OBS-VP042D (VP-042 (d) sub-prop harness gap). Pre-gate input-hash check RESOLVED (D-337): MATCH=95 STALE=0 ERROR=3 (3 pre-existing ERRORs; not F2-caused; logged INPUT-HASH-ERROR-STORIES-001).**
 
 - **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'`. No open PRs. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
 - **F2 design-layer artifacts (DONE — D-321/D-322/D-332/D-333):**
@@ -221,7 +223,7 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
   2. Read `.factory/STATE.md` — confirm F2 CONVERGED (D-336), spec byte-stable.
   3. Verify git ground truth: `origin/develop=3a60317`, `origin/main=4e2b285`, no open PRs.
   4. Dispatch fresh-context consistency-validator full-corpus audit (mandatory phase-gate pre-check).
-  5. Run `bin/compute-input-hash --scan` — confirm 0 STALE stories.
+  5. `bin/compute-input-hash --scan` — **DONE (D-337): MATCH=95 STALE=0 ERROR=3**. 3 pre-existing ERRORs logged as INPUT-HASH-ERROR-STORIES-001 (not F2-caused, do not block).
   6. Present structured human F2 gate summary for approval → on approval start F3 story decomposition.
 
 ---

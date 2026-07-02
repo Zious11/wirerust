@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.021.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.022.md
   - .factory/specs/prd.md
-input-hash: "d028f63"
+input-hash: "71410f3"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-076]
