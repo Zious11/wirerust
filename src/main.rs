@@ -15,6 +15,7 @@
 //! to a file when a path is given, else to stdout ([`write_output`]).
 //! `--json` and `--csv` are mutually exclusive (LESSON-P2.03).
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -134,6 +135,9 @@ fn main() -> Result<()> {
                 *mitre,
                 collapse_findings_from_flag(*no_collapse),
                 use_color,
+                // STORY-153 (F-F3P6-001): coverage_gaps=false until STORY-154 adds
+                // --coverage-gaps CLI flag and changes this to `*coverage_gaps`.
+                false,
                 &cli,
             )?;
         }
@@ -165,6 +169,10 @@ fn run_analyze(
     show_mitre_grouping: bool,
     collapse_findings: bool,
     use_color: bool,
+    // STORY-153 (F-F3P6-001): new scalar param so wave-67 decode-loop gates compile before
+    // --coverage-gaps CLI flag exists. Passed as `false` from main() until STORY-154
+    // changes the call-site to `*coverage_gaps` from Commands::Analyze destructure.
+    coverage_gaps: bool,
     cli: &Cli,
 ) -> Result<()> {
     // BC-2.14.024 §P3a/P3b: validate thresholds before constructing the analyzer.
@@ -195,6 +203,11 @@ fn run_analyze(
     let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, arp_storm_rate);
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
+    // STORY-153 (BC-2.05.010 PC-2, AC-153-005): per-(TransportProto::Udp, port) counts for
+    // UDP packets that no dissector handles. Populated only when coverage_gaps=true.
+    // STORY-154 reads this map to produce CoverageGapsSummary.
+    let mut udp_unclassified_counts: HashMap<(wirerust::dispatcher::TransportProto, u16), u64> =
+        HashMap::new();
 
     let skip_reassembly = cli.no_reassemble;
 
@@ -361,6 +374,22 @@ fn run_analyze(
                         }
                         if let Some(ref mut reasm) = reassembler {
                             reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
+                        }
+                        // STORY-153 (BC-2.05.010 PC-2, AC-153-005, F-F3P6-001):
+                        // UDP decode-loop gap counter — gated on coverage_gaps scalar param.
+                        // coverage_gaps=false in wave-67 (STORY-153); STORY-154 changes call-site
+                        // to pass *coverage_gaps from Commands::Analyze { ..., coverage_gaps, ... }.
+                        // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of
+                        // enable_dns (gap classification is orthogonal to DNS finding-emission).
+                        if coverage_gaps {
+                            let dns_handles_this = dns_analyzer.can_decode(&parsed);
+                            if let Some(key) =
+                                wirerust::dispatcher::udp_gap_key(&parsed, dns_handles_this)
+                            {
+                                let c = udp_unclassified_counts.entry(key).or_insert(0);
+                                // EC-153-10: saturating_add — no panic on u64 overflow.
+                                *c = c.saturating_add(1);
+                            }
                         }
                     }
                     // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
