@@ -59,6 +59,8 @@ pub mod findings;
 #[allow(missing_docs)]
 pub mod mitre;
 #[allow(missing_docs)]
+pub mod protocols;
+#[allow(missing_docs)]
 pub mod reader;
 #[allow(missing_docs)]
 pub mod reassembly;
