@@ -124,10 +124,10 @@ pub struct Cli {
 ///
 /// Exactly three variants: `All` (default when no flag is given), `Supported`,
 /// and `Unsupported`. Mutual exclusion is enforced by clap `conflicts_with_all`
-/// annotations on the corresponding flags (BC-2.12.022 Invariant 2).
+/// annotations on the corresponding flags.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProtocolFilter {
-    /// Show all protocols — equivalent to passing `--all` (BC-2.12.022 Invariant 3).
+    /// Show all protocols — equivalent to passing `--all`.
     All,
     /// Show only protocols that wirerust actively dissects.
     Supported,
@@ -279,7 +279,7 @@ pub enum Commands {
         hosts: bool,
     },
 
-    /// List the protocol coverage catalog (BC-2.12.022; BC-2.18.001; BC-2.18.002)
+    /// List the protocol coverage catalog
     ///
     /// Prints a table of all known ICS/IT protocols — filterable by
     /// `--supported`, `--unsupported`, or `--all` (default).  Combine with
