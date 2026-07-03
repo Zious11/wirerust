@@ -452,8 +452,7 @@ mod story_152 {
     ///
     /// Canonical value source: IEC 61850-8-1 §4 ("EtherType 0x88B8");
     /// IEEE Registration Authority EtherType registry entry "IEC GOOSE" (decimal 35000).
-    /// 0x88B8 = 35000 decimal (verified: 8*16^3 + 8*16^2 + 11*16 + 8 = 34816+2048+176+8 = wait
-    /// 0x88B8: 0x8000=32768, 0x0800=2048, 0x00B0=176, 0x0008=8 → 32768+2048+176+8 = 35000 ✓).
+    /// 0x88B8 = 32768 + 2048 + 176 + 8 = 35000 (IEC 61850-8-1 §4; IEEE RA "IEC GOOSE").
     ///
     /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
@@ -969,6 +968,55 @@ mod story_152 {
             "BC-2.12.022 Invariant 3: both default and --all must print exactly {} data rows \
              (== all_protocols().len()); got {count_all}",
             all.len()
+        );
+    }
+
+    /// BC-2.18.002 v1.1 Invariant 1 / PC-4
+    /// `wirerust protocols --json --all` `"protocols"` array preserves the declaration
+    /// order of `all_protocols()` (names must appear in the same sequence).
+    ///
+    /// Invariant 1: JSON output is a faithful, order-preserving serialisation of the
+    /// catalog. Shuffling the array would break deterministic holdout comparisons and
+    /// the BC-2.18.002 PC-4 ordering guarantee.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_18_002_json_declaration_order() {
+        let output = bin()
+            .args(["protocols", "--json", "--all"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.18.002 PC-6: `wirerust protocols --json --all` must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        let arr = json["protocols"]
+            .as_array()
+            .expect("BC-2.18.002 PC-2: 'protocols' field must be a JSON array");
+
+        // Extract the name sequence from JSON output.
+        let json_names: Vec<&str> = arr
+            .iter()
+            .map(|e| {
+                e["name"]
+                    .as_str()
+                    .expect("BC-2.18.002: every protocols entry must have a string 'name' field")
+            })
+            .collect();
+
+        // Build the expected sequence from all_protocols() declaration order.
+        let catalog_names: Vec<&str> = all_protocols().iter().map(|p| p.name).collect();
+
+        assert_eq!(
+            json_names, catalog_names,
+            "BC-2.18.002 Invariant 1 / PC-4: JSON 'protocols' array must preserve \
+             all_protocols() declaration order; \
+             json_names={json_names:?}, catalog_names={catalog_names:?}"
         );
     }
 }
