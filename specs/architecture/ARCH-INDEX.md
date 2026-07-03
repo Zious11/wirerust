@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.11"
+version: "2.12"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -102,6 +102,9 @@ modified:
   - date: "2026-07-01"
     actor: architect
     reason: "feature-protocol-coverage F2 adversarial Pass-7 remediation (F-F2P7-001/003): Subsystem Registry BC counts reconciled against BC-INDEX v2.4 authoritative totals — SS-05 9→11 (BC-2.05.010..011 added), SS-12 21→24 (BC-2.12.022..024 added). Full sweep also found SS-11 34→35 (BC-2.11.035 mitre_attack JSON enrichment, issue #64, was added after the 2026-06-22 maintenance sweep but never propagated to ARCH-INDEX) and SS-16 15→16 (BC-2.16.016 fix-pc-013-014-015 ARP unbounded findings D-221 was added but never propagated). SS-18 registry comment updated: VP-041 now correctly cites both harnesses — proptest_vp041_oracle_cross_check + proptest_vp041_partition_invariant (F-F2P7-003; Pass-2 added partition harness; VP-INDEX is authoritative). Version bump 2.9→2.10."
+  - date: 2026-07-03
+    actor: state-manager
+    reason: "F4 wave-67 STORY-151 per-story adversarial Pass-2 MEDIUM-1 remediation (AC-151-008): Document Map row for module-criticality.md corrected from 'for all 24 components' to 'for all 26 components' — C-25 EnipAnalyzer (feature-enip-v0.11.0) and C-26 protocols.rs (feature-protocol-coverage) both shipped; the Document Map count lagged C-25/C-26 additions. Historical changelog entry (2026-06-13) left verbatim. Version bump 2.11→2.12."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -144,7 +147,7 @@ network interfaces. The binary IS the complete deployment unit.
 | `purity-boundary-map.md` | Pure core vs effectful shell classification per module | ~800 |
 | `tooling-selection.md` | Kani, proptest, cargo-fuzz, cargo-mutants rationale | ~600 |
 | `verification-coverage-matrix.md` | VP-to-module coverage table | ~700 |
-| `.factory/specs/module-criticality.md` | Module kill-rate tier classification (CRITICAL/HIGH/MEDIUM/LOW) for all 24 components | ~500 |
+| `.factory/specs/module-criticality.md` | Module kill-rate tier classification (CRITICAL/HIGH/MEDIUM/LOW) for all 26 components | ~500 |
 
 
 ## Subsystem Registry

@@ -219,7 +219,7 @@ pub fn supported_protocols() -> Vec<&'static KnownProtocol> {
 **Red-Gate tests:**
 - `test_BC_2_18_003_supported_protocols_len` — `supported_protocols().len() == 7`
 - `test_BC_2_18_003_arp_in_supported_set` — `supported_protocols()` contains the entry with `name == "ARP"`
-- `test_BC_2_18_003_supported_ports_mirror` — for every port in `SUPPORTED_PORTS` (except 53, which maps to DNS), `supported_protocols()` contains an entry with that port in `canonical_ports`
+- `test_BC_2_18_003_supported_ports_mirror` — for every port in `SUPPORTED_PORTS` (all 8 ports including 53), `supported_protocols()` contains an entry with that port in `canonical_ports`
 - `test_BC_2_18_003_bacnet_unsupported` — BACnet/IP (port 47808, not in SUPPORTED_PORTS) is NOT in `supported_protocols()`
 
 ### AC-151-006: `unsupported_protocols()` is the exact complement of `supported_protocols()` within `KNOWN_PROTOCOLS`
@@ -479,3 +479,4 @@ standalone pure-core catalog.
 | v1.2 | 2026-07-02 | F-F3P2-002 (HIGH): Fixed AC-151-008 + Task 5 — re-targeted ARCH-INDEX doc-fix from Document Map row (already "26 components C-1..C-26") to the `module-criticality.md` row (still "24 components"); removed incorrect "Document Map" target and "C-25=reader.rs" rationale; stated correct C-25=enip.rs (EtherNet/IP + CIP, SS-17, feature-enip-v0.11.0 issue #316) and C-26=protocols.rs (SS-18, this story). | F-F3P2-002 |
 | v1.3 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/protocols_tests.rs` is a new file with no file-level allow; the uppercase `test_BC_…` names in `mod story_151` violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |
 | v1.4 | 2026-07-02 | F-F3P15-001 (MEDIUM, mis-anchor): Fixed C-25 path prefix at all 3 occurrences (AC-151-008 body line ~272, Component Identities block line ~288, Task 5 line ~411): `src/enip.rs` → `src/analyzer/enip.rs`. Component identity (C-25 = EtherNet/IP + CIP analyzer, SS-17) was correct; only the `src/` prefix was wrong (residual from the F-F3P2-002 fix that corrected C-25 identity reader.rs→enip but wrote wrong path prefix). C-26 = `src/protocols.rs` unaffected. | F-F3P15-001 |
+| v1.5 | 2026-07-03 | F-F3P12-001 carry (MEDIUM): Removed stale "(except 53, which maps to DNS)" parenthetical from AC-151-005 `test_BC_2_18_003_supported_ports_mirror` description. The delivered test loops over all 8 SUPPORTED_PORTS including 53; DNS entry carries `canonical_ports: &[53]` so it satisfies the mirror invariant. AC prose now correctly states the mirror check covers all 8 ports. | F-F3P12-001, STORY-151-Pass-2-MEDIUM-2 |
