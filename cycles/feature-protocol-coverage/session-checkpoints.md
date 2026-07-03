@@ -29,6 +29,33 @@ cycle: feature-protocol-coverage
 
 ---
 
+## Checkpoint archived 2026-07-02 (superseded by session-wrap checkpoint — D-361)
+
+**F4 WAVE 67 IN PROGRESS (D-360, 2026-07-02). STORY-151 (feature/story-151-protocol-catalog, commits e4903bc+b84d637; 26/26 tests green) and STORY-153 (feature/story-153-unclassified-counters, commits b78ebd9+b595b66+37b86d8; 20/20 story_153 green, zero regressions) IMPLEMENTED + GREEN in worktrees (not pushed/merged). Per-story adversarial Pass-1 CLEAN + remediated; counter reset 0/3 each. Next: per-story adversarial convergence Pass-2/3 for both → demo-recorder per-AC demos → pr-manager 9-step PRs → squash-merge → worktree cleanup → wave-68 STORY-152.**
+
+- **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD=`93f4b99` (use `git -C .factory log -1 --format='%h %s'` for live HEAD). Worktrees: main checkout [develop] + .factory [factory-artifacts] + .worktrees/story-151-protocol-catalog [feature/story-151-protocol-catalog] + .worktrees/story-153-unclassified-counters [feature/story-153-unclassified-counters].
+- **STORY-151 (wave 67, SS-18 catalog):**
+  - Branch: `feature/story-151-protocol-catalog` (from develop 3a60317)
+  - Commits: `e4903bc` (impl: 30-entry KNOWN_PROTOCOLS + SUPPORTED_PORTS + partition fns + VP-041) + `b84d637` (per-story Pass-1 remediation: green-doc-tense sweep + catalog-declaration-order test)
+  - State: 26/26 tests green; all-targets green; clippy -D warnings clean; fmt clean; release build clean
+  - Per-story adversarial Pass-1 CLEAN (0 P0/HIGH); 2 MEDIUM fixed (F-S151P1-001 stale-RED test prose, F-S151P1-002 untested declared-order clause) + 1 LOW obs (name-uniqueness latent fragility, optional). Counter reset 0/3.
+- **STORY-153 (wave 67, SS-05 dispatcher + main.rs UDP counters):**
+  - Branch: `feature/story-153-unclassified-counters` (from develop 3a60317)
+  - Commits: `b78ebd9` (impl: on_flow_close TCP counter min-of-ports + udp_gap_key seam) + `b595b66` (doc-tense) + `37b86d8` (per-story Pass-1 remediation: green-doc-tense sweep of mod story_153)
+  - State: 20/20 story_153 tests green; all-targets green (zero regressions; 8 existing StreamDispatcher::new call sites untouched via builder); clippy/fmt/release clean
+  - Per-story adversarial Pass-1 CLEAN (0 P0/HIGH); F-F3P11-001 min-of-ports keying fix verified non-vacuously guarded; 1 LOW fixed (F-S153P1-001 stale-RED test prose) + 3 non-blocking obs (BC-2.05.010 PC-1 wording phase-5; double can_decode micro-redundancy; udp_unclassified_counts unread this wave [intentional per F-F3P6-001]). Counter reset 0/3.
+- **RESUME PROCEDURE (strictly ordered):**
+  1. Run `vsdd-factory:factory-worktree-health` — PASS required.
+  2. Read `.factory/STATE.md` — confirm F4 wave-67 in-progress state (D-360).
+  3. Verify worktrees: `git -C .worktrees/story-151-protocol-catalog log -3 --oneline` → e4903bc+b84d637; `git -C .worktrees/story-153-unclassified-counters log -4 --oneline` → b78ebd9+b595b66+37b86d8.
+  4. Dispatch per-story adversarial Pass-2 for STORY-151 (fresh context; cannot see Pass-1 report).
+  5. Dispatch per-story adversarial Pass-2 for STORY-153 (fresh context; cannot see Pass-1 report).
+  6. Continue each to 3 consecutive clean passes, then demo-recorder → pr-manager → merge → worktree cleanup.
+  7. After STORY-151+153 merged: wave-68 (STORY-152), then wave-69 (STORY-154), then F4 holdout evaluation.
+- **F4-carry refinements (still open):** F-F3P18-O2 (STORY-154 render re-lookup name), F-F3P10-001 (STORY-153 unclassified_flows-fires-when-gaps-disabled Red-Gate test), F-F3P9-001/F-F3P13-001 (protocols --json stdout-only), F-F3P7-O1 (udp_unclassified_counts function-scope), F-F3P12-001 (mirror-test port-53), F-F3P13-002/F-F3P16-002 (STORY-154 subsystems SS-05 + dep-graph cell), F-F3P17-001 (AC-154-002 cross-layer trace note).
+
+---
+
 ## Checkpoint archived 2026-07-02 (superseded by F4 wave-67 in-progress checkpoint — D-360)
 
 **F3 GATE APPROVED (D-359, 2026-07-02). Now in F4 delta implementation (autonomous, wave-gated). Next: pre-F4 env prep (devops-engineer: factory-worktree-health + verify ci.yml/branch-protection + create wave-67 worktrees for STORY-151 & STORY-153), then per-story-delivery wave 67 (STORY-151 ∥ STORY-153).**
