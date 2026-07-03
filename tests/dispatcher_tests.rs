@@ -2338,7 +2338,7 @@ mod story_153 {
         /// Regression guard: on_flow_close None-target arm accumulates counts correctly.
         #[test]
         fn proptest_vp042_total_count_equals_n(
-            n in 1u64..=50u64,
+            n in 1u64..=256u64,
             service_port in 1024u16..=19999u16,
         ) {
             let mut dispatcher = gaps_dispatcher();
