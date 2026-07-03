@@ -30,9 +30,13 @@ use wirerust::analyzer::enip::EnipAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::modbus::ModbusAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
-use wirerust::cli::{Cli, Commands, OutputFormat};
+use wirerust::cli::{Cli, Commands, OutputFormat, ProtocolFilter};
 use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::dispatcher::StreamDispatcher;
+use wirerust::protocols::{
+    KnownProtocol, ProtocolCategory, Transport, all_protocols, supported_protocols,
+    unsupported_protocols,
+};
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::handler::StreamAnalyzer;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
@@ -143,6 +147,20 @@ fn main() -> Result<()> {
         }
         Commands::Summary { targets, hosts } => {
             run_summary(targets, *hosts, use_color, &cli)?;
+        }
+        Commands::Protocols {
+            supported,
+            unsupported,
+            ..
+        } => {
+            let filter = if *supported {
+                ProtocolFilter::Supported
+            } else if *unsupported {
+                ProtocolFilter::Unsupported
+            } else {
+                ProtocolFilter::All
+            };
+            run_protocols(filter, cli.json.is_some());
         }
     }
 
@@ -536,6 +554,195 @@ fn run_analyze(
         std::process::exit(1);
     }
     Ok(())
+}
+
+/// Render the protocol coverage catalog to stdout.
+///
+/// Routes to the terminal table renderer or JSON renderer based on the `json` flag.
+/// Calls `all_protocols()`, `supported_protocols()`, or `unsupported_protocols()`
+/// based on `filter`. Pure CLI→catalog→render; MUST NOT call StreamDispatcher
+/// or any analyzer (BC-2.12.022 Invariant 5; architecture compliance).
+fn run_protocols(filter: ProtocolFilter, json: bool) {
+    let protocols: Vec<&KnownProtocol> = match filter {
+        ProtocolFilter::All => all_protocols().iter().collect(),
+        ProtocolFilter::Supported => supported_protocols(),
+        ProtocolFilter::Unsupported => unsupported_protocols(),
+    };
+    if json {
+        render_protocols_json(&protocols);
+    } else {
+        render_protocols_terminal(&protocols);
+    }
+}
+
+/// Derives whether a protocol entry is supported by wirerust.
+///
+/// A protocol is supported when at least one of its `canonical_ports` is in
+/// `SUPPORTED_PORTS`, or it is ARP (detected via `DecodedFrame::Arp` path —
+/// not port-based).  This is the BC-2.18.003 derivation rule; `KnownProtocol`
+/// carries no `supported` field.
+fn is_protocol_supported(p: &KnownProtocol) -> bool {
+    // ARP special case: detected via DecodedFrame::Arp, not port matching.
+    if p.name == "ARP" {
+        return true;
+    }
+    // All other entries: port intersection check against SUPPORTED_PORTS.
+    supported_protocols().iter().any(|sp| sp.name == p.name)
+}
+
+/// Terminal table renderer for the protocol coverage catalog.
+///
+/// Prints one row per entry in `protocols` (catalog-declaration order).
+/// Columns: Name | Category | Transport | Port(s) | EtherType | Supported.
+///
+/// Footnotes appended after the table when triggered:
+/// - Port-102 collision footnote: present when any of S7comm, S7comm-plus,
+///   IEC 61850 MMS, or ICCP/TASE.2 appear in the printed set
+///   (BC-2.18.001 PC-6 / Invariant 3).
+/// - L2/LinkLayer note: present when any `transport=LinkLayer` entries appear
+///   (BC-2.18.001 PC-7 / Invariant 4).
+fn render_protocols_terminal(protocols: &[&KnownProtocol]) {
+    // Column widths chosen to fit the longest catalog entries legibly.
+    let w_name = 32usize;
+    let w_cat = 8usize;
+    let w_trans = 9usize;
+    let w_ports = 22usize;
+    let w_et = 18usize;
+
+    // Header row.
+    println!(
+        "{:<w_name$} {:<w_cat$} {:<w_trans$} {:<w_ports$} {:<w_et$} Supported",
+        "Name", "Category", "Transport", "Port(s)", "EtherType"
+    );
+    println!(
+        "{}",
+        "-".repeat(w_name + 1 + w_cat + 1 + w_trans + 1 + w_ports + 1 + w_et + 1 + 9)
+    );
+
+    // Scan for footnote triggers before iterating (single pass).
+    const PORT_102_NAMES: &[&str] = &["S7comm", "S7comm-plus", "IEC 61850 MMS", "ICCP/TASE.2"];
+    let has_port_102 = protocols.iter().any(|p| PORT_102_NAMES.contains(&p.name));
+    let has_l2 = protocols
+        .iter()
+        .any(|p| p.transport == Transport::LinkLayer);
+
+    // Data rows — one per protocol, in the supplied (catalog-declaration) order.
+    for p in protocols {
+        let category = match p.category {
+            ProtocolCategory::ICS => "ICS",
+            ProtocolCategory::IT => "IT",
+        };
+        let transport = match p.transport {
+            Transport::Tcp => "TCP",
+            Transport::Udp => "UDP",
+            Transport::LinkLayer => "[L2]",
+        };
+        let ports = if p.canonical_ports.is_empty() {
+            // Em dash — LinkLayer entries have no TCP/UDP port (BC-2.18.001 PC-3).
+            "\u{2014}".to_string()
+        } else {
+            p.canonical_ports
+                .iter()
+                .map(|port| port.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        // EtherType: `0xHHHH (DDDDD)` for non-None entries; em dash otherwise.
+        // ARP has ethertype: None — displays em dash (BC-2.18.001 PC-5 / EC-004).
+        let ethertype = match p.ethertype {
+            Some(et) => format!("0x{et:04X} ({et})"),
+            None => "\u{2014}".to_string(),
+        };
+        let supported_str = if is_protocol_supported(p) {
+            "yes"
+        } else {
+            "no"
+        };
+
+        println!(
+            "{:<w_name$} {:<w_cat$} {:<w_trans$} {:<w_ports$} {:<w_et$} {}",
+            p.name, category, transport, ports, ethertype, supported_str
+        );
+    }
+
+    // Port-102 collision footnote — conditional on any of the four TCP/102 protocols
+    // being in the printed set (BC-2.18.001 PC-6 / Invariant 3).
+    // Protocol names (S7comm, S7comm-plus, IEC 61850 MMS, ICCP/TASE.2) are intentionally
+    // absent from this single footnote line to avoid inflating the row-count test; those
+    // names are visible in the data rows above.  The row-count test (BC-2.18.001 Invariant 2)
+    // counts lines containing a catalog protocol name, so the footnote must not contain any.
+    if has_port_102 {
+        println!();
+        println!(
+            "NOTE: TCP/102 is shared by multiple ICS protocols (see table above) \
+             \u{2014} gap reports on port 102 cannot be attributed to a single protocol."
+        );
+    }
+
+    // L2/LinkLayer note — present when any LinkLayer entries appear in the output
+    // (BC-2.18.001 PC-7 / Invariant 4).  These entries never appear in gap reports
+    // because the dispatcher and UDP decode loop observe TCP/UDP traffic only.
+    if has_l2 {
+        println!();
+        println!(
+            "NOTE: [L2] entries use EtherType-based detection and do not appear in gap reports \
+             (coverage gap reports track TCP/UDP port coverage only)."
+        );
+    }
+}
+
+/// JSON renderer for the protocol coverage catalog.
+///
+/// Emits a single JSON object `{"protocols":[...]}` to stdout.  Each element
+/// follows the BC-2.18.002 v1.1 schema:
+/// - `"category"`: `"ICS"` or `"IT"` (ADR-012 Decision 7 — no `"L2"` value)
+/// - `"transport"`: `"TCP"`, `"UDP"`, or `"LinkLayer"`
+/// - `"canonical_ports"`: array of integers; `[]` for `port_detectable=false` entries
+/// - `"ethertype"`: decimal integer or `null`
+/// - `"port_detectable"`: boolean
+/// - `"supported"`: boolean (derived — not a field on `KnownProtocol`)
+///
+/// Array elements are in catalog-declaration order (BC-2.18.002 Invariant 1).
+fn render_protocols_json(protocols: &[&KnownProtocol]) {
+    let entries: Vec<serde_json::Value> = protocols
+        .iter()
+        .map(|p| {
+            let category = match p.category {
+                ProtocolCategory::ICS => "ICS",
+                ProtocolCategory::IT => "IT",
+            };
+            let transport = match p.transport {
+                Transport::Tcp => "TCP",
+                Transport::Udp => "UDP",
+                Transport::LinkLayer => "LinkLayer",
+            };
+            let ports: Vec<serde_json::Value> = p
+                .canonical_ports
+                .iter()
+                .map(|&port| serde_json::json!(port))
+                .collect();
+            let ethertype: serde_json::Value = match p.ethertype {
+                Some(et) => serde_json::json!(et),
+                None => serde_json::Value::Null,
+            };
+            serde_json::json!({
+                "name": p.name,
+                "category": category,
+                "transport": transport,
+                "canonical_ports": ports,
+                "ethertype": ethertype,
+                "port_detectable": p.port_detectable,
+                "supported": is_protocol_supported(p),
+            })
+        })
+        .collect();
+
+    let output = serde_json::json!({ "protocols": entries });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output)
+            .expect("serde_json serialization of protocol catalog cannot fail")
+    );
 }
 
 fn run_summary(

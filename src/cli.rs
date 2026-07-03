@@ -120,6 +120,21 @@ pub struct Cli {
     pub command: Commands,
 }
 
+/// Filter applied to the `protocols` subcommand.
+///
+/// Exactly three variants: `All` (default when no flag is given), `Supported`,
+/// and `Unsupported`. Mutual exclusion is enforced by clap `conflicts_with_all`
+/// annotations on the corresponding flags (BC-2.12.022 Invariant 2).
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProtocolFilter {
+    /// Show all protocols — equivalent to passing `--all` (BC-2.12.022 Invariant 3).
+    All,
+    /// Show only protocols that wirerust actively dissects.
+    Supported,
+    /// Show only protocols that wirerust does not yet dissect.
+    Unsupported,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Analyze PCAP files for threats and anomalies
@@ -262,5 +277,22 @@ pub enum Commands {
         // LESSON-P1.03
         #[arg(long)]
         hosts: bool,
+    },
+
+    /// List the protocol coverage catalog (BC-2.12.022; BC-2.18.001; BC-2.18.002)
+    ///
+    /// Prints a table of all known ICS/IT protocols — filterable by
+    /// `--supported`, `--unsupported`, or `--all` (default).  Combine with
+    /// the global `--json` flag for machine-readable output.
+    Protocols {
+        /// Show all protocols (default — same as passing no filter flag)
+        #[arg(long, conflicts_with_all = &["supported", "unsupported"])]
+        all: bool,
+        /// Show only protocols that wirerust actively dissects
+        #[arg(long, conflicts_with_all = &["all", "unsupported"])]
+        supported: bool,
+        /// Show only protocols that wirerust does not yet dissect
+        #[arg(long, conflicts_with_all = &["all", "supported"])]
+        unsupported: bool,
     },
 }
