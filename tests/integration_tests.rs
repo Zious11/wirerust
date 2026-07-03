@@ -5,16 +5,13 @@
 //!   BC-2.18.001 v1.4 — Terminal Catalog Output (filter flags, [L2], EtherType, footnotes)
 //!   BC-2.18.002 v1.1 — JSON Mode Output Schema
 //!
-//! RED-GATE: All tests in `mod story_152` that assert `.success()` FAIL against
-//! the current binary — the `protocols` subcommand does not yet exist, so clap
-//! exits non-zero with "unrecognized subcommand 'protocols'" for every invocation.
-//!
-//! Exceptions (PASS in Red-Gate — these are regression guards):
-//!   - `test_BC_2_12_022_analyze_unaffected` — exercises existing `analyze` behavior;
-//!     asserts output does NOT gain a `protocols` key (always true today).
-//!   - `test_BC_2_12_022_mutually_exclusive_flags_error` — expects non-zero exit;
-//!     binary already exits non-zero (wrong subcommand) so this passes for the
-//!     wrong reason in Red-Gate. It becomes a true behavioral guard post-implementation.
+//! All tests in `mod story_152` are GREEN regression guards for the `protocols`
+//! subcommand introduced in STORY-152. They guard that:
+//!   - the subcommand remains registered in clap and exits 0 for valid invocations,
+//!   - filter flags (`--supported`, `--unsupported`, `--all`) produce the correct row sets,
+//!   - terminal output correctly renders transport, EtherType, and footnotes,
+//!   - JSON output conforms to BC-2.18.002 field schema,
+//!   - the existing `analyze` subcommand is unaffected by the addition.
 //!
 //! Harness: `assert_cmd::Command::cargo_bin("wirerust")` (binary process spawning).
 //! Catalog access: `wirerust::protocols::{all_protocols, supported_protocols,
@@ -49,8 +46,8 @@ mod story_152 {
     /// BC-2.12.022 PC-1 / Postcondition 6 / Invariant 1
     /// `wirerust protocols` exits 0 and produces non-empty stdout.
     ///
-    /// RED-GATE FAIL: the `protocols` subcommand does not exist → clap exits
-    /// non-zero → `.assert().success()` assertion fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed from clap
+    /// or if it starts producing empty stdout.
     #[test]
     fn test_BC_2_12_022_protocols_subcommand_exit_0() {
         let output = bin()
@@ -71,16 +68,24 @@ mod story_152 {
     /// BC-2.12.022 Invariant 2 / EC-006
     /// `wirerust protocols --supported --unsupported` exits non-zero (clap conflict).
     ///
-    /// RED-GATE NOTE: PASSES even before implementation — the binary exits non-zero
-    /// for "unrecognized subcommand 'protocols'" rather than "mutually exclusive flags".
-    /// This test becomes a true behavioral guard after implementation; it would fail if
-    /// the `conflicts_with` annotation were removed from the `protocols` subcommand.
+    /// Guards that clap's `conflicts_with` annotation on `--supported` vs `--unsupported`
+    /// remains in place. Fails if the `conflicts_with` constraint is removed from the
+    /// `protocols` subcommand definition in `src/cli.rs`.
     #[test]
     fn test_BC_2_12_022_mutually_exclusive_flags_error() {
-        bin()
+        let assert = bin()
             .args(["protocols", "--supported", "--unsupported"])
             .assert()
             .failure();
+        // Must be a clap conflict/usage error, not any arbitrary non-zero exit.
+        // clap emits "cannot be used with" for conflicts_with violations.
+        let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf-8 stderr");
+        assert!(
+            stderr.contains("cannot be used with"),
+            "BC-2.12.022 Invariant 2: expected a clap conflict error \
+             (\"cannot be used with\") for `--supported --unsupported`; \
+             got stderr:\n{stderr}"
+        );
     }
 
     /// BC-2.12.022 Postcondition 3 / EC-002
@@ -90,7 +95,7 @@ mod story_152 {
     /// Row count is derived robustly by matching stdout lines against protocol
     /// names from `supported_protocols()`, not by counting header/footnote lines.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_12_022_protocols_supported_filter() {
         let output = bin()
@@ -102,8 +107,10 @@ mod story_152 {
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
         let supported = supported_protocols();
+        // Exclude lines starting with "NOTE:" for robustness against footnote changes.
         let row_count = stdout
             .lines()
+            .filter(|line| !line.starts_with("NOTE:"))
             .filter(|line| supported.iter().any(|p| line.contains(p.name)))
             .count();
         assert_eq!(
@@ -120,7 +127,7 @@ mod story_152 {
     /// The global `--json` flag (no path) routes output to stdout. Parsed with `serde_json`
     /// — no shell-out to `jq`.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_12_022_protocols_json_flag() {
         let output = bin()
@@ -155,10 +162,9 @@ mod story_152 {
     /// subcommand: it still exits 0, still contains `"summary"` and `"findings"` keys,
     /// and does NOT contain a `"protocols"` key.
     ///
-    /// RED-GATE NOTE: PASSES before implementation — `analyze` already works and
-    /// naturally does not emit a `"protocols"` key. This test is a REGRESSION GUARD:
-    /// it fails only if the `protocols` subcommand implementation breaks `analyze`
-    /// or accidentally injects a `"protocols"` key into the analyze output.
+    /// Regression guard for the existing `analyze` subcommand: fails if the `protocols`
+    /// implementation breaks `analyze` output or accidentally injects a `"protocols"` key
+    /// into `analyze --json` output.
     #[test]
     fn test_BC_2_12_022_analyze_unaffected() {
         let output = bin()
@@ -202,7 +208,7 @@ mod story_152 {
     /// Row count is derived by matching stdout lines against protocol names from
     /// `all_protocols()` — header lines and footnotes are not counted.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_all_row_count() {
         let output = bin()
@@ -214,8 +220,11 @@ mod story_152 {
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
         let all = all_protocols();
+        // Exclude lines starting with "NOTE:" so the port-102 footnote (which names
+        // protocol names per AC-152-004) does not inflate the data-row count.
         let row_count = stdout
             .lines()
+            .filter(|line| !line.starts_with("NOTE:"))
             .filter(|line| all.iter().any(|p| line.contains(p.name)))
             .count();
         let expected = all.len(); // == 30
@@ -231,7 +240,7 @@ mod story_152 {
     /// `wirerust protocols --supported` output contains ONLY the 7 supported protocols
     /// and NONE of the unsupported ones.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_supported_filter() {
         let output = bin()
@@ -269,7 +278,7 @@ mod story_152 {
     /// `wirerust protocols --unsupported` stdout contains the TCP/102 collision note
     /// (S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 all appear in the set).
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_port102_footnote() {
         let output = bin()
@@ -294,7 +303,7 @@ mod story_152 {
     /// none of the four TCP/102 protocols (S7comm, S7comm-plus, IEC 61850 MMS,
     /// ICCP/TASE.2) appear in the supported set.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_port102_footnote_absent_supported() {
         let output = bin()
@@ -326,7 +335,7 @@ mod story_152 {
     /// ICCP/TASE.2 (IEC 60870-6). All four share TCP/102 (ISO on TCP / TPKT framing,
     /// RFC 1006). The footnote must name each to satisfy BC-2.18.001 PC-6 exact text.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_port102_footnote_names_all_four() {
         let output = bin()
@@ -337,25 +346,40 @@ mod story_152 {
             .stdout
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // Locate the footnote line specifically — names must appear IN THE FOOTNOTE,
+        // not just anywhere in stdout (the same names also appear as data rows).
+        // This guards against a regression where the footnote omits the names but
+        // the data rows still satisfy a bare stdout.contains() check.
+        let footnote_line = stdout
+            .lines()
+            .find(|line| line.starts_with("NOTE: TCP/102"))
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.18.001 PC-6: expected a footnote line starting with \
+                     'NOTE: TCP/102' in --unsupported output; stdout:\n{stdout}"
+                )
+            });
         assert!(
-            stdout.contains("S7comm"),
-            "BC-2.18.001 PC-6: port-102 footnote must name 'S7comm'; stdout:\n{stdout}"
+            footnote_line.contains("S7comm"),
+            "BC-2.18.001 PC-6: footnote must name 'S7comm'; footnote line: {footnote_line:?}"
         );
         // S7comm-plus (or equivalent notation).
         assert!(
-            stdout.contains("S7comm-plus") || stdout.contains("S7comm+"),
-            "BC-2.18.001 PC-6: port-102 footnote must name 'S7comm-plus'; stdout:\n{stdout}"
+            footnote_line.contains("S7comm-plus") || footnote_line.contains("S7comm+"),
+            "BC-2.18.001 PC-6: footnote must name 'S7comm-plus'; \
+             footnote line: {footnote_line:?}"
         );
         // IEC 61850 MMS.
         assert!(
-            stdout.contains("IEC 61850 MMS") || stdout.contains("MMS"),
-            "BC-2.18.001 PC-6: port-102 footnote must name 'IEC 61850 MMS'; stdout:\n{stdout}"
+            footnote_line.contains("IEC 61850 MMS") || footnote_line.contains("MMS"),
+            "BC-2.18.001 PC-6: footnote must name 'IEC 61850 MMS'; \
+             footnote line: {footnote_line:?}"
         );
         // ICCP or ICCP/TASE.2.
         assert!(
-            stdout.contains("ICCP") || stdout.contains("TASE.2"),
-            "BC-2.18.001 PC-6: port-102 footnote must name 'ICCP' or 'ICCP/TASE.2'; \
-             stdout:\n{stdout}"
+            footnote_line.contains("ICCP") || footnote_line.contains("TASE.2"),
+            "BC-2.18.001 PC-6: footnote must name 'ICCP' or 'ICCP/TASE.2'; \
+             footnote line: {footnote_line:?}"
         );
     }
 
@@ -363,7 +387,7 @@ mod story_152 {
     /// The GOOSE row in `wirerust protocols --unsupported` contains `[L2]` in the
     /// transport column (IEC 61850 GOOSE is a `transport=LinkLayer` entry).
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_l2_transport_indicator() {
         let output = bin()
@@ -398,7 +422,7 @@ mod story_152 {
     /// for the presence of "gap" (a keyword that must appear in any well-formed note
     /// about gap-report invisibility).
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_l2_note_present() {
         let output = bin()
@@ -431,7 +455,7 @@ mod story_152 {
     /// 0x88B8 = 35000 decimal (verified: 8*16^3 + 8*16^2 + 11*16 + 8 = 34816+2048+176+8 = wait
     /// 0x88B8: 0x8000=32768, 0x0800=2048, 0x00B0=176, 0x0008=8 → 32768+2048+176+8 = 35000 ✓).
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_goose_ethertype_display() {
         let output = bin()
@@ -475,7 +499,7 @@ mod story_152 {
     /// `epan/etypes.h` constant `ETHERTYPE_EPL_V2 = 0x88AB`; IETF `ietf-ethertypes`
     /// YANG module value 34987. The obsolete V1 value 0x3E3F (16191) must not appear.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_powerlink_ethertype_display() {
         let output = bin()
@@ -515,7 +539,7 @@ mod story_152 {
     /// The ARP row in `wirerust protocols --all` displays `—` (em dash, U+2014) in the
     /// EtherType column. ARP has `ethertype: None` in `KNOWN_PROTOCOLS`.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_001_arp_ethertype_dash() {
         let output = bin()
@@ -559,7 +583,7 @@ mod story_152 {
     ///
     /// No shell-out to `jq` — parsed directly with `serde_json`.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_json_schema_valid() {
         let output = bin()
@@ -596,7 +620,7 @@ mod story_152 {
     /// (ARP is the counterexample to the converse: ARP has empty ports, ethertype=null,
     /// port_detectable=false — the iff was relaxed in BC v1.1.)
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_l2_entries_no_ports() {
         let output = bin()
@@ -636,7 +660,7 @@ mod story_152 {
     /// `wirerust protocols --supported --json` produces a `"protocols"` array with
     /// exactly 7 elements (== `supported_protocols().len()`).
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_supported_flag_matches_function() {
         let output = bin()
@@ -669,7 +693,7 @@ mod story_152 {
     /// Canonical value source: IEC 61850-8-1 §4; IEEE RA registry "IEC GOOSE"
     /// (0x88B8 = 35000 decimal). Category must be "ICS" not "L2" — ADR-012 Decision 7.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_goose_json_canonical() {
         let output = bin()
@@ -724,7 +748,7 @@ mod story_152 {
     /// "UDP Port Number 47808 (0xBAC0)". Port 47808 ∉ SUPPORTED_PORTS, so
     /// BACnet/IP is unsupported.
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_bacnet_json_canonical() {
         let output = bin()
@@ -772,7 +796,7 @@ mod story_152 {
     /// Canonical value source: IANA port registry + Modbus Application Protocol
     /// Specification v1.1b3 §4.3.1 "Well-Known TCP Port 0+502".
     ///
-    /// RED-GATE FAIL: clap rejects `protocols` → `.assert().success()` fails.
+    /// Regression guard: fails if the `protocols` subcommand is removed or stops exiting 0.
     #[test]
     fn test_BC_2_18_002_modbus_json_canonical() {
         let output = bin()
@@ -816,6 +840,135 @@ mod story_152 {
             serde_json::json!(true),
             "DF-CANONICAL-FRAME-HOLDOUT-001: Modbus/TCP 'supported' must be true \
              (port 502 ∈ SUPPORTED_PORTS)"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Coverage gap tests (Pass-1 findings)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.022 EC-152-4 — spurious positional argument rejected
+    /// `wirerust protocols somefile.pcap` exits non-zero; clap rejects the
+    /// unexpected positional argument (the `protocols` subcommand accepts no
+    /// positional args — only `--all`, `--supported`, `--unsupported`, `--json`).
+    #[test]
+    fn test_BC_2_12_022_protocols_spurious_positional_error() {
+        bin()
+            .args(["protocols", "somefile.pcap"])
+            .assert()
+            .failure();
+    }
+
+    /// BC-2.18.002 v1.1 EC-152-10; DF-CANONICAL-FRAME-HOLDOUT-001
+    /// ARP entry in `wirerust protocols --supported --json` has:
+    ///   `"transport": "LinkLayer"`, `"ethertype": null`,
+    ///   `"canonical_ports": []`, `"supported": true`
+    ///
+    /// ARP is in the supported set via the explicit `|| p.name == "ARP"` branch
+    /// in `supported_protocols()` (BC-2.18.003 Invariant 3). Its L2 transport means
+    /// it has no canonical TCP/UDP ports and no EtherType value in KNOWN_PROTOCOLS.
+    #[test]
+    fn test_BC_2_18_002_arp_json_canonical() {
+        let output = bin()
+            .args(["protocols", "--supported", "--json"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value =
+            serde_json::from_str(&stdout).expect("valid JSON (BC-2.18.002 PC-6)");
+        let arr = json["protocols"]
+            .as_array()
+            .expect("'protocols' must be an array");
+        let arp = arr
+            .iter()
+            .find(|e| e["name"].as_str().is_some_and(|n| n == "ARP"))
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.18.002 EC-152-10: ARP must appear in --supported JSON output \
+                     (ARP is in supported_protocols() via || p.name == \"ARP\"); \
+                     full array:\n{arr:?}"
+                )
+            });
+        assert_eq!(
+            arp["transport"],
+            serde_json::json!("LinkLayer"),
+            "BC-2.18.002 EC-152-10: ARP 'transport' must be \"LinkLayer\""
+        );
+        assert_eq!(
+            arp["ethertype"],
+            serde_json::Value::Null,
+            "BC-2.18.002 EC-152-10: ARP 'ethertype' must be null (ethertype=None in \
+             KNOWN_PROTOCOLS)"
+        );
+        assert_eq!(
+            arp["canonical_ports"],
+            serde_json::json!([]),
+            "BC-2.18.002 EC-152-10: ARP 'canonical_ports' must be [] (LinkLayer entry, \
+             no TCP/UDP port)"
+        );
+        assert_eq!(
+            arp["supported"],
+            serde_json::json!(true),
+            "BC-2.18.002 EC-152-10: ARP 'supported' must be true \
+             (in supported_protocols() via || p.name == \"ARP\")"
+        );
+    }
+
+    /// BC-2.12.022 Invariant 3 — default (no flag) equals `--all`
+    /// `wirerust protocols` with no filter flag prints the same 30 data rows as
+    /// `wirerust protocols --all` (BC-2.12.022 Invariant 3: default == --all).
+    ///
+    /// Row counts exclude lines starting with "NOTE:" so the port-102 footnote
+    /// (which names protocol names per AC-152-004) does not inflate the count.
+    #[test]
+    fn test_BC_2_12_022_default_equals_all() {
+        let all = all_protocols();
+
+        // Count data rows in `--all` output (canonical reference).
+        let output_all = bin()
+            .args(["protocols", "--all"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout_all = String::from_utf8(output_all).expect("utf-8 stdout");
+        let count_all = stdout_all
+            .lines()
+            .filter(|line| !line.starts_with("NOTE:"))
+            .filter(|line| all.iter().any(|p| line.contains(p.name)))
+            .count();
+
+        // Count data rows in default (no-flag) output.
+        let output_default = bin()
+            .args(["protocols"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout_default = String::from_utf8(output_default).expect("utf-8 stdout");
+        let count_default = stdout_default
+            .lines()
+            .filter(|line| !line.starts_with("NOTE:"))
+            .filter(|line| all.iter().any(|p| line.contains(p.name)))
+            .count();
+
+        assert_eq!(
+            count_default, count_all,
+            "BC-2.12.022 Invariant 3: `wirerust protocols` (no flag) must print the same \
+             number of data rows as `wirerust protocols --all`; \
+             got default={count_default}, --all={count_all}"
+        );
+        assert_eq!(
+            count_all,
+            all.len(),
+            "BC-2.12.022 Invariant 3: both default and --all must print exactly {} data rows \
+             (== all_protocols().len()); got {count_all}",
+            all.len()
         );
     }
 }

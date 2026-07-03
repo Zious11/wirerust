@@ -667,14 +667,12 @@ fn render_protocols_terminal(protocols: &[&KnownProtocol]) {
 
     // Port-102 collision footnote — conditional on any of the four TCP/102 protocols
     // being in the printed set (BC-2.18.001 PC-6 / Invariant 3).
-    // Protocol names (S7comm, S7comm-plus, IEC 61850 MMS, ICCP/TASE.2) are intentionally
-    // absent from this single footnote line to avoid inflating the row-count test; those
-    // names are visible in the data rows above.  The row-count test (BC-2.18.001 Invariant 2)
-    // counts lines containing a catalog protocol name, so the footnote must not contain any.
+    // Names all four explicitly per AC-152-004 and BC-2.18.001 PC-6.
+    // Row-count tests exclude lines starting with "NOTE:" to avoid counting this footnote.
     if has_port_102 {
         println!();
         println!(
-            "NOTE: TCP/102 is shared by multiple ICS protocols (see table above) \
+            "NOTE: TCP/102 hosts S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 \
              \u{2014} gap reports on port 102 cannot be attributed to a single protocol."
         );
     }
