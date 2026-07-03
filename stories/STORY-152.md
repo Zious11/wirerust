@@ -109,14 +109,13 @@ Commands::Protocols { supported, unsupported, .. } => {
 }
 ```
 
-Note: `Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59) — absent / `--json` stdout /
-`--json=path` file. The `json: bool` parameter to `run_protocols` is derived from `cli.json.is_some()`
-where `cli` is the top-level `Cli` binding (`let cli = Cli::parse();`) in `main()`. The match arm
-operates under `match &cli.command`, so the correct access is `cli.json` (not `args.json` — no `args`
-binding exists in `main()`).
-When `--json=path` is given the file-path routing is handled at the call site; BC-2.12.022 "Honors --json"
-means stdout when no path is given, file when path is given — this routing is outside `run_protocols` scope
-and follows the same pattern as the existing `run_analyze()` JSON path.
+Note: `Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59). The `json: bool` parameter
+to `run_protocols` is derived from `cli.json.is_some()`, where `cli` is the top-level `Cli` binding
+(`let cli = Cli::parse();`) in `main()`. The match arm operates under `match &cli.command`, so the
+correct access is `cli.json` (not `args.json` — no `args` binding exists in `main()`).
+`protocols --json` always emits the JSON object to STDOUT (BC-2.18.002 PC-1); the PATH component of a
+`--json=<path>` argument is NOT used by `protocols`. File-path routing is out of scope for this
+subcommand (unlike `analyze`), consistent with the frozen BC-2.12.022 bool model for `--json`.
 
 New function `run_protocols(filter: ProtocolFilter, json: bool)` in `src/main.rs` calls:
 - `all_protocols()` for `ProtocolFilter::All`
@@ -481,3 +480,4 @@ No new source files.
 | v1.2 | 2026-07-02 | Obs-1: Added VP Reference Note after Behavioral Contracts table clarifying `verification_properties: [VP-041]` is a regression/relevance reference (VP-041 harnesses authored/anchored by STORY-151). | Obs-1 |
 | v1.3 | 2026-07-02 | F-F3P6-002 (MEDIUM): Added DERIVED-value NOTE to AC-152-003 (`supported` terminal column) and AC-152-007 (JSON `"supported"` field): `KnownProtocol` has no `supported` field; value is derived via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) \|\| name == "ARP"` (BC-2.18.003). Sibling-sweep fix matching STORY-154 v1.3 F-F3P3-001. | F-F3P6-002 |
 | v1.4 | 2026-07-02 | F-F3P8-001 (MEDIUM): `blocks: []` → `blocks: [STORY-154]` — reciprocal of dep-graph edge 152→154 (F-F3P2-005 file-sequencing; STORY-154 `depends_on` already lists STORY-152; sibling STORY-151 `blocks: [STORY-152, STORY-154]` and STORY-153 `blocks: [STORY-154]` were already correct). F-F3P8-002 (MEDIUM): Fixed `args.json` phantom in AC-152-002 dispatch arm (`args.json.is_some()` → `cli.json.is_some()`), the adjacent note, and Task 3 — `main()` binding is `let cli = Cli::parse()` (no `args` binding exists); match arm is under `match &cli.command`. F-F3P8-002 LOW: Sharpened AC-152-002 dispatch arm snippet — `&bool` destructures require `*` deref under `match &cli.command` (cf. main.rs `*hosts` pattern); unused `all` field replaced with `..` to avoid `-D warnings` unused-var error. F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 9 — `tests/integration_tests.rs` carries no file-level allow; the uppercase `test_BC_…` names in `mod story_152` violate `non_snake_case` under `-D warnings`. | F-F3P8-001, F-F3P8-002, F-F3P8-003 |
+| v1.5 | 2026-07-03 | F-F3P13-001 / F-F3P9-001 / STORY-152-Pass-1-F-2 (MEDIUM): Removed over-claim in AC-152-002 that `--json=<path>` performs file-path routing "at the call site … follows the same pattern as the existing run_analyze() JSON path." Replaced with accurate stdout-only description: `protocols --json` always emits the JSON object to STDOUT (BC-2.18.002 PC-1); the PATH component of `--json=<path>` is NOT used by `protocols`; file-path routing is out of scope for this subcommand (unlike `analyze`), consistent with frozen BC-2.12.022 bool model. Sibling-sweep (DF-SIBLING-SWEEP-001): only live occurrence was lines 117–119 of AC-152-002; Revision History v1.1 entry preserved verbatim. | F-F3P13-001, F-F3P9-001, STORY-152-Pass-1-F-2 |
