@@ -4,8 +4,8 @@ project: wirerust
 mode: feature
 phase: F4-delta-implementation
 status: in-progress
-current_step: "F4 wave-67: STORY-151 + STORY-153 per-story adversarial CONVERGED 3/3 each (D-363, BC-5.39.001 SATISFIED); PRs #351/#352 created, AI+security APPROVE, CI 11/11 PASS, READY-TO-MERGE; pipeline PAUSED at human merge gate; develop unchanged (3a60317). Next: human authorizes squash-merge #351+#352 → develop fast-forward → worktree cleanup → wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68."
-pipeline: PAUSED
+current_step: "F4 wave-67: STORY-151 (PR #351) + STORY-153 (PR #352) squash-merged to develop (D-364, 2026-07-03); develop HEAD b285feb; integration gate GREEN (fmt CLEAN, clippy CLEAN, all-targets 0 failures); story worktrees removed; stories_delivered=96. Next: wave-67 wave-level adversarial convergence (3 consecutive clean passes on develop b285feb) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout eval."
+pipeline: IN_PROGRESS
 timestamp: 2026-07-03T00:00:00Z
 
 # Release chain (latest)
@@ -17,9 +17,9 @@ release_commit: 4e2b28529ae196785ce6a0baed522b9939f929ea
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.1
 prior_released_version: v0.11.0
 prior_released_at: "2026-06-29"
-# Ground-truth HEADs (verified 2026-07-01 — PR #347 main merge + #348 develop back-merge)
+# Ground-truth HEADs (verified 2026-07-03 — Wave-67 PR #351/#352 squash-merged to develop)
 main_head: 4e2b28529ae196785ce6a0baed522b9939f929ea
-develop_head: 3a60317965e62bef9895e857c8a26fc3b8d03ad0
+develop_head: b285feb6c12ab4f469d84c80ca22cb4d0a98b438
 # Cargo.toml version on main and develop (in sync)
 cargo_version_main: "0.11.1"
 cargo_version_develop: "0.11.1"
@@ -29,7 +29,7 @@ bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
-stories_delivered: 94
+stories_delivered: 96
 story_index_version: "v3.12"
 total_stories: 107
 story_index_note: "107 stories / 69 waves / 691 pts. STORY-151..154 E-21 feature-protocol-coverage. dependency-graph v3.6 (edges 124, waves 69, acyclicity-proof counts=107). HS-INDEX v2.10 (STORY-154 wave 69 all sites; total 205)."
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**F4 DELTA-IMPLEMENTATION, WAVE 67 MERGE GATE. STORY-151 (feature/story-151-protocol-catalog @550170d; 26/26 tests green; 3/3 CONVERGED) and STORY-153 (feature/story-153-unclassified-counters @ff91fd8; 20/20 green; 3/3 CONVERGED) — BC-5.39.001 SATISFIED for both. PRs #351 (STORY-151→develop) and #352 (STORY-153→develop): AI+security APPROVE, CI 11/11 PASS, READY-TO-MERGE. Pipeline PAUSED — squash-merge requires explicit human authorization (harness auto-mode classifier). Develop unchanged (3a60317). Next: human authorizes squash-merge #351+#352 → develop fast-forward (DF-DEVELOP-FRESHNESS-001 v2) → worktree cleanup → wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout eval. Resume: `/vsdd-factory:next-step`.**
+**F4 DELTA-IMPLEMENTATION, WAVE 67 MERGED. STORY-151 (PR #351, squash → develop 963a69a) + STORY-153 (PR #352, squash → develop b285feb) merged by Zious11 2026-07-03 (D-364). develop HEAD = b285feb (full: b285feb6c12ab4f469d84c80ca22cb4d0a98b438). Integration gate GREEN: cargo fmt --check CLEAN, cargo clippy --all-targets -D warnings CLEAN, cargo test --all-targets 0 failures. stories_delivered = 96. Story worktrees removed. SEC-001 STORY-153 CWE-400 HashMap 65k ceiling DEFERRED to STORY-154 doc. Next: wave-67 wave-level adversarial convergence (3 consecutive clean passes on develop b285feb) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout eval (HS-123..132; F4-FIXTURE-NEED-001). Resume: `/vsdd-factory:next-step`.**
 
 ---
 
@@ -68,12 +68,12 @@ maintenance_prior_run: maint-2026-06-22
 | Mode | feature (cycle: feature-protocol-coverage; F2 spec evolution) |
 | Version | 0.11.1 (released) |
 | Main HEAD | `4e2b285` (full: `4e2b28529ae196785ce6a0baed522b9939f929ea`) |
-| Develop HEAD | `3a60317` (full: `3a60317965e62bef9895e857c8a26fc3b8d03ad0`) |
+| Develop HEAD | `b285feb` (full: `b285feb6c12ab4f469d84c80ca22cb4d0a98b438`) |
 | Tag v0.11.1 | commit `4e2b285`; tag object `e8a8a2d4` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.1 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.13 (345 active / 346 on disk) / VP-INDEX v2.32 (43 VPs) / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 94 delivered / 107 total (STORY-INDEX v3.12) |
+| Stories | 96 delivered / 107 total (STORY-INDEX v3.12) |
 
 ---
 
@@ -95,7 +95,7 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle feature-protocol-coverage — F1 (delta-analysis) | **DONE** | Artifacts: `.factory/phase-f1-delta-analysis/feature-protocol-coverage-delta-analysis.md` + `affected-files.txt` + `feature-protocol-coverage-research.md`. Impact: 5 source files (new SS-18 `src/protocols.rs`, `dispatcher.rs`, `cli.rs`, `main.rs`, `lib.rs`). 9 new BCs / 2 amended / 2 new VPs (VP-041/VP-042) / 1 new ADR (ADR-012) / new subsystem SS-18. ~5 stories / ~23 pts / 3 waves. Regression risk MEDIUM (dispatcher carries VP-004 Kani harnesses). |
 | Feature cycle feature-protocol-coverage — F2 (spec-evolution) | **APPROVED (D-338, 2026-07-02)** | Adversarial convergence: 3 consecutive clean passes (P11/P12/P13, 13 total). Input-hash STALE=0 (D-337). Consistency audit PASS. Human gate approved 2026-07-02. 4 LOW items carried into F3. Final spec: BC-INDEX v2.13 / PRD v1.51 / VP-INDEX v2.32 / ARCH-INDEX v2.11 / ss-18 v1.5; 9 BCs, CAP-18, ADR-012, VP-041/042/043. |
 | Feature cycle feature-protocol-coverage — F3 (incremental-stories) | **APPROVED (D-359, 2026-07-02)** | F3 decomp+holdout DONE (D-339). 18 passes total; caught CRITICAL TCP-keying bug + multiple F4-breakers. BC-5.39.001 SATISFIED (Pass-16/17/18 consecutive clean). Human gate approved 2026-07-02. |
-| Feature cycle feature-protocol-coverage — F4 (delta-implementation) | **IN PROGRESS (D-363)** | Wave 67: STORY-151 @550170d (26/26 green; 3/3 CONVERGED; PR #351 READY-TO-MERGE; CI 11/11) + STORY-153 @ff91fd8 (20/20 green; 3/3 CONVERGED; PR #352 READY-TO-MERGE). BC-5.39.001 SATISFIED (both). PAUSED at human merge gate. Wave 68: STORY-152. Wave 69: STORY-154. develop=3a60317 (unchanged). |
+| Feature cycle feature-protocol-coverage — F4 (delta-implementation) | **IN PROGRESS (D-364)** | Wave 67: STORY-151 (PR #351 squash → 963a69a) + STORY-153 (PR #352 squash → b285feb) MERGED; integration gate GREEN; per-story convergence 3/3 each (BC-5.39.001 SATISFIED); stories_delivered=96; develop=b285feb. Next: wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout. |
 
 ---
 
@@ -103,11 +103,11 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **F4 wave-67: STORY-151 (PR #351 squash → 963a69a) + STORY-153 (PR #352 squash → b285feb) MERGED to develop (Zious11, 2026-07-03); integration gate GREEN (fmt CLEAN, clippy CLEAN, all-targets 0 failures); story worktrees removed; stories_delivered=96; SEC-001 STORY-153 CWE-400 HashMap 65k ceiling DEFERRED to STORY-154 doc** | **DONE (D-364)** | develop HEAD b285feb (full: b285feb6c12ab4f469d84c80ca22cb4d0a98b438). PR #351 (STORY-151): squash-merged → 963a69a; PR #352 (STORY-153): branch updated with develop (merge commit 6915874 integrating 963a69a), squash-merged → b285feb. Both story worktrees + local branches removed; remote feature branches auto-deleted. Only worktrees: main [develop @b285feb] + .factory [factory-artifacts]. |
 | **F4 wave-67: STORY-151 + STORY-153 per-story adversarial CONVERGED 3/3 each; BC-5.39.001 SATISFIED; PRs #351/#352 created, AI+security APPROVE, CI 11/11 PASS, READY-TO-MERGE; pipeline PAUSED at human merge gate** | **DONE (D-363)** | STORY-151 @550170d: Pass-2/3/4 all 0 P0/CRITICAL/HIGH/mis-anchor; GOOSE/SV/PROFINET/EtherCAT/POWERLINK EtherTypes + ports independently re-verified across 3 passes; VP-041 non-vacuity confirmed; code byte-stable. PR #351: AI APPROVE (0 blocking, 3 cosmetic), security CLEAN (1 LOW SEC-001 CWE-1025 ARP string-identity, no action), CI 11/11 PASS; diff src/lib.rs+2, protocols.rs+449, tests/protocols_tests.rs+785. STORY-153 @ff91fd8: Pass-2/3/4 all 0 P0/CRITICAL/HIGH/mis-anchor; TCP min-of-ports, unclassified_flows non-gating, udp_gap_key non-vacuity, gate asymmetry confirmed; VP-042/043 [1,256]. PR #352: AI APPROVE (0 blocking, 4 INFO), security APPROVE (1 LOW SEC-001 CWE-400 HashMap 65k ceiling DEFERRED to STORY-154 doc); diff dispatcher.rs+110, main.rs+29, dispatcher_tests.rs+654. Demo evidence: STORY-151 docs/demo-evidence/STORY-151/ (5 recordings, 26 tests), STORY-153 demos/STORY-153/ (7 recordings, 20/20 tests) — untracked. |
 | **F4 wave-67: STORY-151 + STORY-153 per-story adversarial Pass-2 BOTH CLEAN; remediations applied; STORY-151 consecutive-clean #1; STORY-153 counter RESET to 0** | **DONE (D-362)** | STORY-151: 0 P0/CRITICAL/HIGH/mis-anchor. MEDIUM-1 (AC-151-008): ARCH-INDEX module-criticality.md row 24→26 (this commit). MEDIUM-2/F-F3P12-001: AC-151-005 "(except 53)" stale prose removed (STORY-151 v1.5, this commit); code BYTE-STABLE; consecutive-clean #1/3. STORY-153: 0 P0/CRITICAL/HIGH/mis-anchor. M-1 (sibling-asymmetry): VP-042 Sub-A proptest range widened 50→256; tip ff91fd8 (pushed, all gates green); counter RESET to 0. Both: load-bearing invariants independently confirmed. |
 | **SESSION WRAP — human-requested pause; F4 wave-67 in progress; STORY-151/153 implemented+green+pushed; per-story adversarial Pass-2 next** | **DONE (D-361)** | STORY-151 @550170d (wrap commit: src/lib.rs `pub mod protocols;` registration + removed stale RED proptest-regressions; 26/26 green). STORY-153 @6c3b3c3 (wrap commit: src/main.rs UDP decode-loop counter wiring + removed stale RED proptest-regressions; 20/20 green, zero regressions). Both pushed to origin. develop=3a60317 (unchanged). |
 | **F4 wave-67: STORY-151+153 implemented+green; per-story adversarial Pass-1 CLEAN+remediated; wrap commits complete both branch tips; pushed** | **DONE (D-360)** | STORY-151 tip 550170d; STORY-153 tip 6c3b3c3. All gates clean (all-targets, clippy -D warnings, fmt, release). Both branches compile standalone. |
-| **F3 adversarial story convergence ACHIEVED — 3 consecutive clean passes (Pass-16/17/18), 0 P0/HIGH/mis-anchor, byte-stable decomposition** | **DONE (D-357)** | BC-5.39.001 SATISFIED. 18 total passes. 3 final non-blocking obs: F-F3P18-O2 (STORY-154 render re-lookup `name` — F4 one-line), F-F3P18-O1 (BC-2.12.024 PC-4 supported-wording — phase-5), BC-2.05.010-EC006-UNREACHABLE-001 (EC-006 (Tcp,502)==2 physically unreachable — phase-5, DF-VALIDATION-001-gated). Deliverables: STORY-151..154 (v1.4/1.4/1.7/1.8), STORY-INDEX v3.12, dep-graph v3.6, HS-123..132. |
 ---
 
 ## Decisions Log
@@ -177,6 +177,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-360 | F4 wave 67 in progress. STORY-151 (branch feature/story-151-protocol-catalog, commits e4903bc+b84d637; protocols.rs 30-entry KNOWN_PROTOCOLS + SUPPORTED_PORTS + partition fns + VP-041; 26/26 tests green, all gates clean) and STORY-153 (branch feature/story-153-unclassified-counters, commits b78ebd9+b595b66+37b86d8; dispatcher TCP counter min-of-ports + udp_gap_key seam + main.rs UDP counting; 20/20 story_153 green, zero regressions, all gates clean) both IMPLEMENTED + GREEN in worktrees (NOT pushed/merged). Per-story adversarial Pass-1 = CLEAN for both (F-F3P11-001 min-of-ports keying fix verified non-vacuously guarded); Pass-1 MEDIUM/LOW remediated (green-doc-tense test sweeps + STORY-151 declared-order test); counter reset 0/3 each. Remaining per story: adversarial convergence (3 clean) → demo-recorder per-AC demos → push → pr-manager 9-step PR (AI+security review, DF-CONVERGENCE-BEFORE-MERGE-001) → squash-merge to develop → worktree cleanup. AC-151-008 ARCH-INDEX module-criticality '24→26' doc-fix is a factory-artifacts change (route to state-manager at story merge, NOT in the develop worktree). develop still 3a60317 (no merges yet). | 2026-07-02 |
 | D-361 | SESSION WRAP (human-requested, 2026-07-02). Pipeline PAUSED at F4 wave-67 per-story convergence. STORY-151 (branch feature/story-151-protocol-catalog @550170d, pushed to origin) + STORY-153 (branch feature/story-153-unclassified-counters @6c3b3c3, pushed to origin) both implemented+green+all-gates-clean; per-story adversarial Pass-1 CLEAN+remediated (counter 0/3 each). Wrap committed previously-unstaged completing files (STORY-151 src/lib.rs `pub mod protocols;` registration; STORY-153 src/main.rs UDP decode-loop counter wiring) so branch tips compile standalone; removed stale RED proptest-regressions. develop untouched (3a60317). Nothing lost — resumable from STATE.md. | 2026-07-02 |
 | D-362 | F4 wave-67 per-story adversarial Pass-2 BOTH CLEAN (0 P0/CRITICAL/HIGH/mis-anchor). Load-bearing invariants independently confirmed — STORY-151: all canonical EtherType/port values, catalog partition, purity, VP-041 non-vacuity. STORY-153: TCP min-of-ports key, unclassified_flows non-gating regression guard, udp_gap_key seam non-vacuity, gate asymmetry by design. Remediations: (1) STORY-153 M-1 (sibling-asymmetry): VP-042 Sub-A proptest range widened 1u64..=50u64 → 1u64..=256u64 to match VP-INDEX VP-042 Sub-A [1,256] and VP-043 sibling; tip ff91fd8 (pushed, all gates green); STORY-153 per-story convergence counter RESET to 0. (2) STORY-151 MEDIUM-1 (AC-151-008): ARCH-INDEX module-criticality.md row 24→26 components (this commit); ARCH-INDEX v2.11→v2.12; AC-151-008 now SATISFIED. (3) STORY-151 MEDIUM-2 (= F-F3P12-001): AC-151-005 "(except 53, which maps to DNS)" stale carve-out removed (STORY-151 v1.4→v1.5, this commit); worktree code BYTE-STABLE. STORY-151 convergence counter = 1/3 (consecutive-clean #1; doc-only fixes do not reset code convergence). F-F3P12-001 RESOLVED. develop unchanged (3a60317). Next: STORY-151 adversarial Pass-3 + Pass-4 (need #2, #3); STORY-153 fresh adversarial Pass ×3 (on ff91fd8). | 2026-07-03 |
+| D-364 | F4 Wave-67 STORY-151 + STORY-153 MERGED to develop 2026-07-03. PR #351 (STORY-151) squash-merged → develop 963a69a (Zious11). PR #352 (STORY-153): PR branch updated with develop via merge commit 6915874 (integrated 963a69a), then squash-merged → develop b285feb (Zious11). develop HEAD = b285feb6c12ab4f469d84c80ca22cb4d0a98b438. Integration gate GREEN: cargo fmt --check CLEAN; cargo clippy --all-targets -D warnings CLEAN; cargo test --all-targets 0 failures. stories_delivered 94→96 (STORY-151 + STORY-153 delivered). Both story worktrees + local branches removed; remote feature branches auto-deleted. SEC-001 STORY-153 (CWE-400 HashMap 65k-key bounded ceiling) DEFERRED to STORY-154 doc (document ceiling when --coverage-gaps wired). Next: wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout. | 2026-07-03 |
 | D-363 | F4 Wave-67 per-story adversarial CONVERGED for BOTH stories. BC-5.39.001 SATISFIED. STORY-151 @550170d: 3 consecutive fresh-context clean passes (Pass-2/3/4), 0 P0/CRITICAL/HIGH/mis-anchor; all canonical framing values (GOOSE/SV/PROFINET/EtherCAT/POWERLINK EtherTypes + ports) independently re-verified across all 3 passes; VP-041 non-vacuity confirmed; worktree byte-stable. STORY-153 @ff91fd8: 3 consecutive fresh-context clean passes (on ff91fd8 post-M-1), 0 P0/CRITICAL/HIGH/mis-anchor; TCP min-of-ports keying, unclassified_flows non-gating regression guard, udp_gap_key seam non-vacuity, gate asymmetry (ADR-012 Dec 6/10) confirmed; VP-042/043 ranges [1,256] all confirmed. Demo evidence recorded (VHS GIF+WebM per-AC): STORY-151 docs/demo-evidence/STORY-151/ (5 recordings, 26 tests green); STORY-153 demos/STORY-153/ (7 recordings, 20/20 tests green) — untracked, not part of code diff. PRs created+reviewed+READY-TO-MERGE (both stopped before merge — harness auto-mode requires explicit human approval for admin merge/bypasses): PR #351 (STORY-151→develop): AI APPROVE (0 blocking, 3 cosmetic), security CLEAN/APPROVE (1 LOW SEC-001 CWE-1025 ARP string-identity, no action required), CI 11/11 PASS; diff = src/lib.rs+2, src/protocols.rs+449, tests/protocols_tests.rs+785. PR #352 (STORY-153→develop): AI APPROVE (0 blocking, 4 INFO), security APPROVE (1 LOW SEC-001 CWE-400 HashMap 65k-key bounded ceiling, DEFERRED to STORY-154 doc); diff = src/dispatcher.rs+110, src/main.rs+29, tests/dispatcher_tests.rs+654. Pipeline PAUSED at Wave-67 merge gate. develop unchanged (3a60317). Next after human merge approval: squash-merge #351+#352 → develop fast-forward (DF-DEVELOP-FRESHNESS-001 v2) → worktree cleanup → wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout eval. | 2026-07-03 |
 
 ---
@@ -216,6 +217,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | DF-CANONICAL-FRAME-HOLDOUT-001-F3-OBLIGATION | Canonical-value ACs added in STORY-151..154; 7 canonical-value holdout scenarios authored (HS-124..126, HS-129..132). POWERLINK 0x88AB/34987 canonical assertion present. | HIGH | story-writer | **RESOLVED D-339 2026-07-02** |
 | F4-FIXTURE-NEED-001 | HS-127..132 require crafted pcap fixtures at F4 eval time (fixture-builder step or pre-built fixtures); HS-132 needs public BACnet/IP corpus (Wireshark SampleCaptures + documented fallbacks). HS-123..126 are pcap-independent. | LOW | F4 evaluator | **OPEN — F4-carry** |
 | SEC-001-ENIP | Unsafe split-borrow enip.rs `on_data`. | MEDIUM | v0.12.0 candidate |
+| SEC-001-STORY153 | STORY-153 PR #352 security review: CWE-400 HashMap 65k-key bounded ceiling — `per_port_counts` map grows at most one entry per distinct (TransportProto,port) key; bounded by IP port-space (~130k max). DEFERRED to STORY-154 doc: add code comment on ceiling when --coverage-gaps is wired. | LOW | **OPEN — STORY-154 doc carry (deferred from PR #352 security review)** |
 | TLS-FILLBUF-PUBLIC-SEAM-001 + MAINT-SC-001 | fill_buf_for_testing seam (W7.1); indicatif patch + 41 transitive updates; 8 stale deny.toml entries. | LOW | W7.1 backlog / optional dep-refresh |
 | PG-F2-ARCHDELTA-SYNC-001 | [process-gap] Phase-delta working docs drift across adversary passes (F-F2P6-003); mitigated via historical-snapshot disclaimer on arch-delta; consider codifying a policy that phase-delta docs either stay synced or carry a snapshot disclaimer — capture at cycle-close lessons (S-7.02). | LOW | cycle-close retrospective |
 | PG-F2-NARRATIVE-SWEEP-001 | [process-gap] PRD §2.18 narrative + ARCH-INDEX subsystem registry are non-BC artifacts that BC-centric remediation sweeps miss; DF-SIBLING-SWEEP / DF-CONSISTENCY-AUDIT sweeps should explicitly include PRD narrative blocks + ARCH-INDEX subsystem registry counts as sweep targets (surfaced F-F2P7-001/002/003). | LOW | cycle-close retrospective (S-7.02 lessons) |
@@ -255,31 +257,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**F4 DELTA-IMPLEMENTATION, WAVE 67 MERGE GATE. STORY-151 (feature/story-151-protocol-catalog @550170d; 26/26 tests green; 3/3 CONVERGED) and STORY-153 (feature/story-153-unclassified-counters @ff91fd8; 20/20 green; 3/3 CONVERGED) — BC-5.39.001 SATISFIED. PRs #351 (STORY-151→develop) and #352 (STORY-153→develop): both AI+security APPROVE, CI 11/11 PASS, READY-TO-MERGE. Pipeline PAUSED — squash-merge requires explicit human authorization (harness auto-mode classifier). Develop unchanged (3a60317). Next: human authorizes squash-merge → develop fast-forward → worktree cleanup → wave-67 wave-level adversarial (3 clean) → wave gate → Wave 68 → Wave 69 → F4 holdout. Resume: `/vsdd-factory:next-step`.**
+**F4 DELTA-IMPLEMENTATION, WAVE 67 MERGED. STORY-151 (PR #351, squash → develop 963a69a) + STORY-153 (PR #352, squash → develop b285feb) merged by Zious11 2026-07-03 (D-364). develop HEAD = b285feb (full: b285feb6c12ab4f469d84c80ca22cb4d0a98b438). Integration gate GREEN: cargo fmt --check CLEAN, cargo clippy --all-targets -D warnings CLEAN, cargo test --all-targets 0 failures. stories_delivered = 96. Story worktrees removed. SEC-001 STORY-153 CWE-400 HashMap 65k ceiling DEFERRED to STORY-154 doc. Next: wave-67 wave-level adversarial convergence (3 consecutive clean passes on develop b285feb) → wave gate → Wave 68 (STORY-152) → Wave 69 (STORY-154) → F4 holdout eval (HS-123..132; F4-FIXTURE-NEED-001). Resume: `/vsdd-factory:next-step`.**
 
-- **Ground truth:** develop=`3a60317` (full `3a60317965e62bef9895e857c8a26fc3b8d03ad0`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] + .worktrees/story-151-protocol-catalog [feature/story-151-protocol-catalog] + .worktrees/story-153-unclassified-counters [feature/story-153-unclassified-counters].
-- **STORY-151 (wave 67, SS-18 catalog):**
-  - Branch: `feature/story-151-protocol-catalog` tip `550170d` (pushed to origin; code byte-stable)
-  - State: 26/26 tests green; all gates clean; 3/3 CONVERGED (Pass-2/3/4 all CLEAN, 0 P0/CRITICAL/HIGH/mis-anchor)
-  - PR #351 → develop: AI APPROVE (0 blocking, 3 cosmetic), security CLEAN (1 LOW SEC-001 CWE-1025 ARP string-identity, no action), CI 11/11 PASS — **READY-TO-MERGE**
-- **STORY-153 (wave 67, SS-05 dispatcher + main.rs UDP counters):**
-  - Branch: `feature/story-153-unclassified-counters` tip `ff91fd8` (pushed to origin; M-1 VP-042 Sub-A range 50→256)
-  - State: 20/20 story_153 tests green; zero regressions; all gates green
-  - PR #352 → develop: AI APPROVE (0 blocking, 4 INFO), security APPROVE (1 LOW SEC-001 CWE-400 HashMap 65k ceiling DEFERRED to STORY-154 doc) — **READY-TO-MERGE**
-- **MERGE GATE — BLOCKED pending human authorization:**
-  - Both PRs require explicit human approval. Do NOT auto-merge (harness auto-mode bypasses required review/checks).
-  - After human approval: squash-merge #351 → develop, squash-merge #352 → develop, verify develop fast-forward (DF-DEVELOP-FRESHNESS-001 v2), remove both worktrees.
+- **Ground truth:** develop=`b285feb` (full `b285feb6c12ab4f469d84c80ca22cb4d0a98b438`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @b285feb] + .factory [factory-artifacts].
+- **Wave-67 merges (2026-07-03):**
+  - PR #351 (STORY-151): squash-merged → develop 963a69a. diff = src/lib.rs+2, src/protocols.rs+449, tests/protocols_tests.rs+785.
+  - PR #352 (STORY-153): PR branch updated with develop (merge commit 6915874 integrating 963a69a), squash-merged → develop b285feb. diff = src/dispatcher.rs+110, src/main.rs+29, tests/dispatcher_tests.rs+654.
+- **Integration gate on develop b285feb:** cargo fmt --check CLEAN; cargo clippy --all-targets -D warnings CLEAN; cargo test --all-targets 0 failures.
 - **RESUME PROCEDURE (strictly ordered):**
   1. `vsdd-factory:factory-worktree-health` — PASS required before any other step.
-  2. Verify develop=`3a60317` (unchanged until human merges).
-  3. Human authorizes squash-merge PR #351 (STORY-151) and PR #352 (STORY-153).
-  4. Confirm develop fast-forward; remove worktrees `.worktrees/story-151-protocol-catalog` and `.worktrees/story-153-unclassified-counters`.
-  5. Wave-67 wave-level adversarial convergence (3 consecutive clean passes on new develop tip).
-  6. Wave gate pass.
-  7. Wave 68: STORY-152 (protocols subcommand) — full per-story-delivery.
-  8. Wave 69: STORY-154 (--coverage-gaps report) — full per-story-delivery; apply F4-carry F-F3P18-O2 (render re-lookup for `name`).
-  9. F4 HOLDOUT EVALUATION (HS-123..132). Note F4-FIXTURE-NEED-001: HS-127..132 need crafted pcap fixtures.
-  10. F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → release.
+  2. Verify develop=`b285feb` (full `b285feb6c12ab4f469d84c80ca22cb4d0a98b438`).
+  3. Wave-67 wave-level adversarial convergence (3 consecutive clean passes on develop b285feb).
+  4. Wave gate pass.
+  5. Wave 68: STORY-152 (protocols subcommand) — full per-story-delivery.
+  6. Wave 69: STORY-154 (--coverage-gaps report) — full per-story-delivery; apply F4-carry F-F3P18-O2 (render re-lookup for `name`).
+  7. F4 HOLDOUT EVALUATION (HS-123..132). Note F4-FIXTURE-NEED-001: HS-127..132 need crafted pcap fixtures.
+  8. F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → release.
 - **F4-carry refinements:** F-F3P18-O2 (STORY-154 render re-lookup name), F-F3P9-001/F-F3P13-001 (protocols --json stdout-only), F-F3P7-O1 (udp_unclassified_counts function-scope), F-F3P13-002/F-F3P16-002 (STORY-154 subsystems SS-05 + dep-graph cell), F-F3P17-001 (AC-154-002 cross-layer trace note). VP-042 Sub-A harness covers [1,256] (M-1 resolved); F-F3P10-001 implemented in STORY-153.
 - **Phase-5/maintenance carry:** BC-2.05.010-LOWERPORT-WORDING-001, BC-2.12.024 PC-4 wording, BC-2.05.010-EC006-UNREACHABLE-001, VP042D-FROZEN-RESIDUAL-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001.
 
