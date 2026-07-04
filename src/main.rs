@@ -190,9 +190,10 @@ fn run_analyze(
     show_mitre_grouping: bool,
     collapse_findings: bool,
     use_color: bool,
-    // STORY-153 (F-F3P6-001): new scalar param so wave-67 decode-loop gates compile before
-    // --coverage-gaps CLI flag exists. Passed as `false` from main() until STORY-154
-    // changes the call-site to `*coverage_gaps` from Commands::Analyze destructure.
+    // When `true`: activates the per-packet UDP gap counter in the decode loop and appends a
+    // `CoverageGapsSummary` tri-state report after all `Finding` entries in the output
+    // (AC-154-002/003/007; ADR-012 Decision 9). Wired from `--coverage-gaps` via
+    // `*coverage_gaps` in the `Commands::Analyze` destructure.
     coverage_gaps: bool,
     cli: &Cli,
 ) -> Result<()> {
