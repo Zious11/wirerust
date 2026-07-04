@@ -1157,30 +1157,13 @@ mod story_152 {
 // BCs: BC-2.12.023 v1.2 (flag opt-in, analyze --all independence, section wiring)
 //      BC-2.12.024 v1.1 (L2 caveat, port-102 collision note, tri-state classification)
 //
-// RED GATE STATUS:
-//   12 tests fail — `--coverage-gaps` flag does not exist yet; clap exits non-zero
-//     when an unrecognized flag is passed to `analyze`, so every test that expects
-//     `.success()` panics, and every test that checks content in CoverageGapsSummary
-//     never reaches its assertion.
-//   3 tests are GREEN regression guards (pass before and after implementation):
-//     test_BC_2_12_023_all_without_coverage_gaps — asserts ABSENCE of section with --all
-//     test_BC_2_12_023_protocols_coverage_gaps_error — asserts failure on protocols --coverage-gaps
-//     test_BC_2_12_023_no_coverage_gaps_no_section — asserts ABSENCE of section without flag
-//   These three are correct from day 1; they become meaningful safeguards during the
-//   Green phase (ensuring flag independence and subcommand scoping invariants hold).
-//
-// FIXTURE NEEDS (F4-FIXTURE-NEED-001):
-//   Several tests below use `tests/fixtures/http-ooo.pcap` as a placeholder because
-//   no pcap with the required specific traffic exists yet. During the Green phase the
-//   implementer must create (or source) crafted fixtures:
-//     - TCP/102 traffic   → test_BC_2_12_024_port102_footnote_on_tcp102_traffic,
-//                           test_BC_2_12_024_port102_note_names_all_four
-//     - UDP/47808 traffic → test_BC_2_12_024_bacnet_known_unsupported
-//     - TCP/47808 traffic → test_BC_2_12_024_tcp_47808_is_unknown
-//     - TCP/9600 traffic  → test_BC_2_12_024_unknown_port_state
-//     - TCP/53 traffic    → test_BC_2_12_024_tcp_53_is_unknown (EC-154-14)
-//   For the Red Gate these placeholder fixtures are irrelevant: every test that uses
-//   `--coverage-gaps` fails before the pcap content is inspected.
+// GREEN STATUS:
+//   All 20 tests pass. `--coverage-gaps` is fully implemented and wired.
+//   Crafted gap fixtures (gap-tcp102.pcap, gap-udp47808.pcap, gap-tcp47808.pcap,
+//   gap-tcp9600.pcap, gap-tcp53.pcap) were generated during the Green phase and
+//   reside in tests/fixtures/. TCP gap tests pass --http to build the reassembler
+//   (analyzer-present guard, BC-2.05.010); UDP gap tests need no analyzer flag
+//   (decode-loop path, ADR-012 Dec 10).
 // ---------------------------------------------------------------------------
 mod story_154 {
     #![allow(non_snake_case)]
@@ -1233,9 +1216,8 @@ mod story_154 {
     /// `wirerust analyze --all` does NOT produce a `CoverageGapsSummary` section.
     /// The `--all` and `--coverage-gaps` flags are independent.
     ///
-    /// GREEN REGRESSION GUARD: passes before implementation (no section exists yet)
-    /// and must continue to pass after (Invariant 1 holds). Fails if `--all` ever
-    /// implies `--coverage-gaps`.
+    /// GREEN REGRESSION GUARD: `--all` never implies `--coverage-gaps` (Invariant 1).
+    /// Fails if `--all` is changed to also trigger `--coverage-gaps`.
     #[test]
     fn test_BC_2_12_023_all_without_coverage_gaps() {
         let output = bin()
@@ -1258,10 +1240,8 @@ mod story_154 {
     /// `wirerust protocols --coverage-gaps` exits non-zero (clap error).
     /// `--coverage-gaps` is only valid on the `analyze` subcommand.
     ///
-    /// GREEN REGRESSION GUARD: passes before implementation (flag is unknown →
-    /// clap error → non-zero) and must continue to pass after (flag scoped to
-    /// `analyze` only). Fails if `--coverage-gaps` is accidentally added to
-    /// `protocols`.
+    /// GREEN REGRESSION GUARD: `--coverage-gaps` is scoped to `analyze` only.
+    /// Fails if `--coverage-gaps` is accidentally added to the `protocols` subcommand.
     #[test]
     fn test_BC_2_12_023_protocols_coverage_gaps_error() {
         bin()
@@ -1273,8 +1253,8 @@ mod story_154 {
     /// BC-2.12.023 PC-1 / EC-154-1:
     /// `wirerust analyze` without `--coverage-gaps` produces no `CoverageGapsSummary`.
     ///
-    /// GREEN REGRESSION GUARD: passes before implementation (no section rendered
-    /// without the flag) and must continue to pass after (flag is strictly opt-in).
+    /// GREEN REGRESSION GUARD: `--coverage-gaps` is strictly opt-in (flag independence).
+    /// Fails if `analyze` is changed to render CoverageGapsSummary without the flag.
     #[test]
     fn test_BC_2_12_023_no_coverage_gaps_no_section() {
         let output = bin()
@@ -1294,22 +1274,19 @@ mod story_154 {
 
     /// BC-2.12.023 PC-1 / AC-154-002:
     /// `wirerust analyze <pcap> --coverage-gaps` with known-unclassified traffic
-    /// produces a `CoverageGapsSummary` section with at least one entry.
+    /// produces a `CoverageGapsSummary` section with at least one entry (AC-154-002 ≥1).
     ///
-    /// RED GATE: `--coverage-gaps` flag not yet wired → clap error → non-zero exit
-    /// → `.assert().success()` panics.
-    ///
-    /// NOTE (F4-FIXTURE-NEED-001): `http-ooo.pcap` has TCP/80 flows; port 80 is
-    /// routed to DispatchTarget::Http by classify(), so it does NOT appear as
-    /// unclassified. A fixture with traffic on a port not matched by classify()
-    /// (e.g., TCP/9600 or TCP/8080) is needed for the Green assertion "≥1 entry".
-    /// For the Red Gate the fixture content is irrelevant.
+    /// GREEN REGRESSION GUARD: uses GAP_TCP9600_FIXTURE (TCP/9600, no catalog match)
+    /// with --http so the reassembler is built and the analyzer-present guard fires
+    /// (BC-2.05.010). Port 9600 → DispatchTarget::None → unknown gap entry rendered.
+    /// Fails if: --coverage-gaps section disappears, gap counting regresses, or
+    /// TCP/9600 is inadvertently added to the classify() routing table.
     #[test]
     fn test_BC_2_12_023_coverage_gaps_counts_unclassified() {
         let output = bin()
-            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .args(["analyze", GAP_TCP9600_FIXTURE, "--coverage-gaps", "--http"])
             .assert()
-            .success() // RED GATE: panics — clap error (flag unknown)
+            .success()
             .get_output()
             .stdout
             .clone();
@@ -1319,18 +1296,25 @@ mod story_154 {
             "BC-2.12.023 PC-1: --coverage-gaps must produce CoverageGapsSummary section; \
              stdout:\n{stdout}"
         );
+        // AC-154-002: at least one gap entry must be present (count= line for TCP/9600).
+        assert!(
+            stdout.contains("count="),
+            "BC-2.12.023 / AC-154-002: CoverageGapsSummary must contain ≥1 gap entry \
+             (TCP/9600 → unknown); stdout:\n{stdout}"
+        );
     }
 
     /// BC-2.12.023 PC-1 / Invariant 3 / AC-154-003:
     /// `--coverage-gaps` produces a `CoverageGapsSummary` named section in the output.
     ///
-    /// RED GATE: fails as above.
+    /// GREEN REGRESSION GUARD: the section header must appear whenever --coverage-gaps
+    /// is passed (Invariant 3), even when the pcap has no unclassified traffic.
     #[test]
     fn test_BC_2_12_023_coverage_gaps_flag_produces_section() {
         let output = bin()
             .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
             .assert()
-            .success() // RED GATE: panics — clap error (flag unknown)
+            .success()
             .get_output()
             .stdout
             .clone();
@@ -1350,15 +1334,15 @@ mod story_154 {
     /// BC-2.12.023 PC-3 / AC-154-007 / EC-154-5:
     /// `--json --coverage-gaps` produces a JSON object with a `"coverage_gaps"` key.
     ///
-    /// RED GATE: `--coverage-gaps` flag not yet wired → clap error → non-zero exit.
-    ///
+    /// GREEN REGRESSION GUARD: JSON mode must include the top-level `"coverage_gaps"` key
+    /// whenever --coverage-gaps is set. Fails if the JSON serialization path drops the field.
     /// NOTE: `--json` is a top-level Cli flag; it can appear anywhere in the args.
     #[test]
     fn test_BC_2_12_023_json_coverage_gaps_key() {
         let output = bin()
             .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps", "--json"])
             .assert()
-            .success() // RED GATE: panics — clap error (flag unknown)
+            .success()
             .get_output()
             .stdout
             .clone();
@@ -1384,17 +1368,15 @@ mod story_154 {
     /// `CoverageGapsSummary` ALWAYS includes the L2/multicast structural caveat,
     /// even when the entries array is empty.
     ///
-    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
-    ///
-    /// NOTE (F4-FIXTURE-NEED-001): `http-ooo.pcap` is used as placeholder. The
-    /// Green phase may use any pcap; the assertion targets the L2 caveat text
-    /// (or a substring thereof) which must appear regardless of pcap content.
+    /// GREEN REGRESSION GUARD: the L2/multicast caveat text must appear unconditionally
+    /// whenever --coverage-gaps is set (Invariant 1), regardless of pcap content.
+    /// Fails if the caveat is made conditional on gap entries existing.
     #[test]
     fn test_BC_2_12_024_l2_caveat_always_present() {
         let output = bin()
             .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
             .assert()
-            .success() // RED GATE: panics — clap error
+            .success()
             .get_output()
             .stdout
             .clone();
@@ -1433,21 +1415,34 @@ mod story_154 {
     }
 
     /// BC-2.12.024 PC-3 / Invariant 2 / AC-154-005 / EC-001 (BC-2.12.024):
-    /// Port-102 footnote absent when TCP/102 count is zero.
+    /// Port-102 footnote is row-conditional: absent when TCP/102 count is zero.
     ///
-    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    /// GREEN REGRESSION GUARD: uses GAP_TCP9600_FIXTURE (TCP/9600) with --http so the
+    /// reassembler is built and gap machinery IS active (analyzer-present guard fires).
+    /// A TCP/9600 gap entry IS rendered (confirms the section is live), while the
+    /// PORT_102_NOTE strings ("ISO-on-TCP", "S7comm-plus") must remain absent — proving
+    /// the footnote is row-conditional, not unconditionally suppressed.
+    /// Fails if: port-102 footnote appears without TCP/102 traffic, or gap machinery
+    /// is inactive (vacuous absence).
     #[test]
     fn test_BC_2_12_024_port102_footnote_absent_without_tcp102() {
-        // http-ooo.pcap has HTTP/80 traffic and no TCP/102 flows — port-102 footnote
-        // must not appear in the CoverageGapsSummary.
+        // GAP_TCP9600_FIXTURE has TCP/9600 traffic and no TCP/102 flows.
+        // --http builds the reassembler so gap counting is active (analyzer-present guard).
         let output = bin()
-            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .args(["analyze", GAP_TCP9600_FIXTURE, "--coverage-gaps", "--http"])
             .assert()
-            .success() // RED GATE: panics — clap error
+            .success()
             .get_output()
             .stdout
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // Gap machinery is active: a TCP/9600 entry must appear (non-vacuous anchor).
+        assert!(
+            stdout.contains("count="),
+            "BC-2.12.024 PC-3 non-vacuity: gap section must have ≥1 entry (TCP/9600) \
+             proving gap machinery is active; stdout:\n{stdout}"
+        );
+        // PORT_102_NOTE must be absent (no TCP/102 traffic in fixture).
         assert!(
             !stdout.contains("ISO-on-TCP") && !stdout.contains("S7comm-plus"),
             "BC-2.12.024 PC-3 / Invariant 2: port-102 collision footnote must NOT appear \
@@ -1613,15 +1608,18 @@ mod story_154 {
     /// before the `None`-target arm fires; therefore port 502 never enters
     /// `unclassified_port_counts` via the analyze pipeline.
     ///
-    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
-    ///
-    /// Uses `modbus-write.pcap` (has TCP/502 Modbus traffic).
+    /// GREEN REGRESSION GUARD: uses `modbus-write.pcap` (TCP/502 Modbus traffic)
+    /// WITH `--modbus` so the reassembler IS built and `classify()` actually processes
+    /// the TCP/502 flow → routes to `DispatchTarget::Modbus` (Rule 5 fires) → the
+    /// None-target arm never fires for port 502 → no gap entry. This is non-vacuous:
+    /// if Rule 5 regressed and port 502 were mis-routed to None, it would appear as a
+    /// gap entry and this test would fail.
     #[test]
     fn test_BC_2_12_024_tcp_502_absent_from_gap_report() {
         let output = bin()
-            .args(["analyze", MODBUS_FIXTURE, "--coverage-gaps"])
+            .args(["analyze", MODBUS_FIXTURE, "--coverage-gaps", "--modbus"])
             .assert()
-            .success() // RED GATE: panics — clap error
+            .success()
             .get_output()
             .stdout
             .clone();
@@ -1644,13 +1642,15 @@ mod story_154 {
     /// `--json --coverage-gaps` produces a JSON object where `"coverage_gaps"."caveat_l2"`
     /// is a non-null, non-empty string.
     ///
-    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    /// GREEN REGRESSION GUARD: the L2 caveat must be serialized into the JSON output
+    /// as a non-empty string at `coverage_gaps.caveat_l2`. Fails if the field is dropped,
+    /// nulled, or emptied during JSON serialization.
     #[test]
     fn test_BC_2_12_024_json_has_caveat_field() {
         let output = bin()
             .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps", "--json"])
             .assert()
-            .success() // RED GATE: panics — clap error
+            .success()
             .get_output()
             .stdout
             .clone();

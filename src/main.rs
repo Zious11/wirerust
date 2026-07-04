@@ -1344,9 +1344,10 @@ mod tests {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-154 unit tests for lookup_protocol_state() — RED GATE.
+// STORY-154 unit tests for lookup_protocol_state() — GREEN regression guards.
 //
-// All four tests call the todo!() stub and FAIL via panic.
+// All four tests exercise the fully-implemented lookup_protocol_state() function
+// against catalog entries (KnownUnsupported, Unknown, KnownSupported).
 // The `_unit` suffix distinguishes these from identically-named integration
 // tests in `mod story_154` in tests/integration_tests.rs (DF-AC-TEST-NAME-SYNC-001).
 // `#[allow(non_snake_case)]` required: uppercase `test_BC_…` names violate
@@ -1364,7 +1365,8 @@ mod story_154_unit {
     /// `KnownUnsupported`. Confirms catalog has `transport: Udp, canonical_ports:
     /// [47808]` and the port is NOT in `SUPPORTED_PORTS`.
     ///
-    /// RED GATE: panics via `todo!()` until GREEN step (AC-154-006 Task 4).
+    /// GREEN REGRESSION GUARD: lookup_protocol_state is fully implemented.
+    /// Fails if the BACnet/IP catalog entry is removed or its state changes.
     #[test]
     fn test_BC_2_12_024_bacnet_known_unsupported_unit() {
         assert_eq!(
@@ -1382,7 +1384,8 @@ mod story_154_unit {
     /// same port number has no matching catalog entry → `Unknown`, not
     /// `KnownUnsupported`.
     ///
-    /// RED GATE: panics via `todo!()` until GREEN step.
+    /// GREEN REGRESSION GUARD: guards the transport-specific lookup logic.
+    /// Fails if Tcp/47808 is inadvertently added to the catalog or mis-classified.
     #[test]
     fn test_BC_2_12_024_tcp_47808_is_unknown_unit() {
         assert_eq!(
@@ -1397,7 +1400,8 @@ mod story_154_unit {
     /// Completely unrecognized port `(Tcp, 9600)` → `Unknown`.
     /// Port 9600 has no catalog entry under any transport.
     ///
-    /// RED GATE: panics via `todo!()` until GREEN step.
+    /// GREEN REGRESSION GUARD: guards the Unknown default path in lookup_protocol_state.
+    /// Fails if port 9600 is inadvertently added to the protocol catalog.
     #[test]
     fn test_BC_2_12_024_unknown_port_state_unit() {
         assert_eq!(
@@ -1415,7 +1419,8 @@ mod story_154_unit {
     /// `unclassified_port_counts` via `analyze --coverage-gaps`. The
     /// `KnownSupported` branch exists purely as a classifier-bug signal.
     ///
-    /// RED GATE: panics via `todo!()` until GREEN step.
+    /// GREEN REGRESSION GUARD: lookup_protocol_state is fully implemented.
+    /// Fails if Modbus is removed from SUPPORTED_PORTS or the KnownSupported arm changes.
     #[test]
     fn test_BC_2_12_024_known_supported_is_bug_signal_unit() {
         assert_eq!(
