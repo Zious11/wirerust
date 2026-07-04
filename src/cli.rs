@@ -262,6 +262,10 @@ pub enum Commands {
         // BC-2.17.026 Invariant 1 (default=5)
         #[arg(long, default_value_t = 5)]
         enip_error_burst_threshold: u32,
+
+        /// Enable per-port unclassified traffic gap detection (opt-in)
+        #[arg(long)]
+        coverage_gaps: bool,
     },
 
     /// Generate a triage summary of PCAP files

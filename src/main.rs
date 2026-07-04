@@ -121,6 +121,7 @@ fn main() -> Result<()> {
             enip,
             enip_write_burst_threshold,
             enip_error_burst_threshold,
+            coverage_gaps,
         } => {
             run_analyze(
                 targets,
@@ -141,9 +142,9 @@ fn main() -> Result<()> {
                 *mitre,
                 collapse_findings_from_flag(*no_collapse),
                 use_color,
-                // STORY-153 (F-F3P6-001): coverage_gaps=false until STORY-154 adds
-                // --coverage-gaps CLI flag and changes this to `*coverage_gaps`.
-                false,
+                // AC-154-002: pass *coverage_gaps from Commands::Analyze destructure.
+                // STORY-153 had false here as a placeholder until this flag existed.
+                *coverage_gaps,
                 &cli,
             )?;
         }
@@ -336,13 +337,16 @@ fn run_analyze(
         None
     };
 
+    // AC-154-002: apply .with_coverage_gaps() builder (STORY-153 pattern).
+    // All existing StreamDispatcher::new() call sites remain untouched (no blast radius).
     let mut dispatcher = StreamDispatcher::new(
         http_analyzer,
         tls_analyzer,
         modbus_analyzer,
         dnp3_analyzer,
         enip_analyzer,
-    );
+    )
+    .with_coverage_gaps(coverage_gaps);
 
     // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation.
     //
@@ -388,28 +392,28 @@ fn run_analyze(
                 match decode_packet(&raw.data, source.datalink) {
                     Ok(DecodedFrame::Ip(parsed)) => {
                         summary.ingest(&parsed);
-                        if enable_dns && dns_analyzer.can_decode(&parsed) {
+                        // STORY-154-CAN-DECODE-HOIST-001 (F-W67-L3): hoist can_decode() to a
+                        // single binding reused by both the DNS finding-emission gate and the
+                        // UDP gap-counter seam. Avoids the double can_decode eval flagged in
+                        // the adversarial review. ADR-012 Decision 10: evaluated regardless of
+                        // enable_dns (gap classification is orthogonal to finding-emission).
+                        let classified_by_dns = dns_analyzer.can_decode(&parsed);
+                        if enable_dns && classified_by_dns {
                             let findings = dns_analyzer.analyze(&parsed);
                             all_findings.extend(findings);
                         }
                         if let Some(ref mut reasm) = reassembler {
                             reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                         }
-                        // STORY-153 (BC-2.05.010 PC-2, AC-153-005, F-F3P6-001):
-                        // UDP decode-loop gap counter — gated on coverage_gaps scalar param.
-                        // coverage_gaps=false in wave-67 (STORY-153); STORY-154 changes call-site
-                        // to pass *coverage_gaps from Commands::Analyze { ..., coverage_gaps, ... }.
-                        // ADR-012 Decision 10: dns_analyzer.can_decode() evaluated regardless of
-                        // enable_dns (gap classification is orthogonal to DNS finding-emission).
-                        if coverage_gaps {
-                            let dns_handles_this = dns_analyzer.can_decode(&parsed);
-                            if let Some(key) =
-                                wirerust::dispatcher::udp_gap_key(&parsed, dns_handles_this)
-                            {
-                                let c = udp_unclassified_counts.entry(key).or_insert(0);
-                                // EC-153-10: saturating_add — no panic on u64 overflow.
-                                *c = c.saturating_add(1);
-                            }
+                        // STORY-153 (BC-2.05.010 PC-2, AC-153-005): UDP decode-loop gap counter.
+                        // Gated on coverage_gaps scalar param (AC-154-002: now passed from CLI).
+                        if coverage_gaps
+                            && let Some(key) =
+                                wirerust::dispatcher::udp_gap_key(&parsed, classified_by_dns)
+                        {
+                            let c = udp_unclassified_counts.entry(key).or_insert(0);
+                            // EC-153-10: saturating_add — no panic on u64 overflow.
+                            *c = c.saturating_add(1);
                         }
                     }
                     // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
@@ -547,7 +551,25 @@ fn run_analyze(
         }
     };
 
-    write_output(&output, cli)?;
+    // AC-154-003 / AC-154-007: inject CoverageGapsSummary AFTER all Finding entries
+    // (ADR-012 Decision 9 — purely additive; Findings + AnalysisSummary unchanged).
+    // Gated on coverage_gaps flag; CSV output is not extended (no section concept).
+    let final_output = if coverage_gaps {
+        let all_gaps = collect_all_gaps(&dispatcher, &udp_unclassified_counts);
+        match resolved_format {
+            Some(OutputFormat::Json) => inject_coverage_gaps_json(&output, &all_gaps),
+            Some(OutputFormat::Csv) => output, // CSV: no coverage_gaps section
+            _ => {
+                let mut s = output;
+                s.push_str(&render_coverage_gaps_terminal(&all_gaps));
+                s
+            }
+        }
+    } else {
+        output
+    };
+
+    write_output(&final_output, cli)?;
 
     // STORY-128: exit code 1 iff any file failed (BC-2.01.018 AC-002).
     // Deferred until after write_output so the summary is always emitted
@@ -957,6 +979,290 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     anyhow::bail!("Target not found: {}", target.display());
 }
 
+// ---------------------------------------------------------------------------
+// STORY-154: `--coverage-gaps` flag + CoverageGapsSummary tri-state report.
+// AC-154-004: L2_CAVEAT_TEXT — always present in CoverageGapsSummary output.
+// AC-154-005: PORT_102_NOTE — conditional on (Tcp,102) non-zero count.
+// AC-154-006: ProtocolGapState + lookup_protocol_state() transport-aware lookup.
+// AC-154-003/005/007: render_coverage_gaps_terminal / inject_coverage_gaps_json.
+// ---------------------------------------------------------------------------
+
+/// Mandatory L2/multicast structural limitation caveat (BC-2.12.024 Invariant 1/3).
+///
+/// ALWAYS present in every `CoverageGapsSummary` output — even when entries are
+/// empty. Not configurable (BC-2.12.024 Invariant 3).
+const L2_CAVEAT_TEXT: &str = "Dynamic gap detection covers TCP and UDP flows. \
+    Layer-2 protocols (e.g., GOOSE, Sampled Values, PROFINET-RT/DCP, EtherCAT, Ethernet POWERLINK) \
+    have no TCP/UDP port and are not represented in the gap report. \
+    Consult `wirerust protocols --unsupported` for L2 protocol coverage.";
+
+/// Port-102 collision footnote (BC-2.12.024 Invariant 2 / DF-CANONICAL-FRAME-HOLDOUT-001).
+///
+/// Row-specific: rendered adjacent to the TCP/102 entry IF AND ONLY IF
+/// `(Tcp, 102)` has a non-zero count in the gap report.
+/// Names all four protocols sharing TCP/102 via ISO-on-TCP/TPKT (RFC 1006).
+const PORT_102_NOTE: &str = "TCP/102 gap: S7comm, S7comm-plus, IEC 61850 MMS, and ICCP/TASE.2 \
+    all share this port (ISO-on-TCP/TPKT). This gap cannot be attributed to a single protocol.";
+
+/// Tri-state classification for `CoverageGapsSummary` entries.
+///
+/// Uses the Suricata-derived vocabulary (ADR-012 Decision 2 / BC-2.12.024 PC-4):
+/// - `KnownUnsupported` — (transport, port) matches a catalog entry whose
+///   `canonical_ports` have no intersection with `SUPPORTED_PORTS` and whose
+///   name is not `"ARP"`.
+/// - `Unknown` — no catalog match, OR transport mismatch on a known port
+///   (e.g., TCP on a UDP-only catalogued port → Unknown, not KnownUnsupported).
+/// - `KnownSupported` — catalog match AND `canonical_ports ∩ SUPPORTED_PORTS ≠ ∅`
+///   (or name == "ARP"). Signals a BUG: dissector failed to classify traffic it
+///   should handle. Entry is NOT suppressed; count shown as-is.
+///
+/// `LinkLayer` catalog entries (ARP, GOOSE, …) NEVER match a port-keyed lookup —
+/// they require EtherType-based detection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProtocolGapState {
+    /// Catalog match with no intersection with `SUPPORTED_PORTS` (known, not dissected).
+    KnownUnsupported,
+    /// No catalog match, or transport mismatch on a known-transport port.
+    Unknown,
+    /// Catalog match within `SUPPORTED_PORTS` — BUG signal (dissector should have fired).
+    KnownSupported,
+}
+
+/// Classify a `(TransportProto, port)` pair against the `KNOWN_PROTOCOLS` catalog.
+///
+/// Transport-aware: `(Tcp, 47808)` → `Unknown` (BACnet/IP is catalogued as `Udp/47808`
+/// only; transport mismatch yields `Unknown`, not `KnownUnsupported`).
+/// `LinkLayer` entries are never matched by a port-keyed lookup.
+///
+/// Supportedness is DERIVED (no `supported` field on `KnownProtocol`):
+/// a protocol is supported iff `canonical_ports ∩ SUPPORTED_PORTS ≠ ∅` OR `name == "ARP"`
+/// (BC-2.18.003 / STORY-151 AC-151-005).
+fn lookup_protocol_state(
+    transport: wirerust::dispatcher::TransportProto,
+    port: u16,
+) -> ProtocolGapState {
+    use wirerust::dispatcher::TransportProto;
+    use wirerust::protocols::{KNOWN_PROTOCOLS, SUPPORTED_PORTS, Transport};
+
+    // Map dispatcher TransportProto to catalog Transport.
+    // LinkLayer entries have no TCP/UDP port and are NEVER matched here.
+    let catalog_transport = match transport {
+        TransportProto::Tcp => Transport::Tcp,
+        TransportProto::Udp => Transport::Udp,
+    };
+
+    match KNOWN_PROTOCOLS
+        .iter()
+        .find(|p| p.transport == catalog_transport && p.canonical_ports.contains(&port))
+    {
+        // Catalog match: check whether this protocol is supported.
+        // Supportedness: canonical_ports ∩ SUPPORTED_PORTS ≠ ∅ OR name == "ARP".
+        Some(p)
+            if p.canonical_ports
+                .iter()
+                .any(|cp| SUPPORTED_PORTS.contains(cp))
+                || p.name == "ARP" =>
+        {
+            // BUG signal: a dissector should have handled this flow.
+            ProtocolGapState::KnownSupported
+        }
+        Some(_) => ProtocolGapState::KnownUnsupported,
+        None => ProtocolGapState::Unknown,
+    }
+}
+
+/// Merge TCP and UDP gap count maps into a single (TransportProto, port) → count map.
+///
+/// Called at render time in run_analyze. Combines `dispatcher.unclassified_port_counts()`
+/// (TCP flows closed as DispatchTarget::None) with `udp_unclassified_counts`
+/// (UDP packets not handled by DNS; populated by the decode loop).
+fn collect_all_gaps(
+    dispatcher: &StreamDispatcher,
+    udp_unclassified_counts: &HashMap<(wirerust::dispatcher::TransportProto, u16), u64>,
+) -> HashMap<(wirerust::dispatcher::TransportProto, u16), u64> {
+    let mut all: HashMap<(wirerust::dispatcher::TransportProto, u16), u64> = HashMap::new();
+    for (&k, &v) in dispatcher.unclassified_port_counts() {
+        *all.entry(k).or_insert(0) += v;
+    }
+    for (&k, &v) in udp_unclassified_counts {
+        *all.entry(k).or_insert(0) += v;
+    }
+    all
+}
+
+/// Terminal renderer for `CoverageGapsSummary` (AC-154-003 through AC-154-005).
+///
+/// Returns a String that is appended to terminal output AFTER all `Finding` entries
+/// (ADR-012 Decision 9). MUST NOT emit `Finding` structs (ADR-012 Decision 9;
+/// gap entries are a separate output type).
+///
+/// Always includes `L2_CAVEAT_TEXT`. Renders each gap entry with tri-state label.
+/// Renders `PORT_102_NOTE` adjacent to the TCP/102 entry when count > 0.
+/// Protocol name re-lookup: derived from `KNOWN_PROTOCOLS` at render time (F-F3P18-O2)
+/// — the counter map stores only (transport, port, count), not name.
+fn render_coverage_gaps_terminal(
+    all_gaps: &HashMap<(wirerust::dispatcher::TransportProto, u16), u64>,
+) -> String {
+    use wirerust::dispatcher::TransportProto;
+    use wirerust::protocols::{KNOWN_PROTOCOLS, Transport};
+
+    let mut out = String::new();
+    out.push_str("\n--- CoverageGapsSummary ---\n");
+    out.push('\n');
+    out.push_str(L2_CAVEAT_TEXT);
+    out.push('\n');
+
+    // Sort by port number then transport for deterministic output.
+    let mut entries: Vec<((TransportProto, u16), u64)> =
+        all_gaps.iter().map(|(&k, &v)| (k, v)).collect();
+    entries.sort_by_key(|&((tp, port), _)| {
+        let t = match tp {
+            TransportProto::Tcp => 0u8,
+            TransportProto::Udp => 1u8,
+        };
+        (port, t)
+    });
+
+    if entries.is_empty() {
+        out.push_str("\nNo unclassified port gaps detected.\n");
+    } else {
+        out.push('\n');
+        for ((transport, port), count) in &entries {
+            let transport_str = match transport {
+                TransportProto::Tcp => "TCP",
+                TransportProto::Udp => "UDP",
+            };
+            let state = lookup_protocol_state(*transport, *port);
+            let state_str = match state {
+                ProtocolGapState::KnownUnsupported => "known-unsupported",
+                ProtocolGapState::Unknown => "unknown",
+                ProtocolGapState::KnownSupported => "known-supported",
+            };
+
+            // Name re-lookup at render time (F-F3P18-O2): derive name from KNOWN_PROTOCOLS.
+            // Exception: TCP/102 collision — four protocols share port 102; omit name, use
+            // collision_note instead (BC-2.12.024 PC-5; DF-CANONICAL-FRAME-HOLDOUT-001).
+            let is_tcp102 = *transport == TransportProto::Tcp && *port == 102;
+            let name: Option<&str> = if is_tcp102 {
+                None
+            } else {
+                match state {
+                    ProtocolGapState::KnownUnsupported | ProtocolGapState::KnownSupported => {
+                        let ct = match transport {
+                            TransportProto::Tcp => Transport::Tcp,
+                            TransportProto::Udp => Transport::Udp,
+                        };
+                        KNOWN_PROTOCOLS
+                            .iter()
+                            .find(|p| p.transport == ct && p.canonical_ports.contains(port))
+                            .map(|p| p.name)
+                    }
+                    ProtocolGapState::Unknown => None,
+                }
+            };
+
+            let name_suffix = match name {
+                Some(n) => format!("  {n}"),
+                None => String::new(),
+            };
+            out.push_str(&format!(
+                "  {transport_str}/{port}  count={count}  {state_str}{name_suffix}\n"
+            ));
+
+            // PORT_102_NOTE: rendered adjacent to TCP/102 entry (BC-2.12.024 Invariant 2).
+            if is_tcp102 {
+                out.push_str(&format!("    {PORT_102_NOTE}\n"));
+            }
+        }
+    }
+    out
+}
+
+/// JSON renderer for `CoverageGapsSummary` (AC-154-007 / BC-2.12.024 PC-5).
+///
+/// Parses the existing JSON output string, injects a `"coverage_gaps"` object key,
+/// and returns the modified pretty-printed JSON. MUST NOT emit `Finding` structs.
+///
+/// JSON schema: `{ "caveat_l2": "...", "entries": [{transport,port,count,state,...}] }`.
+/// - `name`: present for KnownUnsupported/KnownSupported entries EXCEPT TCP/102.
+/// - `collision_note`: present for TCP/102 (four protocols share port 102).
+fn inject_coverage_gaps_json(
+    existing_json: &str,
+    all_gaps: &HashMap<(wirerust::dispatcher::TransportProto, u16), u64>,
+) -> String {
+    use wirerust::dispatcher::TransportProto;
+    use wirerust::protocols::{KNOWN_PROTOCOLS, Transport};
+
+    // Sort by port then transport for deterministic output.
+    let mut entries: Vec<((TransportProto, u16), u64)> =
+        all_gaps.iter().map(|(&k, &v)| (k, v)).collect();
+    entries.sort_by_key(|&((tp, port), _)| {
+        let t = match tp {
+            TransportProto::Tcp => 0u8,
+            TransportProto::Udp => 1u8,
+        };
+        (port, t)
+    });
+
+    let json_entries: Vec<serde_json::Value> = entries
+        .iter()
+        .map(|&((transport, port), count)| {
+            let transport_str = match transport {
+                TransportProto::Tcp => "TCP",
+                TransportProto::Udp => "UDP",
+            };
+            let state = lookup_protocol_state(transport, port);
+            let state_str = match state {
+                ProtocolGapState::KnownUnsupported => "known-unsupported",
+                ProtocolGapState::Unknown => "unknown",
+                ProtocolGapState::KnownSupported => "known-supported",
+            };
+
+            let is_tcp102 = transport == TransportProto::Tcp && port == 102;
+
+            let mut entry = serde_json::json!({
+                "transport": transport_str,
+                "port": port,
+                "count": count,
+                "state": state_str,
+            });
+
+            if is_tcp102 {
+                // TCP/102 collision: omit name, use collision_note (BC-2.12.024 PC-5).
+                entry["collision_note"] = serde_json::json!(PORT_102_NOTE);
+            } else {
+                match state {
+                    ProtocolGapState::KnownUnsupported | ProtocolGapState::KnownSupported => {
+                        let ct = match transport {
+                            TransportProto::Tcp => Transport::Tcp,
+                            TransportProto::Udp => Transport::Udp,
+                        };
+                        if let Some(p) = KNOWN_PROTOCOLS
+                            .iter()
+                            .find(|p| p.transport == ct && p.canonical_ports.contains(&port))
+                        {
+                            entry["name"] = serde_json::json!(p.name);
+                        }
+                    }
+                    ProtocolGapState::Unknown => {}
+                }
+            }
+
+            entry
+        })
+        .collect();
+
+    let coverage_gaps_value = serde_json::json!({
+        "caveat_l2": L2_CAVEAT_TEXT,
+        "entries": json_entries,
+    });
+
+    let mut root: serde_json::Value = serde_json::from_str(existing_json)
+        .expect("existing reporter JSON output must be valid JSON for coverage_gaps injection");
+    root["coverage_gaps"] = coverage_gaps_value;
+    serde_json::to_string_pretty(&root).expect("coverage_gaps JSON serialization must not fail")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{collapse_findings_from_flag, grouping_from_flag, read_magic};
@@ -1033,6 +1339,96 @@ mod tests {
             read_magic(&path),
             Some([0x0A, 0x0D, 0x0D, 0x0A]),
             "read_magic must return the first 4 bytes of a ≥4-byte file (BC-2.12.011 Inv5)"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-154 unit tests for lookup_protocol_state() — GREEN regression guards.
+//
+// All four tests exercise the fully-implemented lookup_protocol_state() function
+// against catalog entries (KnownUnsupported, Unknown, KnownSupported).
+// The `_unit` suffix distinguishes these from identically-named integration
+// tests in `mod story_154` in tests/integration_tests.rs (DF-AC-TEST-NAME-SYNC-001).
+// `#[allow(non_snake_case)]` required: uppercase `test_BC_…` names violate
+// `non_snake_case` under `-D warnings`; `src/main.rs` `mod tests` (above) is
+// lowercase and carries no such allow.
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+#[allow(non_snake_case)]
+mod story_154_unit {
+    use super::{ProtocolGapState, lookup_protocol_state};
+    use wirerust::dispatcher::TransportProto;
+
+    /// BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001:
+    /// BACnet/IP UDP/47808 (0xBAC0; ASHRAE 135-2016 Annex J §J.2.1) →
+    /// `KnownUnsupported`. Confirms catalog has `transport: Udp, canonical_ports:
+    /// [47808]` and the port is NOT in `SUPPORTED_PORTS`.
+    ///
+    /// GREEN REGRESSION GUARD: lookup_protocol_state is fully implemented.
+    /// Fails if the BACnet/IP catalog entry is removed or its state changes.
+    #[test]
+    fn test_BC_2_12_024_bacnet_known_unsupported_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Udp, 47808),
+            ProtocolGapState::KnownUnsupported,
+            "BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001: \
+             (Udp, 47808) must be KnownUnsupported; \
+             BACnet/IP UDP port 0xBAC0 = 47808 per ASHRAE 135-2016 Annex J §J.2.1"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-009 (BC-2.12.024):
+    /// TCP on BACnet/IP's UDP-only port 47808 → `Unknown` (transport mismatch).
+    /// BACnet/IP is catalogued as `Udp/47808` only; a `Tcp` observation of the
+    /// same port number has no matching catalog entry → `Unknown`, not
+    /// `KnownUnsupported`.
+    ///
+    /// GREEN REGRESSION GUARD: guards the transport-specific lookup logic.
+    /// Fails if Tcp/47808 is inadvertently added to the catalog or mis-classified.
+    #[test]
+    fn test_BC_2_12_024_tcp_47808_is_unknown_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 47808),
+            ProtocolGapState::Unknown,
+            "BC-2.12.024 EC-009: (Tcp, 47808) must be Unknown — BACnet/IP is \
+             catalogued as Udp/47808 only; transport mismatch yields Unknown"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-004 (BC-2.12.024):
+    /// Completely unrecognized port `(Tcp, 9600)` → `Unknown`.
+    /// Port 9600 has no catalog entry under any transport.
+    ///
+    /// GREEN REGRESSION GUARD: guards the Unknown default path in lookup_protocol_state.
+    /// Fails if port 9600 is inadvertently added to the protocol catalog.
+    #[test]
+    fn test_BC_2_12_024_unknown_port_state_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 9600),
+            ProtocolGapState::Unknown,
+            "BC-2.12.024 EC-004: (Tcp, 9600) has no catalog match → Unknown"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / F-F3P14-001 / EC-154-11:
+    /// `(Tcp, 502)` → `KnownSupported` (BUG signal). Modbus TCP/502 is in
+    /// `SUPPORTED_PORTS`. This state is UNIT-ONLY: under the analyze pipeline,
+    /// `classify()` Rule 5 routes every port-502 flow to `DispatchTarget::Modbus`
+    /// before the `None`-target arm fires; therefore `(Tcp, 502)` can never enter
+    /// `unclassified_port_counts` via `analyze --coverage-gaps`. The
+    /// `KnownSupported` branch exists purely as a classifier-bug signal.
+    ///
+    /// GREEN REGRESSION GUARD: lookup_protocol_state is fully implemented.
+    /// Fails if Modbus is removed from SUPPORTED_PORTS or the KnownSupported arm changes.
+    #[test]
+    fn test_BC_2_12_024_known_supported_is_bug_signal_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 502),
+            ProtocolGapState::KnownSupported,
+            "BC-2.12.024 PC-4 / EC-154-11: (Tcp, 502) must be KnownSupported \
+             (BUG signal — Modbus TCP/502 is in SUPPORTED_PORTS; \
+             this state is unreachable via the analyze pipeline per F-F3P14-001)"
         );
     }
 }
