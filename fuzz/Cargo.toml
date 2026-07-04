@@ -57,3 +57,10 @@ path = "fuzz_targets/fuzz_tls_reassembly.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_coverage_gap_classify"
+path = "fuzz_targets/fuzz_coverage_gap_classify.rs"
+test = false
+doc = false
+bench = false
