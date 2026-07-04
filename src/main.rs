@@ -9,10 +9,12 @@
 //! - [`run_summary`] — capture-level triage only (no analyzers, no
 //!   reassembly), with optional per-host breakdown in the terminal
 //!   reporter when `summary --hosts` is given (LESSON-P1.03).
+//! - [`run_protocols`] — protocol coverage catalog; terminal table or JSON.
+//!   CSV is not supported for the protocols catalog (exits non-zero).
 //!
-//! Both pipelines respect the `--json [<FILE>]`, `--csv [<FILE>]`, and
-//! `--output-format {json,csv}` flags ([`resolve_format`]); each writes
-//! to a file when a path is given, else to stdout ([`write_output`]).
+//! All three pipelines respect the `--json [<FILE>]` and
+//! `--output-format json` flags ([`resolve_format`]); each writes to a file
+//! when a path is given, else to stdout ([`write_output`]).
 //! `--json` and `--csv` are mutually exclusive (LESSON-P2.03).
 
 use std::collections::HashMap;
@@ -160,7 +162,7 @@ fn main() -> Result<()> {
             } else {
                 ProtocolFilter::All
             };
-            run_protocols(filter, cli.json.is_some());
+            run_protocols(filter, &cli)?;
         }
     }
 
@@ -556,23 +558,41 @@ fn run_analyze(
     Ok(())
 }
 
-/// Render the protocol coverage catalog to stdout.
+/// Render the protocol coverage catalog, routing output through the shared
+/// output pipeline.
 ///
-/// Routes to the terminal table renderer or JSON renderer based on the `json` flag.
+/// Honors `--json [<FILE>]`, `--output-format json` (JSON to stdout or file),
+/// and the default terminal table.  CSV is not supported for the protocols
+/// catalog; passing `--csv` or `--output-format csv` exits non-zero with an
+/// error message to stderr.
+///
 /// Calls `all_protocols()`, `supported_protocols()`, or `unsupported_protocols()`
 /// based on `filter`. Pure CLI→catalog→render; MUST NOT call StreamDispatcher
 /// or any analyzer (BC-2.12.022 Invariant 5; architecture compliance).
-fn run_protocols(filter: ProtocolFilter, json: bool) {
+fn run_protocols(filter: ProtocolFilter, cli: &Cli) -> Result<()> {
     let protocols: Vec<&KnownProtocol> = match filter {
         ProtocolFilter::All => all_protocols().iter().collect(),
         ProtocolFilter::Supported => supported_protocols(),
         ProtocolFilter::Unsupported => unsupported_protocols(),
     };
-    if json {
-        render_protocols_json(&protocols);
-    } else {
-        render_protocols_terminal(&protocols);
+    let resolved_format = resolve_format(cli);
+    match resolved_format {
+        Some(OutputFormat::Json) => {
+            let json_str = render_protocols_json(&protocols);
+            write_output(&json_str, cli)?;
+        }
+        Some(OutputFormat::Csv) => {
+            eprintln!(
+                "error: the `protocols` subcommand does not support CSV output; \
+                 use --json for machine-readable output"
+            );
+            std::process::exit(1);
+        }
+        _ => {
+            render_protocols_terminal(&protocols);
+        }
     }
+    Ok(())
 }
 
 /// Derives whether a protocol entry is supported by wirerust.
@@ -691,7 +711,7 @@ fn render_protocols_terminal(protocols: &[&KnownProtocol]) {
 
 /// JSON renderer for the protocol coverage catalog.
 ///
-/// Emits a single JSON object `{"protocols":[...]}` to stdout.  Each element
+/// Returns a pretty-printed JSON string `{"protocols":[...]}`.  Each element
 /// follows the BC-2.18.002 v1.1 schema:
 /// - `"category"`: `"ICS"` or `"IT"` (ADR-012 Decision 7 — no `"L2"` value)
 /// - `"transport"`: `"TCP"`, `"UDP"`, or `"LinkLayer"`
@@ -701,7 +721,9 @@ fn render_protocols_terminal(protocols: &[&KnownProtocol]) {
 /// - `"supported"`: boolean (derived — not a field on `KnownProtocol`)
 ///
 /// Array elements are in catalog-declaration order (BC-2.18.002 Invariant 1).
-fn render_protocols_json(protocols: &[&KnownProtocol]) {
+/// The caller is responsible for routing the returned string to stdout or a file
+/// via [`write_output`].
+fn render_protocols_json(protocols: &[&KnownProtocol]) -> String {
     let entries: Vec<serde_json::Value> = protocols
         .iter()
         .map(|p| {
@@ -736,11 +758,8 @@ fn render_protocols_json(protocols: &[&KnownProtocol]) {
         .collect();
 
     let output = serde_json::json!({ "protocols": entries });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&output)
-            .expect("serde_json serialization of protocol catalog cannot fail")
-    );
+    serde_json::to_string_pretty(&output)
+        .expect("serde_json serialization of protocol catalog cannot fail")
 }
 
 fn run_summary(

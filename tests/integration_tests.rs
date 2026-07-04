@@ -1019,4 +1019,134 @@ mod story_152 {
              json_names={json_names:?}, catalog_names={catalog_names:?}"
         );
     }
+
+    /// BC-2.12.022 output-routing: `protocols --json=<PATH>` writes the JSON
+    /// to the given file and does NOT emit the terminal table header to stdout.
+    ///
+    /// Regression guard for the wave-68 F-W68-01 silent-failure fix: previously
+    /// `--json=<PATH>` printed JSON to stdout and silently wrote no file.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_12_022_json_path_writes_file() {
+        let tmp = std::env::temp_dir().join(format!(
+            "wirerust_test_protocols_{}.json",
+            std::process::id()
+        ));
+        // Clean up any leftover from a previous run.
+        let _ = std::fs::remove_file(&tmp);
+
+        let json_arg = format!("--json={}", tmp.display());
+        let output = bin()
+            .args(["protocols", "--all", &json_arg])
+            .assert()
+            .success()
+            .get_output()
+            .clone();
+
+        // The file must exist and contain valid JSON with a "protocols" array of 30 entries.
+        assert!(
+            tmp.exists(),
+            "BC-2.12.022: `protocols --json=<PATH>` must create the output file at {tmp:?}"
+        );
+        let contents =
+            std::fs::read_to_string(&tmp).expect("should be able to read the written JSON file");
+        let _ = std::fs::remove_file(&tmp); // clean up
+
+        let json: serde_json::Value = serde_json::from_str(&contents).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.022: file written by `protocols --json=<PATH>` must be valid JSON; \
+                 parse error: {e}\ncontents:\n{contents}"
+            )
+        });
+        let arr = json["protocols"]
+            .as_array()
+            .expect("BC-2.12.022: JSON file must have a top-level 'protocols' array");
+        let expected = all_protocols().len();
+        assert_eq!(
+            arr.len(),
+            expected,
+            "BC-2.12.022: 'protocols' array must have {expected} entries (--all); got {}",
+            arr.len()
+        );
+
+        // When JSON is routed to a file, stdout must be completely empty.
+        let stdout = String::from_utf8(output.stdout).expect("utf-8 stdout");
+        assert!(
+            stdout.trim().is_empty(),
+            "BC-2.12.022: stdout must be empty when --json=<PATH> routes output to a file; \
+             got:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.022 output-routing: `protocols --output-format json` emits
+    /// parseable JSON with a `"protocols"` array to stdout.
+    ///
+    /// Regression guard for the wave-68 F-W68-01 fix: previously
+    /// `--output-format json` was silently ignored and the terminal table was
+    /// printed instead.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_12_022_output_format_json() {
+        let output = bin()
+            .args(["protocols", "--output-format", "json"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.022: `protocols --output-format json` must produce valid JSON on \
+                 stdout; parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        assert!(
+            json.get("protocols").is_some(),
+            "BC-2.12.022: JSON output from `--output-format json` must contain a \
+             top-level 'protocols' key; stdout:\n{stdout}"
+        );
+        assert!(
+            json["protocols"].is_array(),
+            "BC-2.12.022: 'protocols' value must be a JSON array; stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.022 output-routing: `protocols --csv` and
+    /// `protocols --output-format csv` exit non-zero and report the
+    /// unsupported format on stderr.
+    ///
+    /// Regression guard for the wave-68 F-W68-01 fix: previously these flags
+    /// silently fell back to the terminal table (no-op, no error).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_12_022_csv_rejected() {
+        // --csv flag variant.
+        let output_csv_flag = bin()
+            .args(["protocols", "--csv"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr_csv_flag = String::from_utf8(output_csv_flag.stderr).expect("utf-8 stderr");
+        assert!(
+            stderr_csv_flag.to_lowercase().contains("csv"),
+            "BC-2.12.022: `protocols --csv` must mention 'csv' in stderr error message; \
+             stderr:\n{stderr_csv_flag}"
+        );
+
+        // --output-format csv variant.
+        let output_fmt_csv = bin()
+            .args(["protocols", "--output-format", "csv"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr_fmt_csv = String::from_utf8(output_fmt_csv.stderr).expect("utf-8 stderr");
+        assert!(
+            stderr_fmt_csv.to_lowercase().contains("csv"),
+            "BC-2.12.022: `protocols --output-format csv` must mention 'csv' in stderr \
+             error message; stderr:\n{stderr_fmt_csv}"
+        );
+    }
 }
