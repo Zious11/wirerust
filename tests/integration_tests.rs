@@ -1150,3 +1150,520 @@ mod story_152 {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-154: `--coverage-gaps` flag + CoverageGapsSummary tri-state report.
+//
+// BCs: BC-2.12.023 v1.2 (flag opt-in, analyze --all independence, section wiring)
+//      BC-2.12.024 v1.1 (L2 caveat, port-102 collision note, tri-state classification)
+//
+// RED GATE STATUS:
+//   12 tests fail — `--coverage-gaps` flag does not exist yet; clap exits non-zero
+//     when an unrecognized flag is passed to `analyze`, so every test that expects
+//     `.success()` panics, and every test that checks content in CoverageGapsSummary
+//     never reaches its assertion.
+//   3 tests are GREEN regression guards (pass before and after implementation):
+//     test_BC_2_12_023_all_without_coverage_gaps — asserts ABSENCE of section with --all
+//     test_BC_2_12_023_protocols_coverage_gaps_error — asserts failure on protocols --coverage-gaps
+//     test_BC_2_12_023_no_coverage_gaps_no_section — asserts ABSENCE of section without flag
+//   These three are correct from day 1; they become meaningful safeguards during the
+//   Green phase (ensuring flag independence and subcommand scoping invariants hold).
+//
+// FIXTURE NEEDS (F4-FIXTURE-NEED-001):
+//   Several tests below use `tests/fixtures/http-ooo.pcap` as a placeholder because
+//   no pcap with the required specific traffic exists yet. During the Green phase the
+//   implementer must create (or source) crafted fixtures:
+//     - TCP/102 traffic   → test_BC_2_12_024_port102_footnote_on_tcp102_traffic,
+//                           test_BC_2_12_024_port102_note_names_all_four
+//     - UDP/47808 traffic → test_BC_2_12_024_bacnet_known_unsupported
+//     - TCP/47808 traffic → test_BC_2_12_024_tcp_47808_is_unknown
+//     - TCP/9600 traffic  → test_BC_2_12_024_unknown_port_state
+//     - TCP/53 traffic    → test_BC_2_12_024_tcp_53_is_unknown (EC-154-14)
+//   For the Red Gate these placeholder fixtures are irrelevant: every test that uses
+//   `--coverage-gaps` fails before the pcap content is inspected.
+// ---------------------------------------------------------------------------
+mod story_154 {
+    #![allow(non_snake_case)]
+
+    use assert_cmd::Command;
+
+    /// Default fixture for tests that only need a valid, parseable pcap.
+    /// Smallest fixture in the suite (1,209 B); exercises TCP flows on port 80.
+    const ANALYZE_FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
+
+    /// Fixture with Modbus TCP/502 traffic — used by test_BC_2_12_024_tcp_502_absent_from_gap_report
+    /// to verify that Rule 5 of classify() routes port-502 flows to DispatchTarget::Modbus
+    /// before the None-target arm can fire (EC-154-11).
+    const MODBUS_FIXTURE: &str = "tests/fixtures/modbus-write.pcap";
+
+    fn bin() -> Command {
+        Command::cargo_bin("wirerust").expect("wirerust binary must be built")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.12.023 — flag opt-in semantics, analyze --all independence
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.023 Invariant 1 / EC-154-2:
+    /// `wirerust analyze --all` does NOT produce a `CoverageGapsSummary` section.
+    /// The `--all` and `--coverage-gaps` flags are independent.
+    ///
+    /// GREEN REGRESSION GUARD: passes before implementation (no section exists yet)
+    /// and must continue to pass after (Invariant 1 holds). Fails if `--all` ever
+    /// implies `--coverage-gaps`.
+    #[test]
+    fn test_BC_2_12_023_all_without_coverage_gaps() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--all"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            !stdout.contains("CoverageGapsSummary"),
+            "BC-2.12.023 Invariant 1: `analyze --all` must NOT produce a \
+             CoverageGapsSummary section; `--all` and `--coverage-gaps` are independent; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.023 Invariant 5 / EC-154-6:
+    /// `wirerust protocols --coverage-gaps` exits non-zero (clap error).
+    /// `--coverage-gaps` is only valid on the `analyze` subcommand.
+    ///
+    /// GREEN REGRESSION GUARD: passes before implementation (flag is unknown →
+    /// clap error → non-zero) and must continue to pass after (flag scoped to
+    /// `analyze` only). Fails if `--coverage-gaps` is accidentally added to
+    /// `protocols`.
+    #[test]
+    fn test_BC_2_12_023_protocols_coverage_gaps_error() {
+        bin()
+            .args(["protocols", "--coverage-gaps"])
+            .assert()
+            .failure();
+    }
+
+    /// BC-2.12.023 PC-1 / EC-154-1:
+    /// `wirerust analyze` without `--coverage-gaps` produces no `CoverageGapsSummary`.
+    ///
+    /// GREEN REGRESSION GUARD: passes before implementation (no section rendered
+    /// without the flag) and must continue to pass after (flag is strictly opt-in).
+    #[test]
+    fn test_BC_2_12_023_no_coverage_gaps_no_section() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            !stdout.contains("CoverageGapsSummary"),
+            "BC-2.12.023 PC-2: `analyze` without `--coverage-gaps` must NOT render \
+             CoverageGapsSummary; stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.023 PC-1 / AC-154-002:
+    /// `wirerust analyze <pcap> --coverage-gaps` with known-unclassified traffic
+    /// produces a `CoverageGapsSummary` section with at least one entry.
+    ///
+    /// RED GATE: `--coverage-gaps` flag not yet wired → clap error → non-zero exit
+    /// → `.assert().success()` panics.
+    ///
+    /// NOTE (F4-FIXTURE-NEED-001): `http-ooo.pcap` has TCP/80 flows; port 80 is
+    /// routed to DispatchTarget::Http by classify(), so it does NOT appear as
+    /// unclassified. A fixture with traffic on a port not matched by classify()
+    /// (e.g., TCP/9600 or TCP/8080) is needed for the Green assertion "≥1 entry".
+    /// For the Red Gate the fixture content is irrelevant.
+    #[test]
+    fn test_BC_2_12_023_coverage_gaps_counts_unclassified() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error (flag unknown)
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            stdout.contains("CoverageGapsSummary"),
+            "BC-2.12.023 PC-1: --coverage-gaps must produce CoverageGapsSummary section; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.023 PC-1 / Invariant 3 / AC-154-003:
+    /// `--coverage-gaps` produces a `CoverageGapsSummary` named section in the output.
+    ///
+    /// RED GATE: fails as above.
+    #[test]
+    fn test_BC_2_12_023_coverage_gaps_flag_produces_section() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error (flag unknown)
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            stdout.contains("CoverageGapsSummary"),
+            "BC-2.12.023 PC-1 / Invariant 3: --coverage-gaps must append \
+             CoverageGapsSummary named section after all Findings; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.12.023 / BC-2.12.024 — JSON mode
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.023 PC-3 / AC-154-007 / EC-154-5:
+    /// `--json --coverage-gaps` produces a JSON object with a `"coverage_gaps"` key.
+    ///
+    /// RED GATE: `--coverage-gaps` flag not yet wired → clap error → non-zero exit.
+    ///
+    /// NOTE: `--json` is a top-level Cli flag; it can appear anywhere in the args.
+    #[test]
+    fn test_BC_2_12_023_json_coverage_gaps_key() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps", "--json"])
+            .assert()
+            .success() // RED GATE: panics — clap error (flag unknown)
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.023 PC-3: --json --coverage-gaps must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        assert!(
+            json.get("coverage_gaps").is_some(),
+            "BC-2.12.023 PC-3: JSON output with --coverage-gaps must have a \
+             top-level 'coverage_gaps' key; stdout:\n{stdout}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.12.024 — L2 caveat, port-102 footnote, tri-state classification
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.024 PC-1 / Invariant 1 / AC-154-004 / EC-001 (BC-2.12.024):
+    /// `CoverageGapsSummary` ALWAYS includes the L2/multicast structural caveat,
+    /// even when the entries array is empty.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// NOTE (F4-FIXTURE-NEED-001): `http-ooo.pcap` is used as placeholder. The
+    /// Green phase may use any pcap; the assertion targets the L2 caveat text
+    /// (or a substring thereof) which must appear regardless of pcap content.
+    #[test]
+    fn test_BC_2_12_024_l2_caveat_always_present() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // Check for a stable substring of L2_CAVEAT_TEXT (AC-154-004).
+        assert!(
+            stdout.contains("Layer-2 protocols") || stdout.contains("TCP and UDP flows"),
+            "BC-2.12.024 PC-1 / Invariant 1: CoverageGapsSummary must always include \
+             the L2/multicast caveat text; stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-2 / Invariant 2 / AC-154-005 / EC-003 (BC-2.12.024):
+    /// Port-102 collision footnote present when TCP/102 has a non-zero count.
+    /// Names all four protocols: S7comm, S7comm-plus, IEC 61850 MMS, ICCP/TASE.2.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: A pcap with TCP/102 unclassified traffic is required
+    /// for the Green assertion. `http-ooo.pcap` is used as placeholder.
+    #[test]
+    fn test_BC_2_12_024_port102_footnote_on_tcp102_traffic() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted TCP/102 fixture
+        // for the Green assertion phase. The test fails at clap level for the Red Gate.
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // PORT_102_NOTE must appear adjacent to TCP/102 entry (BC-2.12.024 PC-2).
+        assert!(
+            stdout.contains("S7comm") || stdout.contains("ISO-on-TCP"),
+            "BC-2.12.024 PC-2: port-102 collision footnote must appear when TCP/102 \
+             count > 0; stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-3 / Invariant 2 / AC-154-005 / EC-001 (BC-2.12.024):
+    /// Port-102 footnote absent when TCP/102 count is zero.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    #[test]
+    fn test_BC_2_12_024_port102_footnote_absent_without_tcp102() {
+        // http-ooo.pcap has HTTP/80 traffic and no TCP/102 flows — port-102 footnote
+        // must not appear in the CoverageGapsSummary.
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            !stdout.contains("ISO-on-TCP") && !stdout.contains("S7comm-plus"),
+            "BC-2.12.024 PC-3 / Invariant 2: port-102 collision footnote must NOT appear \
+             when TCP/102 count == 0; stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-2 / DF-CANONICAL-FRAME-HOLDOUT-001:
+    /// The port-102 collision footnote (PORT_102_NOTE constant) names all four
+    /// protocols sharing TCP/102 via ISO-on-TCP/TPKT framing (RFC 1006):
+    ///   S7comm, S7comm-plus, IEC 61850 MMS, ICCP/TASE.2.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: Requires a crafted TCP/102 pcap fixture for Green phase.
+    #[test]
+    fn test_BC_2_12_024_port102_note_names_all_four() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted TCP/102 fixture
+        // (ISO-on-TCP/TPKT, RFC 1006) for the Green assertion phase.
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // DF-CANONICAL-FRAME-HOLDOUT-001: all four protocols must be named.
+        assert!(
+            stdout.contains("S7comm"),
+            "DF-CANONICAL-FRAME-HOLDOUT-001: PORT_102_NOTE must name 'S7comm'; \
+             stdout:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("S7comm-plus"),
+            "DF-CANONICAL-FRAME-HOLDOUT-001: PORT_102_NOTE must name 'S7comm-plus'; \
+             stdout:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("IEC 61850 MMS"),
+            "DF-CANONICAL-FRAME-HOLDOUT-001: PORT_102_NOTE must name 'IEC 61850 MMS'; \
+             stdout:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("ICCP"),
+            "DF-CANONICAL-FRAME-HOLDOUT-001: PORT_102_NOTE must name 'ICCP' (TASE.2); \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001 / EC-002 (BC-2.12.024):
+    /// `(Udp, 47808)` classifies as `known-unsupported` with name "BACnet/IP".
+    /// BACnet/IP uses UDP port 0xBAC0 = 47808 per ASHRAE 135-2016 Annex J §J.2.1.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: Requires a crafted UDP/47808 (BACnet/IP) pcap fixture
+    /// for the Green assertion phase.
+    #[test]
+    fn test_BC_2_12_024_bacnet_known_unsupported() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted UDP/47808
+        // (BACnet/IP; ASHRAE 135-2016 Annex J §J.2.1) fixture for Green phase.
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // DF-CANONICAL-FRAME-HOLDOUT-001: state must be known-unsupported; name BACnet/IP.
+        assert!(
+            stdout.contains("known-unsupported"),
+            "BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001: (Udp, 47808) entry \
+             must show state 'known-unsupported'; stdout:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("BACnet/IP"),
+            "BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001: (Udp, 47808) entry \
+             must name 'BACnet/IP' (ASHRAE 135-2016 Annex J §J.2.1); stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-004 (BC-2.12.024):
+    /// `(Tcp, 9600)` classifies as `unknown` (no catalog entry for this port).
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: Requires a crafted TCP/9600 fixture for Green phase.
+    #[test]
+    fn test_BC_2_12_024_unknown_port_state() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted TCP/9600
+        // fixture for Green phase (port 9600 has no catalog entry).
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            stdout.contains("unknown"),
+            "BC-2.12.024 PC-4: (Tcp, 9600) must show state 'unknown'; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-009 (BC-2.12.024):
+    /// `(Tcp, 47808)` classifies as `unknown` (transport mismatch — BACnet/IP is
+    /// catalogued as Udp/47808 only; a Tcp observation of the same port has no
+    /// matching catalog entry).
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: Requires a crafted TCP/47808 fixture for Green phase.
+    #[test]
+    fn test_BC_2_12_024_tcp_47808_is_unknown() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted TCP/47808
+        // fixture for Green phase (transport mismatch against UDP-only BACnet/IP entry).
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // State must be "unknown", NOT "known-unsupported" (no BACnet/IP catalog match
+        // on TCP transport).
+        assert!(
+            stdout.contains("unknown"),
+            "BC-2.12.024 EC-009: (Tcp, 47808) must be 'unknown' (transport mismatch \
+             — BACnet/IP is UDP-only in catalog); stdout:\n{stdout}"
+        );
+        assert!(
+            !stdout.contains("known-unsupported"),
+            "BC-2.12.024 EC-009: (Tcp, 47808) must NOT be 'known-unsupported'; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-010 (BC-2.12.024) / EC-154-14:
+    /// `(Tcp, 53)` classifies as `unknown`. DNS is catalogued as UDP/53 only;
+    /// TCP is not a supported DNS transport in the protocol catalog.
+    ///
+    /// Forward-note: STORY-154-DNS53-TCP-GAP-001 — DNS/53 TCP gap is a structural
+    /// limitation of the current catalog (DNS over TCP exists in RFC 7766 but is
+    /// not catalogued; this test guards the correct "unknown" classification of the
+    /// TCP/53 observation against possible future catalog confusion).
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// F4-FIXTURE-NEED-001: Requires a crafted TCP/53 fixture for Green phase.
+    #[test]
+    fn test_BC_2_12_024_tcp_53_is_unknown() {
+        // F4-FIXTURE-NEED-001: Replace http-ooo.pcap with a crafted TCP/53
+        // fixture for Green phase (DNS is UDP-only in catalog; TCP/53 → unknown).
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // State must be "unknown" — DNS is UDP/53 only in catalog; TCP transport
+        // has no catalog entry → Unknown (EC-154-14 / EC-010 BC-2.12.024 /
+        // STORY-154-DNS53-TCP-GAP-001).
+        assert!(
+            stdout.contains("unknown"),
+            "BC-2.12.024 EC-010 / EC-154-14: (Tcp, 53) must be 'unknown' — DNS is \
+             UDP-only in catalog (STORY-154-DNS53-TCP-GAP-001); stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-154-11 / F-F3P14-001:
+    /// `(Tcp, 502)` is ABSENT from `CoverageGapsSummary` under normal operation.
+    /// `classify()` Rule 5 always routes port-502 flows to `DispatchTarget::Modbus`
+    /// before the `None`-target arm fires; therefore port 502 never enters
+    /// `unclassified_port_counts` via the analyze pipeline.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    ///
+    /// Uses `modbus-write.pcap` (has TCP/502 Modbus traffic).
+    #[test]
+    fn test_BC_2_12_024_tcp_502_absent_from_gap_report() {
+        let output = bin()
+            .args(["analyze", MODBUS_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // Port 502 must NOT appear as a gap entry: Modbus is supported, and
+        // classify() routes it before the None-target arm fires (EC-154-11).
+        // We check that "502" does not appear as an entry in CoverageGapsSummary.
+        // (The section header itself does not contain "502".)
+        assert!(
+            !stdout.contains("\"502\"")
+                && !stdout.contains("port: 502")
+                && !stdout.contains("TCP/502"),
+            "BC-2.12.024 EC-154-11: (Tcp, 502) must be ABSENT from CoverageGapsSummary; \
+             classify() Rule 5 routes Modbus flows before the None-target arm fires; \
+             stdout:\n{stdout}"
+        );
+    }
+
+    /// BC-2.12.024 PC-5 / AC-154-007:
+    /// `--json --coverage-gaps` produces a JSON object where `"coverage_gaps"."caveat_l2"`
+    /// is a non-null, non-empty string.
+    ///
+    /// RED GATE: `--coverage-gaps` not yet wired → clap error.
+    #[test]
+    fn test_BC_2_12_024_json_has_caveat_field() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps", "--json"])
+            .assert()
+            .success() // RED GATE: panics — clap error
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.024 PC-5: --json --coverage-gaps must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        let caveat = json
+            .get("coverage_gaps")
+            .and_then(|cg| cg.get("caveat_l2"))
+            .and_then(|c| c.as_str());
+        assert!(
+            caveat.is_some_and(|s| !s.is_empty()),
+            "BC-2.12.024 PC-5: JSON 'coverage_gaps.caveat_l2' must be a non-null, \
+             non-empty string; stdout:\n{stdout}"
+        );
+    }
+}

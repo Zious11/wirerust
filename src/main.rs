@@ -957,6 +957,58 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     anyhow::bail!("Target not found: {}", target.display());
 }
 
+// ---------------------------------------------------------------------------
+// STORY-154 RED GATE: ProtocolGapState enum + lookup_protocol_state() stub.
+// These items compile but lookup_protocol_state() always panics via todo!().
+// The GREEN step (Task 4) replaces the todo!() with the real KNOWN_PROTOCOLS
+// + SUPPORTED_PORTS transport-aware lookup (BC-2.12.024 PC-4 / AC-154-006).
+// ---------------------------------------------------------------------------
+
+/// Tri-state classification for `CoverageGapsSummary` entries.
+///
+/// Uses the Suricata-derived vocabulary (ADR-012 Decision 2 / BC-2.12.024 PC-4):
+/// - `KnownUnsupported` — (transport, port) matches a catalog entry whose
+///   `canonical_ports` have no intersection with `SUPPORTED_PORTS` and whose
+///   name is not `"ARP"`.
+/// - `Unknown` — no catalog match, OR transport mismatch on a known port
+///   (e.g., TCP on a UDP-only catalogued port → Unknown, not KnownUnsupported).
+/// - `KnownSupported` — catalog match AND `canonical_ports ∩ SUPPORTED_PORTS ≠ ∅`
+///   (or name == "ARP"). Signals a BUG: dissector failed to classify traffic it
+///   should handle. Entry is NOT suppressed; count shown as-is.
+///
+/// `LinkLayer` catalog entries (ARP, GOOSE, …) NEVER match a port-keyed lookup —
+/// they require EtherType-based detection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(crate) enum ProtocolGapState {
+    /// Catalog match with no intersection with `SUPPORTED_PORTS` (known, not dissected).
+    KnownUnsupported,
+    /// No catalog match, or transport mismatch on a known-transport port.
+    Unknown,
+    /// Catalog match within `SUPPORTED_PORTS` — BUG signal (dissector should have fired).
+    KnownSupported,
+}
+
+/// Classify a `(TransportProto, port)` pair against the `KNOWN_PROTOCOLS` catalog.
+///
+/// Transport-aware: `(Tcp, 47808)` → `Unknown` (BACnet/IP is catalogued as `Udp/47808`
+/// only; transport mismatch yields `Unknown`, not `KnownUnsupported`).
+/// `LinkLayer` entries are never matched by a port-keyed lookup.
+///
+/// # STORY-154 RED GATE
+///
+/// Body is `todo!()`. The implementer replaces this with the real catalog lookup in
+/// the GREEN step (AC-154-006 / Task 4). Unit tests in `mod story_154_unit` below
+/// will fail via `todo!()` panic until the implementation is in place.
+#[allow(dead_code)]
+fn lookup_protocol_state(
+    transport: wirerust::dispatcher::TransportProto,
+    port: u16,
+) -> ProtocolGapState {
+    let _ = (transport, port);
+    todo!("STORY-154: tri-state classification not yet implemented")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{collapse_findings_from_flag, grouping_from_flag, read_magic};
@@ -1033,6 +1085,91 @@ mod tests {
             read_magic(&path),
             Some([0x0A, 0x0D, 0x0D, 0x0A]),
             "read_magic must return the first 4 bytes of a ≥4-byte file (BC-2.12.011 Inv5)"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-154 unit tests for lookup_protocol_state() — RED GATE.
+//
+// All four tests call the todo!() stub and FAIL via panic.
+// The `_unit` suffix distinguishes these from identically-named integration
+// tests in `mod story_154` in tests/integration_tests.rs (DF-AC-TEST-NAME-SYNC-001).
+// `#[allow(non_snake_case)]` required: uppercase `test_BC_…` names violate
+// `non_snake_case` under `-D warnings`; `src/main.rs` `mod tests` (above) is
+// lowercase and carries no such allow.
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+#[allow(non_snake_case)]
+mod story_154_unit {
+    use super::{ProtocolGapState, lookup_protocol_state};
+    use wirerust::dispatcher::TransportProto;
+
+    /// BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001:
+    /// BACnet/IP UDP/47808 (0xBAC0; ASHRAE 135-2016 Annex J §J.2.1) →
+    /// `KnownUnsupported`. Confirms catalog has `transport: Udp, canonical_ports:
+    /// [47808]` and the port is NOT in `SUPPORTED_PORTS`.
+    ///
+    /// RED GATE: panics via `todo!()` until GREEN step (AC-154-006 Task 4).
+    #[test]
+    fn test_BC_2_12_024_bacnet_known_unsupported_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Udp, 47808),
+            ProtocolGapState::KnownUnsupported,
+            "BC-2.12.024 PC-4 / DF-CANONICAL-FRAME-HOLDOUT-001: \
+             (Udp, 47808) must be KnownUnsupported; \
+             BACnet/IP UDP port 0xBAC0 = 47808 per ASHRAE 135-2016 Annex J §J.2.1"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-009 (BC-2.12.024):
+    /// TCP on BACnet/IP's UDP-only port 47808 → `Unknown` (transport mismatch).
+    /// BACnet/IP is catalogued as `Udp/47808` only; a `Tcp` observation of the
+    /// same port number has no matching catalog entry → `Unknown`, not
+    /// `KnownUnsupported`.
+    ///
+    /// RED GATE: panics via `todo!()` until GREEN step.
+    #[test]
+    fn test_BC_2_12_024_tcp_47808_is_unknown_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 47808),
+            ProtocolGapState::Unknown,
+            "BC-2.12.024 EC-009: (Tcp, 47808) must be Unknown — BACnet/IP is \
+             catalogued as Udp/47808 only; transport mismatch yields Unknown"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / EC-004 (BC-2.12.024):
+    /// Completely unrecognized port `(Tcp, 9600)` → `Unknown`.
+    /// Port 9600 has no catalog entry under any transport.
+    ///
+    /// RED GATE: panics via `todo!()` until GREEN step.
+    #[test]
+    fn test_BC_2_12_024_unknown_port_state_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 9600),
+            ProtocolGapState::Unknown,
+            "BC-2.12.024 EC-004: (Tcp, 9600) has no catalog match → Unknown"
+        );
+    }
+
+    /// BC-2.12.024 PC-4 / F-F3P14-001 / EC-154-11:
+    /// `(Tcp, 502)` → `KnownSupported` (BUG signal). Modbus TCP/502 is in
+    /// `SUPPORTED_PORTS`. This state is UNIT-ONLY: under the analyze pipeline,
+    /// `classify()` Rule 5 routes every port-502 flow to `DispatchTarget::Modbus`
+    /// before the `None`-target arm fires; therefore `(Tcp, 502)` can never enter
+    /// `unclassified_port_counts` via `analyze --coverage-gaps`. The
+    /// `KnownSupported` branch exists purely as a classifier-bug signal.
+    ///
+    /// RED GATE: panics via `todo!()` until GREEN step.
+    #[test]
+    fn test_BC_2_12_024_known_supported_is_bug_signal_unit() {
+        assert_eq!(
+            lookup_protocol_state(TransportProto::Tcp, 502),
+            ProtocolGapState::KnownSupported,
+            "BC-2.12.024 PC-4 / EC-154-11: (Tcp, 502) must be KnownSupported \
+             (BUG signal — Modbus TCP/502 is in SUPPORTED_PORTS; \
+             this state is unreachable via the analyze pipeline per F-F3P14-001)"
         );
     }
 }
