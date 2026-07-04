@@ -1057,12 +1057,14 @@ fn lookup_protocol_state(
         .find(|p| p.transport == catalog_transport && p.canonical_ports.contains(&port))
     {
         // Catalog match: check whether this protocol is supported.
-        // Supportedness: canonical_ports ∩ SUPPORTED_PORTS ≠ ∅ OR name == "ARP".
+        // Supportedness: canonical_ports ∩ SUPPORTED_PORTS ≠ ∅.
+        // Note: `|| p.name == "ARP"` is absent — the find() predicate matches only
+        // Transport::Tcp/Udp entries; ARP has transport=LinkLayer and canonical_ports=[]
+        // so it can never be returned by find(). The ARP disjunct was dead code.
         Some(p)
             if p.canonical_ports
                 .iter()
-                .any(|cp| SUPPORTED_PORTS.contains(cp))
-                || p.name == "ARP" =>
+                .any(|cp| SUPPORTED_PORTS.contains(cp)) =>
         {
             // BUG signal: a dissector should have handled this flow.
             ProtocolGapState::KnownSupported
