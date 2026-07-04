@@ -5,6 +5,19 @@ cycle: feature-protocol-coverage
 
 # Session Checkpoints Archive — feature-protocol-coverage
 
+## Checkpoint archived 2026-07-04 (superseded by D-373 F4 fixture prep COMPLETE checkpoint)
+
+**F4 DELTA-IMPLEMENTATION DONE — ENTERING F4 HOLDOUT EVALUATION (D-372, 2026-07-04). All 4 E-21 stories merged. develop=cad7024; stories_delivered=98. Next: F4 HOLDOUT EVALUATION (HS-123..132) — holdout-evaluator under information asymmetry (different model family; sees only public CLI/API surface + holdout scenarios, NOT source internals) vs develop cad7024. Resume: `/vsdd-factory:next-step`.**
+
+- **Ground truth:** develop=`cad7024` (full `cad70242cf223a25a083ed7a19437359074af707`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @cad7024] + .factory [factory-artifacts]. All E-21 story worktrees removed.
+- **RESUME PROCEDURE:**
+  1. `vsdd-factory:factory-worktree-health` — PASS required.
+  2. Verify develop=`cad7024`.
+  3. F4 HOLDOUT EVALUATION (HS-123..132) with strict information asymmetry. F4-FIXTURE-NEED-001 carried as open blocker: HS-127..132 pcap-dependent; HS-132 may need public BACnet/IP corpus.
+  4. Gate: mean satisfaction ≥ 0.85 + all must-pass holdouts pass (feature-mode F4 criteria per D-359).
+
+---
+
 ## Checkpoint archived 2026-07-04 (superseded by D-370 Wave-68 COMPLETE checkpoint)
 
 **F4 DELTA-IMPLEMENTATION, WAVE 68 F-W68-01 FIX (D-369). PR #353 SQUASH-MERGED → develop 5c4437a. Wave-68 wave-level adversarial split verdict (CLEAN/NOT-CLEAN-HIGH/CLEAN) on develop 5c4437a. F-W68-01 HIGH: protocols --json=\<path\> silently wrote JSON to stdout — SOUL silent-failure + BC-2.12.022 Invariant-5 divergence. Adjudicated: honor-path. Fix branch fix/protocols-json-output-routing @7ab197a, all gates GREEN. STORY-152 v1.6 (EC-152-11/12/13; STORY-152-GLOBAL-FLAG-NOOP-001 RESOLVED-BY-FIX). fix-pr-delivery adversarial review in progress. develop=5c4437a; stories_delivered=96. Resume: `/vsdd-factory:next-step`.**

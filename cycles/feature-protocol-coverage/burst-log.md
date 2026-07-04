@@ -181,3 +181,32 @@ BC-5.39.001 (wave-level convergence) SATISFIED.
 | Session Resume Checkpoint | D-371 version (develop=0e700a9, stories=97) | D-372 version (develop=cad7024, stories=98) |
 
 ---
+
+## Archived Current Phase Step — D-368 Wave-68 Merge Gate (rotated out 2026-07-04)
+
+Rotated out of STATE.md Current Phase Steps table (last-5 rule) when D-373 F4 fixture prep row was added.
+
+**F4 Wave 68 MERGE GATE (D-368, 2026-07-03). STORY-152 PR #353 READY-TO-MERGE. Branch tip d34a05f→c4b14f7 (doc-comment-only: 3 `///` cli.rs lines stripped of BC IDs BC-2.12.022/2.18.001/2.18.002 per Help-provenance-gate CI check; no functional/test change). Per-story adversarial convergence on d34a05f REMAINS VALID. CI 11/11 PASS. AI APPROVE (0 blocking, 1 cosmetic: redundant ARP short-circuit in is_protocol_supported). Security CLEAN (0 CRITICAL/HIGH/MEDIUM/LOW; 2 INFO deferred). PG-HELP-PROVENANCE-CLI-DOC-001 filed. Pipeline PAUSED at human merge gate; develop unchanged (b285feb).**
+
+Status: DONE (D-368). squash-merge #353 → develop 5c4437a complete. Wave-68 wave-level adversarial ran (D-369).
+
+---
+
+## Burst 6 — D-373 F4 Fixture Prep COMPLETE (2026-07-04)
+
+**Agents dispatched:** state-manager (fixture commit + STATE.md bookkeeping)
+**Files touched:** .factory/holdout-fixtures/ (new — 8 pcaps + make_holdout_fixtures.py + MANIFEST.md + HS-132-corpus-research.md), STATE.md, cycles/feature-protocol-coverage/burst-log.md, cycles/feature-protocol-coverage/session-checkpoints.md
+**Versions bumped:** none (STATE.md frontmatter timestamp advanced; no spec versions changed)
+**develop HEAD:** cad7024 (unchanged)
+
+| Field | Before | After |
+|-------|--------|-------|
+| current_step | D-372 F4 delta-impl complete | D-373 F4 fixture prep complete |
+| timestamp | 2026-07-04T11:00:00Z | 2026-07-04T13:00:00Z |
+| Phase Progress F4 holdout row | PENDING | FIXTURES READY (D-373) — PENDING EVAL |
+| F4-FIXTURE-NEED-001 | OPEN — F4-carry | RESOLVED (D-373, 2026-07-04) |
+| Current Phase Steps | D-372/371/370/369/368 (top-5) | D-373/372/371/370/369 (D-368 archived to burst-log) |
+| Decisions Log | ends D-372 | + D-373 |
+| Session Resume Checkpoint | D-372 version | D-373 version (fixtures READY) |
+
+---
