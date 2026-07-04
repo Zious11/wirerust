@@ -190,9 +190,10 @@ fn run_analyze(
     show_mitre_grouping: bool,
     collapse_findings: bool,
     use_color: bool,
-    // STORY-153 (F-F3P6-001): new scalar param so wave-67 decode-loop gates compile before
-    // --coverage-gaps CLI flag exists. Passed as `false` from main() until STORY-154
-    // changes the call-site to `*coverage_gaps` from Commands::Analyze destructure.
+    // When `true`: activates the per-packet UDP gap counter in the decode loop and appends a
+    // `CoverageGapsSummary` tri-state report after all `Finding` entries in the output
+    // (AC-154-002/003/007; ADR-012 Decision 9). Wired from `--coverage-gaps` via
+    // `*coverage_gaps` in the `Commands::Analyze` destructure.
     coverage_gaps: bool,
     cli: &Cli,
 ) -> Result<()> {
@@ -1056,12 +1057,14 @@ fn lookup_protocol_state(
         .find(|p| p.transport == catalog_transport && p.canonical_ports.contains(&port))
     {
         // Catalog match: check whether this protocol is supported.
-        // Supportedness: canonical_ports ∩ SUPPORTED_PORTS ≠ ∅ OR name == "ARP".
+        // Supportedness: canonical_ports ∩ SUPPORTED_PORTS ≠ ∅.
+        // Note: `|| p.name == "ARP"` is absent — the find() predicate matches only
+        // Transport::Tcp/Udp entries; ARP has transport=LinkLayer and canonical_ports=[]
+        // so it can never be returned by find(). The ARP disjunct was dead code.
         Some(p)
             if p.canonical_ports
                 .iter()
-                .any(|cp| SUPPORTED_PORTS.contains(cp))
-                || p.name == "ARP" =>
+                .any(|cp| SUPPORTED_PORTS.contains(cp)) =>
         {
             // BUG signal: a dissector should have handled this flow.
             ProtocolGapState::KnownSupported

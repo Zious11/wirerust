@@ -1236,6 +1236,47 @@ mod story_154 {
         );
     }
 
+    /// BC-2.12.023 Invariant 1 / BC-2.12.023 PC-1 — combined:
+    /// `wirerust analyze --all --coverage-gaps` exits 0 and produces a `CoverageGapsSummary`
+    /// section. The `--all` selector and `--coverage-gaps` reporter are orthogonal; combining
+    /// them must work: `--all` routes all traffic to enabled analyzers while `--coverage-gaps`
+    /// independently appends the CoverageGapsSummary after all Findings.
+    ///
+    /// STORY-154-ALL-COVERAGEGAPS-TEST-001: exercises the combination that was previously
+    /// untested. Uses GAP_TCP9600_FIXTURE with `--all` (which enables `--http`, satisfying the
+    /// analyzer-present guard per BC-2.05.010) and `--coverage-gaps` (which emits the section).
+    /// Port 9600 flows to DispatchTarget::None → CoverageGapsSummary shows TCP/9600 as "unknown".
+    ///
+    /// Fails if: (1) `--all` and `--coverage-gaps` conflict in clap config,
+    /// (2) CoverageGapsSummary section is absent, or (3) TCP/9600 row is missing from the report.
+    #[test]
+    fn test_BC_2_12_023_all_with_coverage_gaps_combination() {
+        let output = bin()
+            .args(["analyze", GAP_TCP9600_FIXTURE, "--all", "--coverage-gaps"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // CoverageGapsSummary must appear: --coverage-gaps flag was passed.
+        assert!(
+            stdout.contains("CoverageGapsSummary"),
+            "STORY-154-ALL-COVERAGEGAPS-TEST-001: `analyze --all --coverage-gaps` must \
+             produce a CoverageGapsSummary section; stdout:\n{stdout}"
+        );
+        // TCP/9600 must appear as an "unknown" gap entry: --all enables HTTP (satisfying
+        // the analyzer-present guard), and port 9600 has no catalog match → unknown state.
+        let tcp9600_row_is_unknown = stdout
+            .lines()
+            .any(|l| l.contains("TCP/9600") && l.ends_with("unknown"));
+        assert!(
+            tcp9600_row_is_unknown,
+            "STORY-154-ALL-COVERAGEGAPS-TEST-001: `analyze --all --coverage-gaps` must show \
+             TCP/9600 as 'unknown' in CoverageGapsSummary; stdout:\n{stdout}"
+        );
+    }
+
     /// BC-2.12.023 Invariant 5 / EC-154-6:
     /// `wirerust protocols --coverage-gaps` exits non-zero (clap error).
     /// `--coverage-gaps` is only valid on the `analyze` subcommand.
@@ -1533,9 +1574,15 @@ mod story_154 {
             .stdout
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // STORY-152/154-WEAK-UNKNOWN-ASSERT-001: tightened from bare `contains("unknown")`
+        // to a line-level check that ties the TCP/9600 port to the state, preventing false
+        // passes on incidental "unknown" substrings elsewhere in the output.
+        let tcp9600_row_is_unknown = stdout
+            .lines()
+            .any(|l| l.contains("TCP/9600") && l.ends_with("unknown"));
         assert!(
-            stdout.contains("unknown"),
-            "BC-2.12.024 PC-4: (Tcp, 9600) must show state 'unknown'; \
+            tcp9600_row_is_unknown,
+            "BC-2.12.024 PC-4: (Tcp, 9600) row must show state 'unknown'; \
              stdout:\n{stdout}"
         );
     }
@@ -1559,9 +1606,14 @@ mod story_154 {
             .clone();
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
         // State must be "unknown", NOT "known-unsupported" (transport mismatch).
+        // STORY-152/154-WEAK-UNKNOWN-ASSERT-001: tightened from bare `contains("unknown")`
+        // to a line-level check that ties the TCP/47808 port to the state.
+        let tcp47808_row_is_unknown = stdout
+            .lines()
+            .any(|l| l.contains("TCP/47808") && l.ends_with("unknown"));
         assert!(
-            stdout.contains("unknown"),
-            "BC-2.12.024 EC-009: (Tcp, 47808) must be 'unknown' (transport mismatch \
+            tcp47808_row_is_unknown,
+            "BC-2.12.024 EC-009: (Tcp, 47808) row must show state 'unknown' (transport mismatch \
              — BACnet/IP is UDP-only in catalog); stdout:\n{stdout}"
         );
         assert!(
@@ -1595,9 +1647,14 @@ mod story_154 {
         let stdout = String::from_utf8(output).expect("utf-8 stdout");
         // State must be "unknown" — DNS catalog entry is Udp/53 only;
         // TCP/53 has no catalog match → Unknown (EC-154-14 / STORY-154-DNS53-TCP-GAP-001).
+        // STORY-152/154-WEAK-UNKNOWN-ASSERT-001: tightened from bare `contains("unknown")`
+        // to a line-level check that ties the TCP/53 port to the state.
+        let tcp53_row_is_unknown = stdout
+            .lines()
+            .any(|l| l.contains("TCP/53") && l.ends_with("unknown"));
         assert!(
-            stdout.contains("unknown"),
-            "BC-2.12.024 EC-010 / EC-154-14: (Tcp, 53) must be 'unknown' — DNS is \
+            tcp53_row_is_unknown,
+            "BC-2.12.024 EC-010 / EC-154-14: (Tcp, 53) row must show state 'unknown' — DNS is \
              UDP-only in catalog (STORY-154-DNS53-TCP-GAP-001); stdout:\n{stdout}"
         );
     }
