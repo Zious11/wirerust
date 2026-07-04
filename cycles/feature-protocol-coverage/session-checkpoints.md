@@ -5,6 +5,22 @@ cycle: feature-protocol-coverage
 
 # Session Checkpoints Archive — feature-protocol-coverage
 
+## Checkpoint archived 2026-07-04 (superseded by D-370 Wave-68 COMPLETE checkpoint)
+
+**F4 DELTA-IMPLEMENTATION, WAVE 68 F-W68-01 FIX (D-369). PR #353 SQUASH-MERGED → develop 5c4437a. Wave-68 wave-level adversarial split verdict (CLEAN/NOT-CLEAN-HIGH/CLEAN) on develop 5c4437a. F-W68-01 HIGH: protocols --json=\<path\> silently wrote JSON to stdout — SOUL silent-failure + BC-2.12.022 Invariant-5 divergence. Adjudicated: honor-path. Fix branch fix/protocols-json-output-routing @7ab197a, all gates GREEN. STORY-152 v1.6 (EC-152-11/12/13; STORY-152-GLOBAL-FLAG-NOOP-001 RESOLVED-BY-FIX). fix-pr-delivery adversarial review in progress. develop=5c4437a; stories_delivered=96. Resume: `/vsdd-factory:next-step`.**
+
+- **Ground truth:** develop=`5c4437a` (full `5c4437aa758a5b4033fdb85cdb6ca31755f9791b`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @5c4437a] + .factory [factory-artifacts]. Fix branch: fix/protocols-json-output-routing @7ab197a (based on 5c4437a).
+- **RESUME PROCEDURE (D-369 version):**
+  1. `vsdd-factory:factory-worktree-health` — PASS required before any other step.
+  2. Verify develop=`5c4437a`.
+  3. **fix-pr-delivery:** complete adversarial review of fix/protocols-json-output-routing → demo → pr-manager (AI + security review, STOP at human merge gate).
+  4. **Human merge gate:** squash-merge fix PR → develop fast-forward → verify develop HEAD advanced.
+  5. Re-run Wave-68 wave-level adversarial: 3 consecutive fresh-context clean passes on new develop HEAD → WAVE 68 GATE PASS.
+  6. Wave 69: STORY-154 (--coverage-gaps report).
+- **F4-carry refinements (D-369 version):** PG-HELP-PROVENANCE-CLI-DOC-001, F-F3P18-O2, F-F3P7-O1, F-F3P13-002/F-F3P16-002, F-F3P17-001, STORY-154-DNS53-TCP-GAP-001, STORY-154-CAN-DECODE-HOIST-001.
+
+---
+
 ## Checkpoint archived 2026-07-01 (superseded by Pass-9 CLEAN checkpoint)
 
 **F2 adversarial Pass-8 REMEDIATED (D-331). 1 HIGH (F-F2P8-001: coverage_gaps JSON schema contradiction — BC-2.12.023 PC-3 flat-dict vs BC-2.12.024 PC-5 {caveat_l2, entries[]} object); BC-2.12.023 reconciled to authoritative object form. BC-INDEX v2.12, PRD v1.51, ARCH-INDEX v2.10, VP-INDEX v2.31. Entering Pass-9 (0/3 consecutive clean passes). Finding trajectory: 14→8→4→3→4→4→4→1(H).**

@@ -53,6 +53,16 @@ Rotated out of STATE.md Current Phase Steps table (last-5 rule) when F4 wave-67 
 
 ---
 
+## Archived Current Phase Step — Wave-67 Wave Gate PASS (rotated out 2026-07-04)
+
+Rotated out of STATE.md Current Phase Steps table (last-5 rule) when D-370 Wave-68 COMPLETE row was added.
+
+**F4 Wave-67 wave-level adversarial convergence 3/3 ACHIEVED (Pass-1/2/3 on develop b285feb), 0 P0/CRITICAL/HIGH/mis-anchor; WAVE GATE PASS. Integration verified: SUPPORTED_PORTS ↔ classify() set-equal {502,20000,44818,443,8443,80,8080,53}; pure-core boundary intact (3-var Transport vs 2-var TransportProto); DNS-53 gap-excluded via udp_gap_key None; canonical EtherType/port values correct; StreamDispatcher builder unbroken. (DONE D-365)**
+
+Wave 67 COMPLETE. Backlog additions: VP042D-FROZEN-RESIDUAL-001 REINFORCED (F-W67-M1); BC-2.05.010-LOWERPORT-WORDING-001 reconfirmed; new STORY-154 forward-notes: (1) (Tcp,53) DNS-over-TCP is GENUINE gap (no dissector), (2) hoist can_decode eval (F-W67-L3).
+
+---
+
 ## Burst 2 — F4 Wave-67 Implementation + Per-Story Pass-1 (2026-07-02)
 
 **Agents dispatched:** devops-engineer (worktrees), stub-architect (Red Gate), test-writer (failing tests), implementer (TDD), vsdd-factory:adversarial-review (per-story Pass-1 × 2)
@@ -83,5 +93,41 @@ F4 wave 67 delivered in parallel. STORY-151 (SS-18 protocol catalog: 30-entry KN
 | BC-2.05.010 PC-1 wording | obs | phase-5 reconciliation (BC-2.05.010-LOWERPORT-WORDING-001; stories realize intent correctly) |
 | double can_decode | obs | micro-redundancy; non-blocking |
 | udp_unclassified_counts unread this wave | obs | intentional per F-F3P6-001 (STORY-154 consumes it in wave 69) |
+
+---
+
+## Burst 3 — Wave-68 COMPLETE / Wave Gate Pass (D-370, 2026-07-04)
+
+**Agents dispatched:** state-manager (bookkeeping burst — D-370)
+**Files touched (factory-artifacts):** STATE.md, cycles/feature-protocol-coverage/burst-log.md, cycles/feature-protocol-coverage/session-checkpoints.md, code-delivery/FIX-W68-01/ (untracked code-delivery artifact committed)
+**PRs merged since last burst:** PR #354 (fix/protocols-json-output-routing, squash 0e700a9) → develop
+
+### Summary
+
+Wave-68 wave-level adversarial re-convergence ACHIEVED: 3 consecutive fresh-context clean passes on develop 0e700a9 (post-F-W68-01-fix), 0 P0/CRITICAL/HIGH/mis-anchor. F-W68-01 CONFIRMED RESOLVED across all passes: `protocols --json=PATH` writes file (no silent stdout drop); bare `--json`/`--output-format json` → stdout; `--csv`/`--output-format csv` → explicit error + non-zero exit. analyze/summary un-regressed; catalog↔dispatch coherent; canonical values (GOOSE 0x88B8=35000, POWERLINK 0x88AB=34987, BACnet UDP 47808, Modbus 502) correct. Integration gate GREEN (fmt CLEAN, clippy -D warnings CLEAN, cargo test --all-targets 85 suites 0 failures). WAVE 68 COMPLETE / WAVE GATE PASS. stories_delivered 96→97 (STORY-152 counted). Two new backlog items filed: BC-2.12.022-FWFIX-SYNC-001 (BC lags shipped behavior; phase-5 amendment) + PG-SPEC-FRESHNESS-ON-FIX-001 (process-gap: no gate ties BC version to shipped flag-matrix when a wave-level fix adds behavior).
+
+### Wave-68 Adversarial Re-Convergence (post-F-W68-01-fix, develop 0e700a9)
+
+| Pass | Result | Notes |
+|------|--------|-------|
+| Pass-1 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+| Pass-2 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+| Pass-3 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+
+BC-5.39.001 (wave-level convergence) SATISFIED.
+
+### STATE.md changes in this burst
+
+| Field | Old | New |
+|-------|-----|-----|
+| `current_step` | D-369 F-W68-01 FIX in-progress | D-370 Wave-68 COMPLETE/WAVE GATE PASS |
+| `timestamp` | 2026-07-03T23:30:00Z | 2026-07-04T00:00:00Z |
+| `develop_head` | 5c4437aa... | 0e700a93... |
+| `stories_delivered` | 96 | 97 |
+| Phase Progress F4 row | IN PROGRESS (D-369) | IN PROGRESS (D-370) — Wave 68 DONE |
+| Current Phase Steps | D-365/369/368/367/366 | D-370/369(DONE)/368/367/366 (D-365 archived to this burst-log) |
+| Decisions Log | ends D-369 | + D-370 |
+| Backlog | STORY-152-GLOBAL-FLAG-NOOP-001 RESOLVED-BY-FIX | RESOLVED (confirmed); + BC-2.12.022-FWFIX-SYNC-001; + PG-SPEC-FRESHNESS-ON-FIX-001 |
+| Session Resume Checkpoint | D-369 version (develop=5c4437a) | D-370 version (develop=0e700a9) |
 
 ---
