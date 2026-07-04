@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P5-004 Pass-5 remediation — PC-4 tri-state lookup transport-aware (match both transport+port; LinkLayer entries never match port key; TCP on UDP-only port → unknown); EC-009 + EC-010 added. 2026-07-01"
+  - "v1.2: BC-2.12.024-PC4-PHANTOM-SUPPORTED-001 — remove phantom supported: bool field references from PC-4: replace 'supported: false/true' with derived predicate language (supported_protocols() membership test via canonical_ports ∩ SUPPORTED_PORTS and name=ARP rule) matching the actual KnownProtocol struct which has no supported field. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,9 +62,9 @@ is fixed (not configurable by CLI flags).
 3. **Port-102 caveat when TCP/102 count is zero or absent:** The port-102 collision footnote does NOT need to appear when there are no TCP/102 unclassified flows (the caveat is row-specific, not a global header). If TCP/102 is not in the gap report (count == 0 or key absent), the footnote is omitted.
 
 4. **Tri-state classification in gap report:** Each entry in the gap report MUST be classified using the Suricata-derived vocabulary:
-   - `known-unsupported` — the `(transport, port)` pair matches a catalog entry with `supported: false` (e.g., `(Udp, 47808)` → BACnet/IP)
+   - `known-unsupported` — the `(transport, port)` pair matches a catalog entry NOT in `supported_protocols()` — i.e. `canonical_ports ∩ SUPPORTED_PORTS = ∅` and `name ≠ "ARP"` (e.g., `(Udp, 47808)` → BACnet/IP)
    - `unknown` — the `(transport, port)` pair matches no catalog entry (completely unrecognized, or transport mismatch on a known port)
-   - `known-supported` — the `(transport, port)` pair matches a catalog entry with `supported: true` (should never appear in the gap report; present as a sanity-check signal if it does)
+   - `known-supported` — the `(transport, port)` pair matches a catalog entry in `supported_protocols()` — `canonical_ports ∩ SUPPORTED_PORTS ≠ ∅` OR `name == "ARP"` (should never appear in the gap report; present as a sanity-check signal if it does)
    
    The classification is determined by looking up the `(TransportProto, port)` key against `KNOWN_PROTOCOLS`, matching BOTH transport AND port. The transport mapping is: `TransportProto::Tcp` → `Transport::Tcp`, `TransportProto::Udp` → `Transport::Udp`. `LinkLayer` catalog entries (e.g., ARP, GOOSE) NEVER match a port-keyed lookup — they require a separate EtherType-based path. Consequence: a port listed in the catalog only under `Udp` will NOT match a `Tcp` observation of the same port number; the `Tcp` observation yields `unknown`, not `known-unsupported`.
 

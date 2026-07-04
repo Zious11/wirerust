@@ -29,7 +29,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.001.md
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.002.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
-input-hash: "14686f3"
+input-hash: "f9d7235"
 ---
 
 # STORY-152: `protocols` CLI Subcommand + Terminal/JSON Rendering
@@ -50,7 +50,7 @@ gaps exist in my network environment, without running a capture.
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.12.022 | v1.0 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | Primary: CLI wiring in cli.rs + main.rs dispatch |
+| BC-2.12.022 | v1.1 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | Primary: CLI wiring in cli.rs + main.rs dispatch |
 | BC-2.18.001 | v1.4 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | Primary: terminal table renderer with filter flags, [L2] indicator, EtherType column, port-102 footnote |
 | BC-2.18.002 | v1.1 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | Primary: JSON output schema under `"protocols"` key |
 
@@ -64,7 +64,7 @@ gaps exist in my network environment, without running a capture.
 ## Acceptance Criteria
 
 ### AC-152-001: `Commands::Protocols { filter, json }` variant added to `src/cli.rs`
-**Traces to:** BC-2.12.022 v1.0 PC-1, Postcondition 1, Invariants 2–4; ADR-012 Decision 3
+**Traces to:** BC-2.12.022 v1.1 PC-1, Postcondition 1, Invariants 2–4; ADR-012 Decision 3
 
 ```rust
 /// Protocol coverage catalog subcommand
@@ -90,14 +90,14 @@ Or equivalently using a clap group with `ProtocolFilter` enum. Filter flags are 
 to `--all` (BC-2.12.022 Invariant 3). The `--json` global flag is forwarded from the top-level
 CLI (not a new flag on the `protocols` subcommand).
 
-(traces to BC-2.12.022 v1.0 PC-1, PC-1..3, Invariants 2–4)
+(traces to BC-2.12.022 v1.1 PC-1, PC-1..3, Invariants 2–4)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_subcommand_exit_0` — `wirerust protocols` exits 0 and produces non-empty stdout
 - `test_BC_2_12_022_mutually_exclusive_flags_error` — `wirerust protocols --supported --unsupported` exits non-zero (clap error)
 
 ### AC-152-002: `Commands::Protocols` dispatches to `run_protocols(filter, json)` in `src/main.rs`
-**Traces to:** BC-2.12.022 v1.0 Postconditions 2–3, Invariants 1, 5
+**Traces to:** BC-2.12.022 v1.1 Postconditions 2–3, Invariants 1, 5
 
 New dispatch arm in the main match block:
 ```rust
@@ -129,7 +129,7 @@ New function `run_protocols(filter: ProtocolFilter, json: Option<Option<PathBuf>
 
 Exit code 0 on success. The `analyze` subcommand is NOT affected.
 
-(traces to BC-2.12.022 v1.0 PC-2..3, Postconditions 2–3, 7; Invariants 1, 5)
+(traces to BC-2.12.022 v1.1 PC-2..3, Postconditions 2–3, 7; Invariants 1, 5)
 
 ### AC-152-003: Terminal table renderer — rows, columns, filter semantics (BC-2.18.001)
 **Traces to:** BC-2.18.001 v1.4 Postconditions 1–5, 7–8; Invariants 1–2, 5; ADR-012 Decision 3
@@ -286,12 +286,12 @@ JSON schema requirements per BC-2.18.002:
 > `"canonical_ports": [502]` (IANA/Modbus App Protocol v1.1b3 §4.3.1), `"supported": true`.
 
 ### AC-152-008: Exit code 0; `analyze` subcommand unchanged
-**Traces to:** BC-2.12.022 v1.0 Postcondition 6, Invariant 7; BC-2.18.001 v1.4 Postcondition 9; BC-2.18.002 v1.1 Postcondition 5
+**Traces to:** BC-2.12.022 v1.1 Postcondition 6, Invariant 7; BC-2.18.001 v1.4 Postcondition 9; BC-2.18.002 v1.1 Postcondition 5
 
 `wirerust protocols` exits with code 0 on all filter + json combinations.
 `wirerust analyze <file>` behavior is UNCHANGED.
 
-(traces to BC-2.12.022 v1.0 PC-6, Invariant 7; BC-2.18.001 v1.4 PC-9)
+(traces to BC-2.12.022 v1.1 PC-6, Invariant 7; BC-2.18.001 v1.4 PC-9)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_subcommand_exit_0` — already listed in AC-152-001
@@ -341,7 +341,7 @@ assertions per DF-CANONICAL-FRAME-HOLDOUT-001)
 | Context source | Estimated tokens |
 |---------------|-----------------|
 | This story spec | ~2,500 |
-| BC-2.12.022 (v1.0) | ~3,500 |
+| BC-2.12.022 (v1.1) | ~3,500 |
 | BC-2.18.001 (v1.4) | ~6,000 |
 | BC-2.18.002 (v1.1) | ~5,000 |
 | ADR-012 (Decisions 3, 7) | ~4,000 |
@@ -492,4 +492,5 @@ No new source files.
 | v1.3 | 2026-07-02 | F-F3P6-002 (MEDIUM): Added DERIVED-value NOTE to AC-152-003 (`supported` terminal column) and AC-152-007 (JSON `"supported"` field): `KnownProtocol` has no `supported` field; value is derived via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) \|\| name == "ARP"` (BC-2.18.003). Sibling-sweep fix matching STORY-154 v1.3 F-F3P3-001. | F-F3P6-002 |
 | v1.4 | 2026-07-02 | F-F3P8-001 (MEDIUM): `blocks: []` → `blocks: [STORY-154]` — reciprocal of dep-graph edge 152→154 (F-F3P2-005 file-sequencing; STORY-154 `depends_on` already lists STORY-152; sibling STORY-151 `blocks: [STORY-152, STORY-154]` and STORY-153 `blocks: [STORY-154]` were already correct). F-F3P8-002 (MEDIUM): Fixed `args.json` phantom in AC-152-002 dispatch arm (`args.json.is_some()` → `cli.json.is_some()`), the adjacent note, and Task 3 — `main()` binding is `let cli = Cli::parse()` (no `args` binding exists); match arm is under `match &cli.command`. F-F3P8-002 LOW: Sharpened AC-152-002 dispatch arm snippet — `&bool` destructures require `*` deref under `match &cli.command` (cf. main.rs `*hosts` pattern); unused `all` field replaced with `..` to avoid `-D warnings` unused-var error. F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 9 — `tests/integration_tests.rs` carries no file-level allow; the uppercase `test_BC_…` names in `mod story_152` violate `non_snake_case` under `-D warnings`. | F-F3P8-001, F-F3P8-002, F-F3P8-003 |
 | v1.5 | 2026-07-03 | F-F3P13-001 / F-F3P9-001 / STORY-152-Pass-1-F-2 (MEDIUM): Removed over-claim in AC-152-002 that `--json=<path>` performs file-path routing "at the call site … follows the same pattern as the existing run_analyze() JSON path." Replaced with accurate stdout-only description: `protocols --json` always emits the JSON object to STDOUT (BC-2.18.002 PC-1); the PATH component of `--json=<path>` is NOT used by `protocols`; file-path routing is out of scope for this subcommand (unlike `analyze`), consistent with frozen BC-2.12.022 bool model. Sibling-sweep (DF-SIBLING-SWEEP-001): only live occurrence was lines 117–119 of AC-152-002; Revision History v1.1 entry preserved verbatim. | F-F3P13-001, F-F3P9-001, STORY-152-Pass-1-F-2 |
+| v1.7 | 2026-07-04 | BC-2.12.022-FWFIX-SYNC-001: BC-version reference synced to reconciled BC (v1.0 → v1.1); no behavioral change. | BC-2.12.022-FWFIX-SYNC-001 |
 | v1.6 | 2026-07-03 | F-W68-01 (wave-68 wave-level fix): REVERSES the v1.5 "stdout-only" reconciliation. `protocols --json=<path>` now HONORS the path component — JSON written to the file at `<path>` via the shared `write_output` pipeline (same contract as `analyze`/`summary`). Bare `--json` / `--output-format json` continue to write JSON to STDOUT (BC-2.18.002 PC-1 unchanged — additive path, not a BC content change). `--csv` / `--output-format csv` are explicitly REJECTED (error message + non-zero exit; no silent fallback; SOUL silent-failure policy). AC-152-002 updated: dispatch snippet changed to `cli.json` (not `.is_some()`); `run_protocols` signature changed to `Option<Option<PathBuf>>` (not `bool`). Architecture Mapping JSON renderer row updated. EC-152-11 (path routing), EC-152-12 (`--output-format json` stdout), EC-152-13 (csv rejection) added. Task 1 (three new test names) and Task 3 (dispatch snippet + stub signature) updated. Sibling-sweep (DF-SIBLING-SWEEP-001): all live `is_some()` and "path not used" occurrences reconciled; Revision History v1.1 and v1.5 preserved verbatim. DF-AC-TEST-NAME-SYNC-001: test-name citations synced to the names implemented in `tests/integration_tests.rs` mod story_152 (`test_BC_2_12_022_json_path_writes_file`, `test_BC_2_12_022_output_format_json`, `test_BC_2_12_022_csv_rejected`); two guessed names from initial v1.6 draft corrected, one missing name added. | F-W68-01 |

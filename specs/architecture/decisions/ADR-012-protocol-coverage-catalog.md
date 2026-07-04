@@ -5,6 +5,9 @@ status: accepted
 accepted_date: "2026-07-01"
 date: 2026-07-01
 modified:
+  - date: "2026-07-04"
+    actor: architect
+    reason: "VP042D-FROZEN-RESIDUAL-001 reconciliation: 'VP-042(d) precondition' heading in Decision 6 Clarification body replaced with 'Dual-gate co-increment note (inherent consequence, not a separate harness)'; 'sub-property (d)' language removed; co-increment behavior documented as inherent dual-gate consequence of the shared guard, consistent with the shipped 3-harness Sub-A/B/C VP-042 reality (STORY-153 delivery). Corrects frozen spec-wording drift where the body retained (d) naming after the property was dropped at F2 Pass-9."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-9 remediation (F-F2P9-003): Decision 6 Clarification added — unclassified_port_counts increment is placed INSIDE the same analyzer-present guard as unclassified_flows += 1; both counters increment together when ≥1 analyzer configured AND coverage_gaps_enabled=true; VP-042(d) precondition documented; BC-2.05.010 Architecture Anchor wording specified."
@@ -280,11 +283,13 @@ coverage gap signal. Placing the increment inside the guard preserves semantic s
 both counters count the same population (None-target flows where analyzers were present
 but could not classify the traffic).
 
-**VP-042(d) precondition:** Sub-property (d) ("both counters consistent") holds only
-given the harness precondition: ≥1 analyzer configured (`is_some()`) AND
-`coverage_gaps_enabled=true`. The proptest harness MUST construct the dispatcher with at
-least one analyzer enabled and `coverage_gaps_enabled=true` to make sub-property (d)
-reachable.
+**Dual-gate co-increment note (inherent consequence, not a separate harness):** The
+co-increment of `unclassified_flows` and `unclassified_port_counts` on the same
+None-target flow is an inherent consequence of the shared analyzer-present guard — not a
+separate VP-042 sub-property or harness. The shipped VP-042 has exactly 3 harnesses
+(Sub-A/B/C); no harness "(d)" exists (VP042D-FROZEN-RESIDUAL-001). Harness precondition
+for all 3 VP-042 proptest harnesses: the dispatcher MUST be constructed with ≥1 analyzer
+`is_some()` AND `coverage_gaps_enabled=true`.
 
 **BC-2.05.010 Architecture Anchor wording:** PC-1 MUST state that the
 `unclassified_port_counts` increment is gated on both (a) `coverage_gaps_enabled=true`

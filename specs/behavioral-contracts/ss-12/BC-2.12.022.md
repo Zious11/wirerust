@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-12
 capability: CAP-12
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
-modified: []
+modified:
+  - "v1.1: BC-2.12.022-FWFIX-SYNC-001 / F-W68-01 — reconcile to shipped behavior: Commands::Protocols variant drops json: bool; dispatch changed to run_protocols(filter, cli: &Cli) consuming cli.json: Option<Option<PathBuf>>; bare --json/--output-format json → JSON to STDOUT; --json=PATH → JSON to file via write_output pipeline; --csv/--output-format csv → explicit error + non-zero exit; EC-009/EC-010 added; PC-1/2/4/5/6 and Architecture Anchors updated. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -21,14 +22,18 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.12.022: `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag
+# BC-2.12.022: `wirerust protocols` Subcommand Dispatches to `run_protocols(cli: &Cli)` with `--json[=PATH]` File Routing and `--csv` Rejection
 
 ## Description
 
 `wirerust protocols` is a new top-level subcommand (alongside `analyze` and `summary`) that
 dispatches to `run_protocols()` in `src/main.rs`. The subcommand accepts three optional
-filter flags (`--all`, `--supported`, `--unsupported`) and honors the global `--json` flag
-for machine-readable output. The dispatch wiring adds a new `Commands::Protocols` arm to
+filter flags (`--all`, `--supported`, `--unsupported`) and routes output through the shared
+`write_output` pipeline: `--json` (bare) or `--output-format json` writes JSON to STDOUT;
+`--json=<PATH>` writes JSON to the file at PATH; `--csv` / `--output-format csv` produces an
+explicit error with non-zero exit (no silent fallback). The `json` field on the top-level
+`Cli` struct is typed as `Option<Option<PathBuf>>`. The dispatch wiring adds a new
+`Commands::Protocols` arm to
 `src/cli.rs` and a new match arm in the main dispatch block in `src/main.rs`. No existing
 subcommand semantics are changed.
 
@@ -46,16 +51,17 @@ subcommand semantics are changed.
 
 ## Postconditions
 
-1. `Commands::Protocols { filter, json }` is the clap-parsed command variant for `wirerust protocols [--all | --supported | --unsupported] [--json]`.
-2. The main dispatch block in `src/main.rs` routes `Commands::Protocols` to `run_protocols(filter, json)`.
+1. `Commands::Protocols { filter }` is the clap-parsed command variant for `wirerust protocols [--all | --supported | --unsupported]`. Output-format flags (`--json[=PATH]`, `--output-format json|csv`) are carried on the top-level `Cli` struct as `cli.json: Option<Option<PathBuf>>` (the same global field shared with `analyze` and `summary`).
+2. The main dispatch block in `src/main.rs` routes `Commands::Protocols { filter }` to `run_protocols(filter, cli)` where `cli: &Cli` is the top-level parsed CLI struct.
 3. `run_protocols()` calls:
    - `all_protocols()` for `--all` or no filter flag,
    - `supported_protocols()` for `--supported`,
    - `unsupported_protocols()` for `--unsupported`.
-4. When `json == false` (default): output is the terminal table described in BC-2.18.001.
-5. When `json == true` (global `--json` flag): output is the JSON described in BC-2.18.002.
-6. Exit code is 0 on success.
-7. The `analyze` subcommand is NOT affected; its behavior is unchanged.
+4. When `cli.json == None` (no `--json` and no `--output-format json`): output is the terminal table described in BC-2.18.001.
+5. When `cli.json == Some(None)` (bare `--json` or `--output-format json`): JSON output per BC-2.18.002 is written to STDOUT. When `cli.json == Some(Some(path))` (`--json=<PATH>`): JSON output per BC-2.18.002 is routed through the shared `write_output` pipeline to the file at `path` (same pipeline used by `analyze` and `summary`).
+6. When `--csv` or `--output-format csv` is specified: `run_protocols` emits an explicit error message to STDERR and exits with a non-zero exit code. There is no silent fallback to terminal output.
+7. Exit code is 0 on success (non-CSV, non-error paths).
+8. The `analyze` subcommand is NOT affected; its behavior is unchanged.
 
 ## Invariants
 
@@ -63,7 +69,7 @@ subcommand semantics are changed.
 2. The filter flags `--all`, `--supported`, `--unsupported` are mutually exclusive; clap enforces this via a group or by `conflicts_with` annotations.
 3. The default behavior (no filter flag) is equivalent to `--all`.
 4. LESSON-P1.04 ("no unwired flags"): the `--all`, `--supported`, `--unsupported` flags are all wired to observable behavior differences in output row count and content.
-5. The `--json` flag on the `protocols` subcommand uses the same global flag already present on the top-level CLI (not a new flag).
+5. The `--json[=PATH]` flag uses the same `cli.json: Option<Option<PathBuf>>` field already present on the top-level `Cli` (not a new field on the `Protocols` variant). `None` = terminal output; `Some(None)` = JSON to STDOUT; `Some(Some(path))` = JSON written to file via `write_output` pipeline. `--csv` / `--output-format csv` is rejected with an explicit error — there is no silent fallback.
 
 ## Edge Cases
 
@@ -77,6 +83,8 @@ subcommand semantics are changed.
 | EC-006 | `wirerust protocols --supported --unsupported` | clap error (mutually exclusive flags); non-zero exit code (clap default) |
 | EC-007 | `wirerust analyze <file>` alongside protocols subcommand | analyze behavior unchanged; protocols is a new independent subcommand |
 | EC-008 | `wirerust protocols <file>` (spurious positional arg) | clap error (no positional argument accepted by protocols subcommand); non-zero exit |
+| EC-009 | `wirerust protocols --json=output.json` | JSON written to `output.json` file via shared `write_output` pipeline; exit 0 |
+| EC-010 | `wirerust protocols --csv` or `wirerust protocols --output-format csv` | Explicit error to STDERR; non-zero exit code; no silent fallback to terminal output |
 
 ## Canonical Test Vectors
 
@@ -87,6 +95,8 @@ subcommand semantics are changed.
 | `wirerust protocols --json` | JSON with `"protocols"` array; exit 0 | json-mode |
 | `wirerust protocols --unsupported --json` | JSON array (~23 entries); exit 0 | filter-unsupported-json |
 | `wirerust protocols --all` | Same as no-flag (all ~30 entries); exit 0 | explicit-all |
+| `wirerust protocols --json=out.json` | `out.json` created with valid JSON (`"protocols"` array); exit 0 | json-file-routing |
+| `wirerust protocols --csv` | STDERR error message; non-zero exit | csv-rejection |
 
 ## Verification Properties
 
@@ -96,6 +106,8 @@ subcommand semantics are changed.
 | — | `--json` flag produces valid JSON with `"protocols"` key | integration: `test_BC_2_12_022_protocols_json_flag` |
 | — | `--supported` filter reduces output to supported-only entries | integration: `test_BC_2_12_022_protocols_supported_filter` |
 | — | Mutually exclusive flags produce clap error | unit: `test_BC_2_12_022_mutually_exclusive_flags_error` |
+| — | `--json=PATH` routes JSON to the specified file; exit 0 | integration: `test_BC_2_12_022_protocols_json_file_routing` |
+| — | `--csv` / `--output-format csv` produces explicit error + non-zero exit | integration: `test_BC_2_12_022_protocols_csv_rejection` |
 
 ## Traceability
 
@@ -110,9 +122,9 @@ subcommand semantics are changed.
 
 ## Architecture Anchors
 
-- `src/cli.rs` — new `Commands::Protocols { filter: ProtocolFilter, json: bool }` variant (or equivalent); `ProtocolFilter` enum: `{ All, Supported, Unsupported }`; `json` is the global --json flag forwarded
-- `src/main.rs` — new `Commands::Protocols { filter, json }` dispatch arm calling `run_protocols(filter, json)`
-- `src/main.rs` — `fn run_protocols(filter: ProtocolFilter, json: bool)` — calls appropriate catalog function and renders output
+- `src/cli.rs` — `Commands::Protocols { filter: ProtocolFilter }` variant (no `json` field in the variant — output routing is via the top-level `Cli.json: Option<Option<PathBuf>>`); `ProtocolFilter` enum: `{ All, Supported, Unsupported }`
+- `src/main.rs` — `Commands::Protocols { filter }` dispatch arm calling `run_protocols(filter, cli)` where `cli: &Cli`
+- `src/main.rs` — `fn run_protocols(filter: ProtocolFilter, cli: &Cli)` — calls appropriate catalog function; routes output via `write_output(cli, ...)` pipeline per `cli.json`; rejects `--csv` / `--output-format csv` with explicit error + non-zero exit
 
 ## Story Anchor
 

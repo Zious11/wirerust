@@ -27,7 +27,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.010.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.011.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
-input-hash: "1c75a19"
+input-hash: "56f3297"
 ---
 
 # STORY-153: Dispatcher `unclassified_port_counts` + UDP `udp_unclassified_counts` + VP-042/VP-043
@@ -45,13 +45,13 @@ with per-port unclassified traffic counts.
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.05.010 | v1.3 | `unclassified_port_counts` Populated with (TransportProto, u16) Keys — TCP via Dispatcher None-Target, UDP via Decode-Loop | Primary: `TransportProto` enum, `unclassified_port_counts` field + dual-gate, `udp_unclassified_counts`, lower_port normalization |
+| BC-2.05.010 | v1.4 | `unclassified_port_counts` Populated with (TransportProto, u16) Keys — TCP via Dispatcher None-Target, UDP via Decode-Loop | Primary: `TransportProto` enum, `unclassified_port_counts` field + dual-gate, `udp_unclassified_counts`, lower_port normalization |
 | BC-2.05.011 | v1.1 | Per-(TransportProto, Port) Counts Are Exact and Monotonically Non-Decreasing; Classified Flows Do Not Update TCP Counter; All TCP Entries Carry TransportProto::Tcp | Primary: exactness, monotonicity, key-purity, no-classified-increment invariants |
 
 ## Acceptance Criteria
 
 ### AC-153-001: `TransportProto` minimal enum defined in `src/dispatcher.rs`
-**Traces to:** BC-2.05.010 v1.3 PC-4, Invariant 1; ADR-012 Decision 6
+**Traces to:** BC-2.05.010 v1.4 PC-4, Invariant 1; ADR-012 Decision 6
 
 ```rust
 /// Minimal transport discriminant for the (TransportProto, u16) gap-counter key.
@@ -64,7 +64,7 @@ pub enum TransportProto { Tcp, Udp }
 This enum is defined IN `dispatcher.rs`, NOT imported from `protocols.rs`. Using `protocols::Transport`
 here is FORBIDDEN (it has a `LinkLayer` variant that is not a valid TCP/UDP dispatcher key).
 
-(traces to BC-2.05.010 v1.3 PC-4, Invariant 1; ADR-012 Decision 6)
+(traces to BC-2.05.010 v1.4 PC-4, Invariant 1; ADR-012 Decision 6)
 
 **Red-Gate test:**
 - `test_BC_2_05_010_key_type_identity` — `TransportProto::Tcp != TransportProto::Udp`; distinct values
@@ -72,7 +72,7 @@ here is FORBIDDEN (it has a `LinkLayer` variant that is not a valid TCP/UDP disp
   (achieved by exhaustive match with no wildcard: `match t { TransportProto::Tcp => .., TransportProto::Udp => .. }`)
 
 ### AC-153-002: `StreamDispatcher` gains `unclassified_port_counts` and `coverage_gaps_enabled` fields
-**Traces to:** BC-2.05.010 v1.3 PC-1 (dual-gate), Postcondition 4; BC-2.05.011 v1.1 Postconditions 1, 3; ADR-012 Decision 6 Clarification
+**Traces to:** BC-2.05.010 v1.4 PC-1 (dual-gate), Postcondition 4; BC-2.05.011 v1.1 Postconditions 1, 3; ADR-012 Decision 6 Clarification
 
 ```rust
 // In StreamDispatcher struct:
@@ -115,14 +115,14 @@ If the `new()` parameter approach is used instead, ALL 8 existing call sites mus
 
 **Accessor:** `pub fn unclassified_port_counts(&self) -> &HashMap<(TransportProto, u16), u64>`
 
-(traces to BC-2.05.010 v1.3 PC-1, PC-4; BC-2.05.011 v1.1 PC-1, PC-3; ADR-012 Decision 6 Clarification)
+(traces to BC-2.05.010 v1.4 PC-1, PC-4; BC-2.05.011 v1.1 PC-1, PC-3; ADR-012 Decision 6 Clarification)
 
 **Red-Gate test:**
 - `test_BC_2_05_010_fields_accessible` — construct dispatcher with `.with_coverage_gaps(true)`; accessor returns empty map
 - `test_BC_2_05_010_coverage_gaps_disabled_map_empty` — construct without `.with_coverage_gaps()`; after simulated None-target flow close, map still empty
 
 ### AC-153-003: TCP counter populated at `on_flow_close` for None-target flows — dual-gate + `lower_port`
-**Traces to:** BC-2.05.010 v1.3 PC-1, Postconditions 1–4, Invariants 1–6; BC-2.05.011 v1.1 Postconditions 1, 3, 6; ADR-012 Decision 6 Clarification
+**Traces to:** BC-2.05.010 v1.4 PC-1, Postconditions 1–4, Invariants 1–6; BC-2.05.011 v1.1 Postconditions 1, 3, 6; ADR-012 Decision 6 Clarification
 
 In `on_flow_close`, the existing `None` arm (which already increments `self.unclassified_flows`):
 ```rust
@@ -164,7 +164,7 @@ Gating structure (ADR-012 Decision 6 Clarification EXACT):
 > and greenfield holdouts HS-040/HS-095. The code above is the ONLY correct structure per
 > ADR-012 Decision 6 Clarification.
 
-(traces to BC-2.05.010 v1.3 PC-1, PC-2, Postconditions 1, 3–4; BC-2.05.011 v1.1 PC-1, PC-3;
+(traces to BC-2.05.010 v1.4 PC-1, PC-2, Postconditions 1, 3–4; BC-2.05.011 v1.1 PC-1, PC-3;
 BC-2.05.011 Invariant 1; ADR-012 Decision 6 Clarification)
 
 **Red-Gate tests:**
@@ -183,19 +183,19 @@ BC-2.05.011 Invariant 1; ADR-012 Decision 6 Clarification)
 > note "EC-002 label in BC-2.05.011 says Http/502; correct target is Modbus/502".
 
 ### AC-153-004: TCP counter key purity — all keys carry `TransportProto::Tcp`
-**Traces to:** BC-2.05.010 v1.3 Postcondition 3, Invariant 2; BC-2.05.011 v1.1 Postcondition 5, Invariant 4
+**Traces to:** BC-2.05.010 v1.4 Postcondition 3, Invariant 2; BC-2.05.011 v1.1 Postcondition 5, Invariant 4
 
 Every key in `StreamDispatcher.unclassified_port_counts` has `key.0 == TransportProto::Tcp`.
 No `TransportProto::Udp` key ever appears in the dispatcher's TCP map. This is a structural
 invariant enforced by the single write site in `on_flow_close`.
 
-(traces to BC-2.05.010 v1.3 PC-3, Invariant 2; BC-2.05.011 v1.1 PC-5, Invariant 4)
+(traces to BC-2.05.010 v1.4 PC-3, Invariant 2; BC-2.05.011 v1.1 PC-5, Invariant 4)
 
 **Red-Gate test:**
 - `test_BC_2_05_011_tcp_map_key_purity` — `unclassified_port_counts.keys().all(|(t, _)| *t == TransportProto::Tcp)` == true
 
 ### AC-153-005: `udp_gap_key` seam function in `src/dispatcher.rs` + decode-loop counter in `src/main.rs`
-**Traces to:** BC-2.05.010 v1.3 PC-2..3, Postconditions 2–3, Invariants 3, 7; BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 6, Decision 10
+**Traces to:** BC-2.05.010 v1.4 PC-2..3, Postconditions 2–3, Invariants 3, 7; BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 6, Decision 10
 
 > **SEAM CONTRACT — VP-043 (non-vacuity):** `udp_unclassified_counts` is a local variable in
 > the `src/main.rs` binary-private decode loop. Tests in `tests/dispatcher_tests.rs` link only
@@ -270,7 +270,7 @@ if coverage_gaps {
 - `dns_analyzer.can_decode()` is evaluated regardless of `enable_dns` flag (ADR-012 Decision 10; BC-2.05.010 Invariant 7). DNS/53 packets accepted by `can_decode()` → `udp_gap_key` returns `None` → NOT counted (gap-excluded)
 - Counter only active when `coverage_gaps` flag is set (Postcondition 4)
 
-(traces to BC-2.05.010 v1.3 PC-2..3, PC-2, Postconditions 2–3, Invariants 3, 7;
+(traces to BC-2.05.010 v1.4 PC-2..3, PC-2, Postconditions 2–3, Invariants 3, 7;
 BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 10)
 
 **Red-Gate tests (calling `udp_gap_key` seam directly — all in `tests/dispatcher_tests.rs`):**
@@ -280,7 +280,7 @@ BC-2.05.011 v1.1 PC-2, Postcondition 2; ADR-012 Decision 10)
 - `test_BC_2_05_011_udp_map_key_purity` — collect `Some(key)` returns from several non-DNS UDP inputs; all have `key.0 == TransportProto::Udp`
 
 ### AC-153-006: VP-042 proptest harnesses — TCP dispatcher path exactness and monotonicity
-**Traces to:** BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.3 VP table; ADR-012 Decision 6
+**Traces to:** BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.4 VP table; ADR-012 Decision 6
 
 Three proptest harnesses in `tests/dispatcher_tests.rs` inside `mod story_153 { ... }`:
 
@@ -303,10 +303,10 @@ or `Enip`) on port P that ALSO has None-target flows does NOT change the count f
 > authoritative 3-harness set: Sub-A, Sub-B, Sub-C. The BC-2.05.010 VP table already lists
 > exactly these three (VP-042 Sub-A through Sub-C). No additional `(d)` harness is needed.
 
-(traces to BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.3 VP table; ADR-012 Decision 6 Clarification)
+(traces to BC-2.05.011 v1.1 VP table; BC-2.05.010 v1.4 VP table; ADR-012 Decision 6 Clarification)
 
 ### AC-153-007: VP-043 proptest harnesses — UDP gap-key seam exactness and DNS exclusion
-**Traces to:** BC-2.05.010 v1.3 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10
+**Traces to:** BC-2.05.010 v1.4 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10
 
 Two proptest harnesses in `tests/dispatcher_tests.rs` inside `mod story_153 { ... }`,
 testing `udp_gap_key` directly (the VP-043 seam from AC-153-005):
@@ -322,7 +322,7 @@ For a synthetic UDP `ParsedPacket` at port 53, call `udp_gap_key(parsed, true)` 
 `dns_analyzer.can_decode()` returning `true`); assert result is `None`. The seam returns `None`
 → the main.rs loop does NOT increment the counter → gate invariant holds.
 
-(traces to BC-2.05.010 v1.3 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10)
+(traces to BC-2.05.010 v1.4 VP table; BC-2.05.011 v1.1 VP table; ADR-012 Decision 10)
 
 ## Architecture Mapping
 
@@ -369,7 +369,7 @@ F3-carry items: lower_port() architecture anchor, EC-002 label fix, VP-042 sub-p
 | Context source | Estimated tokens |
 |---------------|-----------------|
 | This story spec | ~2,500 |
-| BC-2.05.010 (v1.3) | ~6,000 |
+| BC-2.05.010 (v1.4) | ~6,000 |
 | BC-2.05.011 (v1.1) | ~4,500 |
 | ADR-012 (Decisions 6, 10) | ~5,000 |
 | src/dispatcher.rs (full — VP-004 zone) | ~12,000 |
@@ -568,4 +568,5 @@ No new source files.
 | v1.4 | 2026-07-02 | F-F3P4-001 (HIGH): Introduced `pub fn udp_gap_key(parsed, dns_handles)` library-visible seam in `src/dispatcher.rs` (SEAM CONTRACT). VP-043 proptest harnesses in `tests/dispatcher_tests.rs` link only the library crate and CANNOT reach `udp_unclassified_counts` (main.rs binary-private). Without the seam VP-043 would be vacuous (DF-KANI-NONVACUITY-001). Redesigned AC-153-005 to show seam function definition + main.rs decode loop calling it. Updated AC-153-007 VP-043 harness descriptions to call seam directly. Updated Architecture Mapping (added udp_gap_key row), Task 1 (UDP seam-based test descriptions), Task 4 (seam-call pattern), Architecture Compliance Rule 11 (seam library-visibility mandate), File Structure Requirements (dispatcher.rs row). BC-2.05.010 not violated: counter still populated in main.rs loop via the seam. | F-F3P4-001 |
 | v1.5 | 2026-07-02 | F-F3P6-001 (MEDIUM): Fixed independent-compile gap — STORY-153 now explicitly introduces `coverage_gaps: bool` as a new scalar parameter on `run_analyze()` (passed as `false` from `main()`), ensuring wave-67 code compiles before `--coverage-gaps` CLI flag is added by STORY-154. Added note in AC-153-002, code comment in AC-153-005 decode-loop snippet, Task 4 bullet, and File Structure. F-F3P6-003 (LOW): Replaced phantom empty-parens `StreamDispatcher::new()` with `StreamDispatcher::new(/* existing 5 analyzer args */)` in AC-153-002 reference and File Structure. F-F3P6-005 cascade: removed `args.coverage_gaps` phantom struct ref from all STORY-153 occurrences. | F-F3P6-001, F-F3P6-003 |
 | v1.6 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/dispatcher_tests.rs` carries per-function allows (lines 858, 933, 1030, 1100, 1254, etc.); the new `mod story_153 { }` block must carry the allow at module scope for all its uppercase `test_BC_…` names under `-D warnings`. | F-F3P8-003 |
+| v1.8 | 2026-07-04 | BC-2.05.010-LOWERPORT-WORDING-001: BC-version reference synced to reconciled BC (v1.3 → v1.4); no behavioral change. | BC-2.05.010-LOWERPORT-WORDING-001 |
 | v1.7 | 2026-07-02 | F-F3P11-001 (CRITICAL): Fixed TCP gap-key — `lower_port()` alone returns the lower-IP endpoint's port (IP-first canonicalization in `FlowKey::new`), NOT `min(src_port, dst_port)`. Example: client 10.0.0.1:54321 ↔ server 10.0.0.9:102 → `lower_port()==54321` (wrong). Fixed all occurrences: (1) AC-153-003 code snippet: `lower_port = flow_key.lower_port()` → `lower_port = flow_key.lower_port().min(flow_key.upper_port())`; (2) removed false "lower_port() gives min(src_port,dst_port)" prose, replaced with correct IP-first ordering explanation; (3) test_BC_2_05_010_lower_port_normalization: assertion changed from `(Tcp, 9999)` to `(Tcp, 1234)` (ports 1234/9999, min=1234); added client-has-lower-IP guard sub-case; (4) test_BC_2_05_010_tcp_counter_none_target: added IP setup (client 10.0.0.1:54321 ↔ server 10.0.0.9:9999) to guard IP-first bug; (5) Architecture Compliance Rule 4 updated; (6) Task 0 updated; (7) Task 3 code updated; (8) Previous Story Intelligence updated. Note for orchestrator: frozen BC-2.05.010 PC-1 says `min(flow_key.src_port, flow_key.dst_port)` but `FlowKey` has no src_port/dst_port fields — BC wording should be reconciled at phase-5 spec pass (out of F3 scope). | F-F3P11-001 |
