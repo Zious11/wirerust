@@ -131,3 +131,53 @@ BC-5.39.001 (wave-level convergence) SATISFIED.
 | Session Resume Checkpoint | D-369 version (develop=5c4437a) | D-370 version (develop=0e700a9) |
 
 ---
+
+## Archived Current Phase Step — D-367 (rotated out 2026-07-04)
+
+Rotated out of STATE.md Current Phase Steps table (last-5 rule) when D-372 row was added.
+
+**F4 Wave 68 STORY-152 (protocols subcommand) per-story adversarial convergence 3/3 ACHIEVED (D-367, 2026-07-03)**
+
+Worktree feature/story-152-protocols-subcommand @d34a05f. 3 consecutive fresh-context clean passes, 0 P0/CRITICAL/HIGH/mis-anchor. Pass-1 NOT-CLEAN → remediated (7abd9e8); Pass-2 CLEAN + LOW cleanup (garbled GOOSE canonical comment + JSON declaration-order test → d34a05f); 3 consecutive clean passes. 25 story_152 tests GREEN; full regression + clippy + fmt CLEAN. Canonical values (GOOSE 0x88B8=35000, POWERLINK 0x88AB=34987, BACnet UDP 47808, Modbus 502) independently verified. BC-5.39.001 SATISFIED. Deferred: STORY-152-GLOBAL-FLAG-NOOP-001 (global --csv/--output-format no-op under protocols; phase-5 UX reconciliation; DF-VALIDATION-001-gated). Demo recorded; PR #353 created → D-368.
+
+---
+
+## Burst 5 — D-372 Wave-69 COMPLETE / F4 Delta-Implementation DONE (2026-07-04)
+
+**Agents dispatched:** state-manager (bookkeeping burst — D-372)
+**Files touched (factory-artifacts):** STATE.md, cycles/feature-protocol-coverage/burst-log.md, code-delivery/STORY-154/ (untracked, committed in this burst)
+**PRs merged since last burst:** PR #355 (STORY-154, squash cad7024) → develop
+
+### Summary
+
+Wave-69 wave-level adversarial convergence 3/3 ACHIEVED on develop cad7024 (0 P0/CRITICAL/HIGH/mis-anchor). Whole-feature integration coherence verified across all four E-21 stories: `analyze --coverage-gaps` tri-state (STORY-154) ↔ `protocols` subcommand (STORY-152) ↔ `classify()`+DNS-53 dissection cross-surface consistent; cross-surface supportedness derivation identical (SUPPORTED_PORTS ∩ canonical_ports || ARP); canonical values (BACnet UDP 47808, TCP/102 four-protocol collision S7comm/S7comm-plus/IEC 61850 MMS/ICCP-TASE.2, GOOSE 0x88B8, POWERLINK 0x88AB) correct. Integration gate GREEN (cargo fmt/clippy -D warnings/test --all-targets, 85 suites, 0 failures). WAVE 69 COMPLETE / WAVE GATE PASS. STORY-154 delivered via PR #355 (squash cad7024). stories_delivered 97→98. F4 DELTA-IMPLEMENTATION DONE (all 3 waves: Wave67 b285feb, Wave68 0e700a9, Wave69 cad7024). Three new LOW/non-blocking backlog items filed: STORY-153-RUNANALYZE-DOC-STALE-001 (stale run_analyze coverage_gaps doc-comment scaffold), STORY-154-LOOKUP-ARP-DEADCLAUSE-001 (unreachable ARP disjunct in lookup_protocol_state), BC-2.12.024-PC4-PHANTOM-SUPPORTED-001 extended (all three occurrence sites noted for phase-5 sweep). Next: F4 HOLDOUT EVALUATION (HS-123..132).
+
+### Wave-69 Adversarial Convergence (develop cad7024)
+
+| Pass | Result | Notes |
+|------|--------|-------|
+| Pass-1 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+| Pass-2 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+| Pass-3 | CLEAN | 0 P0/CRITICAL/HIGH/mis-anchor |
+
+BC-5.39.001 (wave-level convergence) SATISFIED.
+
+### STATE.md changes in this burst
+
+| Field | Old | New |
+|-------|-----|-----|
+| `phase` | F4-delta-implementation | F4-holdout-evaluation |
+| `current_step` | D-371 STORY-154 per-story convergence 3/3 | D-372 Wave-69 COMPLETE / F4 DONE |
+| `timestamp` | 2026-07-04T10:00:00Z | 2026-07-04T11:00:00Z |
+| `develop_head` | 0e700a93... | cad70242... |
+| `stories_delivered` | 97 | 98 |
+| Project Metadata Develop HEAD | `0e700a9` | `cad7024` |
+| Project Metadata Stories | 97 delivered | 98 delivered |
+| Phase Progress F4 row | IN PROGRESS (D-371) | DONE (D-372) — all 3 wave SHAs |
+| Phase Progress (new) | — | F4 holdout-evaluation PENDING |
+| Current Phase Steps | D-371/370/369/368/367 (top-5) | D-372/371/370/369/368 (D-367 archived to this burst-log) |
+| Decisions Log | ends D-371 | + D-372 |
+| Backlog | BC-2.12.024-PC4-PHANTOM-SUPPORTED-001 OPEN | Extended + STORY-153-RUNANALYZE-DOC-STALE-001 + STORY-154-LOOKUP-ARP-DEADCLAUSE-001 added |
+| Session Resume Checkpoint | D-371 version (develop=0e700a9, stories=97) | D-372 version (develop=cad7024, stories=98) |
+
+---
