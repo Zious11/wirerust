@@ -87,7 +87,7 @@ does NOT imply `--coverage-gaps`. The two flags are independent.
 - `test_BC_2_12_023_protocols_coverage_gaps_error` — `wirerust protocols --coverage-gaps` exits non-zero (clap error)
 
 ### AC-154-002: `--coverage-gaps` wired via `.with_coverage_gaps(...)` builder to `StreamDispatcher` and decode loop
-**Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.4 PC-1; ADR-012 Decision 8
+**Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8
 
 In `src/main.rs`, `run_analyze()` receives `coverage_gaps: bool` as a scalar parameter
 (introduced by STORY-153 as default `false`). STORY-154 changes the call-site in `main()` to
@@ -102,7 +102,7 @@ already uses the same scalar parameter — no additional threading required.
 When `--coverage-gaps` is set: `unclassified_port_counts` (TCP) and `udp_unclassified_counts`
 (UDP) are populated per BC-2.05.010. When NOT set: both maps remain empty.
 
-(traces to BC-2.12.023 v1.2 PC-1; BC-2.05.010 v1.4 PC-1; ADR-012 Decision 8)
+(traces to BC-2.12.023 v1.2 PC-1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8)
 
 **Red-Gate test:**
 - `test_BC_2_12_023_coverage_gaps_counts_unclassified` — `wirerust analyze test.pcap --coverage-gaps`
@@ -505,3 +505,4 @@ No new source files.
 | v1.7 | 2026-07-02 | F-F3P11-002 (LOW): Fixed AC-154-007 JSON schema `name` field rule — the TCP/102 collision entry example already omitted `name` (correctly using `collision_note` instead) but the schema prose stated `name` is present for all `known-unsupported` entries without exception. Added explicit exception: "TCP/102 collision entry SHALL omit `name` and use `collision_note` instead (four protocols share port 102; naming one would be misleading)." | F-F3P11-002 |
 | v1.9 | 2026-07-04 | BC-2.12.024-PC4-PHANTOM-SUPPORTED-001: BC-2.12.024 BC-version reference synced to reconciled BC (v1.1 → v1.2); no behavioral change. BC-2.05.010-LOWERPORT-WORDING-001 sweep: BC-2.05.010 cross-reference in AC-154-002 traces synced (v1.3 → v1.4); no behavioral change. | BC-2.12.024-PC4-PHANTOM-SUPPORTED-001, BC-2.05.010-LOWERPORT-WORDING-001 |
 | v1.8 | 2026-07-02 | F-F3P14-001 (MEDIUM, F4-breaker): Removed physically-unreachable integration test `test_BC_2_12_024_known_supported_is_bug_signal` from AC-154-006 Red-Gate list and Task 1 integration list. `classify()` Rule 5 always routes port-502 flows to `DispatchTarget::Modbus` — the `None`-target arm never fires for port 502, so `(Tcp, 502)` can never enter `unclassified_port_counts` via the analyze pipeline. Replaced with CLI-reachable integration test `test_BC_2_12_024_tcp_502_absent_from_gap_report` (asserts `(Tcp, 502)` is absent from CoverageGapsSummary under normal operation). Added NOTE block in AC-154-006 clarifying that `known-supported` for `(Tcp, 502)` is assertable only at pure-function/unit level via the already-specified `test_BC_2_12_024_known_supported_is_bug_signal_unit`. Updated EC-154-11 to state that the state is unit-only with no analyze-pipeline injection mechanism. Unit test `test_BC_2_12_024_known_supported_is_bug_signal_unit` (Task 1, `mod story_154_unit`) unchanged — it remains the assertion vehicle for the known-supported branch. | F-F3P14-001 |
+| v1.10 | 2026-07-04 | BC-2.05.010 cross-reference synced (v1.4→v1.5); no behavioral change. | F5-RECONCILE-COMPLETION |

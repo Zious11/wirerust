@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -13,7 +13,8 @@ capability: CAP-12
 lifecycle_status: active
 introduced: feature-protocol-coverage-F2
 modified:
-  - "v1.1: BC-2.12.022-FWFIX-SYNC-001 / F-W68-01 — reconcile to shipped behavior: Commands::Protocols variant drops json: bool; dispatch changed to run_protocols(filter, cli: &Cli) consuming cli.json: Option<Option<PathBuf>>; bare --json/--output-format json → JSON to STDOUT; --json=PATH → JSON to file via write_output pipeline; --csv/--output-format csv → explicit error + non-zero exit; EC-009/EC-010 added; PC-1/2/4/5/6 and Architecture Anchors updated. 2026-07-04"
+  - "v1.1: BC-2.12.022-FWFIX-SYNC-001 / F-W68-01 — reconcile to shipped behavior: Commands::Protocols variant drops per-variant json flag; dispatch changed to run_protocols(filter, cli: &Cli) consuming cli.json: Option<Option<PathBuf>>; bare --json/--output-format json → JSON to STDOUT; --json=PATH → JSON to file via write_output pipeline; --csv/--output-format csv → explicit error + non-zero exit; EC-009/EC-010 added; PC-1/2/4/5/6 and Architecture Anchors updated. 2026-07-04"
+  - "v1.2: F5-RECONCILE-COMPLETION / F-F5P2-001 — exhaustive sweep: PC-1 and PC-2 reconciled from phantom Commands::Protocols {filter} single-field form to shipped 3-bool form (all: bool, supported: bool, unsupported: bool with conflicts_with_all mutual exclusion); Architecture Anchors updated to describe shipped clap variant and dispatch arm (all, supported, unsupported, ..); ProtocolFilter derived at dispatch arm, not stored as variant field; zero residual filter/json-bool phantom patterns. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,8 +52,8 @@ subcommand semantics are changed.
 
 ## Postconditions
 
-1. `Commands::Protocols { filter }` is the clap-parsed command variant for `wirerust protocols [--all | --supported | --unsupported]`. Output-format flags (`--json[=PATH]`, `--output-format json|csv`) are carried on the top-level `Cli` struct as `cli.json: Option<Option<PathBuf>>` (the same global field shared with `analyze` and `summary`).
-2. The main dispatch block in `src/main.rs` routes `Commands::Protocols { filter }` to `run_protocols(filter, cli)` where `cli: &Cli` is the top-level parsed CLI struct.
+1. `Commands::Protocols { all: bool, supported: bool, unsupported: bool }` is the clap-parsed command variant for `wirerust protocols [--all | --supported | --unsupported]`. The three flags are mutually exclusive via clap `conflicts_with_all` annotations on each field; there is no `filter` field on the variant — `ProtocolFilter` is derived at the dispatch arm in `src/main.rs`. Output-format flags (`--json[=PATH]`, `--output-format json|csv`) are carried on the top-level `Cli` struct as `cli.json: Option<Option<PathBuf>>` (the same global field shared with `analyze` and `summary`).
+2. The main dispatch block in `src/main.rs` matches `Commands::Protocols { all, supported, unsupported, .. }`, derives `ProtocolFilter` (= `Supported` if `*supported`; `Unsupported` if `*unsupported`; `All` otherwise), and calls `run_protocols(filter, cli)` where `filter` is the derived `ProtocolFilter` value and `cli: &Cli` is the top-level parsed CLI struct.
 3. `run_protocols()` calls:
    - `all_protocols()` for `--all` or no filter flag,
    - `supported_protocols()` for `--supported`,
@@ -122,9 +123,9 @@ subcommand semantics are changed.
 
 ## Architecture Anchors
 
-- `src/cli.rs` — `Commands::Protocols { filter: ProtocolFilter }` variant (no `json` field in the variant — output routing is via the top-level `Cli.json: Option<Option<PathBuf>>`); `ProtocolFilter` enum: `{ All, Supported, Unsupported }`
-- `src/main.rs` — `Commands::Protocols { filter }` dispatch arm calling `run_protocols(filter, cli)` where `cli: &Cli`
-- `src/main.rs` — `fn run_protocols(filter: ProtocolFilter, cli: &Cli)` — calls appropriate catalog function; routes output via `write_output(cli, ...)` pipeline per `cli.json`; rejects `--csv` / `--output-format csv` with explicit error + non-zero exit
+- `src/cli.rs` — `Commands::Protocols { all: bool, supported: bool, unsupported: bool }` variant — three bool flags with clap `conflicts_with_all` mutual exclusion; no `filter` field on the variant (no direct `ProtocolFilter` stored); no `json` field on the variant (output routing is via the top-level `Cli.json: Option<Option<PathBuf>>`); `ProtocolFilter` enum: `{ All, Supported, Unsupported }` (derived at dispatch time in `src/main.rs`)
+- `src/main.rs` — `Commands::Protocols { all, supported, unsupported, .. }` dispatch arm: derives `ProtocolFilter` from the three bools (`Supported` if `*supported`; `Unsupported` if `*unsupported`; `All` otherwise), then calls `run_protocols(filter, cli)` where `cli: &Cli`
+- `src/main.rs` — `fn run_protocols(pf: ProtocolFilter, cli: &Cli)` — calls appropriate catalog function; routes output via `write_output(cli, ...)` pipeline per `cli.json`; rejects `--csv` / `--output-format csv` with explicit error + non-zero exit
 
 ## Story Anchor
 

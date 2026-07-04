@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2: F-F2P2-005 Pass-2 remediation — Invariant 7 added encoding ADR-012 Decision 10 (can_decode() evaluated regardless of enable_dns for gap classification); EC-014 added. 2026-07-01"
   - "v1.3: F-F2P9-003 Pass-9 remediation — PC-1 and Architecture Anchor updated with ADR-012 Decision 6 Clarification: unclassified_port_counts increment is gated on both (a) coverage_gaps_enabled=true and (b) analyzer-present guard; when no analyzers are configured neither counter fires; VP-042 proptest precondition is ≥1 analyzer is_some() AND coverage_gaps_enabled=true. 2026-07-01"
   - "v1.4: BC-2.05.010-LOWERPORT-WORDING-001 — reconcile FlowKey accessor wording in PC-1 and Architecture Anchor: replace phantom min(flow_key.src_port, flow_key.dst_port) with actual accessor call flow_key.lower_port().min(flow_key.upper_port()); FlowKey exposes no src_port/dst_port fields. 2026-07-04"
+  - "v1.5: F5-RECONCILE-COMPLETION / F-F5P3-001 (Invariant 2 sweep completion) — Invariant 2 reconciled: replace phantom lower_port = min(src_port, dst_port) (TCP context) with flow_key.lower_port().min(flow_key.upper_port()) matching PC-1 and Architecture Anchor; FlowKey exposes no src_port/dst_port fields; remaining min(src_port, dst_port) occurrences in Invariant 3, VP-043, and v1.1 changelog are confirmed UDP-header-field context (not FlowKey/TCP path). 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,7 +80,7 @@ F2-SCOPE-DRIFT-UDP-001 (D-322).
 ## Invariants
 
 1. `TransportProto` in `dispatcher.rs` is a minimal `{Tcp, Udp}` enum. It is NOT imported from `protocols.rs`. The `protocols::Transport` enum is not used here (it has `LinkLayer` which is not a valid TCP/UDP transport for the dispatcher context).
-2. The TCP map key is ALWAYS `(TransportProto::Tcp, lower_port)` where `lower_port = min(src_port, dst_port)`. A UDP key NEVER appears in the TCP dispatcher map.
+2. The TCP map key is ALWAYS `(TransportProto::Tcp, lower_port)` where `lower_port = flow_key.lower_port().min(flow_key.upper_port())` (computed via FlowKey accessors in the dispatcher; FlowKey exposes no `src_port`/`dst_port` fields). A UDP key NEVER appears in the TCP dispatcher map.
 3. The UDP map key is ALWAYS `(TransportProto::Udp, min(src_port, dst_port))`. A TCP key NEVER appears in the UDP counter map.
 4. The counters are populated only at `DispatchTarget::None` close (TCP) or per-packet-unhandled (UDP). `DispatchTarget::Http`, `Tls`, `Modbus`, `Dnp3`, `Enip` classified flows do NOT increment either counter.
 5. The TCP counter is populated at `on_flow_close`, NOT at `on_data`. This bounds overhead to closed flows, not packet volume.
