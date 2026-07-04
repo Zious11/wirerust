@@ -2504,3 +2504,65 @@ mod story_153 {
         }
     }
 }
+
+// ── F6 mutation-hardening: on_flow_close analyzer-present guard ────────────────
+//
+// Pins survivors from `cargo mutants` on the 5-way analyzer-present disjunction
+// in `on_flow_close` (dispatcher.rs ~line 461-465):
+//   http.is_some() || tls.is_some() || modbus.is_some() || dnp3.is_some() || enip.is_some()
+// The `gaps_dispatcher()` helper always has an HTTP analyzer, so the first
+// disjunct is always true and the dnp3/enip clauses are never load-bearing —
+// mutating `|| enip.is_some()` to `&& enip.is_some()` (and the dnp3 clause) went
+// undetected. These tests build dispatchers with EXACTLY ONE non-HTTP analyzer so
+// each trailing disjunct becomes the sole reason the guard is true; the
+// `unclassified_flows` counter (gated ONLY on this guard) must then reach 1.
+mod f6_hardening {
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::dnp3::Dnp3Analyzer;
+    use wirerust::analyzer::enip::EnipAnalyzer;
+    use wirerust::dispatcher::StreamDispatcher;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, StreamHandler};
+
+    fn none_flow() -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            50000,
+            "10.0.0.9".parse::<IpAddr>().unwrap(),
+            40000,
+        )
+    }
+
+    /// Kills `dispatcher.rs replace || with && (enip disjunct)` in on_flow_close.
+    /// With ONLY an ENIP analyzer present, the guard is true solely because of the
+    /// `|| enip.is_some()` clause; the mutant `dnp3.is_some() && enip.is_some()`
+    /// becomes `false && true == false`, so the counter would stay 0.
+    #[test]
+    fn f6_unclassified_counts_with_only_enip_analyzer() {
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(10, 10)));
+        dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
+        assert_eq!(
+            dispatcher.unclassified_flows(),
+            1,
+            "ENIP-only dispatcher must count an unclassified None-target close \
+             (guard depends solely on the enip.is_some() disjunct)"
+        );
+    }
+
+    /// Kills the analogous `|| with && (dnp3 disjunct)` mutation. With ONLY a DNP3
+    /// analyzer present, the guard is true solely because of `|| dnp3.is_some()`.
+    #[test]
+    fn f6_unclassified_counts_with_only_dnp3_analyzer() {
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, None, Some(Dnp3Analyzer::new(10)), None);
+        dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
+        assert_eq!(
+            dispatcher.unclassified_flows(),
+            1,
+            "DNP3-only dispatcher must count an unclassified None-target close \
+             (guard depends solely on the dnp3.is_some() disjunct)"
+        );
+    }
+}
