@@ -105,19 +105,24 @@ Commands::Protocols { supported, unsupported, .. } => {
     let filter = if *supported { ProtocolFilter::Supported }
                  else if *unsupported { ProtocolFilter::Unsupported }
                  else { ProtocolFilter::All };
-    run_protocols(filter, cli.json.is_some());
+    run_protocols(filter, cli.json);
 }
 ```
 
-Note: `Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59). The `json: bool` parameter
-to `run_protocols` is derived from `cli.json.is_some()`, where `cli` is the top-level `Cli` binding
-(`let cli = Cli::parse();`) in `main()`. The match arm operates under `match &cli.command`, so the
-correct access is `cli.json` (not `args.json` — no `args` binding exists in `main()`).
-`protocols --json` always emits the JSON object to STDOUT (BC-2.18.002 PC-1); the PATH component of a
-`--json=<path>` argument is NOT used by `protocols`. File-path routing is out of scope for this
-subcommand (unlike `analyze`), consistent with the frozen BC-2.12.022 bool model for `--json`.
+`Cli.json` is `Option<Option<PathBuf>>` in `src/cli.rs` (~line 59): `None` = `--json` absent,
+`Some(None)` = bare `--json` (stdout), `Some(Some(path))` = `--json=<path>` (file routing).
+`run_protocols` now honors the full value — it is passed as `cli.json` (not reduced to a bool
+via `.is_some()`). The match arm is under `match &cli.command`; `cli` is the `Cli::parse()` binding
+in `main()` (not `args` — no `args` binding exists).
+Routing semantics: bare `--json` / `Some(None)` → JSON object to STDOUT (BC-2.18.002 PC-1);
+`--json=<path>` / `Some(Some(path))` → JSON written to the file at `path`, routed through the
+shared `write_output` pipeline (same contract as `analyze`/`summary`; honors the global `--json`
+flag's `Option<Option<PathBuf>>` path component).
+`--csv` and `--output-format csv` are explicitly REJECTED: `run_protocols` emits an error
+("protocols subcommand has no CSV output; use --json") and exits with a non-zero code.
+No silent fallback to stdout; consistent with the SOUL silent-failure policy (F-W68-01).
 
-New function `run_protocols(filter: ProtocolFilter, json: bool)` in `src/main.rs` calls:
+New function `run_protocols(filter: ProtocolFilter, json: Option<Option<PathBuf>>)` in `src/main.rs` calls:
 - `all_protocols()` for `ProtocolFilter::All`
 - `supported_protocols()` for `ProtocolFilter::Supported`
 - `unsupported_protocols()` for `ProtocolFilter::Unsupported`
@@ -301,7 +306,7 @@ JSON schema requirements per BC-2.18.002:
 | `Commands::Protocols` dispatch arm | `src/main.rs` (modify) | Effectful (CLI dispatch) |
 | `run_protocols(filter, json)` function | `src/main.rs` (modify) | Effectful (stdout write) |
 | Terminal table renderer (within `run_protocols`) | `src/main.rs` | Effectful (stdout) |
-| JSON renderer (within `run_protocols`) | `src/main.rs` | Effectful (stdout) |
+| JSON renderer (within `run_protocols`) | `src/main.rs` | Effectful (stdout or file via `write_output` pipeline) |
 | Integration tests | `tests/integration_tests.rs` or `tests/cli_tests.rs` | Effectful (process spawning) |
 
 SS-12 (CLI/Entry) consumes SS-18 (catalog functions). Layer: L0 Entry depends on pure-core.
@@ -320,6 +325,9 @@ SS-12 (CLI/Entry) consumes SS-18 (catalog functions). Layer: L0 Entry depends on
 | EC-152-8 | BC-2.18.001 EC-005 | BACnet/IP in `--unsupported` output | transport=UDP, port=47808, supported=no |
 | EC-152-9 | BC-2.18.002 EC-003 | GOOSE JSON element | `"ethertype": 35000`, `"transport": "LinkLayer"`, `"category": "ICS"` |
 | EC-152-10 | BC-2.18.002 EC-007 | ARP JSON element | `"transport": "LinkLayer"`, `"ethertype": null`, `"supported": true`, `"canonical_ports": []` |
+| EC-152-11 | F-W68-01 | `wirerust protocols --json=/tmp/out.json` (path routing) | JSON written to file at `/tmp/out.json`; exit 0 (`test_BC_2_12_022_json_path_writes_file`) |
+| EC-152-12 | F-W68-01 | `wirerust protocols --output-format json` | JSON emitted to stdout; exit 0 (`test_BC_2_12_022_output_format_json`) |
+| EC-152-13 | F-W68-01 | `wirerust protocols --csv` / `--output-format csv` | Explicit error ("protocols subcommand has no CSV output; use --json"); non-zero exit (`test_BC_2_12_022_csv_rejected`) |
 
 ## Estimated Complexity
 
@@ -373,6 +381,9 @@ Fits within a 200k context window (~27%).
    - `test_BC_2_18_002_goose_json_canonical` — GOOSE ethertype=35000 in JSON (DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_18_002_bacnet_json_canonical` — BACnet/IP UDP 47808 in JSON (DF-CANONICAL-FRAME-HOLDOUT-001)
    - `test_BC_2_18_002_modbus_json_canonical` — Modbus/TCP 502 supported=true in JSON (DF-CANONICAL-FRAME-HOLDOUT-001)
+   - `test_BC_2_12_022_json_path_writes_file` — `wirerust protocols --json=/tmp/out.json` writes valid JSON to the specified file; exit 0 (F-W68-01)
+   - `test_BC_2_12_022_output_format_json` — `wirerust protocols --output-format json` emits JSON to stdout; exit 0 (F-W68-01)
+   - `test_BC_2_12_022_csv_rejected` — `wirerust protocols --csv` and `--output-format csv` exit non-zero with error message referencing no CSV output (F-W68-01)
    All tests MUST FAIL (no `protocols` subcommand exists yet).
 
 2. **Add `Commands::Protocols` variant to `src/cli.rs` (AC-152-001)**
@@ -381,8 +392,8 @@ Fits within a 200k context window (~27%).
    - Verify: `wirerust protocols --help` prints; mutual-exclusion test GREEN; binary still compiles
 
 3. **Add dispatch arm + `run_protocols()` stub in `src/main.rs` (AC-152-002)**
-   - Add `Commands::Protocols { supported, unsupported, .. }` match arm calling `run_protocols(filter, cli.json.is_some())` — deref `&bool` destructures with `*supported`, `*unsupported` (match is on `&cli.command`; `cli` is the `Cli::parse()` binding); `all` is unused so use `..`
-   - Add `fn run_protocols(filter: ProtocolFilter, json: bool) { let _ = (filter, json); }` — an
+   - Add `Commands::Protocols { supported, unsupported, .. }` match arm calling `run_protocols(filter, cli.json)` — `cli.json` is `Option<Option<PathBuf>>` passed directly (not reduced via `.is_some()`); deref `&bool` destructures with `*supported`, `*unsupported` (match is on `&cli.command`; `cli` is the `Cli::parse()` binding); `all` is unused so use `..`
+   - Add `fn run_protocols(filter: ProtocolFilter, json: Option<Option<PathBuf>>) { let _ = (filter, json); }` — an
      EMPTY non-panicking stub (NOT `todo!()`; a panic would fail the exit-0 test)
    - Verify: `wirerust protocols` compiles; `test_BC_2_12_022_protocols_subcommand_exit_0` GREEN
 
@@ -481,3 +492,4 @@ No new source files.
 | v1.3 | 2026-07-02 | F-F3P6-002 (MEDIUM): Added DERIVED-value NOTE to AC-152-003 (`supported` terminal column) and AC-152-007 (JSON `"supported"` field): `KnownProtocol` has no `supported` field; value is derived via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) \|\| name == "ARP"` (BC-2.18.003). Sibling-sweep fix matching STORY-154 v1.3 F-F3P3-001. | F-F3P6-002 |
 | v1.4 | 2026-07-02 | F-F3P8-001 (MEDIUM): `blocks: []` → `blocks: [STORY-154]` — reciprocal of dep-graph edge 152→154 (F-F3P2-005 file-sequencing; STORY-154 `depends_on` already lists STORY-152; sibling STORY-151 `blocks: [STORY-152, STORY-154]` and STORY-153 `blocks: [STORY-154]` were already correct). F-F3P8-002 (MEDIUM): Fixed `args.json` phantom in AC-152-002 dispatch arm (`args.json.is_some()` → `cli.json.is_some()`), the adjacent note, and Task 3 — `main()` binding is `let cli = Cli::parse()` (no `args` binding exists); match arm is under `match &cli.command`. F-F3P8-002 LOW: Sharpened AC-152-002 dispatch arm snippet — `&bool` destructures require `*` deref under `match &cli.command` (cf. main.rs `*hosts` pattern); unused `all` field replaced with `..` to avoid `-D warnings` unused-var error. F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 9 — `tests/integration_tests.rs` carries no file-level allow; the uppercase `test_BC_…` names in `mod story_152` violate `non_snake_case` under `-D warnings`. | F-F3P8-001, F-F3P8-002, F-F3P8-003 |
 | v1.5 | 2026-07-03 | F-F3P13-001 / F-F3P9-001 / STORY-152-Pass-1-F-2 (MEDIUM): Removed over-claim in AC-152-002 that `--json=<path>` performs file-path routing "at the call site … follows the same pattern as the existing run_analyze() JSON path." Replaced with accurate stdout-only description: `protocols --json` always emits the JSON object to STDOUT (BC-2.18.002 PC-1); the PATH component of `--json=<path>` is NOT used by `protocols`; file-path routing is out of scope for this subcommand (unlike `analyze`), consistent with frozen BC-2.12.022 bool model. Sibling-sweep (DF-SIBLING-SWEEP-001): only live occurrence was lines 117–119 of AC-152-002; Revision History v1.1 entry preserved verbatim. | F-F3P13-001, F-F3P9-001, STORY-152-Pass-1-F-2 |
+| v1.6 | 2026-07-03 | F-W68-01 (wave-68 wave-level fix): REVERSES the v1.5 "stdout-only" reconciliation. `protocols --json=<path>` now HONORS the path component — JSON written to the file at `<path>` via the shared `write_output` pipeline (same contract as `analyze`/`summary`). Bare `--json` / `--output-format json` continue to write JSON to STDOUT (BC-2.18.002 PC-1 unchanged — additive path, not a BC content change). `--csv` / `--output-format csv` are explicitly REJECTED (error message + non-zero exit; no silent fallback; SOUL silent-failure policy). AC-152-002 updated: dispatch snippet changed to `cli.json` (not `.is_some()`); `run_protocols` signature changed to `Option<Option<PathBuf>>` (not `bool`). Architecture Mapping JSON renderer row updated. EC-152-11 (path routing), EC-152-12 (`--output-format json` stdout), EC-152-13 (csv rejection) added. Task 1 (three new test names) and Task 3 (dispatch snippet + stub signature) updated. Sibling-sweep (DF-SIBLING-SWEEP-001): all live `is_some()` and "path not used" occurrences reconciled; Revision History v1.1 and v1.5 preserved verbatim. DF-AC-TEST-NAME-SYNC-001: test-name citations synced to the names implemented in `tests/integration_tests.rs` mod story_152 (`test_BC_2_12_022_json_path_writes_file`, `test_BC_2_12_022_output_format_json`, `test_BC_2_12_022_csv_rejected`); two guessed names from initial v1.6 draft corrected, one missing name added. | F-W68-01 |
