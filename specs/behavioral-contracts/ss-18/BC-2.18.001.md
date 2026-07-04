@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2: F-F2P2-006 Pass-2 remediation — duplicate PC-8 (exit-code precondition) renumbered to PC-9. 2026-07-01"
   - "v1.3: F-F2P3-001 Pass-3 remediation — EC-001 reworded (ARP IS a transport=LinkLayer supported entry; EC-001 now states no L2/multicast PROTOCOL entries in --supported set; ARP noted as sole LinkLayer supported entry); PC-5 amended to note LinkLayer entries with ethertype=None (ARP) render — in EtherType column. 2026-07-01"
   - "v1.4: F-F2P9-001 Pass-9 remediation — PC-6 reworded from unconditional to conditional: footnote appears ONLY when any port-102 entry (S7comm / S7comm-plus / IEC 61850 MMS / ICCP-TASE.2) is present in the printed set; consistent with Inv-3, EC-001 (--supported has no port-102 entries → no footnote), EC-002/003, and test_BC_2_18_001_port102_footnote unit test. Description sentence updated to match. 2026-07-01"
+  - "v1.5: F5-RECONCILE-COMPLETION / F-F5P7-003 — Architecture Anchor drift: reconcile run_protocols(filter, json) old two-param form to shipped two-param form run_protocols(filter: ProtocolFilter, cli: &Cli); old json: bool param replaced by cli.json routing; terminal-path description updated accordingly. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -122,7 +123,7 @@ by a separate category variant.
 
 - `src/protocols.rs` — `KNOWN_PROTOCOLS: &[KnownProtocol]` static array (C-26); `all_protocols()`, `supported_protocols()`, `unsupported_protocols()` pure-core functions
 - `src/protocols.rs` — `KnownProtocol` struct: `name`, `category`, `transport`, `canonical_ports`, `ethertype`, `port_detectable`, `description`
-- `src/main.rs` — `run_protocols(filter, json)` effectful CLI dispatch function; consumes pure-core catalog functions and renders terminal table
+- `src/main.rs` — `run_protocols(filter: ProtocolFilter, cli: &Cli)` effectful CLI dispatch function; when `cli.json` is `None`, renders terminal table from pure-core catalog functions
 
 ## Story Anchor
 

@@ -30,7 +30,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.023.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.024.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
-input-hash: "3fdf180"
+input-hash: "3f1dca5"
 ---
 
 # STORY-154: `--coverage-gaps` Flag + CoverageGapsSummary Tri-State Report + Mandatory Caveats
@@ -53,7 +53,7 @@ generating false impressions from silently-absent L2 protocols or ambiguous shar
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.12.023 | v1.2 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | Primary: flag wiring, opt-in semantics, analyze --all independence, CoverageGapsSummary as named section |
+| BC-2.12.023 | v1.3 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | Primary: flag wiring, opt-in semantics, analyze --all independence, CoverageGapsSummary as named section |
 | BC-2.12.024 | v1.2 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | Primary: L2 caveat always present, port-102 footnote conditional, tri-state classification, JSON schema |
 
 > **VP Reference Note (Obs-1):** `verification_properties: [VP-041, VP-042, VP-043]` are
@@ -67,7 +67,7 @@ generating false impressions from silently-absent L2 protocols or ambiguous shar
 ## Acceptance Criteria
 
 ### AC-154-001: `--coverage-gaps` flag added to `analyze` subcommand — NOT in `--all` expansion
-**Traces to:** BC-2.12.023 v1.2 PC-1..2, Invariants 1–2, 5; ADR-012 Decision 8
+**Traces to:** BC-2.12.023 v1.3 PC-1..2, Invariants 1–2, 5; ADR-012 Decision 8
 
 In `src/cli.rs`, the `Analyze` subcommand gains:
 ```rust
@@ -80,14 +80,14 @@ This flag is NOT in the `--all` expansion group (BC-2.12.023 Invariant 1). `wire
 does NOT imply `--coverage-gaps`. The two flags are independent.
 `wirerust protocols --coverage-gaps` is a clap error (flag not valid on `protocols` subcommand).
 
-(traces to BC-2.12.023 v1.2 PC-1..2, Invariants 1, 2, 5; ADR-012 Decision 8)
+(traces to BC-2.12.023 v1.3 PC-1..2, Invariants 1, 2, 5; ADR-012 Decision 8)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_023_all_without_coverage_gaps` — `wirerust analyze test.pcap --all` produces no `CoverageGapsSummary`
 - `test_BC_2_12_023_protocols_coverage_gaps_error` — `wirerust protocols --coverage-gaps` exits non-zero (clap error)
 
 ### AC-154-002: `--coverage-gaps` wired via `.with_coverage_gaps(...)` builder to `StreamDispatcher` and decode loop
-**Traces to:** BC-2.12.023 v1.2 Postcondition 1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8
+**Traces to:** BC-2.12.023 v1.3 Postcondition 1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8
 
 In `src/main.rs`, `run_analyze()` receives `coverage_gaps: bool` as a scalar parameter
 (introduced by STORY-153 as default `false`). STORY-154 changes the call-site in `main()` to
@@ -102,14 +102,14 @@ already uses the same scalar parameter — no additional threading required.
 When `--coverage-gaps` is set: `unclassified_port_counts` (TCP) and `udp_unclassified_counts`
 (UDP) are populated per BC-2.05.010. When NOT set: both maps remain empty.
 
-(traces to BC-2.12.023 v1.2 PC-1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8)
+(traces to BC-2.12.023 v1.3 PC-1; BC-2.05.010 v1.5 PC-1; ADR-012 Decision 8)
 
 **Red-Gate test:**
 - `test_BC_2_12_023_coverage_gaps_counts_unclassified` — `wirerust analyze test.pcap --coverage-gaps`
   on a pcap with known unclassified traffic: `CoverageGapsSummary` present with at least 1 entry
 
 ### AC-154-003: `CoverageGapsSummary` appended ONLY when `--coverage-gaps` set; `analyze --all` output unchanged
-**Traces to:** BC-2.12.023 v1.2 Postconditions 1–2, Invariants 1, 3–4; ADR-012 Decision 8, Decision 9
+**Traces to:** BC-2.12.023 v1.3 Postconditions 1–2, Invariants 1, 3–4; ADR-012 Decision 8, Decision 9
 
 When `--coverage-gaps` is set:
 - A `CoverageGapsSummary` named section is appended to analysis output (terminal and JSON)
@@ -121,7 +121,7 @@ When `--coverage-gaps` is NOT set (including `analyze --all`):
 - Output is IDENTICAL to pre-feature behavior (zero additive changes)
 - `analyze --all` output is byte-identical to pre-story behavior
 
-(traces to BC-2.12.023 v1.2 PC-1..2, Invariants 1, 3–4; ADR-012 Decision 8, Decision 9)
+(traces to BC-2.12.023 v1.3 PC-1..2, Invariants 1, 3–4; ADR-012 Decision 8, Decision 9)
 
 **Red-Gate tests:**
 - `test_BC_2_12_023_coverage_gaps_flag_produces_section` — `--coverage-gaps` → CoverageGapsSummary present
@@ -247,7 +247,7 @@ BACnet/IP is catalogued as `Udp/47808` — transport mismatch (BC-2.12.024 EC-00
 > (ASHRAE 135-2016 Annex J §J.2.1; UDP port 0xBAC0 = 47808).
 
 ### AC-154-007: JSON representation — `"coverage_gaps"` object schema
-**Traces to:** BC-2.12.023 v1.2 Postcondition 3; BC-2.12.024 v1.2 Postcondition 5; ADR-012 Decision 3
+**Traces to:** BC-2.12.023 v1.3 Postcondition 3; BC-2.12.024 v1.2 Postcondition 5; ADR-012 Decision 3
 
 In JSON mode (`--json --coverage-gaps`), the output gains a `"coverage_gaps"` key:
 ```json
@@ -270,20 +270,20 @@ Schema per BC-2.12.024 PC-5:
 - `name`: optional string (only for `known-unsupported` and `known-supported` entries, **EXCEPT** the TCP/102 collision entry — four protocols share port 102, so naming one would be misleading; the TCP/102 entry SHALL omit `name` and use `collision_note` instead)
 - `collision_note`: optional string (only for TCP/102 when count > 0; used in place of `name` for this entry)
 
-(traces to BC-2.12.023 v1.2 PC-3; BC-2.12.024 v1.2 PC-5, Postcondition 5; ADR-012 Decision 3)
+(traces to BC-2.12.023 v1.3 PC-3; BC-2.12.024 v1.2 PC-5, Postcondition 5; ADR-012 Decision 3)
 
 **Red-Gate test:**
 - `test_BC_2_12_024_json_has_caveat_field` — `--json --coverage-gaps` output: JSON `"coverage_gaps"."caveat_l2"` is non-null string
 - `test_BC_2_12_023_json_coverage_gaps_key` — (shared with AC-154-004)
 
 ### AC-154-008: Exit code 0; existing Findings and AnalysisSummary unchanged
-**Traces to:** BC-2.12.024 v1.2 Postcondition 6; BC-2.12.023 v1.2 Invariant 4
+**Traces to:** BC-2.12.024 v1.2 Postcondition 6; BC-2.12.023 v1.3 Invariant 4
 
 `wirerust analyze --coverage-gaps` exits with code 0 on successful analysis. The
 `CoverageGapsSummary` section is purely additive — existing `Finding` entries and
 `AnalysisSummary` output are UNCHANGED when `--coverage-gaps` is set.
 
-(traces to BC-2.12.024 v1.2 PC-6; BC-2.12.023 v1.2 Invariant 4)
+(traces to BC-2.12.024 v1.2 PC-6; BC-2.12.023 v1.3 Invariant 4)
 
 ## Architecture Mapping
 
@@ -334,7 +334,7 @@ JSON schema per BC-2.12.024 PC-5; integration test suite including canonical-val
 | Context source | Estimated tokens |
 |---------------|-----------------|
 | This story spec | ~2,800 |
-| BC-2.12.023 (v1.2) | ~5,000 |
+| BC-2.12.023 (v1.3) | ~5,000 |
 | BC-2.12.024 (v1.2) | ~5,500 |
 | ADR-012 (Decisions 2, 3a/3b, 8, 9) | ~6,000 |
 | src/cli.rs (existing + STORY-152 Protocols variant) | ~5,000 |
@@ -444,7 +444,7 @@ flat scalar params, not a struct arg).
 The transport mapping in `lookup_protocol_state()` must use `TransportProto::Tcp →
 protocols::Transport::Tcp` and `TransportProto::Udp → protocols::Transport::Udp`.
 
-**Key lesson from BC-2.12.023 v1.2 (Pass-8 remediation):**
+**Key lesson from BC-2.12.023 v1.3 (Pass-8 remediation):**
 The `"coverage_gaps"` JSON schema is an object form `{ "caveat_l2": "...", "entries": [...] }`,
 NOT a flat dict of string keys. Earlier (pre-BC-v1.2) drafts had the wrong schema. Use the
 authoritative object form from BC-2.12.023 PC-3 and BC-2.12.024 PC-5.
@@ -465,7 +465,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.12.023/024
 4. **Tri-state classification is transport-aware** — BC-2.12.024 PC-4. A port catalogued under UDP only will NOT match a TCP observation (→ `unknown`). LinkLayer entries never match port keys.
 5. **`L2_CAVEAT_TEXT` is ALWAYS present** — BC-2.12.024 Invariant 1. Even when entries array is empty (empty pcap). Not configurable.
 6. **`PORT_102_NOTE` is row-specific and conditional** — BC-2.12.024 Invariant 2. Present IF AND ONLY IF `(Tcp, 102)` has a non-zero count in the current gap report.
-7. **JSON schema: object form** — `{ "caveat_l2": "...", "entries": [...] }` (BC-2.12.023 PC-3 v1.2 corrected form). NOT a flat dict.
+7. **JSON schema: object form** — `{ "caveat_l2": "...", "entries": [...] }` (BC-2.12.023 PC-3 v1.3 corrected form). NOT a flat dict.
 8. **Test namespace isolation + `non_snake_case` allow (DF-TEST-NAMESPACE-001):** ALL integration test functions in `mod story_154 { ... }` wrapper in `tests/integration_tests.rs`. Unit tests for `lookup_protocol_state()` MUST be in inline `#[cfg(test)] mod story_154_unit { ... }` in `src/main.rs` — `lookup_protocol_state()` is binary-private (defined in `src/main.rs`, not re-exported from the library crate) and is NOT callable from `tests/`. Test names in `mod story_154_unit` carry a `_unit` suffix (e.g., `test_BC_2_12_024_bacnet_known_unsupported_unit`) to disambiguate from identically-named integration tests in `mod story_154` (DF-AC-TEST-NAME-SYNC-001 unique-resolution). BOTH modules MUST carry `#[allow(non_snake_case)]` at module scope — CI enforces `-D warnings`; the uppercase `test_BC_…` names violate `non_snake_case`. `tests/integration_tests.rs` carries no file-level allow (confirmed by grep); `src/main.rs` `mod tests` at line 708 is lowercase and carries no allow — the new `mod story_154_unit` needs its own.
 9. **BACnet/IP classification must use UDP transport lookup** — `(Udp, 47808)` → `known-unsupported`; `(Tcp, 47808)` → `unknown`. This directly tests the transport-aware lookup correctness (DF-CANONICAL-FRAME-HOLDOUT-001 + BC-2.12.024 EC-009).
 
@@ -506,3 +506,4 @@ No new source files.
 | v1.9 | 2026-07-04 | BC-2.12.024-PC4-PHANTOM-SUPPORTED-001: BC-2.12.024 BC-version reference synced to reconciled BC (v1.1 → v1.2); no behavioral change. BC-2.05.010-LOWERPORT-WORDING-001 sweep: BC-2.05.010 cross-reference in AC-154-002 traces synced (v1.3 → v1.4); no behavioral change. | BC-2.12.024-PC4-PHANTOM-SUPPORTED-001, BC-2.05.010-LOWERPORT-WORDING-001 |
 | v1.8 | 2026-07-02 | F-F3P14-001 (MEDIUM, F4-breaker): Removed physically-unreachable integration test `test_BC_2_12_024_known_supported_is_bug_signal` from AC-154-006 Red-Gate list and Task 1 integration list. `classify()` Rule 5 always routes port-502 flows to `DispatchTarget::Modbus` — the `None`-target arm never fires for port 502, so `(Tcp, 502)` can never enter `unclassified_port_counts` via the analyze pipeline. Replaced with CLI-reachable integration test `test_BC_2_12_024_tcp_502_absent_from_gap_report` (asserts `(Tcp, 502)` is absent from CoverageGapsSummary under normal operation). Added NOTE block in AC-154-006 clarifying that `known-supported` for `(Tcp, 502)` is assertable only at pure-function/unit level via the already-specified `test_BC_2_12_024_known_supported_is_bug_signal_unit`. Updated EC-154-11 to state that the state is unit-only with no analyze-pipeline injection mechanism. Unit test `test_BC_2_12_024_known_supported_is_bug_signal_unit` (Task 1, `mod story_154_unit`) unchanged — it remains the assertion vehicle for the known-supported branch. | F-F3P14-001 |
 | v1.10 | 2026-07-04 | BC-2.05.010 cross-reference synced (v1.4→v1.5); no behavioral change. | F5-RECONCILE-COMPLETION |
+| v1.11 | 2026-07-04 | BC-version reference synced: BC-2.12.023 v1.2→v1.3; wording-only, no behavioral change. BC-2.12.024 v1.2 is unchanged. | F5-RECONCILE-COMPLETION |

@@ -7,6 +7,9 @@ date: 2026-07-01
 modified:
   - date: "2026-07-04"
     actor: architect
+    reason: "F5-RECONCILE-COMPLETION (F-F5P5-001): Consequences bullet for src/cli.rs corrected from phantom variant-shape Commands::Protocols { filter: ProtocolFilter, json: bool } (removed at BC-2.12.022 v1.1/v1.2) to shipped 3-bool form Commands::Protocols { all: bool, supported: bool, unsupported: bool } with clap conflicts_with_all mutual exclusion; ProtocolFilter { All, Supported, Unsupported } documented as derived at dispatch arm in src/main.rs; output routing via top-level cli.json noted. Historical F2P2 changelog entry at prior modified: line preserved verbatim."
+  - date: "2026-07-04"
+    actor: architect
     reason: "VP042D-FROZEN-RESIDUAL-001 reconciliation: 'VP-042(d) precondition' heading in Decision 6 Clarification body replaced with 'Dual-gate co-increment note (inherent consequence, not a separate harness)'; 'sub-property (d)' language removed; co-increment behavior documented as inherent dual-gate consequence of the shared guard, consistent with the shipped 3-harness Sub-A/B/C VP-042 reality (STORY-153 delivery). Corrects frozen spec-wording drift where the body retained (d) naming after the property was dropped at F2 Pass-9."
   - date: "2026-07-01"
     actor: architect
@@ -418,9 +421,13 @@ MUST NOT increment the gap counter.
 - `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs`, independent of
   `protocols.rs::Transport` (which has a third `LinkLayer` variant and must not be
   imported into the dispatcher per the pure-core boundary rule).
-- `src/cli.rs` gains `Commands::Protocols { filter: ProtocolFilter, json: bool }` variant
-  (SS-12), where `ProtocolFilter` is `{ All, Supported, Unsupported }` — an enum that
-  enforces mutual exclusion at the type level (or equivalent).
+- `src/cli.rs` gains `Commands::Protocols { all: bool, supported: bool, unsupported: bool }`
+  variant (SS-12), with mutual exclusion enforced by clap `conflicts_with_all` attributes on
+  each of the three flags — no `filter:` field on the variant itself. `ProtocolFilter
+  { All, Supported, Unsupported }` is a derived enum constructed at the
+  `Commands::Protocols` dispatch arm in `src/main.rs` (lines 154–166) from the three bool
+  fields. Output routing uses the top-level `cli.json: Option<Option<PathBuf>>` flag; there
+  is no per-variant `json: bool` field.
 - `src/main.rs` gains `run_protocols()` and a `Commands::Protocols` arm (SS-12).
 - `--coverage-gaps` flag added to `analyze` subcommand; absent by default (Decision 8).
 - When `--coverage-gaps` is active, `dns_analyzer.can_decode()` is evaluated for UDP

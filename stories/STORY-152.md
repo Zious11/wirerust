@@ -29,7 +29,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.001.md
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.002.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
-input-hash: "6866a35"
+input-hash: "591aed1"
 ---
 
 # STORY-152: `protocols` CLI Subcommand + Terminal/JSON Rendering
@@ -50,9 +50,9 @@ gaps exist in my network environment, without running a capture.
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.12.022 | v1.2 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | Primary: CLI wiring in cli.rs + main.rs dispatch |
-| BC-2.18.001 | v1.4 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | Primary: terminal table renderer with filter flags, [L2] indicator, EtherType column, port-102 footnote |
-| BC-2.18.002 | v1.1 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | Primary: JSON output schema under `"protocols"` key |
+| BC-2.12.022 | v1.3 | `wirerust protocols` Subcommand Dispatches to `run_protocols()` and Honors `--json` Flag | Primary: CLI wiring in cli.rs + main.rs dispatch |
+| BC-2.18.001 | v1.5 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | Primary: terminal table renderer with filter flags, [L2] indicator, EtherType column, port-102 footnote |
+| BC-2.18.002 | v1.2 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | Primary: JSON output schema under `"protocols"` key |
 
 > **VP Reference Note (Obs-1):** `verification_properties: [VP-041]` is a *regression/relevance*
 > reference only. VP-041 proptest harnesses are authored and anchored by STORY-151 (the story
@@ -64,7 +64,7 @@ gaps exist in my network environment, without running a capture.
 ## Acceptance Criteria
 
 ### AC-152-001: `Commands::Protocols { filter, json }` variant added to `src/cli.rs`
-**Traces to:** BC-2.12.022 v1.2 PC-1, Postcondition 1, Invariants 2–4; ADR-012 Decision 3
+**Traces to:** BC-2.12.022 v1.3 PC-1, Postcondition 1, Invariants 2–4; ADR-012 Decision 3
 
 ```rust
 /// Protocol coverage catalog subcommand
@@ -90,14 +90,14 @@ Or equivalently using a clap group with `ProtocolFilter` enum. Filter flags are 
 to `--all` (BC-2.12.022 Invariant 3). The `--json` global flag is forwarded from the top-level
 CLI (not a new flag on the `protocols` subcommand).
 
-(traces to BC-2.12.022 v1.2 PC-1, PC-1..3, Invariants 2–4)
+(traces to BC-2.12.022 v1.3 PC-1, PC-1..3, Invariants 2–4)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_subcommand_exit_0` — `wirerust protocols` exits 0 and produces non-empty stdout
 - `test_BC_2_12_022_mutually_exclusive_flags_error` — `wirerust protocols --supported --unsupported` exits non-zero (clap error)
 
 ### AC-152-002: `Commands::Protocols` dispatches to `run_protocols(filter, json)` in `src/main.rs`
-**Traces to:** BC-2.12.022 v1.2 Postconditions 2–3, Invariants 1, 5
+**Traces to:** BC-2.12.022 v1.3 Postconditions 2–3, Invariants 1, 5
 
 New dispatch arm in the main match block:
 ```rust
@@ -129,10 +129,10 @@ New function `run_protocols(filter: ProtocolFilter, json: Option<Option<PathBuf>
 
 Exit code 0 on success. The `analyze` subcommand is NOT affected.
 
-(traces to BC-2.12.022 v1.2 PC-2..3, Postconditions 2–3, 7; Invariants 1, 5)
+(traces to BC-2.12.022 v1.3 PC-2..3, Postconditions 2–3, 7; Invariants 1, 5)
 
 ### AC-152-003: Terminal table renderer — rows, columns, filter semantics (BC-2.18.001)
-**Traces to:** BC-2.18.001 v1.4 Postconditions 1–5, 7–8; Invariants 1–2, 5; ADR-012 Decision 3
+**Traces to:** BC-2.18.001 v1.5 Postconditions 1–5, 7–8; Invariants 1–2, 5; ADR-012 Decision 3
 
 The terminal output prints one row per protocol entry in the filtered set, in catalog-declaration
 order. Each row contains at minimum:
@@ -152,7 +152,7 @@ Filter semantics:
 - `--supported`: only 7 entries (those in `supported_protocols()`)
 - `--unsupported`: only 23 entries (those in `unsupported_protocols()`)
 
-(traces to BC-2.18.001 v1.4 PC-1..3, Postconditions 1–5, 7–8; Invariants 1–2, 5)
+(traces to BC-2.18.001 v1.5 PC-1..3, Postconditions 1–5, 7–8; Invariants 1–2, 5)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_supported_filter` — `--supported` output has exactly 7 rows
@@ -161,7 +161,7 @@ Filter semantics:
 - `test_BC_2_18_001_l2_transport_indicator` — GOOSE row in `--unsupported` output contains `[L2]`
 
 ### AC-152-004: Port-102 footnote present when port-102 entries are in the printed set
-**Traces to:** BC-2.18.001 v1.4 Postcondition 6, Invariant 3
+**Traces to:** BC-2.18.001 v1.5 Postcondition 6, Invariant 3
 
 When any port-102 entry (S7comm, S7comm-plus, IEC 61850 MMS, ICCP/TASE.2) is present in the
 printed set, the output includes a fixed port-102 collision footnote:
@@ -170,7 +170,7 @@ printed set, the output includes a fixed port-102 collision footnote:
 When no port-102 entry is in the printed set (e.g., `--supported` output where none of the four
 TCP/102 protocols are supported), no footnote appears.
 
-(traces to BC-2.18.001 v1.4 Postcondition 6, Invariant 3)
+(traces to BC-2.18.001 v1.5 Postcondition 6, Invariant 3)
 
 **Red-Gate tests:**
 - `test_BC_2_18_001_port102_footnote` — `wirerust protocols --unsupported` stdout contains "TCP/102"
@@ -187,7 +187,7 @@ TCP/102 protocols are supported), no footnote appears.
 > "S7comm", "S7comm-plus", "IEC 61850 MMS", "ICCP" (or "ICCP/TASE.2") in the same output.
 
 ### AC-152-005: Link-layer note for `port_detectable: false` entries
-**Traces to:** BC-2.18.001 v1.4 Postcondition 7, Invariant 4
+**Traces to:** BC-2.18.001 v1.5 Postcondition 7, Invariant 4
 
 Output includes a fixed link-layer/multicast note explaining that `transport=LinkLayer` entries
 (those with `port_detectable: false`) will never appear in the `CoverageGapsSummary` dynamic
@@ -196,14 +196,14 @@ gap report because the dispatcher and UDP decode loop only observe TCP/UDP traff
 The note may be a table footer, a footnote, or an annotation in the `[L2]` transport column.
 It MUST be present when any LinkLayer entries appear in the output.
 
-(traces to BC-2.18.001 v1.4 Postcondition 7, Invariant 4, 5)
+(traces to BC-2.18.001 v1.5 Postcondition 7, Invariant 4, 5)
 
 **Red-Gate test:**
 - `test_BC_2_18_001_l2_note_present` — `wirerust protocols --unsupported` stdout contains a note
   about L2/LinkLayer protocols not appearing in gap reports
 
 ### AC-152-006: EtherType display for LinkLayer entries
-**Traces to:** BC-2.18.001 v1.4 Postcondition 5; BC-2.18.002 v1.1 EC-003
+**Traces to:** BC-2.18.001 v1.5 Postcondition 5; BC-2.18.002 v1.2 EC-003
 
 In terminal output, LinkLayer entries with non-None `ethertype` display the EtherType as
 `0xHHHH (DDDDD)` where HHHH is uppercase hex and DDDDD is decimal. ARP renders `—` in the
@@ -219,10 +219,10 @@ EtherType column (ARP has `ethertype: None`). TCP/UDP entries render `—` in th
 >
 > `test_BC_2_18_001_arp_ethertype_dash` — ARP row EtherType column is `—` (ARP has ethertype: None).
 
-(traces to BC-2.18.001 v1.4 Postcondition 5, EC-004; BC-2.18.002 v1.1 EC-003)
+(traces to BC-2.18.001 v1.5 Postcondition 5, EC-004; BC-2.18.002 v1.2 EC-003)
 
 ### AC-152-007: JSON output — `"protocols"` array schema (BC-2.18.002)
-**Traces to:** BC-2.18.002 v1.1 Postconditions 1–6, Invariants 1–5; ADR-012 Decision 3
+**Traces to:** BC-2.18.002 v1.2 Postconditions 1–6, Invariants 1–5; ADR-012 Decision 3
 
 When `--json` global flag is set, `run_protocols()` outputs a single JSON object:
 ```json
@@ -265,7 +265,7 @@ JSON schema requirements per BC-2.18.002:
 > via `canonical_ports.iter().any(|cp| SUPPORTED_PORTS.contains(cp)) || name == "ARP"`
 > (BC-2.18.003) — or via `supported_protocols()` membership.
 
-(traces to BC-2.18.002 v1.1 PC-1..3, Postconditions 1–6, Invariants 1–5)
+(traces to BC-2.18.002 v1.2 PC-1..3, Postconditions 1–6, Invariants 1–5)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_json_flag` — `wirerust protocols --json` stdout is valid JSON with `"protocols"` array
@@ -286,12 +286,12 @@ JSON schema requirements per BC-2.18.002:
 > `"canonical_ports": [502]` (IANA/Modbus App Protocol v1.1b3 §4.3.1), `"supported": true`.
 
 ### AC-152-008: Exit code 0; `analyze` subcommand unchanged
-**Traces to:** BC-2.12.022 v1.2 Postcondition 6, Invariant 7; BC-2.18.001 v1.4 Postcondition 9; BC-2.18.002 v1.1 Postcondition 5
+**Traces to:** BC-2.12.022 v1.3 Postcondition 6, Invariant 7; BC-2.18.001 v1.5 Postcondition 9; BC-2.18.002 v1.2 Postcondition 5
 
 `wirerust protocols` exits with code 0 on all filter + json combinations.
 `wirerust analyze <file>` behavior is UNCHANGED.
 
-(traces to BC-2.12.022 v1.2 PC-6, Invariant 7; BC-2.18.001 v1.4 PC-9)
+(traces to BC-2.12.022 v1.3 PC-6, Invariant 7; BC-2.18.001 v1.5 PC-9)
 
 **Red-Gate tests (integration):**
 - `test_BC_2_12_022_protocols_subcommand_exit_0` — already listed in AC-152-001
@@ -341,9 +341,9 @@ assertions per DF-CANONICAL-FRAME-HOLDOUT-001)
 | Context source | Estimated tokens |
 |---------------|-----------------|
 | This story spec | ~2,500 |
-| BC-2.12.022 (v1.2) | ~3,500 |
-| BC-2.18.001 (v1.4) | ~6,000 |
-| BC-2.18.002 (v1.1) | ~5,000 |
+| BC-2.12.022 (v1.3) | ~3,500 |
+| BC-2.18.001 (v1.5) | ~6,000 |
+| BC-2.18.002 (v1.2) | ~5,000 |
 | ADR-012 (Decisions 3, 7) | ~4,000 |
 | src/cli.rs (existing structure) | ~4,000 |
 | src/main.rs (existing structure, run_analyze reference) | ~12,000 |
@@ -455,7 +455,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.12.022/BC-2.18.0
 3. **Default (no flag) == `--all`** — no filter flag produces the same output as `--all` (BC-2.12.022 Invariant 3).
 4. **`analyze` subcommand unchanged** — the `Commands::Analyze` arm MUST NOT be modified (BC-2.12.022 Invariant 7; regression baseline).
 5. **JSON output `"category"` values are `"ICS"` or `"IT"` only** — no `"L2"` value (ADR-012 Decision 7; BC-2.18.002 PC-3).
-6. **GOOSE EtherType display: `0x88B8 (35000)`** — not `34992` (pre-F2 erroneous value; corrected in BC-2.18.002 v1.1; DF-CANONICAL-FRAME-HOLDOUT-001).
+6. **GOOSE EtherType display: `0x88B8 (35000)`** — not `34992` (pre-F2 erroneous value; corrected in BC-2.18.002 v1.2; DF-CANONICAL-FRAME-HOLDOUT-001).
 7. **POWERLINK EtherType display: `0x88AB (34987)`** — IEEE RA assigned value (DF-CANONICAL-FRAME-HOLDOUT-001).
 8. **Port-102 footnote is row-presence-triggered** — it appears IF AND ONLY IF any of S7comm, S7comm-plus, IEC 61850 MMS, or ICCP/TASE.2 is in the printed set (BC-2.18.001 Invariant 3; Postcondition 6 v1.4).
 9. **Test namespace isolation (DF-TEST-NAMESPACE-001):** ALL test functions in `mod story_152 { ... }` wrapper. The module MUST carry `#[allow(non_snake_case)]` at the top of the `mod story_152 { }` block — CI enforces `-D warnings` and the uppercase `test_BC_…` function names violate `non_snake_case`. `tests/integration_tests.rs` carries no file-level allow (confirmed by grep), so the module-level attribute is mandatory.
@@ -495,3 +495,4 @@ No new source files.
 | v1.7 | 2026-07-04 | BC-2.12.022-FWFIX-SYNC-001: BC-version reference synced to reconciled BC (v1.0 → v1.1); no behavioral change. | BC-2.12.022-FWFIX-SYNC-001 |
 | v1.6 | 2026-07-03 | F-W68-01 (wave-68 wave-level fix): REVERSES the v1.5 "stdout-only" reconciliation. `protocols --json=<path>` now HONORS the path component — JSON written to the file at `<path>` via the shared `write_output` pipeline (same contract as `analyze`/`summary`). Bare `--json` / `--output-format json` continue to write JSON to STDOUT (BC-2.18.002 PC-1 unchanged — additive path, not a BC content change). `--csv` / `--output-format csv` are explicitly REJECTED (error message + non-zero exit; no silent fallback; SOUL silent-failure policy). AC-152-002 updated: dispatch snippet changed to `cli.json` (not `.is_some()`); `run_protocols` signature changed to `Option<Option<PathBuf>>` (not `bool`). Architecture Mapping JSON renderer row updated. EC-152-11 (path routing), EC-152-12 (`--output-format json` stdout), EC-152-13 (csv rejection) added. Task 1 (three new test names) and Task 3 (dispatch snippet + stub signature) updated. Sibling-sweep (DF-SIBLING-SWEEP-001): all live `is_some()` and "path not used" occurrences reconciled; Revision History v1.1 and v1.5 preserved verbatim. DF-AC-TEST-NAME-SYNC-001: test-name citations synced to the names implemented in `tests/integration_tests.rs` mod story_152 (`test_BC_2_12_022_json_path_writes_file`, `test_BC_2_12_022_output_format_json`, `test_BC_2_12_022_csv_rejected`); two guessed names from initial v1.6 draft corrected, one missing name added. | F-W68-01 |
 | v1.8 | 2026-07-04 | BC-version reference synced (BC-2.12.022 v1.1→v1.2); no behavioral change. | F5-RECONCILE-COMPLETION |
+| v1.9 | 2026-07-04 | BC-version references synced: BC-2.12.022 v1.2→v1.3, BC-2.18.001 v1.4→v1.5, BC-2.18.002 v1.1→v1.2; wording-only, no behavioral change. | F5-RECONCILE-COMPLETION |

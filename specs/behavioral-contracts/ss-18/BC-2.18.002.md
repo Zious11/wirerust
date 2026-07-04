@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P1-001/003/004/008/009/014 Pass-1 remediation — EC-003 GOOSE ethertype corrected 34992→35000 (0x88B8 = 35000 decimal); Invariant 2 weakened from iff to one-way implication with ARP carve-out; ProtocolCategory enum L2 variant removed (two variants: ICS/IT); VP-041 harness renamed to proptest_vp041_oracle_cross_check; PC-4 catalog-declaration order added; field comment adds category+ethertype context. 2026-07-01"
+  - "v1.2: F5-RECONCILE-COMPLETION / F-F5P7-004 — two signature drifts: (1) Related BCs description updated from run_protocols(json=true) to run_protocols(filter, cli) with cli.json routing; (2) Architecture Anchor updated from run_protocols(filter, json) / json=true form to shipped run_protocols(filter: ProtocolFilter, cli: &Cli) / cli.json Some(_) form. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -38,7 +39,7 @@ than as free-text footnotes.
 
 - BC-2.18.001 — parallel (terminal output mode of the same catalog data)
 - BC-2.18.003 — depends on (`supported_protocols()` / `unsupported_protocols()` back the filter sets)
-- BC-2.12.022 — composes with (CLI dispatch routes `wirerust protocols --json` to `run_protocols(json=true)`)
+- BC-2.12.022 — composes with (CLI dispatch routes `wirerust protocols --json` to `run_protocols(filter, cli)` where `cli.json` carries the output-routing flag)
 
 ## Preconditions
 
@@ -116,7 +117,7 @@ than as free-text footnotes.
 ## Architecture Anchors
 
 - `src/protocols.rs` — `KNOWN_PROTOCOLS`, `KnownProtocol` struct, `all_protocols()` / `supported_protocols()` / `unsupported_protocols()` (pure-core catalog access)
-- `src/main.rs` — `run_protocols(filter, json)` — when `json=true`, renders JSON using `serde_json` or equivalent; applies same filter logic as terminal path
+- `src/main.rs` — `run_protocols(filter: ProtocolFilter, cli: &Cli)` — when `cli.json` is `Some(_)`, renders JSON using `serde_json` or equivalent; applies same filter logic as terminal path
 
 ## Story Anchor
 

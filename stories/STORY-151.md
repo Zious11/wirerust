@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.004.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
   - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
-input-hash: "00e3846"
+input-hash: "f973d8f"
 ---
 
 # STORY-151: `src/protocols.rs` — KNOWN_PROTOCOLS Static Catalog + Pure-Core Functions + VP-041
@@ -444,7 +444,7 @@ Source: `architecture/module-decomposition.md` + ADR-012 + BC-2.18.003/004
 3. **ARP special case MUST be explicit** — `|| p.name == "ARP"` in `supported_protocols()` body (BC-2.18.003 Invariant 3). No implicit handling.
 4. **`unsupported_protocols()` MUST be derived as complement** of `supported_protocols()` within `KNOWN_PROTOCOLS` (BC-2.18.003 Invariant 4). A hand-maintained list is a spec violation.
 5. **No import from `src/dispatcher.rs`** — SS-18 must not depend on SS-05. The `Transport` enum in `protocols.rs` is independent of `TransportProto` in `dispatcher.rs` (BC-2.05.010 PC-4 pure-core boundary rule).
-6. **GOOSE EtherType is `Some(0x88B8)` = `Some(35000)`** — not 34992 (the pre-F2 erroneous value that BC-2.18.002 v1.1 corrected in F-F2P1-001). Use 35000 decimal (DF-CANONICAL-FRAME-HOLDOUT-001).
+6. **GOOSE EtherType is `Some(0x88B8)` = `Some(35000)`** — not 34992 (the pre-F2 erroneous value that BC-2.18.002 v1.2 corrected in F-F2P1-001). Use 35000 decimal (DF-CANONICAL-FRAME-HOLDOUT-001).
 7. **POWERLINK EtherType is `Some(0x88AB)` = `Some(34987)`** — the EPSG V2 value, not the obsolete V1 `0x3E3F` (confirmed by IEEE RA registry + Wireshark ETHERTYPE_EPL_V2; DF-CANONICAL-FRAME-HOLDOUT-001).
 8. **Test namespace isolation + `non_snake_case` allow (DF-TEST-NAMESPACE-001):** ALL test functions MUST be inside `mod story_151 { ... }` in `tests/protocols_tests.rs`. The module block MUST carry `#[allow(non_snake_case)]` — CI enforces `-D warnings`; the uppercase `test_BC_…` names violate `non_snake_case`. `tests/protocols_tests.rs` is a new file with no file-level allow.
 
@@ -480,3 +480,4 @@ standalone pure-core catalog.
 | v1.3 | 2026-07-02 | F-F3P8-003 (MEDIUM, sibling sweep): Added `#[allow(non_snake_case)]` requirement to Task 1 and Architecture Compliance Rule 8 — `tests/protocols_tests.rs` is a new file with no file-level allow; the uppercase `test_BC_…` names in `mod story_151` violate `non_snake_case` under `-D warnings`. | F-F3P8-003 |
 | v1.4 | 2026-07-02 | F-F3P15-001 (MEDIUM, mis-anchor): Fixed C-25 path prefix at all 3 occurrences (AC-151-008 body line ~272, Component Identities block line ~288, Task 5 line ~411): `src/enip.rs` → `src/analyzer/enip.rs`. Component identity (C-25 = EtherNet/IP + CIP analyzer, SS-17) was correct; only the `src/` prefix was wrong (residual from the F-F3P2-002 fix that corrected C-25 identity reader.rs→enip but wrote wrong path prefix). C-26 = `src/protocols.rs` unaffected. | F-F3P15-001 |
 | v1.5 | 2026-07-03 | F-F3P12-001 carry (MEDIUM): Removed stale "(except 53, which maps to DNS)" parenthetical from AC-151-005 `test_BC_2_18_003_supported_ports_mirror` description. The delivered test loops over all 8 SUPPORTED_PORTS including 53; DNS entry carries `canonical_ports: &[53]` so it satisfies the mirror invariant. AC prose now correctly states the mirror check covers all 8 ports. | F-F3P12-001, STORY-151-Pass-2-MEDIUM-2 |
+| v1.6 | 2026-07-04 | BC-2.18.002 cross-reference in Architecture Compliance Rule 6 synced: v1.1→v1.2; wording-only, no behavioral change. | F5-RECONCILE-COMPLETION |

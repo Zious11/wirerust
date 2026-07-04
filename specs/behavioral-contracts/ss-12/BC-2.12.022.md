@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,7 @@ introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: BC-2.12.022-FWFIX-SYNC-001 / F-W68-01 — reconcile to shipped behavior: Commands::Protocols variant drops per-variant json flag; dispatch changed to run_protocols(filter, cli: &Cli) consuming cli.json: Option<Option<PathBuf>>; bare --json/--output-format json → JSON to STDOUT; --json=PATH → JSON to file via write_output pipeline; --csv/--output-format csv → explicit error + non-zero exit; EC-009/EC-010 added; PC-1/2/4/5/6 and Architecture Anchors updated. 2026-07-04"
   - "v1.2: F5-RECONCILE-COMPLETION / F-F5P2-001 — exhaustive sweep: PC-1 and PC-2 reconciled from phantom Commands::Protocols {filter} single-field form to shipped 3-bool form (all: bool, supported: bool, unsupported: bool with conflicts_with_all mutual exclusion); Architecture Anchors updated to describe shipped clap variant and dispatch arm (all, supported, unsupported, ..); ProtocolFilter derived at dispatch arm, not stored as variant field; zero residual filter/json-bool phantom patterns. 2026-07-04"
+  - "v1.3: F5-RECONCILE-COMPLETION / F-F5P7-001 — VP-table test-name drift: replace phantom test_BC_2_12_022_protocols_json_file_routing with test_BC_2_12_022_json_path_writes_file; add missing row for test_BC_2_12_022_output_format_json (--output-format json → JSON to STDOUT path); replace phantom test_BC_2_12_022_protocols_csv_rejection with test_BC_2_12_022_csv_rejected; H1 title corrected from run_protocols(cli: &Cli) to run_protocols(filter: ProtocolFilter, cli: &Cli) to match shipped two-arg signature. 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -23,7 +24,7 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.12.022: `wirerust protocols` Subcommand Dispatches to `run_protocols(cli: &Cli)` with `--json[=PATH]` File Routing and `--csv` Rejection
+# BC-2.12.022: `wirerust protocols` Subcommand Dispatches to `run_protocols(filter: ProtocolFilter, cli: &Cli)` with `--json[=PATH]` File Routing and `--csv` Rejection
 
 ## Description
 
@@ -107,8 +108,9 @@ subcommand semantics are changed.
 | — | `--json` flag produces valid JSON with `"protocols"` key | integration: `test_BC_2_12_022_protocols_json_flag` |
 | — | `--supported` filter reduces output to supported-only entries | integration: `test_BC_2_12_022_protocols_supported_filter` |
 | — | Mutually exclusive flags produce clap error | unit: `test_BC_2_12_022_mutually_exclusive_flags_error` |
-| — | `--json=PATH` routes JSON to the specified file; exit 0 | integration: `test_BC_2_12_022_protocols_json_file_routing` |
-| — | `--csv` / `--output-format csv` produces explicit error + non-zero exit | integration: `test_BC_2_12_022_protocols_csv_rejection` |
+| — | `--json=PATH` routes JSON to the specified file; exit 0 | integration: `test_BC_2_12_022_json_path_writes_file` |
+| — | `--output-format json` writes JSON to STDOUT | integration: `test_BC_2_12_022_output_format_json` |
+| — | `--csv` / `--output-format csv` produces explicit error + non-zero exit | integration: `test_BC_2_12_022_csv_rejected` |
 
 ## Traceability
 

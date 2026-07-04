@@ -27,7 +27,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.010.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.011.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
-input-hash: "b993f5a"
+input-hash: "f3bd85f"
 ---
 
 # STORY-153: Dispatcher `unclassified_port_counts` + UDP `udp_unclassified_counts` + VP-042/VP-043

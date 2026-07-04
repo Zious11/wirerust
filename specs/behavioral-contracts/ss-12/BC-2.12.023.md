@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,6 +15,7 @@ introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P2-005 Pass-2 remediation — Invariant 6 added encoding ADR-012 Decision 10 (gap-classification orthogonal to enable_dns; can_decode() evaluated regardless of enable_dns flag). 2026-07-01"
   - "v1.2: F-F2P8-001 Pass-8 remediation — PC-3 coverage_gaps JSON schema corrected from flat-dict form to authoritative object form (caveat_l2 string + entries[] array matching BC-2.12.024 PC-5); old dict-of-string-keys schema removed. 2026-07-01"
+  - "v1.3: F5-RECONCILE-COMPLETION / F-F5P7-002 — Architecture Anchor drift: reconcile second bullet from phantom 'passes coverage_gaps: bool to StreamDispatcher::new()' to shipped builder pattern '.with_coverage_gaps(coverage_gaps)'; StreamDispatcher::new() takes no coverage_gaps parameter (builder method added at src/dispatcher.rs:158; wired at src/main.rs:349). 2026-07-04"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -119,7 +120,7 @@ existing downstream consumers of wirerust JSON output (ADR-012 Decision 8).
 ## Architecture Anchors
 
 - `src/cli.rs` — `Analyze` subcommand gains `--coverage-gaps: bool` flag; NOT in the `--all` expansion group
-- `src/main.rs` — `run_analyze()` (or equivalent) passes `coverage_gaps: bool` to `StreamDispatcher::new()`
+- `src/main.rs` — `run_analyze()` wires `coverage_gaps: bool` to `StreamDispatcher` via the builder method `.with_coverage_gaps(coverage_gaps)` (`StreamDispatcher::new()` takes no `coverage_gaps` parameter; builder pattern per `src/dispatcher.rs` and `src/main.rs`)
 - `src/dispatcher.rs` — `StreamDispatcher` gains `coverage_gaps_enabled: bool` field; `on_flow_close` None-target arm gates counter increment on `self.coverage_gaps_enabled`
 - `src/main.rs` — decode loop UDP path gates `udp_unclassified_counts` increment on `coverage_gaps_enabled`
 - `src/main.rs` — after `run_analyze()` returns, if `coverage_gaps` flag is set: renders `CoverageGapsSummary` from merged counters
