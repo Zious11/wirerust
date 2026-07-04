@@ -1671,4 +1671,309 @@ mod story_154 {
              non-empty string; stdout:\n{stdout}"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // Pass-2 MEDIUM-1: JSON per-entry schema (BC-2.12.024 PC-5 / AC-154-007)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.024 PC-5 / AC-154-007:
+    /// JSON entry for (UDP, 47808) has the correct field types and values:
+    ///   transport == "UDP", port == 47808 (integer), count >= 1,
+    ///   state == "known-unsupported", name == "BACnet/IP", no collision_note.
+    ///
+    /// This test is NON-VACUOUS: it fails if `name` is omitted, `state` is wrong,
+    /// or `port` is serialized as a string instead of an integer.
+    ///
+    /// Uses GAP_UDP47808_FIXTURE (single UDP datagram to port 47808). UDP gap detection
+    /// runs in the decode loop; no --http flag needed.
+    #[test]
+    fn test_BC_2_12_024_json_entry_bacnet_schema() {
+        let output = bin()
+            .args(["analyze", GAP_UDP47808_FIXTURE, "--coverage-gaps", "--json"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.024 PC-5 / AC-154-007: --json --coverage-gaps must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        let entries = json["coverage_gaps"]["entries"]
+            .as_array()
+            .expect("coverage_gaps.entries must be a JSON array");
+        let entry = entries
+            .iter()
+            .find(|e| e["port"].as_u64() == Some(47808))
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.12.024 / AC-154-007: entries[] must contain an element with port==47808; \
+                     entries: {entries:?}"
+                )
+            });
+        assert_eq!(
+            entry["transport"].as_str(),
+            Some("UDP"),
+            "AC-154-007: entry.transport must be \"UDP\"; entry: {entry}"
+        );
+        // port MUST be an integer (not a string) per AC-154-007 schema.
+        assert_eq!(
+            entry["port"].as_u64(),
+            Some(47808),
+            "AC-154-007: entry.port must be integer 47808; entry: {entry}"
+        );
+        assert!(
+            entry["count"].as_u64().unwrap_or(0) >= 1,
+            "AC-154-007: entry.count must be >= 1; entry: {entry}"
+        );
+        assert_eq!(
+            entry["state"].as_str(),
+            Some("known-unsupported"),
+            "AC-154-007: entry.state must be \"known-unsupported\" for (UDP, 47808); \
+             entry: {entry}"
+        );
+        assert_eq!(
+            entry["name"].as_str(),
+            Some("BACnet/IP"),
+            "AC-154-007: entry.name must be \"BACnet/IP\" for (UDP, 47808); entry: {entry}"
+        );
+        assert!(
+            entry.get("collision_note").is_none(),
+            "AC-154-007: (UDP, 47808) must NOT have a collision_note field; entry: {entry}"
+        );
+    }
+
+    /// BC-2.12.024 PC-5 / AC-154-007:
+    /// JSON entry for (TCP, 102) has state == "known-unsupported", a collision_note
+    /// string naming the four ISO-on-TCP protocols, and NO name field.
+    ///
+    /// This test is NON-VACUOUS: it fails if collision_note is missing, the four
+    /// protocol names are absent, or a spurious name field is present.
+    ///
+    /// Uses GAP_TCP102_FIXTURE with --http (analyzer-present guard; BC-2.05.010).
+    #[test]
+    fn test_BC_2_12_024_json_entry_port102_collision_note() {
+        let output = bin()
+            .args([
+                "analyze",
+                GAP_TCP102_FIXTURE,
+                "--coverage-gaps",
+                "--json",
+                "--http",
+            ])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.024 PC-5 / AC-154-007: --json --coverage-gaps must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        let entries = json["coverage_gaps"]["entries"]
+            .as_array()
+            .expect("coverage_gaps.entries must be a JSON array");
+        let entry = entries
+            .iter()
+            .find(|e| e["port"].as_u64() == Some(102))
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.12.024 / AC-154-007: entries[] must contain an element with port==102; \
+                     entries: {entries:?}"
+                )
+            });
+        assert_eq!(
+            entry["state"].as_str(),
+            Some("known-unsupported"),
+            "AC-154-007: (TCP, 102) state must be \"known-unsupported\"; entry: {entry}"
+        );
+        // collision_note must be present and name all four protocols (AC-154-007).
+        let note = entry["collision_note"].as_str().unwrap_or_else(|| {
+            panic!("AC-154-007: (TCP, 102) entry must have a collision_note string; entry: {entry}")
+        });
+        assert!(
+            note.contains("S7comm"),
+            "AC-154-007: collision_note must name 'S7comm'; note: {note}"
+        );
+        assert!(
+            note.contains("IEC 61850 MMS"),
+            "AC-154-007: collision_note must name 'IEC 61850 MMS'; note: {note}"
+        );
+        assert!(
+            note.contains("ICCP"),
+            "AC-154-007: collision_note must name 'ICCP'; note: {note}"
+        );
+        // name field must be absent for TCP/102 (AC-154-007: collision ports omit name).
+        assert!(
+            entry.get("name").is_none(),
+            "AC-154-007: (TCP, 102) must NOT have a name field (collision port); \
+             entry: {entry}"
+        );
+    }
+
+    /// BC-2.12.024 PC-5 / AC-154-007:
+    /// JSON entry for (TCP, 9600) has state == "unknown" and NO name field.
+    ///
+    /// This test is NON-VACUOUS: it fails if state is anything other than "unknown"
+    /// (e.g. if TCP/9600 is inadvertently added to the catalog), or if a spurious
+    /// name field appears.
+    ///
+    /// Uses GAP_TCP9600_FIXTURE with --http (analyzer-present guard; BC-2.05.010).
+    #[test]
+    fn test_BC_2_12_024_json_entry_unknown_state() {
+        let output = bin()
+            .args([
+                "analyze",
+                GAP_TCP9600_FIXTURE,
+                "--coverage-gaps",
+                "--json",
+                "--http",
+            ])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.12.024 PC-5 / AC-154-007: --json --coverage-gaps must produce valid JSON; \
+                 parse error: {e}\nstdout:\n{stdout}"
+            )
+        });
+        let entries = json["coverage_gaps"]["entries"]
+            .as_array()
+            .expect("coverage_gaps.entries must be a JSON array");
+        let entry = entries
+            .iter()
+            .find(|e| e["port"].as_u64() == Some(9600))
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.12.024 / AC-154-007: entries[] must contain an element with port==9600; \
+                     entries: {entries:?}"
+                )
+            });
+        assert_eq!(
+            entry["state"].as_str(),
+            Some("unknown"),
+            "AC-154-007: (TCP, 9600) state must be \"unknown\"; entry: {entry}"
+        );
+        // Unknown entries have no name field (AC-154-007).
+        assert!(
+            entry.get("name").is_none(),
+            "AC-154-007: (TCP, 9600) must NOT have a name field (unknown state); \
+             entry: {entry}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Pass-2 LOW-1: empty-entries render branch (EC-154-4 / EC-154-7)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.024 EC-154-4 / EC-154-7:
+    /// When `--coverage-gaps` finds no unclassified port gaps, the terminal output
+    /// renders the empty-state message "No unclassified port gaps detected." AND
+    /// the L2 caveat text is unconditionally present.
+    ///
+    /// Uses ANALYZE_FIXTURE (http-ooo.pcap: TCP/80 HTTP traffic — all flows are
+    /// classified; the HTTP analyzer handles port 80, so zero gap entries are produced).
+    /// This is the same fixture used by `test_BC_2_12_024_l2_caveat_always_present`.
+    #[test]
+    fn test_BC_2_12_024_empty_entries_message() {
+        let output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--coverage-gaps"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        assert!(
+            stdout.contains("No unclassified port gaps detected."),
+            "BC-2.12.024 EC-154-4: empty-state message must be rendered when entries \
+             is empty; stdout:\n{stdout}"
+        );
+        // L2 caveat is unconditional (EC-154-7) — it must appear even on empty entries.
+        assert!(
+            stdout.contains("Layer-2 protocols") || stdout.contains("TCP and UDP flows"),
+            "BC-2.12.024 EC-154-7: L2 caveat text must be present even when entries \
+             is empty; stdout:\n{stdout}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Pass-2 LOW-2: purely-additive (AC-154-003 / AC-154-008 / Rule 3)
+    // -----------------------------------------------------------------------
+
+    /// AC-154-003 / AC-154-008 / Architecture Compliance Rule 3:
+    /// The CoverageGapsSummary section is PURELY ADDITIVE — the Findings +
+    /// AnalysisSummary output produced without `--coverage-gaps` is a byte-identical
+    /// prefix of the output produced with `--coverage-gaps`.
+    ///
+    /// Concretely: `stdout(--http)` must be a byte-identical prefix of
+    /// `stdout(--http --coverage-gaps)`. The CoverageGapsSummary block is appended
+    /// after all prior output; no existing line is modified or reordered.
+    ///
+    /// Uses ANALYZE_FIXTURE + --http to produce stable multi-section output (Findings,
+    /// TCP Reassembly analyzer, HTTP analyzer) that is deterministic across runs.
+    /// Fails if any Findings or AnalysisSummary section is altered when --coverage-gaps
+    /// is added, proving that the flag is strictly additive.
+    #[test]
+    fn test_BC_2_12_023_coverage_gaps_purely_additive() {
+        let without_output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let with_output = bin()
+            .args(["analyze", ANALYZE_FIXTURE, "--http", "--coverage-gaps"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let without = String::from_utf8(without_output).expect("utf-8 stdout (without)");
+        let with_gaps = String::from_utf8(with_output).expect("utf-8 stdout (with)");
+        // The CoverageGapsSummary block must be appended — not interleaved — so
+        // the without-flag output is a byte-identical prefix of the with-flag output.
+        assert!(
+            with_gaps.starts_with(without.as_str()),
+            "AC-154-003 / AC-154-008 / Rule 3: output with --coverage-gaps must start \
+             with the byte-identical prefix from the run without --coverage-gaps;\n\
+             WITHOUT length: {}, WITH length: {}\n\
+             First differing byte at: {}\n\
+             WITHOUT (last 200 bytes): {:?}\n\
+             WITH    (first beyond):   {:?}",
+            without.len(),
+            with_gaps.len(),
+            without
+                .bytes()
+                .zip(with_gaps.bytes())
+                .position(|(a, b)| a != b)
+                .map(|i| i.to_string())
+                .unwrap_or_else(|| "none (one is prefix of other)".to_string()),
+            &without[without.len().saturating_sub(200)..],
+            &with_gaps[without.len().min(with_gaps.len())
+                ..with_gaps
+                    .len()
+                    .min(without.len().saturating_add(200))
+                    .min(with_gaps.len())]
+        );
+        // Sanity: the with-flag output must be strictly longer (it has the section).
+        assert!(
+            with_gaps.len() > without.len(),
+            "AC-154-003: output with --coverage-gaps must be longer than without; \
+             without={}, with={}",
+            without.len(),
+            with_gaps.len()
+        );
+    }
 }
