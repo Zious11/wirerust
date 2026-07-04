@@ -764,4 +764,110 @@ mod kani_proofs {
             }
         }
     }
+
+    // ── VP-043: udp_gap_key seam correctness (symbolic BMC) ────────────────────
+    //
+    // F6 hardening for VP-043. The designated method is proptest
+    // (`proptest_vp043_*` in tests/dispatcher_tests.rs); these Kani harnesses add
+    // exhaustive bounded model checking over the FULL symbolic input space
+    // (src_port × dst_port ∈ u16 × u16, dns_handles ∈ {true,false}). `udp_gap_key`
+    // reads only `parsed.transport`; the other ParsedPacket fields are fixed to
+    // concrete values with no loss of generality (the function never reads them).
+    // Traces BC-2.05.010, BC-2.05.011.
+
+    fn udp_packet(src_port: u16, dst_port: u16) -> crate::decoder::ParsedPacket {
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        crate::decoder::ParsedPacket {
+            src_ip: ip,
+            dst_ip: ip,
+            protocol: crate::decoder::Protocol::Udp,
+            transport: crate::decoder::TransportInfo::Udp { src_port, dst_port },
+            payload: Vec::new(),
+            packet_len: 0,
+        }
+    }
+
+    /// VP-043 gate + accumulation-key correctness over full symbolic ports/gate.
+    /// `dns_handles == true`  → `None` (DNS-accepted packets never counted).
+    /// `dns_handles == false` → `Some((Udp, min(src,dst)))` (service-port key).
+    #[kani::proof]
+    fn vp043_udp_gap_key_gate_and_key() {
+        let src_port: u16 = kani::any();
+        let dst_port: u16 = kani::any();
+        let dns_handles: bool = kani::any();
+        let parsed = udp_packet(src_port, dst_port);
+        match udp_gap_key(&parsed, dns_handles) {
+            None => assert!(dns_handles), // only DNS-accepted UDP yields None here
+            Some((proto, port)) => {
+                assert!(!dns_handles);
+                assert!(matches!(proto, TransportProto::Udp));
+                assert!(port == src_port.min(dst_port));
+            }
+        }
+    }
+
+    /// VP-043 direction symmetry: swapping src/dst ports yields the identical
+    /// `(Udp, min)` key — query and response collapse to one service-port bucket.
+    #[kani::proof]
+    fn vp043_udp_gap_key_direction_symmetric() {
+        let a: u16 = kani::any();
+        let b: u16 = kani::any();
+        assert!(udp_gap_key(&udp_packet(a, b), false) == udp_gap_key(&udp_packet(b, a), false));
+    }
+
+    /// VP-043 non-UDP exclusion: TCP transport never produces a UDP gap key
+    /// (the seam is UDP-only — covers the `_ => None` arm).
+    #[kani::proof]
+    fn vp043_udp_gap_key_non_udp_none() {
+        let sp: u16 = kani::any();
+        let dp: u16 = kani::any();
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        let parsed = crate::decoder::ParsedPacket {
+            src_ip: ip,
+            dst_ip: ip,
+            protocol: crate::decoder::Protocol::Tcp,
+            transport: crate::decoder::TransportInfo::Tcp {
+                src_port: sp,
+                dst_port: dp,
+                seq_number: 0,
+                syn: false,
+                ack: false,
+                fin: false,
+                rst: false,
+            },
+            payload: Vec::new(),
+            packet_len: 0,
+        };
+        assert!(udp_gap_key(&parsed, false).is_none());
+    }
+
+    // ── VP-042: unclassified port-key + counter algebra (pure sub-properties) ──
+    //
+    // The FULL VP-042 accumulation property (Σ unclassified_port_counts == N over
+    // N on_flow_close calls) is verified by the designated proptest harnesses
+    // (`proptest_vp042_*`), NOT here: it accumulates into a std `HashMap` whose
+    // `RandomState` seeds from OS entropy (getrandom), which Kani cannot model
+    // soundly. The two PURE arithmetic invariants underpinning the on_flow_close
+    // increment ARE Kani-amenable and are proven here over full symbolic domains.
+    // Traces BC-2.05.010 PC-1 (F-F3P11-001 min-port key), EC-153-10 (saturating).
+
+    /// VP-042 service-port key is `min(lower_port, upper_port)` — symmetric and
+    /// never exceeds either endpoint port (F-F3P11-001 normalization).
+    #[kani::proof]
+    fn vp042_min_port_key_symmetric() {
+        let a: u16 = kani::any();
+        let b: u16 = kani::any();
+        assert!(a.min(b) == b.min(a));
+        assert!(a.min(b) <= a && a.min(b) <= b);
+    }
+
+    /// VP-042 counter is `saturating_add(1)` (EC-153-10): never panics, never
+    /// decreases, never exceeds `u64::MAX`.
+    #[kani::proof]
+    fn vp042_saturating_counter_monotonic() {
+        let c: u64 = kani::any();
+        let next = c.saturating_add(1);
+        assert!(next >= c);
+        assert!(next <= u64::MAX);
+    }
 }

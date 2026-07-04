@@ -447,3 +447,30 @@ pub fn unsupported_protocols() -> Vec<&'static KnownProtocol> {
         .filter(|p| !supported.contains(&p.name))
         .collect()
 }
+
+// ── VP-041: Protocol Coverage Catalog partition — Kani JUSTIFIED-DEFERRED ──────
+//
+// F6 targeted-hardening disposition for VP-041. The verification-architecture
+// designates VP-041 as a `proptest` property (harnesses
+// `proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant` in
+// `tests/protocols_tests.rs`; both green). Kani/CBMC is NOT applied here, by design:
+//
+//  1. NO SYMBOLIC INPUT. `KNOWN_PROTOCOLS` and `SUPPORTED_PORTS` are compile-time
+//     constants; the partition functions take no arguments. A Kani harness would
+//     have zero `kani::any()` inputs, so bounded model checking degenerates to a
+//     single concrete execution — exactly what the deterministic proptest harnesses
+//     (and the `fuzz_coverage_gap_classify` completeness oracle) already cover.
+//     BMC adds no additional state-space coverage over a constant.
+//
+//  2. CBMC INTRACTABILITY. The partition is expressed over `Vec<&KnownProtocol>`
+//     with `&'static str` name equality (`supported.contains(&p.name)`, nested
+//     30x7 / 7x23 string comparisons). Modeling heap `Vec` growth plus byte-wise
+//     `str` memcmp exploded the SAT formula: a trial harness ran CBMC (cadical,
+//     --unwind 64, --object-bits 16) for >12 min of solver time without converging.
+//     Shipping a non-terminating proof harness would violate the repo's
+//     no-flaky/non-gating-stub rule (CLAUDE.md W7.1).
+//
+// Assurance for VP-041 is therefore provided by: (a) the two designated proptest
+// harnesses, and (b) the new `fuzz_coverage_gap_classify` target, which asserts
+// `|supported| + |unsupported| == |KNOWN_PROTOCOLS|` on every iteration under the
+// ASan/UBSan-instrumented libFuzzer build.

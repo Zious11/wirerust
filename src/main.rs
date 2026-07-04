@@ -1435,3 +1435,83 @@ mod story_154_unit {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// F6 mutation-hardening tests for the feature-protocol-coverage (E-21) delta.
+//
+// Each test pins a specific surviving mutant found by `cargo mutants` scoped to
+// the delta functions in main.rs. They exercise the private `collect_all_gaps`
+// and `inject_coverage_gaps_json` helpers directly (unreachable from the library
+// crate, so they must live in main.rs alongside the code under test).
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod f6_hardening {
+    use super::{collect_all_gaps, inject_coverage_gaps_json};
+    use std::collections::HashMap;
+    use std::net::IpAddr;
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::dispatcher::{StreamDispatcher, TransportProto};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, StreamHandler};
+
+    /// Kills `src/main.rs:1088 replace += with *=` in `collect_all_gaps` (TCP merge).
+    ///
+    /// The TCP loop does `*all.entry(k).or_insert(0) += v`. With `*=`, the freshly
+    /// inserted 0 stays 0 (`0 *= v == 0`), zeroing every TCP gap count. This test
+    /// drives a real non-zero `(Tcp, 40000)` unclassified count into a dispatcher
+    /// and asserts `collect_all_gaps` preserves it — 0 (mutant) != 3 (correct).
+    #[test]
+    fn f6_collect_all_gaps_preserves_tcp_count() {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+                .with_coverage_gaps(true);
+        // 10.0.0.1 is the lower IP → lower_port=50000, upper_port=40000;
+        // min(50000, 40000) = 40000 is the recorded service-port key.
+        let fk = FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            50000,
+            "10.0.0.9".parse::<IpAddr>().unwrap(),
+            40000,
+        );
+        for _ in 0..3 {
+            dispatcher.on_flow_close(&fk, CloseReason::Fin);
+        }
+        // Empty UDP map isolates the TCP-merge loop (line 1088).
+        let udp: HashMap<(TransportProto, u16), u64> = HashMap::new();
+        let merged = collect_all_gaps(&dispatcher, &udp);
+        assert_eq!(
+            merged.get(&(TransportProto::Tcp, 40000)).copied(),
+            Some(3),
+            "collect_all_gaps must preserve the TCP unclassified count (mutant zeroes it)"
+        );
+    }
+
+    /// Kills `src/main.rs:1224 replace && with ||` in `inject_coverage_gaps_json`.
+    ///
+    /// `is_tcp102 = transport == Tcp && port == 102`. With `||`, EVERY TCP entry is
+    /// treated as the TCP/102 collision case — it gains a `collision_note` and drops
+    /// its protocol `name`. A TCP/22 (SSH, KnownUnsupported, non-102) gap entry must
+    /// therefore carry a `name` and NO `collision_note`.
+    #[test]
+    fn f6_inject_json_tcp_non102_has_name_not_collision_note() {
+        let mut gaps: HashMap<(TransportProto, u16), u64> = HashMap::new();
+        gaps.insert((TransportProto::Tcp, 22), 1); // SSH, KnownUnsupported, non-102
+        let out = inject_coverage_gaps_json("{}", &gaps);
+        let root: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+        let entries = root["coverage_gaps"]["entries"]
+            .as_array()
+            .expect("entries array");
+        let ssh = entries
+            .iter()
+            .find(|e| e["transport"] == "TCP" && e["port"] == 22)
+            .expect("TCP/22 entry present");
+        assert_eq!(
+            ssh["name"], "SSH",
+            "TCP/22 (non-102) must carry its protocol name"
+        );
+        assert!(
+            ssh.get("collision_note").is_none(),
+            "TCP/22 (non-102) must NOT carry a collision_note (mutant adds one to all TCP)"
+        );
+    }
+}
