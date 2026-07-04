@@ -85,6 +85,20 @@ cycle: feature-protocol-coverage
 
 ---
 
+## Checkpoint archived 2026-07-04 (superseded by D-378 F5 CONVERGED checkpoint)
+
+**F5 RECONCILIATION COMPLETE — FINAL CLOSURE (D-375+D-376+D-377, 2026-07-04). ADR-012 Consequences corrected / BC-2.12.022 v1.3 / BC-2.12.023 v1.3 / BC-2.18.001 v1.5 / BC-2.18.002 v1.2. BC-INDEX v2.16 / VP-INDEX v2.34. Whole-tree phantom sweep ZERO live phantom. Input-hashes MATCH=99 STALE=0 ERROR=3 (pre-existing STORY-001/091/121). 0 code defects; 0 behavioral gaps; BC-completeness 9/9. Next: F5 adversarial convergence — dispatch 3 consecutive clean-pass adversarial reviews of E-21 delta (fully-reconciled specs + develop cad7024). Resume: `/vsdd-factory:next-step`.**
+
+- **Ground truth:** develop=`cad7024` (full `cad70242cf223a25a083ed7a19437359074af707`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @cad7024] + .factory [factory-artifacts]. All E-21 story worktrees removed.
+- **RESUME PROCEDURE (D-375+D-376+D-377 version):**
+  1. `vsdd-factory:factory-worktree-health` — PASS required before any other step.
+  2. Verify develop=`cad7024` (full `cad70242cf223a25a083ed7a19437359074af707`).
+  3. Dispatch F5 scoped adversarial convergence — 3 consecutive clean fresh-context passes on reconciled E-21 delta specs (BC-INDEX v2.16 + VP-INDEX v2.34 + develop cad7024).
+  4. F6 targeted hardening (Kani/fuzz/mutation scoped to delta; full regression + security on full tree) → F7 delta convergence → release.
+- **Phase-5/maintenance carry:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, PG-HELP-PROVENANCE-CLI-DOC-001 (cycle-close lessons), STORY-154-ALL-COVERAGEGAPS-TEST-001, STORY-154-WEAK-UNKNOWN-ASSERT-001, STORY-153-RUNANALYZE-DOC-STALE-001, STORY-154-LOOKUP-ARP-DEADCLAUSE-001.
+
+---
+
 ## Checkpoint archived 2026-07-02 (superseded by F4 wave-67 in-progress checkpoint — D-360)
 
 **F3 GATE APPROVED (D-359, 2026-07-02). Now in F4 delta implementation (autonomous, wave-gated). Next: pre-F4 env prep (devops-engineer: factory-worktree-health + verify ci.yml/branch-protection + create wave-67 worktrees for STORY-151 & STORY-153), then per-story-delivery wave 67 (STORY-151 ∥ STORY-153).**

@@ -192,6 +192,39 @@ Status: DONE (D-368). squash-merge #353 → develop 5c4437a complete. Wave-68 wa
 
 ---
 
+## Burst 7 — D-378 F5 SCOPED-ADVERSARIAL CONVERGED, phase → F6-targeted-hardening (2026-07-04)
+
+**Agents dispatched:** state-manager (STATE.md bookkeeping — single-commit burst per TD-VSDD-053)
+**Files touched:** .factory/STATE.md, cycles/feature-protocol-coverage/burst-log.md, cycles/feature-protocol-coverage/session-checkpoints.md
+**Versions bumped:** none (spec versions unchanged — develop cad7024 unchanged, all spec reconciliation was completed in D-375/D-376/D-377)
+**develop HEAD:** cad7024 (unchanged)
+
+| Field | Before | After |
+|-------|--------|-------|
+| phase (frontmatter) | F5-scoped-adversarial | F6-targeted-hardening |
+| current_step | D-377 F5 reconciliation final closure | D-378 F5 scoped-adversarial convergence achieved |
+| timestamp | 2026-07-04T20:00:00Z | 2026-07-04T21:00:00Z |
+| Phase Progress F5 row | IN PROGRESS | DONE/CONVERGED (D-378) |
+| Phase Progress F6 row | (not present) | PENDING |
+| Current Phase Steps | D-377/374/373/372/371 (top-5) | D-378/377/374/373/372 (D-371 archived to burst-log) |
+| Decisions Log | ends D-363 | + D-378 |
+| EXACT RESUME POINT | F5 reconciliation complete, next=F5 adversarial | F5 CONVERGED, phase→F6, next=F6 |
+| Session Resume Checkpoint | D-375+D-376+D-377 version (F5 recon complete) | D-378 version (F5 CONVERGED) |
+
+**D-378 summary:** F5 SCOPED-ADVERSARIAL CONVERGENCE ACHIEVED (feature-protocol-coverage / E-21). 8 fresh-context passes (7 scoped-adversarial + 1 final confirmation). CODE had ZERO findings every pass: BC-completeness 9/9; canonical values (GOOSE 0x88B8/35000, SV 0x88BA/35002, PROFINET 0x8892/34962, EtherCAT 0x88A4/34980, POWERLINK 0x88AB/34987, BACnet UDP 47808, Modbus 502) independently re-derived every pass; SS-18 pure-core boundary + VP-041/042/043 non-vacuity + cross-story coherence confirmed. All findings were spec-doc reconciliation-drift, comprehensively reconciled over 3 sweep rounds (D-375+D-376+D-377). Final confirmation pass (develop cad7024, BC-INDEX v2.16): 0 live residual drift, CLEAN. F6 carries: STORY-153-RUNANALYZE-DOC-STALE-001, STORY-154-ALL-COVERAGEGAPS-TEST-001, STORY-152/154-WEAK-UNKNOWN-ASSERT-001, STORY-154-LOOKUP-ARP-DEADCLAUSE-001.
+
+---
+
+## Archived Current Phase Step — D-371 Wave-69 STORY-154 per-story convergence (rotated out 2026-07-04)
+
+Rotated out of STATE.md Current Phase Steps table (last-5 rule) when D-378 F5 converged row was added.
+
+**F4 Wave-69 STORY-154 (--coverage-gaps / CoverageGapsSummary) per-story adversarial convergence 3/3 ACHIEVED (D-371, 2026-07-04). Worktree story-154-coverage-gaps @a5f8e52. 25 tests (21 integration + 4 unit) green; 0 P0/CRITICAL/HIGH/mis-anchor. Journey: Red Gate (3982725, 17 fail) → impl+5 crafted pcap fixtures green (afd0cb3) → Pass-1 NOT-CLEAN [HIGH-1 vacuous (Tcp,502)-absent test → added --modbus (classify() Rule-5 guard); HIGH-2 swept 27 stale RED-tense/todo!() comments; MEDIUM-1 counts_unclassified asserts count=; LOW-1 port-102-absent non-vacuous] remediated (9955c42) → Pass-2 CLEAN + JSON entry-schema/empty-entries/purely-additive hardening (a5f8e52) → 3 consecutive clean (Pass-3/4/5). Canonical values BACnet/IP UDP 47808 (0xBAC0) + TCP/102 four-protocol collision (S7comm/S7comm-plus/IEC 61850 MMS/ICCP-TASE.2) independently verified. Tri-state transport-awareness correct. Forward-notes APPLIED: STORY-154-DNS53-TCP-GAP-001, STORY-154-CAN-DECODE-HOIST-001, F-F3P18-O2. Help-provenance clean.**
+
+Status: DONE (D-371). STORY-154 delivered via PR #355 (squash cad7024) in D-372.
+
+---
+
 ## Burst 6 — D-373 F4 Fixture Prep COMPLETE (2026-07-04)
 
 **Agents dispatched:** state-manager (fixture commit + STATE.md bookkeeping)
