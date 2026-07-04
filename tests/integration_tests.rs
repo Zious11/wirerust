@@ -1236,6 +1236,47 @@ mod story_154 {
         );
     }
 
+    /// BC-2.12.023 Invariant 1 / BC-2.12.023 PC-1 — combined:
+    /// `wirerust analyze --all --coverage-gaps` exits 0 and produces a `CoverageGapsSummary`
+    /// section. The `--all` selector and `--coverage-gaps` reporter are orthogonal; combining
+    /// them must work: `--all` routes all traffic to enabled analyzers while `--coverage-gaps`
+    /// independently appends the CoverageGapsSummary after all Findings.
+    ///
+    /// STORY-154-ALL-COVERAGEGAPS-TEST-001: exercises the combination that was previously
+    /// untested. Uses GAP_TCP9600_FIXTURE with `--all` (which enables `--http`, satisfying the
+    /// analyzer-present guard per BC-2.05.010) and `--coverage-gaps` (which emits the section).
+    /// Port 9600 flows to DispatchTarget::None → CoverageGapsSummary shows TCP/9600 as "unknown".
+    ///
+    /// Fails if: (1) `--all` and `--coverage-gaps` conflict in clap config,
+    /// (2) CoverageGapsSummary section is absent, or (3) TCP/9600 row is missing from the report.
+    #[test]
+    fn test_BC_2_12_023_all_with_coverage_gaps_combination() {
+        let output = bin()
+            .args(["analyze", GAP_TCP9600_FIXTURE, "--all", "--coverage-gaps"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+        // CoverageGapsSummary must appear: --coverage-gaps flag was passed.
+        assert!(
+            stdout.contains("CoverageGapsSummary"),
+            "STORY-154-ALL-COVERAGEGAPS-TEST-001: `analyze --all --coverage-gaps` must \
+             produce a CoverageGapsSummary section; stdout:\n{stdout}"
+        );
+        // TCP/9600 must appear as an "unknown" gap entry: --all enables HTTP (satisfying
+        // the analyzer-present guard), and port 9600 has no catalog match → unknown state.
+        let tcp9600_row_is_unknown = stdout
+            .lines()
+            .any(|l| l.contains("TCP/9600") && l.ends_with("unknown"));
+        assert!(
+            tcp9600_row_is_unknown,
+            "STORY-154-ALL-COVERAGEGAPS-TEST-001: `analyze --all --coverage-gaps` must show \
+             TCP/9600 as 'unknown' in CoverageGapsSummary; stdout:\n{stdout}"
+        );
+    }
+
     /// BC-2.12.023 Invariant 5 / EC-154-6:
     /// `wirerust protocols --coverage-gaps` exits non-zero (clap error).
     /// `--coverage-gaps` is only valid on the `analyze` subcommand.
