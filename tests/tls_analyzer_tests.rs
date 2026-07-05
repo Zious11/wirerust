@@ -8335,9 +8335,9 @@ fn test_buffer_full_append_noop_literal() {
 }
 
 // AC-006 / BC-2.07.005 invariant 3:
-// Buffer overflow is silent. No finding, no log line, no counter tracks how many
-// bytes were dropped beyond the cap. parse_errors and truncated_records are NOT
-// incremented for buffer overflow.
+// The buffer cap path does not increment parse_errors or truncated_records.
+// buffer_saturation_drops (STORY-146) tracks saturation tail-drops, but that
+// counter is not exercised by this test's specific append pattern.
 #[test]
 fn test_buffer_overflow_silent_no_counters() {
     // AC-006 / BC-2.07.005 inv3:
@@ -8374,7 +8374,7 @@ fn test_buffer_overflow_silent_no_counters() {
         analyzer.parse_error_count(),
         parse_errors_before,
         "AC-006 (BC-2.07.005 inv3): parse_errors must NOT increase due to buffer overflow \
-         (buffer cap is completely silent — no counters)"
+         (buffer_saturation_drops tracks saturation tail-drops; parse_errors is unaffected)"
     );
     assert_eq!(
         analyzer.truncated_record_count(),
@@ -9573,7 +9573,7 @@ mod story_144 {
     ///   parse_errors+1, client_hello_seen=false.
     ///
     /// Traces to: BC-2.07.038 v2.7 AC-CANONICAL-FRAME + Invariant 5.
-    /// Red Gate: FAILS because carry drain loop not implemented.
+    /// Carry drain loop implemented (STORY-144); test passes.
     // DF-AC-TEST-NAME-SYNC-001: canonical name verbatim per VP-039 table.
     #[allow(non_snake_case)]
     #[test]
@@ -9615,7 +9615,9 @@ mod story_144 {
             "Frame B: body_len=66816 > MAX_BUF must trigger handshake_reassembly_overflows+1"
         );
 
-        // Frame C: body_len=256, msg_type=0x01, malformed 256-byte body.
+        // Frame C: body_len=256, msg_type=0x01, body=[0xcc; 256]. The first byte (0xcc = 204)
+        // is parsed as the ClientHello session_id length; 204 > 32 (RFC 8446 §4.1.2 max) →
+        // parse_errors+1, client_hello_seen remains false.
         let mut frame_c_hs: Vec<u8> = vec![0x01, 0x00, 0x01, 0x00]; // body_len=256
         frame_c_hs.extend(vec![0xcc; 256]); // malformed body
         let frame_c_record = wrap_as_tls_record(0x16, &frame_c_hs);

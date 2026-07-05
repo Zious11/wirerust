@@ -86,6 +86,7 @@ mod story_086 {
                 assert!(!all, "all should be false");
             }
             Commands::Summary { .. } => panic!("Expected Analyze, got Summary"),
+            Commands::Protocols { .. } => panic!("Expected Analyze, got Protocols"),
         }
     }
 
@@ -238,6 +239,7 @@ mod story_086 {
                 assert!(!hosts, "hosts should be false");
             }
             Commands::Analyze { .. } => panic!("Expected Summary, got Analyze"),
+            Commands::Protocols { .. } => panic!("Expected Summary, got Protocols"),
         }
     }
 

@@ -469,6 +469,9 @@ mod story_096 {
             wirerust::cli::Commands::Summary { .. } => {
                 panic!("Expected Analyze, got Summary")
             }
+            wirerust::cli::Commands::Protocols { .. } => {
+                panic!("Expected Analyze, got Protocols")
+            }
         }
     }
 
@@ -572,6 +575,9 @@ mod story_096 {
             }
             wirerust::cli::Commands::Summary { .. } => {
                 panic!("Expected Analyze, got Summary")
+            }
+            wirerust::cli::Commands::Protocols { .. } => {
+                panic!("Expected Analyze, got Protocols")
             }
         }
     }

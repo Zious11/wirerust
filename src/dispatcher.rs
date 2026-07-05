@@ -38,6 +38,16 @@ use crate::analyzer::tls::TlsAnalyzer;
 use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
 
+/// Minimal transport discriminant for the (TransportProto, u16) gap-counter key.
+/// Distinct from `protocols::Transport` (which has a third `LinkLayer` variant).
+/// NOT imported from `protocols.rs` — defined here to enforce the pure-core boundary
+/// (BC-2.05.010 PC-4, Invariant 1; ADR-012 Decision 6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TransportProto {
+    Tcp,
+    Udp,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DispatchTarget {
     Http,
@@ -84,6 +94,14 @@ pub struct StreamDispatcher {
     /// port-44818 flows that do not match content rules 1–2 or port rules 3–6.
     enip: Option<EnipAnalyzer>,
     unclassified_flows: u64,
+    /// Per-(TransportProto, port) counts for TCP flows that close as DispatchTarget::None
+    /// (STORY-153, BC-2.05.010 PC-1, ADR-012 Decision 6 Clarification).
+    /// Populated in on_flow_close only when coverage_gaps_enabled=true AND analyzer-present guard.
+    unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
+    /// Feature flag: when true, the per-port unclassified_port_counts counter is populated
+    /// in the on_flow_close None-target arm (STORY-153, BC-2.05.010 PC-1).
+    /// Default: false. Set via with_coverage_gaps(bool) builder.
+    coverage_gaps_enabled: bool,
 }
 
 impl StreamDispatcher {
@@ -112,6 +130,8 @@ impl StreamDispatcher {
             dnp3,
             enip,
             unclassified_flows: 0,
+            unclassified_port_counts: HashMap::new(),
+            coverage_gaps_enabled: false,
         }
     }
 
@@ -127,8 +147,31 @@ impl StreamDispatcher {
         self
     }
 
+    /// Enable or disable per-port unclassified coverage-gap counting (STORY-153, BC-2.05.010).
+    /// Consistent with the existing `with_max_classification_attempts` builder pattern.
+    /// All existing `StreamDispatcher::new()` call sites remain untouched (ADR-012 Decision 6 Clarification).
+    ///
+    /// When `enabled = true`, `on_flow_close` for None-target flows populates
+    /// `unclassified_port_counts` with `(TransportProto::Tcp, min(lower_port, upper_port))`
+    /// entries (F-F3P11-001; BC-2.05.010 PC-1; ADR-012 Decision 6 Clarification).
+    /// When `enabled = false` (the default), the port counter is never incremented.
+    pub fn with_coverage_gaps(mut self, enabled: bool) -> Self {
+        self.coverage_gaps_enabled = enabled;
+        self
+    }
+
     pub fn unclassified_flows(&self) -> u64 {
         self.unclassified_flows
+    }
+
+    /// Returns the per-`(TransportProto::Tcp, port)` unclassified flow counts accumulated
+    /// by `on_flow_close` for None-target flows when `coverage_gaps_enabled = true`
+    /// (STORY-153, BC-2.05.010 PC-1).
+    ///
+    /// Keys are `(TransportProto::Tcp, min(lower_port, upper_port))` (F-F3P11-001).
+    /// Returns an empty map when `coverage_gaps_enabled = false` (the default).
+    pub fn unclassified_port_counts(&self) -> &HashMap<(TransportProto, u16), u64> {
+        &self.unclassified_port_counts
     }
 
     /// Returns the configured per-flow classification-retry cap.
@@ -420,10 +463,77 @@ impl StreamHandler for StreamDispatcher {
                     || self.dnp3.is_some()
                     || self.enip.is_some()
                 {
+                    // REGRESSION WARNING (ADR-012 Decision 6 Clarification EXACT):
+                    // unclassified_flows += 1 is gated on the analyzer-present guard ONLY —
+                    // NOT on coverage_gaps_enabled. Moving this inside the coverage_gaps block
+                    // would zero the counter on all normal (coverage_gaps=false) runs, breaking
+                    // BC-2.05.009 + holdouts HS-040/HS-095.
                     self.unclassified_flows += 1;
+                    // STORY-153 (BC-2.05.010 PC-1, AC-153-003): per-port TCP counter increment.
+                    // Dual-gate: (outer) analyzer-present guard AND (inner) coverage_gaps_enabled.
+                    // ADR-012 Decision 6 Clarification EXACT: unclassified_flows += 1 is above,
+                    // gated only on the analyzer-present guard (NOT on coverage_gaps_enabled).
+                    // The port counter below is additionally gated on coverage_gaps_enabled.
+                    if self.coverage_gaps_enabled {
+                        // F-F3P11-001: use min(lower_port, upper_port) — NOT lower_port() alone.
+                        // FlowKey canonicalizes by (ip, port) tuple (IP first), so lower_port()
+                        // is the port of the lower-IP endpoint, which may be an ephemeral port.
+                        // min(lower_port(), upper_port()) gives the service port (BC-2.05.010 PC-1).
+                        let lower_port = flow_key.lower_port().min(flow_key.upper_port());
+                        let c = self
+                            .unclassified_port_counts
+                            .entry((TransportProto::Tcp, lower_port))
+                            .or_insert(0);
+                        // EC-153-10: saturating_add — no panic on u64 overflow.
+                        *c = c.saturating_add(1);
+                    }
                 }
             }
         }
+    }
+}
+
+// ── STORY-153: UDP gap-key seam (VP-043 non-vacuity) ───────────────────────────
+//
+// Library-visible pure decision function used by both the VP-043 proptest harnesses
+// (in tests/dispatcher_tests.rs, which link only the library crate and CANNOT reach
+// the main.rs decode loop) and the main.rs decode loop itself.
+//
+// The seam pattern mirrors VP-039/VP-040 `fill_buf_for_testing` (VP-INDEX lines ~189–240).
+// BC-2.05.010 is satisfied: `udp_unclassified_counts` is still populated in main.rs via
+// this seam — no logic is duplicated (DF-KANI-NONVACUITY-001).
+
+/// Returns `Some((TransportProto::Udp, min(src_port, dst_port)))` when `parsed`
+/// is a UDP packet that is NOT handled by any registered dissector (`dns_handles == false`).
+/// Returns `None` when the packet is already classified (DNS accepted it) or is not UDP.
+///
+/// # SEAM CONTRACT (VP-043)
+/// This is the library-visible boundary that VP-043 proptest harnesses exercise directly.
+/// The `main.rs` decode loop calls `udp_gap_key(&parsed, dns_analyzer.can_decode(&parsed))`
+/// and accumulates `Some(key)` returns into `udp_unclassified_counts`.
+/// BC-2.05.010 is satisfied: the counter is populated in the main.rs loop via this seam.
+/// The seam itself is pure and stateless — it does NOT modify any `StreamDispatcher` state.
+///
+/// ADR-012 Decision 10: `dns_handles` must be set by evaluating `dns_analyzer.can_decode()`
+/// regardless of the `enable_dns` flag. DNS/53 traffic is gap-excluded even when DNS
+/// finding-emission is disabled.
+pub fn udp_gap_key(
+    parsed: &crate::decoder::ParsedPacket,
+    dns_handles: bool,
+) -> Option<(TransportProto, u16)> {
+    // ADR-012 Decision 10: dns_handles is evaluated regardless of enable_dns.
+    // DNS/53 packets accepted by can_decode() are gap-excluded (not counted).
+    if dns_handles {
+        return None;
+    }
+    match parsed.transport {
+        crate::decoder::TransportInfo::Udp { src_port, dst_port } => {
+            // Normalize to service port: min(src_port, dst_port).
+            // EC-153-10: no overflow risk (u16 min is always valid).
+            Some((TransportProto::Udp, src_port.min(dst_port)))
+        }
+        // Non-UDP transport (TCP, ICMP, etc.) — seam is UDP-only.
+        _ => None,
     }
 }
 
@@ -653,5 +763,111 @@ mod kani_proofs {
                 assert!(attempts.is_none());
             }
         }
+    }
+
+    // ── VP-043: udp_gap_key seam correctness (symbolic BMC) ────────────────────
+    //
+    // F6 hardening for VP-043. The designated method is proptest
+    // (`proptest_vp043_*` in tests/dispatcher_tests.rs); these Kani harnesses add
+    // exhaustive bounded model checking over the FULL symbolic input space
+    // (src_port × dst_port ∈ u16 × u16, dns_handles ∈ {true,false}). `udp_gap_key`
+    // reads only `parsed.transport`; the other ParsedPacket fields are fixed to
+    // concrete values with no loss of generality (the function never reads them).
+    // Traces BC-2.05.010, BC-2.05.011.
+
+    fn udp_packet(src_port: u16, dst_port: u16) -> crate::decoder::ParsedPacket {
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        crate::decoder::ParsedPacket {
+            src_ip: ip,
+            dst_ip: ip,
+            protocol: crate::decoder::Protocol::Udp,
+            transport: crate::decoder::TransportInfo::Udp { src_port, dst_port },
+            payload: Vec::new(),
+            packet_len: 0,
+        }
+    }
+
+    /// VP-043 gate + accumulation-key correctness over full symbolic ports/gate.
+    /// `dns_handles == true`  → `None` (DNS-accepted packets never counted).
+    /// `dns_handles == false` → `Some((Udp, min(src,dst)))` (service-port key).
+    #[kani::proof]
+    fn vp043_udp_gap_key_gate_and_key() {
+        let src_port: u16 = kani::any();
+        let dst_port: u16 = kani::any();
+        let dns_handles: bool = kani::any();
+        let parsed = udp_packet(src_port, dst_port);
+        match udp_gap_key(&parsed, dns_handles) {
+            None => assert!(dns_handles), // only DNS-accepted UDP yields None here
+            Some((proto, port)) => {
+                assert!(!dns_handles);
+                assert!(matches!(proto, TransportProto::Udp));
+                assert!(port == src_port.min(dst_port));
+            }
+        }
+    }
+
+    /// VP-043 direction symmetry: swapping src/dst ports yields the identical
+    /// `(Udp, min)` key — query and response collapse to one service-port bucket.
+    #[kani::proof]
+    fn vp043_udp_gap_key_direction_symmetric() {
+        let a: u16 = kani::any();
+        let b: u16 = kani::any();
+        assert!(udp_gap_key(&udp_packet(a, b), false) == udp_gap_key(&udp_packet(b, a), false));
+    }
+
+    /// VP-043 non-UDP exclusion: TCP transport never produces a UDP gap key
+    /// (the seam is UDP-only — covers the `_ => None` arm).
+    #[kani::proof]
+    fn vp043_udp_gap_key_non_udp_none() {
+        let sp: u16 = kani::any();
+        let dp: u16 = kani::any();
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        let parsed = crate::decoder::ParsedPacket {
+            src_ip: ip,
+            dst_ip: ip,
+            protocol: crate::decoder::Protocol::Tcp,
+            transport: crate::decoder::TransportInfo::Tcp {
+                src_port: sp,
+                dst_port: dp,
+                seq_number: 0,
+                syn: false,
+                ack: false,
+                fin: false,
+                rst: false,
+            },
+            payload: Vec::new(),
+            packet_len: 0,
+        };
+        assert!(udp_gap_key(&parsed, false).is_none());
+    }
+
+    // ── VP-042: unclassified port-key + counter algebra (pure sub-properties) ──
+    //
+    // The FULL VP-042 accumulation property (Σ unclassified_port_counts == N over
+    // N on_flow_close calls) is verified by the designated proptest harnesses
+    // (`proptest_vp042_*`), NOT here: it accumulates into a std `HashMap` whose
+    // `RandomState` seeds from OS entropy (getrandom), which Kani cannot model
+    // soundly. The two PURE arithmetic invariants underpinning the on_flow_close
+    // increment ARE Kani-amenable and are proven here over full symbolic domains.
+    // Traces BC-2.05.010 PC-1 (F-F3P11-001 min-port key), EC-153-10 (saturating).
+
+    /// VP-042 service-port key is `min(lower_port, upper_port)` — symmetric and
+    /// never exceeds either endpoint port (F-F3P11-001 normalization).
+    #[kani::proof]
+    fn vp042_min_port_key_symmetric() {
+        let a: u16 = kani::any();
+        let b: u16 = kani::any();
+        assert!(a.min(b) == b.min(a));
+        assert!(a.min(b) <= a && a.min(b) <= b);
+    }
+
+    /// VP-042 counter is `saturating_add(1)` (EC-153-10): never panics, never
+    /// decreases, never exceeds `u64::MAX`.
+    #[kani::proof]
+    fn vp042_saturating_counter_monotonic() {
+        let c: u64 = kani::any();
+        let next = c.saturating_add(1);
+        assert!(next >= c);
+        assert!(next <= u64::MAX);
     }
 }

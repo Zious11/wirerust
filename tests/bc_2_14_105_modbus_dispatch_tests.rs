@@ -422,17 +422,11 @@ mod story_105 {
     /// With --modbus on an empty PCAP, the output MUST contain a Modbus section
     /// (even with zero PDUs — summarize() returns all-zero stats).
     ///
-    /// RED GATE: This test FAILS because when a port-502 flow delivers data,
-    /// the dispatcher hits todo!(). On an empty PCAP with no TCP flows,
-    /// on_data() is never called, so the test may PASS on the empty fixture.
-    /// BUT — the test asserts a Modbus section is in the output, which requires
-    /// take_modbus_analyzer() to be called in main.rs AND ModbusAnalyzer::summarize()
-    /// to produce a section. The post-finalize collection IS wired (via
-    /// `modbus.all_findings` and `modbus.summarize()`), so this should PASS
-    /// even with the stub — the modbus summary key "modbus" should appear.
-    ///
-    /// If PASSES: that's correct stub behavior (empty PCAP → no flows → no panic).
-    /// If FAILS: the main.rs wiring is not complete.
+    /// STORY-105 is implemented: the dispatcher routes port-502 flows to
+    /// ModbusAnalyzer without hitting todo!(). On an empty PCAP with no TCP
+    /// flows, on_data() is never called; summarize() is collected via
+    /// take_modbus_analyzer() and the output contains a Modbus section with
+    /// all-zero stats.
     #[test]
     fn test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap() {
         let tmp = tempfile::tempdir().expect("tempdir");
