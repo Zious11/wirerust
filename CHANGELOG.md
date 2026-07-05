@@ -7,6 +7,54 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-07-05
+
+### Added
+
+- **`protocols` subcommand — coverage catalog table + JSON output (STORY-152, PR #353).**
+  A new top-level subcommand `wirerust protocols` prints a formatted table of every protocol
+  in the `KNOWN_PROTOCOLS` catalog alongside its classification (analyzed, gap, or
+  unclassified) and associated CLI flag. Pass `--json [FILE]` to emit the catalog as
+  structured JSON suitable for downstream tooling. `--csv` is explicitly rejected with a
+  clear error. The subcommand is available without any input file.
+
+- **`analyze --coverage-gaps` flag — tri-state CoverageGapsSummary report (STORY-154,
+  PR #355).** When `--coverage-gaps` is passed to `wirerust analyze`, the analysis output
+  includes a `CoverageGapsSummary` section that classifies each protocol in the capture into
+  one of three states: `covered` (traffic observed and an analyzer was enabled), `gap`
+  (traffic observed but no analyzer enabled), or `unclassified` (traffic observed for a
+  protocol not in `KNOWN_PROTOCOLS`). The tri-state report is emitted in both terminal and
+  JSON output and is designed for gap-driven coverage workflows.
+
+- **`KNOWN_PROTOCOLS` catalog + partition functions — SS-18 (STORY-151, PR #351).**
+  A new static catalog `KNOWN_PROTOCOLS` enumerates all protocols wirerust is aware of,
+  together with their default port(s), CLI flag, and category. Partition functions
+  (`is_covered`, `is_gap`, `is_unclassified`) operate over capture traffic against the
+  catalog, forming the data backbone for the protocols subcommand and coverage-gaps report.
+  VP-041 formally verified via Kani.
+
+- **Dispatcher unclassified-protocol gap counters for TCP + UDP (STORY-153, PR #352).**
+  The `StreamDispatcher` now accumulates per-port counters for TCP and UDP traffic that
+  does not match any known protocol rule. These counters feed the `unclassified` bucket in
+  the `CoverageGapsSummary`, giving operators visibility into novel or undocumented
+  protocols in a capture.
+
+### Fixed
+
+- **`protocols --json=PATH` path argument honored; `--csv` rejected (PR #354, wave-68
+  F-W68-01).** The `protocols` subcommand now correctly writes JSON output to the path
+  supplied via `--json=PATH` (previously ignored, always writing to stdout). Passing `--csv`
+  to `protocols` now returns a clear validation error — CSV output is not defined for the
+  protocols catalog.
+
+### Security
+
+- **E-21 formal hardening — VP-041/042/043 proven (PR #357).** Kani proof harnesses
+  Sub-A through Sub-C verify partition-function totality (VP-041), coverage-gap
+  classification correctness (VP-042), and unclassified-counter monotonicity (VP-043).
+  A cargo-fuzz target and mutation-testing pass cover the new dispatcher counter paths,
+  achieving a 100 % effective kill rate on the E-21 detection delta.
+
 ## [0.11.1] - 2026-07-01
 
 ### Fixed
@@ -805,7 +853,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/Zious11/wirerust/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/Zious11/wirerust/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/Zious11/wirerust/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Zious11/wirerust/compare/v0.9.4...v0.10.0
