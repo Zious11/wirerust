@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.12"
+version: "3.13"
 status: draft
 producer: story-writer
-timestamp: 2026-07-02T00:00:00Z
+timestamp: 2026-07-05T00:00:00Z
 phase: f7
 total_stories: 107
 total_waves: 69
 total_points: 691  # = 659 pre-E-21 + 32 (STORY-151=8 + STORY-152=8 + STORY-153=8 + STORY-154=8); wave-table scheduled: 662 (all 4 new stories wave-scheduled; STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 wave-TBD excluded); epic-table grand total: 691; stories: 103+4=107; waves: 66+3=69
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.13 (2026-07-05): F7 consistency audit P0-001 — E-21 status reconciliation: STORY-151/152/153/154 status draft→merged (all four E-21 stories merged on develop; PR #351/963a69a STORY-151, PR #352/b285feb STORY-153, PR #353/5c4437a STORY-152, PR #355/cad7024 STORY-154); wave-delivery rows 67/68/69 updated to DELIVERED & CLOSED; stories_delivered=98.
 # v3.12 (2026-07-02): F-F3P2-005 remediation — file-sequencing edge 152→154 added. STORY-154 moved wave 68→69 (both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; parallel dispatch causes merge conflicts). STORY-154 depends_on updated [151,153]→[151,152,153]. total_waves 68→69. Wave 68 now contains STORY-152 only (1 story, 8 pts); Wave 69 added for STORY-154 (1 story, 8 pts). Wave-table and delivery-table updated. dep-graph.md v3.4 companion edit.
 # v3.11 (2026-07-02): F3 feature-protocol-coverage cycle — STORY-151..154 added (E-21, waves 67-68, 32 pts total). Protocol Coverage Catalog: STORY-151 (E-21, wave 67, 8 pts, src/protocols.rs KNOWN_PROTOCOLS catalog + KnownProtocol struct + SUPPORTED_PORTS + pure-core partition fns + VP-041 proptest harnesses; BCs: BC-2.18.003/004); STORY-152 (E-21, wave 68, 8 pts, protocols CLI subcommand + terminal table renderer + JSON output; BCs: BC-2.12.022/BC-2.18.001/002); STORY-153 (E-21, wave 67, 8 pts, dispatcher unclassified_port_counts + UDP decode-loop udp_unclassified_counts + VP-042/VP-043; BCs: BC-2.05.010/011); STORY-154 (E-21, wave 68, 8 pts, --coverage-gaps flag + CoverageGapsSummary render + tri-state lookup + L2 caveat + port-102 note + VP-041/042/043; BCs: BC-2.12.023/024). Waves 67-68 added. E-21 added (4 stories, 32 pts). total_stories 103→107. total_waves 66→68. wave-table scheduled 630→662. epic-table total 659→691.
 # v3.10 (2026-07-01): maint-2026-07-01 maintenance-run follow-ups — STORY-148 added (E-20, wave TBD, 5 pts, EnipAnalyzer on_flow_close wiring + DNP3 flow-map cap, SEC-005/SEC-006); STORY-149 added (E-11, wave TBD, 5 pts, TLS carry-path perf recovery + fragmented-handshake benchmark, PERF-001/002); STORY-150 added (E-11, wave TBD, 5 pts, TLS drain-loop DRY refactor + mandatory Kani VP-039 + mutation re-run, TLS-DRAIN-DUP-001). No BCs, no VPs, no new wave. E-11 count 4→6, points 14→24. E-20 count 10→11, points 74→79. total_stories 100→103. epic-table total 644→659.
@@ -194,10 +195,10 @@ traces_to:
 | STORY-145 | TLS ServerHello Fragmentation Symmetry + Per-Direction Isolation (TLS-CLIENTHELLO-FRAG-001 Part B) | E-5 | 66 | 5 | merged | STORY-144 |
 | STORY-146 | TLS Buffer-Saturation Drop Telemetry — `buffer_saturation_drops` Counter (TLS-CLIENTHELLO-FRAG-001 Part C) | E-5 | 66 | 3 | merged | STORY-144 |
 | STORY-148 | Fix Analyzer Flow-State Lifecycle: EnipAnalyzer on_flow_close Wiring + DNP3 Flow-Map Cap (SEC-005 / SEC-006) | E-20 | ~ | 5 | draft | — |
-| STORY-151 | `src/protocols.rs` — KNOWN_PROTOCOLS Static Catalog + KnownProtocol Struct + SUPPORTED_PORTS + Pure-Core Functions + VP-041 proptest harnesses | E-21 | 67 | 8 | draft | — |
-| STORY-152 | `protocols` CLI Subcommand — CLI Dispatch Wiring + Terminal Table Renderer + JSON Output (BC-2.12.022 + BC-2.18.001 + BC-2.18.002) | E-21 | 68 | 8 | draft | STORY-151 |
-| STORY-153 | Dispatcher `unclassified_port_counts` + UDP Decode-Loop `udp_unclassified_counts` — BC-2.05.010 + BC-2.05.011 + VP-042/VP-043 | E-21 | 67 | 8 | draft | — |
-| STORY-154 | `--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024) | E-21 | 69 | 8 | draft | STORY-151, STORY-152, STORY-153 |
+| STORY-151 | `src/protocols.rs` — KNOWN_PROTOCOLS Static Catalog + KnownProtocol Struct + SUPPORTED_PORTS + Pure-Core Functions + VP-041 proptest harnesses | E-21 | 67 | 8 | merged | — |
+| STORY-152 | `protocols` CLI Subcommand — CLI Dispatch Wiring + Terminal Table Renderer + JSON Output (BC-2.12.022 + BC-2.18.001 + BC-2.18.002) | E-21 | 68 | 8 | merged | STORY-151 |
+| STORY-153 | Dispatcher `unclassified_port_counts` + UDP Decode-Loop `udp_unclassified_counts` — BC-2.05.010 + BC-2.05.011 + VP-042/VP-043 | E-21 | 67 | 8 | merged | — |
+| STORY-154 | `--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024) | E-21 | 69 | 8 | merged | STORY-151, STORY-152, STORY-153 |
 
 ---
 
@@ -377,9 +378,9 @@ traces_to:
 | 64 | STORY-141, STORY-142 | **DELIVERED & CLOSED** | #336 | a13b5c5 | 2026-06-28 |
 | 65 | STORY-144 | **DELIVERED & CLOSED** | #341 | 0986e878 | 2026-06-29 |
 | 66 | STORY-145, STORY-146 | **DELIVERED & CLOSED** | #343, #344 | 8b52046 | 2026-06-30 |
-| 67 | STORY-151, STORY-153 | draft | — | — | — |
-| 68 | STORY-152 | draft | — | — | — |
-| 69 | STORY-154 | draft | — | — | — |
+| 67 | STORY-151, STORY-153 | **DELIVERED & CLOSED** | #351, #352 | 963a69a, b285feb | 2026-07-04 |
+| 68 | STORY-152 | **DELIVERED & CLOSED** | #353, #354 | 5c4437a, 0e700a9 | 2026-07-04 |
+| 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 
 ## Coverage Verification
 
