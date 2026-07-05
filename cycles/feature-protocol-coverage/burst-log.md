@@ -2,9 +2,9 @@
 document_type: burst-log
 level: ops
 version: "1.0"
-status: in-progress
+status: complete
 producer: state-manager
-timestamp: 2026-07-02T00:00:00Z
+timestamp: 2026-07-05T12:00:00Z
 cycle: "feature-protocol-coverage"
 inputs: [STATE.md]
 traces_to: STATE.md
@@ -241,5 +241,56 @@ Status: DONE (D-371). STORY-154 delivered via PR #355 (squash cad7024) in D-372.
 | Current Phase Steps | D-372/371/370/369/368 (top-5) | D-373/372/371/370/369 (D-368 archived to burst-log) |
 | Decisions Log | ends D-372 | + D-373 |
 | Session Resume Checkpoint | D-372 version | D-373 version (fixtures READY) |
+
+---
+
+## Archived Current Phase Step — D-377 F5 Reconciliation Final Closure (rotated out 2026-07-05)
+
+Rotated out of STATE.md Current Phase Steps table (last-5 rule) when D-382 cycle-close row was added.
+
+**F5 RECONCILIATION FINAL CLOSURE (D-377, 2026-07-04). 3rd/final sweep — run_protocols/variant-shape drift class exhaustively swept: ADR-012 Consequences (phantom `{filter:ProtocolFilter, json:bool}` variant → shipped 3-bool form all/supported/unsupported with conflicts_with_all), BC-2.12.022 v1.3 (VP-table test names synced to shipped test_BC_2_12_022_json_path_writes_file/_output_format_json/_csv_rejected + H1 signature), BC-2.12.023 v1.3 (StreamDispatcher .with_coverage_gaps() builder anchor), BC-2.18.001 v1.5 + BC-2.18.002 v1.2 (run_protocols(filter: ProtocolFilter, cli: &Cli) signature anchors). Whole-.factory/specs/-tree grep ZERO live phantom. BC-INDEX v2.16. Input-hashes MATCH=99 STALE=0 ERROR=3 (pre-existing STORY-001/091/121). PG-F5-RECONCILE-INCOMPLETE-001 RESOLVED. develop unchanged (cad7024).**
+
+Status: DONE (D-377). Phase F5 reconciliation complete; F5 adversarial convergence followed (D-378).
+
+---
+
+## Burst 8 — D-382 Cycle CONVERGED/CLOSED + v0.11.2 RELEASED (S-7.02, 2026-07-05)
+
+**Agents dispatched:** state-manager (cycle-close STATE.md bookkeeping — S-7.02)
+**Files touched (factory-artifacts):** .factory/STATE.md, cycles/feature-protocol-coverage/burst-log.md, cycles/feature-protocol-coverage/session-checkpoints.md, cycles/feature-protocol-coverage/lessons.md (NEW), stories/STORY-155.md (committed — story-writer), stories/STORY-INDEX.md v3.13→v3.14 (committed — story-writer)
+**PRs merged since last burst:** PR #358 (release/0.11.2 → main, merge 96ef1ff); PR #359 (main → develop back-merge, squash 4a9eba3)
+**develop HEAD:** 4a9eba3 (full: 4a9eba3565e7df30ae577526f5e2d57e3dc02967)
+**main HEAD:** 96ef1ff (full: 96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75)
+
+### Summary
+
+E-21 feature-protocol-coverage cycle CONVERGED/CLOSED. Human gate approved 2026-07-05. v0.11.2 released. S-7.02 checklist satisfied: recurring [process-gap] finding (STORY-INDEX status not updated on merge, F7 audit finding P0-001) codified as STORY-155 (E-11, [process-gap], 3 pts, PG-INDEX-DRIFT-001) in lessons.md with [codified] tag. STORY-INDEX bumped v3.13→v3.14 (108 stories / 694 pts). Pipeline IDLE.
+
+### STATE.md changes in this burst
+
+| Field | Before | After |
+|-------|--------|-------|
+| `phase` | F7-delta-convergence | steady-state |
+| `status` | in-progress | complete |
+| `pipeline` | IN_PROGRESS | IDLE |
+| `current_step` | D-381 F7 pre-gate complete, awaiting human gate | D-382 cycle CONVERGED/CLOSED + v0.11.2 RELEASED |
+| `timestamp` | 2026-07-05T00:00:00Z | 2026-07-05T12:00:00Z |
+| `released_version` | v0.11.1 | v0.11.2 |
+| `released_at` | 2026-07-01 | 2026-07-05 |
+| `release_tag` | v0.11.1 | v0.11.2 |
+| `release_tag_object` | e8a8a2d4... | 2852165d... |
+| `release_commit` | 4e2b285... | 96ef1ff... |
+| `prior_released_version` | v0.11.0 | v0.11.1 |
+| `main_head` | 4e2b285... | 96ef1ff... |
+| `develop_head` | 6da5456... | 4a9eba3... |
+| `cargo_version_main/develop` | 0.11.1 | 0.11.2 |
+| `story_index_version` | v3.13 | v3.14 |
+| `total_stories` | 107 | 108 |
+| Phase Progress F7 row | PRE-GATE COMPLETE / AWAITING HUMAN GATE (D-381) | CONVERGED/CLOSED (D-382) |
+| Phase Progress (new) | — | v0.11.2 RELEASED 2026-07-05 |
+| Current Phase Steps | D-381/380/379/378/377 | D-382/381/380/379/378 (D-377 archived to burst-log) |
+| Decisions Log | ends D-381 | + D-382 |
+| EXACT RESUME POINT | F7 pre-gate, awaiting human gate | Cycle CLOSED, v0.11.2 released, pipeline IDLE |
+| Session Resume Checkpoint | D-381 version | D-382 version (IDLE) |
 
 ---

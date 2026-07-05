@@ -113,3 +113,17 @@ cycle: feature-protocol-coverage
   - Report at each wave gate; stop only for blockers or F4-holdout gate. DTU_REQUIRED=false.
 - **F3 story artifacts (FINAL — unchanged entering F4):** STORY-151 v1.4 / STORY-152 v1.4 / STORY-153 v1.7 / STORY-154 v1.8; STORY-INDEX v3.12; dep-graph v3.6 (124 edges, 69 waves); HS-INDEX v2.10 (HS-123..132).
 - **F4-carry refinements:** F-F3P18-O2 (STORY-154 render re-lookup name), F-F3P10-001 (STORY-153 unclassified_flows-fires-when-gaps-disabled Red-Gate test), F-F3P9-001/F-F3P13-001 (protocols --json stdout-only), F-F3P7-O1 (udp_unclassified_counts function-scope), F-F3P12-001 (mirror-test port-53), F-F3P13-002/F-F3P16-002 (STORY-154 subsystems SS-05 + dep-graph cell), F-F3P17-001 (AC-154-002 cross-layer trace note).
+
+---
+
+## Checkpoint archived 2026-07-05 (superseded by D-382 cycle-close IDLE checkpoint)
+
+**F7 PRE-GATE COMPLETE (D-381, 2026-07-05). All 5 convergence dimensions SATISFIED. AWAITING FINAL HUMAN APPROVAL GATE for E-21 cycle close. Pre-gate reconciliations applied: STORY-INDEX v3.12→v3.13 (STORY-151/152/153/154 status draft→merged; wave 67/68/69 DELIVERED+CLOSED) + ARCH-INDEX stale HTML comment removed (SS-18 row, v2.12 unchanged). On human gate approval → cycle CONVERGED/CLOSED, then release decision.**
+
+- **Ground truth:** develop=`6da5456` (full `6da54560c6debf67ec83a42b0c249073d01e9f84`), main=`4e2b285` (full `4e2b28529ae196785ce6a0baed522b9939f929ea`, v0.11.1). factory-artifacts HEAD: `b195e59`. Worktrees: main checkout [develop @6da5456] + .factory [factory-artifacts].
+- **RESUME PROCEDURE (D-381 version, superseded):**
+  1. `vsdd-factory:factory-worktree-health` — PASS required before any other step.
+  2. Verify develop=`6da5456`.
+  3. Await human approval gate — on approval, invoke `/vsdd-factory:next-step` to close cycle E-21 and proceed to release.
+- **F7 status:** PRE-GATE COMPLETE. 5 dimensions SATISFIED (D-381). Cycle NOT yet CONVERGED/CLOSED (superseded — cycle closed D-382).
+
