@@ -382,6 +382,16 @@ pub struct ArpAnalyzer {
     pub malformed_findings: u64,
     /// Total malformed ARP frames counted (always incremented, even without `--arp`).
     pub malformed_frames: u64,
+    /// Count of LRU evictions from the binding table (MAX_ARP_BINDINGS=65_536).
+    ///
+    /// Incremented each time `insert_binding_lru` evicts an entry (new IP at cap).
+    /// Monotonic, saturating. BC-2.16.008 v2.0 / BC-2.16.010 v1.9.
+    pub bindings_evicted: u64,
+    /// Count of LRU evictions from the storm-counter table (MAX_STORM_COUNTERS=4_096).
+    ///
+    /// Incremented each time `insert_storm_counter_lru` evicts an entry (new MAC at cap).
+    /// Monotonic, saturating. BC-2.16.008 v2.0 / BC-2.16.010 v1.9.
+    pub storm_counters_evicted: u64,
 }
 
 impl ArpAnalyzer {
@@ -414,6 +424,8 @@ impl ArpAnalyzer {
             mismatch_findings: 0,
             malformed_findings: 0,
             malformed_frames: 0,
+            bindings_evicted: 0,
+            storm_counters_evicted: 0,
         }
     }
 
@@ -600,6 +612,9 @@ impl ArpAnalyzer {
                 // New IP via GARP (no conflict means either no entry or same MAC).
                 // Insert/update binding and set last_seen_ts.
                 if !self.bindings.contains_key(&sender_ip) {
+                    if self.bindings.len() >= MAX_ARP_BINDINGS {
+                        self.bindings_evicted = self.bindings_evicted.saturating_add(1);
+                    }
                     insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS);
                 }
                 if let Some(entry) = self.bindings.get_mut(&sender_ip) {
@@ -644,6 +659,9 @@ impl ArpAnalyzer {
             }
         } else {
             // New IP: call insert_binding_lru (handles eviction), then set last_seen_ts.
+            if self.bindings.len() >= MAX_ARP_BINDINGS {
+                self.bindings_evicted = self.bindings_evicted.saturating_add(1);
+            }
             insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS);
             if let Some(entry) = self.bindings.get_mut(&sender_ip) {
                 entry.last_seen_ts = timestamp_secs;
@@ -766,6 +784,14 @@ impl ArpAnalyzer {
         detail.insert(
             "malformed_frames".to_string(),
             serde_json::json!(self.malformed_frames),
+        );
+        detail.insert(
+            "bindings_evicted".to_string(),
+            serde_json::json!(self.bindings_evicted),
+        );
+        detail.insert(
+            "storm_counters_evicted".to_string(),
+            serde_json::json!(self.storm_counters_evicted),
         );
 
         AnalysisSummary {
@@ -941,6 +967,7 @@ impl ArpAnalyzer {
             if let Some(k) = oldest_mac {
                 self.storm_counters.remove(&k);
             }
+            self.storm_counters_evicted = self.storm_counters_evicted.saturating_add(1);
         }
         self.storm_counters.insert(
             source_mac,
@@ -2024,16 +2051,21 @@ mod tests {
         let analyzer = ArpAnalyzer::new_for_test();
         let summary = analyzer.summarize();
 
-        // All eleven canonical keys must be present and equal 0 (BC-2.16.010 EC-001)
+        // All thirteen canonical keys must be present and equal 0 (BC-2.16.010 v1.9 EC-001).
+        // Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
+        // and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
+        // RED GATE: these two new keys are absent from the current summarize() implementation.
         const EXPECTED_KEYS: &[&str] = &[
             "frames_analyzed",
             "request_count",
             "reply_count",
             "other_opcode_count",
             "bindings_tracked",
+            "bindings_evicted",
             "spoof_findings",
             "garp_findings",
             "storm_findings",
+            "storm_counters_evicted",
             "mismatch_findings",
             "malformed_findings",
             "malformed_frames",
@@ -2055,23 +2087,29 @@ mod tests {
         }
     }
 
-    /// AC-013b (BC-2.16.010 Invariant 1): exactly eleven keys in detail — no extras, no fewer.
+    /// AC-013b (BC-2.16.010 v1.9 Invariant 1): exactly thirteen keys in detail — no extras, no fewer.
+    ///
+    /// Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
+    /// and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
+    /// RED GATE: these two new keys are absent from the current summarize() implementation.
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_010_summarize_key_names_exact() {
         let analyzer = ArpAnalyzer::new_for_test();
         let summary = analyzer.summarize();
 
-        // Exact eleven key names per BC-2.16.010 PC1 (authority over any story body wording)
+        // Exact thirteen key names per BC-2.16.010 v1.9 PC1.
         let mut expected: std::collections::BTreeSet<&str> = [
             "frames_analyzed",
             "request_count",
             "reply_count",
             "other_opcode_count",
             "bindings_tracked",
+            "bindings_evicted",
             "spoof_findings",
             "garp_findings",
             "storm_findings",
+            "storm_counters_evicted",
             "mismatch_findings",
             "malformed_findings",
             "malformed_frames",
@@ -2085,8 +2123,8 @@ mod tests {
 
         assert_eq!(
             actual.len(),
-            11,
-            "AC-013 / BC-2.16.010 Invariant 1: summarize() must return exactly 11 \
+            13,
+            "AC-013 / BC-2.16.010 v1.9 Invariant 1: summarize() must return exactly 13 \
              keys. Got {}. Keys present: {actual:?}",
             actual.len()
         );
@@ -2094,7 +2132,7 @@ mod tests {
         for key in &expected {
             assert!(
                 actual.contains(key),
-                "AC-013 / BC-2.16.010 PC1: required key '{key}' is MISSING from summarize() \
+                "AC-013 / BC-2.16.010 v1.9 PC1: required key '{key}' is MISSING from summarize() \
                  output. Actual keys: {actual:?}"
             );
         }
@@ -2115,9 +2153,11 @@ mod tests {
                     "reply_count",
                     "other_opcode_count",
                     "bindings_tracked",
+                    "bindings_evicted",
                     "spoof_findings",
                     "garp_findings",
                     "storm_findings",
+                    "storm_counters_evicted",
                     "mismatch_findings",
                     "malformed_findings",
                     "malformed_frames",
@@ -2127,7 +2167,7 @@ mod tests {
             .collect();
         assert!(
             extras.is_empty(),
-            "AC-013 / BC-2.16.010 Invariant 1: summarize() must contain EXACTLY 11 keys. \
+            "AC-013 / BC-2.16.010 v1.9 Invariant 1: summarize() must contain EXACTLY 13 keys. \
              Unexpected extra keys found: {extras:?}"
         );
     }

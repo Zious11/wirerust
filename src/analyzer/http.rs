@@ -131,6 +131,11 @@ pub struct HttpAnalyzer {
     parse_errors: u64,
     non_http_flows: u64,
     poisoned_bytes_skipped: u64,
+    /// Count of new-key insertions refused across all distribution maps (methods, hosts,
+    /// user_agents) because the map was at MAX_MAP_ENTRIES=50_000. Monotonic, saturating.
+    /// Existing-key hits do NOT increment this counter (BC-2.06.024 AC-008).
+    /// BC-2.06.023 v1.6 / BC-2.06.024 v1.4.
+    dropped_map_entries: u64,
 }
 
 impl Default for HttpAnalyzer {
@@ -153,6 +158,7 @@ impl HttpAnalyzer {
             parse_errors: 0,
             non_http_flows: 0,
             poisoned_bytes_skipped: 0,
+            dropped_map_entries: 0,
         }
     }
 
@@ -391,17 +397,24 @@ impl HttpAnalyzer {
                         || self.methods.contains_key(&parsed.method)
                     {
                         *self.methods.entry(parsed.method.clone()).or_insert(0) += 1;
+                    } else {
+                        self.dropped_map_entries = self.dropped_map_entries.saturating_add(1);
                     }
-                    if let Some(ref h) = parsed.host
-                        && (self.hosts.len() < MAX_MAP_ENTRIES || self.hosts.contains_key(h))
-                    {
-                        *self.hosts.entry(h.clone()).or_insert(0) += 1;
+                    if let Some(ref h) = parsed.host {
+                        if self.hosts.len() < MAX_MAP_ENTRIES || self.hosts.contains_key(h) {
+                            *self.hosts.entry(h.clone()).or_insert(0) += 1;
+                        } else {
+                            self.dropped_map_entries = self.dropped_map_entries.saturating_add(1);
+                        }
                     }
-                    if let Some(ref ua) = parsed.user_agent
-                        && (self.user_agents.len() < MAX_MAP_ENTRIES
-                            || self.user_agents.contains_key(ua))
-                    {
-                        *self.user_agents.entry(ua.clone()).or_insert(0) += 1;
+                    if let Some(ref ua) = parsed.user_agent {
+                        if self.user_agents.len() < MAX_MAP_ENTRIES
+                            || self.user_agents.contains_key(ua)
+                        {
+                            *self.user_agents.entry(ua.clone()).or_insert(0) += 1;
+                        } else {
+                            self.dropped_map_entries = self.dropped_map_entries.saturating_add(1);
+                        }
                     }
                     if self.uris.len() < MAX_URIS {
                         self.uris.push(parsed.uri.clone());
@@ -624,6 +637,12 @@ impl StreamAnalyzer for HttpAnalyzer {
         detail.insert(
             "poisoned_bytes_skipped".to_string(),
             serde_json::json!(self.poisoned_bytes_skipped),
+        );
+        // BC-2.06.023 v1.6: surface refused new-key insertions across all distribution maps.
+        // Key ALWAYS present even when count==0 (silent-limit audit).
+        detail.insert(
+            "dropped_map_entries".to_string(),
+            serde_json::json!(self.dropped_map_entries),
         );
 
         AnalysisSummary {
