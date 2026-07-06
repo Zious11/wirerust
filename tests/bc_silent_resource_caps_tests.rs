@@ -672,4 +672,254 @@ mod silent_resource_caps {
             MAX_MAP_ENTRIES + 1
         );
     }
+
+    // -----------------------------------------------------------------------
+    // NEGATIVE REGRESSION TESTS (PR #365 reviewer follow-ups)
+    // These guard ALREADY-SHIPPED, already-correct behavior.  They MUST PASS
+    // on current code.  If either fails, that reveals a real bug — STOP.
+    // -----------------------------------------------------------------------
+
+    /// HTTP-AC008-NEG-TEST-001 / BC-2.06.024 AC-008 (negative):
+    /// Hitting an EXISTING key in the HttpAnalyzer distribution maps must NOT
+    /// increment `dropped_map_entries`.
+    ///
+    /// Invariant: `dropped_map_entries` is incremented ONLY when a NEW key is
+    /// refused because the map is at MAX_MAP_ENTRIES=50_000 capacity.  Repeated
+    /// requests that reuse already-inserted Host / User-Agent values are
+    /// existing-key updates and must never touch the counter, regardless of
+    /// how many times the same keys are seen.
+    ///
+    /// Mechanism: send several HTTP requests that all use the same Host and
+    /// User-Agent, well below the 50k cap.  The maps stay tiny; the keys are
+    /// inserted on the first request and updated (not refused) on every
+    /// subsequent one.  Assert `dropped_map_entries == 0` throughout.
+    ///
+    /// This is a live (non-`#[ignore]`) test — it runs in under 1 ms.
+    #[test]
+    fn test_HTTP_AC008_NEG_TEST_001_existing_key_increment_does_not_raise_dropped_map_entries() {
+        use wirerust::analyzer::http::HttpAnalyzer;
+        use wirerust::reassembly::handler::Direction;
+
+        let mut analyzer = HttpAnalyzer::new();
+
+        // Use two distinct flow keys so the HTTP parser does not see the
+        // repeated requests as a single pipelined stream and mangle them.
+        // Even if they share a flow, the Host/User-Agent keys are already
+        // present after the first parse, so the insert guard returns early.
+        let fk_a = FlowKey::new(
+            "10.10.0.1".parse::<IpAddr>().unwrap(),
+            51000,
+            "10.10.0.2".parse::<IpAddr>().unwrap(),
+            80,
+        );
+        let fk_b = FlowKey::new(
+            "10.10.0.3".parse::<IpAddr>().unwrap(),
+            51001,
+            "10.10.0.4".parse::<IpAddr>().unwrap(),
+            80,
+        );
+
+        // 10 repetitions of the same Host + User-Agent on alternating flow keys.
+        // The first request on each flow seeds the maps; subsequent ones reuse
+        // the EXISTING key → must NOT increment dropped_map_entries.
+        for i in 0u32..10 {
+            let fk = if i % 2 == 0 { &fk_a } else { &fk_b };
+            let req =
+                b"GET /path HTTP/1.1\r\nHost: existing.example.test\r\nUser-Agent: TestBot/1.0\r\n\r\n";
+            analyzer.on_data(fk, Direction::ClientToServer, req, 0, i);
+        }
+
+        let summary = analyzer.summarize();
+        let dropped = summary
+            .detail
+            .get("dropped_map_entries")
+            .and_then(|v| v.as_u64())
+            .expect(
+                "HTTP-AC008-NEG-TEST-001: 'dropped_map_entries' key must be present in \
+                 HttpAnalyzer summarize(). Key missing — regression in BC-2.06.023.",
+            );
+
+        assert_eq!(
+            dropped, 0,
+            "HTTP-AC008-NEG-TEST-001 / BC-2.06.024 AC-008 (negative): \
+             `dropped_map_entries` must be 0 when only EXISTING keys are hit \
+             (same Host/User-Agent repeated below the 50k cap). \
+             Got {dropped} — existing-key increment is incorrectly bumping the drop counter."
+        );
+    }
+
+    /// EVICTION-NO-FINDING-NEG-TEST-001 / BC-2.16.006 Inv3 / BC-2.16.008 Inv5 /
+    /// BC-2.16.010 Inv7 / BC-2.14.012 v1.1 (negative):
+    /// Eviction / pending-drop events are COUNTER-ONLY: they must not produce
+    /// any Finding.
+    ///
+    /// Part A — Modbus pending-drop (fast: 257 requests).
+    ///   After saturating the 256-slot pending table, additional new requests
+    ///   are silently dropped.  The `dropped_transactions` counter increments;
+    ///   `all_findings` must gain NO new Finding for the drop event itself.
+    ///
+    /// Part B — ARP binding eviction (slow: requires 65537 distinct IPs).
+    ///   Marked `#[ignore]` because filling MAX_ARP_BINDINGS=65536 distinct
+    ///   entries takes ~0.5–2 s.  Justification: the invariant is structurally
+    ///   enforced — `process_arp` only pushes findings before the eviction
+    ///   branch and returns the `findings` vec which never includes an eviction
+    ///   entry.  Part A provides the fast guard; Part B is an exhaustive check
+    ///   runnable on-demand.
+    ///
+    /// Run Part B explicitly:
+    ///   cargo test EVICTION_NO_FINDING_NEG_TEST_001_arp -- --ignored
+    #[test]
+    fn test_EVICTION_NO_FINDING_NEG_TEST_001_modbus_pending_drop_emits_no_finding() {
+        let mut analyzer = ModbusAnalyzer::new(20, 10);
+        let fk = modbus_flow_key();
+
+        // Feed MAX_PENDING_TRANSACTIONS = 256 requests to fill the table.
+        // All use FC=0x03 (read holding registers) — non-write, non-exception
+        // → they produce no findings regardless of cap state.
+        for txn_id in 0u16..MAX_PENDING_TRANSACTIONS as u16 {
+            let adu = modbus_read_request(txn_id, 0x01);
+            analyzer.on_data(&fk, Direction::ClientToServer, &adu, 0, txn_id as u32);
+        }
+
+        // Snapshot findings length immediately before the overflow request.
+        let findings_at_cap = analyzer.all_findings.len();
+
+        // The 257th request (txn_id=256, unit_id=0x01) is a NEW key at a FULL table →
+        // `dropped_transactions` must increment and NO finding must be emitted.
+        let overflow_txn_id = MAX_PENDING_TRANSACTIONS as u16;
+        let overflow_adu = modbus_read_request(overflow_txn_id, 0x01);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &overflow_adu,
+            0,
+            overflow_txn_id as u32,
+        );
+
+        // `dropped_transactions` must be at least 1 (proving the cap was hit).
+        let summary = analyzer.summarize();
+        let dropped = summary
+            .detail
+            .get("dropped_transactions")
+            .and_then(|v| v.as_u64())
+            .expect(
+                "EVICTION-NO-FINDING-NEG-TEST-001: 'dropped_transactions' key must be present \
+                 in ModbusAnalyzer summarize().",
+            );
+        assert!(
+            dropped >= 1,
+            "EVICTION-NO-FINDING-NEG-TEST-001: expected dropped_transactions >= 1 after \
+             feeding {} requests (cap={}). Got 0 — test precondition not met.",
+            MAX_PENDING_TRANSACTIONS + 1,
+            MAX_PENDING_TRANSACTIONS
+        );
+
+        // `all_findings` must not have grown due to the drop event.
+        // FC=0x03 (read holding registers) is non-write, non-exception → zero findings.
+        // The drop path only increments `dropped_transactions`; it must never emit a Finding.
+        let findings_after_overflow = analyzer.all_findings.len();
+        assert_eq!(
+            findings_after_overflow, findings_at_cap,
+            "EVICTION-NO-FINDING-NEG-TEST-001 / BC-2.14.012 (negative): \
+             `all_findings` must not grow due to a pending-table drop event. \
+             At cap ({MAX_PENDING_TRANSACTIONS} requests): {findings_at_cap} finding(s). \
+             After overflow request: {findings_after_overflow} finding(s). \
+             A drop event is a COUNTER-ONLY event (BC-2.16.006 Inv3 / BC-2.14.012)."
+        );
+    }
+
+    /// EVICTION-NO-FINDING-NEG-TEST-001 — Part B (ARP binding eviction, slow path).
+    ///
+    /// Fills MAX_ARP_BINDINGS=65536 distinct sender IPs into ArpAnalyzer, then
+    /// inserts one more to trigger LRU eviction.  Asserts the eviction-triggering
+    /// frame returns ZERO findings (the eviction branch runs only after `findings`
+    /// is fully constructed and returned; no eviction Finding is ever appended).
+    ///
+    /// Marked `#[ignore]` because filling 65537 distinct ARP frames takes
+    /// approximately 0.5–2 s.  Part A (Modbus, above) provides the fast guard.
+    ///
+    /// Run explicitly:
+    ///   cargo test test_EVICTION_NO_FINDING_NEG_TEST_001_arp_eviction_emits_no_finding -- --ignored
+    #[test]
+    #[ignore = "EVICTION-NO-FINDING-NEG-TEST-001 ARP Part B: MAX_ARP_BINDINGS=65536 frames \
+                takes ~0.5-2s. Run with: cargo test \
+                test_EVICTION_NO_FINDING_NEG_TEST_001_arp_eviction_emits_no_finding -- --ignored. \
+                Fast guard: test_EVICTION_NO_FINDING_NEG_TEST_001_modbus_pending_drop_emits_no_finding."]
+    fn test_EVICTION_NO_FINDING_NEG_TEST_001_arp_eviction_emits_no_finding() {
+        use wirerust::analyzer::arp::MAX_ARP_BINDINGS;
+
+        let mut analyzer = ArpAnalyzer::new(3, 50);
+
+        // Fill to exactly MAX_ARP_BINDINGS distinct sender IPs.
+        // Unique sender_mac per IP prevents rebind (D1) findings.
+        // outer_src_mac == sender_mac prevents mismatch (D12) findings.
+        // Non-GARP (target_ip != sender_ip) prevents D2 findings.
+        // Unique IPs prevent storm (D3) from firing on repeated MACs.
+        let make_normal_frame = |i: u32| -> ArpFrame {
+            let ip = (i + 1).to_be_bytes(); // avoid 0.0.0.0
+            let mac_lo = ((i + 1) & 0xFF) as u8;
+            let mac_hi = (((i + 1) >> 8) & 0xFF) as u8;
+            ArpFrame {
+                operation: 1,
+                sender_mac: [0xAA, 0xBB, 0xCC, 0xDD, mac_hi, mac_lo],
+                sender_ip: ip,
+                target_mac: [0u8; 6],
+                target_ip: [192, 168, 0, 1], // different from sender_ip → non-GARP
+                outer_src_mac: Some([0xAA, 0xBB, 0xCC, 0xDD, mac_hi, mac_lo]),
+                packet_len: 42,
+            }
+        };
+
+        // Fill to cap.
+        for i in 0u32..MAX_ARP_BINDINGS as u32 {
+            let frame = make_normal_frame(i);
+            let _ = analyzer.process_arp(&frame, 0);
+        }
+
+        // Verify cap is reached: bindings_evicted still 0 before the +1 insert.
+        let before_evict = analyzer
+            .summarize()
+            .detail
+            .get("bindings_evicted")
+            .and_then(|v| v.as_u64())
+            .expect("bindings_evicted key must be present");
+        assert_eq!(
+            before_evict,
+            0,
+            "EVICTION-NO-FINDING-NEG-TEST-001 (ARP Part B): bindings_evicted must be 0 \
+             before the {}-th distinct IP insert.",
+            MAX_ARP_BINDINGS + 1
+        );
+
+        // Insert one more distinct IP — triggers LRU eviction of the oldest entry.
+        let eviction_frame = make_normal_frame(MAX_ARP_BINDINGS as u32 + 1);
+        let eviction_findings = analyzer.process_arp(&eviction_frame, 1);
+
+        // The eviction-triggering frame must return ZERO findings
+        // (BC-2.16.006 Inv3 / BC-2.16.008 Inv5 / BC-2.16.010 Inv7:
+        // eviction is COUNTER-ONLY, never a Finding).
+        assert_eq!(
+            eviction_findings.len(),
+            0,
+            "EVICTION-NO-FINDING-NEG-TEST-001 / BC-2.16.006 Inv3 (negative, ARP): \
+             LRU eviction of a binding table entry must return ZERO findings. \
+             Got {} finding(s). Eviction must be a COUNTER-ONLY event.",
+            eviction_findings.len()
+        );
+
+        // Also confirm eviction counter incremented (proves the eviction path was hit).
+        let after_evict = analyzer
+            .summarize()
+            .detail
+            .get("bindings_evicted")
+            .and_then(|v| v.as_u64())
+            .expect("bindings_evicted key must be present after eviction");
+        assert!(
+            after_evict >= 1,
+            "EVICTION-NO-FINDING-NEG-TEST-001 (ARP Part B): bindings_evicted must be >= 1 \
+             after inserting MAX_ARP_BINDINGS+1={} distinct IPs. Got 0 — eviction path \
+             was not exercised.",
+            MAX_ARP_BINDINGS + 1
+        );
+    }
 } // mod silent_resource_caps
