@@ -29,7 +29,7 @@ mod bc_2_15_020_dnp3_observability_counters {
     use std::net::{IpAddr, Ipv4Addr};
 
     use wirerust::analyzer::dnp3::{
-        Dnp3Analyzer, MAX_FINDINGS, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
+        Dnp3Analyzer, BLOCK_CMD_TIMEOUT_SECS, MAX_FINDINGS, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
     };
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
@@ -720,5 +720,66 @@ mod bc_2_15_020_dnp3_observability_counters {
                 analyzer.all_findings.len()
             );
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // NEGATIVE: scan_block_timeouts age-out does NOT increment pending_requests_evicted
+    // (CR-002 finding follow-up; BC-2.15.016 v2.1 PC-10 negative path)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.15.016 v2.1 NEG (age-out path):
+    ///
+    /// `scan_block_timeouts` removes timed-out entries from `pending_requests` directly via
+    /// `pending_requests.remove()`, bypassing `insert_pending_request`.  Therefore the
+    /// `pending_requests_evicted` counter must NOT increment when a pending request ages out
+    /// (i.e., exceeds BLOCK_CMD_TIMEOUT_SECS without receiving a matching RESPONSE).
+    ///
+    /// Sequence:
+    ///   1. Send DIRECT_OPERATE (FC=0x05) at ts=0 — inserts key (dest=3, app_seq=0).
+    ///   2. Send any frame at ts=BLOCK_CMD_TIMEOUT_SECS+1 — triggers scan_block_timeouts,
+    ///      which ages out and removes the request entry.
+    ///   3. Assert pending_requests_evicted == 0.
+    #[test]
+    fn test_BC_2_15_016_NEG_scan_block_timeouts_ageout_does_not_increment_pending_requests_evicted()
+    {
+        let mut analyzer = Dnp3Analyzer::new(1000);
+        let key = dnp3_flow_key();
+
+        // Step 1: DIRECT_OPERATE request at ts=0 — inserts (dest=3, app_seq=0) into pending.
+        let request_frame = build_dnp3_detection_frame(0x05, 3u16, 1u16);
+        analyzer.on_data(key.clone(), &request_frame, 0, Direction::ClientToServer);
+
+        // Step 2: Any frame at ts > BLOCK_CMD_TIMEOUT_SECS — triggers age-out in scan_block_timeouts.
+        let trigger_frame = build_dnp3_detection_frame(0x01, 3u16, 1u16);
+        analyzer.on_data(
+            key.clone(),
+            &trigger_frame,
+            BLOCK_CMD_TIMEOUT_SECS + 1,
+            Direction::ClientToServer,
+        );
+
+        // Step 3: pending_requests_evicted must be 0 — age-out is not an LRU eviction.
+        let summary = analyzer.summarize();
+        let evicted = summary
+            .detail
+            .get("pending_requests_evicted")
+            .unwrap_or_else(|| {
+                panic!(
+                    "BC-2.15.016 v2.1 NEG (age-out): 'pending_requests_evicted' key must be \
+                     present in summarize(). Key MISSING — implementation incomplete. \
+                     Keys present: {:?}",
+                    summary.detail.keys().collect::<Vec<_>>()
+                )
+            })
+            .as_u64()
+            .expect("'pending_requests_evicted' must be a u64");
+
+        assert_eq!(
+            evicted, 0,
+            "BC-2.15.016 v2.1 (negative / age-out): 'pending_requests_evicted' must be 0 when a \
+             pending request is removed by scan_block_timeouts age-out (BLOCK_CMD_TIMEOUT_SECS={}s). \
+             Age-out removal via pending_requests.remove() is NOT an LRU eviction. Got {evicted}.",
+            BLOCK_CMD_TIMEOUT_SECS
+        );
     }
 } // mod bc_2_15_020_dnp3_observability_counters

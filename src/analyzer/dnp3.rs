@@ -1061,6 +1061,9 @@ impl Dnp3Analyzer {
                 flow.direct_operate_emitted = true;
             } else {
                 *dropped_findings += 1;
+                // Prevent re-counting on the next on_data call: the logical finding was
+                // seen once, the cap blocked it once.  Guard mirrors the emit path.
+                flow.direct_operate_emitted = true;
             }
         }
     }
@@ -1253,6 +1256,8 @@ impl Dnp3Analyzer {
                 flow.block_finding_emitted_this_window = true;
             } else {
                 *dropped_findings += 1;
+                // Prevent re-counting: block-finding was observed once; cap blocked it once.
+                flow.block_finding_emitted_this_window = true;
             }
         }
 
@@ -1383,6 +1388,8 @@ impl Dnp3Analyzer {
                 flow.loss_of_control_emitted = true;
             } else {
                 *dropped_findings += 1;
+                // Prevent re-counting: T0827 was observed once; cap blocked it once.
+                flow.loss_of_control_emitted = true;
             }
         }
     }
@@ -1481,6 +1488,8 @@ impl Dnp3Analyzer {
         }
         if findings.len() >= MAX_FINDINGS {
             *dropped_findings += 1;
+            // Prevent re-counting: unexpected-source was observed once; cap blocked it once.
+            flow.unexpected_source_emitted = true;
             return;
         }
         // Build the expected master set string from master_addrs_seen, EXCLUDING `src`.
@@ -1605,6 +1614,8 @@ impl Dnp3Analyzer {
                     flow.unsolicited_anomaly_emitted = true;
                 } else {
                     *dropped_findings += 1;
+                    // Prevent re-counting: unsolicited anomaly was observed once; cap blocked it.
+                    flow.unsolicited_anomaly_emitted = true;
                 }
             }
         }
@@ -1779,6 +1790,8 @@ impl Dnp3Analyzer {
                 flow.malformed_anomaly_emitted = true;
             } else {
                 *dropped_findings += 1;
+                // Prevent re-counting: malformed anomaly was observed once; cap blocked it.
+                flow.malformed_anomaly_emitted = true;
             }
         }
     }
