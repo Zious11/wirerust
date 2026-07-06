@@ -307,6 +307,14 @@ pub struct Dnp3Analyzer {
     pub fn_code_counts: HashMap<u8, u64>,
     /// Accumulated findings — capped at MAX_FINDINGS (BC-2.15.022).
     pub all_findings: Vec<Finding>,
+    /// Count of findings silently dropped after MAX_FINDINGS cap was reached (BC-2.15.022).
+    pub dropped_findings: u64,
+    /// Count of unique master source addresses silently ignored at MAX_MASTER_ADDRS=64 cap
+    /// (BC-2.15.016 v2.1 PC-6).
+    pub master_addrs_dropped: u64,
+    /// Count of pending-request entries evicted via LRU at MAX_PENDING_REQUESTS=256 cap
+    /// (BC-2.15.016 v2.1 PC-10).
+    pub pending_requests_evicted: u64,
 
     // ---- on_flow_close aggregate fields (issue #342 / SEC-006) ----
     // These fields accumulate per-flow metrics from flows removed at close time
@@ -339,6 +347,9 @@ impl Dnp3Analyzer {
             direct_operate_threshold,
             fn_code_counts: HashMap::new(),
             all_findings: Vec::new(),
+            dropped_findings: 0,
+            master_addrs_dropped: 0,
+            pending_requests_evicted: 0,
             closed_flows_count: 0,
             total_frames_closed: 0,
             parse_errors_closed: 0,
@@ -444,7 +455,14 @@ impl Dnp3Analyzer {
         // Scan pending_requests for entries that have not received a RESPONSE within
         // BLOCK_CMD_TIMEOUT_SECS.  Must run BEFORE the frame-walk so that newly-arriving
         // frames at ts=T can observe timeouts from requests at ts=T-11.
-        Self::scan_block_timeouts(flow, &mut self.all_findings, ts, &flow_key, direction);
+        Self::scan_block_timeouts(
+            flow,
+            &mut self.all_findings,
+            &mut self.dropped_findings,
+            ts,
+            &flow_key,
+            direction,
+        );
 
         // --- Step 2: accumulate into carry with the 292-byte cap (AC-001 / EC-003) --
         // BC-2.15.016 postconditions 1–2: append incoming bytes; if the carry would
@@ -494,7 +512,14 @@ impl Dnp3Analyzer {
                     active_carry!(flow, direction).clear();
                 }
             }
-            Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key, direction);
+            Self::check_malformed_anomaly(
+                flow,
+                &mut self.all_findings,
+                &mut self.dropped_findings,
+                ts,
+                &flow_key,
+                direction,
+            );
             // Fall through to frame-walk. Do NOT return early.
             // The frame-walk will find a valid head frame (if preserved) or
             // carry.len() < 3 → break immediately (empty carry). Both are correct.
@@ -554,6 +579,7 @@ impl Dnp3Analyzer {
                         Self::check_malformed_anomaly(
                             flow,
                             &mut self.all_findings,
+                            &mut self.dropped_findings,
                             ts,
                             &flow_key,
                             direction,
@@ -586,6 +612,7 @@ impl Dnp3Analyzer {
                             Self::check_malformed_anomaly(
                                 flow,
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 ts,
                                 &flow_key,
                                 direction,
@@ -636,6 +663,7 @@ impl Dnp3Analyzer {
                 Self::check_malformed_anomaly(
                     flow,
                     &mut self.all_findings,
+                    &mut self.dropped_findings,
                     ts,
                     &flow_key,
                     direction,
@@ -697,6 +725,7 @@ impl Dnp3Analyzer {
                     Self::check_malformed_anomaly(
                         flow,
                         &mut self.all_findings,
+                        &mut self.dropped_findings,
                         ts,
                         &flow_key,
                         direction,
@@ -724,6 +753,7 @@ impl Dnp3Analyzer {
                     Self::check_malformed_anomaly(
                         flow,
                         &mut self.all_findings,
+                        &mut self.dropped_findings,
                         ts,
                         &flow_key,
                         direction,
@@ -747,11 +777,14 @@ impl Dnp3Analyzer {
 
             // BC-2.15.016 PC5–6: master-direction (DIR=1) frame → record its source
             // address in master_addrs_seen, deduplicated and capped at MAX_MASTER_ADDRS.
-            if is_master_frame(header.control)
-                && !flow.master_addrs_seen.contains(&header.source)
-                && flow.master_addrs_seen.len() < MAX_MASTER_ADDRS
-            {
-                flow.master_addrs_seen.push(header.source);
+            // BC-2.15.016 v2.1 PC-6: increment master_addrs_dropped when a NEW unique
+            // master address is silently ignored because the cap is already full.
+            if is_master_frame(header.control) && !flow.master_addrs_seen.contains(&header.source) {
+                if flow.master_addrs_seen.len() < MAX_MASTER_ADDRS {
+                    flow.master_addrs_seen.push(header.source);
+                } else {
+                    self.master_addrs_dropped += 1;
+                }
             }
 
             // BC-2.15.008 FIR=1 + user-data gate: extract the application FC only from
@@ -781,6 +814,7 @@ impl Dnp3Analyzer {
                         Self::detect_unsolicited_control(
                             flow,
                             &mut self.all_findings,
+                            &mut self.dropped_findings,
                             app_fc,
                             dest,
                             src,
@@ -798,6 +832,7 @@ impl Dnp3Analyzer {
                                 Self::detect_broadcast_anomaly(
                                     flow,
                                     &mut self.all_findings,
+                                    &mut self.dropped_findings,
                                     app_fc,
                                     dest,
                                     src,
@@ -821,6 +856,7 @@ impl Dnp3Analyzer {
                                 Self::detect_unexpected_source_split(
                                     flow,
                                     &mut self.all_findings,
+                                    &mut self.dropped_findings,
                                     app_fc,
                                     dest,
                                     src,
@@ -836,13 +872,16 @@ impl Dnp3Analyzer {
                             // STORY-109: 0x06 is excluded from pending_requests.
                             if app_fc != 0x06 {
                                 let app_seq = active_carry!(flow, direction)[11] & 0x0F;
-                                Self::insert_pending_request(flow, (dest, app_seq), ts);
+                                if Self::insert_pending_request(flow, (dest, app_seq), ts) {
+                                    self.pending_requests_evicted += 1;
+                                }
                             }
 
                             // Detection burst branch (also increments direct_operate_count).
                             Self::detect_control_class_burst_split(
                                 flow,
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 self.direct_operate_threshold,
                                 app_fc,
                                 ts,
@@ -858,6 +897,7 @@ impl Dnp3Analyzer {
                             Self::detect_restart_split(
                                 flow,
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 app_fc,
                                 dest,
                                 src,
@@ -869,6 +909,7 @@ impl Dnp3Analyzer {
                             Self::maybe_emit_t0827(
                                 flow,
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 ts,
                                 dest,
                                 &flow_key,
@@ -878,6 +919,7 @@ impl Dnp3Analyzer {
                         Dnp3FcClass::Write => {
                             Self::detect_write_split(
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 dest,
                                 src,
                                 ts,
@@ -895,6 +937,7 @@ impl Dnp3Analyzer {
                             Self::detect_unsolicited_anomaly(
                                 flow,
                                 &mut self.all_findings,
+                                &mut self.dropped_findings,
                                 app_fc,
                                 app_ctrl,
                                 dest,
@@ -951,6 +994,7 @@ impl Dnp3Analyzer {
     fn detect_control_class_burst_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         direct_operate_threshold: u32,
         app_fc: u8,
         now_ts: u32,
@@ -984,37 +1028,40 @@ impl Dnp3Analyzer {
         if flow.direct_operate_count > direct_operate_threshold
             && !flow.direct_operate_emitted
             && now_ts.saturating_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS
-            && findings.len() < MAX_FINDINGS
         {
-            let count = flow.direct_operate_count;
-            let elapsed = now_ts.saturating_sub(flow.window_start_ts);
-            let threshold = direct_operate_threshold;
-            // BC-2.15.010 PC3: resolve master endpoint from FlowKey using direction.
-            // STORY-140 AC-140-002: replace port-heuristic with direction-based resolution.
-            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
-                (flow_key.upper_ip(), flow_key.lower_ip())
+            if findings.len() < MAX_FINDINGS {
+                let count = flow.direct_operate_count;
+                let elapsed = now_ts.saturating_sub(flow.window_start_ts);
+                let threshold = direct_operate_threshold;
+                // BC-2.15.010 PC3: resolve master endpoint from FlowKey using direction.
+                // STORY-140 AC-140-002: replace port-heuristic with direction-based resolution.
+                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                    (flow_key.upper_ip(), flow_key.lower_ip())
+                } else {
+                    (flow_key.lower_ip(), flow_key.upper_ip())
+                };
+                let master_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Execution,
+                    verdict: crate::findings::Verdict::Likely,
+                    confidence: crate::findings::Confidence::Medium,
+                    summary: format!(
+                        "DNP3 unauthorized control command burst: {count} control FCs \
+                         in {elapsed}s window (threshold {threshold})"
+                    ),
+                    evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
+                    mitre_techniques: vec!["T1692.001".to_string()],
+                    source_ip: Some(master_ip),
+                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                    direction: None,
+                });
+                flow.direct_operate_emitted = true;
             } else {
-                (flow_key.lower_ip(), flow_key.upper_ip())
-            };
-            let master_ip = match direction {
-                Direction::ClientToServer => client_ip,
-                Direction::ServerToClient => server_ip,
-            };
-            findings.push(Finding {
-                category: crate::findings::ThreatCategory::Execution,
-                verdict: crate::findings::Verdict::Likely,
-                confidence: crate::findings::Confidence::Medium,
-                summary: format!(
-                    "DNP3 unauthorized control command burst: {count} control FCs \
-                     in {elapsed}s window (threshold {threshold})"
-                ),
-                evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
-                mitre_techniques: vec!["T1692.001".to_string()],
-                source_ip: Some(master_ip),
-                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-                direction: None,
-            });
-            flow.direct_operate_emitted = true;
+                *dropped_findings += 1;
+            }
         }
     }
 
@@ -1029,6 +1076,7 @@ impl Dnp3Analyzer {
     fn detect_restart_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         app_fc: u8,
         dest: u16,
         src: u16,
@@ -1067,6 +1115,8 @@ impl Dnp3Analyzer {
                 timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
+        } else {
+            *dropped_findings += 1;
         }
 
         // BC-2.15.011 postcondition 2 / Architecture Compliance Rule 3:
@@ -1084,6 +1134,7 @@ impl Dnp3Analyzer {
     /// Cap check: `findings.len() < MAX_FINDINGS` evaluated before push.
     fn detect_write_split(
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         dest: u16,
         src: u16,
         now_ts: u32,
@@ -1115,6 +1166,8 @@ impl Dnp3Analyzer {
                 timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
+        } else {
+            *dropped_findings += 1;
         }
     }
 
@@ -1137,6 +1190,7 @@ impl Dnp3Analyzer {
     fn scan_block_timeouts(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         now_ts: u32,
         flow_key: &FlowKey,
         direction: Direction,
@@ -1166,38 +1220,40 @@ impl Dnp3Analyzer {
             flow.block_event_count += 1;
         }
         // BC-2.15.014 PC3: emit T1691.001 when threshold reached, guard clear, in-window.
-        if flow.block_event_count >= BLOCK_CMD_THRESHOLD
-            && !flow.block_finding_emitted_this_window
-            && findings.len() < MAX_FINDINGS
+        if flow.block_event_count >= BLOCK_CMD_THRESHOLD && !flow.block_finding_emitted_this_window
         {
-            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
-                (flow_key.upper_ip(), flow_key.lower_ip())
+            if findings.len() < MAX_FINDINGS {
+                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                    (flow_key.upper_ip(), flow_key.lower_ip())
+                } else {
+                    (flow_key.lower_ip(), flow_key.upper_ip())
+                };
+                let master_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Execution,
+                    verdict: crate::findings::Verdict::Possible,
+                    confidence: crate::findings::Confidence::Low,
+                    summary: format!(
+                        "DNP3 inferred blocked command: {} requests without response \
+                         within {}s (dest={:#06X})",
+                        flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS, min_timedout_dest
+                    ),
+                    evidence: vec![format!(
+                        "block_event_count={} in correlation window; threshold={}",
+                        flow.block_event_count, BLOCK_CMD_THRESHOLD
+                    )],
+                    mitre_techniques: vec!["T1691.001".to_string()],
+                    source_ip: Some(master_ip),
+                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                    direction: None,
+                });
+                flow.block_finding_emitted_this_window = true;
             } else {
-                (flow_key.lower_ip(), flow_key.upper_ip())
-            };
-            let master_ip = match direction {
-                Direction::ClientToServer => client_ip,
-                Direction::ServerToClient => server_ip,
-            };
-            findings.push(Finding {
-                category: crate::findings::ThreatCategory::Execution,
-                verdict: crate::findings::Verdict::Possible,
-                confidence: crate::findings::Confidence::Low,
-                summary: format!(
-                    "DNP3 inferred blocked command: {} requests without response \
-                     within {}s (dest={:#06X})",
-                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS, min_timedout_dest
-                ),
-                evidence: vec![format!(
-                    "block_event_count={} in correlation window; threshold={}",
-                    flow.block_event_count, BLOCK_CMD_THRESHOLD
-                )],
-                mitre_techniques: vec!["T1691.001".to_string()],
-                source_ip: Some(master_ip),
-                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-                direction: None,
-            });
-            flow.block_finding_emitted_this_window = true;
+                *dropped_findings += 1;
+            }
         }
 
         // BC-2.15.015 PC5 / EC-002: T0827 must fire in the same on_data call that crosses
@@ -1214,6 +1270,7 @@ impl Dnp3Analyzer {
             Self::maybe_emit_t0827(
                 flow,
                 findings,
+                dropped_findings,
                 now_ts,
                 min_timedout_dest,
                 flow_key,
@@ -1281,50 +1338,52 @@ impl Dnp3Analyzer {
     fn maybe_emit_t0827(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         now_ts: u32,
         dest: u16,
         flow_key: &FlowKey,
         direction: Direction,
     ) {
         let combined = flow.restart_event_count + flow.block_event_count;
-        if combined >= T0827_THRESHOLD
-            && !flow.loss_of_control_emitted
-            && findings.len() < MAX_FINDINGS
-        {
-            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
-                (flow_key.upper_ip(), flow_key.lower_ip())
+        if combined >= T0827_THRESHOLD && !flow.loss_of_control_emitted {
+            if findings.len() < MAX_FINDINGS {
+                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                    (flow_key.upper_ip(), flow_key.lower_ip())
+                } else {
+                    (flow_key.lower_ip(), flow_key.upper_ip())
+                };
+                let master_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
+                let restart_count = flow.restart_event_count;
+                let block_count = flow.block_event_count;
+                findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Impact,
+                    verdict: crate::findings::Verdict::Likely,
+                    confidence: crate::findings::Confidence::Medium,
+                    // BC-2.15.015 PC1 exact format:
+                    // "DNP3 sustained loss-of-control pattern: {restart_count} restart events +
+                    //  {block_count} blocked commands within {elapsed}s on flow (dest={dest:#06X})"
+                    summary: format!(
+                        "DNP3 sustained loss-of-control pattern: \
+                         {restart_count} restart events + {block_count} blocked commands \
+                         within {elapsed}s on flow (dest={dest:#06X})"
+                    ),
+                    evidence: vec![format!(
+                        "restart_event_count={restart_count} block_event_count={block_count} \
+                         threshold={T0827_THRESHOLD}"
+                    )],
+                    mitre_techniques: vec!["T0827".to_string()],
+                    source_ip: Some(master_ip),
+                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                    direction: None,
+                });
+                flow.loss_of_control_emitted = true;
             } else {
-                (flow_key.lower_ip(), flow_key.upper_ip())
-            };
-            let master_ip = match direction {
-                Direction::ClientToServer => client_ip,
-                Direction::ServerToClient => server_ip,
-            };
-            let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
-            let restart_count = flow.restart_event_count;
-            let block_count = flow.block_event_count;
-            findings.push(Finding {
-                category: crate::findings::ThreatCategory::Impact,
-                verdict: crate::findings::Verdict::Likely,
-                confidence: crate::findings::Confidence::Medium,
-                // BC-2.15.015 PC1 exact format:
-                // "DNP3 sustained loss-of-control pattern: {restart_count} restart events +
-                //  {block_count} blocked commands within {elapsed}s on flow (dest={dest:#06X})"
-                summary: format!(
-                    "DNP3 sustained loss-of-control pattern: \
-                     {restart_count} restart events + {block_count} blocked commands \
-                     within {elapsed}s on flow (dest={dest:#06X})"
-                ),
-                evidence: vec![format!(
-                    "restart_event_count={restart_count} block_event_count={block_count} \
-                     threshold={T0827_THRESHOLD}"
-                )],
-                mitre_techniques: vec!["T0827".to_string()],
-                source_ip: Some(master_ip),
-                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-                direction: None,
-            });
-            flow.loss_of_control_emitted = true;
+                *dropped_findings += 1;
+            }
         }
     }
 
@@ -1343,6 +1402,7 @@ impl Dnp3Analyzer {
     fn detect_broadcast_anomaly(
         _flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         app_fc: u8,
         dest: u16,
         src: u16,
@@ -1381,6 +1441,8 @@ impl Dnp3Analyzer {
                 timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
+        } else {
+            *dropped_findings += 1;
         }
         // BC-2.15.018 PC2: direct_operate_count incremented so burst threshold can fire.
         // The burst detection (detect_control_class_burst_split) runs after this in on_data
@@ -1406,6 +1468,7 @@ impl Dnp3Analyzer {
     fn detect_unexpected_source_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         app_fc: u8,
         dest: u16,
         src: u16,
@@ -1413,7 +1476,11 @@ impl Dnp3Analyzer {
         flow_key: &FlowKey,
         direction: Direction,
     ) {
-        if flow.unexpected_source_emitted || findings.len() >= MAX_FINDINGS {
+        if flow.unexpected_source_emitted {
+            return;
+        }
+        if findings.len() >= MAX_FINDINGS {
+            *dropped_findings += 1;
             return;
         }
         // Build the expected master set string from master_addrs_seen, EXCLUDING `src`.
@@ -1477,6 +1544,7 @@ impl Dnp3Analyzer {
     fn detect_unsolicited_anomaly(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         app_fc: u8,
         app_ctrl: u8,
         dest: u16,
@@ -1497,44 +1565,47 @@ impl Dnp3Analyzer {
             if !flow.enable_unsolicited_seen
                 && !flow.response_seen
                 && !flow.unsolicited_anomaly_emitted
-                && findings.len() < MAX_FINDINGS
             {
-                // UNS bit is bit 4 (0x10) of the application control byte
-                // (IEEE Std 1815-2012 §7.2.3); included in BC-2.15.019 PC1 evidence.
-                let uns_bit = (app_ctrl & 0x10) != 0;
-                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
-                    (flow_key.upper_ip(), flow_key.lower_ip())
+                if findings.len() < MAX_FINDINGS {
+                    // UNS bit is bit 4 (0x10) of the application control byte
+                    // (IEEE Std 1815-2012 §7.2.3); included in BC-2.15.019 PC1 evidence.
+                    let uns_bit = (app_ctrl & 0x10) != 0;
+                    let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                        (flow_key.upper_ip(), flow_key.lower_ip())
+                    } else {
+                        (flow_key.lower_ip(), flow_key.upper_ip())
+                    };
+                    let master_ip = match direction {
+                        Direction::ClientToServer => client_ip,
+                        Direction::ServerToClient => server_ip,
+                    };
+                    findings.push(Finding {
+                        category: crate::findings::ThreatCategory::Suspicious,
+                        verdict: crate::findings::Verdict::Possible,
+                        confidence: crate::findings::Confidence::Low,
+                        // BC-2.15.019 PC1 exact summary format:
+                        // "DNP3 unexpected unsolicited response: UNSOLICITED_RESPONSE from
+                        //  src={src:#06X} with no prior ENABLE_UNSOLICITED or solicited
+                        //  exchange on this flow"
+                        summary: format!(
+                            "DNP3 unexpected unsolicited response: \
+                             UNSOLICITED_RESPONSE from src={src:#06X} \
+                             with no prior ENABLE_UNSOLICITED or solicited exchange on this flow"
+                        ),
+                        // BC-2.15.019 PC1 exact evidence format:
+                        // "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
+                        evidence: vec![format!(
+                            "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
+                        )],
+                        mitre_techniques: vec!["T0814".to_string()],
+                        source_ip: Some(master_ip),
+                        timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                        direction: None,
+                    });
+                    flow.unsolicited_anomaly_emitted = true;
                 } else {
-                    (flow_key.lower_ip(), flow_key.upper_ip())
-                };
-                let master_ip = match direction {
-                    Direction::ClientToServer => client_ip,
-                    Direction::ServerToClient => server_ip,
-                };
-                findings.push(Finding {
-                    category: crate::findings::ThreatCategory::Suspicious,
-                    verdict: crate::findings::Verdict::Possible,
-                    confidence: crate::findings::Confidence::Low,
-                    // BC-2.15.019 PC1 exact summary format:
-                    // "DNP3 unexpected unsolicited response: UNSOLICITED_RESPONSE from
-                    //  src={src:#06X} with no prior ENABLE_UNSOLICITED or solicited
-                    //  exchange on this flow"
-                    summary: format!(
-                        "DNP3 unexpected unsolicited response: \
-                         UNSOLICITED_RESPONSE from src={src:#06X} \
-                         with no prior ENABLE_UNSOLICITED or solicited exchange on this flow"
-                    ),
-                    // BC-2.15.019 PC1 exact evidence format:
-                    // "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
-                    evidence: vec![format!(
-                        "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
-                    )],
-                    mitre_techniques: vec!["T0814".to_string()],
-                    source_ip: Some(master_ip),
-                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-                    direction: None,
-                });
-                flow.unsolicited_anomaly_emitted = true;
+                    *dropped_findings += 1;
+                }
             }
         }
     }
@@ -1555,6 +1626,7 @@ impl Dnp3Analyzer {
     fn detect_unsolicited_control(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         app_fc: u8,
         dest: u16,
         src: u16,
@@ -1594,6 +1666,8 @@ impl Dnp3Analyzer {
                         timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                         direction: None,
                     });
+                } else {
+                    *dropped_findings += 1;
                 }
             }
             0x14 => {
@@ -1631,6 +1705,8 @@ impl Dnp3Analyzer {
                         timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                         direction: None,
                     });
+                } else {
+                    *dropped_findings += 1;
                 }
             }
             _ => {}
@@ -1650,6 +1726,7 @@ impl Dnp3Analyzer {
     fn check_malformed_anomaly(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
+        dropped_findings: &mut u64,
         now_ts: u32,
         flow_key: &FlowKey,
         direction: Direction,
@@ -1663,43 +1740,46 @@ impl Dnp3Analyzer {
         if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
             && !flow.malformed_anomaly_emitted
             && in_window
-            && findings.len() < MAX_FINDINGS
         {
-            let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
-            let count = flow.malformed_in_window;
-            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
-                (flow_key.upper_ip(), flow_key.lower_ip())
+            if findings.len() < MAX_FINDINGS {
+                let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
+                let count = flow.malformed_in_window;
+                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                    (flow_key.upper_ip(), flow_key.lower_ip())
+                } else {
+                    (flow_key.lower_ip(), flow_key.upper_ip())
+                };
+                let master_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                let src_ip = flow_key.lower_ip();
+                let dest_ip = flow_key.upper_ip();
+                findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Anomaly,
+                    verdict: crate::findings::Verdict::Possible,
+                    confidence: crate::findings::Confidence::Low,
+                    summary: format!(
+                        "DNP3 structural anomaly: {count} malformed frames \
+                         in {elapsed}s window (flow {src_ip}\u{2192}{dest_ip}) \
+                         \u{2014} possible Crain-Sistrunk crash-probe"
+                    ),
+                    // BC-2.15.024 PC3 exact evidence format:
+                    // "malformed_in_window={count} in correlation window; threshold={threshold}"
+                    // (parse_errors field is NOT included)
+                    evidence: vec![format!(
+                        "malformed_in_window={count} in correlation window; \
+                         threshold={MALFORMED_ANOMALY_THRESHOLD}"
+                    )],
+                    mitre_techniques: vec!["T0814".to_string()],
+                    source_ip: Some(master_ip),
+                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                    direction: None,
+                });
+                flow.malformed_anomaly_emitted = true;
             } else {
-                (flow_key.lower_ip(), flow_key.upper_ip())
-            };
-            let master_ip = match direction {
-                Direction::ClientToServer => client_ip,
-                Direction::ServerToClient => server_ip,
-            };
-            let src_ip = flow_key.lower_ip();
-            let dest_ip = flow_key.upper_ip();
-            findings.push(Finding {
-                category: crate::findings::ThreatCategory::Anomaly,
-                verdict: crate::findings::Verdict::Possible,
-                confidence: crate::findings::Confidence::Low,
-                summary: format!(
-                    "DNP3 structural anomaly: {count} malformed frames \
-                     in {elapsed}s window (flow {src_ip}\u{2192}{dest_ip}) \
-                     \u{2014} possible Crain-Sistrunk crash-probe"
-                ),
-                // BC-2.15.024 PC3 exact evidence format:
-                // "malformed_in_window={count} in correlation window; threshold={threshold}"
-                // (parse_errors field is NOT included)
-                evidence: vec![format!(
-                    "malformed_in_window={count} in correlation window; \
-                     threshold={MALFORMED_ANOMALY_THRESHOLD}"
-                )],
-                mitre_techniques: vec!["T0814".to_string()],
-                source_ip: Some(master_ip),
-                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-                direction: None,
-            });
-            flow.malformed_anomaly_emitted = true;
+                *dropped_findings += 1;
+            }
         }
     }
 
@@ -1780,6 +1860,20 @@ impl Dnp3Analyzer {
             "flows_analyzed".to_string(),
             serde_json::Value::Number(flows_analyzed.into()),
         );
+        // BC-2.15.022 v1.5 / BC-2.15.020 v1.5: three observability counters.
+        // Always present, zero-defaulted when the cap/eviction event has never fired.
+        detail.insert(
+            "dropped_findings".to_string(),
+            serde_json::Value::Number(self.dropped_findings.into()),
+        );
+        detail.insert(
+            "master_addrs_dropped".to_string(),
+            serde_json::Value::Number(self.master_addrs_dropped.into()),
+        );
+        detail.insert(
+            "pending_requests_evicted".to_string(),
+            serde_json::Value::Number(self.pending_requests_evicted.into()),
+        );
 
         AnalysisSummary {
             analyzer_name: "DNP3".to_string(),
@@ -1796,7 +1890,10 @@ impl Dnp3Analyzer {
     /// (oldest) is evicted **before** the new entry is inserted (ties broken arbitrarily
     /// per PC9). The evicted entry is silently dropped — it generates NO T1691.001
     /// timeout event (PC10).
-    fn insert_pending_request(flow: &mut Dnp3FlowState, key: (u16, u8), request_ts: u32) {
+    ///
+    /// Returns `true` when an LRU eviction occurred (BC-2.15.016 v2.1 PC-10 counter site);
+    /// returns `false` on a normal insert or in-place overwrite.
+    fn insert_pending_request(flow: &mut Dnp3FlowState, key: (u16, u8), request_ts: u32) -> bool {
         // If the key already exists we are overwriting in place — no growth, no eviction.
         if flow.pending_requests.len() >= MAX_PENDING_REQUESTS
             && !flow.pending_requests.contains_key(&key)
@@ -1810,8 +1907,11 @@ impl Dnp3Analyzer {
             {
                 flow.pending_requests.remove(&oldest_key);
             }
+            flow.pending_requests.insert(key, request_ts);
+            return true;
         }
         flow.pending_requests.insert(key, request_ts);
+        false
     }
 }
 

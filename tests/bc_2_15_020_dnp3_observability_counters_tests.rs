@@ -119,18 +119,15 @@ mod bc_2_15_020_dnp3_observability_counters {
     fn test_BC_2_15_020_dropped_findings_key_present_zero_on_fresh_analyzer() {
         let analyzer = Dnp3Analyzer::new(10);
         let summary = analyzer.summarize();
-        let val = summary
-            .detail
-            .get("dropped_findings")
-            .unwrap_or_else(|| {
-                panic!(
-                    "BC-2.15.020 v1.5 / BC-2.15.022 v1.5: Dnp3Analyzer summarize() must contain \
+        let val = summary.detail.get("dropped_findings").unwrap_or_else(|| {
+            panic!(
+                "BC-2.15.020 v1.5 / BC-2.15.022 v1.5: Dnp3Analyzer summarize() must contain \
                      key 'dropped_findings' (u64, always-present, 0 when cap never hit). \
                      Key is MISSING — red gate expected on current code. \
                      Keys present: {:?}",
-                    summary.detail.keys().collect::<Vec<_>>()
-                )
-            });
+                summary.detail.keys().collect::<Vec<_>>()
+            )
+        });
         assert_eq!(
             val.as_u64(),
             Some(0),
@@ -395,8 +392,7 @@ mod bc_2_15_020_dnp3_observability_counters {
             .expect("'master_addrs_dropped' key must still be present after re-visit");
 
         assert_eq!(
-            after,
-            before,
+            after, before,
             "BC-2.15.016 v2.1 NEG (negative): 'master_addrs_dropped' must NOT increment when \
              a KNOWN master address (src=0, already in master_addrs_seen) is re-seen while \
              master_addrs_seen is at MAX_MASTER_ADDRS={}. \
@@ -451,7 +447,12 @@ mod bc_2_15_020_dnp3_observability_counters {
         // After: oldest entry evicted, new entry inserted, map still at 256,
         //        `pending_requests_evicted` incremented by 1.
         let eviction_frame = build_dnp3_detection_frame(0x05, MAX_PENDING_REQUESTS as u16, 1u16);
-        analyzer.on_data(key.clone(), &eviction_frame, 1000, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &eviction_frame,
+            1000,
+            Direction::ClientToServer,
+        );
 
         let summary = analyzer.summarize();
         let evicted = summary
@@ -493,8 +494,8 @@ mod bc_2_15_020_dnp3_observability_counters {
     ///
     /// RED GATE: key absent → panic before the zero assertion.
     #[test]
-    fn test_BC_2_15_016_NEG_normal_request_response_completion_does_not_increment_pending_requests_evicted(
-    ) {
+    fn test_BC_2_15_016_NEG_normal_request_response_completion_does_not_increment_pending_requests_evicted()
+     {
         let mut analyzer = Dnp3Analyzer::new(1000);
         let key = dnp3_flow_key();
 
@@ -525,8 +526,7 @@ mod bc_2_15_020_dnp3_observability_counters {
             .expect("'pending_requests_evicted' must be a u64");
 
         assert_eq!(
-            evicted,
-            0,
+            evicted, 0,
             "BC-2.15.016 v2.1 (negative): 'pending_requests_evicted' must be 0 after a normal \
              DIRECT_OPERATE (FC=0x05) / RESPONSE (FC=0x81) completion. Normal pending_requests \
              removal is NOT an LRU eviction. Got {evicted}."
@@ -604,14 +604,12 @@ mod bc_2_15_020_dnp3_observability_counters {
             // Assert no new Finding from the master_addrs drop event itself.
             let findings_after_drop = analyzer.all_findings.len();
             assert_eq!(
-                findings_after_drop,
-                findings_before_drop,
+                findings_after_drop, findings_before_drop,
                 "DNP3-EVICTION-NO-FINDING-NEG-TEST-001 Part A / BC-2.15.016 v2.1 Inv-2 \
                  (negative): `all_findings` must not grow due to a master_addrs_dropped counter \
                  event. Before drop: {} finding(s). After drop: {} finding(s). \
                  A cap-triggered master-address ignore is COUNTER-ONLY — no Finding emitted.",
-                findings_before_drop,
-                findings_after_drop
+                findings_before_drop, findings_after_drop
             );
         }
 
@@ -630,7 +628,12 @@ mod bc_2_15_020_dnp3_observability_counters {
 
             let eviction_frame =
                 build_dnp3_detection_frame(0x05, MAX_PENDING_REQUESTS as u16, 1u16);
-            analyzer.on_data(key.clone(), &eviction_frame, 1000, Direction::ClientToServer);
+            analyzer.on_data(
+                key.clone(),
+                &eviction_frame,
+                1000,
+                Direction::ClientToServer,
+            );
 
             // Assert counter was incremented (RED GATE: panics on missing key).
             let summary = analyzer.summarize();
@@ -657,14 +660,12 @@ mod bc_2_15_020_dnp3_observability_counters {
             // Assert no new Finding from the LRU eviction event itself.
             let findings_after_evict = analyzer.all_findings.len();
             assert_eq!(
-                findings_after_evict,
-                findings_before_evict,
+                findings_after_evict, findings_before_evict,
                 "DNP3-EVICTION-NO-FINDING-NEG-TEST-001 Part B / BC-2.15.016 v2.1 Inv-5 \
                  (negative): `all_findings` must not grow due to a pending_requests LRU \
                  eviction. Before eviction: {} finding(s). After eviction: {} finding(s). \
                  LRU eviction is COUNTER-ONLY — no Finding, no T1691.001 timeout event.",
-                findings_before_evict,
-                findings_after_evict
+                findings_before_evict, findings_after_evict
             );
         }
 
