@@ -143,8 +143,12 @@ jobs:
       - name: Run cargo audit
         # RUSTSEC-2025-0119 (number_prefix unmaintained) was resolved by bumping
         # indicatif 0.17→0.18, which replaced number_prefix with unit-prefix.
-        # RUSTSEC-2026-0097 (rand 0.8.5 unsound via phf_generator -> tls-parser)
-        # was resolved by bumping rand 0.8.5 -> 0.8.6 (maint-2026-06-22).
+        # RUSTSEC-2026-0097 (rand 0.8.5 unsound): rand does not appear as a
+        # direct wirerust dependency; it is pulled transitively via the chain
+        # wirerust → tls-parser → phf_generator → rand 0.8.x. tls-parser uses
+        # phf_generator to build its compile-time hash tables, and phf_generator
+        # depends on rand for its hash-key generation. Resolved by bumping rand
+        # 0.8.5 → 0.8.6 via `cargo update -p rand` (maint-2026-06-22, PR #304).
         run: cargo audit
 
   deny:

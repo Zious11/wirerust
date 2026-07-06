@@ -700,7 +700,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   Detects Modbus traffic on port 502; parses the MBAP header (transaction ID, protocol ID, length,
   unit ID) and function code; per-flow transaction correlation with bounded pending-table (request /
   response matching). Emits findings mapped to **7 MITRE ATT&CK for ICS techniques**:
-  - T0855 Unauthorized Command Message (write-class function codes)
+  - T0855 Unauthorized Command Message (write-class function codes) (→ remapped to T1692.001 in v0.5.0)
   - T0836 Modify Parameter (write-register / write-coil)
   - T0835 Manipulate I/O Image (force-listen-only, write-multiple coils)
   - T0831 Manipulation of Control (mask write register, write file record)

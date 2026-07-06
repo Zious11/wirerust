@@ -154,6 +154,7 @@ Analyzers register themselves in a global registry (e.g., via `inventory` crate)
 | Modbus | `StreamAnalyzer` | `src/analyzer/modbus.rs` | v0.4.0 |
 | DNP3 | custom dispatch interface (see ADR-0007) | `src/analyzer/dnp3.rs` | v0.6.0 |
 | ARP | custom packet-level interface (no separate ADR; see §Deviations below) | `src/analyzer/arp.rs` | v0.7.0 |
+| EtherNet/IP | custom dispatch interface (see ADR-010 and §Deviations below) | `src/analyzer/enip.rs` | v0.11.0 |
 
 ### Deviations from generic traits (DNP3 and ARP)
 
@@ -171,6 +172,14 @@ Their actual interfaces are:
   as a plain inherent method. Only `DnsAnalyzer` implements `ProtocolAnalyzer`. The ARP analyzer
   operates at the packet level but is dispatched directly from the frame loop in `main.rs` without
   going through the trait interface.
+
+- **`EnipAnalyzer`** — exposes `on_data(flow_key: FlowKey, data: &[u8], timestamp: u32,
+  direction: Direction)` and `on_flow_close(flow_key: FlowKey)` as plain inherent methods.
+  `src/dispatcher.rs` calls them directly (not via the `StreamHandler` trait). The deviation from
+  the generic `StreamAnalyzer` trait is purely that `EnipAnalyzer` was not retrofitted to that
+  interface (see tech-debt item PC-023). The dispatcher arm calls
+  `enip.on_data(flow_key.clone(), ...)` with a per-packet `FlowKey` clone. See ADR-010 for the
+  full EtherNet/IP design rationale.
 
 The "Adding a New Analyzer" steps above describe the standard generic-trait path. For DNP3, step 2
 is replaced by direct inherent-method dispatch as described in ADR-0007. For ARP, step 2 is

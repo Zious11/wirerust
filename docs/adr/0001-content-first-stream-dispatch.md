@@ -35,6 +35,7 @@ pub struct StreamDispatcher {
     tls: Option<TlsAnalyzer>,
     modbus: Option<ModbusAnalyzer>,  // Rule 5: port-502 flows (ADR-005)
     dnp3: Option<Dnp3Analyzer>,      // Rule 6: port-20000 flows (ADR-007)
+    enip: Option<EnipAnalyzer>,      // Rule 7: port-44818 flows (ADR-010)
     unclassified_flows: u64,
 }
 
@@ -43,6 +44,7 @@ enum DispatchTarget {
     Tls,
     Modbus,
     Dnp3,
+    Enip,
     None,
 }
 ```
@@ -55,7 +57,8 @@ Classification rule order (see module-level comment in `src/dispatcher.rs`):
 4. Port 80/8080 → `Http`
 5. Port 502 → `Modbus`
 6. Port 20000 → `Dnp3`
-7. No match → `None`
+7. Port 44818 → `Enip` (ADR-010)
+8. No match → `None`
 
 ## Alternatives Considered
 
@@ -94,7 +97,7 @@ Check port first (fast path), content detection only for unknown ports.
 ## Consequences
 
 - **New struct:** `StreamDispatcher` in `src/dispatcher.rs`.
-- **main.rs changes:** Replace direct `HttpAnalyzer` handler with `StreamDispatcher` wrapping `Option<HttpAnalyzer>`, `Option<TlsAnalyzer>`, `Option<ModbusAnalyzer>`, and `Option<Dnp3Analyzer>`.
+- **main.rs changes:** Replace direct `HttpAnalyzer` handler with `StreamDispatcher` wrapping `Option<HttpAnalyzer>`, `Option<TlsAnalyzer>`, `Option<ModbusAnalyzer>`, `Option<Dnp3Analyzer>`, and `Option<EnipAnalyzer>`.
 - **Per-flow routing map:** Small memory overhead (~64 bytes per flow for the HashMap entry). Cleaned up on `on_flow_close`.
 - **New analyzers** add an `Option<FooAnalyzer>` field, a port rule in the classify function, and a new `DispatchTarget` variant. No change to the reassembly engine.
 - **Edge case:** If the first `on_data` delivery has < 5 bytes (extremely rare — requires pathological TCP segmentation), the dispatcher falls back to port hints. This matches Zeek's approach with its `dpd_buffer_size` parameter, though Zeek buffers up to 1024 bytes. For wirerust v1, single-delivery classification with port fallback is sufficient.
