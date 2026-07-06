@@ -152,13 +152,16 @@ mod story_113_cli {
                  the \"analyzers\" array when --arp flag is active. No 'ARP' entry found.",
             );
 
-        // BC-2.16.010 PC1: the ARP summary must contain all eleven canonical keys.
+        // BC-2.16.010 v1.9 PC1: the ARP summary must contain all thirteen canonical keys.
+        // Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
+        // and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
+        // RED GATE: these two new keys are absent from the current summarize() implementation.
         let detail = arp_summary
             .get("detail")
             .and_then(|d| d.as_object())
             .expect(
-                "AC-016 / BC-2.16.010 PC1: ARP AnalysisSummary must have a 'detail' \
-                 object containing the eleven canonical keys.",
+                "AC-016 / BC-2.16.010 v1.9 PC1: ARP AnalysisSummary must have a 'detail' \
+                 object containing the thirteen canonical keys.",
             );
 
         const REQUIRED_KEYS: &[&str] = &[
@@ -167,9 +170,11 @@ mod story_113_cli {
             "reply_count",
             "other_opcode_count",
             "bindings_tracked",
+            "bindings_evicted",
             "spoof_findings",
             "garp_findings",
             "storm_findings",
+            "storm_counters_evicted",
             "mismatch_findings",
             "malformed_findings",
             "malformed_frames",
@@ -178,7 +183,7 @@ mod story_113_cli {
         for key in REQUIRED_KEYS {
             assert!(
                 detail.contains_key(*key),
-                "AC-016 / BC-2.16.010 PC1: ARP summary 'detail' must contain key '{}'. \
+                "AC-016 / BC-2.16.010 v1.9 PC1: ARP summary 'detail' must contain key '{}'. \
                  Keys present: {:?}",
                 key,
                 detail.keys().collect::<Vec<_>>()
@@ -187,9 +192,9 @@ mod story_113_cli {
 
         assert_eq!(
             detail.len(),
-            11,
-            "AC-016 / BC-2.16.010 Invariant 1: ARP summary 'detail' must contain \
-             exactly 11 keys. Got {}. Keys: {:?}",
+            13,
+            "AC-016 / BC-2.16.010 v1.9 Invariant 1: ARP summary 'detail' must contain \
+             exactly 13 keys. Got {}. Keys: {:?}",
             detail.len(),
             detail.keys().collect::<Vec<_>>()
         );

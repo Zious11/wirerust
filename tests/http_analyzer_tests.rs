@@ -268,8 +268,12 @@ fn test_summarize_produces_complete_output() {
 
     let detail = &summary.detail;
 
-    // AC-002: exact 9-key set — no extras, no missing.
+    // AC-002: exact 10-key set — no extras, no missing.
+    // Updated 9→10 for BC-2.06.023 v1.6: adds `dropped_map_entries`
+    // (silent-limit audit, surface-silent-resource-caps; key always present even when count==0).
+    // RED GATE: `dropped_map_entries` is absent from the current summarize() implementation.
     let expected_keys: std::collections::BTreeSet<&str> = [
+        "dropped_map_entries",
         "methods",
         "non_http_flows",
         "parse_errors",
@@ -286,7 +290,7 @@ fn test_summarize_produces_complete_output() {
     let actual_keys: std::collections::BTreeSet<&str> = detail.keys().map(|k| k.as_str()).collect();
     assert_eq!(
         actual_keys, expected_keys,
-        "BC-2.06.023 postcondition 1 detail map keys: must contain exactly these 9 keys"
+        "BC-2.06.023 v1.6 postcondition 1 detail map keys: must contain exactly these 10 keys"
     );
 
     // Spot-check values to confirm the map is populated correctly.

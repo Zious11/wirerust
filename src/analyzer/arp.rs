@@ -2024,16 +2024,21 @@ mod tests {
         let analyzer = ArpAnalyzer::new_for_test();
         let summary = analyzer.summarize();
 
-        // All eleven canonical keys must be present and equal 0 (BC-2.16.010 EC-001)
+        // All thirteen canonical keys must be present and equal 0 (BC-2.16.010 v1.9 EC-001).
+        // Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
+        // and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
+        // RED GATE: these two new keys are absent from the current summarize() implementation.
         const EXPECTED_KEYS: &[&str] = &[
             "frames_analyzed",
             "request_count",
             "reply_count",
             "other_opcode_count",
             "bindings_tracked",
+            "bindings_evicted",
             "spoof_findings",
             "garp_findings",
             "storm_findings",
+            "storm_counters_evicted",
             "mismatch_findings",
             "malformed_findings",
             "malformed_frames",
@@ -2055,23 +2060,29 @@ mod tests {
         }
     }
 
-    /// AC-013b (BC-2.16.010 Invariant 1): exactly eleven keys in detail — no extras, no fewer.
+    /// AC-013b (BC-2.16.010 v1.9 Invariant 1): exactly thirteen keys in detail — no extras, no fewer.
+    ///
+    /// Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
+    /// and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
+    /// RED GATE: these two new keys are absent from the current summarize() implementation.
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_010_summarize_key_names_exact() {
         let analyzer = ArpAnalyzer::new_for_test();
         let summary = analyzer.summarize();
 
-        // Exact eleven key names per BC-2.16.010 PC1 (authority over any story body wording)
+        // Exact thirteen key names per BC-2.16.010 v1.9 PC1.
         let mut expected: std::collections::BTreeSet<&str> = [
             "frames_analyzed",
             "request_count",
             "reply_count",
             "other_opcode_count",
             "bindings_tracked",
+            "bindings_evicted",
             "spoof_findings",
             "garp_findings",
             "storm_findings",
+            "storm_counters_evicted",
             "mismatch_findings",
             "malformed_findings",
             "malformed_frames",
@@ -2085,8 +2096,8 @@ mod tests {
 
         assert_eq!(
             actual.len(),
-            11,
-            "AC-013 / BC-2.16.010 Invariant 1: summarize() must return exactly 11 \
+            13,
+            "AC-013 / BC-2.16.010 v1.9 Invariant 1: summarize() must return exactly 13 \
              keys. Got {}. Keys present: {actual:?}",
             actual.len()
         );
@@ -2094,7 +2105,7 @@ mod tests {
         for key in &expected {
             assert!(
                 actual.contains(key),
-                "AC-013 / BC-2.16.010 PC1: required key '{key}' is MISSING from summarize() \
+                "AC-013 / BC-2.16.010 v1.9 PC1: required key '{key}' is MISSING from summarize() \
                  output. Actual keys: {actual:?}"
             );
         }
@@ -2115,9 +2126,11 @@ mod tests {
                     "reply_count",
                     "other_opcode_count",
                     "bindings_tracked",
+                    "bindings_evicted",
                     "spoof_findings",
                     "garp_findings",
                     "storm_findings",
+                    "storm_counters_evicted",
                     "mismatch_findings",
                     "malformed_findings",
                     "malformed_frames",
@@ -2127,7 +2140,7 @@ mod tests {
             .collect();
         assert!(
             extras.is_empty(),
-            "AC-013 / BC-2.16.010 Invariant 1: summarize() must contain EXACTLY 11 keys. \
+            "AC-013 / BC-2.16.010 v1.9 Invariant 1: summarize() must contain EXACTLY 13 keys. \
              Unexpected extra keys found: {extras:?}"
         );
     }
