@@ -7,13 +7,13 @@ inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
-mode: maintenance
+mode: steady-state
 phase: steady-state
-status: in_progress
-current_step: "MAINTENANCE maint-2026-07-06 FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 both READY-FOR-HUMAN-MERGE (CI green, reviews converged). FIX-C/FIX-D/stories/register committed. BC-INDEX v2.19, VP-INDEX v2.35, HS-INDEX v2.12, STORY-INDEX v3.15, module-criticality v1.6. Awaiting human PR merges, then state-final close-out. trajectory-tail →0→0→0→0 (maintenance; no adversarial passes)."
+status: complete
+current_step: "D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A-D delivered: PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) all merged. FIX-C holdouts repaired (HS-INDEX v2.12), FIX-D spec hygiene (VP-INDEX v2.35, module-criticality v1.6), BC-INDEX v2.19, STORY-INDEX v3.15 (STORY-156 new; STORY-149 wave 70). Pipeline IDLE. Next: deliver wave 70 (STORY-149) or await next request. Note: develop 3 commits ahead of v0.11.4 — release when appropriate. trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-06"
-pipeline: IN_PROGRESS
-timestamp: 2026-07-06T14:00:00Z
+pipeline: PAUSED
+timestamp: 2026-07-06T23:59:00Z
 
 # Release chain (latest)
 released_version: v0.11.4
@@ -24,9 +24,9 @@ release_commit: f0f2136d1f43475cb2372193875ea516cc137218
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.4
 prior_released_version: v0.11.3
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (verified 2026-07-06 — v0.11.4 released; PR #367 → main; PR #368 back-merge → develop; develop has NO unreleased commits)
+# Ground-truth HEADs (verified 2026-07-06 — maint-2026-07-06 COMPLETE; PRs #369+#370+#371 merged; develop has 3 unreleased commits ahead of v0.11.4)
 main_head: f0f2136d1f43475cb2372193875ea516cc137218
-develop_head: f7460b403962a690bd0f81e4ad41185b893b830b
+develop_head: d3e153cf9926746a48cd7d1394f4a55be0950fd6
 # Cargo.toml version on main and develop (in sync)
 cargo_version_main: "0.11.4"
 cargo_version_develop: "0.11.4"
@@ -52,8 +52,9 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 # Maintenance
-maintenance_run: FIX_PHASE_COMPLETE
+maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-07-06
+maintenance_completed_at: "2026-07-06"
 maintenance_started_at: "2026-07-06"
 maintenance_prior_run: maint-2026-07-01
 ---
@@ -62,7 +63,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**MAINTENANCE maint-2026-07-06 FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE (CI green, reviews converged). FIX-C/FIX-D/stories/register committed to factory-artifacts. BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out. trajectory-tail →0→0→0→0.**
+**D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A-D delivered: PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) all merged. FIX-C holdouts repaired (HS-INDEX v2.12), FIX-D spec hygiene (VP-INDEX v2.35, module-criticality v1.6), BC-INDEX v2.19, STORY-INDEX v3.15 (STORY-156 new; STORY-149 wave 70). Pipeline IDLE. Next: deliver wave 70 (STORY-149) or await next request. develop 3 commits ahead of v0.11.4 — release when appropriate. trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -71,16 +72,16 @@ maintenance_prior_run: maint-2026-07-01
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state (cycle: feature-protocol-coverage CLOSED D-382) |
-| Version | 0.11.4 (released 2026-07-06) |
+| Mode | steady-state (maint-2026-07-06 COMPLETE D-391) |
+| Version | 0.11.4 (released 2026-07-06); develop has 3 unreleased commits ahead of v0.11.4 |
 | Main HEAD | `f0f2136` (full: `f0f2136d1f43475cb2372193875ea516cc137218`) |
-| Develop HEAD | `f7460b4` (full: `f7460b403962a690bd0f81e4ad41185b893b830b`) — NO unreleased commits |
+| Develop HEAD | `d3e153c` (full: `d3e153cf9926746a48cd7d1394f4a55be0950fd6`) — 3 unreleased commits ahead of v0.11.4 |
 | Tag v0.11.4 | commit `f0f2136`; tag object `e6ee614` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.4 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.18 (345 active, 8 amended) / VP-INDEX v2.34 (43 VPs) / ARCH-INDEX v2.12 / PRD v1.51 |
+| Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 109 total (STORY-INDEX v3.15) |
-| **Last Updated** | 2026-07-06 — maint-2026-07-06 FIX PHASE COMPLETE (D-390). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C/FIX-D committed. BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. trajectory-tail →0→0→0→0. |
+| **Last Updated** | 2026-07-06 — D-391 maint-2026-07-06 COMPLETE. PRs #369+#370+#371 merged. BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15. develop=d3e153c (3 unreleased commits). trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -112,7 +113,7 @@ maintenance_prior_run: maint-2026-07-01
 | v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
 | Silent-limit audit + observability counters (D-385, 2026-07-06) | **RELEASED in v0.11.4 (PR #365, cc2a87c + PR #366 follow-ups, f7460b4)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. |
 | v0.11.4 RELEASED (D-386, 2026-07-06) | **RELEASED 2026-07-06** | PR #366 (follow-up test hardening + ARP refactor, squash to develop); PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop has NO unreleased commits. |
-| Maintenance maint-2026-07-06 | **FIX_PHASE_COMPLETE 2026-07-06 (D-390)** | FIX-A PR #369 (docs) + FIX-B PR #370 (code PC-016/017) READY-FOR-HUMAN-MERGE. FIX-C: 4 holdout scenarios repaired + HS-INDEX v2.12. FIX-D: VP shards vp-025..031/041..043 + module-criticality v1.6 + VP-INDEX v2.35 (TD-031). BC-INDEX v2.19. STORY-156 + STORY-149 wave 70 + STORY-107 v1.4. STORY-INDEX v3.15. trajectory-tail →0→0→0→0. |
+| Maintenance maint-2026-07-06 | **COMPLETE 2026-07-06 (D-391)** | 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A–D delivered. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged. FIX-C: HS-INDEX v2.12 (HOLDOUT-001 repaired; HOLDOUT-002 false finding). FIX-D: VP-INDEX v2.35 / module-criticality v1.6. BC-INDEX v2.19. STORY-156 new; STORY-149 wave 70. develop=d3e153c (3 unreleased commits ahead of v0.11.4). findings_count: 39, fixes_applied: 4 routes + 1 out-of-band dep fix, fixes_pending: 0. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -131,6 +132,7 @@ maintenance_prior_run: maint-2026-07-01
 | **FIX-C: 4 holdout scenarios repaired + HS-INDEX v2.12 committed to factory-artifacts (maint-2026-07-06, 2026-07-06). HS-061 (HTTP summary output shape), HS-064 (JSON reporter schema+encoding), HS-066 (TLS summarize output completeness), HS-075 (JSON reporter skipped-packets always present) — all updated to reflect observability counter additions from v0.11.4.** | **DONE** | Committed factory-artifacts. |
 | **FIX-D: VP shards + spec hygiene committed to factory-artifacts (maint-2026-07-06, 2026-07-06). 10 new VP shard files (vp-025..031, vp-041..043); module-criticality v1.6 (26 components); VP-INDEX v2.35 (TD-031 remediation). Spec-changelog entry added. STORY-156 (E-16 BC-2.16.016 gap); STORY-149 wave TBD→70; STORY-107 v1.4 propagation; STORY-INDEX v3.15 (109 stories / 70 waves / 697 pts). Tech-debt-register v1.3+ (nomenclature corrections, FIX-B in-progress). Research: df-validation-pc019-pc020-2026-07-06.md.** | **DONE** | Committed factory-artifacts. |
 | **FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C + FIX-D artifacts committed. Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out.** | **FIX_PHASE_COMPLETE (D-390)** | trajectory-tail →0→0→0→0. |
+| **STATE-FINAL maint-2026-07-06 COMPLETE (D-391, 2026-07-06). All fix PRs merged. PR #369 (e40fe8a) + PR #370 (d3e153c) + PR #371 (359726b) merged to develop. tech-debt-register v1.4. Lessons logged (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). develop=d3e153c (3 unreleased commits ahead of v0.11.4).** | **COMPLETE (D-391)** | trajectory-tail →0→0→0→0. |
 
 ## Decisions Log
 
@@ -226,6 +228,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-387 | SESSION WRAP (human-requested, 2026-07-06). Pipeline PAUSED at IDLE post v0.11.4 release. No in-flight work. Untracked artifact `.factory/code-delivery/silent-limit-followups/` (PR #366 description) included in pause commit. Session resume checkpoint updated; prior IDLE checkpoint archived to cycles/feature-protocol-coverage/session-checkpoints.md. | 2026-07-06 |
 | D-388 | Maintenance run maint-2026-07-06 STARTED. Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A (CLI product, dtu_required:false). Baseline: develop f7460b4, main f0f2136, v0.11.4 released, no open PRs, no story worktrees. Log: `.factory/cycles/maint-2026-07-06/maintenance-log.md`. | 2026-07-06 |
 | D-390 | maint-2026-07-06 FIX PHASE COMPLETE (2026-07-06). FIX-A (docs PR #369: DOC-009+DOC-010) + FIX-B (code PR #370: PC-016/017 DNP3 counter gaps; BC-2.15.016 v2.2 + BC-2.15.020 v2.1 + BC-2.15.022 v2.1; BC-INDEX v2.19) both READY-FOR-HUMAN-MERGE (CI green, reviews converged). FIX-C (4 holdout scenario repairs: HS-061/064/066/075 + HS-INDEX v2.12) + FIX-D (10 VP shards vp-025..031/041..043; module-criticality v1.6; VP-INDEX v2.35 TD-031 remediation; spec-changelog entry; STORY-156 + STORY-149 wave 70 + STORY-107 v1.4; STORY-INDEX v3.15; tech-debt-register v1.3+ nomenclature + FIX-B in-progress; research df-validation-pc019-pc020-2026-07-06.md) committed to factory-artifacts. Awaiting human merge of PRs #369+#370, then state-final close-out. | 2026-07-06 |
+| D-391 | maint-2026-07-06 STATE-FINAL (2026-07-06). All fix PRs merged by human. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged to develop. develop HEAD d3e153c (3 unreleased commits ahead of v0.11.4). tech-debt-register v1.4: DOC-009/010 + ADV-4 RESOLVED (PR #369); TD-MAINT-PC003/PC-016/PC-017 RESOLVED (PR #370); HOLDOUT-001/002 RESOLVED (FIX-C); RUSTSEC-2026-0204 CLOSED (PR #371); PERF-002 escalated STORY-149 wave 70. Lessons logged: cycles/maint-2026-07-06/lessons.md (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or next request. | 2026-07-06 |
 
 ---
 
@@ -327,28 +330,28 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**MAINTENANCE maint-2026-07-06 FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C/FIX-D committed. Awaiting human merge of PRs #369+#370, then state-final close-out.**
+**D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). All PRs merged. Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or await next request.**
 
-- **Date:** 2026-07-06. Position: all 8 applicable sweeps DONE; awaiting human triage on fix routes A-D.
-- **Ground truth:** develop=`f7460b4` (full `f7460b403962a690bd0f81e4ad41185b893b830b`; Cargo.toml 0.11.4; NO unreleased commits), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4, tag obj e6ee614). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight work:** NONE. No open PRs, no story worktrees. All sweeps complete.
-- **Sweep progress (maint-2026-07-06):**
+- **Date:** 2026-07-06. Position: maint-2026-07-06 COMPLETE. All fix PRs merged. Pipeline IDLE.
+- **Ground truth:** develop=`d3e153c` (full `d3e153cf9926746a48cd7d1394f4a55be0950fd6`; Cargo.toml 0.11.4; 3 unreleased commits ahead of v0.11.4), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4, tag obj e6ee614). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
+- **In-flight work:** NONE. No open PRs, no story worktrees.
+- **Sweep progress (maint-2026-07-06):** ALL COMPLETE (8 applicable; 6/9/10 N/A).
   - Sweep 1 (dependency/supply-chain): DONE — CLEAN (0 vulns; 2 LOW hygiene)
-  - Sweep 2 (doc-drift): DONE — 8 findings (1H/4M/3L)
-  - Sweep 3 (pattern-consistency): DONE — 20 findings (3H/11M/6L)
-  - Sweep 4 (holdout-freshness): DONE — 4 stale (HS-061/064/066/075)
-  - Sweep 5 (performance): DONE — 1 REGRESSION (+14.0% tls.pcap)
+  - Sweep 2 (doc-drift): DONE — 8 findings (1H/4M/3L) → RESOLVED PR #369
+  - Sweep 3 (pattern-consistency): DONE — 20 findings (3H/11M/6L) → PC-016/017 RESOLVED PR #370
+  - Sweep 4 (holdout-freshness): DONE — 4 stale (HS-061/064/066/075) → RESOLVED FIX-C
+  - Sweep 5 (performance): DONE — 1 REGRESSION (+14.0% tls.pcap) → STORY-149 wave 70
   - Sweep 6 (DTU): N/A (dtu_required:false)
-  - Sweep 7 (spec-coherence): DONE — 3 new MAJOR + 3 carry-forward
-  - Sweep 8 (tech-debt-register): DONE — v1.2→v1.3; 13 new; 1 OVERDUE
+  - Sweep 7 (spec-coherence): DONE — 3 new MAJOR + 3 carry-forward → FIX-D
+  - Sweep 8 (tech-debt-register): DONE — v1.2→v1.4; 13 new + 8 resolved this run
   - Sweep 9 (accessibility): N/A (CLI product)
   - Sweep 10 (design-drift): N/A (CLI product)
-  - Sweep 11 (risk-assumption): DONE — 2 ESCALATE (ASM-CAND-003/009)
+  - Sweep 11 (risk-assumption): DONE — 2 ESCALATE (ASM-CAND-003/009) → OPEN P1
 - **RESUME PROCEDURE:**
-  1. Review `.factory/maintenance/sweep-report-2026-07-06.md` for full findings.
-  2. Human decision: approve/schedule fix routes A, B, C, D + STORY-149 escalation.
-  3. Dispatch approved routes via fix-pr-delivery / product-owner per classification.
-- **Pending human decisions:** Fix routes A–D triage + STORY-149 perf escalation + ADV-4 OVERDUE + TD-MAINT-RISK-REGISTRY-BACKFILL (P1) + ASM-CAND-003/009.
+  1. Check `git log origin/develop` — ground truth is `d3e153c`.
+  2. Next work: deliver STORY-149 (wave 70, TLS carry-path perf) or await human direction.
+  3. Open P1 items: TD-MAINT-THRESHOLD-CALIB-001 + TD-MAINT-RISK-REGISTRY-BACKFILL.
+- **Pending human decisions:** TD-MAINT-THRESHOLD-CALIB-001 (formal accept vs. calibration exercise) + TD-MAINT-RISK-REGISTRY-BACKFILL (registry creation before next ICS feature). Release decision for 3 unreleased develop commits when appropriate.
 ---
 
 ## Governance Policy
