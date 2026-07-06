@@ -307,6 +307,28 @@ pub struct Dnp3Analyzer {
     pub fn_code_counts: HashMap<u8, u64>,
     /// Accumulated findings — capped at MAX_FINDINGS (BC-2.15.022).
     pub all_findings: Vec<Finding>,
+
+    // ---- on_flow_close aggregate fields (issue #342 / SEC-006) ----
+    // These fields accumulate per-flow metrics from flows removed at close time
+    // so that summarize() can combine them with still-open flows.
+    /// Count of flows removed via on_flow_close (SEC-006 / issue #342).
+    ///
+    /// Added to `self.flows.len()` by `summarize()` to compute total `flows_analyzed`.
+    pub closed_flows_count: u64,
+    /// Aggregate `frame_count` from flows removed via on_flow_close.
+    ///
+    /// Added to the sum over `self.flows` by `summarize()` for `total_frames`.
+    pub total_frames_closed: u64,
+    /// Aggregate `parse_errors` from flows removed via on_flow_close.
+    ///
+    /// Added to the sum over `self.flows` by `summarize()` for `aggregate_parse_errors`.
+    pub parse_errors_closed: u64,
+    /// Per-closed-flow `(FlowKey, direct_operate_count)` entries.
+    ///
+    /// Accumulated by `on_flow_close`; merged with live `self.flows` entries by
+    /// `summarize()` to produce `control_operation_counts`.  Sorted by FlowKey at
+    /// summarize time, together with still-open flows, ensuring deterministic output.
+    pub closed_flow_direct_operates: Vec<(FlowKey, u32)>,
 }
 
 impl Dnp3Analyzer {
@@ -317,6 +339,38 @@ impl Dnp3Analyzer {
             direct_operate_threshold,
             fn_code_counts: HashMap::new(),
             all_findings: Vec::new(),
+            closed_flows_count: 0,
+            total_frames_closed: 0,
+            parse_errors_closed: 0,
+            closed_flow_direct_operates: Vec::new(),
+        }
+    }
+
+    /// Remove per-flow state for a closed flow and fold its metrics into aggregates.
+    ///
+    /// Mirrors `EnipAnalyzer::on_flow_close` (SEC-006 / issue #342 / BC-2.15.021).
+    ///
+    /// Postconditions:
+    /// 1. `self.flows.remove(&flow_key)` removes the `Dnp3FlowState` entry.
+    /// 2. `self.total_frames_closed += flow.frame_count`
+    /// 3. `self.parse_errors_closed += flow.parse_errors`
+    /// 4. `self.closed_flow_direct_operates.push((flow_key, flow.direct_operate_count))`
+    /// 5. `self.closed_flows_count += 1` when `HashMap::remove` returns `Some`.
+    /// 6. Unknown `flow_key` → no-op; no panic; aggregates NOT modified.
+    ///
+    /// Note: `self.fn_code_counts` is already a process-wide aggregate maintained
+    /// incrementally by `on_data` — it is NOT folded here (no double-counting risk).
+    /// Note: `self.all_findings` is unaffected — findings are emitted during `on_data`.
+    ///
+    /// # Traces
+    /// SEC-006; issue #342; BC-2.15.021; ADR-007 Decision 4.
+    pub fn on_flow_close(&mut self, flow_key: FlowKey) {
+        if let Some(flow) = self.flows.remove(&flow_key) {
+            self.total_frames_closed = self.total_frames_closed.saturating_add(flow.frame_count);
+            self.parse_errors_closed = self.parse_errors_closed.saturating_add(flow.parse_errors);
+            self.closed_flow_direct_operates
+                .push((flow_key, flow.direct_operate_count));
+            self.closed_flows_count = self.closed_flows_count.saturating_add(1);
         }
     }
 
@@ -1661,9 +1715,18 @@ impl Dnp3Analyzer {
     pub fn summarize(&self) -> AnalysisSummary {
         use std::collections::BTreeMap;
 
-        let flows_analyzed = self.flows.len() as u64;
-        let total_frames: u64 = self.flows.values().map(|f| f.frame_count).sum();
-        let aggregate_parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
+        // SEC-006 / issue #342: combine closed-flow aggregates with still-open flows.
+        // closed_flows_count / total_frames_closed / parse_errors_closed are folded
+        // into these aggregates by on_flow_close; self.flows contains only live flows.
+        let flows_analyzed = self
+            .closed_flows_count
+            .saturating_add(self.flows.len() as u64);
+        let total_frames: u64 = self
+            .total_frames_closed
+            .saturating_add(self.flows.values().map(|f| f.frame_count).sum::<u64>());
+        let aggregate_parse_errors: u64 = self
+            .parse_errors_closed
+            .saturating_add(self.flows.values().map(|f| f.parse_errors).sum::<u64>());
 
         // BC-2.15.020 postcondition 1: function_code_distribution — only FCs with count > 0.
         // Keys are decimal strings of the FC byte (e.g. "5" for 0x05 DIRECT_OPERATE).
@@ -1675,16 +1738,23 @@ impl Dnp3Analyzer {
             .collect();
 
         // BC-2.15.020 postcondition 1: control_operation_counts — per-flow direct_operate_count.
-        // Keys are the flow index (0-based) as string. We sort entries by FlowKey
-        // (which derives Ord via lexicographic (lower_ip, lower_port, upper_ip, upper_port))
-        // BEFORE enumerate so that index→value is deterministic across process runs,
-        // independent of HashMap's per-process randomized iteration order.
-        let mut sorted_flows: Vec<(&FlowKey, &Dnp3FlowState)> = self.flows.iter().collect();
-        sorted_flows.sort_by_key(|(k, _)| *k);
-        let control_operation_counts: BTreeMap<String, u64> = sorted_flows
+        // Keys are the flow index (0-based) as string. We sort ALL entries (closed + open)
+        // by FlowKey (which derives Ord via lexicographic (lower_ip, lower_port, upper_ip,
+        // upper_port)) BEFORE enumerate so that index→value is deterministic across process
+        // runs, independent of HashMap's per-process randomized iteration order.
+        //
+        // SEC-006 / issue #342: merge closed-flow entries (from closed_flow_direct_operates)
+        // with still-open flows so that purging a flow at close time does not lose its
+        // direct_operate_count from the output.
+        let mut all_flow_entries: Vec<(FlowKey, u32)> = self.closed_flow_direct_operates.to_vec();
+        for (k, flow) in &self.flows {
+            all_flow_entries.push((k.clone(), flow.direct_operate_count));
+        }
+        all_flow_entries.sort_by_key(|(k, _)| k.clone());
+        let control_operation_counts: BTreeMap<String, u64> = all_flow_entries
             .iter()
             .enumerate()
-            .map(|(i, (_, flow))| (i.to_string(), flow.direct_operate_count as u64))
+            .map(|(i, (_, count))| (i.to_string(), *count as u64))
             .collect();
 
         let mut detail = BTreeMap::new();
