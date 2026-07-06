@@ -1,99 +1,46 @@
 ================================================================================
-WIRERUST DEPENDENCY AUDIT — RAW SCAN OUTPUT
-Date: 2026-06-22
-Tools: cargo-audit 0.22.1, cargo-deny 0.19.6
-Rust crate: wirerust v0.9.3 (193 locked dependencies)
+DEPENDENCY AUDIT RAW LOG
+Run ID   : maint-2026-07-06
+Project  : wirerust
+Branch   : develop
+Commit   : f7460b4
+Version  : v0.11.4
+Date     : 2026-07-06
 ================================================================================
 
-================================================================================
-SECTION 1: cargo audit
-================================================================================
-Crate:     rand
-Version:   0.8.5
-Warning:   unsound
-Title:     Rand is unsound with a custom logger using `rand::rng()`
-Date:      2026-04-09
-ID:        RUSTSEC-2026-0097
-URL:       https://rustsec.org/advisories/RUSTSEC-2026-0097
-Dependency tree:
-rand 0.8.5
-└── phf_generator 0.11.3
-    └── phf_codegen 0.11.3
-        └── tls-parser 0.12.2
-            └── wirerust 0.9.3
+ENVIRONMENT
+-----------
+rustc   : rustc 1.96.0 (ac68faa20 2026-05-25)
+cargo   : cargo 1.96.0 (30a34c682 2026-05-25)
+OS      : darwin 25.5.0
 
+TOOL INVENTORY
+--------------
+cargo-audit   : 0.22.1  (PRESENT — ran)
+cargo-deny    : 0.19.6  (PRESENT — ran)
+cargo-outdated: NOT INSTALLED (skipped — not installed, not installed per instructions)
+semgrep       : NOT INSTALLED (skipped — not installed per instructions)
+deny.toml     : PRESENT at /Users/zious/Documents/GITHUB/wirerust/deny.toml
 
 ================================================================================
-SECTION 2: cargo deny check (advisories, bans, licenses, sources)
-================================================================================
-advisories ok, bans ok, licenses ok, sources ok
+TOOL: cargo audit 0.22.1
+COMMAND: cargo audit
+EXIT CODE: 0
+--------------------------------------------------------------------------------
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1157 security advisories (from /Users/zious/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
+
+(no vulnerabilities, no warnings — output ends here; tool exited cleanly)
+
+ADVISORY COUNT: 0 vulnerabilities, 0 warnings
 
 ================================================================================
-SECTION 3: cargo tree -i rayon (reverse dependency tree for rayon)
-================================================================================
-rayon v1.12.0
-├── criterion v0.8.2
-│   [dev-dependencies]
-│   └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-└── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-
-================================================================================
-SECTION 4: cargo tree --duplicates (first 50 lines)
-================================================================================
-getrandom v0.3.4
-└── rand_core v0.9.5
-    ├── rand v0.9.4
-    │   └── proptest v1.11.0
-    │       [dev-dependencies]
-    │       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-    ├── rand_chacha v0.9.0
-    │   └── proptest v1.11.0 (*)
-    └── rand_xorshift v0.4.0
-        └── proptest v1.11.0 (*)
-
-getrandom v0.4.2
-└── tempfile v3.27.0
-    ├── proptest v1.11.0 (*)
-    └── rusty-fork v0.3.1
-        └── proptest v1.11.0 (*)
-    [dev-dependencies]
-    └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-
-phf_shared v0.11.3
-├── phf_codegen v0.11.3
-│   [build-dependencies]
-│   └── tls-parser v0.12.2
-│       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-└── phf_generator v0.11.3
-    └── phf_codegen v0.11.3 (*)
-
-phf_shared v0.11.3
-└── phf v0.11.3
-    └── tls-parser v0.12.2 (*)
-
-rand v0.8.5
-└── phf_generator v0.11.3 (*)
-
-rand v0.9.4 (*)
-
-rand_core v0.6.4
-└── rand v0.8.5 (*)
-
-rand_core v0.9.5 (*)
-
-syn v1.0.109
-├── derive-into-owned v0.2.0 (proc-macro)
-│   └── pcap-file v2.0.0
-│       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
-└── nom-derive-impl v0.10.1 (proc-macro)
-    └── nom-derive v0.10.1
-        └── tls-parser v0.12.2 (*)
-
-syn v2.0.117
-
-================================================================================
-END OF RAW SCAN
-================================================================================
+TOOL: cargo deny 0.19.6
+COMMAND: cargo deny check
+EXIT CODE: 0
+--------------------------------------------------------------------------------
 warning[license-not-encountered]: license was not encountered
    ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:34:6
    │
@@ -144,43 +91,43 @@ warning[license-not-encountered]: license was not encountered
 
 warning[duplicate]: found 2 duplicate entries for crate 'syn'
     ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
-    │  
+    │
 135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
 136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
     │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
-    │  
+    │
     ├ syn v1.0.109
       ├── derive-into-owned v0.2.0
       │   └── pcap-file v2.0.0
-      │       └── wirerust v0.9.3
+      │       └── wirerust v0.11.4
       └── nom-derive-impl v0.10.1
           └── nom-derive v0.10.1
               └── tls-parser v0.12.2
-                  └── wirerust v0.9.3 (*)
+                  └── wirerust v0.11.4 (*)
     ├ syn v2.0.117
       ├── clap_derive v4.6.1
       │   └── clap v4.6.1
       │       ├── criterion v0.8.2
-      │       │   └── (dev) wirerust v0.9.3
-      │       └── wirerust v0.9.3 (*)
+      │       │   └── (dev) wirerust v0.11.4
+      │       └── wirerust v0.11.4 (*)
       ├── num_enum_derive v0.7.6
       │   └── num_enum v0.7.6
       │       └── tls-parser v0.12.2
-      │           └── wirerust v0.9.3 (*)
+      │           └── wirerust v0.11.4 (*)
       ├── serde_derive v1.0.228
       │   └── serde v1.0.228
       │       ├── chrono v0.4.45
-      │       │   └── wirerust v0.9.3 (*)
+      │       │   └── wirerust v0.11.4 (*)
       │       ├── ciborium v0.2.2
       │       │   └── criterion v0.8.2 (*)
       │       ├── criterion v0.8.2 (*)
       │       ├── tinytemplate v1.2.1
       │       │   └── criterion v0.8.2 (*)
-      │       └── wirerust v0.9.3 (*)
+      │       └── wirerust v0.11.4 (*)
       ├── thiserror-impl v1.0.69
       │   └── thiserror v1.0.69
       │       └── pcap-file v2.0.0
-      │           └── wirerust v0.9.3 (*)
+      │           └── wirerust v0.11.4 (*)
       ├── wasm-bindgen-macro-support v0.2.117
       │   └── wasm-bindgen-macro v0.2.117
       │       └── wasm-bindgen v0.2.117
@@ -195,7 +142,7 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │           │   │       └── criterion v0.8.2 (*)
       │           │   └── web-time v1.1.0
       │           │       └── indicatif v0.18.4
-      │           │           └── wirerust v0.9.3 (*)
+      │           │           └── wirerust v0.11.4 (*)
       │           ├── plotters v0.3.7 (*)
       │           ├── web-sys v0.3.94 (*)
       │           └── web-time v1.1.0 (*)
@@ -204,14 +151,29 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │       └── iana-time-zone v0.1.65 (*)
       ├── windows-interface v0.59.3
       │   └── windows-core v0.62.2 (*)
-      └── zerocopy-derive v0.8.48
-          └── zerocopy v0.8.48
+      └── zerocopy-derive v0.8.52
+          └── zerocopy v0.8.52
               ├── half v2.7.1
               │   └── ciborium-ll v0.2.2
               │       └── ciborium v0.2.2 (*)
               └── ppv-lite86 v0.2.21
                   └── rand_chacha v0.9.0
                       └── proptest v1.11.0
-                          └── (dev) wirerust v0.9.3 (*)
+                          └── (dev) wirerust v0.11.4 (*)
 
 advisories ok, bans ok, licenses ok, sources ok
+
+DENY WARNING COUNT : 9 warnings (8 license-not-encountered, 1 duplicate crate)
+DENY CHECKS PASSED : advisories ok, bans ok, licenses ok, sources ok
+
+================================================================================
+TOOL: cargo outdated
+STATUS: NOT INSTALLED — skipped (not installed; instructions say skip install if absent)
+
+================================================================================
+TOOL: semgrep
+STATUS: NOT INSTALLED — skipped (instructions say only run if already installed)
+
+================================================================================
+END OF LOG
+================================================================================

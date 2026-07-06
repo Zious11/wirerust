@@ -10,10 +10,10 @@ project: wirerust
 mode: maintenance
 phase: steady-state
 status: in_progress
-current_step: "MAINTENANCE SWEEP maint-2026-07-06 STARTED (D-388, 2026-07-06). Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A (CLI product, dtu_required:false). Baseline: develop f7460b4 / main f0f2136 / v0.11.4. Specs: BC-INDEX v2.18 / VP-INDEX v2.34 / STORY-INDEX v3.14 / ARCH-INDEX v2.12. trajectory-tail →0→0→0→0 (maintenance sweep init; all sweeps PENDING)."
+current_step: "MAINTENANCE maint-2026-07-06: sweeps COMPLETE (8/8 applicable) D-389. Report written. Awaiting human triage at maintenance gate (fix routes A-D + STORY-149 escalation). trajectory-tail →0→0→0→0 (maintenance; no adversarial passes)."
 current_cycle: "maint-2026-07-06"
 pipeline: IN_PROGRESS
-timestamp: 2026-07-06T00:01:00Z
+timestamp: 2026-07-06T14:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.4
@@ -52,7 +52,7 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 # Maintenance
-maintenance_run: STARTED
+maintenance_run: SWEEPS_COMPLETE
 maintenance_run_id: maint-2026-07-06
 maintenance_started_at: "2026-07-06"
 maintenance_prior_run: maint-2026-07-01
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**MAINTENANCE SWEEP maint-2026-07-06 STARTED (D-388, 2026-07-06). develop=f7460b4 / main=f0f2136 / v0.11.4 released. Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A (CLI product, dtu_required:false). All applicable sweeps PENDING. Resume: run applicable sweeps in order, record findings, file validated issues per DF-VALIDATION-001.**
+**MAINTENANCE maint-2026-07-06 SWEEPS COMPLETE (D-389, 2026-07-06). develop=f7460b4 / main=f0f2136 / v0.11.4. 8/8 applicable sweeps done; 39 findings; 0 CRITICAL; 1 perf regression (+14.0% tls.pcap). Fix routes A-D classified. Awaiting human triage gate. Resume: review sweep-report-2026-07-06.md and dispatch fix routes per human decision.**
 
 ---
 
@@ -80,7 +80,7 @@ maintenance_prior_run: maint-2026-07-01
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.18 (345 active, 8 amended) / VP-INDEX v2.34 (43 VPs) / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 108 total (STORY-INDEX v3.14) |
-| **Last Updated** | 2026-07-06 — maint-2026-07-06 STARTED (D-388). trajectory-tail →0→0→0→0 (maintenance sweep init; all sweeps PENDING). |
+| **Last Updated** | 2026-07-06 — maint-2026-07-06 sweeps COMPLETE (D-389). 8/8 applicable sweeps done; 39 findings; 0 CRITICAL; 1 perf regression. Awaiting human triage. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -112,7 +112,7 @@ maintenance_prior_run: maint-2026-07-01
 | v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
 | Silent-limit audit + observability counters (D-385, 2026-07-06) | **RELEASED in v0.11.4 (PR #365, cc2a87c + PR #366 follow-ups, f7460b4)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. |
 | v0.11.4 RELEASED (D-386, 2026-07-06) | **RELEASED 2026-07-06** | PR #366 (follow-up test hardening + ARP refactor, squash to develop); PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop has NO unreleased commits. |
-| Maintenance maint-2026-07-06 | **IN_PROGRESS 2026-07-06** | Sweeps 1-5,7,8,11 applicable; 6/9/10 N/A (CLI; dtu_required:false). trajectory-tail →0→0→0→0 (all sweeps PENDING). |
+| Maintenance maint-2026-07-06 | **SWEEPS_COMPLETE 2026-07-06 (D-389)** | 8/8 applicable done (6/9/10 N/A). 39 findings; 0 CRITICAL; 1 perf regression (+14%); fix routes A-D classified. Awaiting human triage gate. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -125,6 +125,7 @@ maintenance_prior_run: maint-2026-07-01
 | **SILENT-LIMIT AUDIT + OBSERVABILITY COUNTERS (D-385, 2026-07-06). 13-site audit: 4 GENUINE gaps + 9 cleared + modbus-invalid-ADU-latch REJECTED (research-agent). 4 counters delivered: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. PR #365 squash-merged → develop cc2a87c (CI 11/11; security APPROVE invariants confirmed; pr-reviewer APPROVE 0 blocking). 8 BCs amended → BC-INDEX v2.18.** | **DONE (D-385)** | Silent-limit audit COMPLETE. 4 observability counters delivered. 8 BCs amended. |
 | **v0.11.4 FOLLOW-UPS + RELEASE (D-386, 2026-07-06). PR #366 squash-merged to develop: HTTP-AC008-NEG-TEST-001 (negative regression test existing-key hit does NOT increment dropped_map_entries), EVICTION-NO-FINDING-NEG-TEST-001 (Modbus pending-drop live + ARP eviction #[ignore] emit no Finding), ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 (insert_binding_lru returns bool; dedup 2 call sites). Release PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop NO unreleased commits. Pipeline IDLE.** | **RELEASED (D-386)** | v0.11.4 ships observability counters + follow-up hardening. develop f7460b4. main f0f2136. Pipeline IDLE. |
 | **MAINTENANCE SWEEP maint-2026-07-06 STARTED (D-388, 2026-07-06). Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A. Baseline: develop f7460b4 / main f0f2136 / v0.11.4. All applicable sweeps PENDING.** | **IN_PROGRESS (D-388)** | Pipeline IN_PROGRESS (maintenance). |
+| **MAINTENANCE SWEEP maint-2026-07-06 COMPLETE (D-389, 2026-07-06). 8/8 applicable sweeps done (6/9/10 N/A). 39 findings total; 0 CRITICAL. 1 perf regression (+14.0% tls.pcap, STORY-149). Fix routes: A (docs PR), B (code PR PC-003), C (holdout factory), D (spec hygiene factory). MANUAL: STORY-149 escalation + ADV-4 OVERDUE + TD-MAINT-RISK-REGISTRY-BACKFILL (P1) + ASM-CAND-003/009. Report: `.factory/maintenance/sweep-report-2026-07-06.md`. tech-debt-register v1.3.** | **SWEEPS_COMPLETE (D-389)** | Awaiting human triage gate. trajectory-tail →0→0→0→0. |
 
 ## Decisions Log
 
@@ -320,28 +321,28 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**MAINTENANCE SWEEP maint-2026-07-06 STARTED (D-388, 2026-07-06). Pipeline IN_PROGRESS (maintenance).**
+**MAINTENANCE maint-2026-07-06 SWEEPS COMPLETE (D-389, 2026-07-06). Pipeline IN_PROGRESS — awaiting human triage gate.**
 
-- **Date:** 2026-07-06. Position: maintenance sweep maint-2026-07-06, all applicable sweeps PENDING.
+- **Date:** 2026-07-06. Position: all 8 applicable sweeps DONE; awaiting human triage on fix routes A-D.
 - **Ground truth:** develop=`f7460b4` (full `f7460b403962a690bd0f81e4ad41185b893b830b`; Cargo.toml 0.11.4; NO unreleased commits), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4, tag obj e6ee614). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight work:** NONE. No open PRs, no story worktrees. Maintenance sweep not yet started.
+- **In-flight work:** NONE. No open PRs, no story worktrees. All sweeps complete.
 - **Sweep progress (maint-2026-07-06):**
-  - Sweep 1 (dependency/supply-chain): PENDING
-  - Sweep 2 (security advisory): PENDING
-  - Sweep 3 (code-quality/pattern): PENDING
-  - Sweep 4 (doc/comment-drift): PENDING
-  - Sweep 5 (spec/anchor-drift): PENDING
+  - Sweep 1 (dependency/supply-chain): DONE — CLEAN (0 vulns; 2 LOW hygiene)
+  - Sweep 2 (doc-drift): DONE — 8 findings (1H/4M/3L)
+  - Sweep 3 (pattern-consistency): DONE — 20 findings (3H/11M/6L)
+  - Sweep 4 (holdout-freshness): DONE — 4 stale (HS-061/064/066/075)
+  - Sweep 5 (performance): DONE — 1 REGRESSION (+14.0% tls.pcap)
   - Sweep 6 (DTU): N/A (dtu_required:false)
-  - Sweep 7 (performance): PENDING
-  - Sweep 8 (test-coverage): PENDING
+  - Sweep 7 (spec-coherence): DONE — 3 new MAJOR + 3 carry-forward
+  - Sweep 8 (tech-debt-register): DONE — v1.2→v1.3; 13 new; 1 OVERDUE
   - Sweep 9 (accessibility): N/A (CLI product)
   - Sweep 10 (design-drift): N/A (CLI product)
-  - Sweep 11 (input-hash drift): PENDING
+  - Sweep 11 (risk-assumption): DONE — 2 ESCALATE (ASM-CAND-003/009)
 - **RESUME PROCEDURE:**
-  1. Run `vsdd-factory:factory-worktree-health` — PASS required.
-  2. Verify develop=`f7460b4`.
-  3. Run `/vsdd-factory:maintenance-sweep` to execute applicable sweeps in order.
-- **Pending human decisions:** None blocking.
+  1. Review `.factory/maintenance/sweep-report-2026-07-06.md` for full findings.
+  2. Human decision: approve/schedule fix routes A, B, C, D + STORY-149 escalation.
+  3. Dispatch approved routes via fix-pr-delivery / product-owner per classification.
+- **Pending human decisions:** Fix routes A–D triage + STORY-149 perf escalation + ADV-4 OVERDUE + TD-MAINT-RISK-REGISTRY-BACKFILL (P1) + ASM-CAND-003/009.
 ---
 
 ## Governance Policy

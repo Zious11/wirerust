@@ -30,7 +30,7 @@ behavioral_contracts:
   - BC-2.11.003
   - BC-2.11.004
   - BC-2.11.005
-lifecycle_status: active
+lifecycle_status: stale
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null

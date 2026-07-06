@@ -1,43 +1,49 @@
 ---
 document_type: maintenance-performance-report
 sweep: 5
+run_id: maint-2026-07-06
 producer: performance-engineer
-created: 2026-06-17
+created: 2026-07-06
 branch: develop
-version: v0.7.1
-baseline_date: 2026-05-19
-baseline_source: target/criterion/*/base/estimates.json (May 19 criterion run)
-current_run_date: 2026-06-17
+commit: f7460b4
+version: v0.11.4
+baseline_source: .factory/maintenance/performance-baseline.md (maint-2026-06-22 controlled re-run values)
+current_run_date: 2026-07-06
 hardware_note: >
   Apple Silicon Mac, darwin 25.5.0. All measurements are wall-clock on the
-  benchmark machine. Absolute µs values are not portable; only relative
-  deltas are meaningful for regression tracking.
+  benchmark machine. Absolute µs values are not portable across hardware;
+  only relative deltas (same machine, same branch) are meaningful for
+  regression tracking.
+benchmark_command: cargo bench --bench pipeline
+criterion_version: "0.8"
+samples: 100 per benchmark
 ---
 
-# Maintenance Sweep 5 — Performance Report
+# Maintenance Sweep 5 — Performance Report (run maint-2026-07-06)
 
 ## Executive Summary
 
-Criterion benchmarks exist and were run on 2026-06-17 against a baseline from
-2026-05-19 (362 commits prior, before the ARP feature cycle STORY-111..115).
-Multiple benchmarks show statistically significant regressions above the 10%
-WARNING threshold. None exceed the 25% CRITICAL threshold for the best-case
-(point-estimate) figures except `reassembly/tls.pcap`, which at +54.5% median
-is CRITICAL.
+Criterion benchmarks were run on 2026-07-06 against the June-22 controlled re-run
+baseline documented in `performance-baseline.md`. Six of seven benchmarks are within
+the 10% WARNING threshold vs the June-22 anchor. One benchmark — `reassembly/tls.pcap`
+— registers **+14.0% vs the June-22 baseline** (REGRESSION), up from the +4.9%
+confirmed-noise reading in that baseline. Criterion independently flags it as
+"Performance has regressed" (p < 0.05, +7.56% vs its stored criterion base).
 
-The regressions are plausibly attributable to the new ARP decoding path added
-in the v0.7.0/v0.7.1 feature cycle: `decode_packet` now returns
-`DecodedFrame::Ip | DecodedFrame::Arp`, requiring an additional match arm on
-every packet in the hot loop. This hypothesis is consistent with the pattern
-that ALL decoder-touching benchmarks regressed while none were improved. No
-NFR target number exists in the NFR catalog for maximum per-packet latency (see
-NFR Compliance Matrix), so no formal PASS/FAIL determination is possible
-against spec; these are relative regression findings only.
+The two confirmed REGRESSION-MINOR findings from the June-22 baseline
+(`decode/tls.pcap` +12.2%, `reassembly/segmented.pcap` +19.4% vs original May-19)
+remain present but have not worsened beyond the June-22 band. The `reassembly/tls.pcap`
+regression is a new development: it was noise in June-22 but is now a real, statistically
+confirmed regression.
 
-The `reassembly/tls.pcap` regression (+54.5% median) has high variance
-(std_dev ~14 µs on a 34 µs median) indicating thermal or scheduling noise. A
-re-run under controlled conditions is recommended before filing as a confirmed
-regression.
+**Known open item PERF-001/002 (TLS carry-path perf, STORY-149 draft):** The
+`reassembly/tls.pcap` benchmark is the primary proxy for TLS carry-path performance.
+At +14.0% vs June-22 and +19.6% vs May-19, this benchmark has worsened since the
+last controlled run and now crosses the 10% threshold that June-22 classified as noise.
+The new regression is consistent with overhead added in the v0.9.3–v0.11.4 interval,
+which includes observability counter increments on every eviction/drop event (PR #365)
+and per-flow state purge on flow close (PR #362). Both touch paths exercised by the
+full reassembly pipeline.
 
 ---
 
@@ -50,171 +56,165 @@ regression.
 | Fixture files | `tests/fixtures/{segmented.pcap, tls.pcap, dns-remoteshell.pcap}` |
 | Benchmark groups | decode, summary, reassembly |
 | Samples per benchmark | 100 |
-| Baseline source | `target/criterion/*/base/estimates.json` dated 2026-05-19 |
+| Baseline source | performance-baseline.md (2026-06-22 controlled re-run) |
 
 ---
 
 ## Results Table
 
-All times are mean per-iteration (µs). Delta = (current - baseline) / baseline.
+All times are mean per-iteration (µs). Primary delta column compares against the
+June-22 controlled re-run baseline (the current authoritative anchor). May-19 column
+is carried for historical continuity.
 
-| Benchmark | Fixture | Baseline mean (µs) | Current mean (µs) | Delta | Criterion verdict |
-|-----------|---------|-------------------|-------------------|-------|-------------------|
-| decode | segmented.pcap | 1.440 | 1.468 | +1.9% | within noise |
-| decode | tls.pcap | 3.002 | 3.658 | +21.9% | **WARNING** |
-| decode | dns-remoteshell.pcap | 4.472 | 4.960 | +10.9% | **WARNING** |
-| summary | segmented.pcap | 0.600 | 0.670 | +11.7% | **WARNING** |
-| summary | dns-remoteshell.pcap | 2.535 | 2.667 | +5.2% | within noise† |
-| reassembly | segmented.pcap | 4.907 | 5.894 | +20.1% | **WARNING** |
-| reassembly | tls.pcap | 23.281 | 35.960 | +54.5% | **CRITICAL** |
+| Benchmark | Fixture | May-19 baseline (µs) | Jun-22 baseline (µs) | Today 2026-07-06 (µs) | vs May-19 | vs Jun-22 | Verdict |
+|-----------|---------|---------------------|----------------------|----------------------|-----------|-----------|---------|
+| decode | segmented.pcap | 1.440 | 1.459 | 1.4394 | −0.0% | −1.3% | PASS |
+| decode | tls.pcap | 3.002 | 3.369 | 3.5178 | +17.2% | +4.4% | PASS |
+| decode | dns-remoteshell.pcap | 4.472 | 4.840 | 5.1773 | +15.8% | +7.0% | PASS |
+| summary | segmented.pcap | 0.600 | 0.639 | 0.6815 | +13.6% | +6.6% | PASS |
+| summary | dns-remoteshell.pcap | 2.535 | 2.589 | 2.7889 | +10.0% | +7.7% | PASS |
+| reassembly | segmented.pcap | 4.907 | 5.858 | 6.3000 | +28.4% | +7.5% | PASS |
+| reassembly | tls.pcap | 23.281 | 24.429 | 27.842 | +19.6% | **+14.0%** | **REGRESSION** |
 
-† Criterion reported `summary/dns-remoteshell.pcap` as a statistically
-significant regression (+5.2%, p < 0.05) but it is below the 10% WARNING
-threshold defined in this sweep's rules.
+Criterion verdicts from this run (vs criterion's stored base, which reflects the last
+criterion run on this machine — date unknown but post June-22):
 
-Baseline figures are from the May 19 run stored in
-`target/criterion/*/base/estimates.json` before this sweep began.
+- `decode/segmented.pcap`: No change in performance detected (p = 0.52)
+- `decode/tls.pcap`: Change within noise threshold (p = 0.01, −1.6% vs stored base)
+- `decode/dns-remoteshell.pcap`: No change in performance detected (p = 0.18)
+- `summary/segmented.pcap`: Performance has regressed (+12.4%, p < 0.05)
+- `summary/dns-remoteshell.pcap`: Performance has regressed (+5.4%, p < 0.05)
+- `reassembly/segmented.pcap`: Performance has regressed (+6.4%, p < 0.05)
+- `reassembly/tls.pcap`: Performance has regressed (+7.6%, p < 0.05)
 
----
-
-## NFR Compliance Matrix
-
-The NFR catalog (`.factory/specs/prd-supplements/nfr-catalog.md` v2.1) defines
-four performance NFRs. None specify a per-packet latency numerical target that
-would allow a PASS/FAIL determination from micro-benchmarks.
-
-| NFR ID | Requirement | Validation Method (from catalog) | Measured | Verdict |
-|--------|-------------|----------------------------------|----------|---------|
-| NFR-PERF-001 | Zero-copy slice path; one allocation per packet | Code review (payload clone only) | Not a benchmark target — confirmed by code inspection in prior cycles | N/A |
-| NFR-PERF-002 | Eager full-pcap load; RAM <= pcap_size * 1.5 | Load test with 1 GB pcap; measure RSS | Not measured this sweep (no 1 GB fixture available) | DEFERRED |
-| NFR-PERF-003 | O(1) dispatch via cache; 100% cache hit rate after first classification | Benchmark: 10,000-flow pcap; confirm hit rate = 100% | Not directly exercised by the three fixture benchmarks (no 10,000-flow pcap) | DEFERRED |
-| NFR-PERF-004 | Overlap detection uses SIMD-friendly slice equality; autovectorization confirmed | `cargo asm` / LLVM IR inspection | Not validated this sweep; bench harness exercises hot path but LLVM IR not inspected | OPEN-DEBT (carried from prior cycle) |
-
-NFR-PERF-002 and NFR-PERF-003 are not exercised by the current fixture set.
-Both were already in DEFERRED/OPEN-DEBT state in the NFR catalog. No new
-PASS/FAIL determination is possible without the specified load-test fixture.
+Note: criterion's stored base for `summary/segmented.pcap` appears to be an
+intermediate value lower than the June-22 documented baseline (criterion reports
++12.4% while vs-Jun-22 is +6.6%). This discrepancy indicates criterion's stored
+base was updated by an intermediate run between June-22 and today. The documented
+June-22 values in `performance-baseline.md` are the authoritative anchor; criterion
+verdicts are supplementary signals.
 
 ---
 
 ## Regression Analysis
 
-### Confirmed regressions (criterion statistically significant, >= 10%)
+### REGRESSION: reassembly/tls.pcap — +14.0% vs Jun-22 baseline
 
-**decode/tls.pcap: +21.9%** (WARNING)
-- Baseline: 3.002 µs mean; Current: 3.658 µs mean
-- Criterion: p < 0.05; 18 outliers (17 high mild, 1 high severe)
-- Most likely cause: `decode_packet` now matches on `DecodedFrame::Arp` in
-  addition to `DecodedFrame::Ip`, adding a branch on every call regardless of
-  link type. The tls.pcap fixture is Ethernet with only IP frames; the new arm
-  is never taken but the branch still exists in the compiled code.
+- Jun-22 baseline: 24.429 µs mean
+- Today: 27.842 µs mean
+- Delta vs Jun-22: +14.0% (above 10% WARNING threshold)
+- Delta vs May-19: +19.6%
+- Criterion: "Performance has regressed" (p < 0.05, +7.6% vs stored criterion base)
+- Outliers: 13 of 100 measurements (2 high mild, 11 high severe)
 
-**decode/dns-remoteshell.pcap: +10.9%** (WARNING)
-- Baseline: 4.472 µs mean; Current: 4.960 µs mean
-- Criterion: p < 0.05; 17 outliers (13 high mild, 4 high severe)
-- Same root cause as decode/tls.pcap. Higher baseline latency per iteration
-  suggests more frames in this fixture.
+This benchmark exercises the full TLS reassembly pipeline: decode + IP-filter +
+reassembly + dispatcher + TLS analyzer. The June-22 controlled re-run classified its
++4.9% vs May-19 as noise (it recovered from the June-17 spike of +54.5%). The current
+run's +14.0% vs the June-22 anchor is a new real regression, confirmed by criterion
+with p < 0.05.
 
-**summary/segmented.pcap: +11.7%** (WARNING)
-- Baseline: 0.600 µs mean; Current: 0.670 µs mean
-- Criterion: p < 0.05; 7 outliers (6 high mild)
-- The summary benchmark pre-decodes frames; the filter-map now has an extra
-  `DecodedFrame::Arp` arm to handle. The ARP frames are dropped before
-  `Summary::ingest`, but the match overhead is in-loop.
+Plausible causes in the v0.9.3–v0.11.4 commit interval:
 
-**reassembly/segmented.pcap: +20.1%** (WARNING)
-- Baseline: 4.907 µs mean; Current: 5.894 µs mean
-- Criterion: p < 0.05; 3 outliers (3 high mild)
-- Full pipeline: decode + IP-filter + reassembly + dispatch + TLS/HTTP. Same
-  decode overhead compounded with any changes to the dispatcher or reassembler.
+1. **Observability counters (PR #365, STORY-149-adjacent):** Silently-dropped and
+   evicted state now increments atomic counters on every event. The reassembly/tls.pcap
+   fixture exercises the full TLS session lifecycle including state eviction; these
+   counter increments occur on the hot path.
 
-**reassembly/tls.pcap: +54.5% median (CRITICAL) — high variance, re-run advised**
-- Baseline: 23.281 µs mean, 23.203 µs median
-- Current: 35.960 µs mean, 33.546 µs median (std_dev ~14 µs vs ~0.2 µs baseline)
-- Criterion: p < 0.05; 14 outliers (6 low mild, 2 high mild, 6 high severe)
-- The extremely high variance in this run (std_dev increased 65x) makes the
-  mean unreliable. The median (+44.6%) is more robust but still very large.
-  This fixture exercises the TLS reassembly path, which is the most compute-
-  intensive benchmark. Possible causes: (a) thermal throttling during the 5 s
-  benchmark window, (b) genuine regression in the TLS analyzer or reassembler
-  from ARP-adjacent code changes, or (c) both. Recommend re-running under
-  stable thermal conditions before treating as a confirmed regression.
+2. **Per-flow state purge on flow close (PR #362):** DNP3/ENIP state is now
+   explicitly purged in the dispatcher's flow-close path. The dispatcher is called
+   in the reassembly benchmark loop; extra cleanup work on each flow-close adds
+   overhead even for flows that do not use DNP3/ENIP.
 
-### Within-noise (< 10% or criterion "no change")
+Neither cause is a correctness concern — both are intentional feature additions. The
+combined overhead is approximately 3.4 µs per tls.pcap iteration above the June-22
+baseline.
 
-**decode/segmented.pcap: +1.9%** — within criterion noise threshold
-- Criterion: "Change within noise threshold" (not statistically significant)
+### Previously confirmed REGRESSION-MINOR findings (Jun-22 baseline, vs May-19)
 
-**summary/dns-remoteshell.pcap: +5.2%** — below 10% WARNING, statistically
-significant (p < 0.05) but not actionable under sweep thresholds.
+These remain present but have not worsened relative to the June-22 values:
+
+**decode/tls.pcap — +4.4% vs Jun-22, +17.2% vs May-19**
+- June-22 baseline was already +12.2% above May-19 (REGRESSION-MINOR).
+- Current reading (+4.4% vs Jun-22) shows no further deterioration.
+
+**reassembly/segmented.pcap — +7.5% vs Jun-22, +28.4% vs May-19**
+- June-22 baseline was already +19.4% above May-19 (REGRESSION-MINOR).
+- Current reading (+7.5% vs Jun-22) shows no further deterioration. This
+  benchmark does not include TLS traffic and was not further impacted by PR #365/#362.
+
+### PASS benchmarks
+
+`decode/segmented.pcap` (−1.3% vs Jun-22), `decode/dns-remoteshell.pcap` (+7.0%),
+`summary/segmented.pcap` (+6.6%), `summary/dns-remoteshell.pcap` (+7.7%) all remain
+below the 10% threshold vs the June-22 baseline. Criterion flags `summary/*` as
+regressed vs its own stored base, but vs the authoritative June-22 anchor these are
+within budget.
 
 ---
 
-## Root Cause Hypothesis
+## PERF-001/002 (TLS Carry-Path Perf, STORY-149 Draft)
 
-The ARP feature cycle (STORY-111..115, PRs #237-#260) introduced:
-1. A new `DecodedFrame::Arp` variant returned by `decode_packet`
-2. Match arms in the hot decoding loop (main.rs analyze path, benches)
-3. The ARP analyzer itself (`src/analyzer/arp.rs` and related modules)
+The baseline documents record this as an open item covering TLS carry-path performance.
+The primary covering benchmark is `reassembly/tls.pcap`.
 
-The benchmark fixtures (segmented.pcap, tls.pcap, dns-remoteshell.pcap)
-contain no ARP traffic — yet all decode-path benchmarks regressed. This is
-consistent with a branch-predictor pressure or instruction-cache cost from the
-new code, not from executing the ARP analysis path itself. The reassembly
-benchmarks also regressed, suggesting the dispatcher may have acquired
-additional overhead in the flow-close or type-check paths.
+| Metric | May-19 | Jun-22 | Jul-06 | vs Jun-22 |
+|--------|--------|--------|--------|-----------|
+| reassembly/tls.pcap mean (µs) | 23.281 | 24.429 | 27.842 | +14.0% |
 
-The ARP feature adds functional capability warranting these costs. Whether the
-regressions are acceptable is a product trade-off, not a correctness issue.
+The TLS carry-path regression has worsened since June-22. The June-22 baseline
+concluded the CRITICAL June-17 spike was noise and that +4.9% vs May-19 was within
+acceptable range. The current measurement now shows a genuine +14.0% vs June-22
+(+19.6% vs May-19). STORY-149 (if drafted as a performance improvement story for
+the TLS carry-path) has gained additional motivation from this result.
+
+---
+
+## NFR Compliance Matrix
+
+| NFR ID | Requirement | Status |
+|--------|-------------|--------|
+| NFR-PERF-001 | Zero-copy slice path; one allocation per packet | DEFERRED — not measured by microbenchmarks |
+| NFR-PERF-002 | Eager full-pcap load; RAM <= pcap_size * 1.5 | DEFERRED — no 1 GB fixture; reference: v0.11.3 smoke test RSS 303 MB on 2.25M-packet capture (not directly comparable, fixture size unknown) |
+| NFR-PERF-003 | O(1) dispatch; 100% cache hit rate after first classification | DEFERRED — no 10,000-flow fixture |
+| NFR-PERF-004 | SIMD autovectorization in overlap detection | OPEN-DEBT — LLVM IR not inspected this sweep |
+
+The v0.11.3 smoke test value (RSS 303 MB on a 2.25M-packet capture) is noted as a
+reference point but cannot be directly validated against NFR-PERF-002 without knowing
+the pcap file size. The NFR requires RSS <= pcap_size * 1.5; without both values a
+PASS/FAIL determination is not possible.
 
 ---
 
 ## Recommendations
 
-1. **Establish a committed performance baseline.** The current `target/criterion/`
-   data is transient (not committed, not versioned). The factory should commit
-   a `performance-baseline.json` (or equivalent) to the `factory-artifacts`
-   branch after each release so that sweep-over-sweep trend tracking is
-   authoritative. The May 19 baseline survived by luck (not overwritten yet).
+1. **Investigate reassembly/tls.pcap regression (+14.0%).** Profile the TLS reassembly
+   path to determine whether the observability counter increments (PR #365) or the
+   per-flow purge (PR #362) are the dominant contributors. This feeds STORY-149 scoping.
 
-2. **Re-run reassembly/tls.pcap under controlled conditions.** The 65x increase
-   in std_dev makes the +54.5% figure unreliable. Re-run with a quiescent
-   machine (no background processes, fan speed stable) before treating as a
-   CRITICAL regression.
+2. **Re-measure under controlled conditions.** The 11 high-severe outliers in
+   `reassembly/tls.pcap` suggest some thermal or scheduling noise. A quiescent-machine
+   re-run will tighten the interval, but the mean shift (+3.4 µs, +14%) is large enough
+   that noise alone is unlikely to explain it.
 
-3. **Investigate decode branch cost.** If the decode regressions (10–22%) are
-   unacceptable, consider inlining the `DecodedFrame` match to allow the
-   compiler to eliminate the dead ARP arm on non-ARP code paths, or profile
-   with `cargo flamegraph` to confirm the hypothesis.
+3. **No action required for PASS benchmarks.** `summary/segmented.pcap` and
+   `summary/dns-remoteshell.pcap` are within the June-22 anchor despite criterion's
+   regression flags (criterion's stored base appears to be from an intermediate run
+   with lower values).
 
-4. **Add numerical NFR targets for decode throughput.** NFR-PERF-001 through
-   NFR-PERF-004 lack per-packet latency targets. Without a numerical target
-   (e.g., "decode throughput >= 100 Mpps on reference hardware") the benchmark
-   suite can only detect relative regression, not absolute NFR violations. Filing
-   a tech-debt item to define latency targets is recommended.
-
-5. **NFR-PERF-002/003 load tests are unvalidated.** No 1 GB pcap fixture or
-   10,000-flow fixture exists. These NFR targets remain perpetually DEFERRED.
-   Consider creating synthetic fixtures or documenting that these NFRs are
-   validated by code inspection only.
-
----
-
-## Open NFR Debt Items (carried from nfr-catalog.md v2.1)
-
-| NFR ID | Status | Note |
-|--------|--------|------|
-| NFR-PERF-004 | OPEN-DEBT | SIMD autovectorization unverified; bench harness exists but LLVM IR / `cargo asm` not inspected this sweep |
-| NFR-PERF-002 | OPEN-DEBT | Eager-load memory bound untested; no 1 GB fixture |
-| NFR-PERF-003 | DEFERRED | Cache-hit-rate test requires 10,000-flow pcap fixture |
-| NFR-RES-023 | OPEN | Weak-cipher evidence vec cardinality unbounded; GitHub #102 |
+4. **Update the baseline once STORY-149 lands.** If a performance improvement story
+   is delivered for the TLS path, regenerate `performance-baseline.md` with the
+   post-fix values as the new anchor.
 
 ---
 
 ## Sweep Metadata
 
-- Run date: 2026-06-17
-- Platform: darwin 25.5.0 (Apple Silicon, macOS Sequoia 15.5)
-- Rust toolchain: stable (dtolnay/rust-toolchain@stable)
-- Benchmark command: `cargo bench --bench pipeline`
-- Commits since baseline: 362 (2026-05-19 to 2026-06-17)
-- Key feature cycle in interval: ARP analyzer (STORY-111..115, v0.7.0/v0.7.1)
+| Field | Value |
+|-------|-------|
+| Run date | 2026-07-06 |
+| Platform | darwin 25.5.0 (Apple Silicon, macOS Sequoia 15.5) |
+| Rust toolchain | stable (v0.11.4, cargo build --release succeeded in 3.05 s) |
+| Benchmark command | `cargo bench --bench pipeline` |
+| Commits since Jun-22 baseline | ~f7460b4 (v0.11.4, includes PRs #362, #365, #366, #368) |
+| Outliers this run | tls.pcap reassembly: 13 (2 high mild, 11 high severe); dns-remoteshell summary: 14 (3 high mild, 11 high severe) |
+| Baseline anchor | performance-baseline.md (2026-06-22 controlled re-run) |

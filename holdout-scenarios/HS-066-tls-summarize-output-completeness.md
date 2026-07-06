@@ -25,7 +25,7 @@ priority: "must-pass"
 epic_id: "E-5"
 behavioral_contracts:
   - BC-2.07.031
-lifecycle_status: active
+lifecycle_status: stale
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null

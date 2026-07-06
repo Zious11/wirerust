@@ -24,7 +24,7 @@ epic_id: "E-8"
 behavioral_contracts:
   - BC-2.11.001
   - BC-2.11.002
-lifecycle_status: active
+lifecycle_status: stale
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
