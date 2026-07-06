@@ -446,14 +446,20 @@ impl StreamHandler for StreamDispatcher {
                 }
             }
             Some(DispatchTarget::Dnp3) => {
-                // BC-2.15.021: route on_flow_close to Dnp3Analyzer (no-op if disabled).
-                // Dnp3Analyzer does not implement StreamHandler; no forwarding needed.
+                // BC-2.15.021 / SEC-006 / issue #342: forward on_flow_close to Dnp3Analyzer
+                // to purge per-flow state and fold metrics into aggregates.
                 let _ = reason;
+                if let Some(ref mut dnp3) = self.dnp3 {
+                    dnp3.on_flow_close(flow_key.clone());
+                }
             }
             Some(DispatchTarget::Enip) => {
-                // BC-2.17.019: route on_flow_close to EnipAnalyzer (no-op if disabled).
-                // EnipAnalyzer does not implement StreamHandler; no forwarding needed.
+                // BC-2.17.019 / SEC-005 / issue #342: forward on_flow_close to EnipAnalyzer
+                // to purge per-flow state and fold metrics into aggregates.
                 let _ = reason;
+                if let Some(ref mut enip) = self.enip {
+                    enip.on_flow_close(flow_key.clone());
+                }
             }
             Some(DispatchTarget::None) | None => {
                 // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3 + enip.
