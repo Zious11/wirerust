@@ -8,9 +8,9 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 
 - **One-pass triage** — hosts, services, protocols, and threat signals from pcap files
 - **Protocol analysis** — DNS, HTTP, TLS, Modbus, DNP3, ARP, and EtherNet/IP (CIP) traffic analysis with extensible analyzer framework
-- **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies
-- **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection; multi-record handshake-message reassembly (SNI/JA3/JA3S fragmentation-evasion closed; per-direction carry buffer with `buffer_saturation_drops` overflow telemetry)
-- **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; enabled via `--modbus`
+- **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies; `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
+- **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection; multi-record handshake-message reassembly (SNI/JA3/JA3S fragmentation-evasion closed; per-direction carry buffer with `buffer_saturation_drops` overflow telemetry); `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
+- **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; `dropped_transactions` JSON counter surfaces silently-dropped transactions when the per-flow transaction map reaches its cap; enabled via `--modbus`
 - **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; enabled via `--dnp3`
 - **ARP security forensics** — link-layer and OT network threat detection; detects ARP spoofing / cache poisoning, gratuitous ARP anomalies, ARP storms, malformed ARP frames, and L2/L3 sender-MAC mismatch; MITRE attribution to T0830 and T1557.002; enabled via `--arp`
 - **EtherNet/IP CIP forensics** — ICS/OT threat detection on port 44818; parses ODVA EtherNet/IP encapsulation header (24-byte, little-endian) and Common Packet Format item walk with CIP service extraction; detects 6 MITRE ATT&CK for ICS techniques (T0836 write-burst, T0846 remote system discovery, T0814 malformed-frame/crash-probe, T0888 error-burst/identity-read, T0858 controller stop, T0816 device reset); configurable write-burst and error-burst thresholds; emits `enip_summary` JSON key; references ADR-010; enabled via `--enip`
@@ -50,8 +50,11 @@ wirerust analyze capture.pcap --http
 # Run all analyzers
 wirerust analyze capture.pcap --all
 
-# JSON output
+# JSON output to terminal
 wirerust analyze capture.pcap --all --output-format json
+
+# Write JSON findings to a file (--json with an optional path)
+wirerust analyze capture.pcap --all --json findings.json
 
 # Multiple files or directories
 wirerust analyze *.pcap /path/to/pcaps/ --all
@@ -75,12 +78,15 @@ per-host breakdown of source and destination IPs. The JSON reporter always emits
 wirerust [OPTIONS] <COMMAND>
 
 Commands:
-  analyze   Analyze PCAP files for threats and anomalies
-  summary   Generate a triage summary of PCAP files
+  analyze    Analyze PCAP files for threats and anomalies
+  summary    Generate a triage summary of PCAP files
+  protocols  List the protocol coverage catalog
 
 Options:
       --no-color                           Disable colored output
       --output-format <FMT>                Output format: json, csv
+      --json [<FILE>]                      Write JSON output to FILE (or stdout if no path given); mutually exclusive with --csv
+      --csv [<FILE>]                       Write CSV output to FILE (or stdout if no path given); emits findings table only
       --reassemble                         Force TCP stream reassembly on
       --no-reassemble                      Force TCP stream reassembly off
       --reassembly-depth N                 Per-direction stream limit in MB (default: 10)
@@ -116,6 +122,31 @@ Options:
 --mitre                                Group findings by MITRE ATT&CK tactic and show technique names; collapses identical findings within each tactic bucket with a (xN) count suffix by default (pass --no-collapse to disable)
 -a, --all                              Run all analyzers
 ```
+
+### List protocol coverage
+
+```bash
+# Show all known protocols (supported and planned)
+wirerust protocols
+
+# Show only protocols wirerust actively dissects
+wirerust protocols --supported
+
+# Show only protocols not yet dissected
+wirerust protocols --unsupported
+
+# Machine-readable output (uses the global --json flag)
+wirerust protocols --json
+```
+
+The `protocols` subcommand prints a filterable table of all known ICS/IT protocols and their
+coverage status. Filter flags:
+
+- `--all` — show all protocols (default when no filter flag is given)
+- `--supported` — show only protocols that wirerust actively dissects
+- `--unsupported` — show only protocols that wirerust does not yet dissect
+
+Combine with the global `--json` flag for machine-readable output.
 
 ## Architecture
 
@@ -203,6 +234,12 @@ CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
 - `--arp-storm-rate N` — frames/second per source MAC above which a storm finding is emitted (default: 50)
+
+JSON output counters (present in `arp_summary` when using `--json` / `--output-format json`):
+- `bindings_evicted` — count of IP→MAC binding-table LRU evictions (table cap: 65 536 entries); a
+  non-zero value means the oldest bindings were dropped to stay within the memory bound
+- `storm_counters_evicted` — count of per-MAC storm-counter-table LRU evictions (table cap:
+  4 096 entries); a non-zero value means the oldest MAC rate-counters were dropped
 
 [^1]: D3 storm findings emit `mitre_techniques: []` (no technique attributed). T0814 attribution
 is pending validation per DF-VALIDATION-001 / BC-2.16.008 Invariant 3.

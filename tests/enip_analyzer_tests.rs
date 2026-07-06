@@ -7475,7 +7475,7 @@ mod summarize_drainage {
             .expect("enip_summary must be present (BC-2.17.021 Post 1)");
 
         // total_pdu_count: must be 3 (folded from the open flow).
-        // RED: pre-fix code returns 0 (reads self.total_pdu_count == 0).
+        // WAS RED (pre-fix): code returned 0 (read self.total_pdu_count == 0).
         assert_eq!(
             get_u64(es_a, "total_pdu_count"),
             3,
@@ -7485,7 +7485,7 @@ mod summarize_drainage {
         );
 
         // flows_analyzed: must be 1 (the 1 still-open flow counted at summarize time).
-        // RED: pre-fix code returns 0 (reads self.flows_analyzed == 0).
+        // WAS RED (pre-fix): code returned 0 (read self.flows_analyzed == 0).
         assert_eq!(
             get_u64(es_a, "flows_analyzed"),
             1,
@@ -7495,7 +7495,7 @@ mod summarize_drainage {
         );
 
         // command_distribution: must be { "0x0063": 3 }.
-        // RED: pre-fix code returns {} (reads self.command_distribution == {}).
+        // WAS RED (pre-fix): code returned {} (read self.command_distribution == {}).
         // Key format: format!("0x{cmd:04X}") — uppercase 4-digit hex; 0x0063 → "0x0063".
         let dist_a = es_a
             .get("command_distribution")
