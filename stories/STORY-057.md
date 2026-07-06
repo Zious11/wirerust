@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-057"
 epic_id: "E-5"
-version: "1.0"
+version: "1.1"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.026.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.027.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.028.md
-input-hash: "0263f22"
+input-hash: "41521b4"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-055, STORY-056]
@@ -60,7 +60,7 @@ implementation_strategy: brownfield-formalization
 | BC-2.07.025 | Non-Zero NameType Entries Treated as Hostnames |
 | BC-2.07.026 | Trailing Bytes in ServerNameList Tolerated |
 | BC-2.07.027 | Large SNI (16 KB) Under MAX_RECORD_PAYLOAD Parses Successfully |
-| BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity |
+| BC-2.07.028 v1.4 | sni_counts Cap: Finding Still Fires When Map at Capacity |
 
 ## Acceptance Criteria
 
@@ -108,13 +108,13 @@ A ClientHello with a clean ASCII SNI hostname of approximately 16 KB (payload_le
 `MAX_RECORD_PAYLOAD = 18,432` is the binding size constraint, not `MAX_BUF = 65,536`. A single record of 16 KB fits comfortably in MAX_BUF. The system does not have an SNI-length-specific cap below MAX_RECORD_PAYLOAD.
 - **Test:** `test_large_sni_near_record_payload_limit` (assert 16 KB SNI parses without `truncated_records` increment)
 
-### AC-012 (traces to BC-2.07.028 postcondition 1-4)
-When `sni_counts` is at `MAX_MAP_ENTRIES = 50,000` capacity and a new anomalous SNI arrives (not already in the map), the new SNI key is NOT inserted into `sni_counts` (count silently dropped), but the anomaly finding IS pushed to `all_findings`. `sni_counts.len()` remains at 50,000. `all_findings.len()` increases by 1.
-- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity`
+### AC-012 (traces to BC-2.07.028 v1.4 postconditions 1-5 — sni_counts cap; dropped_map_entries observable)
+When `sni_counts` is at `MAX_MAP_ENTRIES = 50,000` capacity and a new anomalous SNI arrives (not already in the map), the new SNI key is NOT inserted into `sni_counts` (count silently dropped), but the anomaly finding IS pushed to `all_findings`. `sni_counts.len()` remains at 50,000. `all_findings.len()` increases by 1. Additionally, `TlsAnalyzer.dropped_map_entries` is incremented by exactly 1 for the dropped new-key insert (BC-2.07.028 v1.4 PC-5; observable in `summarize()` as key `"dropped_map_entries"` per BC-2.07.031 v1.5 postcondition 10).
+- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity` (assert finding fires AND `dropped_map_entries == 1` after the drop)
 
-### AC-013 (traces to BC-2.07.028 invariant 1-2)
-Finding emission is decoupled from count insertion. The `Self::increment` call (which silently drops new keys when the map is full) and the `match sni { ... }` block that emits findings are sequential, not conditional on each other. `all_findings` in `TlsAnalyzer` has no cap.
-- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity` (fill to 50,000; then send new anomalous SNI; assert finding still fires despite count drop)
+### AC-013 (traces to BC-2.07.028 v1.4 invariants 1-2 — decoupling; dropped_map_entries counter)
+Finding emission is decoupled from count insertion. The `Self::increment` call (which silently drops new keys when the map is full, and increments `TlsAnalyzer.dropped_map_entries` by 1 for each dropped new key per BC-2.07.028 v1.4 PC-5) and the `match sni { ... }` block that emits findings are sequential, not conditional on each other. `all_findings` in `TlsAnalyzer` has no cap. The `dropped_map_entries` counter is a COUNTER ONLY — no Finding is emitted for map drops; Finding emission (PC-2) and counter increment (PC-5) are independent concerns.
+- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity` (fill to 50,000; then send new anomalous SNI; assert finding still fires despite count drop; assert `dropped_map_entries == 1`)
 
 ## Architecture Mapping
 
@@ -164,7 +164,7 @@ Finding emission is decoupled from count insertion. The `Self::increment` call (
 2. [ ] Verify Red Gate: all AC tests fail before implementation
 3. [ ] Implement `extract_sni` `list.first()` guard: return `None` when list is empty, per BC-2.07.022
 4. [ ] Implement `extract_sni` NameType discard: `let Some((_, hostname)) = list.first()` — `_` pattern for NameType per BC-2.07.025
-5. [ ] Implement `TlsAnalyzer::increment` helper with `MAX_MAP_ENTRIES` cap: insert if `map.len() < limit || map.contains_key(&key)`
+5. [ ] Implement `TlsAnalyzer::increment` helper with `MAX_MAP_ENTRIES` cap: insert if `map.len() < limit || map.contains_key(&key)`; when a new key is NOT inserted (map at cap and key absent), increment `self.dropped_map_entries` by 1 (BC-2.07.028 v1.4 PC-5; observable in summarize() as "dropped_map_entries" per BC-2.07.031 v1.5)
 6. [ ] Wire SNI count insertion BEFORE the `match sni { ... }` block in `handle_client_hello` to ensure finding emission is decoupled from count insertion
 7. [ ] Write `test_sni_extension_with_empty_hostname_list` (empty ServerNameList)
 8. [ ] Write `test_sni_with_empty_hostname_bytes` (one entry, zero-length bytes; arm 1; sni_counts[""]++)
@@ -191,6 +191,7 @@ Finding emission is decoupled from count insertion. The `Self::increment` call (
 | `all_findings` in TlsAnalyzer has NO cap (unlike TcpReassembler.findings) | BC-2.07.028 invariant 2 | Code review: confirm no MAX_FINDINGS guard on TlsAnalyzer.all_findings.push |
 | NameType is discarded with `_` pattern — no NameType validation | BC-2.07.025 invariant 1-2 | Code review: confirm `let Some((_, hostname)) = list.first()` |
 | `MAX_MAP_ENTRIES = 50,000` cap uses `map.len() < limit || map.contains_key(&key)` to allow increment of existing keys | BC-2.07.001 invariant 2 | Unit test: existing key increments even when map is full |
+| When new key is dropped (map at cap, key absent), `dropped_map_entries` incremented by 1; NO Finding emitted for the drop | BC-2.07.028 v1.4 PC-5 | AC-012/AC-013 test: assert `dropped_map_entries == 1` after first drop; assert finding still fires independently |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -203,5 +204,12 @@ Finding emission is decoupled from count insertion. The `Self::increment` call (
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/analyzer/tls.rs | modify | `extract_sni` guard (247-249), `increment` helper (372-376), count insertion before match-sni block (402-416), SNI finding emission (424-490) |
-| tests/tls_analyzer_tests.rs | modify | Empty list, empty hostname, multi-name, NameType, trailing bytes, large SNI, count-cap decoupling tests |
+| src/analyzer/tls.rs | modify | `extract_sni` guard (247-249), `increment` helper (372-376; now also increments `dropped_map_entries` on new-key drop), count insertion before match-sni block (402-416), SNI finding emission (424-490) |
+| tests/tls_analyzer_tests.rs | modify | Empty list, empty hostname, multi-name, NameType, trailing bytes, large SNI, count-cap decoupling tests (updated to assert `dropped_map_entries == 1`) |
+
+## Changelog
+
+| Version | Date | Author | Note |
+|---------|------|--------|------|
+| 1.1 | 2026-07-06 | story-writer | BC-2.07.028 v1.4 propagation (silent-limit audit) — update BC table annotation to v1.4; AC-012/AC-013 extended to assert dropped_map_entries counter increment on new-key drop (PC-5); Task 5 updated to wire dropped_map_entries increment in increment helper; add Architecture Compliance Rule for dropped_map_entries |
+| 1.0 | 2026-05-21 | story-writer | Initial story |

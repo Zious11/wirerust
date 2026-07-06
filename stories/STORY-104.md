@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-104
 epic_id: E-14
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-09T00:00:00Z
@@ -16,6 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.018.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.019.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.020.md
+  - .factory/specs/behavioral-contracts/ss-14/BC-2.14.012.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.021.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.022.md
   - .factory/phase-f2-spec-evolution/architecture-delta.md
@@ -25,6 +26,7 @@ points: 13
 depends_on: [STORY-103]
 blocks: [STORY-105]
 behavioral_contracts:
+  - BC-2.14.012
   - BC-2.14.013
   - BC-2.14.014
   - BC-2.14.015
@@ -46,8 +48,8 @@ estimated_days: 5
 tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
-# BC status: all 10 BCs authored at v2.0 (multi-tag) as of 2026-06-09
-input-hash: "9e18aba"
+# BC status: BC-2.14.021 now at v1.2 (silent-limit audit 2026-07-06: seven keys instead of six; dropped_transactions added as key 7).
+input-hash: "af20325"
 ---
 
 # STORY-104: Modbus Detection Emissions + Summary
@@ -55,13 +57,14 @@ input-hash: "9e18aba"
 ## Narrative
 
 - **As a** ICS/OT security analyst using wirerust to detect Modbus attacks
-- **I want** all seven Modbus MITRE detection rules to fire correctly (write-class co-emission, coordinated-write T0831, dual-window burst/sustained detection, diagnostics DoS, exception-burst anomaly, recon), with findings capped at MAX_FINDINGS, and a complete `summarize()` result
+- **I want** all seven Modbus MITRE detection rules to fire correctly (write-class co-emission, coordinated-write T0831, dual-window burst/sustained detection, diagnostics DoS, exception-burst anomaly, recon), with findings capped at MAX_FINDINGS, and a complete `summarize()` result with all seven summary keys including `dropped_transactions`
 - **So that** the Modbus analyzer produces actionable, correctly-attributed findings for every Modbus attack pattern defined in BC-2.14.013 through BC-2.14.022
 
 ## Behavioral Contracts
 
 | BC | Title |
 |----|-------|
+| BC-2.14.012 v1.1 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full — provides dropped_transactions counter surfaced in summarize() |
 | BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T1692.001 and Applicable Technique Tags |
 | BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits Finding Tagged ["T1692.001","T0836"] |
 | BC-2.14.015 | Write FC to Coil (0x05/0x0F) Emits Finding Tagged ["T1692.001","T0835"] |
@@ -70,7 +73,7 @@ input-hash: "9e18aba"
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning |
 | BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding |
-| BC-2.14.021 | summarize() Returns AnalysisSummary with Six Specified Keys |
+| BC-2.14.021 v1.2 | summarize() Returns AnalysisSummary with Seven Specified Keys |
 | BC-2.14.022 | MAX_FINDINGS Cap (10,000) and Poison-Skip Behavior for ModbusAnalyzer |
 
 ## Acceptance Criteria
@@ -120,9 +123,9 @@ When exception responses for the same exception code exceed the exception-burst 
 FC=0x11 (Report Server ID) in `ClientToServer` direction emits a `Finding` with `mitre_techniques: vec!["T0888"]`. FC=0x2B (MEI Type 0x0E — Read Device Identification) in `ClientToServer` direction emits `vec!["T0888"]`. FC=0x07 (Read Exception Status) does NOT emit a finding (Decision 12).
 - **Test:** `test_recon_fc_0x11_emits_t0888()`, `test_recon_fc_0x2b_0x0e_emits_t0888()`, `test_fc_0x07_does_not_emit()`.
 
-### AC-010 (traces to BC-2.14.021 — summarize() returns six keys)
-`ModbusAnalyzer::summarize()` returns `AnalysisSummary` with exactly six keys: `pdu_count`, `write_count`, `exception_count`, `parse_errors`, `findings_emitted`, `dropped_findings`. All values are `u64`. `dropped_findings` is the count of findings silently dropped due to the MAX_FINDINGS cap.
-- **Test:** `test_modbus_summarize_returns_six_keys()` — process a mix of ADUs; call `summarize()`; assert all six keys are present with correct values.
+### AC-010 (traces to BC-2.14.021 v1.2 — summarize() returns seven keys)
+`ModbusAnalyzer::summarize()` returns `AnalysisSummary` with exactly seven keys: `pdu_count`, `write_count`, `exception_count`, `parse_errors`, `function_code_distribution`, `dropped_findings`, `dropped_transactions`. All values are `u64` (except `function_code_distribution` which is a JSON object). `dropped_findings` is the count of findings silently dropped due to the MAX_FINDINGS cap. `dropped_transactions` is the count of request-direction ADUs refused insertion into the pending table due to the MAX_PENDING_TRANSACTIONS cap (sourced from `ModbusAnalyzer.dropped_transactions`; ALWAYS present, even when 0 — no Finding emitted for drops per BC-2.14.012 v1.1 Invariant 7).
+- **Test:** `test_modbus_summarize_returns_seven_keys()` — process a mix of ADUs; call `summarize()`; assert all seven keys are present with correct values including `dropped_transactions == 0` (happy-path where pending table never saturated).
 
 ### AC-011 (traces to BC-2.14.022 — MAX_FINDINGS = 10,000 poison-skip)
 When `all_findings.len() >= MAX_FINDINGS (10_000)`, subsequent finding-push calls are skipped (no panic, no push). `dropped_findings` is incremented for each skipped finding. `write_count`, `fn_code_counts`, and other counters are still incremented normally (only the finding push is skipped).
@@ -187,7 +190,7 @@ The T0806+T1692.001 burst finding (from the burst detector) is a SEPARATE `Findi
 8. [ ] Implement exception-burst anomaly detector: per-exception-code window; emit `Anomaly` (no technique) when burst threshold exceeded.
 9. [ ] Implement recon detector: FC=0x11 → emit T0888; FC=0x2B with MEI type=0x0E → emit T0888; FC=0x07 → no finding.
 10. [ ] Implement MAX_FINDINGS cap guard: wrap every `all_findings.push(...)` call: `if self.all_findings.len() >= MAX_FINDINGS { self.dropped_findings += 1; } else { self.all_findings.push(finding); }`.
-11. [ ] Implement `summarize()` returning six keys: `pdu_count`, `write_count`, `exception_count`, `parse_errors`, `findings_emitted` (= `all_findings.len()`), `dropped_findings`.
+11. [ ] Implement `summarize()` returning seven keys: `pdu_count`, `write_count`, `exception_count`, `parse_errors`, `function_code_distribution` (FC→count map, hex-string keys per BC-2.14.021 v1.2 Invariant 3), `dropped_findings`, `dropped_transactions` (= `self.dropped_transactions`; ALWAYS present; value 0 when pending table never saturated).
 12. [ ] **Green Gate:** `cargo build --all-targets` exits 0. `cargo test --all-targets` green. AC-001 through AC-012 pass.
 13. [ ] `cargo clippy --all-targets -- -D warnings` clean. Pay special attention to `as u64` cast warnings — use explicit casts.
 14. [ ] `cargo fmt --check` clean.
@@ -218,7 +221,7 @@ The T0806+T1692.001 burst finding (from the burst detector) is a SEPARATE `Findi
 | T0831 is co-tagged inline on the per-PDU write finding, NOT a separate Finding | BC-2.14.016 v2.0; f2-fix-directives.md §13.5 | AC-003 test; code review |
 | Burst finding is SEPARATE from per-PDU finding; burst supplements, not replaces | BC-2.14.013 invariant 5 | AC-012 test |
 | `all_findings.len() >= MAX_FINDINGS` → skip push, increment `dropped_findings` | BC-2.14.022 | AC-011 test |
-| `summarize()` returns exactly SIX keys (not 7+; `duplicate_inflight_txn` is internal) | BC-2.14.021; BC-2.14.009 invariant 6 | AC-010 test |
+| `summarize()` returns exactly SEVEN keys (not 6, not 8+; `duplicate_inflight_txn` is internal, not surfaced) | BC-2.14.021 v1.2; BC-2.14.009 invariant 6 | AC-010 test |
 
 ## Library & Framework Requirements (MANDATORY)
 

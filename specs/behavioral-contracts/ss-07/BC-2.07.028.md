@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: PG-ARP-F2-007 ss-07 full re-anchor — increment 372-376→379-383; key selection+count 402-416→421-427; SNI emission 424-490→435-515 — 2026-06-13"
+  - "v1.4 (2026-07-06): silent-limit audit — add PC-5 noting that dropped new keys increment TlsAnalyzer.dropped_map_entries (observable in BC-2.07.031 PC-10); no Finding behavior unchanged (Invariant 1 preserved); add Related BC reference to BC-2.07.031"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,6 +52,12 @@ observed malicious SNIs.
 2. The anomaly finding IS pushed to `all_findings` regardless of the count outcome.
 3. `sni_counts.len()` remains at `MAX_MAP_ENTRIES`.
 4. `all_findings.len()` increases by 1.
+5. **Drop is observable via `dropped_map_entries`**: when the new key is NOT inserted
+   (Postcondition 1), `TlsAnalyzer.dropped_map_entries: u64` is incremented by exactly 1.
+   This makes the silent count-drop visible in `summarize()` (BC-2.07.031 Postcondition 10).
+   No additional Finding is emitted for the drop — the only Finding produced is the existing
+   anomaly finding from Postcondition 2. Finding emission (PC-2) and count drop observability
+   (PC-5) are independent concerns.
 
 ## Invariants
 
@@ -94,6 +101,7 @@ observed malicious SNIs.
 
 - BC-2.07.019 -- composes with (non-UTF-8 SNI test vector for this cap test)
 - BC-2.07.001 -- depends on (count cap and finding emission both in handle_client_hello)
+- BC-2.07.031 -- composes with (dropped_map_entries counter surfaced in summarize; this BC is the source of sni_counts drops)
 
 ## Architecture Anchors
 

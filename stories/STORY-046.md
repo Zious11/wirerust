@@ -2,20 +2,22 @@
 document_type: story
 story_id: "STORY-046"
 epic_id: "E-4"
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.023.md
-input-hash: "4faf014"
+  - .factory/specs/behavioral-contracts/ss-06/BC-2.06.024.md
+input-hash: "ea65985"
 traces_to: .factory/specs/prd.md
 points: 3
 depends_on: [STORY-041, STORY-042, STORY-043, STORY-044, STORY-045]
 blocks: [STORY-076]
 behavioral_contracts:
   - BC-2.06.023
+  - BC-2.06.024
 verification_properties: []
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
@@ -45,7 +47,7 @@ implementation_strategy: brownfield-formalization
 
 | BC ID | Title |
 |-------|-------|
-| BC-2.06.023 | summarize Emits AnalysisSummary with HTTP Stats Detail Map |
+| BC-2.06.023 v1.6 | summarize Emits AnalysisSummary with HTTP Stats Detail Map |
 
 ## Acceptance Criteria
 
@@ -53,9 +55,9 @@ implementation_strategy: brownfield-formalization
 `HttpAnalyzer::summarize()` returns an `AnalysisSummary` with `analyzer_name = "HTTP"` and `packets_analyzed = self.transactions` (the parsed response count, not request count).
 - **Test:** `test_summarize_produces_complete_output`
 
-### AC-002 (traces to BC-2.06.023 postcondition 1 detail map keys)
-The `detail` BTreeMap contains exactly these keys: `"methods"`, `"non_http_flows"`, `"parse_errors"`, `"poisoned_bytes_skipped"`, `"recent_uris"`, `"status_codes"`, `"top_hosts"`, `"transactions"`, `"user_agents"`. No extra or missing keys.
-- **Test:** `test_summarize_produces_complete_output`
+### AC-002 (traces to BC-2.06.023 v1.6 postcondition 1 detail map keys)
+The `detail` BTreeMap contains exactly these ten keys (alphabetical order per BTreeMap): `"dropped_map_entries"`, `"methods"`, `"non_http_flows"`, `"parse_errors"`, `"poisoned_bytes_skipped"`, `"recent_uris"`, `"status_codes"`, `"top_hosts"`, `"transactions"`, `"user_agents"`. No extra or missing keys. `"dropped_map_entries"` is a u64 count of new-key drops across methods, hosts, user_agents due to the MAX_MAP_ENTRIES=50,000 cap (BC-2.06.024 v1.4); ALWAYS present, even when 0; no Finding is emitted for any drop.
+- **Test:** `test_summarize_produces_complete_output` (assert `dropped_map_entries` key present with value 0 for happy-path)
 
 ### AC-003 (traces to BC-2.06.023 postcondition 2)
 `top_hosts` is sorted by count descending and truncated to at most 20 entries when more than 20 distinct hosts are observed; ties broken by host name ascending (lexicographic); deterministic across runs regardless of HashMap/insertion order.
@@ -77,8 +79,8 @@ The `detail` BTreeMap uses alphabetical key order, making output deterministic a
 `summarize()` does not modify any analyzer state — it is a read-only operation. Calling `summarize()` between two `on_data` calls does not affect subsequent parsing.
 - **Test:** `test_summarize_does_not_mutate_state`
 
-### AC-008 (traces to BC-2.06.023 edge case EC-001)
-When no flows have been processed (zero traffic), `summarize()` returns all maps empty, `transactions=0`, `parse_errors=0`, `non_http_flows=0`, `poisoned_bytes_skipped=0`, and `recent_uris=[]`.
+### AC-008 (traces to BC-2.06.023 v1.6 edge case EC-001)
+When no flows have been processed (zero traffic), `summarize()` returns all maps empty, `transactions=0`, `parse_errors=0`, `non_http_flows=0`, `poisoned_bytes_skipped=0`, `recent_uris=[]`, and `dropped_map_entries=0`.
 - **Test:** `test_parse_error_in_summarize`
 
 ### AC-009 (traces to BC-2.06.023 postcondition 2 / invariant 5 / EC-004)
@@ -95,12 +97,13 @@ When multiple hosts share the same count, the tied group is ordered by host name
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | No flows processed | All maps empty; transactions=0 |
+| EC-001 | No flows processed | All maps empty; transactions=0; dropped_map_entries=0 |
 | EC-002 | > 20 hosts seen | top_hosts truncated to 20 most frequent |
 | EC-003 | > 20 URIs seen | recent_uris shows first 20 (not last 20) |
 | EC-004 | status_codes keys are stringified u16 values | "200", "404" etc. (not integers) |
 | EC-005 | parse_errors > 0 from prior parse errors | parse_errors appears correctly in detail map |
 | EC-006 | Multiple hosts with equal counts, inserted in reverse alphabetical order | top_hosts tied group appears in ascending alphabetical order; result identical regardless of insertion order (BC-2.06.023 EC-004) |
+| EC-007 | Any of methods/hosts/user_agents hits MAX_MAP_ENTRIES=50,000; additional new keys arrive | dropped_map_entries > 0; no Finding emitted; existing-key counts still increment normally (BC-2.06.023 v1.6 EC-005 / BC-2.06.024 v1.4) |
 
 ## Purity Classification
 
@@ -125,7 +128,7 @@ When multiple hosts share the same count, the tied group is ordered by host name
 
 1. [ ] Write failing tests for AC-001 through AC-009 (test-writer)
 2. [ ] Verify Red Gate: all tests fail before implementation
-3. [ ] Implement `summarize()` per BC-2.06.023 (BTreeMap; exact key set; packets_analyzed=transactions; top_hosts sorted by count desc then host name asc, truncated to 20; recent_uris first 20; status_codes keys as stringified u16)
+3. [ ] Implement `summarize()` per BC-2.06.023 v1.6 (BTreeMap; exact ten-key set including `dropped_map_entries`; packets_analyzed=transactions; top_hosts sorted by count desc then host name asc, truncated to 20; recent_uris first 20; status_codes keys as stringified u16; `dropped_map_entries = self.dropped_map_entries` ALWAYS present)
 4. [ ] Confirm `summarize()` is read-only (no `&mut self`)
 5. [ ] Run all tests; verify all pass
 6. [ ] Update STATE.md
@@ -167,5 +170,6 @@ When multiple hosts share the same count, the tied group is ordered by host name
 | Version | Date | Author | Note |
 |---------|------|--------|------|
 | 1.0 | 2026-05-21 | story-writer | Initial story |
+| 1.4 | 2026-07-06 | story-writer | BC-2.06.023 v1.6 + BC-2.06.024 v1.4 propagation (silent-limit audit) — add BC-2.06.024 to inputs and behavioral_contracts; update BC table annotation to v1.6; AC-002 updated to list all ten keys with dropped_map_entries; AC-008 updated (EC-001 with dropped_map_entries=0); Task 3 updated; add EC-007; add Architecture Compliance Rule for dropped_map_entries |
 | 1.2 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-009 (top_hosts tiebreaker: host name ASC, deterministic); expand AC-003 description with tiebreaker + determinism; add EC-006; update Architecture Compliance Rules and FSR for top_hosts determinism (BC-2.06.023 v1.4 postcondition 2 / invariant 5 / EC-004) |
 | 1.1 | 2026-05-29 | story-writer | FSR-table completeness — enumerate all 7 BC-2.06.023 formalization tests (F-S046-P4-001) |

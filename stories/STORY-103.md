@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-103
 epic_id: E-14
-version: "1.0"
+version: "1.1"
 status: completed
 producer: story-writer
 timestamp: 2026-06-09T00:00:00Z
@@ -34,8 +34,8 @@ estimated_days: 3
 tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
-# BC status: all 4 BCs authored at v1.0 as of 2026-06-09
-input-hash: "3b37229"
+# BC status: BC-2.14.012 now at v1.1 (silent-limit audit 2026-07-06: dropped_transactions counter added to PC-8, Invariant 7, EC-002/EC-006; surfaced in summarize() as key 7 per BC-2.14.021 v1.2).
+input-hash: "e9f30f9"
 ---
 
 # STORY-103: Modbus Flow State + Transaction Correlation
@@ -53,7 +53,7 @@ input-hash: "3b37229"
 | BC-2.14.009 | Request PDU Inserted into Per-Flow Pending Table Keyed on (Transaction ID, Unit ID) |
 | BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match |
 | BC-2.14.011 | Exception Response PDU Attributed to Originating Request FC via Pending Table Lookup |
-| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full |
+| BC-2.14.012 v1.1 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full |
 
 ## Acceptance Criteria
 
@@ -77,13 +77,13 @@ When a response arrives for a `(txn_id, unit_id)` key not in `pending` (e.g., co
 When a response arrives with `classify_fc(fc) == Exception` and `pending` contains the key `(transaction_id, unit_id)`, the original request FC is recovered from the pending entry via `pending_fc = pending.remove((txn_id, unit_id)).unwrap().0`. The original FC is used for detection in STORY-104 (write-class exception attribution). `exception_count` is incremented.
 - **Test:** `test_exception_response_attributed_to_original_fc()` — insert request (FC=0x06 Write); deliver exception response (FC=0x86 = 0x06 | 0x80); assert: `exception_count == 1`; the original FC (0x06) is correctly recovered (the test stubs the detection call or asserts a side-effect counter).
 
-### AC-006 (traces to BC-2.14.012 — MAX_PENDING_TRANSACTIONS=256 cap)
-`ModbusFlowState.pending` is capped at `MAX_PENDING_TRANSACTIONS = 256`. When the pending table is full and a new request arrives, the new entry is silently dropped (not inserted). The 256 existing entries are unaffected.
-- **Test:** `test_pending_table_bounded_at_256()` — insert 256 requests with distinct `(txn_id, unit_id)` keys; attempt a 257th insert; assert `pending.len() == 256`; assert the 257th key is absent.
+### AC-006 (traces to BC-2.14.012 v1.1 — MAX_PENDING_TRANSACTIONS=256 cap; dropped_transactions observable)
+`ModbusFlowState.pending` is capped at `MAX_PENDING_TRANSACTIONS = 256`. When the pending table is full and a new request arrives, the new entry is silently dropped (not inserted). The 256 existing entries are unaffected. Each dropped insert increments `ModbusAnalyzer.dropped_transactions: u64` by exactly 1 (BC-2.14.012 v1.1 PC-8); this counter is monotonically non-decreasing and is surfaced in `summarize()` as key `"dropped_transactions"` (BC-2.14.021 v1.2). No Finding is emitted for drops.
+- **Test:** `test_pending_table_bounded_at_256()` — insert 256 requests with distinct `(txn_id, unit_id)` keys; attempt a 257th insert; assert `pending.len() == 256`; assert the 257th key is absent; assert `dropped_transactions == 1`.
 
-### AC-007 (traces to BC-2.14.012 — VP-022 pending-table bound integration test)
-The `pending.len() < MAX_PENDING_TRANSACTIONS` guard is verified via an integration test that confirms no unbounded growth occurs. This is the VP-022 pending-table bound verification.
-- **Test:** `test_pending_table_no_unbounded_growth()` — flood with 300 ClientToServer requests; assert `pending.len() <= 256` at all points; assert `pdu_count == 300` (all PDUs counted even if not inserted into pending).
+### AC-007 (traces to BC-2.14.012 v1.1 — VP-022 pending-table bound integration test; dropped_transactions aggregate count)
+The `pending.len() < MAX_PENDING_TRANSACTIONS` guard is verified via an integration test that confirms no unbounded growth occurs. This is the VP-022 pending-table bound verification. The `dropped_transactions` counter accurately reflects the aggregate count of refused inserts across all flows.
+- **Test:** `test_pending_table_no_unbounded_growth()` — flood with 300 ClientToServer requests; assert `pending.len() <= 256` at all points; assert `pdu_count == 300` (all PDUs counted even if not inserted into pending); assert `dropped_transactions == 44` (300 − 256).
 
 ### AC-008 (traces to BC-2.14.009 invariant 1 — key is (txn_id, unit_id), not txn_id alone)
 The pending table key is `(u16, u8)` — a tuple of `transaction_id` and `unit_id`. This is explicitly NOT just `transaction_id: u16`. Two requests with the same `transaction_id` but different `unit_id` values produce TWO distinct pending entries.
@@ -111,6 +111,7 @@ The pending table key is `(u16, u8)` — a tuple of `transaction_id` and `unit_i
 | Response-direction branch in `on_data` (pending remove) | `src/analyzer/modbus.rs` | Effectful |
 | Exception-direction branch (attribution lookup) | `src/analyzer/modbus.rs` | Effectful |
 | `ModbusAnalyzer.duplicate_inflight_txn: u64` | `src/analyzer/modbus.rs` | Effectful (counter) |
+| `ModbusAnalyzer.dropped_transactions: u64` | `src/analyzer/modbus.rs` | Effectful (counter; incremented on each refused insert per BC-2.14.012 v1.1 PC-8; surfaced in summarize() as key "dropped_transactions" per BC-2.14.021 v1.2) |
 | `MAX_PENDING_TRANSACTIONS: usize = 256` | `src/analyzer/modbus.rs` | Pure (constant) |
 
 **Subsystem anchor justification:** SS-14 owns this story's complete scope — all changes are in `src/analyzer/modbus.rs`, the Modbus/ICS Analysis subsystem per ARCH-INDEX.
@@ -124,7 +125,7 @@ The pending table key is `(u16, u8)` — a tuple of `transaction_id` and `unit_i
 | EC-001 | First ADU on new flow (empty pending) | Entry inserted; `pdu_count = 1`; `last_ts = timestamp` |
 | EC-002 | Response arrives before any request (mid-join) | Silently ignored; `pdu_count` incremented; no finding |
 | EC-003 | Exception response with no matching pending entry | No attribution; `exception_count` incremented; no finding |
-| EC-004 | Pending table at 255/256 (one slot left) | 256th insert succeeds; 257th insert dropped (cap = 256, not 255) |
+| EC-004 | Pending table at 255/256 (one slot left) | 256th insert succeeds; 257th insert dropped (cap = 256, not 255); dropped_transactions incremented to 1 |
 | EC-005 | Write-class FC in ClientToServer direction | Inserted into pending AND `window_write_count` incremented (both happen in the same `on_data` call — the detection windows share state with the pending-insert path) |
 | EC-006 | `timestamp = 0` (epoch) | Valid; stored in pending entry as `(fc, 0)`; no special casing |
 
@@ -148,11 +149,11 @@ The pending table key is `(u16, u8)` — a tuple of `transaction_id` and `unit_i
 1. [ ] Extend `tests/modbus_tests.rs` with failing tests for AC-001 through AC-009. Red Gate: `ModbusFlowState` still has stub fields from STORY-102; the full `pending` HashMap and counter fields are not yet initialized.
 2. [ ] **Red Gate:** Confirm `cargo test` fails on new AC assertions.
 3. [ ] Expand `ModbusFlowState` to the full authoritative field list (AC-009). Replace the stub from STORY-102 with the complete struct. Use `#[derive(Default)]` where possible (HashMap, bool, u32, u64 all have sensible defaults).
-4. [ ] Add `ModbusAnalyzer` struct: `all_findings: Vec<Finding>`, `total_pdu_count: u64`, `total_write_count: u64`, `duplicate_inflight_txn: u64`, `fn_code_counts: HashMap<u8, u64>`, `write_burst_threshold: u32`, `write_sustained_threshold: u32`. Add `ModbusAnalyzer::new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self`. Flow states stored in a `HashMap<FlowKey, ModbusFlowState>` on the analyzer.
+4. [ ] Add `ModbusAnalyzer` struct: `all_findings: Vec<Finding>`, `total_pdu_count: u64`, `total_write_count: u64`, `duplicate_inflight_txn: u64`, `dropped_transactions: u64` (aggregate counter of pending-table refused inserts; surfaced in summarize() as "dropped_transactions" per BC-2.14.021 v1.2), `fn_code_counts: HashMap<u8, u64>`, `write_burst_threshold: u32`, `write_sustained_threshold: u32`. Add `ModbusAnalyzer::new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self`. Flow states stored in a `HashMap<FlowKey, ModbusFlowState>` on the analyzer.
 5. [ ] Implement `on_data` in `ModbusAnalyzer` (the `StreamHandler` trait implementation stub — without detection logic yet, just parsing + pending table management):
    a. Check `flow.is_non_modbus`; bail if true.
    b. Loop over ADUs in the `data` slice: parse with `parse_mbap_header`; validate with `is_valid_modbus_adu`; advance offset by `6 + header.length`.
-   c. For ClientToServer direction: classify FC; if not Exception, insert into `pending` if `< MAX_PENDING_TRANSACTIONS`; increment `pdu_count`, `last_ts`, `fn_code_counts`.
+   c. For ClientToServer direction: classify FC; if not Exception, insert into `pending` if `< MAX_PENDING_TRANSACTIONS`; if new unique key is NOT inserted because table is full, increment `self.dropped_transactions` by 1 (BC-2.14.012 v1.1 PC-8); increment `pdu_count`, `last_ts`, `fn_code_counts`.
    d. For ServerToClient direction: if FC matches pending entry (echo or exception), remove entry; increment `exception_count` if exception.
    e. Detection stubs (empty functions or TODO comments) for STORY-104 calls.
 6. [ ] Add `ModbusAnalyzer.flow_states: HashMap<FlowKey, ModbusFlowState>` and a `get_or_create_flow(&mut self, key: &FlowKey) -> &mut ModbusFlowState` helper.

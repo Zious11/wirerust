@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: anchor-completeness — add 5 missing test back-references (STORY-046 Wave 18, F-S046-P3-001) — 2026-05-29"
   - "v1.4: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_hosts tiebreaker: count desc then host name ASC; determinism claim now covers sort key, not just BTreeMap; add EC-004; add VP/anchor for test_summarize_top_hosts_ties_broken_alphabetically — 2026-06-01"
   - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — summarize() :550-601→:583-634; top_hosts sort :571-573→:604-606. Verified against current src/analyzer/http.rs (1044 lines)."
+  - "v1.6 (2026-07-06): silent-limit audit — add dropped_map_entries as 10th key (u64); incremented when methods, hosts, or user_agents hits MAX_MAP_ENTRIES=50,000 and a new key is dropped; counter only, no Finding; update Invariants, EC, Architecture Anchors, Related BCs; BC-2.06.024 is source contract for this counter"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,7 +35,7 @@ removal_reason: null
 `packets_analyzed = self.transactions` (response count), and a `BTreeMap` detail map
 containing all HTTP statistics. The BTreeMap ensures keys are alphabetically ordered and
 the output is deterministic across runs (per LESSON-P2.09). The detail map includes exactly
-the keys listed in the postconditions.
+the keys listed in the postconditions — nine statistical keys plus `dropped_map_entries`.
 
 ## Preconditions
 
@@ -46,6 +47,9 @@ the keys listed in the postconditions.
    - `analyzer_name = "HTTP"`
    - `packets_analyzed = self.transactions` (parsed response count)
    - `detail` BTreeMap with keys (alphabetical order):
+     - `"dropped_map_entries"`: u64 count of new-key drops across methods, hosts, user_agents
+       due to MAX_MAP_ENTRIES=50,000 cap (BC-2.06.024); ALWAYS present, even when 0; no
+       Finding is emitted for any drop
      - `"methods"`: map of method -> count
      - `"non_http_flows"`: u64 count
      - `"parse_errors"`: u64 count
@@ -72,23 +76,28 @@ the keys listed in the postconditions.
    (host, count) pairs, every invocation produces the same ordered array, regardless of
    HashMap internal ordering or insertion sequence. This is achieved by sorting with a
    composite key (count desc, name asc) before `.take(20)`.
+6. `dropped_map_entries` is monotonically non-decreasing across the analyzer lifetime. It
+   counts drops across all three guarded maps (methods, hosts, user_agents) in aggregate.
+   Each refused new-key insert increments `HttpAnalyzer.dropped_map_entries: u64` by exactly 1.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | No flows processed | All maps empty; transactions=0 |
+| EC-001 | No flows processed | All maps empty; transactions=0; dropped_map_entries=0 |
 | EC-002 | > 20 hosts seen | top_hosts truncated to 20 (most frequent) |
 | EC-003 | > 20 URIs seen | recent_uris shows first 20 (not last 20) |
 | EC-004 | Multiple hosts with equal counts | top_hosts entries within the tied group appear in ascending alphabetical order by host name; order is deterministic regardless of HashMap/insertion ordering |
+| EC-005 | Any of methods/hosts/user_agents hits MAX_MAP_ENTRIES=50,000; additional new keys arrive | dropped_map_entries > 0; no Finding emitted; existing-key counts still increment normally |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| After parsing 5 GET requests and 3 responses | transactions=3, methods={"GET":5}, recent_uris has 5 entries | happy-path |
-| Zero traffic | transactions=0; all maps empty | edge-case |
-| 25 hosts all with count=5, inserted in reverse alphabetical order | top_hosts[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order | tiebreaker / EC-004 |
+| After parsing 5 GET requests and 3 responses | transactions=3, methods={"GET":5}, recent_uris has 5 entries, dropped_map_entries=0 | happy-path |
+| Zero traffic | transactions=0; all maps empty; dropped_map_entries=0 | edge-case |
+| 25 hosts all with count=5, inserted in reverse alphabetical order | top_hosts[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order; dropped_map_entries=0 | tiebreaker / EC-004 |
+| hosts map filled to 50,000; 3 new unique hosts arrive | dropped_map_entries=3; hosts.len()=50,000; no Finding emitted | edge-case / EC-005 |
 
 ## Verification Properties
 
@@ -118,11 +127,14 @@ the keys listed in the postconditions.
 
 - BC-2.06.004 -- composes with (packets_analyzed = transactions = response count)
 - BC-2.06.018 -- composes with (non_http_flows appears in detail map)
+- BC-2.06.024 -- depends on (dropped_map_entries counter sourced from map-cardinality-cap contract)
 
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:583-634` -- summarize() implementation
 - `src/analyzer/http.rs:604-606` -- top_hosts sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
+- `src/analyzer/http.rs` -- `HttpAnalyzer.dropped_map_entries: u64` field (to be added by implementer)
+- `src/analyzer/http.rs:390-408` -- map entry guards (source of drop events counted in dropped_map_entries)
 - `tests/http_analyzer_tests.rs::test_summarize_produces_complete_output` -- covers postcondition 1 (all required keys present)
 - `tests/http_analyzer_tests.rs::test_parse_error_in_summarize` -- covers postcondition 1 (parse_errors key)
 - `tests/http_analyzer_tests.rs::test_summarize_top_hosts_sorted_and_truncated` -- covers postcondition 2 / EC-002 (top_hosts sort + truncation)

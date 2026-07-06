@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.8: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-006 resolved — `--arp-storm-rate 0` is REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow error with message `--arp-storm-rate must be >= 1 (got 0)`; replaces open 'clamp to 1 or document as invalid' wording. Rationale: ARP storm detection uses inclusive comparison (`count/elapsed >= storm_rate`), so 0 degenerates to always-true; startup bail! matches modbus precedent and the latent invariant (accept 0 only where comparison is strict `>`). Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
   - "v1.9: F7 consistency F3 — corrected EC-006 mechanism wording: rejection occurs after CLI parsing but before packet processing (not a clap value_parser range check); implemented via anyhow::bail! in run_analyze() (src/main.rs:120-122). Functional contract unchanged. — 2026-06-16"
+  - "v2.0: Silent-limit audit — add `storm_counters_evicted` observability counter. When the storm-counter table (MAX_STORM_COUNTERS=4,096) evicts an entry via LRU, `ArpAnalyzer.storm_counters_evicted: u64` is incremented by 1. This counter is surfaced in `summarize()` as a new key (BC-2.16.010 v1.9 — 11→13 keys). The eviction itself STILL emits no Finding (Invariant 5 and Invariant 6 unchanged). New postcondition 6 added. EC-007 extended to note counter increment on eviction. — 2026-07-06"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,6 +88,14 @@ and is therefore withheld until validated.
    (one-shot guard: at most one storm Finding per MAC per window).
 5. `storm_counters.len() <= MAX_STORM_COUNTERS = 4,096` at all times (LRU eviction analogous
    to binding table cap per BC-2.16.006).
+6. **Storm-counter LRU eviction is observable via `storm_counters_evicted`**: when
+   `insert_storm_counter_lru` (or equivalent inline eviction site) evicts the LRU entry
+   because `storm_counters.len() == MAX_STORM_COUNTERS` and a new MAC would require a new
+   slot, `ArpAnalyzer.storm_counters_evicted: u64` is incremented by exactly 1. The
+   eviction itself STILL emits no Finding (Invariants 5 and 6 are unchanged). This counter
+   is surfaced in `summarize()` as the key `"storm_counters_evicted"` (see BC-2.16.010
+   Postcondition 1 — key 12). The counter is monotonically non-decreasing; it is NOT reset
+   on window expiry or MAC re-initialization.
 
 **Note on rate calculation — same-second case (ARP-AMB-003 RESOLVED in F2):**
 6. Timestamps are integer seconds (`u32`). The rate formula is
@@ -146,7 +155,7 @@ and is therefore withheld until validated.
 | EC-004 | Storm window expires (>60s since first frame) | Window resets; storm_emitted=false; counter resets |
 | EC-005 | `--arp-storm-rate 10` set: storm threshold lowered | Storm triggers at 10 frames/sec instead of 50 |
 | EC-006 | `--arp-storm-rate 0` set (edge case) | REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (src/main.rs:120-122); error: `--arp-storm-rate must be >= 1 (got 0)`; non-zero exit code (1); detection never runs. Note: rejection occurs AFTER clap parsing (not a clap value_parser range check) — exit code is 1 (anyhow) not 2 (clap). Rationale (D-074): the storm comparison is inclusive (`count/elapsed >= storm_rate`), so 0 degenerates to always-true — not a coherent "alert-on-all" sentinel. Matches modbus precedent; consistent with latent codebase invariant (reject 0 where comparison is `>=`; accept only where `>`). Validated by research-agent arp-threshold-zero-convention.md (HIGH confidence). |
-| EC-007 | 4,097 distinct MACs each sending frames | MAX_STORM_COUNTERS cap: LRU eviction on 4,097th MAC; oldest MAC counter evicted; no storm finding for evicted MAC even if it later storms |
+| EC-007 | 4,097 distinct MACs each sending frames | MAX_STORM_COUNTERS cap: LRU eviction on 4,097th MAC; oldest MAC counter evicted; `storm_counters_evicted` incremented to 1; no Finding emitted for the eviction; no storm finding for evicted MAC even if it later storms (it re-initializes as a new first-observation) |
 | EC-008 | Same MAC, all frames in same second (ts==window_start_ts) | Rate calculated as count/1; avoids divide-by-zero; finding emits if count >= storm_rate |
 | EC-009 | ts - window_start_ts == 60 exactly (boundary): frame at ts=160, window_start_ts=100, count_in_window=50 | `160-100=60 <= ARP_FLAP_WINDOW_SECS=60`; still in-window per the <= boundary; no reset; rate=50/60≈0.83 < 50; no storm finding |
 | EC-010 | ts - window_start_ts == 61 (one second past window): frame at ts=161, window_start_ts=100, count_in_window=3000 | `161-100=61 > 60`; window resets: count_in_window=1, window_start_ts=161, storm_emitted=false; no storm finding emitted for the huge prior count (window expired before detection) |
@@ -193,6 +202,7 @@ Rate formula: `rate = count_in_window / max(1, ts - window_start_ts)`.
 ## Architecture Anchors
 
 - `src/analyzer/arp.rs` — `ArpAnalyzer.storm_counters: HashMap<[u8; 6], StormCounter>`
+- `src/analyzer/arp.rs` — `ArpAnalyzer.storm_counters_evicted: u64` (new field; monotonically non-decreasing; incremented on each LRU eviction from the storm_counters table; surfaced in summarize() as key `"storm_counters_evicted"`)
 - `src/analyzer/arp.rs` — `struct StormCounter { count_in_window: u64, window_start_ts: u32, storm_emitted: bool }`
 - `src/analyzer/arp.rs` — `const ARP_FLAP_WINDOW_SECS: u32 = 60` (wirerust engineering default; shared with D1/D2 flap detection — defined as authoritative in BC-2.16.004)
 - `src/analyzer/arp.rs` — `const ARP_STORM_RATE_DEFAULT: u32 = 50` (wirerust engineering default — NOT an industry standard)

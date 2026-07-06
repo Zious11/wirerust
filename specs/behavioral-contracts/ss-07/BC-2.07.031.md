@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_snis tiebreaker: count desc then SNI name ASC; determinism claim now covers sort key; add EC-004; add VP/anchor for test_summarize_top_snis_ties_broken_alphabetically — 2026-06-01"
   - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — summarize 763-808→853-897; top_snis sort 771-773→861-862 — 2026-06-13"
+  - "v1.5 (2026-07-06): silent-limit audit — add dropped_map_entries key (PC-10, u64); incremented when any distribution map (sni_counts, ja3_counts, ja3s_counts, version_counts, cipher_counts) hits MAX_MAP_ENTRIES=50,000 and a new key is dropped; counter only, no Finding; update EC, Architecture Anchors, Related BCs"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -32,8 +33,9 @@ removal_reason: null
 `TlsAnalyzer::summarize` returns an `AnalysisSummary` with `analyzer_name = "TLS"`,
 `packets_analyzed = handshakes_seen`, and a detail BTreeMap with the following keys:
 `top_snis` (top 20 SNIs by count), `ja3_hashes`, `ja3s_hashes`, `tls_versions`,
-`cipher_suites`, `parse_errors`, and `truncated_records`. The BTreeMap ensures
-deterministic alphabetical key ordering in JSON output.
+`cipher_suites`, `parse_errors`, `truncated_records`, `handshake_reassembly_overflows`
+(BC-2.07.039), `buffer_saturation_drops` (BC-2.07.043), and `dropped_map_entries`
+(this BC, v1.5). The BTreeMap ensures deterministic alphabetical key ordering in JSON output.
 
 ## Preconditions
 
@@ -55,6 +57,15 @@ deterministic alphabetical key ordering in JSON output.
 7. `detail["cipher_suites"]` is a JSON object mapping cipher name -> count.
 8. `detail["parse_errors"]` is a JSON number.
 9. `detail["truncated_records"]` is a JSON number.
+10. `detail["dropped_map_entries"]` is a JSON number (u64). This counter accumulates the
+    total count of new-key drops across ALL five distribution maps (`sni_counts`,
+    `ja3_counts`, `ja3s_counts`, `version_counts`, `cipher_counts`) caused by the
+    `MAX_MAP_ENTRIES = 50,000` cap in `TlsAnalyzer::increment`. Each time `increment`
+    silently drops a new key (i.e., `map.len() >= MAX_MAP_ENTRIES && !map.contains_key(&key)`),
+    `TlsAnalyzer.dropped_map_entries: u64` is incremented by 1. The counter is ALWAYS
+    present in the detail map, even when 0. No Finding is emitted for any map drop
+    (BC-2.07.028 Invariant 1 preserved: Finding emission is decoupled from count insertion
+    and still fires independently when applicable).
 
 ## Invariants
 
@@ -68,23 +79,29 @@ deterministic alphabetical key ordering in JSON output.
 3. `version_counts` values are u16 keys; they are converted to String via
    `k.to_string()` (decimal) for the JSON map.
 4. The `truncated_records` key was added in P1.05 for CNV-PAT-002 compliance.
+5. `dropped_map_entries` is monotonically non-decreasing across the analyzer lifetime.
+   It counts drops across ALL maps in aggregate (not per-map). When implementation is
+   added, the `TlsAnalyzer::increment` helper must return a bool (or increment a field)
+   to allow the caller to accumulate this counter.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Analyzer with no data (fresh instance) | packets_analyzed=0; all maps empty; parse_errors=0 |
+| EC-001 | Analyzer with no data (fresh instance) | packets_analyzed=0; all maps empty; parse_errors=0; dropped_map_entries=0 |
 | EC-002 | More than 20 distinct SNIs seen | top_snis has exactly 20 entries |
 | EC-003 | Version counts have multiple entries | tls_versions map has multiple entries |
 | EC-004 | Multiple SNIs with equal counts | SNIs within the tied group appear in ascending alphabetical order; result is deterministic regardless of sni_counts HashMap/insertion ordering |
+| EC-005 | Any distribution map hits MAX_MAP_ENTRIES=50,000; additional new keys arrive | dropped_map_entries > 0; no Finding emitted for the drops; existing-key counts still increment normally |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Analyzer after one clean handshake | packets_analyzed=1; top_snis has 1 entry; parse_errors=0; truncated_records=0 | happy-path |
-| Fresh analyzer, no data | packets_analyzed=0; all maps/arrays empty | edge-case |
-| 25 SNIs all with count=1, inserted in reverse alphabetical order | top_snis[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order | tiebreaker / EC-004 |
+| Analyzer after one clean handshake | packets_analyzed=1; top_snis has 1 entry; parse_errors=0; truncated_records=0; dropped_map_entries=0 | happy-path |
+| Fresh analyzer, no data | packets_analyzed=0; all maps/arrays empty; dropped_map_entries=0 | edge-case |
+| 25 SNIs all with count=1, inserted in reverse alphabetical order | top_snis[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order; dropped_map_entries=0 | tiebreaker / EC-004 |
+| sni_counts filled to 50,000; 5 new unique SNIs arrive | dropped_map_entries=5; sni_counts.len()=50,000; no Finding emitted for drops | edge-case / EC-005 |
 
 ## Verification Properties
 
@@ -109,13 +126,16 @@ deterministic alphabetical key ordering in JSON output.
 
 - BC-2.07.001 -- depends on (handshakes_seen drives packets_analyzed)
 - BC-2.07.004 -- composes with (truncated_records is surfaced here)
+- BC-2.07.028 -- composes with (dropped_map_entries counter is additive; BC-2.07.028 defines finding-still-fires-when-map-full behavior which is preserved)
 - BC-2.07.029 -- composes with (parse_errors is surfaced here)
 
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:853-897` -- `summarize` implementation
 - `src/analyzer/tls.rs:861-862` -- top_snis sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
-- `tests/tls_analyzer_tests.rs::test_summarize_output` -- covers postcondition 1-9 (all required detail keys)
+- `src/analyzer/tls.rs` -- `TlsAnalyzer.dropped_map_entries: u64` field (to be added by implementer)
+- `src/analyzer/tls.rs:379-383` -- `TlsAnalyzer::increment` helper (cap logic; needs return value or field increment to surface drops)
+- `tests/tls_analyzer_tests.rs::test_summarize_output` -- covers postcondition 1-9 (all required detail keys; needs update to assert dropped_map_entries=0 for happy-path)
 - `tests/tls_analyzer_tests.rs::test_summarize_top_snis_ties_broken_alphabetically` -- covers postcondition 3 / invariant 2 / EC-004 (tiebreaker: SNI name ASC; determinism under reverse-insertion) (FIX-P5-003)
 
 ## Source Evidence

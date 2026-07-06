@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-058"
 epic_id: "E-5"
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -14,7 +14,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.031.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.033.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.035.md
-input-hash: "f18801e"
+input-hash: "d510292"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-052, STORY-053]
@@ -64,7 +64,7 @@ implementation_strategy: brownfield-formalization
 | BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors and truncated_records |
 | BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes |
 | BC-2.07.029 | Bad TLS Record Body Increments parse_errors; No Panic |
-| BC-2.07.031 | summarize Emits AnalysisSummary with TLS Stats Detail Map |
+| BC-2.07.031 v1.5 | summarize Emits AnalysisSummary with TLS Stats Detail Map |
 | BC-2.07.033 | TLS Analyzer Ignores Non-Handshake Records |
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState |
 
@@ -102,9 +102,9 @@ When `parse_tls_plaintext` is called on a well-sized record (payload_len <= MAX_
 `parse_errors` increments ONLY for genuine parse failures (nom `Err(_)` on a handshake record). Oversized records use BOTH `parse_errors` AND `truncated_records`. The difference `parse_errors - truncated_records` counts genuine parse failures that are not DoS-protection drops.
 - **Test:** `test_malformed_handshake_increments_parse_errors_only`
 
-### AC-009 (traces to BC-2.07.031 postcondition 1-9)
-`TlsAnalyzer::summarize` returns an `AnalysisSummary` with `analyzer_name = "TLS"`, `packets_analyzed = handshakes_seen`, and a `detail` BTreeMap containing all required keys: `"cipher_suites"`, `"ja3_hashes"`, `"ja3s_hashes"`, `"parse_errors"`, `"tls_versions"`, `"top_snis"`, `"truncated_records"`. `top_snis` is a JSON array of up to 20 SNI strings sorted by count descending; ties broken by SNI name ascending (lexicographic); deterministic across runs regardless of HashMap/insertion order. Other keys are JSON objects/numbers.
-- **Test:** `test_summarize_output`; integration test `test_summarize_has_all_required_fields`
+### AC-009 (traces to BC-2.07.031 v1.5 postcondition 1-10)
+`TlsAnalyzer::summarize` returns an `AnalysisSummary` with `analyzer_name = "TLS"`, `packets_analyzed = handshakes_seen`, and a `detail` BTreeMap containing all required keys: `"cipher_suites"`, `"ja3_hashes"`, `"ja3s_hashes"`, `"parse_errors"`, `"tls_versions"`, `"top_snis"`, `"truncated_records"`, `"handshake_reassembly_overflows"`, `"buffer_saturation_drops"`, and `"dropped_map_entries"` (BC-2.07.031 v1.5 postcondition 10 — u64 counter of new-key drops across ALL five distribution maps caused by MAX_MAP_ENTRIES=50,000 cap; ALWAYS present, even when 0; no Finding emitted for drops). `top_snis` is a JSON array of up to 20 SNI strings sorted by count descending; ties broken by SNI name ascending (lexicographic); deterministic across runs regardless of HashMap/insertion order. Other keys are JSON objects/numbers.
+- **Test:** `test_summarize_output` (assert `dropped_map_entries` key present with value 0 for happy-path); integration test `test_summarize_has_all_required_fields`
 
 ### AC-010 (traces to BC-2.07.031 invariant 1-4)
 `detail` is a `BTreeMap` (NOT a HashMap), ensuring alphabetically ordered keys in JSON output (LESSON-P2.09 compliance). `top_snis` contains at most 20 entries; sorted by count descending with ties broken by SNI name ascending, then `.take(20)`; the resulting array is fully deterministic given the same (sni, count) pairs regardless of `sni_counts` HashMap internal ordering or insertion sequence. `version_counts` u16 keys are converted to decimal String via `k.to_string()` for the JSON map.
@@ -161,6 +161,7 @@ When multiple SNIs share the same count, the tied group is ordered by SNI name a
 | EC-010 | `on_flow_close` for key not in `flows` | No-op; no panic |
 | EC-011 | Reopening same FlowKey after close | New `TlsFlowState` created fresh on next `on_data` |
 | EC-012 | Multiple SNIs with equal counts, inserted in reverse alphabetical order | top_snis tied group appears in ascending alphabetical order; result identical regardless of insertion order (BC-2.07.031 EC-004) |
+| EC-013 | Any distribution map (sni_counts, ja3_counts, ja3s_counts, version_counts, cipher_counts) hits MAX_MAP_ENTRIES=50,000; additional new keys arrive | dropped_map_entries > 0; no Finding emitted for the drops; existing-key counts still increment normally (BC-2.07.031 v1.5 EC-005) |
 
 ## Purity Classification
 
@@ -190,7 +191,7 @@ When multiple SNIs share the same count, the tied group is ordered by SNI name a
 4. [ ] Implement per-direction buffer cap in `on_data`: `remaining = MAX_BUF.saturating_sub(state.buf.len()); to_copy = data.len().min(remaining); state.buf.extend_from_slice(&data[..to_copy])`
 5. [ ] Implement nom error handling in `try_parse_records`: on `Err(_)`, increment `parse_errors += 1`; no panic; continue/return
 6. [ ] Implement non-handshake record skip in `try_parse_records`: `if record_type != 0x16 { drain consumed bytes; continue; }`
-7. [ ] Implement `summarize`: return `AnalysisSummary { analyzer_name: "TLS", packets_analyzed: self.handshakes_seen, detail: BTreeMap }` with all 7 required keys
+7. [ ] Implement `summarize`: return `AnalysisSummary { analyzer_name: "TLS", packets_analyzed: self.handshakes_seen, detail: BTreeMap }` with all required keys including `"dropped_map_entries": self.dropped_map_entries` (u64; ALWAYS present; value 0 for fresh analyzer; BC-2.07.031 v1.5 postcondition 10)
 8. [ ] Implement `on_flow_close`: `self.flows.remove(flow_key)` only; no analysis at close time
 9. [ ] Write `test_oversized_sni_exceeds_record_payload_limit` (payload_len > 18,432)
 10. [ ] Write boundary test: payload_len=18,432 does not increment; 18,433 does
@@ -214,7 +215,8 @@ When multiple SNIs share the same count, the tied group is ordered by SNI name a
 |------|--------|-------------|
 | Both `parse_errors` AND `truncated_records` are ALWAYS incremented together for oversized records | BC-2.07.004 invariant 1 | Unit test: AC-002 asserts both counters change together |
 | Buffer cap uses `saturating_sub` — must not panic on underflow | BC-2.07.005 invariant 2 | Code review: confirm `MAX_BUF.saturating_sub(...)` not subtraction operator |
-| `summarize` uses BTreeMap for `detail` (NOT HashMap) — deterministic JSON key ordering | BC-2.07.031 invariant 1 (LESSON-P2.09) | Code review: confirm `BTreeMap::new()` at summarize |
+| `summarize` uses BTreeMap for `detail` (NOT HashMap) — deterministic JSON key ordering | BC-2.07.031 v1.5 invariant 1 (LESSON-P2.09) | Code review: confirm `BTreeMap::new()` at summarize |
+| `dropped_map_entries` key ALWAYS present in summarize detail, even when 0; no Finding for map drops | BC-2.07.031 v1.5 postcondition 10 / invariant 5 | Unit test: AC-009 assert `dropped_map_entries == 0` for happy-path; EC-005 assert > 0 after cap hit |
 | `top_snis` sorted by count descending; ties broken by SNI name ascending; `.take(20)`; deterministic across runs | BC-2.07.031 invariant 2 / postcondition 3 | Unit tests: AC-010 (>20 SNIs cap), AC-016 (tiebreaker determinism) |
 | `version_counts` keys in summarize output are decimal strings (e.g., "771"), NOT hex strings | BC-2.07.031 invariant 3 | Unit test: AC-010 assert key is "771" not "0x0303" |
 | `truncated_records` is a separate field from `parse_errors`; both appear in summarize detail | BC-2.07.031 postcondition 8-9 | Unit test: AC-011 |
@@ -239,6 +241,7 @@ When multiple SNIs share the same count, the tied group is ordered by SNI name a
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| v1.6 | 2026-07-06 | story-writer | BC-2.07.031 v1.5 propagation (silent-limit audit) — update BC table annotation to v1.5; AC-009 updated to reference postconditions 1-10 and add dropped_map_entries key; Task 7 updated; add EC-013; add Architecture Compliance Rule for dropped_map_entries |
 | v1.4 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-016 (top_snis tiebreaker: SNI name ASC, deterministic); expand AC-009 and AC-010 descriptions with SNI-name-ascending tiebreaker and determinism guarantee; add EC-012; update Architecture Compliance Rules and FSR for top_snis determinism (BC-2.07.031 v1.3 postcondition 3 / invariant 2 / EC-004) |
 | v1.3 | 2026-05-29 | story-writer | Qualify AC-002 "preceding partial record" sub-clause as defensive/by-inspection per BC-2.07.004 v1.3 (F-S058-P6-002): that scenario is not reachable via the public `on_data` API (parser reads from `buf[0]` and returns at the incompleteness check before a later oversized record could be encountered). Normative assertion retained: buffer clearing is unconditional. |
 | v1.2 | 2026-05-29 | story-writer | Re-point AC-013 to within-loop-skip test (F-S058-P1-002): `test_stop_after_handshake` removed (proves done()-short-circuit, not within-loop skip); canonical citation is now `test_within_loop_nonhandshake_skip_before_done` + `test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently`. Add literal-cap residue test citations to AC-004 (`test_buffer_cap_appends_at_most_max_buf_literal_residue`) and AC-005 (`test_buffer_full_append_noop_literal`). FSR enumerates all 20 test fn names. Normative AC scenarios, BC list, and tls.rs line anchors unchanged. |

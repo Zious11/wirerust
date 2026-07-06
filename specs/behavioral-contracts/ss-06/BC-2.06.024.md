@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — MAX_MAP_ENTRIES :24→:26; map entry guard :375-378→:390-392; overall range :375-389→:390-408. Verified against current src/analyzer/http.rs (1044 lines)."
+  - "v1.4 (2026-07-06): silent-limit audit — update PC-4: drop is now observable via HttpAnalyzer.dropped_map_entries counter; remove 'no counter is incremented' claim; add Related BC reference to BC-2.06.023"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,9 +44,12 @@ bounded by MAX_URIS (BC-2.06.025).
 ## Postconditions
 
 1. The new key is NOT added to the map (the `map.len() < MAX_MAP_ENTRIES || map.contains_key(key)` guard fails for new keys when at cap).
-2. The counter for that new value is silently dropped.
+2. The counter for that new value is silently dropped (the new entry is not inserted).
 3. Existing keys continue to increment normally.
-4. No error is emitted; no counter is incremented for the drop.
+4. No error is emitted and no Finding is produced for the drop. However, the drop IS
+   observable: `HttpAnalyzer.dropped_map_entries: u64` is incremented by exactly 1 for
+   each refused new-key insert. This counter is surfaced in `summarize()` as key
+   `"dropped_map_entries"` (BC-2.06.023 Postcondition 1).
 
 ## Invariants
 
@@ -89,6 +93,7 @@ bounded by MAX_URIS (BC-2.06.025).
 
 ## Related BCs
 
+- BC-2.06.023 -- composes with (dropped_map_entries counter is surfaced in summarize(); this BC is the source of HTTP map drops)
 - BC-2.06.025 -- composes with (uris Vec has a separate cap; both are bounded-resource mechanisms)
 
 ## Architecture Anchors

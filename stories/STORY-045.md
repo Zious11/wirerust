@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-045"
 epic_id: "E-4"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.022.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.024.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.025.md
-input-hash: "8af6317"
+input-hash: "b8d07aa"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041, STORY-044]
@@ -62,7 +62,7 @@ implementation_strategy: brownfield-formalization
 | BC-2.06.019 | on_flow_close Removes Per-Flow State; Reopening Same Key Starts Fresh |
 | BC-2.06.021 | Cross-Flow Isolation: Errors and Poisoning Do Not Leak |
 | BC-2.06.022 | Per-Direction Header Buffer Capped at MAX_HEADER_BUF (65536) |
-| BC-2.06.024 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES |
+| BC-2.06.024 v1.4 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES |
 | BC-2.06.025 | uris List Capped at MAX_URIS=10000 |
 
 ## Acceptance Criteria
@@ -95,9 +95,9 @@ For each `on_data` call, only `min(data.len(), MAX_HEADER_BUF - buf.len())` byte
 `MAX_HEADER_BUF = 65,536` is defined as a constant. The cap applies per-direction independently (request_buf and response_buf have separate caps). No finding is emitted when the cap is reached.
 - **Test:** `test_BC_2_06_022_buffer_cap_partial_fill_one_byte_appended`; `test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended`
 
-### AC-008 (traces to BC-2.06.024 postcondition 1-4)
-When a map (`methods`, `hosts`, or `user_agents`) has reached `MAX_MAP_ENTRIES = 50,000` distinct keys, any new unique key is silently NOT inserted. Existing keys continue to increment normally past the cap.
-- **Test:** `test_BC_2_06_024_map_cardinality_cap_drops_new_keys`; `test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds`
+### AC-008 (traces to BC-2.06.024 v1.4 postcondition 1-4)
+When a map (`methods`, `hosts`, or `user_agents`) has reached `MAX_MAP_ENTRIES = 50,000` distinct keys, any new unique key is silently NOT inserted. Each refused insert increments `HttpAnalyzer.dropped_map_entries: u64` by exactly 1 (BC-2.06.024 v1.4 PC-4); the counter is surfaced in `summarize()` as `"dropped_map_entries"` (BC-2.06.023 v1.6). Existing keys continue to increment normally past the cap; existing-key hits do NOT increment `dropped_map_entries`.
+- **Test:** `test_BC_2_06_024_map_cardinality_cap_drops_new_keys` (assert `dropped_map_entries` increments per refused insert); `test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds`
 
 ### AC-009 (traces to BC-2.06.024 invariant 2-3)
 Guard pattern: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(&parsed.method)`. The `contains_key` short-circuit allows EXISTING keys to increment even when the map is at cap. `status_codes` uses u16 keys and has no explicit MAX_MAP_ENTRIES guard.
@@ -201,5 +201,6 @@ When `self.uris.len() == MAX_URIS (10,000)`, new request URIs are NOT appended t
 
 | Version | Date | Change |
 |---------|------|--------|
+| 1.4 | 2026-07-06 | BC-2.06.024 v1.4 propagation (silent-limit audit) — update BC table annotation to v1.4; AC-008 extended: each refused new-key insert increments `dropped_map_entries` by 1 (PC-4); test assertion added for `dropped_map_entries` counter |
 | 1.1 | 2026-05-29 | AC-citation sync (F-W17-S045-P1-001/002, DF-AC-TEST-NAME-SYNC-001 v2): replaced all bare/legacy `**Test:**` names in AC-001 through AC-011 and File Structure Requirements with BC-prefixed formalization names from mod bc_2_06_045_formalization; verified each name exists in .worktrees/story-045/tests/http_analyzer_tests.rs |
 | 1.0 | 2026-05-21 | Initial story decomposition |

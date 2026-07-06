@@ -2,7 +2,8 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.5"
+version: "1.6"
+# v1.6 (2026-07-06): BC-2.16.008 v2.0 propagation (silent-limit audit) — add storm_counters_evicted observability counter to AC-010; update storm-counter cap AC to assert storm_counters_evicted increments on eviction; update BC-2.16.010 cross-story extension section to v1.9 annotation; update BC status comment.
 # v1.5 (2026-06-23): fix-pc-013-014-015 BC propagation — BC-2.16.010 cross-story extension section updated to v1.8 annotation; BC status comment updated. No AC changes — BC-2.16.010 v1.8 (no-dropped_findings invariant) does not affect storm_findings key scope.
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
 # v1.4 (2026-06-16): F7 consistency F4 — EC-011 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-011 fix from v1.3 and BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
@@ -26,8 +27,8 @@ subsystems: [SS-16]
 estimated_days: 3
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.008 v1.8, BC-2.16.013 v1.3 — authored 2026-06-12 (updated to v1.8/v1.3 per D-074 cosmetic sync 2026-06-15)
-# BC-2.16.010 cross-story extension: wires storm_findings VALUE (key already defined by STORY-113); primary owner is STORY-113. BC-2.16.010 now at v1.8 (fix-pc-013-014-015 PC-015: Invariant 6 added — no dropped_findings key / no MAX_FINDINGS on ARP path; cross-ref BC-2.16.016). No behavioral change to storm_findings key — unchanged for STORY-115 scope.
+# BC status: BC-2.16.008 v2.0, BC-2.16.013 v1.3 — BC-2.16.008 updated to v2.0 (silent-limit audit 2026-07-06: add storm_counters_evicted counter, PC-6, EC-007 extended).
+# BC-2.16.010 cross-story extension: wires storm_findings VALUE (key already defined by STORY-113); primary owner is STORY-113. BC-2.16.010 now at v1.9 (silent-limit audit: 11→13 keys; added bindings_evicted and storm_counters_evicted). storm_counters_evicted VALUE is wired here (D3 eviction fires in this story); storm_findings VALUE behavior unchanged.
 # No Kani/proptest for D3: unit-tested only. T0814 MITRE tag deferred per DF-VALIDATION-001.
 # NOTE: verification_properties: [] because D3 is not a VP-024 formal target; no new VP in this story.
 inputs:
@@ -35,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.008.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.013.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
-input-hash: "5ae943e"
+input-hash: "d9a91f6"
 ---
 
 # STORY-115: D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key
@@ -50,18 +51,29 @@ input-hash: "5ae943e"
 
 | BC | Title |
 |----|-------|
-| BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec |
+| BC-2.16.008 v2.0 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec |
 | BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT |
 
-## BC-2.16.010 v1.8 Cross-Story Extension
+## BC-2.16.010 v1.9 Cross-Story Extension
 
 This story wires the VALUE of the existing `storm_findings` key in `ArpAnalyzer::summarize()`. The primary owner
-of BC-2.16.010 and the 11-key summarize contract is STORY-113. STORY-115 does NOT add a new key — the `storm_findings` key is canonical key 8 of BC-2.16.010's 11-key set, already defined by BC-2.16.010 and declared by STORY-113's `summarize()` with value 0. This story populates its VALUE from `ArpAnalyzer.storm_findings` so it becomes non-zero when D3 detections fire.
+of BC-2.16.010 and the 13-key summarize contract is STORY-113. STORY-115 does NOT add a new summary key — the
+`storm_findings` key is canonical key 8 of BC-2.16.010's 13-key set, already defined by BC-2.16.010 and declared
+by STORY-113's `summarize()` with value 0. This story populates its VALUE from `ArpAnalyzer.storm_findings` so
+it becomes non-zero when D3 detections fire.
+
+**BC-2.16.010 v1.9 update note (silent-limit audit 2026-07-06):** BC-2.16.010 v1.9 added keys 12 and 13
+(`bindings_evicted` and `storm_counters_evicted` — two LRU-eviction observability counters). The `storm_counters_evicted`
+counter (key 13) is sourced from `ArpAnalyzer.storm_counters_evicted` (BC-2.16.008 v2.0 PC-6). STORY-115 is the
+story that implements D3 storm-counter LRU eviction; therefore STORY-115 is responsible for wiring the
+`storm_counters_evicted` field increment in the eviction site (see AC-010 extension below and Task 2). The field
+`ArpAnalyzer.storm_counters_evicted: u64` is declared in STORY-113 Task 1 (as a stub at 0); this story increments
+it on each LRU eviction from `storm_counters`.
 
 **BC-2.16.010 v1.8 update note (fix-pc-013-014-015 PC-015):** BC-2.16.010 v1.8 added Invariant 6
 confirming that `summarize()` NEVER emits a `dropped_findings` key and ARP findings are unbounded
 (cross-reference to BC-2.16.016). This does NOT affect STORY-115's scope — the `storm_findings` key
-is unchanged. No additional ACs are required in STORY-115 for this BC update.
+is unchanged. No additional ACs are required in STORY-115 for this BC-2.16.010 v1.8 update.
 
 ## D3 MITRE Attribution — DF-VALIDATION-001 Compliance
 
@@ -125,10 +137,13 @@ at ts=159, count=99, elapsed=59, rate=99/59≈1.68 < 50. No storm finding despit
 This is the documented average-since-window-start limitation (BC-2.16.008 Invariant 2).
 - **Test:** `test_storm_late_burst_suppression_accepted_limitation()` (documents the behavior; asserts no finding)
 
-### AC-010 (traces to BC-2.16.008 postcondition 5 — storm counter cap: MAX_STORM_COUNTERS=4096)
+### AC-010 (traces to BC-2.16.008 postconditions 5–6 — storm counter cap: MAX_STORM_COUNTERS=4096; eviction observable via storm_counters_evicted)
 `storm_counters.len()` NEVER exceeds `MAX_STORM_COUNTERS = 4_096`. LRU eviction analogous to
 binding table. A 4097th distinct MAC's counter is inserted after evicting the oldest entry.
-- **Test:** `test_storm_counter_cap_enforced()` (4097 distinct MACs; assert len ≤ 4096)
+Each LRU eviction increments `ArpAnalyzer.storm_counters_evicted` by exactly 1 (BC-2.16.008 v2.0 PC-6).
+No Finding is emitted for the eviction. The `storm_counters_evicted` value is surfaced in `summarize()`
+as key 13 per BC-2.16.010 v1.9 (wired in this story).
+- **Test:** `test_storm_counter_cap_enforced()` (4097 distinct MACs; assert `storm_counters.len() ≤ 4096` and `summarize()["storm_counters_evicted"] == 1`; assert no Finding for eviction)
 
 ### AC-011 (traces to BC-2.16.013 postcondition 1/2/EC-004 — --arp-storm-rate wiring; 0 rejected)
 `ArpAnalyzer::new(spoof_threshold, storm_rate)` uses the `storm_rate` parameter in D3
@@ -147,12 +162,14 @@ of 0 would make the condition always true.
 is absent, the flag has no effect (process_arp is not called).
 - **Test:** `test_storm_rate_flag_accepted_without_arp_flag()`
 
-### AC-013 (traces to BC-2.16.010 cross-story extension — storm_findings key non-zero after D3 detection)
+### AC-013 (traces to BC-2.16.010 v1.9 cross-story extension — storm_findings and storm_counters_evicted keys)
 After a D3 storm finding is emitted, `ArpAnalyzer::summarize()["storm_findings"] > 0`.
-The existing eleven-key contract from BC-2.16.010 (primary owner: STORY-113) is unchanged.
+After a storm-counter LRU eviction occurs, `ArpAnalyzer::summarize()["storm_counters_evicted"] > 0`.
+The thirteen-key contract from BC-2.16.010 v1.9 (primary owner: STORY-113) is unchanged.
 `storm_findings` was 0 in STORY-113; this story makes it reflect actual D3 detection count.
-- **Note (cross-story extension):** BC-2.16.010 is NOT in this story's `behavioral_contracts:` frontmatter — STORY-113 is the primary owner. This AC extends STORY-113's `summarize()` implementation without re-contracting ownership. The cross-story extension is intentional per the BC-2.16.010 cross-story extension section above.
-- **Test:** `test_summarize_storm_findings_key_non_zero_after_detection()`
+`storm_counters_evicted` was 0 in STORY-113 (stub field); this story wires the eviction increment.
+- **Note (cross-story extension):** BC-2.16.010 is NOT in this story's `behavioral_contracts:` frontmatter — STORY-113 is the primary owner. This AC extends STORY-113's `summarize()` implementation without re-contracting ownership. The cross-story extension is intentional per the BC-2.16.010 v1.9 cross-story extension section above.
+- **Test:** `test_summarize_storm_findings_key_non_zero_after_detection()`, `test_summarize_storm_counters_evicted_non_zero_after_eviction()`
 
 ### AC-014 (traces to BC-2.16.008 — D3 finding has empty mitre_techniques)
 D3 storm findings have `mitre_techniques: []`. Verify that T0814 is NOT present in any D3
@@ -172,7 +189,9 @@ An integration test exercises the full CLI pipeline: `wirerust analyze --arp --a
 | `const ARP_STORM_RATE_DEFAULT: u32 = 50` | `src/analyzer/arp.rs` | Constant (wirerust engineering default) |
 | `const MAX_STORM_COUNTERS: usize = 4_096` | `src/analyzer/arp.rs` | Constant |
 | `storm_findings` counter field | `src/analyzer/arp.rs` | State field |
+| `storm_counters_evicted` counter field | `src/analyzer/arp.rs` | State field (declared in STORY-113 as 0; incremented here on each LRU eviction from storm_counters) |
 | `summarize()` `storm_findings` key wiring | `src/analyzer/arp.rs` | Pure read-only aggregation |
+| `summarize()` `storm_counters_evicted` key wiring | `src/analyzer/arp.rs` | Pure read-only aggregation (key 13 per BC-2.16.010 v1.9) |
 | `--arp-storm-rate: u32` CLI flag | `src/cli.rs` | Effectful shell (CLI) |
 | `src/main.rs` — `ArpAnalyzer::new(spoof_threshold, storm_rate)` | `src/main.rs` | Effectful shell |
 
@@ -195,7 +214,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | EC-006 | ts - window_start_ts == 60 (boundary) | Still in-window (≤ 60); no reset; rate diluted |
 | EC-007 | ts - window_start_ts == 61 | Window expired; reset |
 | EC-008 | Late-burst suppression: 49 at ts=100, 50 at ts=159 | rate=99/59≈1.68 < 50; no storm (accepted limitation) |
-| EC-009 | 4097 distinct MACs | LRU eviction at 4097th; len ≤ 4096 |
+| EC-009 | 4097 distinct MACs | LRU eviction at 4097th; len ≤ 4096; storm_counters_evicted=1; no Finding for eviction |
 | EC-010 | `--arp-storm-rate 10`; 10 frames in 1s | Storm finding at 10/1=10 >= threshold=10 |
 | EC-011 | `--arp-storm-rate 0` | Rejected at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1): `--arp-storm-rate must be >= 1 (got 0)` (D-074 / BC-2.16.008 EC-006 / BC-2.16.013 EC-004 / BC-2.16.008 v1.9) |
 | EC-012 | D3 finding examined | `mitre_techniques: []` — T0814 absent |
@@ -203,9 +222,9 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 ## Tasks
 
 1. **Implement D3 storm detection** in `process_arp`: follow the exact 3-step intra-frame sequence from BC-2.16.008 postconditions 1–4 (Step 1: window expiry check and initialization; Step 2: increment if window active; Step 3: rate evaluation using `count_in_window / max(1, timestamp_secs - window_start_ts)`). Emit MEDIUM/Anomaly finding with `mitre_techniques: []` when threshold met and `storm_emitted == false`; set `storm_emitted = true` after emission.
-2. **Implement storm counter LRU eviction**: when `storm_counters.len() >= MAX_STORM_COUNTERS` and a new MAC arrives, evict the entry with the minimum `window_start_ts` (heuristic LRU approximation). One-in-one-out.
+2. **Implement storm counter LRU eviction**: when `storm_counters.len() >= MAX_STORM_COUNTERS` and a new MAC arrives, evict the entry with the minimum `window_start_ts` (heuristic LRU approximation). One-in-one-out. After eviction, increment `self.storm_counters_evicted` by exactly 1 (BC-2.16.008 v2.0 PC-6). No Finding is emitted for the eviction.
 3. **Wire `storm_findings` counter**: increment in `process_arp` each time a D3 finding is emitted.
-4. **Update `summarize()`**: ensure `storm_findings` key returns `self.storm_findings` (was 0 in STORY-113 stub; now non-zero after D3 detections).
+4. **Update `summarize()`**: ensure `storm_findings` key returns `self.storm_findings` (was 0 in STORY-113 stub; now non-zero after D3 detections). Ensure `storm_counters_evicted` key returns `self.storm_counters_evicted` (was 0 in STORY-113 stub; now reflects actual eviction count per BC-2.16.010 v1.9 key 13).
 5. **Add `--arp-storm-rate` CLI flag** to `src/cli.rs`: `#[arg(long, default_value_t = 50)] arp_storm_rate: u32` on `Commands::Analyze`. This flag is STORY-115's primary deliverable per BC-2.16.013 — it is NOT added in earlier stories. Wire it to `ArpAnalyzer::new(spoof_threshold, storm_rate)` in `src/main.rs`.
 6. **Confirm `ArpAnalyzer::new(spoof_threshold, storm_rate)`** properly uses `storm_rate` in D3 evaluation. Confirm `src/main.rs` passes `args.arp_storm_rate`.
 7. **Write unit tests** for AC-001 through AC-015.
@@ -226,10 +245,10 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | AC-007 | `test_storm_49_below_threshold_50_at_threshold` | Unit |
 | AC-008 | `test_storm_window_boundary_60_in_window_61_expired` | Unit |
 | AC-009 | `test_storm_late_burst_suppression_accepted_limitation` | Unit (documents limitation) |
-| AC-010 | `test_storm_counter_cap_enforced` | Unit |
+| AC-010 | `test_storm_counter_cap_enforced` (assert len ≤ 4096 AND storm_counters_evicted=1 AND no eviction Finding) | Unit |
 | AC-011 | `test_cli_arp_storm_rate_parsed`, `test_cli_arp_storm_rate_default_50`, `test_storm_custom_rate_10`, `test_cli_arp_storm_rate_0_rejected` | Unit |
 | AC-012 | `test_storm_rate_flag_accepted_without_arp_flag` | Unit |
-| AC-013 | `test_summarize_storm_findings_key_non_zero_after_detection` | Unit |
+| AC-013 | `test_summarize_storm_findings_key_non_zero_after_detection`, `test_summarize_storm_counters_evicted_non_zero_after_eviction` | Unit |
 | AC-014 | `test_d3_finding_has_empty_mitre_techniques` | Unit |
 | AC-015 | `test_integration_arp_storm_end_to_end` | Integration |
 

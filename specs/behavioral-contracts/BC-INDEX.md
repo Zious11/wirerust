@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.16"
+version: "2.18"
 status: draft
 producer: product-owner
-timestamp: 2026-07-04T20:00:00Z
+timestamp: 2026-07-06T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,12 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.18 2026-07-06 (silent-limit audit — Amendments 3+4: Modbus+TLS+HTTP observability counters; spec-only, no code change):**
+> Silent-limit audit continuation — all remaining analyzers. Amendment 3 (Modbus): BC-2.14.012 v1.0→v1.1 — PC-8 added: when new unique (txn_id, unit_id) request dropped because `pending.len()==MAX_PENDING_TRANSACTIONS=256`, `ModbusAnalyzer.dropped_transactions: u64` increments by 1; Invariants 1 and 7 updated; EC-002/EC-006 note counter increments; Architecture Anchor added. BC-2.14.021 v1.1→v1.2 — `dropped_transactions` added as 7th key (u64); "SIX" → "SEVEN" throughout; Invariant 1 updated; EC-001..005 extended; EC-006 added; all canonical test vectors gain `dropped_transactions`; Related BCs adds BC-2.14.012 dependency. Amendment 4 (TLS): BC-2.07.031 v1.4→v1.5 — PC-10 added: `dropped_map_entries` u64 key accumulated across sni_counts, ja3_counts, ja3s_counts, version_counts, cipher_counts drops when any map hits MAX_MAP_ENTRIES=50,000; counter only, no Finding; Invariant 5, EC-005, canonical vectors updated; Related BCs adds BC-2.07.028 link. BC-2.07.028 v1.3→v1.4 — PC-5 added: drop is observable via `TlsAnalyzer.dropped_map_entries` counter (BC-2.07.031 PC-10); no additional Finding (PC-2 finding-decoupling invariant preserved); Related BCs adds BC-2.07.031. Amendment 4 (HTTP): BC-2.06.023 v1.5→v1.6 — `dropped_map_entries` added as 10th key (u64) counting drops across methods, hosts, user_agents maps at MAX_MAP_ENTRIES=50,000; Invariant 6 added (monotonically non-decreasing, aggregate); EC-005 added; canonical vectors updated; Related BCs adds BC-2.06.024 dependency. BC-2.06.024 v1.3→v1.4 — PC-4 updated: drop is now observable via `HttpAnalyzer.dropped_map_entries` counter; "no counter is incremented for the drop" removed; Related BCs adds BC-2.06.023 link. FOLLOW-UP REQUIRED (bc_array_changes_propagate_to_body_and_acs): STORY-103 (BC-2.14.012), STORY-104 (BC-2.14.021), STORY-058 (BC-2.07.031), STORY-046 (BC-2.06.023) — story-writer must propagate new keys/counters into story body BC tables and ACs. Input-hashes for all four stories need rebaselining after story-writer completes propagation. No BC count change (346 on disk; 345 active). No VP amendment required (VP-022 indirect only; VP-024 locked/immutable, zero summarize-key-count references).
+>
+> **v2.17 2026-07-06 (silent-limit audit — BC-2.16.008 v1.9→v2.0, BC-2.16.010 v1.8→v1.9; spec-only, no code change):**
+> Silent-limit audit ARP observability amendment. BC-2.16.008 v1.9→v2.0: added PC-6 — when the storm-counter LRU eviction fires (MAX_STORM_COUNTERS=4,096), `ArpAnalyzer.storm_counters_evicted: u64` increments by 1; EC-007 extended to note counter increment; `storm_counters_evicted` field added to Architecture Anchors. The eviction itself STILL emits no Finding (Invariants 5+6 unchanged). BC-2.16.010 v1.8→v1.9: keys 12 and 13 added to summarize() contract — `"bindings_evicted"` (u64, count of ARP binding-table LRU evictions, MAX_ARP_BINDINGS=65,536) and `"storm_counters_evicted"` (u64, count of ARP storm-counter LRU evictions, MAX_STORM_COUNTERS=4,096); H1 updated 11 Keys → 13 Keys; Invariant 1 updated 11→13; Invariant 7 added (counters-only, no Finding emitted — BC-2.16.006 Invariant 3 preserved); EC-008/EC-009 added; test vectors extended; Related BCs adds BC-2.16.006 dependency. FOLLOW-UP REQUIRED: STORY-113 AC-013 and all story references to "eleven keys" / "eleven summarize keys" must be updated to "thirteen" — story-writer propagation under bc_array_changes_propagate_to_body_and_acs policy. Input-hashes for STORY-113 and STORY-115 will need rebaselining after story-writer completes propagation. No BC count change (346 on disk; 345 active). No VP change.
 >
 > **v2.16 2026-07-04 (F5 reconciliation final closure — run_protocols signature swept tree-wide; develop unchanged at cad7024):**
 > F5-RECONCILE-FINAL (F-F5P5/P7-001..004): BC-2.12.022 v1.2→v1.3 — VP-table test names synced to shipped `test_BC_2_12_022_json_path_writes_file`/`_output_format_json`/`_csv_rejected`; H1 title updated with full `run_protocols(filter: ProtocolFilter, cli: &Cli)` signature; BC-INDEX title cell synced. BC-2.12.023 v1.2→v1.3 — `StreamDispatcher .with_coverage_gaps()` builder anchor added. BC-2.18.001 v1.4→v1.5 — `run_protocols(filter: ProtocolFilter, cli: &Cli)` signature anchor. BC-2.18.002 v1.1→v1.2 — `run_protocols(filter: ProtocolFilter, cli: &Cli)` signature anchor. ADR-012 Consequences corrected (phantom `{filter: ProtocolFilter, json: bool}` variant → shipped 3-bool form). Whole-`.factory/specs/`-tree multi-pattern grep confirms ZERO live phantom (only archival changelog/historical entries remain). STORY-151 v1.6, STORY-152 v1.9, STORY-154 v1.11 version refs synced; input-hashes re-baselined mechanically (DF-INPUT-HASH-CANONICAL-001). No BC count change (346 on disk; 345 active). No PRD change.
@@ -423,8 +429,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.06.020 | HTTP Body Bytes After Header Completion Do Not Inflate parse_errors | P1 | [WRITTEN] | BC-HTTP-020 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync -->
 | BC-2.06.021 | Cross-Flow Isolation: Errors and Poisoning Do Not Leak | P0 | [WRITTEN] | BC-HTTP-021 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
 | BC-2.06.022 | Per-Direction Header Buffer Capped at MAX_HEADER_BUF (65536) | P1 | [WRITTEN] | BC-HTTP-022 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
-| BC-2.06.023 | summarize Emits AnalysisSummary with HTTP Stats Detail Map | P1 | [WRITTEN] | BC-HTTP-023 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync -->
-| BC-2.06.024 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES | P2 | [WRITTEN] | BC-HTTP-024 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.023 | summarize Emits AnalysisSummary with HTTP Stats Detail Map | P1 | [WRITTEN] | BC-HTTP-023 | <!-- v1.6: silent-limit audit — dropped_map_entries added as 10th key -->
+| BC-2.06.024 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES | P2 | [WRITTEN] | BC-HTTP-024 | <!-- v1.4: silent-limit audit — PC-4 updated: drop observable via dropped_map_entries counter -->
 | BC-2.06.025 | uris List Capped at MAX_URIS=10000 | P2 | [WRITTEN] | BC-HTTP-025 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
 | BC-2.06.026 | Header Values Extracted via from_utf8_lossy.trim(); Raw Bytes Preserved | P0 | [WRITTEN] | BC-HTTP-026 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync -->
 
@@ -459,10 +465,10 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.025 | Non-Zero NameType Entries Treated as Hostnames | P2 | [WRITTEN] | BC-TLS-025 |
 | BC-2.07.026 | Trailing Bytes in ServerNameList Tolerated | P2 | [WRITTEN] | BC-TLS-026 |
 | BC-2.07.027 | Large SNI (16 KB) Under MAX_RECORD_PAYLOAD Parses Successfully | P1 | [WRITTEN] | BC-TLS-027 |
-| BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity | P0 | [WRITTEN] | BC-TLS-028 |
+| BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity | P0 | [WRITTEN] | BC-TLS-028 | <!-- v1.4: silent-limit audit — PC-5 added: drop observable via dropped_map_entries counter -->
 | BC-2.07.029 | Bad TLS Record Body Increments parse_errors; No Panic | P0 | [WRITTEN] | BC-TLS-029 |
 | BC-2.07.030 | Normal Handshake with Strong Cipher Produces Zero Findings | P0 | [WRITTEN] | BC-TLS-030 |
-| BC-2.07.031 | summarize Emits AnalysisSummary with TLS Stats Detail Map | P1 | [WRITTEN] | BC-TLS-031 |
+| BC-2.07.031 | summarize Emits AnalysisSummary with TLS Stats Detail Map | P1 | [WRITTEN] | BC-TLS-031 | <!-- v1.5: silent-limit audit — dropped_map_entries added as PC-10 -->
 | BC-2.07.032 | TLS 1.3 ClientHello legacy_version Recorded as 0x0303 | P1 | [WRITTEN] | BC-TLS-032 |
 | BC-2.07.033 | TLS Analyzer Ignores Non-Handshake Records | P1 | [WRITTEN] | BC-TLS-033 |
 | BC-2.07.034 | After Both Hellos Seen, on_data Short-Circuits | P0 | [WRITTEN] | BC-TLS-034 |
@@ -636,7 +642,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.009 | Request PDU Inserted into Per-Flow Pending Table Keyed on (Transaction ID, Unit ID) | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.011 | Exception Response Attributed to Originating Request FC via (Transaction ID, Unit ID) Lookup | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full | P0 | [WRITTEN] | feature-007-F2 | <!-- v1.1: silent-limit audit — PC-8 dropped_transactions counter added -->
 | BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T1692.001 and Applicable Technique Tags | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: co-emission model; T0855 co-included in multi-tag vec; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in Request Direction Emits Finding Tagged ["T1692.001","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13; v2.1: 0x17 added per BC-DISCREPANCY-001; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T1692.001","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
@@ -645,7 +651,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v1.3: Pass-30 B-03: source_ip flow_key.client_ip() (non-existent) → Direction-resolved endpoint --> |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 | <!-- v1.5: RULING-MODBUS-SIBLING-001 — saturating_sub for T0888 exception 10s window expiry; EC-009 updated (backwards-ts: elapsed=0, NOT > 10 → window NOT reset; burst accumulation preserved) --> |
 | BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding | P1 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0846->T0888 correctness fix; 0x07 excluded; Decision-12; v2.2: Pass-14 Burst-3 B-03/B-04: Invariant-6 counts 21/13→25/17 (canonical); Source Evidence §4.3 annotated as Decision-12-era; v2.3: Pass-30 B-01/B-02: source_ip flow_key.client_ip()/server_ip() (non-existent) → Direction-resolved endpoint in postcondition + EC-010 -->
-| BC-2.14.021 | summarize() Returns AnalysisSummary with Specified Per-Analyzer Summary Keys | P1 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.021 | summarize() Returns AnalysisSummary with Specified Per-Analyzer Summary Keys | P1 | [WRITTEN] | feature-007-F2 | <!-- v1.2: silent-limit audit — dropped_transactions added as 7th key; SIX→SEVEN -->
 | BC-2.14.022 | MAX_FINDINGS Cap and Poison-Skip Behavior for ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.023 | --modbus CLI Flag Enables ModbusAnalyzer; --all Includes Modbus; Default-Off; Requires Stream Reassembly | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.024 | --modbus-write-burst-threshold and --modbus-write-sustained-threshold Configure Dual-Window Burst Detection | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: old --modbus-write-threshold removed; replaced by two flags; Decision-11; v2.2: Pass-14 Burst-3 B-02: MITRE traceability T1692.001 display name corrected to "Unauthorized Message: Command Message" -->
@@ -725,9 +731,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins for a Given IP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B8-M01: PC1 tightened — sender_ip excludes both 0.0.0.0 and 255.255.255.255 per Invariant 5; test-infra note for VP-024 Sub-C (new_for_test, process_arp_for_test, bindings_snapshot) added -->
 | BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.007 | D12 L2/L3 Sender Mismatch — Ethernet Src MAC != ARP Sender HW Addr | P0 | [WRITTEN] | feature-009-F2 |
-| BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec | P1 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec | P1 | [WRITTEN] | feature-009-F2 | <!-- v2.0: silent-limit audit — PC-6 added: storm_counters_evicted counter (u64) incremented on each LRU eviction from storm_counters table (MAX_STORM_COUNTERS=4,096); EC-007 extended; ArpAnalyzer.storm_counters_evicted field anchor added. Eviction still emits no Finding (Invariants 5+6 unchanged). -->
 | BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 HW/Proto Address Sizes Emit LOW Finding | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.3: F-B8-L02: PC4 --arp-absent clause clarified — malformed_frames increments unconditionally outside the analysis gate; note distinguishes PC4's outer precondition scope from counter behavior -->
-| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.6: corpus-consistency-audit-2026-06-13 PR-1a/PR-1b: H1 enriched with "(11 Keys)" per Criterion-75; version suffix "; v1.5" removed from title (version belongs in frontmatter only). v1.8: fix-pc-013-014-015 PC-015 cross-reference — Invariant 6 + Related BCs include BC-2.16.016; dropped_findings MUST NOT be added without a version bump. -->
+| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (13 Keys) | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.6: corpus-consistency-audit-2026-06-13 PR-1a/PR-1b: H1 enriched with "(11 Keys)" per Criterion-75; version suffix "; v1.5" removed from title (version belongs in frontmatter only). v1.8: fix-pc-013-014-015 PC-015 cross-reference — Invariant 6 + Related BCs include BC-2.16.016; dropped_findings MUST NOT be added without a version bump. v1.9: silent-limit audit — keys 12+13 added: bindings_evicted (u64, binding-table LRU eviction count, MAX_ARP_BINDINGS=65,536) and storm_counters_evicted (u64, storm-counter LRU eviction count, MAX_STORM_COUNTERS=4,096); H1 updated 11→13 Keys; Invariant 1 updated 11→13; Invariant 7 added (counters-only invariant, no Finding); EC-008/009 added; test vectors extended; Related BCs adds BC-2.16.006 dep. -->
 | BC-2.16.011 | --arp CLI Flag Gates ARP Security Analysis | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.012 | --arp-spoof-threshold Overrides SPOOF_REBIND_ESCALATION_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |

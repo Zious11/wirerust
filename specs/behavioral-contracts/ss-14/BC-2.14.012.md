@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - "v1.1 (2026-07-06): silent-limit audit — add dropped_transactions observability counter (PC-8, Invariant 7); eviction-still-no-Finding invariants preserved; update EC-002, EC-006 to note counter increments; add Architecture Anchor for ModbusAnalyzer.dropped_transactions: u64"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -64,11 +65,20 @@ is a resource invariant analogous to `MAX_FINDINGS = 10,000` for findings.
    table continue to be matched and removed normally (BC-2.14.010 and BC-2.14.011).
 7. When a response arrives for a request that was dropped (pending table was full at request
    time), BC-2.14.010 Case C applies — the response is treated as an orphan response.
+8. **Drop is observable via `dropped_transactions`**: when a new unique `(transaction_id,
+   unit_id)` request is NOT inserted because `pending.len() == MAX_PENDING_TRANSACTIONS`,
+   `ModbusAnalyzer.dropped_transactions: u64` is incremented by exactly 1. This counter
+   is monotonically non-decreasing across the lifetime of the analyzer. It is surfaced in
+   `summarize()` as detail key `"dropped_transactions"` (BC-2.14.021 Postcondition 1 — key
+   7). The counter is an aggregate across ALL flows handled by this `ModbusAnalyzer`
+   instance. No Finding is emitted; the drop-not-evict behavior is otherwise unchanged.
 
 ## Invariants
 
 1. **Hard upper bound**: `ModbusFlowState.pending.len()` NEVER exceeds `MAX_PENDING_TRANSACTIONS = 256`
-   under any input sequence. This is an absolute safety invariant.
+   under any input sequence. This is an absolute safety invariant. Every dropped insert (where
+   `pending.len() == MAX_PENDING_TRANSACTIONS` and the key is new) increments
+   `ModbusAnalyzer.dropped_transactions` by exactly 1.
 2. **No eviction of existing entries**: the bound policy is "refuse new inserts, keep existing
    entries." There is no LRU eviction, no oldest-entry eviction, no random eviction. This
    ensures that in-flight requests that were accepted into the table can still be matched
@@ -91,17 +101,22 @@ is a resource invariant analogous to `MAX_FINDINGS = 10,000` for findings.
 6. **The guard is a pre-insert check, not post-insert trim**: the implementation checks
    `if flow.pending.len() < MAX_PENDING_TRANSACTIONS` before calling `flow.pending.insert(...)`.
    This is a simpler and safer pattern than inserting and then trimming.
+7. **`dropped_transactions` is a COUNTER ONLY — no Finding emitted**: the counter exists
+   solely to make the silent drop observable in `summarize()` output. No anomaly Finding, no
+   warning, no log entry is emitted when a request is dropped. The "refuse new inserts, keep
+   existing" policy is unchanged. This preserves the integrity of the drop-not-evict guarantee
+   (Invariant 2 above) while adding observability.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | Pending table has 255 entries; new request arrives | Entry inserted (table goes to 256 = MAX); no drop |
-| EC-002 | Pending table has 256 entries; new request with new (txn_id, unit_id) arrives | Entry NOT inserted; table stays at 256; write-rate still counted if Write-class FC |
+| EC-002 | Pending table has 256 entries; new request with new (txn_id, unit_id) arrives | Entry NOT inserted; table stays at 256; write-rate still counted if Write-class FC; `dropped_transactions` incremented by 1 |
 | EC-003 | Pending table has 256 entries; new request with an EXISTING (txn_id, unit_id) key | Entry OVERWRITES existing (HashMap::insert behavior for existing key); table stays at 256; this is a key-reuse scenario (see BC-2.14.009 EC-002), NOT a new insert |
 | EC-004 | Pending table at 256; response arrives for an existing entry | Entry removed; table drops to 255; subsequent new request can now be inserted |
 | EC-005 | Pending table at 256; response arrives for an existing entry; immediately followed by new request | After removal, table at 255; new request inserts normally (255 < 256) |
-| EC-006 | Adversarial: client sends 1000 requests with unique (txn_id, unit_id) pairs without any responses | Pending table caps at 256; entries 257..1000 are dropped; analyzer does not panic; pdu_count reaches 1000; write-rate counted for Write-class FCs throughout |
+| EC-006 | Adversarial: client sends 1000 requests with unique (txn_id, unit_id) pairs without any responses | Pending table caps at 256; entries 257..1000 are dropped; analyzer does not panic; pdu_count reaches 1000; write-rate counted for Write-class FCs throughout; `dropped_transactions` reaches 744 (1000 − 256) |
 | EC-007 | Response for a dropped request arrives | BC-2.14.010 Case C (orphan response) — no matching pending entry; silently accepted |
 | EC-008 | Flow close while pending table has 256 entries | `on_flow_close` removes the flow from `ModbusAnalyzer.flows`; the `ModbusFlowState` (including the pending HashMap) is dropped; no findings emitted for pending entries (per ADR-005 §2.7: "orphaned transactions at close are not flagged") |
 
@@ -113,7 +128,7 @@ is a resource invariant analogous to `MAX_FINDINGS = 10,000` for findings.
 | Drop at cap | pending.len() = 256 | New request (unique key) | pending.len() = 256; entry NOT inserted; pdu_count++ | happy-path: drop at bound |
 | Drop at cap, Write-class FC | pending.len() = 256 | New Write FC request (unique key) | pending.len() = 256; window_write_count++; write_count++ (rate detection continues) | important: write counting is not gated by table-full |
 | Remove via response after cap | pending.len() = 256 | Response for existing entry | pending.len() = 255; entry removed | happy-path: table drains normally |
-| Adversarial flood: 300 unique requests | pending.len() = 0 | 300 sequential requests (all unique keys, no responses) | pending.len() = 256 after request 256; requests 257–300 dropped; no panic | adversarial bound test |
+| Adversarial flood: 300 unique requests | pending.len() = 0 | 300 sequential requests (all unique keys, no responses) | pending.len() = 256 after request 256; requests 257–300 dropped; no panic; dropped_transactions = 44 | adversarial bound test |
 
 **Implementation guard** (pseudocode):
 ```rust
@@ -153,6 +168,7 @@ if flow.pending.len() < MAX_PENDING_TRANSACTIONS {
 - `src/analyzer/modbus.rs` — `const MAX_PENDING_TRANSACTIONS: usize = 256`
 - `src/analyzer/modbus.rs` — `ModbusFlowState.pending: HashMap<(u16, u8), (u8, u32)>`
 - `src/analyzer/modbus.rs` — guard: `if flow.pending.len() < MAX_PENDING_TRANSACTIONS { flow.pending.insert(...); }`
+- `src/analyzer/modbus.rs` — `ModbusAnalyzer.dropped_transactions: u64` — aggregate counter incremented on every refused insert
 - `.factory/phase-f2-spec-evolution/architecture-delta.md §2.3` — "MAX_PENDING_TRANSACTIONS = 256: when the pending table reaches 256 entries... new request entries are NOT inserted"
 - `.factory/specs/architecture/ARCH-INDEX.md §127` — "MAX_PENDING_TRANSACTIONS = 256 per Modbus flow (transaction correlation table)"
 

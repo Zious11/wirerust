@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - version: "1.1"
     date: 2026-06-09
     change: "F5 spec defect fix: Postcondition 3 completely rewritten to align with the real AnalysisSummary struct (src/analyzer/mod.rs). The struct has only three fields: analyzer_name: String, packets_analyzed: u64, detail: BTreeMap<String, Value>. The v1.0 post.3 text cited flows_analyzed, findings_count, and protocol as top-level struct fields — these DO NOT EXIST in the shared struct. Fixed: (a) analyzer_name = \"modbus\"; (b) packets_analyzed = total_pdu_count (PDUs past the validity gate); (c) NO flows_analyzed/findings_count/protocol top-level fields — these are NOT part of the struct. The six detail keys in post.1 remain authoritative and unchanged."
+  - "v1.2 (2026-07-06): silent-limit audit — add dropped_transactions as 7th key (u64); pending-table drop is now observable; update exhaustive key language six→seven; update Invariant 1, EC-001, EC-002, EC-003, EC-005; add EC-006; add dropped_transactions to all canonical test vectors; add BC-2.14.012 Related BC dependency; add Architecture Anchor for ModbusAnalyzer.dropped_transactions: u64"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,7 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 
 ## Postconditions
 
-1. The returned `AnalysisSummary` has the following `detail` map entries (SIX keys — the
+1. The returned `AnalysisSummary` has the following `detail` map entries (SEVEN keys — the
    complete and authoritative set for v1; none may be omitted):
 
    | Key | Value Type | Semantics |
@@ -65,6 +66,7 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
    | `"parse_errors"` | `Value::Number(u64)` | Total ADUs that failed the three-point validity gate or were malformed |
    | `"function_code_distribution"` | `Value::Object(HashMap<String, Value::Number(u64)>)` | FC → count map, hex-string keys (see Invariant 3) |
    | `"dropped_findings"` | `Value::Number(u64)` | Findings silently dropped due to MAX_FINDINGS cap (ALWAYS present, even when 0) |
+   | `"dropped_transactions"` | `Value::Number(u64)` | Count of request-direction ADUs refused insertion into the pending table because `pending.len() == MAX_PENDING_TRANSACTIONS=256`; sourced from `ModbusAnalyzer.dropped_transactions`; ALWAYS present, even when 0; no Finding is emitted for drops (BC-2.14.012 Invariant 7 preserved) |
 
 2. The `function_code_distribution` object contains ONLY FC bytes for which `count > 0`.
    An FC that was never observed is absent from the map (no zero-count entries).
@@ -75,7 +77,7 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
    - `packets_analyzed: self.total_pdu_count as u64` — total PDUs past the three-point
      validity gate (same counter as the `pdu_count` detail key; kept as the struct-level
      "packets this analyzer processed" field per the AnalysisSummary contract).
-   - `detail: <BTreeMap as specified in postcondition 1>` — the six authoritative keys.
+   - `detail: <BTreeMap as specified in postcondition 1>` — the seven authoritative keys.
 
    **Fields that DO NOT EXIST in the shared AnalysisSummary struct:**
    The v1.0 text cited `findings_count`, `flows_analyzed`, and `protocol` as top-level
@@ -93,11 +95,12 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 ## Invariants
 
 1. **Key name exactness** (authoritative for all downstream consumers):
-   The six key names above are the complete and authoritative set of Modbus summary keys for
-   v1. These six keys must not be omitted. Terminal reporter, JSON reporter, and CSV reporter
+   The seven key names above are the complete and authoritative set of Modbus summary keys for
+   v1. These seven keys must not be omitted. Terminal reporter, JSON reporter, and CSV reporter
    MUST use these exact string keys. `"dropped_findings"` MUST always be present (value 0
-   when the MAX_FINDINGS cap was never reached). Any additional future keys must be added
-   via a new BC revision.
+   when the MAX_FINDINGS cap was never reached). `"dropped_transactions"` MUST always be
+   present (value 0 when the pending table never saturated). Any additional future keys must
+   be added via a new BC revision.
 
 2. **Zero-value suppression**: `function_code_distribution` omits FCs with count == 0.
    Implementation: build the map from `self.fn_code_counts.iter().filter(|(_, &v)| v > 0)`.
@@ -148,20 +151,22 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Capture with zero valid Modbus PDUs (all parse errors) | `pdu_count=0`, `write_count=0`, `exception_count=0`, `parse_errors=N`, `function_code_distribution={}` |
-| EC-002 | Capture with 1000 read polls (FC=0x03 only) | `pdu_count=1000`, `write_count=0`, `exception_count=0`, `function_code_distribution={"0x03": 1000}` |
-| EC-003 | Capture with mixed FCs: 500 reads (0x03), 10 writes (0x06), 3 exceptions (0x86) | `pdu_count=513`, `write_count=10`, `exception_count=3`, `function_code_distribution={"0x03": 500, "0x06": 10, "0x86": 3}` |
-| EC-004 | All 256 FC byte values observed at least once | `function_code_distribution` has 256 entries. No zero-count suppression needed since all are > 0. |
-| EC-005 | `MAX_FINDINGS` cap was hit mid-capture | `all_findings.len() = 10_000` (cap hit); counters (`pdu_count`, etc.) reflect actual totals, not capped values. `pdu_count` may be > 10_000. `dropped_findings > 0`. |
+| EC-001 | Capture with zero valid Modbus PDUs (all parse errors) | `pdu_count=0`, `write_count=0`, `exception_count=0`, `parse_errors=N`, `function_code_distribution={}`, `dropped_findings=0`, `dropped_transactions=0` |
+| EC-002 | Capture with 1000 read polls (FC=0x03 only) | `pdu_count=1000`, `write_count=0`, `exception_count=0`, `function_code_distribution={"0x03": 1000}`, `dropped_transactions=0` |
+| EC-003 | Capture with mixed FCs: 500 reads (0x03), 10 writes (0x06), 3 exceptions (0x86) | `pdu_count=513`, `write_count=10`, `exception_count=3`, `function_code_distribution={"0x03": 500, "0x06": 10, "0x86": 3}`, `dropped_transactions=0` |
+| EC-004 | All 256 FC byte values observed at least once | `function_code_distribution` has 256 entries. No zero-count suppression needed since all are > 0. `dropped_transactions=0` (unless pending table also saturated in same capture). |
+| EC-005 | `MAX_FINDINGS` cap was hit mid-capture | `all_findings.len() = 10_000` (cap hit); counters (`pdu_count`, etc.) reflect actual totals, not capped values. `pdu_count` may be > 10_000. `dropped_findings > 0`. `dropped_transactions=0` (unless pending table also saturated). |
+| EC-006 | Adversarial: 1000 unique-key requests with no responses; pending table saturates | `pdu_count=1000`, `dropped_transactions=744` (1000 − 256), `dropped_findings=0` (no Finding emitted for drops) |
 
 ## Canonical Test Vectors
 
 | Setup | Expected summarize() output | Category |
 |-------|----------------------------|----------|
-| 5 valid ADUs processed: 3x FC=0x03 (reads), 2x FC=0x06 (writes); 0 exceptions; 1 parse error; cap not hit | `{pdu_count: 5, write_count: 2, exception_count: 0, parse_errors: 1, function_code_distribution: {"0x03": 3, "0x06": 2}, dropped_findings: 0}` | happy-path |
-| 0 valid ADUs; 3 parse errors; no findings dropped | `{pdu_count: 0, write_count: 0, exception_count: 0, parse_errors: 3, function_code_distribution: {}, dropped_findings: 0}` | edge-case (all invalid) |
-| 1000 FC=0x03 reads; no writes; no exceptions; no cap hit | `pdu_count: 1000, function_code_distribution: {"0x03": 1000}, dropped_findings: 0` (dropped_findings always present) | happy-path (read-only) |
-| FC=0x86 exception: 5 occurrences; MAX_FINDINGS cap hit (7 findings dropped) | `exception_count: 5`, `dropped_findings: 7`, `function_code_distribution: {"0x86": 5}` | happy-path (dropped_findings non-zero) |
+| 5 valid ADUs processed: 3x FC=0x03 (reads), 2x FC=0x06 (writes); 0 exceptions; 1 parse error; cap not hit | `{pdu_count: 5, write_count: 2, exception_count: 0, parse_errors: 1, function_code_distribution: {"0x03": 3, "0x06": 2}, dropped_findings: 0, dropped_transactions: 0}` | happy-path |
+| 0 valid ADUs; 3 parse errors; no findings dropped | `{pdu_count: 0, write_count: 0, exception_count: 0, parse_errors: 3, function_code_distribution: {}, dropped_findings: 0, dropped_transactions: 0}` | edge-case (all invalid) |
+| 1000 FC=0x03 reads; no writes; no exceptions; no cap hit | `pdu_count: 1000, function_code_distribution: {"0x03": 1000}, dropped_findings: 0, dropped_transactions: 0` (both always present) | happy-path (read-only) |
+| FC=0x86 exception: 5 occurrences; MAX_FINDINGS cap hit (7 findings dropped) | `exception_count: 5`, `dropped_findings: 7`, `function_code_distribution: {"0x86": 5}`, `dropped_transactions: 0` | happy-path (dropped_findings non-zero) |
+| 1000 unique-key requests, no responses (pending table saturates at 256) | `pdu_count: 1000`, `dropped_transactions: 744`, `dropped_findings: 0` (no Finding emitted for pending drops) | edge-case (dropped_transactions non-zero) |
 
 ## Verification Properties
 
@@ -183,12 +188,14 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 
 ## Related BCs
 
+- BC-2.14.012 — depends on (dropped_transactions counter sourced from pending-table drop contract)
 - BC-2.14.013 through BC-2.14.020 — all feeding (write_count, exception_count, fn_code_counts increments per PDU path)
 - BC-2.14.022 — related to (MAX_FINDINGS cap affects findings_count but not pdu_count/write_count)
 
 ## Architecture Anchors
 
 - `src/analyzer/modbus.rs` — `ModbusAnalyzer::summarize()` method (implements `StreamAnalyzer` trait)
+- `src/analyzer/modbus.rs` — `ModbusAnalyzer.dropped_transactions: u64` aggregate counter (sourced from BC-2.14.012 PC-8)
 - `src/analyzer/mod.rs` — `AnalysisSummary` struct definition; `detail: HashMap<String, Value>`
 - `src/main.rs` — post-finalize block: `analyzer_summaries.push(modbus.summarize())`
 - `src/reporting/terminal.rs` — summary rendering (SS-11 consumer)
