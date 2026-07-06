@@ -7,6 +7,43 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-07-06
+
+### Added
+
+- **Four observability counters surfacing previously silent analyzer state (PR #365, BC-INDEX
+  v2.18).** The silent-limit observability audit is now closed. Four counter fields are newly
+  emitted in `summarize()` JSON output and terminal output across four analyzers:
+
+  - **`bindings_evicted`** (ARP summary) — cumulative count of LRU-evicted ARP binding-table
+    entries since analysis start. The ARP analyzer's binding table is capped at 65 536 entries;
+    this counter exposes how many entries have been silently dropped when the cap is reached.
+    ARP summary key count: 11 → 13 (also adds `storm_counters_evicted`).
+
+  - **`storm_counters_evicted`** (ARP summary) — cumulative count of LRU-evicted ARP
+    storm-counter entries since analysis start. The storm-counter LRU table is capped at 4 096
+    entries; this counter exposes how many entries have been silently dropped.
+
+  - **`dropped_transactions`** (Modbus summary) — cumulative count of Modbus pending-transaction
+    map entries dropped when the per-flow cap is reached. Previously the cap silently discarded
+    new pending entries; the counter makes the drop event visible in output. Modbus summary key
+    count: 6 → 7.
+
+  - **`dropped_map_entries`** (TLS summary and HTTP summary) — cumulative count of entries
+    dropped from the TLS SNI/fingerprint maps and the HTTP host/path maps when per-map caps are
+    reached. Previously cap-triggered drops were silent; the counter makes them visible. HTTP
+    summary key count: 9 → 10; TLS summary gains one additional field.
+
+### Tests / Internal
+
+- **Negative regression tests for eviction/drop no-Finding invariants + HTTP existing-key
+  AC-008 (PR #366).** Test module `bc_silent_resource_caps_tests` adds negative regression
+  coverage asserting that ARP binding-table and storm-counter eviction, and Modbus
+  dropped-transaction-map overflows, do not emit spurious Findings — the counters increment
+  but the finding list remains clean. HTTP AC-008 coverage (existing-key update does not
+  create a duplicate map entry) is also covered. Includes a cosmetic refactor of the ARP
+  analyzer's `insert_binding_lru` path for clarity.
+
 ## [0.11.3] - 2026-07-06
 
 ### Security
@@ -863,7 +900,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.3...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.4...HEAD
+[0.11.4]: https://github.com/Zious11/wirerust/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/Zious11/wirerust/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/Zious11/wirerust/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/Zious11/wirerust/compare/v0.11.0...v0.11.1
