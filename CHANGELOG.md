@@ -56,6 +56,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - **Observability counter documentation** — added user-facing documentation for the
     `--counters` / observability counter surface introduced in v0.11.3.
 
+
 ## [0.11.4] - 2026-07-06
 
 ### Added
