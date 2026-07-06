@@ -168,6 +168,10 @@ pub fn is_gratuitous_arp(frame: &ArpFrame) -> bool {
 /// the entry with the minimum `last_seen_ts` before inserting. If `ip` is
 /// already present, the entry is updated in-place (last-write-wins per BC-2.16.005).
 ///
+/// Returns `true` when an LRU eviction occurred (new IP at cap), `false`
+/// otherwise (update-in-place or insert below cap). Callers that track an
+/// eviction counter should increment it when this returns `true`.
+///
 /// **Architecture Compliance Rule 1:** This function has NO `ts` parameter.
 /// `last_seen_ts` is written into the entry by `process_arp` before this
 /// function is called; the eviction scan reads it from the stored entries.
@@ -178,16 +182,16 @@ pub fn insert_binding_lru(
     ip: [u8; 4],
     mac: [u8; 6],
     cap: usize,
-) {
+) -> bool {
     if bindings.contains_key(&ip) {
         // Update existing entry in-place (last-write-wins, last_seen_ts already set by caller).
         if let Some(entry) = bindings.get_mut(&ip) {
             entry.mac = mac;
         }
-        return;
+        return false;
     }
     // New IP — evict the entry with the minimum last_seen_ts if at capacity.
-    if bindings.len() >= cap {
+    let evicted = if bindings.len() >= cap {
         let oldest_ip = bindings
             .iter()
             .min_by_key(|(_, e)| e.last_seen_ts)
@@ -195,7 +199,10 @@ pub fn insert_binding_lru(
         if let Some(k) = oldest_ip {
             bindings.remove(&k);
         }
-    }
+        true
+    } else {
+        false
+    };
     bindings.insert(
         ip,
         BindingEntry {
@@ -206,6 +213,7 @@ pub fn insert_binding_lru(
             last_seen_ts: 0,
         },
     );
+    evicted
 }
 
 /// BTreeMap surrogate of `insert_binding_lru` for VP-024 Sub-D Kani harness.
@@ -611,11 +619,15 @@ impl ArpAnalyzer {
 
                 // New IP via GARP (no conflict means either no entry or same MAC).
                 // Insert/update binding and set last_seen_ts.
-                if !self.bindings.contains_key(&sender_ip) {
-                    if self.bindings.len() >= MAX_ARP_BINDINGS {
-                        self.bindings_evicted = self.bindings_evicted.saturating_add(1);
-                    }
-                    insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS);
+                if !self.bindings.contains_key(&sender_ip)
+                    && insert_binding_lru(
+                        &mut self.bindings,
+                        sender_ip,
+                        sender_mac,
+                        MAX_ARP_BINDINGS,
+                    )
+                {
+                    self.bindings_evicted = self.bindings_evicted.saturating_add(1);
                 }
                 if let Some(entry) = self.bindings.get_mut(&sender_ip) {
                     entry.last_seen_ts = timestamp_secs;
@@ -659,10 +671,9 @@ impl ArpAnalyzer {
             }
         } else {
             // New IP: call insert_binding_lru (handles eviction), then set last_seen_ts.
-            if self.bindings.len() >= MAX_ARP_BINDINGS {
+            if insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS) {
                 self.bindings_evicted = self.bindings_evicted.saturating_add(1);
             }
-            insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS);
             if let Some(entry) = self.bindings.get_mut(&sender_ip) {
                 entry.last_seen_ts = timestamp_secs;
             }
