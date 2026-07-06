@@ -4,25 +4,25 @@ project: wirerust
 mode: feature
 phase: steady-state
 status: complete
-current_step: "Pipeline IDLE. Last action: DF-VALIDATION-001 triage of deferred security/perf findings (D-383, research-agent, 2026-07-06) + issue #342 FIX delivered/CLOSED (PR #362 squash-merged → develop ae931245). develop_head advanced 4a9eba3→ae931245 (UNRELEASED; ships in next release). New issues #360/#361 filed. Next action: await next feature request / maintenance / release decision."
+current_step: "v0.11.3 RELEASED (includes #342 DNP3/ENIP DoS fix, CWE-401/770). Pipeline IDLE. No active phase. Next action: await next feature request / maintenance / STORY-148 reconciliation."
 pipeline: IDLE
-timestamp: 2026-07-06T12:00:00Z
+timestamp: 2026-07-06T18:00:00Z
 
 # Release chain (latest)
-released_version: v0.11.2
-released_at: "2026-07-05"
-release_tag: v0.11.2
-release_tag_object: 2852165d7245e4489b62508ed0edad2212242669
-release_commit: 96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.2
-prior_released_version: v0.11.1
-prior_released_at: "2026-07-01"
-# Ground-truth HEADs (verified 2026-07-06 — issue #342 fix PR #362 merged to develop; main unchanged)
-main_head: 96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75
-develop_head: ae931245d359b26b89f2f3e3e5814fd63a0c30e9
+released_version: v0.11.3
+released_at: "2026-07-06"
+release_tag: v0.11.3
+release_tag_object: 57381877a8c3f8c8e64b07ce3dd62dd62e148f99
+release_commit: 6785716d06e63f3128ed051c28deb83322cdc21c
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.3
+prior_released_version: v0.11.2
+prior_released_at: "2026-07-05"
+# Ground-truth HEADs (verified 2026-07-06 — v0.11.3 released; PR #363 → main; PR #364 back-merge → develop)
+main_head: 6785716d06e63f3128ed051c28deb83322cdc21c
+develop_head: a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7
 # Cargo.toml version on main and develop (in sync)
-cargo_version_main: "0.11.2"
-cargo_version_develop: "0.11.2"
+cargo_version_main: "0.11.3"
+cargo_version_develop: "0.11.3"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/back-merge worktrees removed.
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -66,11 +66,11 @@ maintenance_prior_run: maint-2026-06-22
 |-------|-------|
 | Project | wirerust |
 | Mode | steady-state (cycle: feature-protocol-coverage CLOSED D-382) |
-| Version | 0.11.2 (released 2026-07-05) |
-| Main HEAD | `96ef1ff` (full: `96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75`) |
-| Develop HEAD | `ae93124` (full: `ae931245d359b26b89f2f3e3e5814fd63a0c30e9`) — UNRELEASED post-v0.11.2 |
-| Tag v0.11.2 | commit `96ef1ff`; tag object `2852165d` |
-| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.2 (Latest, not draft) |
+| Version | 0.11.3 (released 2026-07-06) |
+| Main HEAD | `6785716` (full: `6785716d06e63f3128ed051c28deb83322cdc21c`) |
+| Develop HEAD | `a85c6f7` (full: `a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7`) — in sync with main (v0.11.3) |
+| Tag v0.11.3 | commit `6785716`; tag object `57381877` |
+| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.3 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.16 (345 active / 346 on disk) / VP-INDEX v2.34 (43 VPs) / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 108 total (STORY-INDEX v3.14) |
@@ -101,7 +101,8 @@ maintenance_prior_run: maint-2026-06-22
 | Feature cycle feature-protocol-coverage — F6 (targeted-hardening) | **DONE/PASS (D-380)** | VP-041/042/043 ALL PROVEN. 5 Kani harnesses VERIFICATION SUCCESSFUL (0/103 checks); VP-041 catalog Kani JUSTIFIED-DEFERRED (compile-time constant, documented inline); fuzz_coverage_gap_classify 2,049,292 execs/301s/0 crashes; cargo-mutants delta kill rate 100% (3 E-21 survivors killed by f6_hardening tests; 2 pre-existing LOW-tier survivors remain). PR #357 squash-merged to develop 6da5456. Full-tree cargo test + clippy + fmt + deny all green. |
 | Feature cycle feature-protocol-coverage — F7 (delta-convergence) | **CONVERGED/CLOSED (D-382, 2026-07-05)** | Human gate approved. All 5 dimensions SATISFIED (D-381). Cycle CLOSED. v0.11.2 RELEASED. S-7.02 SATISFIED (STORY-155 filed). |
 | v0.11.2 RELEASED | **RELEASED 2026-07-05** | PR #358 (release/0.11.2 → main, merge 96ef1ff); tag v0.11.2 (tag obj 2852165d); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3). |
-| Out-of-cycle fix — issue #342 (D-383, 2026-07-06) | **DONE/CLOSED (IDLE)** | DF-VALIDATION-001 triage: SEC-005+SEC-006 CONFIRMED dedup-into-#342; PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed. UNRELEASED (ships next release). |
+| Out-of-cycle fix — issue #342 (D-383, 2026-07-06) | **DONE/CLOSED — RELEASED in v0.11.3** | DF-VALIDATION-001 triage: SEC-005+SEC-006 CONFIRMED dedup-into-#342; PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed. Released v0.11.3 (2026-07-06). |
+| v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
 
 ---
 
@@ -109,11 +110,10 @@ maintenance_prior_run: maint-2026-06-22
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **CYCLE CONVERGED/CLOSED + v0.11.2 RELEASED (D-382, 2026-07-05). Human gate approved for E-21 feature-protocol-coverage cycle close. v0.11.2 RELEASED: release/0.11.2 → main PR #358 (merge 96ef1ff), tag v0.11.2 (tag object 2852165d), GitHub Release Latest. Back-merge PR #359 → develop 4a9eba3; Cargo.toml 0.11.2 on main+develop. S-7.02 SATISFIED: STORY-155 filed (E-11, [process-gap], auto-update STORY-INDEX status draft→merged on story PR merge, PG-INDEX-DRIFT-001); lessons.md [codified] entry written. STORY-INDEX v3.14 (108 stories / 694 pts). Pipeline IDLE.** | **DONE (D-382)** | Cycle feature-protocol-coverage CLOSED. v0.11.2 released. S-7.02 satisfied. |
-| **F7 PRE-GATE COMPLETE — AWAITING HUMAN APPROVAL GATE (D-381, 2026-07-05). All 5 convergence dimensions SATISFIED. SPEC: fresh-context consistency audit CLEAN after P0-001 (STORY-INDEX status draft→merged STORY-151..154, wave 67/68/69 DELIVERED+CLOSED, v3.12→v3.13) + P2-001 (ARCH-INDEX stale HTML comment on SS-18 row removed). Traceability chain (9 BCs / CAP-18 / ADR-012 / SS-18 / VP-041/042/043 / STORY-151..154) internally consistent. Input-hash MATCH=99 STALE=0 ERROR=3 (pre-existing D-377). TESTS: full-tree regression develop 6da5456 GREEN — cargo fmt/clippy -D warnings/test --all-targets 0 failures. F4 holdout mean 1.00 (10/10 must-pass). IMPLEMENTATION: F5 converged (8 passes, code zero findings every pass). VERIFICATION: F6 PASS (VP-041/042/043 proven, 5 Kani harnesses SUCCESSFUL, fuzz 2.05M execs 0 crashes, mutation delta kill 100%, cargo deny clean). DOCUMENTATION: run_analyze doc-comment corrected (PR #356). AWAITING FINAL HUMAN APPROVAL GATE.** | **PRE-GATE COMPLETE (D-381)** | All 5 dimensions SATISFIED. Cycle not yet CONVERGED/CLOSED — awaiting human gate. |
-| **F6 DONE/PASS (D-380, 2026-07-04). PR #357 squash-merged to develop 6da5456 (CI 11/11 green; security APPROVE 0 findings; pr-reviewer APPROVE 0 blocking). VP-041/042/043 ALL PROVEN: 5 Kani harnesses VERIFICATION SUCCESSFUL (0/103 checks); VP-041 catalog Kani JUSTIFIED-DEFERRED (compile-time constant, CBMC intractable, documented inline); fuzz_coverage_gap_classify 2,049,292 execs/301s/0 crashes; cargo-mutants delta kill rate 100% (3 genuine E-21 survivors killed by f6_hardening tests; 2 pre-existing LOW-tier out-of-delta survivors remain). Full-tree cargo test 85 binaries 0 fail + clippy + fmt + deny all green. Commits: aa1e70f (Kani), 982eb37 (fuzz), 73554e6 (mutation-hardening), 78807c0 (fuzz Cargo.lock sync). Worktree test/f6-protocol-coverage-hardening removed. develop=6da5456.** | **DONE/PASS (D-380)** | F6 VERDICT: PASS. VP-041/042/043 proven, mutation 100%, fuzz clean. Phase → F7-delta-convergence. |
-| **F6 CARRY FINDINGS RESOLVED (D-379, 2026-07-04). PR #356 squash-merged to develop 3727578d (CI 11/11 green; security-reviewer APPROVE 0 findings; pr-reviewer APPROVE 0 blocking; title: refactor(f6-cleanup)). 4 LOW F5-carry findings RESOLVED: STORY-153-RUNANALYZE-DOC-STALE-001 (7fbb57c — corrected stale run_analyze coverage_gaps doc-comment), STORY-154-LOOKUP-ARP-DEADCLAUSE-001 (0fdaa29 — removed provably-unreachable ARP disjunct in lookup_protocol_state), STORY-154-ALL-COVERAGEGAPS-TEST-001 (abc048e — added analyze --all --coverage-gaps combined integration test), STORY-152/154-WEAK-UNKNOWN-ASSERT-001 (f90dfb8 — tightened 3 weak contains("unknown") assertions to line-level port+state checks). fix/f6-hardening-cleanup worktree removed. develop=3727578d. F6 verification suite PENDING.** | **DONE (D-379)** | 4 F5-carry findings RESOLVED; F6 verification suite PENDING (Kani/fuzz/mutation + full-tree + cargo-deny/audit + security scan). |
-| **OUT-OF-CYCLE FIX COMPLETE (D-383, 2026-07-06). DF-VALIDATION-001 triage of deferred security/perf findings by research-agent (report: .factory/research/deferred-security-perf-validation-2026-07.md). Verdicts: SEC-005+SEC-006 CONFIRMED → dedup-into-#342 (CWE-401+CWE-770, MEDIUM, offline-bounded); SEC-001-ENIP CONFIRMED-present/sound-as-written → DOWNGRADED LOW (refactor tech-debt); SEC-001-STORY153 validated LOW → issue #361 filed (doc-comment); PERF/BENCHMARK-GAP-001 real → issue #360 filed, +10.3% deferred-unverifiable; SEC-004+SEC-007 FALSE-POSITIVE → DOWNGRADED LOW cosmetic. Issue #342 FIX: PR #362 (fix(dispatcher): purge DNP3/ENIP per-flow state on flow close) squash-merged → develop ae931245; 4 regression tests (6958048); ENIP wiring (0d73892) + DNP3 on_flow_close+summarize aggregation (e954dda); security-reviewer APPROVE (BC-2.15.020 verified); pr-reviewer APPROVE; CI 11/11. Issue #342 CLOSED 2026-07-06. develop_head 4a9eba3→ae931245 (UNRELEASED). New issues #360/#361 filed.** | **DONE (D-383)** | Issue #342 CLOSED. develop ae931245. UNRELEASED. |
+| **CYCLE CONVERGED/CLOSED + v0.11.2 RELEASED (D-382, 2026-07-05). Human gate approved for E-21 feature-protocol-coverage cycle close. v0.11.2 RELEASED: release/0.11.2 → main PR #358 (merge 96ef1ff), tag v0.11.2 (tag object 2852165d), GitHub Release Latest. Back-merge PR #359 → develop 4a9eba3; Cargo.toml 0.11.2 on main+develop. S-7.02 SATISFIED: STORY-155 filed. STORY-INDEX v3.14 (108 stories / 694 pts). Pipeline IDLE.** | **DONE (D-382)** | Cycle feature-protocol-coverage CLOSED. v0.11.2 released. S-7.02 satisfied. |
+| **F7 PRE-GATE COMPLETE (D-381, 2026-07-05). All 5 convergence dimensions SATISFIED. SPEC: consistency audit CLEAN. TESTS: full-tree regression develop 6da5456 GREEN. VERIFICATION: F6 PASS (VP-041/042/043 proven, Kani 0/103 checks, fuzz 2.05M execs 0 crashes, mutation 100%). Human gate approved.** | **PRE-GATE COMPLETE (D-381)** | All 5 dimensions SATISFIED. Cycle CLOSED. |
+| **OUT-OF-CYCLE FIX COMPLETE (D-383, 2026-07-06). issue #342 DNP3/ENIP unbounded per-flow memory DoS (CWE-401+CWE-770). PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed.** | **DONE (D-383)** | Issue #342 CLOSED. develop ae931245. |
+| **v0.11.3 RELEASED (D-384, 2026-07-06). Smoke-test GO (37/37 clean invocations; #342 fix confirmed — DNP3 541 flows purged; RSS 303 MB / 2.25M-pkt). PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Pipeline IDLE.** | **RELEASED (D-384)** | v0.11.3 ships #342 DoS fix. Smoke-test GO. Pipeline IDLE. |
 
 ## Decisions Log
 
@@ -203,6 +203,7 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-381 | F7 DELTA-CONVERGENCE PRE-GATE COMPLETE (2026-07-05). All 5 convergence dimensions SATISFIED — cycle E-21 (feature-protocol-coverage) AWAITING FINAL HUMAN APPROVAL GATE. Pre-gate reconciliations applied: P0-001 (STORY-INDEX v3.12→v3.13: STORY-151/152/153/154 status draft→merged; wave 67/68/69 delivery rows marked DELIVERED+CLOSED) + P2-001 (ARCH-INDEX v2.12: removed stale "(PO delivers next)" HTML comment on SS-18 row — version unchanged). DIMENSION EVIDENCE — (1) SPEC: fresh-context consistency audit CONDITIONAL-PASS resolved to CLEAN after P0-001+P2-001; traceability chain (9 BCs / CAP-18 / ADR-012 / SS-18 / VP-041/042/043 / STORY-151..154) internally consistent; input-hash MATCH=99 STALE=0 ERROR=3 (pre-existing STORY-001/091/121, documented D-377); zero E-21 drift. (2) TESTS: full-tree regression develop 6da5456 GREEN — cargo fmt --check OK, clippy --all-targets -D warnings clean, cargo test --all-targets 0 failures across all suites; F4 holdout mean satisfaction 1.00 (10/10 must-pass). (3) IMPLEMENTATION: F5 scoped-adversarial CONVERGED (8 fresh-context passes; code zero findings every pass). (4) VERIFICATION: F6 DONE/PASS — VP-041/042/043 all proven; 5 Kani harnesses SUCCESSFUL (0/103 checks); fuzz_coverage_gap_classify 2,049,292 execs/301s/0 crashes; cargo-mutants delta kill 100%; cargo deny clean. (5) DOCUMENTATION/REGRESSION: run_analyze doc-comment corrected (PR #356); full-tree regression green. Cycle status: F7 in-progress — NOT yet CONVERGED/CLOSED. On human gate approval → cycle close, then release decision. STORY-INDEX v3.13. | 2026-07-05 |
 | D-382 | Feature cycle feature-protocol-coverage (E-21) CONVERGED/CLOSED (human gate approved 2026-07-05). v0.11.2 RELEASED: release/0.11.2 → main PR #358 (merge commit 96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75); tag v0.11.2 annotated (tag object 2852165d7245e4489b62508ed0edad2212242669, points at 96ef1ff); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3565e7df30ae577526f5e2d57e3dc02967); Cargo.toml 0.11.2 on main+develop. S-7.02 SATISFIED: STORY-155 filed (E-11, [process-gap], auto-update STORY-INDEX status draft→merged on story PR merge, PG-INDEX-DRIFT-001); lessons.md [codified] entry written in cycles/feature-protocol-coverage/. STORY-INDEX v3.14 (108 stories / 694 pts). Pipeline IDLE. | 2026-07-05 |
 | D-383 | DF-VALIDATION-001 triage of deferred security/perf findings (out-of-cycle, pipeline IDLE). research-agent validation report committed: `.factory/research/deferred-security-perf-validation-2026-07.md`. Verdicts — SEC-005 (ENIP on_flow_close unwired) + SEC-006 (DNP3 flow-map uncapped): CONFIRMED, same root cause = issue #342 (dispatcher on_flow_close stubbed both arms), CWE-401+CWE-770, MEDIUM, offline-bounded; deduped-into-#342. SEC-001-ENIP (unsafe split-borrow enip.rs): CONFIRMED present but sound-as-written → DOWNGRADED to LOW (refactor tech-debt, no exploit channel; safe-refactor to `get_disjoint`/index; not a filed vuln). SEC-001-STORY153 (per_port_counts ceiling ~131k): bounded, LOW; missing doc-comment → issue #361 filed (docs, add ceiling doc-comment to `unclassified_port_counts`). PERF-001/002 + BENCHMARK-GAP-001: benchmark gap real → issue #360 filed (test/enhancement — add fragmented-TLS-handshake bench fixture); +10.3% figure DEFERRED as unverifiable pending repeatable benchmark. SEC-004+SEC-007 (`+= 1` u64 counters): FALSE-POSITIVE (u64, ~58k yrs to overflow, 4 GiB input bounded) → DOWNGRADED to LOW cosmetic. Issue #342 FIX delivered + CLOSED: TDD regression tests committed (6958048, 4 tests), ENIP wiring fix (0d73892: `dispatcher.rs` Some(DispatchTarget::Enip) arm wired to call `enip.on_flow_close(flow_key.clone())`), DNP3 on_flow_close+summarize aggregation (e954dda: added `Dnp3Analyzer::on_flow_close` method + wired Some(DispatchTarget::Dnp3) arm; fixed `summarize()` to aggregate both open and closed flows). PR #362 (`fix(dispatcher): purge DNP3/ENIP per-flow state on flow close (#342)`) squash-merged → develop ae931245d359b26b89f2f3e3e5814fd63a0c30e9. security-reviewer APPROVE (finding-equivalence BC-2.15.020 verified byte-identical purge-vs-retain; bounded ~40B/entry; saturating_add). pr-reviewer APPROVE. CI 11/11. Issue #342 CLOSED 2026-07-06. develop_head 4a9eba3→ae931245 (UNRELEASED — ships in next release). | 2026-07-06 |
+| D-384 | v0.11.3 RELEASED (2026-07-06). Smoke-test GO recorded (37/37 clean invocations across pcap+pcapng readers, all subcommands/analyzers; #342 fix confirmed — DNP3 541 flows purged, findings intact; RSS 303 MB on 2.25M-pkt capture; JSON/CSV consistent; edge cases graceful). Release PR #363 (release/0.11.3 → main, merge commit 6785716d); tag v0.11.3 annotated (tag object 57381877a8c3f8c8e64b07ce3dd62dd62e148f99); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7); Cargo.toml 0.11.3 on main+develop. Pipeline IDLE. | 2026-07-06 |
 
 ---
 
@@ -298,17 +299,16 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Pipeline IDLE. Last action: DF-VALIDATION-001 triage + issue #342 fix (D-383, 2026-07-06). develop ae931245 (UNRELEASED post-v0.11.2).**
+**v0.11.3 RELEASED (D-384, 2026-07-06). Pipeline IDLE. develop a85c6f7 / main 6785716 (v0.11.3). No active phase.**
 
-- **Ground truth:** develop=`ae93124` (full `ae931245d359b26b89f2f3e3e5814fd63a0c30e9`), main=`96ef1ff` (full `96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75`, v0.11.2). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @ae931245] + .factory [factory-artifacts].
+- **Ground truth:** develop=`a85c6f7` (full `a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7`), main=`6785716` (full `6785716d06e63f3128ed051c28deb83322cdc21c`, v0.11.3). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @a85c6f7] + .factory [factory-artifacts].
 - **RESUME PROCEDURE:**
   1. `vsdd-factory:factory-worktree-health` — PASS required.
-  2. Verify develop=`ae931245` (full `ae931245d359b26b89f2f3e3e5814fd63a0c30e9`).
+  2. Verify develop=`a85c6f7` (full `a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7`), main=`6785716`.
   3. Pipeline is IDLE. Await next feature request, maintenance, or release decision; invoke `/vsdd-factory:next-step` when ready.
-- **Cycle status:** feature-protocol-coverage (E-21) CLOSED (D-382). v0.11.2 released 2026-07-05 (PR #358 → main 96ef1ff; PR #359 back-merge → develop 4a9eba3). S-7.02 satisfied (STORY-155 filed).
-- **Out-of-cycle activity (D-383, 2026-07-06):** Validated deferred findings per DF-VALIDATION-001. Issue #342 FIXED + CLOSED (PR #362 → develop ae931245, UNRELEASED). Issues #360 (bench fixture) and #361 (doc-comment) filed. SEC-001-ENIP + SEC-004/007 downgraded to LOW (no issues filed). STORY-148 basis resolved — story-writer must reconcile STORY-148 next cycle.
-- **Release:** v0.11.2 on main (PR #358, 96ef1ff). develop ae931245 has one UNRELEASED commit (PR #362, DNP3/ENIP flow-close fix). Next release decision pending.
-- **Phase-5/maintenance carry open:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001 (DF-VALIDATION-001-gated), STORY-148-BASIS-RESOLVED-001 (story-writer to reconcile).
+- **Cycle status:** feature-protocol-coverage (E-21) CLOSED (D-382). v0.11.2 released 2026-07-05. v0.11.3 released 2026-07-06 (PR #363 → main 6785716; PR #364 back-merge → develop a85c6f7). S-7.02 satisfied (STORY-155 filed).
+- **v0.11.3 release (D-384, 2026-07-06):** Ships #342 DNP3/ENIP unbounded per-flow memory DoS fix (CWE-401/770, MEDIUM). Smoke-test GO: 37/37 clean invocations; DNP3 541 flows purged, findings intact; RSS 303 MB / 2.25M-pkt. Cargo.toml 0.11.3 on main+develop. GitHub Release Latest.
+- **Carry open:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001 (DF-VALIDATION-001-gated), STORY-148-BASIS-RESOLVED-001 (story-writer to reconcile).
 ---
 
 ## Governance Policy
