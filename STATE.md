@@ -4,25 +4,25 @@ project: wirerust
 mode: feature
 phase: steady-state
 status: complete
-current_step: "Silent-limit audit COMPLETE (D-385). 4 observability counters delivered via PR #365 (feat(analyzers): surface silently-dropped/evicted state via observability counters, squash cc2a87c, CI 11/11). 8 BCs amended (BC-INDEX v2.18). Pipeline IDLE."
+current_step: "v0.11.4 RELEASED (D-386, 2026-07-06). PR #366 follow-up test hardening + ARP refactor merged to develop (f7460b4). Release PR #367 → main (f0f2136); tag v0.11.4 (tag obj e6ee614); back-merge PR #368 → develop (f7460b4). develop has NO unreleased commits. Pipeline IDLE."
 pipeline: IDLE
-timestamp: 2026-07-06T20:00:00Z
+timestamp: 2026-07-06T22:00:00Z
 
 # Release chain (latest)
-released_version: v0.11.3
+released_version: v0.11.4
 released_at: "2026-07-06"
-release_tag: v0.11.3
-release_tag_object: 57381877a8c3f8c8e64b07ce3dd62dd62e148f99
-release_commit: 6785716d06e63f3128ed051c28deb83322cdc21c
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.3
-prior_released_version: v0.11.2
-prior_released_at: "2026-07-05"
-# Ground-truth HEADs (verified 2026-07-06 — v0.11.3 released; PR #363 → main; PR #364 back-merge → develop; PR #365 silent-limit counters → develop cc2a87c, UNRELEASED)
-main_head: 6785716d06e63f3128ed051c28deb83322cdc21c
-develop_head: cc2a87c8977c9a0b7c247c8a9b7b785f9db9a50b
+release_tag: v0.11.4
+release_tag_object: e6ee614011bf3778f6a602d62dac673a9526ead0
+release_commit: f0f2136d1f43475cb2372193875ea516cc137218
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.4
+prior_released_version: v0.11.3
+prior_released_at: "2026-07-06"
+# Ground-truth HEADs (verified 2026-07-06 — v0.11.4 released; PR #367 → main; PR #368 back-merge → develop; develop has NO unreleased commits)
+main_head: f0f2136d1f43475cb2372193875ea516cc137218
+develop_head: f7460b403962a690bd0f81e4ad41185b893b830b
 # Cargo.toml version on main and develop (in sync)
-cargo_version_main: "0.11.3"
-cargo_version_develop: "0.11.3"
+cargo_version_main: "0.11.4"
+cargo_version_develop: "0.11.4"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/back-merge worktrees removed.
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -56,7 +56,7 @@ maintenance_prior_run: maint-2026-06-22
 
 ## EXACT RESUME POINT
 
-**Silent-limit audit COMPLETE (D-385, 2026-07-06). 4 observability counters delivered via PR #365 (feat(analyzers): surface silently-dropped/evicted state via observability counters, squash cc2a87c, CI 11/11). 8 BCs amended (BC-INDEX v2.18). 8 story input-hashes rebaselined. Pipeline IDLE. develop cc2a87c (UNRELEASED, on top of v0.11.3). main 6785716 (v0.11.3). Next action: await next feature request, maintenance, or v0.11.4 release decision.**
+**v0.11.4 RELEASED (D-386, 2026-07-06). Silent-limit observability counters (PR #365, cc2a87c) + follow-up test hardening + ARP refactor (PR #366, squash to develop) shipped. Release PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); back-merge PR #368 → develop (squash f7460b4). develop has NO unreleased commits. Pipeline IDLE. Next action: await next feature request or maintenance.**
 
 ---
 
@@ -66,11 +66,11 @@ maintenance_prior_run: maint-2026-06-22
 |-------|-------|
 | Project | wirerust |
 | Mode | steady-state (cycle: feature-protocol-coverage CLOSED D-382) |
-| Version | 0.11.3 (released 2026-07-06) |
-| Main HEAD | `6785716` (full: `6785716d06e63f3128ed051c28deb83322cdc21c`) |
-| Develop HEAD | `cc2a87c` (full: `cc2a87c8977c9a0b7c247c8a9b7b785f9db9a50b`) — 1 unreleased feature on develop (PR #365 silent-limit observability counters) |
-| Tag v0.11.3 | commit `6785716`; tag object `57381877` |
-| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.3 (Latest, not draft) |
+| Version | 0.11.4 (released 2026-07-06) |
+| Main HEAD | `f0f2136` (full: `f0f2136d1f43475cb2372193875ea516cc137218`) |
+| Develop HEAD | `f7460b4` (full: `f7460b403962a690bd0f81e4ad41185b893b830b`) — NO unreleased commits |
+| Tag v0.11.4 | commit `f0f2136`; tag object `e6ee614` |
+| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.4 (Latest, not draft) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.18 (345 active, 8 amended) / VP-INDEX v2.34 (43 VPs) / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 108 total (STORY-INDEX v3.14) |
@@ -103,7 +103,8 @@ maintenance_prior_run: maint-2026-06-22
 | v0.11.2 RELEASED | **RELEASED 2026-07-05** | PR #358 (release/0.11.2 → main, merge 96ef1ff); tag v0.11.2 (tag obj 2852165d); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3). |
 | Out-of-cycle fix — issue #342 (D-383, 2026-07-06) | **DONE/CLOSED — RELEASED in v0.11.3** | DF-VALIDATION-001 triage: SEC-005+SEC-006 CONFIRMED dedup-into-#342; PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed. Released v0.11.3 (2026-07-06). |
 | v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
-| Silent-limit audit + observability counters (D-385, 2026-07-06) | **DONE (PR #365, develop cc2a87c, UNRELEASED)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. CI 11/11; security APPROVE; pr-reviewer APPROVE. |
+| Silent-limit audit + observability counters (D-385, 2026-07-06) | **RELEASED in v0.11.4 (PR #365, cc2a87c + PR #366 follow-ups, f7460b4)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. |
+| v0.11.4 RELEASED (D-386, 2026-07-06) | **RELEASED 2026-07-06** | PR #366 (follow-up test hardening + ARP refactor, squash to develop); PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop has NO unreleased commits. |
 
 ---
 
@@ -114,7 +115,8 @@ maintenance_prior_run: maint-2026-06-22
 | **F7 PRE-GATE COMPLETE (D-381, 2026-07-05). All 5 convergence dimensions SATISFIED. SPEC: consistency audit CLEAN. TESTS: full-tree regression develop 6da5456 GREEN. VERIFICATION: F6 PASS (VP-041/042/043 proven, Kani 0/103 checks, fuzz 2.05M execs 0 crashes, mutation 100%). Human gate approved.** | **PRE-GATE COMPLETE (D-381)** | All 5 dimensions SATISFIED. Cycle CLOSED. |
 | **OUT-OF-CYCLE FIX COMPLETE (D-383, 2026-07-06). issue #342 DNP3/ENIP unbounded per-flow memory DoS (CWE-401+CWE-770). PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed.** | **DONE (D-383)** | Issue #342 CLOSED. develop ae931245. |
 | **v0.11.3 RELEASED (D-384, 2026-07-06). Smoke-test GO (37/37 clean invocations; #342 fix confirmed — DNP3 541 flows purged; RSS 303 MB / 2.25M-pkt). PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Pipeline IDLE.** | **RELEASED (D-384)** | v0.11.3 ships #342 DoS fix. Smoke-test GO. Pipeline IDLE. |
-| **SILENT-LIMIT AUDIT + OBSERVABILITY COUNTERS (D-385, 2026-07-06). 13-site audit: 4 GENUINE gaps + 9 cleared + modbus-invalid-ADU-latch REJECTED (research-agent). 4 counters delivered: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. PR #365 squash-merged → develop cc2a87c (CI 11/11; security APPROVE invariants confirmed; pr-reviewer APPROVE 0 blocking). 8 BCs amended → BC-INDEX v2.18. Pipeline IDLE.** | **DONE (D-385)** | Silent-limit audit COMPLETE. 4 observability counters delivered. 8 BCs amended. develop cc2a87c (UNRELEASED). |
+| **SILENT-LIMIT AUDIT + OBSERVABILITY COUNTERS (D-385, 2026-07-06). 13-site audit: 4 GENUINE gaps + 9 cleared + modbus-invalid-ADU-latch REJECTED (research-agent). 4 counters delivered: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. PR #365 squash-merged → develop cc2a87c (CI 11/11; security APPROVE invariants confirmed; pr-reviewer APPROVE 0 blocking). 8 BCs amended → BC-INDEX v2.18.** | **DONE (D-385)** | Silent-limit audit COMPLETE. 4 observability counters delivered. 8 BCs amended. |
+| **v0.11.4 FOLLOW-UPS + RELEASE (D-386, 2026-07-06). PR #366 squash-merged to develop: HTTP-AC008-NEG-TEST-001 (negative regression test existing-key hit does NOT increment dropped_map_entries), EVICTION-NO-FINDING-NEG-TEST-001 (Modbus pending-drop live + ARP eviction #[ignore] emit no Finding), ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 (insert_binding_lru returns bool; dedup 2 call sites). Release PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop NO unreleased commits. Pipeline IDLE.** | **RELEASED (D-386)** | v0.11.4 ships observability counters + follow-up hardening. develop f7460b4. main f0f2136. Pipeline IDLE. |
 
 ## Decisions Log
 
@@ -205,7 +207,8 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | D-382 | Feature cycle feature-protocol-coverage (E-21) CONVERGED/CLOSED (human gate approved 2026-07-05). v0.11.2 RELEASED: release/0.11.2 → main PR #358 (merge commit 96ef1ff2b53f65640bd424dee4f0cd12ffe8ba75); tag v0.11.2 annotated (tag object 2852165d7245e4489b62508ed0edad2212242669, points at 96ef1ff); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3565e7df30ae577526f5e2d57e3dc02967); Cargo.toml 0.11.2 on main+develop. S-7.02 SATISFIED: STORY-155 filed (E-11, [process-gap], auto-update STORY-INDEX status draft→merged on story PR merge, PG-INDEX-DRIFT-001); lessons.md [codified] entry written in cycles/feature-protocol-coverage/. STORY-INDEX v3.14 (108 stories / 694 pts). Pipeline IDLE. | 2026-07-05 |
 | D-383 | DF-VALIDATION-001 triage of deferred security/perf findings (out-of-cycle, pipeline IDLE). research-agent validation report committed: `.factory/research/deferred-security-perf-validation-2026-07.md`. Verdicts — SEC-005 (ENIP on_flow_close unwired) + SEC-006 (DNP3 flow-map uncapped): CONFIRMED, same root cause = issue #342 (dispatcher on_flow_close stubbed both arms), CWE-401+CWE-770, MEDIUM, offline-bounded; deduped-into-#342. SEC-001-ENIP (unsafe split-borrow enip.rs): CONFIRMED present but sound-as-written → DOWNGRADED to LOW (refactor tech-debt, no exploit channel; safe-refactor to `get_disjoint`/index; not a filed vuln). SEC-001-STORY153 (per_port_counts ceiling ~131k): bounded, LOW; missing doc-comment → issue #361 filed (docs, add ceiling doc-comment to `unclassified_port_counts`). PERF-001/002 + BENCHMARK-GAP-001: benchmark gap real → issue #360 filed (test/enhancement — add fragmented-TLS-handshake bench fixture); +10.3% figure DEFERRED as unverifiable pending repeatable benchmark. SEC-004+SEC-007 (`+= 1` u64 counters): FALSE-POSITIVE (u64, ~58k yrs to overflow, 4 GiB input bounded) → DOWNGRADED to LOW cosmetic. Issue #342 FIX delivered + CLOSED: TDD regression tests committed (6958048, 4 tests), ENIP wiring fix (0d73892: `dispatcher.rs` Some(DispatchTarget::Enip) arm wired to call `enip.on_flow_close(flow_key.clone())`), DNP3 on_flow_close+summarize aggregation (e954dda: added `Dnp3Analyzer::on_flow_close` method + wired Some(DispatchTarget::Dnp3) arm; fixed `summarize()` to aggregate both open and closed flows). PR #362 (`fix(dispatcher): purge DNP3/ENIP per-flow state on flow close (#342)`) squash-merged → develop ae931245d359b26b89f2f3e3e5814fd63a0c30e9. security-reviewer APPROVE (finding-equivalence BC-2.15.020 verified byte-identical purge-vs-retain; bounded ~40B/entry; saturating_add). pr-reviewer APPROVE. CI 11/11. Issue #342 CLOSED 2026-07-06. develop_head 4a9eba3→ae931245 (UNRELEASED — ships in next release). | 2026-07-06 |
 | D-384 | v0.11.3 RELEASED (2026-07-06). Smoke-test GO recorded (37/37 clean invocations across pcap+pcapng readers, all subcommands/analyzers; #342 fix confirmed — DNP3 541 flows purged, findings intact; RSS 303 MB on 2.25M-pkt capture; JSON/CSV consistent; edge cases graceful). Release PR #363 (release/0.11.3 → main, merge commit 6785716d); tag v0.11.3 annotated (tag object 57381877a8c3f8c8e64b07ce3dd62dd62e148f99); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7225d7f9ca30f534ef9fad0b5a39cdc1a7); Cargo.toml 0.11.3 on main+develop. Pipeline IDLE. | 2026-07-06 |
-| D-385 | Silent-limit audit COMPLETE + observability counters DELIVERED (2026-07-06). Multi-agent audit of 13 candidate silent-resource-limit sites across all analyzers: 4 GENUINE observability gaps confirmed — ARP storm-counter evictions (storm_counters_evicted), ARP binding-table LRU evictions (bindings_evicted), Modbus pending-transaction drops (dropped_transactions), TLS+HTTP distribution-map cap hits (dropped_map_entries). 9 sites CLEARED as non-gaps (already surfaced, dead code, or unreachable path). Modbus invalid-ADU latch (modbus.rs:1121-1135) REJECTED by research-agent triage: parse_errors already surfaces it; the DNP3 T0814 comparison was a category error — not a gap. Fix: added the 4 counters with saturating_add, surfaced via summarize()/JSON/terminal (uniform counter approach, no Findings — invariants preserved). 8 BCs amended (BC-2.16.008 v2.0, BC-2.16.010 v1.9, BC-2.14.012 v1.1, BC-2.14.021 v1.2, BC-2.07.031 v1.5, BC-2.07.028 v1.4, BC-2.06.023 v1.6, BC-2.06.024 v1.4); BC-INDEX → v2.18. 8 story input-hashes rebaselined: STORY-045 (b8d07aa), STORY-046 (ea65985), STORY-057 (41521b4), STORY-058 (d510292), STORY-103 (e9f30f9), STORY-104 (af20325), STORY-113 (c9dd3be), STORY-115 (d9a91f6). Research triage reports: `.factory/research/deferred-security-perf-validation-2026-07.md` (updated) + `.factory/research/modbus-invalid-adu-latch-triage-2026-07.md` (new). PR #365 (`feat(analyzers): surface silently-dropped/evicted state via observability counters`) squash-merged → develop cc2a87c8977c9a0b7c247c8a9b7b785f9db9a50b. CI 11/11; security-reviewer APPROVE (invariants CONFIRMED preserved, saturating_add confirmed, HTTP AC-008 correct); pr-reviewer APPROVE (0 blocking). develop cc2a87c (UNRELEASED, on top of v0.11.3). main unchanged (6785716, v0.11.3). Pipeline IDLE. | 2026-07-06 |
+| D-385 | Silent-limit audit COMPLETE + observability counters DELIVERED (2026-07-06). Multi-agent audit of 13 candidate silent-resource-limit sites across all analyzers: 4 GENUINE observability gaps confirmed — ARP storm-counter evictions (storm_counters_evicted), ARP binding-table LRU evictions (bindings_evicted), Modbus pending-transaction drops (dropped_transactions), TLS+HTTP distribution-map cap hits (dropped_map_entries). 9 sites CLEARED as non-gaps (already surfaced, dead code, or unreachable path). Modbus invalid-ADU latch (modbus.rs:1121-1135) REJECTED by research-agent triage: parse_errors already surfaces it; the DNP3 T0814 comparison was a category error — not a gap. Fix: added the 4 counters with saturating_add, surfaced via summarize()/JSON/terminal (uniform counter approach, no Findings — invariants preserved). 8 BCs amended (BC-2.16.008 v2.0, BC-2.16.010 v1.9, BC-2.14.012 v1.1, BC-2.14.021 v1.2, BC-2.07.031 v1.5, BC-2.07.028 v1.4, BC-2.06.023 v1.6, BC-2.06.024 v1.4); BC-INDEX → v2.18. 8 story input-hashes rebaselined. PR #365 squash-merged → develop cc2a87c. CI 11/11; security APPROVE; pr-reviewer APPROVE (0 blocking). develop cc2a87c (UNRELEASED on top of v0.11.3). main unchanged (6785716, v0.11.3). Pipeline IDLE. | 2026-07-06 |
+| D-386 | v0.11.4 follow-up hardening DELIVERED + v0.11.4 RELEASED (2026-07-06). PR #366 (squash-merged to develop, earlier in session): 3 silent-limit follow-up LOW items RESOLVED — HTTP-AC008-NEG-TEST-001 (negative regression test: existing-key map hit does NOT increment dropped_map_entries, guards HTTP AC-008 / D-385 invariant); EVICTION-NO-FINDING-NEG-TEST-001 (regression tests: Modbus pending-drop [live] + ARP eviction [#[ignore]] emit no Finding); ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 (refactor: insert_binding_lru now returns bool, deduped 2 call sites). Informational note from PR #366 security review: `rebind_count` in src/analyzer/arp.rs uses plain `+=` (not saturating_add) — pre-existing, non-introduced, realistically unreachable overflow (same LOW/informational class as SEC-004+SEC-007, already cleared u64); recorded as REBIND-COUNT-SATURATING-001 (LOW/informational, optional hardening, DF-VALIDATION-001-gated before any issue). Release: PR #367 (release/0.11.4 → main, merge commit f0f2136d1f43475cb2372193875ea516cc137218); tag v0.11.4 annotated (tag object e6ee614011bf3778f6a602d62dac673a9526ead0, points at f0f2136); GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.11.4 (Latest, not draft). Back-merge PR #368 (main → develop, squash f7460b403962a690bd0f81e4ad41185b893b830b); Cargo.toml 0.11.4 on main+develop. v0.11.4 ships: PR #365 (4 observability counters + 8 BC amendments) + PR #366 (follow-up test hardening + ARP refactor). develop NO unreleased commits. Pipeline IDLE. | 2026-07-06 |
 
 ---
 
@@ -296,9 +299,10 @@ D-001..D-301: see `cycles/*/decisions-archive.md` (greenfield → feature-enip-v
 | SEC-008 + SEC-009 (PR #362 non-blocking obs) | SEC-008: `closed_flow_direct_operates` Vec not cleared on `on_flow_close` — documented acceptable (Vec is drained at `summarize()` end-of-capture; not a per-flow leak). SEC-009: `CloseReason` dropped in DNP3 `on_flow_close` — pre-existing deliberate design. Both non-blocking; no action required. | LOW (informational) | **OPEN — documented acceptable; no issue to file** |
 | SILENT-LIMIT-GAPS-001..004 | 4 observability gaps: ARP `bindings_evicted` + `storm_counters_evicted`; Modbus `dropped_transactions`; TLS+HTTP `dropped_map_entries`. | MEDIUM | **RESOLVED (D-385, PR #365, develop cc2a87c, 2026-07-06)** — 4 counters delivered via uniform saturating_add approach. Invariants confirmed preserved. |
 | MODBUS-INVALID-ADU-LATCH-NOT-A-GAP | Modbus invalid-ADU latch (modbus.rs:1121-1135) proposed as silent gap. | LOW | **REJECTED (D-385, 2026-07-06, research-agent triage)** — `parse_errors` already surfaces invalid-ADU; DNP3 T0814 comparison was category error. Not a gap. Symmetric `flows_quarantined` counter enhancement is optional/informational only. |
-| HTTP-AC008-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add negative regression test that existing-key map hits do NOT increment `dropped_map_entries` (guards HTTP AC-008 / D-385 invariant). | LOW | **OPEN — deferred test hardening (DF-VALIDATION-001-gated)** |
-| EVICTION-NO-FINDING-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add regression test asserting eviction/drop events emit no Finding (invariant guard). | LOW | **OPEN — deferred test hardening (DF-VALIDATION-001-gated)** |
-| ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 | pr-reviewer cosmetic (PR #365): ARP bindings-evicted pre-check condition is duplicated — optional refactor only. | LOW (cosmetic) | **OPEN — optional refactor; no action required** |
+| HTTP-AC008-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add negative regression test that existing-key map hits do NOT increment `dropped_map_entries` (guards HTTP AC-008 / D-385 invariant). | LOW | **RESOLVED (D-386, PR #366, 2026-07-06)** — negative regression test delivered. |
+| EVICTION-NO-FINDING-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add regression test asserting eviction/drop events emit no Finding (invariant guard). | LOW | **RESOLVED (D-386, PR #366, 2026-07-06)** — Modbus pending-drop (live) + ARP eviction (#[ignore]) emit-no-Finding tests delivered. |
+| ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 | pr-reviewer cosmetic (PR #365): ARP bindings-evicted pre-check condition is duplicated — optional refactor only. | LOW (cosmetic) | **RESOLVED (D-386, PR #366, 2026-07-06)** — insert_binding_lru now returns bool; 2 call sites deduped. |
+| REBIND-COUNT-SATURATING-001 | PR #366 security review informational note: `rebind_count` in `src/analyzer/arp.rs` uses plain `+=` (not `saturating_add`) — pre-existing, non-introduced, realistically unreachable overflow (u64 ARP rebind events bounded by capture size; same LOW/informational class as cleared SEC-004+SEC-007). Optional hardening to match saturating_add discipline at other counter sites. DF-VALIDATION-001-gated before any GitHub issue is filed. | LOW (informational) | **OPEN — optional hardening (DF-VALIDATION-001-gated)** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -306,16 +310,16 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Silent-limit audit COMPLETE (D-385, 2026-07-06). 4 observability counters delivered (PR #365, develop cc2a87c, UNRELEASED). 8 BCs amended (BC-INDEX v2.18). Pipeline IDLE. develop cc2a87c / main 6785716 (v0.11.3). No active phase.**
+**v0.11.4 RELEASED (D-386, 2026-07-06). Silent-limit observability counters (PR #365) + follow-up test hardening + ARP refactor (PR #366) shipped. develop f7460b4 / main f0f2136 (v0.11.4). develop has NO unreleased commits. Pipeline IDLE. No active phase.**
 
-- **Ground truth:** develop=`cc2a87c` (full `cc2a87c8977c9a0b7c247c8a9b7b785f9db9a50b`, 1 unreleased feature on top of v0.11.3), main=`6785716` (full `6785716d06e63f3128ed051c28deb83322cdc21c`, v0.11.3). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @cc2a87c] + .factory [factory-artifacts].
+- **Ground truth:** develop=`f7460b4` (full `f7460b403962a690bd0f81e4ad41185b893b830b`, NO unreleased commits — in sync with v0.11.4), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @f7460b4] + .factory [factory-artifacts].
 - **RESUME PROCEDURE:**
   1. `vsdd-factory:factory-worktree-health` — PASS required.
-  2. Verify develop=`cc2a87c`, main=`6785716`.
-  3. Pipeline is IDLE. Develop has 1 unreleased feature (PR #365 silent-limit observability counters). Await next feature request, maintenance, release decision, or v0.11.4 release; invoke `/vsdd-factory:next-step` when ready.
-- **Cycle status:** feature-protocol-coverage (E-21) CLOSED (D-382). v0.11.2 released 2026-07-05. v0.11.3 released 2026-07-06. PR #365 on develop (UNRELEASED).
-- **Silent-limit audit (D-385, 2026-07-06):** 4 observability counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. 8 story input-hashes rebaselined. Invariants confirmed preserved (security APPROVE). Non-blocking follow-ups: HTTP-AC008-NEG-TEST-001, EVICTION-NO-FINDING-NEG-TEST-001 (test hardening), ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 (optional refactor).
-- **Carry open:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001 (DF-VALIDATION-001-gated), STORY-148-BASIS-RESOLVED-001 (story-writer to reconcile), HTTP-AC008-NEG-TEST-001, EVICTION-NO-FINDING-NEG-TEST-001.
+  2. Verify develop=`f7460b4`, main=`f0f2136`.
+  3. Pipeline is IDLE. develop has NO unreleased commits (fully in sync with v0.11.4). Await next feature request, maintenance, or release decision; invoke `/vsdd-factory:next-step` when ready.
+- **Cycle status:** feature-protocol-coverage (E-21) CLOSED (D-382). v0.11.2 released 2026-07-05. v0.11.3 released 2026-07-06. v0.11.4 released 2026-07-06 (D-386).
+- **v0.11.4 content (D-385+D-386, 2026-07-06):** 4 observability counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18 (PR #365). Follow-ups: HTTP-AC008-NEG-TEST-001 + EVICTION-NO-FINDING-NEG-TEST-001 + ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 all RESOLVED (PR #366).
+- **Carry open:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001 (DF-VALIDATION-001-gated), STORY-148-BASIS-RESOLVED-001 (story-writer to reconcile), REBIND-COUNT-SATURATING-001 (LOW/informational, DF-VALIDATION-001-gated).
 ---
 
 ## Governance Policy
