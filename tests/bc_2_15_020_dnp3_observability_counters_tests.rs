@@ -8,8 +8,9 @@
 //!                       `pending_requests_evicted` incremented on MAX_PENDING_REQUESTS=256 LRU eviction
 //!   BC-2.15.022 v1.5 — `dropped_findings` incremented on MAX_FINDINGS=10_000 cap suppression
 //!
-//! RED GATE: all tests MUST FAIL on the current codebase.  The three counter fields do not
-//! yet exist on `Dnp3Analyzer`, and `summarize()` does not yet emit the three detail keys.
+//! GREEN: all 9 tests pass.  The three counter fields (`dropped_findings`,
+//! `master_addrs_dropped`, `pending_requests_evicted`) are present on `Dnp3Analyzer`, and
+//! `summarize()` emits the corresponding detail keys (maint-2026-07-06 FIX-B, commit 636c0d6).
 //!
 //! Assertion strategy: all assertions target `summarize().detail` map keys so tests
 //! COMPILE even before the struct fields exist.  A missing key causes a runtime panic via
