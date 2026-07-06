@@ -33,11 +33,11 @@ version: v0.11.4
 | ID | Source Sweep | Priority | Severity |
 |----|-------------|----------|----------|
 | TD-MAINT-THRESHOLD-CALIB-001 | risk-assumption-monitoring | P1 | HIGH — 3 unvalidated thresholds past escalation threshold |
-| PC-016 | pattern-consistency | P3 | MEDIUM — ENIP import-style drift batch (findings/chrono/BTreeMap) |
-| PC-019 | pattern-consistency | P3 | MEDIUM — DNP3 master_addrs_seen cap, no observable counter |
-| PC-020 | pattern-consistency | P2 | MEDIUM — DNP3 pending_requests LRU eviction, no counter |
-| PC-021 | pattern-consistency | P3 | LOW — ENIP+Modbus HashMap non-deterministic distribution keys |
-| PC-023 | pattern-consistency | P2 | MEDIUM — ENIP missing StreamHandler/StreamAnalyzer trait |
+| PC-016 | pattern-consistency | P3 | MEDIUM — DNP3 master_addrs_seen cap, no counter; T1692.001 masking REFUTED, reframed as observability parity; IN-PROGRESS FIX-B |
+| PC-017 | pattern-consistency | P2 | MEDIUM — DNP3 pending_requests LRU eviction, no counter; T1691.001 degradation CONFIRMED; IN-PROGRESS FIX-B |
+| PC-018 | pattern-consistency | P3 | LOW — ENIP+Modbus HashMap non-deterministic distribution keys (canonical PC-018/019) |
+| PC-020 | pattern-consistency | P2 | MEDIUM — ENIP missing StreamHandler/StreamAnalyzer trait (canonical PC-020) |
+| PC-022 | pattern-consistency | P3 | MEDIUM — ENIP import-style drift batch (canonical PC-013/014/015) |
 | DOC-009 | doc-drift | P2 | HIGH — README `protocols` subcommand entirely absent |
 | DOC-010 | doc-drift | P3 | MEDIUM — observability counters undocumented + 6 minor doc items |
 | HOLDOUT-001 | holdout-freshness | P2 | MEDIUM — 4 stale scenarios (HS-061/064/066/075) |
@@ -64,8 +64,8 @@ version: v0.11.4
 
 | ID | Rationale |
 |----|-----------|
-| PC-019 | Detection correctness: DNP3 master_addrs_seen overflow may silence T1692.001 |
-| PC-020 | Detection correctness: DNP3 pending_requests eviction may degrade T1691.001 |
+| PC-016 | Detection correctness: DNP3 master_addrs_seen overflow may silence T1692.001 |
+| PC-017 | Detection correctness: DNP3 pending_requests eviction may degrade T1691.001 |
 | DOC-009 | HIGH severity user-facing doc gap: `protocols` subcommand undiscoverable |
 | HOLDOUT-001 | Product-owner BC-shape validation needed for 4 stale scenarios |
 

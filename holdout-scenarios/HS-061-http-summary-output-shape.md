@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -14,7 +14,7 @@ inputs:
   - .factory/stories/STORY-045.md
   - .factory/stories/STORY-046.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.023.md
-input-hash: "d270d81"
+input-hash: "8631ce8"
 traces_to: .factory/stories/STORY-041.md
 id: "HS-061"
 category: "integration-boundaries"
@@ -23,7 +23,9 @@ priority: "must-pass"
 epic_id: "E-4"
 behavioral_contracts:
   - BC-2.06.023
-lifecycle_status: stale
+lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-06): stale→active — relaxed 9-key assertion to 10-key assertion per BC-2.06.023 v1.6; added dropped_map_entries to expected key set (FIX-C holdout repair)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -43,7 +45,10 @@ risk_source: null
 2. The analyst runs wirerust on this pcap with JSON output.
 3. The `analyzers` array contains an HTTP entry. Its `detail` BTreeMap is inspected.
 4. The analyst verifies:
-   - Exactly 9 keys in the detail map (alphabetical order).
+   - Exactly 10 keys in the detail map (alphabetical order): `dropped_map_entries`, `methods`,
+     `non_http_flows`, `parse_errors`, `poisoned_bytes_skipped`, `recent_uris`, `status_codes`,
+     `top_hosts`, `transactions`, `user_agents`. `dropped_map_entries` is always present even
+     when 0 (no map-cardinality cap was hit in this traffic sample).
    - `transactions` equals the number of parsed RESPONSES (3), not the number of REQUESTS (8).
    - `top_hosts` contains exactly 20 entries (truncated from 25), sorted by count descending.
    - `recent_uris` contains the first 20 URIs in insertion order (not last 20, not sorted).
@@ -62,7 +67,7 @@ risk_source: null
 Run wirerust on a pcap matching the described traffic. Parse JSON output.
 
 1. Navigate to `analyzers[].detail` where `analyzer_name == "HTTP"`.
-2. Assert `Object.keys(detail).sort()` equals `["methods","non_http_flows","parse_errors","poisoned_bytes_skipped","recent_uris","status_codes","top_hosts","transactions","user_agents"]` (9 keys, alphabetical).
+2. Assert `Object.keys(detail).sort()` equals `["dropped_map_entries","methods","non_http_flows","parse_errors","poisoned_bytes_skipped","recent_uris","status_codes","top_hosts","transactions","user_agents"]` (10 keys, alphabetical). `dropped_map_entries` must be present even when 0.
 3. Assert `detail.transactions == 3` (response count).
 4. Assert `detail.top_hosts` is an array or object with at most 20 entries, sorted by count descending.
 5. Assert `detail.recent_uris` is an array of at most 20 items in insertion order.
@@ -71,7 +76,7 @@ Run wirerust on a pcap matching the described traffic. Parse JSON output.
 
 ## Evaluation Rubric
 
-- **Functional correctness** (weight: 0.4): Exactly 9 keys; transactions reflects response count; method and status counts correct.
+- **Functional correctness** (weight: 0.4): Exactly 10 keys (including `dropped_map_entries` always present); transactions reflects response count; method and status counts correct.
 - **Edge case handling** (weight: 0.3): top_hosts truncated to 20 from 25; recent_uris is first 20 not last 20.
 - **Error quality** (weight: 0.2): status_codes keys are string-typed, not integer-typed; BTreeMap ordering is alphabetical.
 - **Data integrity** (weight: 0.1): summarize() is read-only; calling it multiple times produces identical output.

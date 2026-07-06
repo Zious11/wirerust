@@ -1,6 +1,7 @@
 ---
 document_type: story
 story_id: STORY-140
+version: "1.1"
 title: "DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001)"
 epic_id: E-15
 wave: 63
@@ -14,17 +15,21 @@ subsystems: [SS-15]
 target_module: analyzer/dnp3
 depends_on: [STORY-139]
 blocks: []
-behavioral_contracts:
-  - BC-2.15.016
-  - BC-2.15.010
-  - BC-2.15.014
-  - BC-2.15.015
+behavioral_contracts: [BC-2.15.016, BC-2.15.010, BC-2.15.014, BC-2.15.015]
 verification_properties:
   - VP-035
   - VP-036
 assumption_validations: []
 risk_mitigations: []
+producer: story-writer
+timestamp: 2026-06-20T00:00:00Z
+priority: P1
+estimated_days: 3
+level: ops
+traces_to: .factory/specs/prd.md
+cycle: v0.11.0
 ruling: RULING-DNP3-SIBLING-001
+# BC status: BC-2.15.016 v2.1 (2026-07-06 DNP3 observability-counter amendment, maint-2026-07-06): master_addrs_dropped and pending_requests_evicted counters added (PC-6, PC-10). Originally authored 2026-06-20.
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.010.md
@@ -32,7 +37,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.015.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-DNP3-SIBLING-001-direction-and-clock.md
-input-hash: "b3a4fd0"
+input-hash: "269be83"
 ---
 
 # STORY-140: DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001)
@@ -53,7 +58,7 @@ v0.11.0 release.
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.15.016 | v2.0 | Per-Flow State Bounds — Carry Buffers ≤292 B per Direction, master_addrs ≤64, pending_requests ≤256 | Per-direction carry split (`carry_c2s`/`carry_s2c`); `on_data` direction parameter; Invariant 6 direction isolation; EC-010 direction non-contamination |
+| BC-2.15.016 | v2.1 | Per-Flow State Bounds — Carry Buffers ≤292 B per Direction, master_addrs ≤64, pending_requests ≤256 (v2.1 adds master_addrs_dropped PC-6, pending_requests_evicted PC-10) | Per-direction carry split (`carry_c2s`/`carry_s2c`); `on_data` direction parameter; Invariant 6 direction isolation; EC-010 direction non-contamination; PC-6 master_addrs_dropped counter; PC-10 pending_requests_evicted counter |
 | BC-2.15.010 | v1.8 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 | Postcondition 4 window-expiry: `saturating_sub > 60`; EC-012 backwards-ts no-reset |
 | BC-2.15.014 | v2.1 | Inferred Block-Command — Control Request Without Response Within Window Emits T1691.001 | Precondition 3 timeout check: `saturating_sub > 10`; EC-009 backwards-clock on pending-request timeout |
 | BC-2.15.015 | v2.0 | Derived Loss-of-Control — N Restart/Block Events in Window Emits T0827 as Correlated Finding | Window-expiry: `saturating_sub > 300` (strict `>`, was `>=`); EC-010 backwards-clock on 300s window; single reset owner |
@@ -495,8 +500,8 @@ one-by-one. No implementation code is written before a failing test exists.
 - STORY-109 introduced `pending_requests`, `block_event_count`, `correlation_window_start_ts`,
   and the `wrapping_sub` correlation-window expiry and block-timeout that are fixed here
   (T1691.001, T0827/T0814). Also introduced `malformed_in_window`, `malformed_anomaly_emitted`
-  (BC-2.15.024 windowed fields), and `T1691.001` arm in `src/mitre.rs:174`.
-- STORY-110 delivered the dispatcher integration + CLI flag for DNP3 (BC-2.15.017).
+  (windowed malformed-frame detection fields), and `T1691.001` arm in `src/mitre.rs:174`.
+- STORY-110 delivered the dispatcher integration + CLI flag for DNP3 (DNP3 CLI integration story scope).
   The `Dnp3Analyzer::on_data` call site in `src/dispatcher.rs` was established in STORY-110;
   this story adds the `Direction` argument to it.
 - STORY-139 (wave 62) fixed the identical bug pattern in `src/analyzer/enip.rs`:
@@ -591,6 +596,16 @@ BC-2.15.010 v1.8, BC-2.15.014 v2.1, BC-2.15.015 v2.0:
 - `docs/adr/0007` — ADR-007 amendment per RULING-DNP3-SIBLING-001 §6: carry split,
   `saturating_sub`, operator pin `>=` → `>`. Scheduled at F4 entry on factory-artifacts worktree.
 
+## Purity Classification
+
+| Item | Classification | Rationale |
+|------|---------------|-----------|
+| `Dnp3FlowState` struct fields (`carry_c2s`, `carry_s2c`, `master_addrs`, `pending_requests`, observability counters) | Pure core | Plain data; no I/O |
+| Window arithmetic (`saturating_sub`, strict `>` operator) | Pure core | Deterministic arithmetic |
+| `Dnp3Analyzer::on_data` | Effectful shell | Receives `direction: Direction`; emits findings via `&mut Vec<Finding>` |
+| Carry-buffer split logic | Pure core | Deterministic state mutation |
+| Dispatcher call-site (`src/dispatcher.rs`) | Effectful shell | Wires direction from TCP layer |
+
 ## Token Budget Estimate
 
 | Section | Estimated tokens |
@@ -617,3 +632,10 @@ the `StreamHandler` context provides `Direction` and the Modbus-mirror approach 
 STORY-140 applies the identical pattern to `dnp3.rs` and the DNP3 dispatcher arm. Requiring
 STORY-139 to be merged first ensures the `develop` branch already has the precedent code that
 implementers can mirror exactly. No conceptual dependency — pure build-order confirmation.
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.1 | 2026-07-06 | maint-2026-07-06 | BC-2.15.016 v2.1 amendment: updated BC table to v2.1, added PC-6/PC-10 counter references; added template fields (producer, timestamp, priority, estimated_days, level, traces_to, cycle); added Purity Classification section; converted behavioral_contracts to inline array format; replaced inline BC citations for non-frontmatter BCs with descriptive prose |
+| 1.0 | 2026-06-20 | story-writer | Initial story: DNP3 per-direction carry buffer split, saturating window monotonicity, operator pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) |

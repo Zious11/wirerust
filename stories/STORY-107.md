@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-107
 epic_id: E-15
-version: "1.3"
+version: "v1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -20,14 +20,19 @@ target_module: analyzer/dnp3
 subsystems: [SS-15]
 wave: 36
 estimated_days: 2
+assumption_validations: []
+risk_mitigations: []
+level: ops
+traces_to: .factory/specs/prd.md
+cycle: v0.6.0-feature-008
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: BC-2.15.016 authored at v1.3 as of 2026-06-12
+# BC status: BC-2.15.016 v2.1 (2026-07-06 DNP3 observability-counter amendment, maint-2026-07-06): master_addrs_dropped and pending_requests_evicted counters added (PC-6, PC-10). Originally authored at v1.3 as of 2026-06-12.
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "3add560"
+input-hash: "8b8c730"
 ---
 
 # STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds
@@ -42,7 +47,7 @@ input-hash: "3add560"
 
 | BC | Title |
 |----|-------|
-| BC-2.15.016 | Per-Flow State Bounds — Carry Buffer ≤292 B, master_addrs ≤64, pending_requests ≤256 |
+| BC-2.15.016 v2.1 | Per-Flow State Bounds — Carry Buffer ≤292 B, master_addrs ≤64, pending_requests ≤256 (v2.1 adds master_addrs_dropped PC-6, pending_requests_evicted PC-10) |
 
 ## Acceptance Criteria
 
@@ -55,7 +60,7 @@ When `flow.carry.len() >= compute_dnp3_frame_len(flow.carry[2])`, the frame is p
 - **Test:** `test_carry_buffer_frame_consumption()` — deliver 21-byte carry containing one 10-byte frame + 11-byte partial second frame; assert frame consumed, 11 bytes remain in carry, `frame_count=1`.
 
 ### AC-003 (traces to BC-2.15.016 postcondition 5/6 — master_addrs_seen bounded)
-When a frame with DIR=1 (master-direction, `control & 0x80 != 0` — DIR is bit 7 per IEEE 1815 DNP3 link-layer framing; mask 0x80 is correct, 0x10 is FCV/DFC and incorrect) is observed, `src` is appended to `flow.master_addrs_seen` if not already present. `flow.master_addrs_seen.len()` NEVER exceeds `MAX_MASTER_ADDRS = 64`. Once full, new source addresses are silently ignored. Canonical master frame CTRL=0xC4: `0xC4 & 0x80 = 0x80 != 0` → `is_master_frame(0xC4) = true`.
+When a frame with DIR=1 (master-direction, `control & 0x80 != 0` — DIR is bit 7 per IEEE 1815 DNP3 link-layer framing; mask 0x80 is correct, 0x10 is FCV/DFC and incorrect) is observed, `src` is appended to `flow.master_addrs_seen` if not already present. `flow.master_addrs_seen.len()` NEVER exceeds `MAX_MASTER_ADDRS = 64`. Once full, new source addresses are silently ignored. **BC-2.15.016 v2.1 (maint-2026-07-06):** When a new source address is silently ignored due to the 64-entry cap, the `master_addrs_dropped` counter (PC-6) is incremented. Canonical master frame CTRL=0xC4: `0xC4 & 0x80 = 0x80 != 0` → `is_master_frame(0xC4) = true`.
 - **Test:** `test_master_addrs_cap_at_64()` — insert 64 unique source addresses then a 65th; assert vec len stays at 64.
 - **Test:** `test_is_master_frame_uses_0x80_mask()` — assert `is_master_frame(0xC4) == true` (CTRL=0xC4, canonical master frame); assert `is_master_frame(0x44) == false` (CTRL=0x44, DIR=0); assert `is_master_frame(0x10) == false` (bit-4 set, bit-7 clear — old wrong mask would have returned true; 0x10 & 0x80 == 0 → false).
 
@@ -64,7 +69,7 @@ When a frame with DIR=1 (master-direction, `control & 0x80 != 0` — DIR is bit 
 - **Test:** `test_frame_count_increments()` — deliver 3 complete frames; assert `frame_count=3`.
 
 ### AC-005 (traces to BC-2.15.016 postconditions 8/9/10 — pending_requests bounded at 256 with eviction)
-`flow.pending_requests: HashMap<(u16, u8), u32>` (key=(dest_addr, app_seq), value=request_ts) NEVER exceeds `MAX_PENDING_REQUESTS = 256` entries. When a new Control-class request would be inserted AND the map is full, the entry with the smallest `request_ts` (oldest) is evicted before the new entry is inserted. After eviction the map remains at 256 entries. The evicted entry generates NO T1691.001 timeout event.
+`flow.pending_requests: HashMap<(u16, u8), u32>` (key=(dest_addr, app_seq), value=request_ts) NEVER exceeds `MAX_PENDING_REQUESTS = 256` entries. When a new Control-class request would be inserted AND the map is full, the entry with the smallest `request_ts` (oldest) is evicted before the new entry is inserted. After eviction the map remains at 256 entries. The evicted entry generates NO T1691.001 timeout event. **BC-2.15.016 v2.1 (maint-2026-07-06):** When an entry is evicted via oldest-eviction, the `pending_requests_evicted` counter (PC-10) is incremented.
 - **Test:** `test_pending_requests_eviction_at_256()` — insert 256 entries with timestamps 0..=255; insert entry 257 with ts=300; assert map.len()==256; assert oldest entry (ts=0) is evicted.
 - **STORY-107 scope boundary (pending_requests seeding):** AC-005 verifies the bounded-insert + oldest-eviction MECHANISM (≤256, min request_ts evicted, no timeout event emitted). The minimal seed that drives this through on_data is intentionally decoupled from the sync-gated carry-walk and may seed spurious/duplicate entries — harmless here because STORY-107 contracts only the bound and no detection reads pending_requests yet. Detection-driven seeding (which entries are inserted, gated on a validated Control-class request frame) is STORY-108 scope; STORY-108 relocates seeding onto the gate-validated frame inside the carry walk.
 
@@ -96,9 +101,9 @@ Architecture section references: `architecture/module-decomposition.md` (SS-15 `
 | EC-001 | Partial frame delivery (7 bytes of a 10-byte header) | Bytes in carry; no frame parse attempted |
 | EC-002 | Two complete frames in one on_data call | Both frames parsed and consumed; carry empty |
 | EC-003 | Carry reaches 291 bytes; on_data delivers 2 bytes | 1 accepted (total=292); 1 discarded; parse_errors++ |
-| EC-004 | Bailed flow (`is_non_dnp3=true`) receives bytes | Immediate no-op; carry NOT updated (BC-2.15.009) |
+| EC-004 | Bailed flow (`is_non_dnp3=true`) receives bytes | Immediate no-op; carry NOT updated (non-DNP3 desync bail — is_non_dnp3 latch set on initial no-sync delivery) |
 | EC-005 | `pending_requests` at 256, two entries share minimum ts | Either may be evicted (tie-breaking implementation-defined per BC-2.15.016 postcondition 9) |
-| EC-006 | `flow.carry[2]` (LENGTH byte) = 4 (invalid, <5) | Validity gate (BC-2.15.004) fires; parse_errors++; carry advanced past this frame |
+| EC-006 | `flow.carry[2]` (LENGTH byte) = 4 (invalid, <5) | Validity gate fires (LENGTH<5 fails three-point check); parse_errors++; carry advanced past this frame |
 
 ## Tasks
 
@@ -134,7 +139,7 @@ STORY-103 (Modbus Flow State, E-14) is the direct structural precedent:
 Derived from `architecture/module-decomposition.md` (SS-15) and ADR-007 Decision 2:
 1. **`carry` cap is 292 bytes** — `MAX_DNP3_FRAME_LEN = 292` is the maximum on-wire DNP3 link frame (proven by VP-023 Sub-D). Excess bytes signal protocol violation; discard and increment `parse_errors`.
 2. **Frame consumption uses `compute_dnp3_frame_len`** — never a manual offset. The VP-023 Sub-D proof guarantees this returns values in [10,292], so `carry.drain(..frame_len)` cannot panic when `carry.len() >= frame_len`.
-3. **`parse_errors` is LIFETIME** — it is incremented by carry overflow, validity gate reject, and sync-loss bail. It is NEVER reset at the 300s correlation window expiry (BC-2.15.015). `malformed_in_window` is the windowed counter (added in STORY-109).
+3. **`parse_errors` is LIFETIME** — it is incremented by carry overflow, validity gate reject, and sync-loss bail. It is NEVER reset at the 300s correlation window expiry (window-owner BC manages this reset set; parse_errors is explicitly excluded). `malformed_in_window` is the windowed counter (added in STORY-109).
 4. **`is_master_frame` uses mask 0x80 (DIR = bit 7 per IEEE 1815)** — `is_master_frame(control: u8) -> bool` MUST test `control & 0x80 != 0`. Mask 0x10 is FCV/DFC (bit 4) and is WRONG; using 0x10 would cause DIR=1 master frames (e.g., CTRL=0xC4) to be misclassified as non-master. This is the F-F5-001 REVISION 2 R2-1 fix (BC-2.15.016 v1.3 postcondition 5 IMPLEMENTATION NOTE).
 5. **Pending-request eviction is by minimum `request_ts`** — oldest entry evicted. The evicted entry generates NO T1691.001 timeout event. This is the DoS-safe overflow behavior.
 6. **Forbidden dependencies**: `src/analyzer/dnp3.rs` MUST NOT depend on `src/analyzer/modbus.rs`.
@@ -152,6 +157,14 @@ Derived from `architecture/module-decomposition.md` (SS-15) and ADR-007 Decision
 |------|--------|-------|
 | `src/analyzer/dnp3.rs` | Modify | Expand `Dnp3FlowState`; add constants; implement carry loop + master-addr + pending-request logic |
 | `tests/dnp3_flow_state_tests.rs` OR inline `#[cfg(test)]` | Create/expand | Unit tests for AC-001..AC-006 |
+
+## Purity Classification
+
+| Module | Classification | Justification |
+|--------|---------------|---------------|
+| `src/analyzer/dnp3.rs` — `is_master_frame` | pure-core | Deterministic function of `control: u8`; no state mutation, no I/O |
+| `src/analyzer/dnp3.rs` — `on_data` carry-loop | effectful shell | Mutates `Dnp3FlowState` fields in-place; no I/O side effects |
+| `src/analyzer/dnp3.rs` — `Dnp3FlowState` struct | effectful shell state | Mutable per-flow state bounded by `MAX_DNP3_FRAME_LEN`, `MAX_MASTER_ADDRS`, `MAX_PENDING_REQUESTS` |
 
 ## Token Budget Estimate
 
@@ -178,7 +191,8 @@ Well within 20-30% of agent context window.
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
-| v1.0 | 2026-06-10 | story-writer | Initial decomposition |
-| v1.1 | 2026-06-11 | story-writer | input-hash hygiene — remove duplicate TBD key + regenerate after VP-023 v1.4 (STORY-106 delivery) |
-| v1.2 | 2026-06-11 | story-writer | adversarial Pass-1 F-1 — document pending-seed scope boundary (STORY-108 owns detection-driven seeding) |
+| v1.4 | 2026-07-06 | story-writer | BC-2.15.016 v2.1 propagation (maint-2026-07-06 DNP3 observability-counter amendment): AC-003 extended with master_addrs_dropped counter note (PC-6); AC-005 extended with pending_requests_evicted counter note (PC-10). BC status comment and input-hash updated for v2.1. |
 | v1.3 | 2026-06-12 | story-writer | F7 input-hash reconciliation — BC-2.15.016 v1.3 F5-R2 fix: correct is_master_frame mask 0x10→0x80 (DIR=bit 7, IEEE 1815; F-F5-001 REVISION 2 R2-1); updated AC-003, Task 5, Architecture Compliance Rule 4, Architecture Mapping table, and added test_is_master_frame_uses_0x80_mask() |
+| v1.2 | 2026-06-11 | story-writer | adversarial Pass-1 F-1 — document pending-seed scope boundary (STORY-108 owns detection-driven seeding) |
+| v1.1 | 2026-06-11 | story-writer | input-hash hygiene — remove duplicate TBD key + regenerate after VP-023 v1.4 (STORY-106 delivery) |
+| v1.0 | 2026-06-10 | story-writer | Initial decomposition |

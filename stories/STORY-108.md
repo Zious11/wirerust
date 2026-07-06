@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-108
 epic_id: E-15
-version: "1.2"
+version: "1.3"
 status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -11,13 +11,7 @@ points: 13
 priority: P0
 depends_on: [STORY-107]
 blocks: [STORY-109]
-behavioral_contracts:
-  - BC-2.15.010
-  - BC-2.15.011
-  - BC-2.15.012
-  - BC-2.15.013
-  - BC-2.15.020
-  - BC-2.15.022
+behavioral_contracts: [BC-2.15.010, BC-2.15.011, BC-2.15.012, BC-2.15.013, BC-2.15.020, BC-2.15.022]
 verification_properties:
   - VP-023
 tdd_mode: strict
@@ -25,9 +19,14 @@ target_module: analyzer/dnp3
 subsystems: [SS-15]
 wave: 37
 estimated_days: 5
+assumption_validations: []
+risk_mitigations: []
+level: ops
+traces_to: .factory/specs/prd.md
+cycle: v0.6.0-feature-008
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: 6 BCs authored 2026-06-10; BC-2.15.020 updated to v1.4 per fix-pc-013-014-015 PC-014 (BREAKING: total_parse_errors → parse_errors, D-220, 2026-06-23); latest versions BC-2.15.010 v1.5, BC-2.15.011 v1.2, BC-2.15.013 v1.1, BC-2.15.020 v1.4
+# BC status: BC-2.15.020 v1.5 (2026-07-06, maint-2026-07-06 DNP3 observability-counter amendment): adds dropped_findings (PC-5 source), master_addrs_dropped, pending_requests_evicted as summarize() keys 6/7/8. BC-2.15.022 v1.5 (2026-07-06 same amendment): adds dropped_findings counter (PC-5) incremented on each MAX_FINDINGS cap suppression. Previously: BC-2.15.020 v1.4 (2026-06-23, fix-pc-013-014-015): total_parse_errors → parse_errors (D-220). Originally authored 2026-06-10; BC-2.15.010 v1.5, BC-2.15.011 v1.2, BC-2.15.013 v1.1.
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.010.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.011.md
@@ -37,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "9a18652"
+input-hash: "c208c68"
 ---
 
 # STORY-108: DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize
@@ -56,8 +55,8 @@ input-hash: "9a18652"
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence |
 | BC-2.15.013 | Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827 |
-| BC-2.15.020 v1.4 | summarize() Emits Function-Code Distribution and Control-Operation Counts — BREAKING: `total_parse_errors` → `parse_errors` (D-220) |
-| BC-2.15.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth |
+| BC-2.15.020 v1.5 | summarize() Emits Function-Code Distribution and Control-Operation Counts — 8 keys (v1.5 adds dropped_findings, master_addrs_dropped, pending_requests_evicted; BREAKING v1.4: `total_parse_errors` → `parse_errors` D-220) |
+| BC-2.15.022 v1.5 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth (v1.5: dropped_findings counter PC-5 incremented on each cap-suppressed push) |
 
 ## Acceptance Criteria
 
@@ -96,7 +95,7 @@ When multiple T0814 findings are pushed across successive `on_data` calls, they 
 - **Test:** `test_max_findings_cap_preserves_first_finding()` — fill all_findings to MAX_FINDINGS-1; deliver COLD_RESTART that would produce [T0814, T0827]; assert T0814 pushed (cap consumed), T0827 dropped.
 
 ### AC-009 (traces to BC-2.15.022 postconditions 1/3 — cap; counters still updated)
-When `all_findings.len() >= MAX_FINDINGS`, no new Finding is pushed. Per-flow counters (`direct_operate_count`, `restart_event_count`, `fc_counts`, `fn_code_counts`, `frame_count`) ARE still updated regardless of cap.
+When `all_findings.len() >= MAX_FINDINGS`, no new Finding is pushed. Per-flow counters (`direct_operate_count`, `restart_event_count`, `fc_counts`, `fn_code_counts`, `frame_count`) ARE still updated regardless of cap. **BC-2.15.022 v1.5 (maint-2026-07-06):** Each suppressed Finding push increments `Dnp3Analyzer.dropped_findings` by exactly 1. The one-shot guard (`direct_operate_emitted`) is NOT set when the corresponding finding is dropped — the finding can fire again in the next window. `dropped_findings` is surfaced in `summarize()` as detail key `"dropped_findings"` (BC-2.15.020 PC-1).
 - **Test:** `test_max_findings_counters_updated_when_capped()`
 
 ### AC-010 (traces to BC-2.15.020 postcondition 1 — summarize output fields)
@@ -105,7 +104,8 @@ When `all_findings.len() >= MAX_FINDINGS`, no new Finding is pushed. Per-flow co
 `direct_operate_count`), `total_frames`, `parse_errors`, `flows_analyzed`. Present even when
 zero flows analyzed (zero counts, not absent).
 **BREAKING CHANGE (D-220, human-approved, BC-2.15.020 v1.4):** output key is `"parse_errors"`,
-NOT `"total_parse_errors"`. Aligns with sibling analyzers (HTTP `http.rs:617`, TLS `tls.rs:884`,
+NOT `"total_parse_errors"`.
+**BC-2.15.020 v1.5 (maint-2026-07-06):** Three additional keys now required — all ALWAYS present even when 0: `dropped_findings` (aggregate count of Finding pushes suppressed by MAX_FINDINGS cap, sourced from `Dnp3Analyzer.dropped_findings: u64`), `master_addrs_dropped` (count of new master source addresses silently ignored at the 64-entry cap, sourced from `Dnp3Analyzer.master_addrs_dropped: u64`), `pending_requests_evicted` (count of LRU evictions from pending_requests at 256-entry cap, sourced from `Dnp3Analyzer.pending_requests_evicted: u64`). Total authoritative keys for v1.5: 8. Aligns with sibling analyzers (HTTP `http.rs:617`, TLS `tls.rs:884`,
 Modbus `modbus.rs:947`). Code sites to update: `src/analyzer/dnp3.rs:1425` (key insert),
 `tests/dnp3_detection_tests.rs:995` (`.get("total_parse_errors")` → `.get("parse_errors")`),
 `tests/dnp3_detection_tests.rs:1378` (`.contains_key("total_parse_errors")` →
@@ -123,7 +123,7 @@ CONFIRMED threshold values: default `direct_operate_threshold = 10` (count > 10)
 - **Note:** Source-address allowlist is a runtime/config concern; the threshold > 10 check is the detectable behavior in unit tests.
 
 ### AC-013 (traces to BC-2.15.010 EC-009 — pre-push snapshot: first master establishes expected set, no finding)
-The first master-direction (DIR=1, `is_master_frame(control) = true` using mask 0x80 per BC-2.15.016 PC5) Control-class FC on a flow establishes the expected master set with NO unexpected-source finding. The snapshot variables `src_was_known` and `expected_set_established` MUST be captured BEFORE `master_addrs_seen` is populated for the current frame (`expected_set_established = !flow.master_addrs_seen.is_empty()` evaluated before the push). On the first frame: `expected_set_established = false` (empty set) → the unexpected-source condition is not met → no T1692.001 finding. After processing: `master_addrs_seen = [src]`. `flow.unexpected_source_emitted` remains `false`. `direct_operate_count` incremented normally.
+The first master-direction (DIR=1, `is_master_frame(control) = true` using mask 0x80 — DIR is bit 7 per IEEE 1815) Control-class FC on a flow establishes the expected master set with NO unexpected-source finding. The snapshot variables `src_was_known` and `expected_set_established` MUST be captured BEFORE `master_addrs_seen` is populated for the current frame (`expected_set_established = !flow.master_addrs_seen.is_empty()` evaluated before the push). On the first frame: `expected_set_established = false` (empty set) → the unexpected-source condition is not met → no T1692.001 finding. After processing: `master_addrs_seen = [src]`. `flow.unexpected_source_emitted` remains `false`. `direct_operate_count` incremented normally.
 - **DIR=1 qualifier (F-C-007):** source-learning and unexpected-source check apply ONLY to master-direction Control frames (`is_master_frame(control) == true`).
 - **Test:** `test_first_master_is_expected()` in `tests/dnp3_f5_remediation_tests.rs` (B-4) — first Control FC from src=0x0001 on a fresh flow; assert no finding, `master_addrs_seen == [0x0001]`, `unexpected_source_emitted == false`, `direct_operate_count == 1`.
 
@@ -162,10 +162,10 @@ T1692.001, T0814, T0836 were ALREADY added to the `SEEDED_TECHNIQUE_IDS` slice (
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | DIRECT_OPERATE_NR (0x06) — counts toward threshold? | Yes — FC 0x06 is `Control`-class per BC-2.15.006; increments `direct_operate_count` |
+| EC-001 | DIRECT_OPERATE_NR (0x06) — counts toward threshold? | Yes — FC 0x06 is `Control`-class (FC classification contract); increments `direct_operate_count` |
 | EC-002 | Control FC at exactly threshold (count=10, threshold=10) | No finding — threshold check is `>`, not `>=`; 10 > 10 is false |
 | EC-003 | FC 0x0F (INITIALIZE_DATA) | `Management`-class; no T0814 (restart detection only for 0x0D, 0x0E) |
-| EC-004 | WRITE (0x02) to broadcast dest 0xFFFF | T0836 emitted; no broadcast anomaly (that's BC-2.15.018 in STORY-109; WRITE is Write-class not Control-class) |
+| EC-004 | WRITE (0x02) to broadcast dest 0xFFFF | T0836 emitted; no broadcast anomaly (broadcast anomaly detection is STORY-109 scope; WRITE is Write-class not Control-class) |
 | EC-005 | Two COLD_RESTARTs on same flow | Two T0814 findings; `restart_event_count=2` |
 | EC-006 | `all_findings.len()==MAX_FINDINGS` when COLD_RESTART | No T0814 pushed; `restart_event_count` still incremented |
 | EC-007 | FC=0x05 then FC=0x02 on same FIR=1 flow | Two separate findings: T1692.001 (if threshold reached) and T0836; never co-tagged (FC cannot be both Control and Write simultaneously) |
@@ -237,6 +237,14 @@ Derived from ADR-007 Decision 5 and architecture BC cross-references:
 | `src/mitre.rs` | Verify (no change) | Confirm T1692.001, T0814, T0836 entries present from STORY-100 |
 | `tests/dnp3_detection_tests.rs` OR inline | Create/expand | AC-001..AC-012 unit tests |
 
+## Purity Classification
+
+| Module | Classification | Justification |
+|--------|---------------|---------------|
+| `src/analyzer/dnp3.rs` — `classify_dnp3_fc` | pure-core | Deterministic FC classification; no state mutation, no I/O |
+| `src/analyzer/dnp3.rs` — detection branches in `on_data` | effectful shell | Mutates `Dnp3FlowState` and `Dnp3Analyzer` fields in-place; no I/O side effects |
+| `src/analyzer/dnp3.rs` — `finalize()` / `summarize()` | effectful shell | Reads accumulated per-flow and aggregate state; produces output summary map |
+
 ## Token Budget Estimate
 
 | Component | Estimated Tokens |
@@ -256,4 +264,12 @@ Within 20-30% of agent context window (~120k). This is the largest story in the 
 ## Dependency Rationale
 
 - `depends_on: [STORY-107]` — STORY-107 completes `Dnp3FlowState` struct and the carry-buffer/frame-consume loop. Detection branches fire INSIDE the per-frame processing loop; they cannot be added before that loop exists.
-- `blocks: [STORY-109]` — STORY-109 (correlated/derived detections) adds T1691.001 and T0827 emission which reads `block_event_count` and `restart_event_count` accumulated here. The T0827 accumulator (reads `restart_event_count` set in AC-005) and the correlated window (BC-2.15.015) both depend on state fields introduced in this story.
+- `blocks: [STORY-109]` — STORY-109 (correlated/derived detections) adds T1691.001 and T0827 emission which reads `block_event_count` and `restart_event_count` accumulated here. The T0827 accumulator (reads `restart_event_count` set in AC-005) and the 300s correlated detection window both depend on state fields introduced in this story.
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.3 | 2026-07-06 | story-writer | BC-2.15.020 v1.5 + BC-2.15.022 v1.5 propagation (maint-2026-07-06 DNP3 observability-counter amendment): AC-009 extended with dropped_findings counter note (PC-5); AC-010 extended with 3 new summarize keys (dropped_findings, master_addrs_dropped, pending_requests_evicted). BC table, BC status comment, and input-hash updated. Template fields and Purity Classification section added. |
+| 1.2 | 2026-06-23 | story-writer | BC-2.15.020 v1.4 amendment (fix-pc-013-014-015): BREAKING rename total_parse_errors → parse_errors (D-220); updated AC-010, Task 8, and BC table. |
+| 1.0 | 2026-06-10 | story-writer | Initial decomposition — T1692.001, T0814, T0836, co-emission ordering, MAX_FINDINGS cap, summarize() |

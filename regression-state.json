@@ -1,0 +1,1 @@
+{"status":"pass","timestamp":"2026-07-06T21:38:03Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/fix-dnp3-counters && cargo test --all-targets 2>&1 | grep \"FAILED\" | head -5; echo \"---exit: $?\""}

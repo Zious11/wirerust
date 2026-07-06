@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -14,7 +14,7 @@ inputs:
   - .factory/stories/STORY-080.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.002.md
-input-hash: "bfce575"
+input-hash: "2c70e06"
 traces_to: .factory/stories/STORY-076.md
 id: "HS-075"
 category: "integration-boundaries"
@@ -24,7 +24,9 @@ epic_id: "E-8"
 behavioral_contracts:
   - BC-2.11.001
   - BC-2.11.002
-lifecycle_status: stale
+lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-06): stale→active — relaxed 3-key top-level assertion to 5-key assertion per PR #209 MITRE ATT&CK-for-ICS v19.1 envelope (adds mitre_attack_version, mitre_domain) (FIX-C holdout repair)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -50,7 +52,7 @@ risk_source: null
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.11.001 | postcondition 2-6; invariant 3 | Exactly 3 top-level keys; findings is array; analyzers is array; pretty-printed; stable schema |
+| BC-2.11.001 | postcondition 2-6; invariant 3 | Exactly 5 top-level keys (adds mitre_attack_version, mitre_domain); findings is array; analyzers is array; pretty-printed; stable schema |
 | BC-2.11.002 | postcondition 2; invariant 1 | skipped_packets key always present in summary object, even when value is 0 |
 
 ## Verification Approach
@@ -64,12 +66,14 @@ Run wirerust on a minimal but valid pcap (e.g., a single HTTP request-response p
 3. Run: `wirerust analyze --output-format json <pcap> | python3 -m json.tool > /dev/null`
    Assert exit code is 0 (valid JSON).
 4. Run: `wirerust analyze --output-format json <pcap> | jq 'keys'`
-   Assert output is `["analyzers","findings","summary"]` (exactly 3 keys).
+   Assert output is `["analyzers","findings","mitre_attack_version","mitre_domain","summary"]`
+   (exactly 5 keys). `mitre_attack_version` and `mitre_domain` were added by the PR #209
+   MITRE ATT&CK-for-ICS v19.1 envelope.
 5. Assert output is pretty-printed (contains newlines and indentation, not a single line).
 
 ## Evaluation Rubric
 
-- **Functional correctness** (weight: 0.5): skipped_packets present as 0 integer; exactly 3 top-level keys; JSON valid per RFC 8259.
+- **Functional correctness** (weight: 0.5): skipped_packets present as 0 integer; exactly 5 top-level keys (adds mitre_attack_version, mitre_domain); JSON valid per RFC 8259.
 - **Edge case handling** (weight: 0.25): jq and python3 json.tool both process the output without error; no extra or missing top-level keys.
 - **Error quality** (weight: 0.15): Pretty-printed output (indented, one key per line) for human readability.
 - **Data integrity** (weight: 0.1): findings is an array (even when empty); analyzers is an array (even when empty).

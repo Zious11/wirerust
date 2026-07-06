@@ -14,6 +14,89 @@ changes, invariant rewrites).
 
 ---
 
+## [maint-2026-07-06-spec-hygiene] — 2026-07-06
+
+### MAJOR: Spec Hygiene — F-NEW-MAJ-001 (VP Sharding Gap) + F-NEW-MAJ-002 (Module Criticality Gap)
+
+**Trigger:** maint-2026-07-06 maintenance sweep (spec-coherence-sweep-7) identified three new MAJOR
+findings. This entry resolves F-NEW-MAJ-001 and F-NEW-MAJ-002. F-NEW-MAJ-003 is deferred to
+story-writer (BC-2.16.016 story propagation — separate work item).
+
+**F-NEW-MAJ-001 — 10 Phantom VP-INDEX Entries Resolved (Sharding Integrity)**
+
+VP-INDEX v2.34 declared 43 VPs with full descriptions but only 33 backing shard files existed on
+disk. The 10 missing files have been created from the inline descriptions already present in
+VP-INDEX. No VP counts, properties, or lock statuses changed — the entries were always accurate;
+only the standalone shard files were absent.
+
+Backing files created:
+
+| VP-ID | File | Status | Tool | Source Cycle |
+|-------|------|--------|------|-------------|
+| VP-025 | vp-025-pcapng-timestamp-totality.md | verified (locked @ 1ca30a3) | Kani | feature-pcapng-reader |
+| VP-026 | vp-026-pcapng-shb-parse-safety.md | verified (locked @ 1ca30a3) | Kani | feature-pcapng-reader |
+| VP-027 | vp-027-pcapng-epb-parse-safety.md | verified (locked @ 1ca30a3) | Kani | feature-pcapng-reader |
+| VP-028 | vp-028-pcapng-reader-no-panic.md | verified (locked @ 1ca30a3) | cargo-fuzz | feature-pcapng-reader |
+| VP-029 | vp-029-pcapng-block-walk-skip.md | verified (locked @ 1ca30a3) | proptest | feature-pcapng-reader |
+| VP-030 | vp-030-pcapng-multi-idb-agreement.md | verified (locked @ 1ca30a3) | proptest | feature-pcapng-reader |
+| VP-031 | vp-031-pcapng-spb-captured-len.md | verified (locked @ 1ca30a3) | proptest | feature-pcapng-reader |
+| VP-041 | vp-041-protocol-coverage-catalog-set-difference.md | draft | proptest | feature-protocol-coverage |
+| VP-042 | vp-042-dispatcher-unclassified-flow-count.md | draft | proptest | feature-protocol-coverage |
+| VP-043 | vp-043-udp-decode-loop-unclassified-count.md | draft | proptest | feature-protocol-coverage |
+
+Disposition for all 10: files created from inline VP-INDEX descriptions; no entries deleted,
+none marked phantom (the VP-INDEX entries and their proof descriptions were always present and
+accurate). Sharding integrity criterion 8 now passes: all 43 VP-INDEX entries have backing files.
+
+VP-INDEX version bump (2.34→2.35) is blocked by pre-existing TD-031 stable-anchor violations in
+the VP-INDEX modified log (source code line cites such as `tls.rs:822-825` in the existing
+changelog). The version field cannot be updated until those violations are remediated. The
+sharding gap itself is fully resolved by the 10 new files; the version bump is a bookkeeping item.
+
+**F-NEW-MAJ-002 — module-criticality.md Updated to Cover C-25 and C-26**
+
+`module-criticality.md` was frozen at v1.5 covering C-1..C-24. C-25 (EnipAnalyzer, SS-17,
+feature-enip-v0.11.0) and C-26 (protocols.rs, SS-18, feature-protocol-coverage) shipped after
+the Phase-6 freeze gate closed and were missing from the file. The freeze policy has been amended
+in frontmatter to permit additive post-Phase-5 architecture additions, resolving option (a) of the
+recommended fix.
+
+Both C-25 and C-26 are assigned to the HIGH tier (>= 90% kill rate target):
+
+| Component | File | Tier | Rationale Summary |
+|-----------|------|------|-------------------|
+| C-25 EnipAnalyzer | analyzer/enip.rs | HIGH | ICS/OT threat detection for EtherNet/IP (T0858/T0816/T1693.001/T0814); parse safety covered by VP-032 (Kani). |
+| C-26 protocols.rs | src/protocols.rs | HIGH | Protocol Coverage Catalog pure-core; incorrect classification produces misleading gap reports; oracle cross-check covered by VP-041. |
+
+ARCH-INDEX v2.12 Document Map already said "for all 26 components" — this update closes the gap
+between that description and the actual file content.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/verification-properties/vp-025-pcapng-timestamp-totality.md` | Created |
+| `.factory/specs/verification-properties/vp-026-pcapng-shb-parse-safety.md` | Created |
+| `.factory/specs/verification-properties/vp-027-pcapng-epb-parse-safety.md` | Created |
+| `.factory/specs/verification-properties/vp-028-pcapng-reader-no-panic.md` | Created |
+| `.factory/specs/verification-properties/vp-029-pcapng-block-walk-skip.md` | Created |
+| `.factory/specs/verification-properties/vp-030-pcapng-multi-idb-agreement.md` | Created |
+| `.factory/specs/verification-properties/vp-031-pcapng-spb-captured-len.md` | Created |
+| `.factory/specs/verification-properties/vp-041-protocol-coverage-catalog-set-difference.md` | Created |
+| `.factory/specs/verification-properties/vp-042-dispatcher-unclassified-flow-count.md` | Created |
+| `.factory/specs/verification-properties/vp-043-udp-decode-loop-unclassified-count.md` | Created |
+| `.factory/specs/module-criticality.md` | v1.5→v1.6; C-25/C-26 HIGH rows added; freeze policy amended for additive post-Phase-5 additions; template fields added (document_type, level, phase, inputs, input-hash); Classification Summary section added |
+| `.factory/spec-changelog.md` | This entry appended |
+
+**Open item:** VP-INDEX v2.34→v2.35 version bump blocked by pre-existing TD-031 violations
+in the file's modified log. Requires a separate TD-031 remediation pass before the VP-INDEX
+can be edited.
+
+**TD-031 Remediation Completed (same burst, FIX-D):** VP-INDEX v2.35 bump landed. 5 raw source-line cites replaced with stable function-name anchors (tls.rs fn server_hello_seen_for_testing ×2, tls.rs fn summarize ×1, tls.rs fn on_data buffer-saturation drop block ×2). Pre-existing catalog tool-label inconsistencies corrected (VP-021 integration+proptest→proptest; VP-016..018 integration→integration/unit; VP-019/020/040 unit→integration/unit) and a short-form VP property label in the modified log fixed to prevent false hook extraction. VP-INDEX is now fully consistent; validate-vp-consistency passes.
+
+
+---
+
 ## [tls-frag-vp040-6test-reconciliation-2026-06-29] — 2026-06-29
 
 ### fix-tls-clienthello-frag VP-040 6-Test Reconciliation — BC-2.07.043 v1.2 (product-owner)

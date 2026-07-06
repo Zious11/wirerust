@@ -1,28 +1,72 @@
 ---
-id: STORY-149
+document_type: story
+story_id: STORY-149
 title: "TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture"
-epic: E-11
-wave: "~"
+epic_id: E-11
+version: "1.1"
+status: pending
+producer: story-writer
+timestamp: 2026-07-06T00:00:00Z
+phase: f3
 points: 5
-status: draft
+priority: P1
+wave: "70"
 depends_on: []
-input-hash: TBD
+blocks: []
+behavioral_contracts: []
+verification_properties: []
+tdd_mode: strict
+target_module: analyzer/tls
+subsystems: [SS-5]
+estimated_days: 3
+assumption_validations: []
+risk_mitigations: []
+level: ops
+traces_to: null
+cycle: v0.11.4
+github_issue: 360
+input-hash: "d41d8cd"
 inputs: []
 ---
 
 # STORY-149 — TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** TBD
+**Status:** pending
+**Wave:** 70
 **Points:** 5
+
+## Narrative
+
+- **As a** wirerust maintainer tracking performance regressions across releases
+- **I want** the TLS carry-path (`try_parse_records`) restructured for single-borrow HashMap access and
+  a new Criterion benchmark fixture that exercises the carry-drain loop
+- **So that** the `reassembly/tls.pcap` regression (+14.0% vs Jun-22 baseline, criterion-confirmed
+  p < 0.05) is substantially recovered, carry-path regressions are detectable in future sweeps, and
+  the project re-enters the +10% WARNING threshold relative to the May-19 anchor
 
 ## Background
 
 The STORY-144/145/146 carry-path additions (fix-tls-clienthello-frag, waves 65–66)
 introduced measurable overhead on the `reassembly/tls.pcap` Criterion benchmark: the
-criterion crossed the +10% threshold relative to the May-19 baseline, as measured in
+criterion crossed the +10% threshold relative to the May-19 baseline, as first measured in
 the maint-2026-07-01 performance sweep.
+
+The maint-2026-07-06 performance sweep (`.factory/maintenance/performance.md`, run
+maint-2026-07-06) confirmed and strengthened the regression:
+- **`reassembly/tls.pcap` +14.0% vs Jun-22 baseline** (27.842 µs vs 24.429 µs mean)
+- **+19.6% vs May-19 anchor** (27.842 µs vs 23.281 µs)
+- **Criterion: "Performance has regressed" (p < 0.05, +7.6% vs stored criterion base)**
+- 13 high-severe outliers in 100 samples; mean shift of +3.4 µs is above thermal noise
+
+The Jun-22 controlled re-run had classified the then-current +4.9% as noise; the current
+reading at +14.0% vs Jun-22 represents a new, statistically confirmed regression in the
+v0.9.3→v0.11.4 interval. Plausible contributors: observability counter increments on the
+hot path (PR #365) and per-flow state purge on flow close (PR #362). This escalation
+(maint-2026-07-06, human-approved at gate) moves STORY-149 from wave-TBD to wave 70.
+
+Related: issue #360 (fragmented-handshake benchmark fixture) — tracked as the upstream
+issue for AC-149-002.
 
 Root-cause analysis identified two allocation hotspots in `try_parse_records`
 (`src/analyzer/tls.rs`):
@@ -55,7 +99,7 @@ existing criterion suite, so regression detection for that path is blind.
 2. Add a Criterion benchmark fixture (at `benches/tls_fragmented.rs` or as a new bench
    group in the existing TLS bench file) that delivers a genuinely fragmented multi-record
    TLS handshake — one that exercises the carry-drain loop. Establish this as the
-   regression baseline for future carry-path changes.
+   regression baseline for future carry-path changes. (See also issue #360.)
 3. Verify the combined fix recovers ~5% on the `reassembly/tls.pcap` criterion,
    bringing it back under the WARNING (+10%) threshold relative to the May-19 baseline.
 4. Optionally address PERF-003/004/005 if they fall within scope without expanding
@@ -72,7 +116,7 @@ AC-149-002: A Criterion benchmark fixture exists at `benches/tls_fragmented.rs` 
   as a new bench group in an existing TLS bench file) that delivers a synthetic TLS
   handshake message spanning at least 3 TLS records — i.e., the carry-drain loop
   executes at least twice per synthetic handshake. The fixture is deterministic and
-  repeatable.
+  repeatable. (Closes issue #360.)
 
 AC-149-003: Running `cargo bench --bench tls` (or equivalent) against a comparable
   baseline shows the `reassembly/tls.pcap` criterion within +5% of the May-19 baseline
@@ -85,21 +129,106 @@ AC-149-004 (optional): At least one of PERF-003/004/005 is resolved — hex-enco
 AC-149-005: `cargo test --all-targets` passes without regression; existing VP-039 and
   VP-040 harnesses remain green. `cargo clippy --all-targets -- -D warnings` passes.
 
+## Architecture Mapping
+
+| Component | Module | Pure/Effectful |
+|-----------|--------|---------------|
+| `TlsAnalyzer::try_parse_records` (single-borrow restructure) | `src/analyzer/tls.rs` | Effectful shell (mutates flow state) |
+| `TlsFlowState.carry` (carry-buffer swap pattern) | `src/analyzer/tls.rs` | Pure-core data (byte buffer) |
+| Fragmented-handshake benchmark fixture | `benches/tls_fragmented.rs` | Effectful shell (bench harness) |
+
+## Edge Cases
+
+| ID | Scenario | Expected Behavior |
+|----|----------|-------------------|
+| EC-001 | Carry-drain loop with exactly 3 partial records | Loop executes twice; carry drained on third record; no extra allocation |
+| EC-002 | Empty carry at entry to `try_parse_records` | `std::mem::replace` returns empty Vec; no allocation overhead |
+| EC-003 | Single-record complete handshake (existing fixture) | Regression benchmark `reassembly/tls.pcap` shows recovery vs Jun-22 |
+| EC-004 | VP-039 / VP-040 harnesses | Remain green; no behavioral regression from structural refactor |
+
+## Purity Classification
+
+| Module | Classification | Justification |
+|--------|---------------|---------------|
+| `src/analyzer/tls.rs` — carry-buffer swap | pure-core mutation | Operates entirely on borrowed state; no I/O |
+| `benches/tls_fragmented.rs` | effectful shell | Criterion harness measures wall-clock time; file-system neutral |
+
+## Token Budget Estimate (MANDATORY)
+
+| Context Source | Estimated Tokens |
+|---------------|-----------------|
+| This story spec | ~2,000 |
+| `src/analyzer/tls.rs` (full TLS analyzer) | ~6,000 |
+| Existing bench file (`benches/pipeline.rs` or equivalent) | ~1,500 |
+| Tool outputs (cargo bench, cargo test) | ~1,000 |
+| **Total** | **~10,500** |
+| Agent context window | 200K (Sonnet) |
+| **Budget usage** | **~5%** |
+
+## Tasks (MANDATORY)
+
+1. [ ] Read `src/analyzer/tls.rs` `try_parse_records` — identify all `flows.get()` / `flows.get_mut()` call sites
+2. [ ] Restructure `try_parse_records` for single `flows.get_mut()` borrow per invocation (PERF-001)
+3. [ ] Replace per-record carry Vec allocation with `std::mem::replace` swap pattern (PERF-002)
+4. [ ] Add inline comment asserting single-borrow invariant at the borrow site
+5. [ ] Write failing test for AC-149-001 (single-borrow invariant, code inspection via grep)
+6. [ ] Create `benches/tls_fragmented.rs` (or bench group) — synthetic 3-record fragmented TLS handshake (AC-149-002; closes issue #360)
+7. [ ] Run `cargo bench --bench pipeline` — verify `reassembly/tls.pcap` regression recovery (AC-149-003)
+8. [ ] (Optional) Address PERF-003, PERF-004, or PERF-005 if within scope (AC-149-004)
+9. [ ] Run `cargo test --all-targets` — verify VP-039 / VP-040 green, no regressions (AC-149-005)
+10. [ ] Run `cargo clippy --all-targets -- -D warnings` — clean
+
+## Previous Story Intelligence (MANDATORY)
+
+| Story | Key Decisions | Patterns Established | Gotchas Discovered |
+|-------|--------------|---------------------|-------------------|
+| STORY-144 | Introduced carry struct for fragmented TLS handshake | Carry-drain loop in `try_parse_records`; naive acquire-per-operation pattern used | Naive pattern causes 6–8 HashMap re-hashes per record on hot path |
+| STORY-145 | Extended carry-path for multi-record ClientHello | Carry-drain loop verified correct | Existing bench fixture does not exercise carry-drain loop (complete single-record fixture) |
+| STORY-146 | Final carry-path fix in fix-tls-clienthello-frag wave 65–66 | Carry-buffer now part of shipped code | No regression baseline for carry-drain path |
+| STORY-147 | E-11 tooling pattern: performance / mutation testing follow-up | E-11 stories have `behavioral_contracts: []`, no VPs defined by the story | Wave-TBD assignment until escalation gate |
+
+## Architecture Compliance Rules (MANDATORY)
+
+| Rule | Source | Enforcement |
+|------|--------|-------------|
+| Single `flows.get_mut()` borrow per `try_parse_records` invocation | AC-149-001 inline comment | Code inspection + grep for multiple borrow sites |
+| Carry swap via `std::mem::replace` (no per-record Vec allocation) | PERF-002 root-cause | Code inspection; confirmed by `cargo bench` recovery |
+| `cargo clippy --all-targets -- -D warnings` must pass | CLAUDE.md CI gate | CI gate |
+| VP-039 / VP-040 harnesses must remain green | AC-149-005 | `cargo test --all-targets` |
+
+## Library & Framework Requirements (MANDATORY)
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| `criterion` | `0.8` (current, per Cargo.toml) | Benchmark harness for fragmented-handshake fixture |
+| Rust stdlib `std::mem::replace` | stable | Carry-buffer swap (no new dependency) |
+
+## File Structure Requirements (MANDATORY)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/analyzer/tls.rs` | modify | Restructure `try_parse_records` for single-borrow + carry swap |
+| `benches/tls_fragmented.rs` | create (or modify existing bench file) | Fragmented-handshake benchmark fixture (closes issue #360) |
+
 ## Notes
 
 - Source findings: PERF-001/002 (HIGH) + PERF-003/004/005 (LOW), maint-2026-07-01.
+- Escalation evidence: `.factory/maintenance/performance.md` (run maint-2026-07-06) —
+  `reassembly/tls.pcap` +14.0% vs Jun-22 baseline (p<0.05, criterion-confirmed),
+  +19.6% vs May-19 anchor. Human-approved escalation to wave 70 (maint-2026-07-06 gate).
+- Related issue: #360 (fragmented-handshake benchmark fixture, AC-149-002).
 - Primary module: `src/analyzer/tls.rs` (`try_parse_records`).
 - The borrow-constraint root cause: `flows.get_mut()` returns a `&mut TlsFlowState`
   borrow on `self.flows`. This borrow conflicts with the `&mut self` call to downstream
   dispatch, requiring a carry swap to drop the borrow before dispatch. STORY-144
   introduced the carry struct but used a naive acquire-per-operation pattern; this story
   consolidates it to a single-borrow pattern.
-- Wave assignment is TBD — schedule at v0.12.0 planning.
 - Relationship to STORY-150: this story (149) fixes the performance regression first.
   STORY-150 then DRY-refactors the carry-drain duplication. Doing the perf fix first
   avoids attributing any residual regression to the structural refactor.
 - Precedent: STORY-147 (mutation-testing defaults, E-11, wave TBD), STORY-143
   (changelog hardening, E-11, wave TBD) — same E-11 pattern of a cycle follow-up
   encoding a lesson into project tooling or infrastructure.
-- S-7.02 disposition: this story's creation at draft status captures PERF-001/002 for
-  v0.12.0 planning and closes the maint-2026-07-01 perf-sweep open item.
+- Version 1.0 → 1.1 amendment: escalated to wave 70 per maint-2026-07-06 gate; added
+  maint-2026-07-06 performance evidence, issue #360 reference, and full template
+  compliance (story-template.md). Original story authorship predates this amendment.

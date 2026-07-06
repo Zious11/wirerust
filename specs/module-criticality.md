@@ -1,15 +1,23 @@
 ---
+document_type: module-criticality
 artifact: module-criticality
+level: L3
+phase: steady_state
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+inputs: []
+input-hash: "[pending-recompute]"
 frozen: true
 freeze_condition: Phase 5 gate pass
 frozen_at: "2026-06-02"
-frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by spec-steward at Phase-6 gate close per module-criticality lifecycle rule (MUTABLE through Phase 5)."
+frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by spec-steward at Phase-6 gate close per module-criticality lifecycle rule (MUTABLE through Phase 5). FREEZE POLICY AMENDMENT (maint-2026-07-06): additive post-Phase-5 architecture additions (new subsystems shipped after Phase 6) are permitted in this file to maintain traceability coverage. This amendment resolves F-NEW-MAJ-002 (spec-coherence-sweep-7): C-25 and C-26 were added after the freeze gate closed; the scope gap has been filled per option (a) of the recommended fix."
 modified:
+  - date: 2026-07-06
+    actor: spec-steward
+    reason: "maint-2026-07-06 spec hygiene (F-NEW-MAJ-002): C-25 EnipAnalyzer (SS-17, HIGH tier) and C-26 protocols.rs (SS-18, HIGH tier) added — both components shipped post-Phase-6-freeze but were absent from this file. ARCH-INDEX v2.12 Document Map already described 'for all 26 components'; this update closes the gap between the description and reality. Freeze policy amended in frontmatter to permit additive post-Phase-5 additions. Version bump 1.5→1.6."
   - date: 2026-06-13
     actor: architect
     reason: "Corpus-wide consistency audit remediation (PR-2): C-23 ArpAnalyzer (SS-16, HIGH tier) added — same feature-cycle precedent as C-22 Modbus addition in v1.1. C-24 Dnp3Analyzer (SS-15, HIGH tier) also added — was missing from file despite shipping v0.6.0. Version bump 1.1→1.2."
@@ -29,8 +37,12 @@ modified:
 > Lifecycle: MUTABLE through Phase 5. FROZEN as of 2026-06-02 (Phase-6 gate close).
 > When a feature cycle adds or removes modules, update this file and
 > record the change in the cycle manifest.
+>
+> FREEZE POLICY AMENDMENT (maint-2026-07-06): additive post-Phase-5 architecture
+> additions are permitted without reopening the Phase 5 gate. C-25/C-26 were added
+> under this amendment. See F-NEW-MAJ-002 in spec-coherence.md for rationale.
 
-## Criticality Tiers
+## Tier Definitions
 
 | Tier | Kill Rate Target | Meaning |
 |------|-----------------|---------|
@@ -39,7 +51,9 @@ modified:
 | MEDIUM | >= 80% | Supporting logic, output formatting, CLI parsing. Failures here degrade usability but not forensic correctness. |
 | LOW | >= 70% | Test infrastructure, docs helpers, optional output formats. |
 
-## CRITICAL Modules (>= 95% kill rate)
+## Module Classification
+
+### CRITICAL Modules (>= 95% kill rate)
 
 | Module | File | Rationale |
 |--------|------|-----------|
@@ -49,7 +63,7 @@ modified:
 | SNI classification | analyzer/tls.rs (extract_sni) | INV-5. The 4-way ordered match determines whether C0-control or non-ASCII SNI findings are emitted. A mis-classification emits no finding for a genuine attack indicator. |
 | Raw-data contract enforcement | findings.rs + reporter/terminal.rs (escape_for_terminal) | INV-4 (ADR 0003). Terminal injection (CWE-117) if escape logic is missing or wrong. |
 
-## HIGH Modules (>= 90% kill rate)
+### HIGH Modules (>= 90% kill rate)
 
 | Module | File | Rationale |
 |--------|------|-----------|
@@ -61,8 +75,10 @@ modified:
 | Modbus TCP analyzer | analyzer/modbus.rs (C-22, SS-14) | ICS/OT threat detection. Bugs in MBAP parsing or function-code classification produce incorrect findings or miss attack signals. Pure core functions (parse_mbap_header, classify_fc) verified by VP-022. Finding-emission logic (write-burst, T0814 Diagnostics) is high-criticality. Findings: T1692.001/T0836/T0814/T0806/T0835/T0831/T0888. Target kill rate >= 90%. [NEW — feature cycle issue #7, F2 delta] |
 | DNP3 TCP analyzer | analyzer/dnp3.rs (C-24, SS-15) | ICS/OT threat detection for DNP3 protocol (shipped v0.6.0). Bugs in carry-buffer parse or function-code classification produce incorrect findings or miss attack signals. Pure core functions verified by VP-023 (Kani). Findings: T1692.001/T1691.001/T0814/T0836/T0827. Target kill rate >= 90%. [NEW — feature cycle issue #8] |
 | ARP security analyzer | analyzer/arp.rs (C-23, SS-16) | Link-layer security analysis. Binding table (HashMap, LRU-bounded MAX_ARP_BINDINGS) maintains IP→MAC state; bugs corrupt spoof detection. D1 spoof MEDIUM→HIGH escalation requires correct rebind counting. VP-024 Kani obligation covers binding-table invariant and parse safety. Findings: T0830 (ICS Collection, IcsCollection TA0100) + T1557.002 (Enterprise CredentialAccess). Target kill rate >= 90%. [NEW — feature cycle issue #9, F2 delta] |
+| EtherNet/IP + CIP analyzer | analyzer/enip.rs (C-25, SS-17) | ICS/OT threat detection for EtherNet/IP protocol (shipped v0.11.0, feature-enip-v0.11.0). Bugs in ENIP header parse, CIP service classification, or session-lifecycle tracking produce incorrect findings or miss attack signals. Pure core functions (parse_enip_header, classify_enip_command, classify_cip_service, is_valid_enip_frame) verified by VP-032 (Kani). Carry buffer bounded to MAX_ENIP_CARRY_BYTES=600 per ADR-010. Findings: T0858/T0816/T1693.001/T0814. Target kill rate >= 90%. [NEW — maint-2026-07-06, F-NEW-MAJ-002, feature-enip-v0.11.0] |
+| Protocol Coverage Catalog | src/protocols.rs (C-26, SS-18) | Pure-core catalog module providing `supported_protocols()` and `unsupported_protocols()` over the static `KNOWN_PROTOCOLS` array. Bugs here produce incorrect CoverageGapsSummary output — missed protocol gaps or false positives in the --coverage-gaps report. The oracle cross-check property (VP-041) is the verification anchor. No security findings emitted directly, but incorrect catalog data misleads protocol coverage assessments. Target kill rate >= 90%. [NEW — maint-2026-07-06, F-NEW-MAJ-002, feature-protocol-coverage] |
 
-## MEDIUM Modules (>= 80% kill rate)
+### MEDIUM Modules (>= 80% kill rate)
 
 | Module | File | Rationale |
 |--------|------|-----------|
@@ -73,7 +89,7 @@ modified:
 | Reassembly config | reassembly/config.rs | Data struct; validation (panics on invalid config per BC-2.04.001) is test-sufficient. |
 | DNS analyzer | analyzer/dns.rs | Statistics-only; emits no findings; low-criticality. |
 
-## LOW Modules (>= 70% kill rate)
+### LOW Modules (>= 70% kill rate)
 
 | Module | File | Rationale |
 |--------|------|-----------|
@@ -82,3 +98,17 @@ modified:
 | Main orchestrator | main.rs | Orchestration glue; finalize() guarantee is tested by Drop tripwire. |
 | lib.rs | lib.rs | Re-export shim; no logic. |
 | Absent CLI flags | cli.rs (removed flags) | BC-2.13.001..004: --threats/--beacon/--filter/--verbose do NOT exist; removed by PR #74; clap rejects them as unknown arguments. |
+
+## Classification Summary
+
+| Tier | Module Count | Percentage |
+|------|-------------|------------|
+| CRITICAL | 5 | 19% |
+| HIGH | 10 | 38% |
+| MEDIUM | 6 | 23% |
+| LOW | 5 | 19% |
+| **Total** | **26** | **100%** |
+
+> Count reflects C-1..C-26 (all 26 components per ARCH-INDEX v2.12 Document Map).
+> C-25 (EnipAnalyzer, SS-17) and C-26 (protocols.rs, SS-18) added maint-2026-07-06
+> under the freeze policy amendment for additive post-Phase-5 additions (F-NEW-MAJ-002).
