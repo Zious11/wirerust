@@ -29,7 +29,7 @@ mod bc_2_15_020_dnp3_observability_counters {
     use std::net::{IpAddr, Ipv4Addr};
 
     use wirerust::analyzer::dnp3::{
-        Dnp3Analyzer, BLOCK_CMD_TIMEOUT_SECS, MAX_FINDINGS, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
+        BLOCK_CMD_TIMEOUT_SECS, Dnp3Analyzer, MAX_FINDINGS, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
     };
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
