@@ -357,6 +357,11 @@ pub struct TlsAnalyzer {
     /// aggregate counter pattern.
     /// AC-146-001 / BC-2.07.043 Invariants 1–3.
     buffer_saturation_drops: u64,
+    /// Count of new-key insertions refused across all distribution maps
+    /// (sni_counts, ja3_counts, ja3s_counts, cipher_counts, version_counts) because the
+    /// map was at MAX_MAP_ENTRIES=50_000. Monotonic, saturating.
+    /// BC-2.07.031 v1.5 / BC-2.07.028 v1.4.
+    dropped_map_entries: u64,
     all_findings: Vec<Finding>,
 }
 
@@ -380,6 +385,7 @@ impl TlsAnalyzer {
             truncated_records: 0,
             handshake_reassembly_overflows: 0,
             buffer_saturation_drops: 0,
+            dropped_map_entries: 0,
             all_findings: Vec::new(),
         }
     }
@@ -418,9 +424,16 @@ impl TlsAnalyzer {
 
     // ── internal helpers ──────────────────────────────────────────────────
 
-    fn increment<K: Eq + std::hash::Hash>(map: &mut HashMap<K, u64>, key: K, limit: usize) {
+    fn increment<K: Eq + std::hash::Hash>(
+        map: &mut HashMap<K, u64>,
+        key: K,
+        limit: usize,
+        dropped: &mut u64,
+    ) {
         if map.len() < limit || map.contains_key(&key) {
             *map.entry(key).or_insert(0) += 1;
+        } else {
+            *dropped = dropped.saturating_add(1);
         }
     }
 
@@ -437,7 +450,12 @@ impl TlsAnalyzer {
         self.handshakes_seen += 1;
 
         let version = ch.version.0;
-        Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
+        Self::increment(
+            &mut self.version_counts,
+            version,
+            MAX_MAP_ENTRIES,
+            &mut self.dropped_map_entries,
+        );
 
         // Parse extensions (compute partial JA3 with empty fields on failure)
         let exts: Vec<TlsExtension<'_>> = match ch.ext {
@@ -466,7 +484,12 @@ impl TlsAnalyzer {
                 SniValue::NonAsciiUtf8 { hostname, .. } => hostname.clone(),
                 SniValue::NonUtf8 { hex, .. } => format!("<non-utf8:{hex}>"),
             };
-            Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
+            Self::increment(
+                &mut self.sni_counts,
+                key,
+                MAX_MAP_ENTRIES,
+                &mut self.dropped_map_entries,
+            );
 
             // SNI encoding violations (control chars, non-ASCII UTF-8,
             // non-UTF-8 bytes) map to MITRE T1027 (Obfuscated Files or
@@ -559,7 +582,12 @@ impl TlsAnalyzer {
 
         // JA3
         let (ja3_hash, _ja3_str) = compute_ja3(version, &ch.ciphers, &exts);
-        Self::increment(&mut self.ja3_counts, ja3_hash, MAX_MAP_ENTRIES);
+        Self::increment(
+            &mut self.ja3_counts,
+            ja3_hash,
+            MAX_MAP_ENTRIES,
+            &mut self.dropped_map_entries,
+        );
 
         // Weak cipher detection
         //
@@ -632,7 +660,12 @@ impl TlsAnalyzer {
         last_ts: u32,
     ) {
         let version = sh.version.0;
-        Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
+        Self::increment(
+            &mut self.version_counts,
+            version,
+            MAX_MAP_ENTRIES,
+            &mut self.dropped_map_entries,
+        );
 
         let exts: Vec<TlsExtension<'_>> = match sh.ext {
             Some(raw) => match parse_tls_extensions(raw) {
@@ -647,11 +680,21 @@ impl TlsAnalyzer {
 
         // JA3S
         let ja3s_hash = compute_ja3s(version, sh.cipher, &exts);
-        Self::increment(&mut self.ja3s_counts, ja3s_hash, MAX_MAP_ENTRIES);
+        Self::increment(
+            &mut self.ja3s_counts,
+            ja3s_hash,
+            MAX_MAP_ENTRIES,
+            &mut self.dropped_map_entries,
+        );
 
         // Cipher tracking
         let name = cipher_name(sh.cipher);
-        Self::increment(&mut self.cipher_counts, name.clone(), MAX_MAP_ENTRIES);
+        Self::increment(
+            &mut self.cipher_counts,
+            name.clone(),
+            MAX_MAP_ENTRIES,
+            &mut self.dropped_map_entries,
+        );
 
         if is_weak_server_cipher(sh.cipher) {
             self.all_findings.push(Finding {
@@ -1236,6 +1279,12 @@ impl StreamAnalyzer for TlsAnalyzer {
         detail.insert(
             "buffer_saturation_drops".to_string(),
             serde_json::json!(self.buffer_saturation_drops),
+        );
+        // BC-2.07.031 v1.5: surface refused new-key insertions across all distribution maps.
+        // Key ALWAYS present even when count==0 (silent-limit audit).
+        detail.insert(
+            "dropped_map_entries".to_string(),
+            serde_json::json!(self.dropped_map_entries),
         );
 
         AnalysisSummary {

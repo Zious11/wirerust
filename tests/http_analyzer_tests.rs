@@ -6123,8 +6123,10 @@ mod bc_2_06_023_formalization {
              return identical detail maps"
         );
 
-        // Spot-check: alphabetical order for the 9 required keys.
+        // Spot-check: alphabetical order for the 10 required keys.
+        // Updated 9→10 for BC-2.06.023 v1.6: `dropped_map_entries` added before `methods`.
         let expected_order = [
+            "dropped_map_entries",
             "methods",
             "non_http_flows",
             "parse_errors",
@@ -6137,7 +6139,7 @@ mod bc_2_06_023_formalization {
         ];
         assert_eq!(
             keys1, expected_order,
-            "BC-2.06.023 invariant 1: keys must appear in strict alphabetical order"
+            "BC-2.06.023 v1.6 invariant 1: keys must appear in strict alphabetical order"
         );
     }
 

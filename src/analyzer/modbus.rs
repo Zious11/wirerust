@@ -285,6 +285,10 @@ pub struct ModbusAnalyzer {
     pub all_findings: Vec<Finding>,
     /// Count of findings silently dropped after MAX_FINDINGS cap was reached (BC-2.14.022).
     pub dropped_findings: u64,
+    /// Count of new unique (txn_id, unit_id) requests silently dropped because the pending
+    /// table was at MAX_PENDING_TRANSACTIONS=256 (drop-not-evict per BC-2.14.012).
+    /// Monotonic, saturating. BC-2.14.012 v1.1 / BC-2.14.021 v1.2.
+    pub dropped_transactions: u64,
     /// Monotonic counter: incremented once per flow on first PDU insertion (BC-2.14.021).
     /// NOT derived from a flow map length (flows removed on close would give wrong count).
     pub total_flows_analyzed: u64,
@@ -307,6 +311,7 @@ impl ModbusAnalyzer {
             fn_code_counts: HashMap::new(),
             all_findings: Vec::new(),
             dropped_findings: 0,
+            dropped_transactions: 0,
             total_flows_analyzed: 0,
             flows: HashMap::new(),
         }
@@ -500,6 +505,13 @@ impl ModbusAnalyzer {
                 // REQUEST path
                 // --- Insert into pending table (BC-2.14.009) ---
                 if fc_class != FunctionCodeClass::Exception {
+                    let key = (header.transaction_id, header.unit_id);
+                    if !flow.pending.contains_key(&key)
+                        && flow.pending.len() >= MAX_PENDING_TRANSACTIONS
+                    {
+                        // New unique key dropped at cap (drop-not-evict, BC-2.14.012).
+                        self.dropped_transactions = self.dropped_transactions.saturating_add(1);
+                    }
                     let overwrite =
                         flow.insert_request(header.transaction_id, header.unit_id, fc, timestamp);
                     if overwrite.is_some() {
@@ -960,6 +972,10 @@ impl ModbusAnalyzer {
         detail.insert(
             "dropped_findings".to_string(),
             serde_json::json!(self.dropped_findings),
+        );
+        detail.insert(
+            "dropped_transactions".to_string(),
+            serde_json::json!(self.dropped_transactions),
         );
 
         // function_code_distribution: "0x{FC:02X}" → count (zero-count suppressed).

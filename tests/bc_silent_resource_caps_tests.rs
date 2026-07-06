@@ -480,14 +480,120 @@ mod silent_resource_caps {
                 CI run. Run explicitly with --ignored. Key-presence red-gate covered by \
                 test_BC_2_07_031_tls_dropped_map_entries_key_present_zero_on_fresh_analyzer."]
     fn test_BC_2_07_031_tls_dropped_map_entries_increments_at_cap() {
-        // Placeholder body — the ignored guard means this never executes in CI.
-        // When un-ignored the implementer should populate 50_001 distinct SNIs and verify
-        // dropped_map_entries >= 1 in the detail map.
         use wirerust::analyzer::tls::TlsAnalyzer;
-        let _analyzer = TlsAnalyzer::new();
-        todo!(
-            "BC-2.07.031 v1.5: implement increment test once TlsAnalyzer exposes a \
-             smaller-cap test seam (or accept ~10s runtime for full 50_001 entries)"
+        use wirerust::reassembly::handler::Direction;
+
+        const MAX_MAP_ENTRIES: usize = 50_000;
+
+        let mut analyzer = TlsAnalyzer::new();
+        // Build a minimal TLS 1.2 ClientHello record with an SNI extension.
+        // Wire format: TLS record (0x16, ver, len) + Handshake header + ClientHello body.
+        let build_ch = |sni: &str| -> Vec<u8> {
+            let sni_bytes = sni.as_bytes();
+            let sni_name_len = sni_bytes.len() as u16;
+            // SNI entry: NameType(1) + NameLen(2) + Name
+            let sni_entry_len = 1u16 + 2u16 + sni_name_len;
+            // SNI ext data: ServerNameListLength(2) + entry
+            let sni_ext_data_len = 2u16 + sni_entry_len;
+            // Extensions block: ext_type(2) + ext_data_len(2) + sni_ext_data_len
+            let _ext_total_len = 2u16 + 2u16 + sni_ext_data_len;
+
+            let mut extensions = Vec::new();
+            extensions.extend_from_slice(&[0x00, 0x00]); // SNI ext type
+            extensions.extend_from_slice(&sni_ext_data_len.to_be_bytes());
+            extensions.extend_from_slice(&sni_entry_len.to_be_bytes());
+            extensions.push(0x00); // NameType: host_name
+            extensions.extend_from_slice(&sni_name_len.to_be_bytes());
+            extensions.extend_from_slice(sni_bytes);
+            // Supported groups (required by some parsers)
+            extensions
+                .extend_from_slice(&[0x00, 0x0a, 0x00, 0x06, 0x00, 0x04, 0x00, 0x1d, 0x00, 0x17]);
+            // EC point formats
+            extensions.extend_from_slice(&[0x00, 0x0b, 0x00, 0x02, 0x01, 0x00]);
+
+            let actual_ext_total = extensions.len() as u16;
+
+            let mut ch_body = Vec::new();
+            ch_body.extend_from_slice(&[0x03, 0x03]); // TLS 1.2
+            ch_body.extend_from_slice(&[0u8; 32]); // random
+            ch_body.push(0x00); // session_id len
+            ch_body.extend_from_slice(&[0x00, 0x02]); // cipher suites len: 1 suite
+            ch_body.extend_from_slice(&[0x13, 0x01]); // TLS_AES_128_GCM_SHA256
+            ch_body.push(0x01); // compression methods len
+            ch_body.push(0x00); // null compression
+            ch_body.extend_from_slice(&actual_ext_total.to_be_bytes()); // extensions len
+            ch_body.extend_from_slice(&extensions);
+
+            let ch_len = ch_body.len() as u32;
+            let mut handshake = vec![
+                0x01, // ClientHello
+                (ch_len >> 16) as u8,
+                (ch_len >> 8) as u8,
+                ch_len as u8,
+            ];
+            handshake.extend_from_slice(&ch_body);
+
+            let hs_len = handshake.len() as u16;
+            let mut record = vec![0x16]; // handshake record
+            record.extend_from_slice(&[0x03, 0x01]); // record version TLS 1.0
+            record.extend_from_slice(&hs_len.to_be_bytes());
+            record.extend_from_slice(&handshake);
+            record
+        };
+
+        // Fill sni_counts to exactly MAX_MAP_ENTRIES with unique hostnames.
+        // Each frame uses a new flow key to avoid the "one handshake per flow" limit.
+        for i in 0u32..MAX_MAP_ENTRIES as u32 {
+            let sni = format!("h{i}.example.test");
+            let record = build_ch(&sni);
+            let flow_key = FlowKey::new(
+                "10.0.0.1".parse::<IpAddr>().unwrap(),
+                (i as u16).wrapping_add(1),
+                "10.0.0.2".parse::<IpAddr>().unwrap(),
+                443,
+            );
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0, 0);
+        }
+
+        let before = analyzer
+            .summarize()
+            .detail
+            .get("dropped_map_entries")
+            .and_then(|v| v.as_u64())
+            .expect("dropped_map_entries key must be present");
+        assert_eq!(
+            before, 0,
+            "BC-2.07.031 v1.5: dropped_map_entries must be 0 before the 50_001st distinct SNI"
+        );
+
+        // Insert one more distinct SNI — must be dropped and increment the counter.
+        let overflow_sni = "overflow.example.test";
+        let overflow_record = build_ch(overflow_sni);
+        let overflow_fk = FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            65535,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            443,
+        );
+        analyzer.on_data(
+            &overflow_fk,
+            Direction::ClientToServer,
+            &overflow_record,
+            0,
+            0,
+        );
+
+        let after = analyzer
+            .summarize()
+            .detail
+            .get("dropped_map_entries")
+            .and_then(|v| v.as_u64())
+            .expect("dropped_map_entries key must be present after overflow");
+        assert!(
+            after >= 1,
+            "BC-2.07.031 v1.5: dropped_map_entries must be >= 1 after inserting \
+             MAX_MAP_ENTRIES+1={} distinct SNIs. Got 0.",
+            MAX_MAP_ENTRIES + 1
         );
     }
 
@@ -505,12 +611,65 @@ mod silent_resource_caps {
                 Run explicitly with --ignored. Key-presence red-gate covered by \
                 test_BC_2_06_023_http_dropped_map_entries_key_present_zero_on_fresh_analyzer."]
     fn test_BC_2_06_023_http_dropped_map_entries_increments_at_cap() {
-        // Placeholder body — the ignored guard means this never executes in CI.
         use wirerust::analyzer::http::HttpAnalyzer;
-        let _analyzer = HttpAnalyzer::new();
-        todo!(
-            "BC-2.06.023 v1.6: implement increment test once HttpAnalyzer exposes a \
-             smaller-cap test seam (or accept ~10s runtime for full 50_001 host entries)"
+        use wirerust::reassembly::handler::Direction;
+
+        const MAX_MAP_ENTRIES: usize = 50_000;
+
+        let mut analyzer = HttpAnalyzer::new();
+
+        // Fill hosts map to exactly MAX_MAP_ENTRIES distinct Host values.
+        // Each request uses a unique Host header on a unique flow to avoid
+        // flow-level parsing state interfering across requests.
+        for i in 0u32..MAX_MAP_ENTRIES as u32 {
+            let fk = FlowKey::new(
+                "10.0.0.1".parse::<IpAddr>().unwrap(),
+                (i as u16).wrapping_add(1),
+                "10.0.0.2".parse::<IpAddr>().unwrap(),
+                80,
+            );
+            let request = format!("GET / HTTP/1.1\r\nHost: h{i}.example.test\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
+        }
+
+        let before = analyzer
+            .summarize()
+            .detail
+            .get("dropped_map_entries")
+            .and_then(|v| v.as_u64())
+            .expect("dropped_map_entries key must be present");
+        assert_eq!(
+            before, 0,
+            "BC-2.06.023 v1.6: dropped_map_entries must be 0 before the 50_001st distinct host"
+        );
+
+        // Insert one more distinct host — must be dropped and increment the counter.
+        let overflow_fk = FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            65535,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            80,
+        );
+        let overflow_request = "GET / HTTP/1.1\r\nHost: overflow.example.test\r\n\r\n";
+        analyzer.on_data(
+            &overflow_fk,
+            Direction::ClientToServer,
+            overflow_request.as_bytes(),
+            0,
+            0,
+        );
+
+        let after = analyzer
+            .summarize()
+            .detail
+            .get("dropped_map_entries")
+            .and_then(|v| v.as_u64())
+            .expect("dropped_map_entries key must be present after overflow");
+        assert!(
+            after >= 1,
+            "BC-2.06.023 v1.6: dropped_map_entries must be >= 1 after inserting \
+             MAX_MAP_ENTRIES+1={} distinct Host values. Got 0.",
+            MAX_MAP_ENTRIES + 1
         );
     }
 } // mod silent_resource_caps

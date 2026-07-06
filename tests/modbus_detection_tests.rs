@@ -1271,15 +1271,16 @@ mod story_104 {
     }
 
     // ---------------------------------------------------------------------------
-    // BC-2.14.021 — summarize() returns exactly six keys
+    // BC-2.14.021 — summarize() returns exactly seven keys (updated from 6 for BC-2.14.021 v1.2)
     // AC-010
     // ---------------------------------------------------------------------------
 
     /// test_BC_2_14_021_summarize_returns_six_keys
     ///
-    /// Process a mix of ADUs, then call `summarize()`. Assert all six required keys
+    /// Process a mix of ADUs, then call `summarize()`. Assert all seven required keys
     /// are present in `detail`: pdu_count, write_count, exception_count, parse_errors,
-    /// function_code_distribution, dropped_findings.
+    /// function_code_distribution, dropped_findings, dropped_transactions.
+    /// Updated 6→7 for BC-2.14.021 v1.2 / BC-2.14.012 v1.1 (silent-limit audit).
     /// Traces to: BC-2.14.021 post.1, STORY-104 AC-010.
     #[test]
     fn test_BC_2_14_021_summarize_returns_six_keys() {
@@ -1308,7 +1309,7 @@ mod story_104 {
         let summary = az.summarize();
         let detail = &summary.detail;
 
-        // All six keys must be present
+        // All seven keys must be present (updated 6→7 for BC-2.14.021 v1.2).
         assert!(detail.contains_key("pdu_count"), "missing key: pdu_count");
         assert!(
             detail.contains_key("write_count"),
@@ -1330,10 +1331,14 @@ mod story_104 {
             detail.contains_key("dropped_findings"),
             "missing key: dropped_findings"
         );
+        assert!(
+            detail.contains_key("dropped_transactions"),
+            "missing key: dropped_transactions (BC-2.14.021 v1.2)"
+        );
         assert_eq!(
             detail.len(),
-            6,
-            "must have EXACTLY six keys (not more, not fewer)"
+            7,
+            "must have EXACTLY seven keys (not more, not fewer) — updated for BC-2.14.021 v1.2"
         );
     }
 
