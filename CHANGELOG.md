@@ -7,6 +7,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-07-06
+
+### Security
+
+- **Fixed unbounded per-flow memory growth in the DNP3 and EtherNet/IP (ENIP) analyzers
+  (issue #342, CWE-401/CWE-770).** The stream dispatcher now purges DNP3/ENIP per-flow
+  state on flow close (mirroring Modbus/HTTP/TLS), bounding analyzer memory to live flows;
+  closed-flow state is folded into aggregates so findings/summary output are unchanged.
+  (PR #362)
+
 ## [0.11.2] - 2026-07-05
 
 ### Added
@@ -853,7 +863,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.3...HEAD
+[0.11.3]: https://github.com/Zious11/wirerust/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/Zious11/wirerust/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/Zious11/wirerust/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/Zious11/wirerust/compare/v0.10.0...v0.11.0
