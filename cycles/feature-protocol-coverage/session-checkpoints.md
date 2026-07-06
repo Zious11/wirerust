@@ -116,6 +116,21 @@ cycle: feature-protocol-coverage
 
 ---
 
+## Checkpoint archived 2026-07-06 (superseded by D-387 session-wrap PAUSED checkpoint)
+
+**v0.11.4 RELEASED (D-386, 2026-07-06). Silent-limit observability counters (PR #365) + follow-up test hardening + ARP refactor (PR #366) shipped. develop f7460b4 / main f0f2136 (v0.11.4). develop has NO unreleased commits. Pipeline IDLE. No active phase.**
+
+- **Ground truth:** develop=`f7460b4` (full `f7460b403962a690bd0f81e4ad41185b893b830b`, NO unreleased commits — in sync with v0.11.4), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4). factory-artifacts HEAD: use `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop @f7460b4] + .factory [factory-artifacts].
+- **RESUME PROCEDURE:**
+  1. `vsdd-factory:factory-worktree-health` — PASS required.
+  2. Verify develop=`f7460b4`, main=`f0f2136`.
+  3. Pipeline is IDLE. develop has NO unreleased commits (fully in sync with v0.11.4). Await next feature request, maintenance, or release decision; invoke `/vsdd-factory:next-step` when ready.
+- **Cycle status:** feature-protocol-coverage (E-21) CLOSED (D-382). v0.11.2 released 2026-07-05. v0.11.3 released 2026-07-06. v0.11.4 released 2026-07-06 (D-386).
+- **v0.11.4 content (D-385+D-386, 2026-07-06):** 4 observability counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18 (PR #365). Follow-ups: HTTP-AC008-NEG-TEST-001 + EVICTION-NO-FINDING-NEG-TEST-001 + ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 all RESOLVED (PR #366).
+- **Carry open:** BC-2.05.010-EC006-UNREACHABLE-001, EPICS-TOTAL-BCS-DRIFT-001, HS-INDEX-ENIP-WAVE-DRIFT-001, INPUT-HASH-ERROR-STORIES-001, BC-STORY-ANCHOR-TBD-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001 (DF-VALIDATION-001-gated), STORY-148-BASIS-RESOLVED-001 (story-writer to reconcile), REBIND-COUNT-SATURATING-001 (LOW/informational, DF-VALIDATION-001-gated).
+
+---
+
 ## Checkpoint archived 2026-07-05 (superseded by D-382 cycle-close IDLE checkpoint)
 
 **F7 PRE-GATE COMPLETE (D-381, 2026-07-05). All 5 convergence dimensions SATISFIED. AWAITING FINAL HUMAN APPROVAL GATE for E-21 cycle close. Pre-gate reconciliations applied: STORY-INDEX v3.12→v3.13 (STORY-151/152/153/154 status draft→merged; wave 67/68/69 DELIVERED+CLOSED) + ARCH-INDEX stale HTML comment removed (SS-18 row, v2.12 unchanged). On human gate approval → cycle CONVERGED/CLOSED, then release decision.**
