@@ -173,12 +173,11 @@ Their actual interfaces are:
   operates at the packet level but is dispatched directly from the frame loop in `main.rs` without
   going through the trait interface.
 
-- **`EnipAnalyzer`** — exposes `on_data(flow_key: FlowKey, direction: Direction, data: &[u8],
-  timestamp: u32)` and `on_flow_close(flow_key: &FlowKey)` as plain inherent methods.
-  `src/dispatcher.rs` calls them directly (not via the `StreamHandler` trait). Unlike `Dnp3Analyzer`
-  (ADR-0007), `EnipAnalyzer` does thread the `Direction` parameter and implements `on_flow_close`
-  semantics correctly; the deviation is purely that it was not retrofitted to the `StreamAnalyzer`
-  trait interface (see tech-debt item PC-023). The dispatcher arm calls
+- **`EnipAnalyzer`** — exposes `on_data(flow_key: FlowKey, data: &[u8], timestamp: u32,
+  direction: Direction)` and `on_flow_close(flow_key: FlowKey)` as plain inherent methods.
+  `src/dispatcher.rs` calls them directly (not via the `StreamHandler` trait). The deviation from
+  the generic `StreamAnalyzer` trait is purely that `EnipAnalyzer` was not retrofitted to that
+  interface (see tech-debt item PC-023). The dispatcher arm calls
   `enip.on_data(flow_key.clone(), ...)` with a per-packet `FlowKey` clone. See ADR-010 for the
   full EtherNet/IP design rationale.
 
