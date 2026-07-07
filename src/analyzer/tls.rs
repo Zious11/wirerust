@@ -345,7 +345,7 @@ enum RecordStep {
     /// `handshake_reassembly_overflows` and continue the outer loop.
     CarryOverflow,
     /// A complete 0x16 record was extracted; carry bytes (with new payload already
-    /// appended) were removed from flow state via `std::mem::replace`
+    /// appended) were removed from flow state via `std::mem::take`
     /// (PERF-002: EC-002 — `Vec::new()` does not heap-allocate when carry was empty).
     /// The flow state's carry field is now an empty `Vec::new()`.
     Handshake {
@@ -779,7 +779,7 @@ impl TlsAnalyzer {
     ///
     /// Mutations performed while the borrow is held:
     /// - Buf drain (non-handshake and complete handshake records).
-    /// - Carry extend + `std::mem::replace` (PERF-002: avoids per-record Vec alloc).
+    /// - Carry extend + `std::mem::take` (PERF-002: avoids per-record Vec alloc).
     /// - Carry clear on overflow (Decision 5 guard).
     ///
     /// Counter increments (`parse_errors`, `truncated_records`,
@@ -848,7 +848,7 @@ impl TlsAnalyzer {
 
     /// Process the carry drain loop for a single handshake record.
     ///
-    /// `carry` owns the direction's carry bytes (extracted via `std::mem::replace`
+    /// `carry` owns the direction's carry bytes (extracted via `std::mem::take`
     /// in [`TlsAnalyzer::prepare_record_step`]). After the drain loop, any
     /// un-consumed bytes are restored to the flow state's carry field.
     ///
@@ -987,7 +987,7 @@ impl TlsAnalyzer {
         loop {
             // SINGLE-BORROW INVARIANT: exactly one HashMap borrow acquired per
             // loop iteration (PERF-001/PERF-002, STORY-149). All mutable per-flow
-            // state (buf drain, carry extend, carry replace via std::mem::replace)
+            // state (buf drain, carry extend, carry replace via std::mem::take)
             // is performed inside prepare_record_step while this borrow is held;
             // the borrow is released before any &mut self dispatch call.
             let step = {
