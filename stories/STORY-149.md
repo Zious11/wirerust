@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-149
 title: "TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture"
 epic_id: E-11
-version: "1.2"
+version: "1.3"
 status: pending
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
@@ -126,9 +126,10 @@ AC-149-002: A Criterion benchmark fixture exists at `benches/tls_fragmented.rs` 
   executes at least twice per synthetic handshake. The fixture is deterministic and
   repeatable. (Closes issue #360.)
 
-AC-149-003: Running `cargo bench --bench tls` (or equivalent) against a comparable
+AC-149-003: Running `cargo bench --bench pipeline` (or equivalent) against a comparable
   baseline shows the `reassembly/tls.pcap` criterion within +5% of the May-19 baseline
-  (i.e., the regression is substantially recovered, within the WARNING threshold).
+  (a stricter bar than the +10% WARNING threshold, i.e., the regression is substantially
+  recovered).
 
 AC-149-004 (optional): At least one of PERF-003/004/005 is resolved — hex-encoding
   alloc moved out of the hot path, cipher-suite clone replaced with a reference, or
@@ -248,3 +249,8 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
   expanded to `std::mem::replace` / `std::mem::take` / local Vec swap (implementation uses
   `std::mem::take`); EC-001/EC-002 "no allocation / no extra allocation" replaced with
   accurate one-allocation wording. Sibling sweep applied to all live occurrences.
+- Version 1.2 → 1.3 amendment: AC-149-003 bench name corrected from `--bench tls`
+  (nonexistent target) to `--bench pipeline` (F-S149P3-001); AC-149-003 parenthetical
+  reworded to make clear that +5% is the AC's own stricter recovery target, not
+  equivalent to the +10% WARNING threshold (F-S149P3-002). Sibling sweep confirmed no
+  other live occurrences of `--bench tls[^_]` in story or wave-70 artifacts.
