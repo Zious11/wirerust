@@ -855,6 +855,12 @@ impl TlsAnalyzer {
     /// This method holds NO borrow on `self.flows` during the drain loop — it
     /// re-borrows only for the flag-set and carry-restore steps.
     ///
+    /// BORROW BUDGET (STORY-149 / AC-149-001): this helper re-borrows `self.flows`
+    /// at most 3 times per invocation (flag-set + carry-restore sites); combined
+    /// with the single acquisition in `try_parse_records`, the total borrow budget
+    /// is ≤ 4. Enforced by source-inspection test
+    /// `tests/bc_149_single_borrow_invariant_tests.rs`.
+    ///
     /// AC-144-002 / AC-145-001 / BC-2.07.038 / BC-2.07.041 / SEC-001 (cursor-based
     /// O(carry_len) drain).
     fn process_handshake_carry(
@@ -915,6 +921,7 @@ impl TlsAnalyzer {
                                 _rem,
                                 TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ref ch)),
                             )) => {
+                                // BORROW BUDGET (STORY-149): site 1 of ≤3 — flag-set (client_hello_seen).
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.client_hello_seen = true;
                                 }
@@ -938,6 +945,7 @@ impl TlsAnalyzer {
                                 _rem,
                                 TlsMessage::Handshake(TlsMessageHandshake::ServerHello(ref sh)),
                             )) => {
+                                // BORROW BUDGET (STORY-149): site 2 of ≤3 — flag-set (server_hello_seen).
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.server_hello_seen = true;
                                 }
@@ -966,6 +974,7 @@ impl TlsAnalyzer {
         // prepare_record_step and here (can't happen in practice — single-threaded, and
         // neither handle_client_hello nor handle_server_hello removes flows), the carry
         // is dropped silently.
+        // BORROW BUDGET (STORY-149): site 3 of ≤3 — carry-restore.
         if let Some(state) = self.flows.get_mut(flow_key) {
             match direction {
                 Direction::ClientToServer => state.client_hs_carry = carry,
