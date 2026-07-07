@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-149
 title: "TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture"
 epic_id: E-11
-version: "1.1"
+version: "1.2"
 status: pending
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
@@ -39,7 +39,8 @@ inputs: []
 ## Narrative
 
 - **As a** wirerust maintainer tracking performance regressions across releases
-- **I want** the TLS carry-path (`try_parse_records`) restructured for single-borrow HashMap access and
+- **I want** the TLS carry-path (`try_parse_records`) restructured for bounded-borrow HashMap access
+  (budget ≤ 4 acquisition sites across `try_parse_records` body and `process_handshake_carry`) and
   a new Criterion benchmark fixture that exercises the carry-drain loop
 - **So that** the `reassembly/tls.pcap` regression (+14.0% vs Jun-22 baseline, criterion-confirmed
   p < 0.05) is substantially recovered, carry-path regressions are detectable in future sweeps, and
@@ -91,11 +92,13 @@ existing criterion suite, so regression detection for that path is blind.
 
 ## Goal
 
-1. Restructure `try_parse_records` to acquire a single `flows.get_mut()` borrow per
-   invocation and work off it throughout, using a local carry-buffer swap (`std::mem::replace`
-   or equivalent) to release the borrow before the `&mut self` dispatch call. This
-   eliminates repeated FlowKey re-hashing (PERF-001) and the per-record carry Vec
-   allocation (PERF-002).
+1. Restructure `try_parse_records` into `prepare_record_step` (single `flows.get_mut()`
+   acquisition site in the body; SINGLE-BORROW INVARIANT marker) plus
+   `process_handshake_carry` (helper that re-borrows only after the primary borrow is
+   released, with at most 3 acquisition sites; total budget ≤ 4 across both functions),
+   using a carry-buffer swap (`std::mem::replace`, `std::mem::take`, or local Vec swap)
+   to release the borrow before the `&mut self` dispatch call. This eliminates repeated
+   FlowKey re-hashing (PERF-001) and the per-record carry Vec allocation (PERF-002).
 2. Add a Criterion benchmark fixture (at `benches/tls_fragmented.rs` or as a new bench
    group in the existing TLS bench file) that delivers a genuinely fragmented multi-record
    TLS handshake — one that exercises the carry-drain loop. Establish this as the
@@ -107,10 +110,15 @@ existing criterion suite, so regression detection for that path is blind.
 
 ## Acceptance Criteria
 
-AC-149-001: `try_parse_records` in `src/analyzer/tls.rs` acquires at most one
-  `flows.get_mut()` call per invocation (verified by code inspection; enforced by a
-  comment asserting the single-borrow invariant). The carry-buffer swap uses
-  `std::mem::replace` or a local Vec swap rather than a fresh allocation per record.
+AC-149-001: `try_parse_records` in `src/analyzer/tls.rs` contains exactly one
+  `flows.get`/`flows.get_mut` acquisition site within the `try_parse_records` body (the
+  SINGLE-BORROW INVARIANT marker lives there); helper `process_handshake_carry` re-borrows
+  only after the primary borrow is released, with at most 3 acquisition sites within that
+  helper (total budget ≤ 4 acquisition sites across both functions). Both constraints are
+  verified by a source-inspection test (grep-based). The carry-buffer swap uses
+  `std::mem::replace`, `std::mem::take`, or a local Vec swap rather than a fresh allocation
+  per record (implementation uses `std::mem::take` — functionally identical to
+  replace-with-default).
 
 AC-149-002: A Criterion benchmark fixture exists at `benches/tls_fragmented.rs` (or
   as a new bench group in an existing TLS bench file) that delivers a synthetic TLS
@@ -133,7 +141,7 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| `TlsAnalyzer::try_parse_records` (single-borrow restructure) | `src/analyzer/tls.rs` | Effectful shell (mutates flow state) |
+| `TlsAnalyzer::try_parse_records` / `prepare_record_step` / `process_handshake_carry` (bounded-borrow restructure; budget ≤ 4) | `src/analyzer/tls.rs` | Effectful shell (mutates flow state) |
 | `TlsFlowState.carry` (carry-buffer swap pattern) | `src/analyzer/tls.rs` | Pure-core data (byte buffer) |
 | Fragmented-handshake benchmark fixture | `benches/tls_fragmented.rs` | Effectful shell (bench harness) |
 
@@ -141,8 +149,8 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | Carry-drain loop with exactly 3 partial records | Loop executes twice; carry drained on third record; no extra allocation |
-| EC-002 | Empty carry at entry to `try_parse_records` | `std::mem::replace` returns empty Vec; no allocation overhead |
+| EC-001 | Carry-drain loop with exactly 3 partial records | Loop executes twice; carry drained on third record; one allocation instead of two (per-record `record_bytes` clone eliminated by `std::mem::take`) |
+| EC-002 | Empty carry at entry to `try_parse_records` | `std::mem::take` returns the existing carry without copying; one allocation instead of two: the per-record `record_bytes` clone is eliminated |
 | EC-003 | Single-record complete handshake (existing fixture) | Regression benchmark `reassembly/tls.pcap` shows recovery vs Jun-22 |
 | EC-004 | VP-039 / VP-040 harnesses | Remain green; no behavioral regression from structural refactor |
 
@@ -168,10 +176,10 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 ## Tasks (MANDATORY)
 
 1. [ ] Read `src/analyzer/tls.rs` `try_parse_records` — identify all `flows.get()` / `flows.get_mut()` call sites
-2. [ ] Restructure `try_parse_records` for single `flows.get_mut()` borrow per invocation (PERF-001)
-3. [ ] Replace per-record carry Vec allocation with `std::mem::replace` swap pattern (PERF-002)
-4. [ ] Add inline comment asserting single-borrow invariant at the borrow site
-5. [ ] Write failing test for AC-149-001 (single-borrow invariant, code inspection via grep)
+2. [ ] Restructure `try_parse_records` into `prepare_record_step` (single acquisition site in body) + `process_handshake_carry` (≤ 3 re-borrows after primary released; total budget ≤ 4) (PERF-001)
+3. [ ] Replace per-record carry Vec allocation with `std::mem::take` swap pattern (or `std::mem::replace` / local Vec swap from permitted set) (PERF-002)
+4. [ ] Add inline comment asserting SINGLE-BORROW INVARIANT at the `prepare_record_step` acquisition site; add budget comment (≤ 4 total) at `process_handshake_carry` sites
+5. [ ] Write failing test for AC-149-001 (bounded-borrow budget ≤ 4 invariant: exactly 1 acquisition site in `try_parse_records` body, ≤ 3 in `process_handshake_carry`, verified by source-inspection via grep)
 6. [ ] Create `benches/tls_fragmented.rs` (or bench group) — synthetic 3-record fragmented TLS handshake (AC-149-002; closes issue #360)
 7. [ ] Run `cargo bench --bench pipeline` — verify `reassembly/tls.pcap` regression recovery (AC-149-003)
 8. [ ] (Optional) Address PERF-003, PERF-004, or PERF-005 if within scope (AC-149-004)
@@ -191,8 +199,8 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| Single `flows.get_mut()` borrow per `try_parse_records` invocation | AC-149-001 inline comment | Code inspection + grep for multiple borrow sites |
-| Carry swap via `std::mem::replace` (no per-record Vec allocation) | PERF-002 root-cause | Code inspection; confirmed by `cargo bench` recovery |
+| Exactly 1 `flows.get`/`flows.get_mut` acquisition site in `try_parse_records` body; `process_handshake_carry` ≤ 3 re-borrows after primary released; total budget ≤ 4 across both functions | AC-149-001 inline comments (SINGLE-BORROW INVARIANT marker + budget annotation) | Source-inspection test (grep-based); CI gate |
+| Carry swap via `std::mem::take` (permitted set: `replace` / `take` / local Vec swap; no per-record Vec allocation) | PERF-002 root-cause | Code inspection; confirmed by `cargo bench` recovery |
 | `cargo clippy --all-targets -- -D warnings` must pass | CLAUDE.md CI gate | CI gate |
 | VP-039 / VP-040 harnesses must remain green | AC-149-005 | `cargo test --all-targets` |
 
@@ -201,13 +209,13 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 | Tool | Version | Purpose |
 |------|---------|---------|
 | `criterion` | `0.8` (current, per Cargo.toml) | Benchmark harness for fragmented-handshake fixture |
-| Rust stdlib `std::mem::replace` | stable | Carry-buffer swap (no new dependency) |
+| Rust stdlib `std::mem::take` (permitted set: `std::mem::replace`, `std::mem::take`, local Vec swap) | stable | Carry-buffer swap (no new dependency) |
 
 ## File Structure Requirements (MANDATORY)
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/analyzer/tls.rs` | modify | Restructure `try_parse_records` for single-borrow + carry swap |
+| `src/analyzer/tls.rs` | modify | Restructure `try_parse_records` into `prepare_record_step` + `process_handshake_carry` (bounded-borrow budget ≤ 4) + `std::mem::take` carry swap |
 | `benches/tls_fragmented.rs` | create (or modify existing bench file) | Fragmented-handshake benchmark fixture (closes issue #360) |
 
 ## Notes
@@ -222,7 +230,8 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
   borrow on `self.flows`. This borrow conflicts with the `&mut self` call to downstream
   dispatch, requiring a carry swap to drop the borrow before dispatch. STORY-144
   introduced the carry struct but used a naive acquire-per-operation pattern; this story
-  consolidates it to a single-borrow pattern.
+  consolidates it to a bounded-borrow pattern (budget ≤ 4 across `try_parse_records` body
+  and `process_handshake_carry`).
 - Relationship to STORY-150: this story (149) fixes the performance regression first.
   STORY-150 then DRY-refactors the carry-drain duplication. Doing the perf fix first
   avoids attributing any residual regression to the structural refactor.
@@ -232,3 +241,10 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 - Version 1.0 → 1.1 amendment: escalated to wave 70 per maint-2026-07-06 gate; added
   maint-2026-07-06 performance evidence, issue #360 reference, and full template
   compliance (story-template.md). Original story authorship predates this amendment.
+- Version 1.1 → 1.2 amendment: AC-149-001 and EC-002 wording aligned to implementation
+  (F-S149P1-001/003/005): `try_parse_records` restructured into `prepare_record_step`
+  (single acquisition site in body; SINGLE-BORROW INVARIANT) plus `process_handshake_carry`
+  (≤ 3 re-borrows after primary released; total budget ≤ 4); carry swap permitted set
+  expanded to `std::mem::replace` / `std::mem::take` / local Vec swap (implementation uses
+  `std::mem::take`); EC-001/EC-002 "no allocation / no extra allocation" replaced with
+  accurate one-allocation wording. Sibling sweep applied to all live occurrences.
