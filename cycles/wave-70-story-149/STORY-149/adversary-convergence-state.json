@@ -1,0 +1,95 @@
+{
+  "story": "STORY-149",
+  "cycle": "wave-70-story-149",
+  "step": "4.5",
+  "bc_gating": "BC-5.39.001",
+  "policy": "DF-CONVERGENCE-BEFORE-MERGE-001",
+  "converged": false,
+  "passes_clean_consecutive": 0,
+  "passes_clean_consecutive_required": 3,
+  "total_passes": 1,
+  "trajectory": [
+    {
+      "pass": 1,
+      "date": "2026-07-07",
+      "classification": "FINDINGS",
+      "novelty": "medium",
+      "worktree_head_reviewed": "ef83f8c",
+      "findings_raised": 6,
+      "findings_ids": [
+        "F-S149P1-001",
+        "F-S149P1-002",
+        "F-S149P1-003",
+        "F-S149P1-004",
+        "F-S149P1-005",
+        "F-S149P1-006"
+      ],
+      "remediation": {
+        "implementer": "d18632c",
+        "story_writer_factory": "0d85780",
+        "story_writer_factory_note": "STORY-149 v1.2",
+        "test_writer": "a02eb6f"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-S149P1-001",
+      "pass": 1,
+      "severity": "MEDIUM",
+      "summary": "Inspection-test scope/gameability: test_BC_149_001_at_most_one_flows_borrow_in_try_parse_records asserted <=1 borrow call sites but the real invariant is exactly one; assertion was gameable by reducing to zero borrows",
+      "resolution_route": "FIXED — assertion tightened to ==1; test renamed to test_BC_149_001_exactly_one_flows_borrow_in_try_parse_records; two companion tests added",
+      "fix_commit": "a02eb6f"
+    },
+    {
+      "id": "F-S149P1-002",
+      "pass": 1,
+      "severity": "MEDIUM",
+      "summary": "Stale Kani structural refs: story or spec references to Kani harnesses did not reflect the restructured module layout after the 636-line carry-path refactor",
+      "resolution_route": "FIXED — STORY-149 spec updated to v1.2 (0d85780) with corrected structural references",
+      "fix_commit": "0d85780"
+    },
+    {
+      "id": "F-S149P1-003",
+      "pass": 1,
+      "severity": "LOW",
+      "summary": "mem::replace vs take wording ambiguity: implementation guidance referred to 'std::mem::replace swap pattern' but the cleaner idiom for Option<T> is mem::take; wording created confusion",
+      "resolution_route": "FIXED — implementation updated with unambiguous pattern (d18632c)",
+      "fix_commit": "d18632c"
+    },
+    {
+      "id": "F-S149P1-004",
+      "pass": 1,
+      "severity": "LOW",
+      "summary": "Fixture duplication: fragmented-handshake fixture setup was repeated in multiple test functions rather than extracted to a shared helper, risking divergence",
+      "resolution_route": "FIXED — shared fixture helper extracted (d18632c)",
+      "fix_commit": "d18632c"
+    },
+    {
+      "id": "F-S149P1-005",
+      "pass": 1,
+      "severity": "LOW",
+      "summary": "EC-002 no-alloc overstatement: a spec clause implied the refactored carry path introduced zero heap allocation per record, which is only true for the hot path; error-handling paths can still allocate",
+      "resolution_route": "FIXED — STORY-149 v1.2 (0d85780) qualified the no-alloc claim to hot path only",
+      "fix_commit": "0d85780"
+    },
+    {
+      "id": "F-S149P1-006",
+      "pass": 1,
+      "severity": "LOW",
+      "summary": "Missing mod wrappers: new test files lacked #[cfg(test)] mod wrapper, relying on file-level test gating; inconsistent with project conventions observed in adjacent test files",
+      "resolution_route": "FIXED — mod wrappers added (a02eb6f)",
+      "fix_commit": "a02eb6f"
+    }
+  ],
+  "behavior_preservation_check": {
+    "result": "ZERO_DEFECTS",
+    "note": "636-line carry-path restructure; six behavioral paths re-derived clean: oversized-record, Decision-4, Decision-5, non-handshake drain, hello dispatch order, timestamp/carry restoration"
+  },
+  "gates_at_remediation_head": {
+    "worktree_head": "a02eb6f",
+    "tests": "2366 pass / 0 fail",
+    "clippy": "clean (-D warnings)",
+    "fmt": "clean"
+  }
+}

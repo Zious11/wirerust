@@ -8,7 +8,7 @@ timestamp: 2026-07-07T00:00:00Z
 phase: 3
 inputs:
   - .factory/stories/STORY-149.md
-input-hash: "d2bd33e"
+input-hash: "76bc60c"
 traces_to: STORY-149
 stub_architect_agent: stub-architect (wave-70)
 stub_compile_verified: true
@@ -97,3 +97,33 @@ Implementation guidance:
 
 3. Run `cargo test --all-targets` after implementation — all 5 tests above must turn
    GREEN; zero pre-existing regressions allowed (VP-039 / VP-040 must remain green).
+
+---
+
+## Post-Script: DF-TEST-CITATION-SWEEP-001 Annotation (2026-07-07)
+
+**Pass-1 adversarial remediation note — original table rows above are historically
+accurate and are preserved unchanged.**
+
+The test name cited in the AC-149-001 row above —
+`test_BC_149_001_at_most_one_flows_borrow_in_try_parse_records` — is the correct name
+at test commit `e951664` (the Red Gate commit). The table entry is accurate for that
+point in history and must not be altered.
+
+During Pass-1 adversarial review (finding F-S149P1-001, MEDIUM), the assertion bound was
+identified as gameable (`<= 1` allows zero borrows, which vacuously satisfies the test
+without implementing the invariant). In remediation commit `a02eb6f` (test-writer, Pass-1
+remediation), the following changes were made:
+
+- Test renamed: `test_BC_149_001_at_most_one_flows_borrow_in_try_parse_records`
+  → `test_BC_149_001_exactly_one_flows_borrow_in_try_parse_records`
+- Assertion tightened: `<= 1` → `== 1`
+- Two companion tests added:
+  - `test_BC_149_001_process_handshake_carry_borrow_budget`
+  - `test_BC_149_001_no_aliasing_patterns_hide_borrow_count`
+
+The AC-149-001 test suite now contains 3 tests (up from 2). The AC-149-002 suite
+(fragmented fixture) is unchanged at 3 tests. Total test count at `a02eb6f`: 6 tests
+for STORY-149 (part of 2366 project-wide passing tests).
+
+Reference: adversary-pass-1-report.md (F-S149P1-001), adversary-convergence-state.json.
