@@ -7,6 +7,56 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-07-06
+
+### Added
+
+- **Three DNP3 observability counters surfacing previously silent analyzer state (PR #370,
+  BC-2.15.016/020/022).** Three new monotonic counters expose DNP3 resource-cap events that
+  were previously invisible to operators. All counters are purely additive — new keys appear in
+  `summarize()` JSON output only; detection logic, Finding emission, and all behavioral
+  invariants are unchanged.
+
+  - **`dropped_findings`** (DNP3 summary) — incremented at each of 11 `MAX_FINDINGS` cap-check
+    sites when a finding is suppressed. `MAX_FINDINGS = 10_000`; the counter makes finding-cap
+    pressure observable. (BC-2.15.022)
+
+  - **`master_addrs_dropped`** (DNP3 summary) — incremented when a new-unique master address is
+    silently ignored because the `MAX_MASTER_ADDRS = 64` cap is full. Existing-address hits do
+    not increment the counter. (BC-2.15.016 v2.1 PC-6)
+
+  - **`pending_requests_evicted`** (DNP3 summary) — incremented when `insert_pending_request`
+    LRU-evicts an entry. Follows the `insert_binding_lru`-returns-bool pattern established in
+    PR #366 (ARP). (BC-2.15.016 v2.1 PC-10)
+
+  Direct precedent: PR #365 / #366 added the equivalent counter pattern for ARP
+  (`bindings_evicted`, `storm_counters_evicted`), Modbus (`dropped_transactions`), and
+  HTTP/TLS (`dropped_map_entries`). The DNP3 counters close the remaining observability gap in
+  the silent-limit audit.
+
+### Security
+
+- **Bumped `crossbeam-epoch` 0.9.18 → 0.9.20** to clear RUSTSEC-2026-0204 (invalid pointer
+  dereference in the `fmt::Pointer` implementation of `crossbeam-epoch` 0.9.18, fixed in
+  0.9.20). This is a dev-dependency-only transitive dependency (`criterion` → `crossbeam-epoch`)
+  with no exposure in production builds. (PR #371)
+
+### Docs / Internal
+
+- **Doc-drift fixes from maint-2026-07-06 sweep (PR #369).** Closes all HIGH and MEDIUM
+  documentation-drift findings from the maintenance sweep:
+
+  - **README** — added the `protocols` subcommand to the CLI reference section (was absent
+    despite being a live, shipped command since v0.11.2).
+
+  - **ADR-0001 (stream dispatch) and ADR-0002 (modular analyzers)** — added EtherNet/IP (ENIP)
+    to both ADRs, which previously omitted it despite ENIP being a full Rule 7 dispatcher
+    entry since v0.11.0. `src/lib.rs` public module docs updated to match.
+
+  - **Observability counter documentation** — added user-facing documentation for the
+    `--counters` / observability counter surface introduced in v0.11.3.
+
+
 ## [0.11.4] - 2026-07-06
 
 ### Added
