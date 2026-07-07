@@ -99,7 +99,7 @@ mod story_150 {
 
         let body_len = body.len() as u32;
         let mut hs = vec![
-            0x01_u8,               // msg_type = ClientHello
+            0x01_u8, // msg_type = ClientHello
             (body_len >> 16) as u8,
             (body_len >> 8) as u8,
             body_len as u8,
@@ -136,7 +136,7 @@ mod story_150 {
 
         let body_len = body.len() as u32;
         let mut hs = vec![
-            0x02_u8,               // msg_type = ServerHello
+            0x02_u8, // msg_type = ServerHello
             (body_len >> 16) as u8,
             (body_len >> 8) as u8,
             body_len as u8,
@@ -217,8 +217,7 @@ mod story_150 {
         let count = body.matches("parse_tls_message_handshake(").count();
 
         assert_eq!(
-            count,
-            1,
+            count, 1,
             "AC-150-001 (TLS-DRAIN-DUP-001): `process_handshake_carry` must \
              contain exactly ONE call to `parse_tls_message_handshake` after \
              the C2S and S2C dispatch arms are unified via a shared abstraction \
@@ -511,7 +510,13 @@ mod story_150 {
         );
 
         // Phase 2: deliver the final segment — carry drains, ClientHello dispatched.
-        analyzer.on_data(&key, Direction::ClientToServer, segments.last().unwrap(), 0, 0);
+        analyzer.on_data(
+            &key,
+            Direction::ClientToServer,
+            segments.last().unwrap(),
+            0,
+            0,
+        );
 
         assert_eq!(
             analyzer.handshake_count(),
@@ -577,7 +582,13 @@ mod story_150 {
         );
 
         // Phase 2: deliver the final segment — carry drains, server_hello_seen set.
-        analyzer.on_data(&key, Direction::ServerToClient, segments.last().unwrap(), 0, 0);
+        analyzer.on_data(
+            &key,
+            Direction::ServerToClient,
+            segments.last().unwrap(),
+            0,
+            0,
+        );
 
         assert!(
             analyzer.server_hello_seen_for_testing(&key),
@@ -650,8 +661,7 @@ mod story_150 {
         );
 
         assert_eq!(
-            c2s_errors,
-            s2c_errors,
+            c2s_errors, s2c_errors,
             "BC-2.07.038 / AC-150-001 parse-error symmetry regression pin: \
              equivalent malformed messages in C2S (msg_type=0x01) and S2C \
              (msg_type=0x02) arms must produce the same parse_errors increment \
