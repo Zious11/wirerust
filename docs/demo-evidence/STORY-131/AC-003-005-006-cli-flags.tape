@@ -18,7 +18,7 @@ Set Shell "zsh"
 Set TypingSpeed 60ms
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-131-enip-dispatcher"
+Type "cd <REPO-ROOT>/.worktrees/STORY-131-enip-dispatcher"
 Enter
 Wait
 Show

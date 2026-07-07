@@ -13,7 +13,7 @@ Set PlaybackSpeed 1.0
 # Demonstrates: wirerust analyze --filter "tcp port 80" test.pcap → clap error
 # EC-003: space-separated BPF expression; clap errors on --filter before parsing rest
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-096/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-096/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

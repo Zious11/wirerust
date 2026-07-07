@@ -19,7 +19,7 @@ Set WaitTimeout 60s
 #               demonstrating the key is exclusively from the TLS analyzer.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-146-tls-buffer-saturation-telemetry"
+Type "cd <REPO-ROOT>/.worktrees/story-146-tls-buffer-saturation-telemetry"
 Enter
 Sleep 300ms
 Show

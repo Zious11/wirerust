@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-001 (BC-2.13.001 postcondition 1): --threats flag not declared; clap rejects it
 # Demonstrates: wirerust analyze --threats test.pcap → clap unexpected-argument error
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-096/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-096/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

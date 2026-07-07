@@ -28,7 +28,7 @@ Set Shell "zsh"
 Set TypingSpeed 60ms
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-137-enip-frame-walk"
+Type "cd <REPO-ROOT>/.worktrees/STORY-137-enip-frame-walk"
 Enter
 Wait
 Show

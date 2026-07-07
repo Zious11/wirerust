@@ -14,7 +14,7 @@ Set Framerate 24
 # AC-004: --help shows the new --flow-timeout <secs> global flag (default 300).
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/hs043-flow-expiry"
+Type "cd <REPO-ROOT>/.worktrees/hs043-flow-expiry"
 Enter
 Type "clear"
 Enter

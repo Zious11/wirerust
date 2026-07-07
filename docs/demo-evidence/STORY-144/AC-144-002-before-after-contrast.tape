@@ -11,7 +11,7 @@ Set WaitTimeout 30s
 
 # Setup: navigate to the worktree
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-144-tls-carry-reassembly"
+Type "cd <REPO-ROOT>/.worktrees/story-144-tls-carry-reassembly"
 Enter
 Sleep 200ms
 Show
@@ -39,7 +39,7 @@ Sleep 800ms
 Type "echo '--- AFTER (STORY-144): same fragmented pcap ---'"
 Enter
 Sleep 300ms
-Type "/Users/zious/Documents/GITHUB/wirerust/.factory/demo-evidence/fix-tls-clienthello-frag/story-144/show-tls-result.sh /Users/zious/Documents/GITHUB/wirerust/.factory/demo-evidence/fix-tls-clienthello-frag/tls-clienthello-fragmented.pcap 'FRAGMENTED (reassembled)'"
+Type "<REPO-ROOT>/.factory/demo-evidence/fix-tls-clienthello-frag/story-144/show-tls-result.sh <REPO-ROOT>/.factory/demo-evidence/fix-tls-clienthello-frag/tls-clienthello-fragmented.pcap 'FRAGMENTED (reassembled)'"
 Enter
 Wait+Screen /parse_errors/
 Sleep 3s

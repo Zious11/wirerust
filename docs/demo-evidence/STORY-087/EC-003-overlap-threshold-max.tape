@@ -13,7 +13,7 @@ Set PlaybackSpeed 1.0
 # EC-003: --overlap-threshold 255 (max boundary) → accepted (overlap_threshold = Some(255))
 # "Error: Target not found" proves clap accepted the max boundary value
 Hide
-Type 'export BIN=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-087/target/debug/wirerust'
+Type 'export BIN=<REPO-ROOT>/.worktrees/STORY-087/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

@@ -25,7 +25,7 @@ Set WaitTimeout 120s
 # Error path:   misspelled module name -> 0 tests run (demonstrates test filter precision).
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-146-tls-buffer-saturation-telemetry"
+Type "cd <REPO-ROOT>/.worktrees/story-146-tls-buffer-saturation-telemetry"
 Enter
 Sleep 300ms
 Show

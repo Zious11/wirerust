@@ -12,7 +12,7 @@ Set Padding 20
 Set PlaybackSpeed 1.0
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-043"
+Type "cd <REPO-ROOT>/.worktrees/STORY-043"
 Enter
 Sleep 500ms
 Show
