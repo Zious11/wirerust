@@ -173,6 +173,48 @@ mod bc_149_single_borrow {
         );
     }
 
+    /// AC-149-001: every `flows.get_mut(`/`flows.get(` acquisition site in
+    /// `process_handshake_carry` must carry a `BORROW BUDGET` inline annotation,
+    /// and the count of annotations must equal the count of acquisition sites.
+    ///
+    /// This enforces the Architecture Compliance Rule: "SINGLE-BORROW INVARIANT
+    /// marker + budget annotation ... enforced by source-inspection test" — so
+    /// adding a new un-annotated borrow site immediately fails CI (F-S149P5-001).
+    ///
+    /// Count equality guards both directions:
+    /// - More borrows than annotations → new unannotated site snuck in.
+    /// - More annotations than borrows → stale annotation left behind after refactor.
+    ///
+    /// GREEN (STORY-149 / F-S149P5-001): `process_handshake_carry` body contains
+    /// exactly 3 `BORROW BUDGET` inline markers matching its 3 acquisition sites.
+    #[test]
+    fn test_BC_149_001_process_handshake_carry_budget_annotations_match_sites() {
+        let source = read_tls_source();
+        let phc_body = extract_fn_body(&source, "fn process_handshake_carry(");
+
+        let acquisition_sites =
+            phc_body.matches("flows.get_mut(").count() + phc_body.matches("flows.get(").count();
+        let budget_markers = phc_body.matches("BORROW BUDGET").count();
+
+        assert!(
+            budget_markers > 0,
+            "AC-149-001 (F-S149P5-001): process_handshake_carry body must contain \
+             at least one 'BORROW BUDGET' inline annotation — the Architecture \
+             Compliance Rule requires budget annotations at every acquisition site \
+             so that unannotated borrows are caught by this inspection test \
+             (STORY-149). Found 0 'BORROW BUDGET' markers in process_handshake_carry."
+        );
+        assert_eq!(
+            budget_markers, acquisition_sites,
+            "AC-149-001 (F-S149P5-001): the count of 'BORROW BUDGET' inline \
+             annotations in process_handshake_carry must equal the count of \
+             flows.get_mut(/flows.get( acquisition sites — every borrow site \
+             must be annotated and no stale annotations may remain (STORY-149). \
+             Found {budget_markers} 'BORROW BUDGET' marker(s) but \
+             {acquisition_sites} acquisition site(s) in process_handshake_carry."
+        );
+    }
+
     /// AC-149-001 anti-gameability guard: neither `try_parse_records` nor
     /// `process_handshake_carry` may contain patterns that would hide HashMap
     /// re-hashing from the acquisition-site count (F-S149P1-001).
