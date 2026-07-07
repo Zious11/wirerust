@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-06T23:07:18Z","command":"cd /Users/zious/Documents/GITHUB/wirerust-release-0.11.5 && cargo test --all-targets 2>&1 | grep -E \"^test result|FAILED|error\\[\" | head -20"}
+{"status":"pass","timestamp":"2026-07-07T13:31:32Z","command":"cargo test --all-targets 2>&1"}
