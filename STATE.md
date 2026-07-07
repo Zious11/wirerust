@@ -37,9 +37,9 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 99
-story_index_version: "v3.16"
-total_stories: 109
-story_index_note: "109 stories / 70 waves / 697 pts. STORY-156 added (E-16, BC-2.16.016 gap, maint-2026-07-06); STORY-149 escalated wave TBD→70 + DELIVERED 2026-07-07 (PR #374, 116100d, stories_delivered=99). dependency-graph v3.6 (edges 124, waves 69). HS-INDEX v2.12 (total 205)."
+story_index_version: "v3.17"
+total_stories: 110
+story_index_note: "110 stories / 70 waves / 700 pts. STORY-157 added (E-11, wave-70 process-gap codifications PG-S149-001+PG-W70-DEMO-SCRUB+PG-HASH-EMPTY-INPUTS, 2026-07-07); STORY-156 added (E-16, BC-2.16.016 gap, maint-2026-07-06); STORY-149 escalated wave TBD→70 + DELIVERED 2026-07-07 (PR #374, 116100d, stories_delivered=99). dependency-graph v3.6 (edges 124, waves 69). HS-INDEX v2.12 (total 205)."
 # Spec versions (current)
 bc_index_version: "v2.19"
 vp_index_version: "v2.35"
