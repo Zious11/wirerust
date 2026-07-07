@@ -7,6 +7,33 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Fragmented-handshake Criterion benchmark `tls_fragmented/3-record-carry-drain` +
+  `[[bench]]` target (STORY-149, PR #374, closes #360).** A new Criterion benchmark
+  exercises the TLS carry-path under realistic 3-record fragmented-handshake conditions,
+  providing a regression fixture for the restructured carry path. CI-gated
+  bounded-borrow source-inspection tests (`tests/bc_149_single_borrow_invariant_tests.rs`)
+  verify the single-borrow invariant holds across the restructured code paths.
+
+### Changed
+
+- **TLS carry-path restructured for single-borrow HashMap access (STORY-149, PR #374).**
+  `try_parse_records` refactored into three cooperating functions (`prepare_record_step`,
+  `RecordStep`, `process_handshake_carry`) to eliminate a double-borrow on the per-flow
+  carry buffer. The `reassembly/tls.pcap` Criterion benchmark recovered −7.88% regression
+  (23.841 µs measured, +2.41% vs May-19 anchor — within the ±5 % recovery target). Zero
+  behavior change: 8-pass adversarial convergence and holdout re-evaluation score 0.920
+  unchanged.
+
+### Fixed
+
+- **Absolute host paths scrubbed from 193 committed demo-evidence files (PR #376,
+  F-W70P2-002).** All absolute host filesystem paths in `docs/demo-evidence/` have been
+  replaced with `<REPO-ROOT>` and `<HOME>` placeholder tokens. These are scrub markers —
+  not environment variables — indicating where former machine-specific paths appeared.
+  See `docs/demo-evidence/README.md` for the placeholder convention.
+
 ## [0.11.5] - 2026-07-06
 
 ### Added
@@ -950,7 +977,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.4...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.5...HEAD
+[0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/Zious11/wirerust/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/Zious11/wirerust/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/Zious11/wirerust/compare/v0.11.1...v0.11.2
