@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-149
 title: "TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture"
 epic_id: E-11
-version: "1.3"
+version: "1.4"
 status: pending
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
@@ -143,7 +143,7 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | `TlsAnalyzer::try_parse_records` / `prepare_record_step` / `process_handshake_carry` (bounded-borrow restructure; budget ≤ 4) | `src/analyzer/tls.rs` | Effectful shell (mutates flow state) |
-| `TlsFlowState.carry` (carry-buffer swap pattern) | `src/analyzer/tls.rs` | Pure-core data (byte buffer) |
+| `TlsFlowState.{client,server}_hs_carry` (carry-buffer swap pattern) | `src/analyzer/tls.rs` | Pure-core data (byte buffers) |
 | Fragmented-handshake benchmark fixture | `benches/tls_fragmented.rs` | Effectful shell (bench harness) |
 
 ## Edge Cases
@@ -191,7 +191,7 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 
 | Story | Key Decisions | Patterns Established | Gotchas Discovered |
 |-------|--------------|---------------------|-------------------|
-| STORY-144 | Introduced carry struct for fragmented TLS handshake | Carry-drain loop in `try_parse_records`; naive acquire-per-operation pattern used | Naive pattern causes 6–8 HashMap re-hashes per record on hot path |
+| STORY-144 | Introduced carry-buffer fields (`client_hs_carry` / `server_hs_carry`) on `TlsFlowState` for fragmented TLS handshake | Carry-drain loop in `try_parse_records`; naive acquire-per-operation pattern used | Naive pattern causes 6–8 HashMap re-hashes per record on hot path |
 | STORY-145 | Extended carry-path for multi-record ClientHello | Carry-drain loop verified correct | Existing bench fixture does not exercise carry-drain loop (complete single-record fixture) |
 | STORY-146 | Final carry-path fix in fix-tls-clienthello-frag wave 65–66 | Carry-buffer now part of shipped code | No regression baseline for carry-drain path |
 | STORY-147 | E-11 tooling pattern: performance / mutation testing follow-up | E-11 stories have `behavioral_contracts: []`, no VPs defined by the story | Wave-TBD assignment until escalation gate |
@@ -230,7 +230,8 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
 - The borrow-constraint root cause: `flows.get_mut()` returns a `&mut TlsFlowState`
   borrow on `self.flows`. This borrow conflicts with the `&mut self` call to downstream
   dispatch, requiring a carry swap to drop the borrow before dispatch. STORY-144
-  introduced the carry struct but used a naive acquire-per-operation pattern; this story
+  introduced the carry-buffer fields (`client_hs_carry` / `server_hs_carry`) on `TlsFlowState`
+  but used a naive acquire-per-operation pattern; this story
   consolidates it to a bounded-borrow pattern (budget ≤ 4 across `try_parse_records` body
   and `process_handshake_carry`).
 - Relationship to STORY-150: this story (149) fixes the performance regression first.
@@ -254,3 +255,10 @@ AC-149-005: `cargo test --all-targets` passes without regression; existing VP-03
   reworded to make clear that +5% is the AC's own stricter recovery target, not
   equivalent to the +10% WARNING threshold (F-S149P3-002). Sibling sweep confirmed no
   other live occurrences of `--bench tls[^_]` in story or wave-70 artifacts.
+- Version 1.3 → 1.4 amendment: Architecture Mapping row corrected from nonexistent
+  `TlsFlowState.carry` field to actual fields `TlsFlowState.{client,server}_hs_carry`
+  (F-S149P4-001). Live prose in Previous Story Intelligence (STORY-144 row) and Notes
+  harmonized from "carry struct" to "carry-buffer fields (`client_hs_carry` /
+  `server_hs_carry`) on `TlsFlowState`". Historical version-amendment changelog lines
+  left untouched per sweep instructions. Purity Classification table verified — no bare
+  field reference present, no change required.
