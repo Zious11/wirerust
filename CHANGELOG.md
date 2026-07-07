@@ -32,7 +32,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   F-W70P2-002).** All absolute host filesystem paths in `docs/demo-evidence/` have been
   replaced with `<REPO-ROOT>` and `<HOME>` placeholder tokens. These are scrub markers —
   not environment variables — indicating where former machine-specific paths appeared.
-  See `docs/demo-evidence/README.md` for the placeholder convention.
+  See `docs/DEMO-EVIDENCE.md` for the placeholder convention.
 
 ## [0.11.5] - 2026-07-06
 
