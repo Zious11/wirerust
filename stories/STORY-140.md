@@ -1,7 +1,7 @@
 ---
 document_type: story
 story_id: STORY-140
-version: "1.1"
+version: "1.2"
 title: "DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001)"
 epic_id: E-15
 wave: 63
@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.015.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-DNP3-SIBLING-001-direction-and-clock.md
-input-hash: "269be83"
+input-hash: "174ca18"
 ---
 
 # STORY-140: DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001)
@@ -637,5 +637,6 @@ implementers can mirror exactly. No conceptual dependency — pure build-order c
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.2 | 2026-07-07 | story-writer | input-hash re-hash: maint-2026-07-06 BC-2.15.016 v2.1 amendment absorbed — master_addrs_dropped/pending_requests_evicted counters are additive observability enhancements from silent-limit audit; delivered story scope unaffected. |
 | 1.1 | 2026-07-06 | maint-2026-07-06 | BC-2.15.016 v2.1 amendment: updated BC table to v2.1, added PC-6/PC-10 counter references; added template fields (producer, timestamp, priority, estimated_days, level, traces_to, cycle); added Purity Classification section; converted behavioral_contracts to inline array format; replaced inline BC citations for non-frontmatter BCs with descriptive prose |
 | 1.0 | 2026-06-20 | story-writer | Initial story: DNP3 per-direction carry buffer split, saturating window monotonicity, operator pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) |

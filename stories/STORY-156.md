@@ -2,18 +2,23 @@
 document_type: story
 story_id: STORY-156
 epic_id: E-16
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
 phase: f3
+level: feature
+cycle: maint-2026-07-06
 points: 3
 priority: P1
+wave: "71"
 depends_on: [STORY-115]
 blocks: []
 behavioral_contracts:
   - BC-2.16.016
 verification_properties: []
+assumption_validations: []
+risk_mitigations: []
 tdd_mode: strict
 target_module: analyzer/arp
 subsystems: [SS-16]
@@ -23,6 +28,16 @@ github_issue: 9
 # BC status: BC-2.16.016 v1.0 authored 2026-06-23 (fix-pc-013-014-015, D-221). No prior story coverage;
 # spec-coherence sweep 7 (maint-2026-07-06) finding F-NEW-MAJ-003 identified this gap (criterion 27 FAIL).
 # This story closes the gap; it is the primary delivery story for BC-2.16.016 behavioral tests and CLI doc.
+# v1.1 (2026-07-07): Wave assigned 71 (v0.12.0 planning gate, 2026-07-07 human approval). Added
+#   missing template compliance fields (wave, level, cycle, assumption_validations, risk_mitigations,
+#   traces_to) and mandatory sections (Purity Classification, Previous Story Intelligence,
+#   Architecture Compliance Rules, Library & Framework Requirements, File Structure Requirements).
+traces_to:
+  - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
+  - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
+  - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
+  - src/analyzer/arp.rs
+  - src/cli.rs
 inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
@@ -57,8 +72,9 @@ input-hash: "ce96d86"
 `ArpAnalyzer::process_arp` returns a `Vec<Finding>` with NO upper bound on findings. Unlike HTTP, TLS,
 Modbus, and DNP3 analyzers (which pass through `TcpReassembler` and are capped at `MAX_FINDINGS =
 10,000` from `src/reassembly/mod.rs:57`), ARP operates at the Ethernet link layer and bypasses TCP
-reassembly entirely (BC-2.16.015 Invariant 2). The internal binding-table cap (`MAX_ARP_BINDINGS =
-65,536`, BC-2.16.006) and storm-counter cap (`MAX_STORM_COUNTERS = 4,096`, BC-2.16.008) are MEMORY
+reassembly entirely — ARP operates at the Ethernet link layer and bypasses TCP reassembly by design.
+The internal binding-table cap (`MAX_ARP_BINDINGS =
+65,536`) and storm-counter cap (`MAX_STORM_COUNTERS = 4,096`) are MEMORY
 bounds on internal HashMaps, NOT bounds on the findings Vec.
 
 This is intentional design for a CLI forensics tool where operators own their pcap files and need
@@ -90,8 +106,8 @@ informed of this behavior (PC-015 documentation fix).
 ### AC-002 (traces to BC-2.16.016 Invariant 1 — no MAX_FINDINGS on ARP path)
 `ArpAnalyzer` does NOT define or reference a `MAX_FINDINGS` constant. Code inspection confirms
 `src/analyzer/arp.rs` has no `const MAX_FINDINGS` definition. The only applicable bounds are
-`MAX_ARP_BINDINGS = 65,536` (binding-table memory cap, BC-2.16.006) and `MAX_STORM_COUNTERS =
-4,096` (storm-counter memory cap, BC-2.16.008); neither caps the findings Vec. This invariant is
+`MAX_ARP_BINDINGS = 65,536` (binding-table memory cap) and `MAX_STORM_COUNTERS =
+4,096` (storm-counter memory cap); neither caps the findings Vec. This invariant is
 enforced by the regression test in AC-003 (if a MAX_FINDINGS cap were accidentally introduced,
 that test's `findings.len() > 10,000` assertion would fail).
 
@@ -115,8 +131,8 @@ or `tests/bc_2_16_story113_arp_tests.rs`:
 ### AC-004 (traces to BC-2.16.016 Postconditions 2+3 — summarize() NEVER emits dropped_findings)
 `ArpAnalyzer::summarize()` output does NOT contain a `"dropped_findings"` key after processing any
 sequence of ARP frames, including sequences producing more than 10,000 findings. Adding a
-`"dropped_findings"` key would be a BC-2.16.010 breaking change (the 13-key contract from
-BC-2.16.010 v1.9 does not include `"dropped_findings"` and adding it would require a new BC version
+`"dropped_findings"` key would be a breaking change to the 13-key summarize contract (that
+contract does not include `"dropped_findings"` and adding it would require a new contract version
 plus its own delivery story).
 - **Test:** `test_BC_2_16_016_summarize_has_no_dropped_findings_key` — after processing 10,001+
   ARP spoof events, assert `summarize().get("dropped_findings").is_none()`.
@@ -134,8 +150,8 @@ STORY-112/113/114 remain green. `cargo clippy --all-targets -- -D warnings` pass
 | `test_BC_2_16_016_summarize_has_no_dropped_findings_key` | same test module | Test (pure) |
 | `ArpAnalyzer::process_arp` (NO behavior change — cap absence is the current shipped behavior) | `src/analyzer/arp.rs` | Pure core (stateful) |
 
-Architecture references: BC-2.16.015 §Invariant 2 (link-layer bypass of reassembly),
-BC-2.16.010 v1.9 (13-key summarize contract — adding `dropped_findings` would break it),
+Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reassembly),
+13-key summarize contract (adding `dropped_findings` would break it),
 `src/reassembly/mod.rs:57` (`MAX_FINDINGS = 10,000` applies to HTTP/TLS/Modbus/DNP3 only, not ARP).
 
 ## Edge Cases
@@ -144,8 +160,8 @@ BC-2.16.010 v1.9 (13-key summarize contract — adding `dropped_findings` would 
 |----|-------------|-------------------|
 | EC-001 | 0 ARP frames processed | `all_findings.len() == 0`; `summarize()` has no `"dropped_findings"` key |
 | EC-002 | Exactly 10,001 D1 spoof events | `all_findings.len() >= 10,001` (> 10,000); no cap applied |
-| EC-003 | `summarize()` after >10,000 events | 13-key output per BC-2.16.010 v1.9; no `"dropped_findings"` key |
-| EC-004 | `MAX_ARP_BINDINGS` reached during >10,000-event test | Binding-table eviction fires (BC-2.16.006 LRU); `bindings_evicted` incremented in summarize(); findings Vec still unbounded |
+| EC-003 | `summarize()` after >10,000 events | 13-key output per the summarize contract; no `"dropped_findings"` key |
+| EC-004 | `MAX_ARP_BINDINGS` reached during >10,000-event test | Binding-table eviction fires (LRU eviction policy); `bindings_evicted` incremented in summarize(); findings Vec still unbounded |
 
 ## Tasks
 
@@ -191,8 +207,47 @@ BC-2.16.010 v1.9 (13-key summarize contract — adding `dropped_findings` would 
 - `depends_on: [STORY-115]` — `ArpAnalyzer::new(spoof_threshold, storm_rate)` with the `storm_rate`
   parameter exists only after STORY-115 ships. The regression test uses `storm_rate=u32::MAX` to
   suppress D3 findings. STORY-115 also completes the 13-key `summarize()` contract, making AC-004
-  testable (BC-2.16.010 v1.9 cross-story extension wired in STORY-115).
+  testable (the 13-key summarize contract is finalized by STORY-115).
 - `blocks: []` — no downstream stories depend on this story.
+
+## Purity Classification
+
+| File | Classification | Reason |
+|------|---------------|--------|
+| `src/cli.rs` — `--arp` flag `long_help` | Effectful shell (CLI) | Updates CLI argument parser definition |
+| `src/analyzer/arp.rs` — `process_arp` | Pure core (stateful) | No behavior change; cap absence is the existing behavior |
+| Test functions (AC-003/004) | Pure (test-only) | In-memory computation; no I/O side effects |
+
+## Previous Story Intelligence (MANDATORY)
+
+| Story | Key Decisions | Patterns Established | Gotchas Discovered |
+|-------|--------------|---------------------|-------------------|
+| STORY-113 | Introduced `ArpAnalyzer` with `process_arp` returning `Vec<Finding>` — no `MAX_FINDINGS` cap by design | `process_arp` unbounded on the link-layer path | Test file `tests/bc_2_16_story113_arp_tests.rs` may already exist — add AC-003/004 tests there, do NOT create a duplicate file |
+| STORY-115 | Added `storm_rate` constructor parameter | `ArpAnalyzer::new(spoof_threshold, storm_rate)` signature; `storm_rate=u32::MAX` suppresses D3 storm findings | STORY-115 finalizes the 13-key `summarize()` contract — AC-004 is only fully testable after STORY-115 merges |
+
+## Architecture Compliance Rules (MANDATORY)
+
+| Rule | Source | Enforcement |
+|------|--------|-------------|
+| No behavior change to `ArpAnalyzer::process_arp` — documentation + tests only | BC-2.16.016 design intent | Code review; test outcome confirms cap absence |
+| Must NOT introduce a `MAX_FINDINGS` constant on the ARP path | BC-2.16.016 Invariant 1 | AC-003 regression test asserts `findings.len() > 10_000` |
+| Must NOT add `"dropped_findings"` key to `summarize()` output | 13-key summarize contract | AC-004 test asserts `.get("dropped_findings").is_none()` |
+| Reuse existing test file if `tests/bc_2_16_story113_arp_tests.rs` exists | No duplicate test files | Code review |
+| `cargo clippy --all-targets -- -D warnings` must pass | CLAUDE.md CI gate | CI |
+
+## Library & Framework Requirements (MANDATORY)
+
+| Tool / Library | Version | Purpose |
+|---------------|---------|---------|
+| Rust stable | per `rust-version` in Cargo.toml (≥1.91) | No new dependencies introduced |
+| clap | existing project version | `--arp` flag `long_help` attribute update |
+
+## File Structure Requirements (MANDATORY)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/cli.rs` | modify | Add `long_help` attribute to `--arp` flag documenting unbounded findings (BC-2.16.016 PC-4 / PC-015) |
+| `src/analyzer/arp.rs` test module or `tests/bc_2_16_story113_arp_tests.rs` | modify | Add `test_BC_2_16_016_arp_findings_vec_has_no_cap` (AC-003) and `test_BC_2_16_016_summarize_has_no_dropped_findings_key` (AC-004) |
 
 ## Token Budget Estimate
 
@@ -200,8 +255,8 @@ BC-2.16.010 v1.9 (13-key summarize contract — adding `dropped_findings` would 
 |-----------|-----------------|
 | Story spec (this file) | ~3,500 |
 | BC-2.16.016 (primary BC) | ~4,000 |
-| BC-2.16.010 v1.9 (summarize 13-key contract) | ~2,500 |
-| BC-2.16.015 (link-layer bypass architectural invariant) | ~1,500 |
+| 13-key summarize contract context | ~2,500 |
+| Link-layer bypass invariant context | ~1,500 |
 | STORY-113 / STORY-115 context (ArpAnalyzer state post-delivery) | ~2,000 |
 | Existing `src/analyzer/arp.rs` (after STORY-113/114/115) | ~3,500 |
 | Tool outputs (cargo test) | ~1,500 |

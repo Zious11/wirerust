@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-108
 epic_id: E-15
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -36,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "c208c68"
+input-hash: "177c2aa"
 ---
 
 # STORY-108: DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize
@@ -270,6 +270,7 @@ Within 20-30% of agent context window (~120k). This is the largest story in the 
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.4 | 2026-07-07 | story-writer | input-hash re-hash: maint-2026-07-06 BC-2.15.020 v1.5 + BC-2.15.022 v1.5 amendments absorbed — dropped_findings/master_addrs_dropped/pending_requests_evicted counters are additive observability enhancements from silent-limit audit; delivered story scope unaffected. |
 | 1.3 | 2026-07-06 | story-writer | BC-2.15.020 v1.5 + BC-2.15.022 v1.5 propagation (maint-2026-07-06 DNP3 observability-counter amendment): AC-009 extended with dropped_findings counter note (PC-5); AC-010 extended with 3 new summarize keys (dropped_findings, master_addrs_dropped, pending_requests_evicted). BC table, BC status comment, and input-hash updated. Template fields and Purity Classification section added. |
 | 1.2 | 2026-06-23 | story-writer | BC-2.15.020 v1.4 amendment (fix-pc-013-014-015): BREAKING rename total_parse_errors → parse_errors (D-220); updated AC-010, Task 8, and BC table. |
 | 1.0 | 2026-06-10 | story-writer | Initial decomposition — T1692.001, T0814, T0836, co-emission ordering, MAX_FINDINGS cap, summarize() |

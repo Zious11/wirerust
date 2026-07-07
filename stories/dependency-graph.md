@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.6"
+version: "3.7"
 status: draft
 producer: story-writer
 phase: 3
@@ -29,11 +29,12 @@ modified:
   - "2026-07-02 v3.4: F-F3P2-005 remediation — file-sequencing edge 152→154 added. STORY-154 moved from wave 68 to wave 69 (both STORY-152 and STORY-154 edit src/cli.rs + src/main.rs + tests/integration_tests.rs; parallel dispatch in wave 68 would cause merge conflicts on shared files). total_edges 123→124 (+1 intra-E-21: STORY-152→STORY-154). intra_epic_edges 102→103. number_of_waves 68→69. STORY-154 depends_on updated [151,153]→[151,152,153] in story frontmatter. Wave 68 now contains STORY-152 only; Wave 69 contains STORY-154."
   - "2026-07-02 v3.5: F-F3P3-004 remediation — acyclicity-proof narrative stale counts corrected to 107 (STORY-INDEX authoritative). Three locations updated: (1) Wave Schedule intro callout 'all 73 product stories' → 'all 107 product stories (STORY-INDEX authoritative; wave tables cover waves 1–69)'; (2) E-21 Cycle-Check callout 'All 93 product nodes' → 'All 107 product nodes (STORY-INDEX authoritative)'; (3) Acyclicity Proof bullet 'all 93 product stories processed' → 'all 107 product stories processed (STORY-INDEX authoritative)'. All three nodes in disagreement with frontmatter total_stories: 107 and with each other — now self-consistent. Edges, waves, and story tables unchanged."
   - "2026-07-02 v3.6: F-F3P6-004 remediation — replaced phantom type names ProtocolsArgs/AnalyzeArgs with correct inline enum variant references in 152→154 edge justification. Real cli.rs uses inline struct variants (Commands::Protocols { all, supported, unsupported } and Commands::Analyze { ..., coverage_gaps, ... }) with no separate *Args structs. Edge count and wave schedule unchanged."
-total_stories: 107  # STORY-INDEX authoritative (107); wave tables cover waves 1-69; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-149+STORY-150 tracked in STORY-INDEX but not in wave schedule
-total_edges: 124
-intra_epic_edges: 103
+  - "2026-07-07 v3.7: v0.12.0 wave-71 planning gate — waves 70+71 scheduled. Wave 70: STORY-149 (E-11, dep=[], 5pts, already delivered PR #374). Wave 71: STORY-150 (E-11, dep=[], 5pts), STORY-156 (E-16, dep=[STORY-115], 3pts), STORY-157 (E-11, dep=[], 5pts). New intra-E-16 edge: STORY-115→STORY-156 (file-ordering: ArpAnalyzer::new(spoof_threshold, storm_rate) + 13-key summarize() contract finalized by STORY-115 before STORY-156 regression tests can compile against it). total_stories 107→110 (+STORY-155/156/157 added to STORY-INDEX since v3.6). total_edges 124→125. intra_epic_edges 103→104. number_of_waves 69→71. total_points 662→680 (+5 wave-70, +13 wave-71)."
+total_stories: 110  # STORY-INDEX authoritative (110); wave tables cover waves 1-71; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-155 tracked in STORY-INDEX but not in wave schedule
+total_edges: 125
+intra_epic_edges: 104
 cross_epic_edges: 21
-number_of_waves: 69
+number_of_waves: 71
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -45,10 +46,10 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 107 stories (STORY-INDEX authoritative) formalize behavioral contracts for existing and new shipped code
+> All 110 stories (STORY-INDEX authoritative) formalize behavioral contracts for existing and new shipped code
 > (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage feature additions
-> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21; wave tables in this file cover waves 1-69;
-> wave-TBD stories STORY-091 + STORY-121 + STORY-139..150 tracked in STORY-INDEX — all-stories total = 107).
+> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21; wave tables in this file cover waves 1-71;
+> wave-TBD stories STORY-091 + STORY-121 + STORY-143/147/148/155 tracked in STORY-INDEX — all-stories total = 110).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -59,13 +60,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 107 (STORY-INDEX authoritative; wave tables cover waves 1-69; wave-TBD stories STORY-091+STORY-121+STORY-139..150 tracked in STORY-INDEX but not yet in wave schedule) |
-| Total dependency edges | 124 |
-| Intra-epic edges | 103 |
+| Total stories | 110 (STORY-INDEX authoritative; wave tables cover waves 1-71; wave-TBD stories STORY-091+STORY-121+STORY-143/147/148/155 tracked in STORY-INDEX but not yet in wave schedule) |
+| Total dependency edges | 125 |
+| Intra-epic edges | 104 |
 | Cross-epic edges | 21 |
-| Number of parallel waves | 69 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–69 for E-21 Protocol Coverage Catalog: STORY-151∥STORY-153 wave 67, STORY-152 wave 68, STORY-154 wave 69) |
-| Graph is acyclic | Yes (Kahn topological sort verified; E-21 chain: {STORY-151∥STORY-153} (wave 67, no deps) → {STORY-152 (dep=151)} (wave 68) → {STORY-154 (dep=151+152+153)} (wave 69); no back-edges into existing graph) |
-| Total story points | 662 (product scheduled through wave 69; E-21 adds 32 pts [8+8+8+8]) |
+| Number of parallel waves | 71 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–69 for E-21 Protocol Coverage Catalog; Wave 70 STORY-149 E-11; Wave 71 STORY-150∥STORY-156∥STORY-157 E-11/E-16) |
+| Graph is acyclic | Yes (Kahn topological sort verified; E-21 chain: {STORY-151∥STORY-153} (wave 67, no deps) → {STORY-152 (dep=151)} (wave 68) → {STORY-154 (dep=151+152+153)} (wave 69); Wave 70: STORY-149 (dep=[]); Wave 71: STORY-150 (dep=[]), STORY-157 (dep=[]) parallel with STORY-156 (dep=[STORY-115]); no back-edges) |
+| Total story points | 680 (product scheduled through wave 71; +5 wave-70, +13 wave-71 [STORY-150+5, STORY-156+3, STORY-157+5]) |
 
 ---
 
@@ -92,7 +93,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (103 edges)
+### Intra-Epic Edges (104 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -221,6 +222,7 @@ Dependencies in this graph respect the layer rules from
 | STORY-112 | STORY-113 | STORY-113 (D2 GARP, D11 malformed, D12 mismatch, binding table, summarize) requires the `ArpAnalyzer` stub skeleton and `process_arp` method signature from STORY-112; the binding-table types (`BindingEntry`, `HashMap<[u8;4], BindingEntry>`) are introduced in STORY-113 itself |
 | STORY-113 | STORY-114 | STORY-114 (D1 spoof detection emissions + VP-007 atomic update SEEDED 23→25 / EMITTED 15→17) requires the complete `ArpAnalyzer` detection surface from STORY-113 (binding table, classify_garp, D2/D11/D12 detectors) before D1 findings can be emitted and MITRE catalog seeded; also requires `summarize()` key layout from STORY-113 for VP-007 catalog alignment |
 | STORY-114 | STORY-115 | STORY-115 (D3 storm detection + `--arp-storm-rate` CLI flag + `storm_findings` summary key) finalizes the complete `ArpAnalyzer` (all detections live); it cannot do so before the analyzer's full detection surface and emission contract are finalized in STORY-114; also wires the VALUE of the existing BC-2.16.010 `storm_findings` key (canonical key 8, declared by STORY-113) in `summarize()` (ARP bypasses `classify()`/`StreamDispatcher` — arp-architecture-delta §4.4) |
+| STORY-115 | STORY-156 | STORY-156 (ARP findings unbounded-cap documentation + regression tests, BC-2.16.016) requires `ArpAnalyzer::new(spoof_threshold, storm_rate)` with the `storm_rate` constructor parameter established by STORY-115; the regression test uses `storm_rate=u32::MAX` to suppress D3 findings (STORY-115 finalizes the 13-key `summarize()` contract making AC-004 fully testable). File-ordering: both stories touch `src/analyzer/arp.rs` and/or its test module. |
 
 #### Epic E-17: ARP Decoder VLAN/QinQ/MACsec Offset Hardening (issue #253)
 
@@ -318,7 +320,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 107 product stories (STORY-INDEX authoritative; wave tables cover waves 1–69). No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 110 product stories (STORY-INDEX authoritative; wave tables cover waves 1–71). No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -823,6 +825,24 @@ and can be dispatched in parallel.
 
 > **Note:** STORY-154 depends on STORY-151, STORY-152, and STORY-153 (wave 69 = max(68)+1 via three edges: 151→154 compile-order on protocols.rs API, 153→154 compile-order + runtime-data on dispatcher counters, 152→154 file-sequencing on cli.rs/main.rs/integration_tests.rs). STORY-154 is the terminal leaf of the E-21 graph, integrating both the catalog module (STORY-151) and the gap counters (STORY-153), after STORY-152 has established the shared CLI/main.rs scaffolding.
 
+### Wave 70 — 1 story | Epic: E-11 (v0.12.0 planning; already delivered PR #374)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-149 | E-11 | 5 | SS-05 | TLS Carry-Path Single-Borrow Restructure + Fragmented-Handshake Benchmark (STORY-149) |
+
+> **Note:** STORY-149 depends on nothing (`depends_on=[]`). Delivered via PR #374 (merged 2026-07-02, commit 116100d). Wave 70 closed (D-396). This entry records the delivered wave for completeness.
+
+### Wave 71 — 3 stories | Epics: E-11 (2 stories), E-16 (1 story) — v0.12.0 planning gate
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-150 | E-11 | 5 | SS-05 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) + Kani VP-039 + Mutation Re-run + BC-ANCHOR-DRIFT-OUTOFCYCLE-001 anchor sweep |
+| STORY-156 | E-16 | 3 | SS-16 | ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016) |
+| STORY-157 | E-11 | 5 | SS-05 | VSDD Process Codification (PG-W70-PROCESS-GAP-001 + PG-W70-MERGE-AUTH) |
+
+> **Note:** STORY-150 and STORY-157 have `depends_on=[]` (parallel roots, independent of each other and of STORY-156). STORY-156 depends on STORY-115 (STORY-115 finalizes `ArpAnalyzer::new(spoof_threshold, storm_rate)` and the 13-key `summarize()` contract needed by STORY-156 regression tests — STORY-115 is wave 44, already delivered). Wave-71 stories have disjoint file sets: STORY-150 touches `src/analyzer/tls.rs` + spec files; STORY-156 touches `src/analyzer/arp.rs` + `src/cli.rs`; STORY-157 touches `.factory/policies.yaml` + `.factory/pr-manager-guidance.md`. No merge-conflict risk; all three can dispatch in the same wave. Human gate approved 2026-07-07.
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -860,13 +880,15 @@ STORY-116 -> STORY-117
 [Wave 67 (independent): STORY-151 ∥ STORY-153] ->
 [Wave 68: STORY-152 (dep=151)] ->
 [Wave 69: STORY-154 (dep=151+152+153)]
+[Wave 70 (independent): STORY-149]
+[Wave 71: STORY-150 (dep=[]) ∥ STORY-157 (dep=[]) ∥ STORY-156 (dep=[STORY-115, already W44])]
 ```
 
-> **Cycle check:** All 107 product nodes processed by Kahn's algorithm (STORY-INDEX authoritative). No node remained
+> **Cycle check:** All 110 product nodes processed by Kahn's algorithm (STORY-INDEX authoritative). No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
-> ordering). E-16 chain (STORY-111→112→113→114→115) is strictly linear; STORY-111
+> ordering). E-16 chain (STORY-111→112→113→114→115) with wave-71 branch (STORY-115→STORY-156); STORY-111
 > depends on STORY-110 (cross-epic: dispatcher file ordering constraint). E-17 chain
 > (STORY-116→117) is strictly linear; STORY-116 depends on STORY-115 (cross-epic:
 > E-16 ARP decode-time logic must be shipped before offset regression tests). E-8/E-18
@@ -902,14 +924,15 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 107 product stories processed, queue empty, no cycle detected (STORY-INDEX authoritative)
+- Final output: all 110 product stories processed, queue empty, no cycle detected (STORY-INDEX authoritative)
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
   only to E-15 nodes — no existing node gains a new in-degree, so no cycle is possible
-- E-16 extension (STORY-111→112→113→114→115) is a linear tail appended after Wave 39;
+- E-16 extension (STORY-111→112→113→114→115→156) is a linear chain with a wave-71 branch;
   it has one cross-epic edge (STORY-110→111) that adds in-degree only to the E-16 root
-  node — no existing node gains a new in-degree, so no cycle is possible
+  node, and one wave-71 branch edge (STORY-115→STORY-156) that adds in-degree only to
+  STORY-156 (wave 71). No existing node gains a new in-degree, so no cycle is possible.
 - E-17 extension (STORY-116→117) is a linear tail appended after Wave 44;
   it has one cross-epic edge (STORY-115→116) that adds in-degree only to the E-17 root
   node — no existing node gains a new in-degree, so no cycle is possible
@@ -961,6 +984,17 @@ iteratively. Result:
   edges point forward through waves 67→68→69; no edge points to any existing node
   (waves 1–66). All edges are intra-E-21. No back-edges exist. Wave constraint
   satisfied at every node (67 < 68 < 69). No cycle is possible.
+- Wave 70 extension (STORY-149, E-11 tooling): STORY-149 has `depends_on=[]` (Wave 70,
+  in-degree=0). Isolated vertex in the dependency subgraph; no edges added to the graph.
+  No cycle possible.
+- Wave 71 extension (STORY-150, STORY-156, STORY-157, v0.12.0 planning gate):
+  STORY-150 has `depends_on=[]` (Wave 71, in-degree=0). STORY-157 has `depends_on=[]`
+  (Wave 71, in-degree=0). STORY-156 has `depends_on=[STORY-115]` (Wave 71 = max(44)+N,
+  in-degree=1). The edge STORY-115→STORY-156 points forward from Wave 44 to Wave 71;
+  no back-edge is created. STORY-156 enters the graph with in-degree=1 (from STORY-115,
+  already delivered at Wave 44) and out-degree=0. All three Wave-71 stories have
+  disjoint file sets; no intra-Wave-71 edges are required. No back-edges exist.
+  Wave constraint satisfied (71 > 44 for the STORY-115→STORY-156 edge). No cycle is possible.
 
 ---
 
@@ -1159,9 +1193,10 @@ E-15 (SS-15 DNP3)
   |
   +----> E-16 (SS-16 ARP) [via STORY-110 -> STORY-111; file-sequencing: etherparse migration touches src/dispatcher.rs, must follow STORY-110's finalized DNP3 changes]
 
-E-16 (SS-16 ARP) — linear chain:
+E-16 (SS-16 ARP) — main chain + wave-71 branch:
   STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115
   (SS-02 decoder migration -> SS-16 struct+Kani -> SS-16 detections+binding-table -> SS-16 emissions+VP-007 -> SS-16 D3 storm detection+--arp-storm-rate+storm_findings)
+  STORY-115 -> STORY-156 (wave-71 branch: unbounded-cap documentation + BC-2.16.016 regression tests)
 
 E-16 (SS-16 ARP)
   |

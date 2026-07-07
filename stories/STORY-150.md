@@ -4,7 +4,7 @@ story_id: STORY-150
 id: STORY-150
 title: "TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run"
 epic_id: E-11
-version: "1.1"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-07-01T00:00:00Z
@@ -14,7 +14,14 @@ cycle: "v0.12.0"
 points: 5
 estimated_days: 2
 priority: P2
-wave: "~"
+wave: "71"
+# v1.3 (2026-07-07): input-hash gate (wave-71 planning) — declared spec inputs (VP-039, BC-2.07.004, BC-2.07.028, ADR-011); hash d41d8cd→c5acbe4.
+# v1.2 (2026-07-07): Human decision (v0.12.0 planning gate) — fold BC-ANCHOR-DRIFT-OUTOFCYCLE-001 into scope:
+#   AC-150-006 added covering the 12 stale tls.rs BC-anchor sites from maint-2026-07-01 maintenance log.
+#   Points unchanged at 5: anchor sweep is LOW-effort (mechanical find-and-replace in spec files; no
+#   code logic changes); bundles naturally since STORY-150 already touches tls.rs and requires
+#   VP-039 line-correspondence table update; existing 5-pt estimate retains margin from optional
+#   CR queue candidates. Wave assigned: 71 (2026-07-07 wave-71/v0.12.0 human gate approval).
 depends_on: []
 blocks: []
 behavioral_contracts: []
@@ -26,8 +33,12 @@ traces_to: null
 tdd_mode: strict
 target_module: "analyzer/tls"
 subsystems: [SS-5]
-input-hash: "d41d8cd"
-inputs: []
+input-hash: "c5acbe4"
+inputs:
+  - .factory/specs/verification-properties/vp-039-tls-handshake-reassembly.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.028.md
+  - .factory/specs/architecture/decisions/ADR-011-tls-handshake-reassembly.md
 ---
 
 # STORY-150 — TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run
@@ -135,6 +146,21 @@ AC-150-004: `cargo mutants --jobs 1` on the modified files reports no new surviv
 AC-150-005: `cargo test --all-targets` passes; existing VP-039 and VP-040 unit tests
   remain green. `cargo clippy --all-targets -- -D warnings` passes with no new warnings.
 
+AC-150-006: All stale line-anchor sites from BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (maint-2026-07-01
+  maintenance log) are corrected in the affected spec and story files. The 12 stale
+  tls.rs line references are updated to reflect the final post-STORY-150-refactor line
+  numbers (not the intermediate post-STORY-149 numbers from the maintenance log, which
+  shift again after the DRY dispatch-arm refactor). Affected files and corrections:
+  - `BC-2.07.004.md` (or wherever the BC text references tls.rs): 2 sites updated
+    (`:319→:339` and `:689-699→:731-741` per maint-2026-07-01, then adjusted for refactor)
+  - `BC-2.07.028.md` (or wherever the BC text references tls.rs): 4 sites updated
+    (`:379-383`, `:421-427`, `:435-515`, `:413-515` per maint-2026-07-01 corrections)
+  - `STORY-054.md` Tasks table and tls.rs cross-references: up to 6 sites updated
+    (`:497-517`, `:570-582`, `:519-539`, `:584-604`, `:Tasks-table line 208` per
+    maint-2026-07-01, adjusted for post-refactor final line numbers)
+  The anchor updates must be performed AFTER the dispatch-arm refactor (AC-150-001) and
+  VP-039 table update (AC-150-003) have stabilized tls.rs line numbers for this wave.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -188,6 +214,12 @@ AC-150-005: `cargo test --all-targets` passes; existing VP-039 and VP-040 unit t
 8. [ ] Re-run `cargo mutants --jobs 1` on `src/analyzer/tls.rs`; confirm no new survivors (AC-150-004)
 9. [ ] Run `cargo test --all-targets` — VP-039, VP-040, and all existing tests green (AC-150-005)
 10. [ ] Run `cargo clippy --all-targets -- -D warnings` — clean
+11. [ ] After tls.rs line numbers have stabilized (post-refactor + VP-039 table update),
+        apply BC-ANCHOR-DRIFT-OUTOFCYCLE-001 corrections: update all stale tls.rs
+        line-anchor references in `BC-2.07.004.md`, `BC-2.07.028.md`, and `STORY-054.md`
+        using the FINAL post-refactor line numbers (AC-150-006). Reference the exact
+        correction list in maint-2026-07-01 maintenance-log as the starting point;
+        adjust each correction to the post-refactor line numbers before applying.
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -222,6 +254,9 @@ AC-150-005: `cargo test --all-targets` passes; existing VP-039 and VP-040 unit t
 |------|--------|---------|
 | `src/analyzer/tls.rs` | modify | Unify C2S/S2C dispatch arms in `process_handshake_carry`; collapse duplicate `Ok(_)/Err(_)` arms; update VP-039 line-correspondence table |
 | `tests/bc_149_single_borrow_invariant_tests.rs` | verify (no change expected) | Source-inspection test for borrow budget — must still pass after refactor |
+| `BC-2.07.004.md` (path: `.factory/specs/behavioral-contracts/ss-7/` or equivalent) | modify | Update 2 stale tls.rs line-anchor references (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
+| `BC-2.07.028.md` (path: `.factory/specs/behavioral-contracts/ss-7/` or equivalent) | modify | Update 4 stale tls.rs line-anchor references (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
+| `.factory/stories/STORY-054.md` | modify | Update 4–6 stale tls.rs line-anchor references + Tasks-table entry (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
 
 ## Candidate Scope: Wave-70 CR Queue
 
@@ -264,9 +299,15 @@ discretion.
   load-induced false-clean results.
 - Primary module: `src/analyzer/tls.rs` (`process_handshake_carry`, lines ~866–984; the
   per-direction dispatch arms within the carry-drain loop at lines ~912–959).
-- Wave assignment is TBD — schedule at v0.12.0 planning. STORY-149 has merged (PR #374,
-  116100d). STORY-150 should follow as the structural refactor once v0.12.0 planning
-  assigns the wave.
+- Wave assignment: **71** (v0.12.0 planning gate, 2026-07-07 human approval). STORY-149 has
+  merged (PR #374, 116100d).
+- BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (maint-2026-07-01, DEFERRED) — exact corrections: BC-2.07.004
+  (tls.rs:319→:339; tls.rs:689-699→:731-741), BC-2.07.028 (tls.rs:379-383→:421;
+  tls.rs:421-427→:455-469; tls.rs:435-515→:477-558; tls.rs:413-515→~:455-558), STORY-054
+  (tls.rs:497-517→:563-598; tls.rs:570-582→:656-669; tls.rs:519-539→:600-621;
+  tls.rs:584-604→~:672-691; Tasks-table line 208). These are the post-STORY-149 corrections;
+  after STORY-150's refactor, line numbers will shift again — implementer must use final
+  post-refactor numbers, not the intermediate values listed here.
 - S-7.02 disposition: this story's creation at draft status documents TLS-DRAIN-DUP-001
   for v0.12.0 planning and closes the maint-2026-07-01 refactor-debt open item.
 
@@ -274,5 +315,7 @@ discretion.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-07 | story-writer | input-hash gate (wave-71 planning): replaced `inputs: []` with declared spec inputs (VP-039, BC-2.07.004, BC-2.07.028, ADR-011); canonical hash `c5acbe4` computed. Added v1.3 frontmatter comment. |
+| 1.2 | 2026-07-07 | story-writer | **v0.12.0 planning gate:** fold BC-ANCHOR-DRIFT-OUTOFCYCLE-001 into scope — added AC-150-006 (sweep and correct 12 stale tls.rs BC-anchor sites from maint-2026-07-01 maintenance log: BC-2.07.004 ×2, BC-2.07.028 ×4, STORY-054 ×5/6). Updated tasks, file structure requirements, and notes. Points unchanged at 5 (anchor sweep is LOW-effort; bundles naturally with tls.rs touch + VP-039 line-correspondence update). Wave assigned: 71 (2026-07-07 human gate approval). |
 | 1.1 | 2026-07-07 | story-writer | **F-W70P2-001 re-anchor:** updated duplication site from `try_parse_records` (~220 lines) to `process_handshake_carry` (~50 lines, lines ~866–984) per post-STORY-149 (PR #374, 116100d) code reality. Updated Background, Goal, AC-150-001, Notes, module references. Added wave-70 CR queue (CR-001..CR-007) as §Candidate Scope. Bumped story points rationale note. Added full template compliance (story-template.md) with all frontmatter keys and mandatory sections. |
 | 1.0 | 2026-07-01 | story-writer | Initial authorship at maint-2026-07-01. Cited ~220-line duplication in `try_parse_records` (pre-STORY-149). |

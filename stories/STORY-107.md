@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-107
 epic_id: E-15
-version: "v1.4"
+version: "v1.5"
 status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -32,7 +32,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "8b8c730"
+input-hash: "2cc438a"
 ---
 
 # STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds
@@ -191,6 +191,7 @@ Well within 20-30% of agent context window.
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| v1.5 | 2026-07-07 | story-writer | input-hash re-hash: maint-2026-07-06 BC-2.15.016 v2.1 amendment absorbed — master_addrs_dropped/pending_requests_evicted counters are additive observability enhancements from silent-limit audit; delivered story scope unaffected. |
 | v1.4 | 2026-07-06 | story-writer | BC-2.15.016 v2.1 propagation (maint-2026-07-06 DNP3 observability-counter amendment): AC-003 extended with master_addrs_dropped counter note (PC-6); AC-005 extended with pending_requests_evicted counter note (PC-10). BC status comment and input-hash updated for v2.1. |
 | v1.3 | 2026-06-12 | story-writer | F7 input-hash reconciliation — BC-2.15.016 v1.3 F5-R2 fix: correct is_master_frame mask 0x10→0x80 (DIR=bit 7, IEEE 1815; F-F5-001 REVISION 2 R2-1); updated AC-003, Task 5, Architecture Compliance Rule 4, Architecture Mapping table, and added test_is_master_frame_uses_0x80_mask() |
 | v1.2 | 2026-06-11 | story-writer | adversarial Pass-1 F-1 — document pending-seed scope boundary (STORY-108 owns detection-driven seeding) |
