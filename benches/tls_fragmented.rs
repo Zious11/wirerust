@@ -19,20 +19,61 @@ use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{Direction, StreamHandler};
 
+/// Wrap `payload` in a minimal 5-byte TLS record header (version TLS 1.2).
+fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
+    let len = payload.len();
+    let mut record = vec![content_type, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
+    record.extend_from_slice(payload);
+    record
+}
+
 /// Build a synthetic sequence of TLS record byte segments that together form
 /// a single fragmented TLS handshake spanning at least 3 TLS records.
 ///
 /// Each returned `Vec<u8>` represents one TCP segment payload to be delivered
 /// to the TLS analyzer via [`StreamHandler::on_data`]. The carry-drain loop in
-/// `try_parse_records` must execute at least twice per call sequence
+/// `try_parse_records` executes at least twice per call sequence
 /// (AC-149-002: carry-drain loop executes >= twice per synthetic handshake).
 ///
 /// The handshake is deterministic and repeatable so Criterion produces
 /// meaningful statistics.
 ///
-/// STUB: body is `todo!()` per Red Gate discipline — implement in STORY-149.
+/// Layout: a minimal TLS ClientHello (no extensions, 45 bytes total) split
+/// into 3 TLS records of 15 bytes each so the carry accumulates across records
+/// and dispatches only on the final fragment.
+///
+/// Intentionally duplicated from `tests/bc_149_fragmented_fixture_tests.rs`
+/// (bench files use `harness = false` and cannot be imported as library
+/// modules — STORY-149 note).
 fn build_fragmented_handshake() -> Vec<Vec<u8>> {
-    todo!("STORY-149: implement synthetic >=3-record fragmented TLS handshake builder")
+    // Build minimal ClientHello handshake-message bytes (4-byte header + 41-byte body).
+    let mut body: Vec<u8> = Vec::with_capacity(41);
+    body.extend_from_slice(&[0x03, 0x03]); // version TLS 1.2
+    body.extend_from_slice(&[0u8; 32]); // client random (32 deterministic zeros)
+    body.push(0x00); // session_id_len = 0
+    body.extend_from_slice(&[0x00, 0x02]); // cipher_suites_len = 2
+    body.extend_from_slice(&[0x00, 0x2f]); // TLS_RSA_WITH_AES_128_CBC_SHA
+    body.push(0x01); // compression_methods_len = 1
+    body.push(0x00); // null compression
+
+    let body_len = body.len() as u32;
+    let mut hs: Vec<u8> = Vec::with_capacity(4 + body.len());
+    hs.push(0x01); // msg_type = ClientHello
+    hs.push((body_len >> 16) as u8);
+    hs.push((body_len >> 8) as u8);
+    hs.push(body_len as u8);
+    hs.extend_from_slice(&body);
+
+    // Split into 3 equal parts (15 bytes each).
+    let n = hs.len(); // 45 bytes
+    let split1 = n / 3; // 15
+    let split2 = 2 * n / 3; // 30
+
+    vec![
+        wrap_as_tls_record(0x16, &hs[..split1]),
+        wrap_as_tls_record(0x16, &hs[split1..split2]),
+        wrap_as_tls_record(0x16, &hs[split2..]),
+    ]
 }
 
 /// Benchmark the TLS carry-drain loop over a synthetic fragmented handshake.
