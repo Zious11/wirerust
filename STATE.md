@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: steady-state
 status: complete
-current_step: "v0.11.5 RELEASED (2026-07-07). PR #372 merged to main (3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Session wrap 2026-07-07. trajectory-tail →0→0→0→0"
+current_step: "v0.11.5 release chain COMPLETE (D-393, 2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z, squash 19569ae. develop=19569ae; Cargo.toml 0.11.5 on both branches. Remote branches cleaned. Pipeline IDLE. trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-06"
-pipeline: PAUSED
-timestamp: 2026-07-07T02:00:00Z
+pipeline: IDLE
+timestamp: 2026-07-07T02:18:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -24,13 +24,13 @@ release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
 prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (verified 2026-07-07 — v0.11.5 released PR #372; back-merge PR #373 open; develop d3e153c still at v0.11.4)
+# Ground-truth HEADs (verified 2026-07-07 — v0.11.5 chain COMPLETE; PR #373 merged 19569ae; develop=19569ae Cargo.toml 0.11.5)
 main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
-develop_head: d3e153cf9926746a48cd7d1394f4a55be0950fd6
-# Cargo.toml version: main=0.11.5 (released); develop=0.11.4 (back-merge PR #373 pending)
+develop_head: 19569aea12b07804e391b158931f92b4cbc94d21
+# Cargo.toml version: main=0.11.5; develop=0.11.5 (PR #373 merged 19569ae, chain complete)
 cargo_version_main: "0.11.5"
-cargo_version_develop: "0.11.4"
-# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/0.11.5 + chore/backmerge-v0.11.5 remote branches open (delete after #373 merge).
+cargo_version_develop: "0.11.5"
+# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. No open release/* or chore/backmerge-* branches.
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: PROP-MAINT-03; sweep_8: PROP-MAINT-01/02/04). 4 proposals deferred to improvement-backlog.md (PROP-MAINT-05/06/08: next maintenance sweep; PROP-MAINT-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. trajectory-tail →0→0→0→0.**
+**D-393 v0.11.5 release chain COMPLETE (2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 19569ae. develop=19569ae, Cargo.toml 0.11.5 on both branches. Remote branches cleaned. Pipeline IDLE (steady-state). Next expected work: wave 70 / STORY-149+STORY-156, next maintenance sweep, or new feature request. trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -72,16 +72,16 @@ maintenance_prior_run: maint-2026-07-01
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state (v0.11.5 RELEASED 2026-07-07; back-merge PR #373 OPEN; session wrap 2026-07-07) |
-| Version | 0.11.5 (released 2026-07-07); develop=d3e153c at v0.11.4 (back-merge PR #373 awaiting human merge) |
+| Mode | steady-state (v0.11.5 release chain COMPLETE 2026-07-07; PR #373 merged 19569ae; pipeline IDLE) |
+| Version | 0.11.5 (released 2026-07-07; develop=19569ae, Cargo.toml 0.11.5 on both branches) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
-| Develop HEAD | `d3e153c` (full: `d3e153cf9926746a48cd7d1394f4a55be0950fd6`) — back-merge PR #373 OPEN; fast-forward on resume |
+| Develop HEAD | `19569ae` (full: `19569aea12b07804e391b158931f92b4cbc94d21`) — v0.11.5 chain complete; pipeline IDLE |
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 109 total (STORY-INDEX v3.15) |
-| **Last Updated** | 2026-07-07 — v0.11.5 RELEASED. PR #372 → main (3c0ad3a); tag v0.11.5 (obj de3392a). Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green. Session wrap 2026-07-07. trajectory-tail →0→0→0→0. |
+| **Last Updated** | 2026-07-07 — v0.11.5 release chain COMPLETE (D-393). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 19569ae. develop=19569ae, Cargo.toml 0.11.5. Remote branches cleaned. Pipeline IDLE. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -114,7 +114,7 @@ maintenance_prior_run: maint-2026-07-01
 | Silent-limit audit + observability counters (D-385, 2026-07-06) | **RELEASED in v0.11.4 (PR #365, cc2a87c + PR #366 follow-ups, f7460b4)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. |
 | v0.11.4 RELEASED (D-386, 2026-07-06) | **RELEASED 2026-07-06** | PR #366 (follow-up test hardening + ARP refactor, squash to develop); PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop has NO unreleased commits. |
 | Maintenance maint-2026-07-06 | **COMPLETE 2026-07-06 (D-391)** | 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A–D delivered. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged. FIX-C: HS-INDEX v2.12 (HOLDOUT-001 repaired; HOLDOUT-002 false finding). FIX-D: VP-INDEX v2.35 / module-criticality v1.6. BC-INDEX v2.19. STORY-156 new; STORY-149 wave 70. develop=d3e153c (3 unreleased commits ahead of v0.11.4). findings_count: 39, fixes_applied: 4 routes + 1 out-of-band dep fix, fixes_pending: 0. trajectory-tail →0→0→0→0. |
-| v0.11.5 RELEASED | **RELEASED 2026-07-07** | PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (tag obj de3392a9e3cea99ad424e9172f24d6d938368a06); GitHub Release Latest with binaries. Back-merge PR #373 (main → develop, chore/backmerge-v0.11.5) OPEN CI-green AWAITING HUMAN MERGE. |
+| v0.11.5 RELEASED + CHAIN COMPLETE (D-393) | **CHAIN COMPLETE 2026-07-07** | PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest with binaries. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop, squash 19569ae) MERGED 2026-07-07T02:17:57Z. develop=19569ae, Cargo.toml 0.11.5. Remote branches cleaned. Pipeline IDLE. |
 
 ---
 
@@ -122,20 +122,11 @@ maintenance_prior_run: maint-2026-07-01
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **OUT-OF-CYCLE FIX COMPLETE (D-383, 2026-07-06). issue #342 DNP3/ENIP unbounded per-flow memory DoS (CWE-401+CWE-770). PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed.** | **DONE (D-383)** | Issue #342 CLOSED. develop ae931245. |
-| **v0.11.3 RELEASED (D-384, 2026-07-06). Smoke-test GO (37/37 clean invocations; #342 fix confirmed — DNP3 541 flows purged; RSS 303 MB / 2.25M-pkt). PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Pipeline IDLE.** | **RELEASED (D-384)** | v0.11.3 ships #342 DoS fix. Smoke-test GO. Pipeline IDLE. |
-| **SILENT-LIMIT AUDIT + OBSERVABILITY COUNTERS (D-385, 2026-07-06). 13-site audit: 4 GENUINE gaps + 9 cleared + modbus-invalid-ADU-latch REJECTED (research-agent). 4 counters delivered: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. PR #365 squash-merged → develop cc2a87c (CI 11/11; security APPROVE invariants confirmed; pr-reviewer APPROVE 0 blocking). 8 BCs amended → BC-INDEX v2.18.** | **DONE (D-385)** | Silent-limit audit COMPLETE. 4 observability counters delivered. 8 BCs amended. |
-| **v0.11.4 FOLLOW-UPS + RELEASE (D-386, 2026-07-06). PR #366 squash-merged to develop: HTTP-AC008-NEG-TEST-001 (negative regression test existing-key hit does NOT increment dropped_map_entries), EVICTION-NO-FINDING-NEG-TEST-001 (Modbus pending-drop live + ARP eviction #[ignore] emit no Finding), ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 (insert_binding_lru returns bool; dedup 2 call sites). Release PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop NO unreleased commits. Pipeline IDLE.** | **RELEASED (D-386)** | v0.11.4 ships observability counters + follow-up hardening. develop f7460b4. main f0f2136. Pipeline IDLE. |
-| **MAINTENANCE SWEEP maint-2026-07-06 STARTED (D-388, 2026-07-06). Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A. Baseline: develop f7460b4 / main f0f2136 / v0.11.4. All applicable sweeps PENDING.** | **IN_PROGRESS (D-388)** | Pipeline IN_PROGRESS (maintenance). |
-| **MAINTENANCE SWEEP maint-2026-07-06 COMPLETE (D-389, 2026-07-06). 8/8 applicable sweeps done (6/9/10 N/A). 39 findings total; 0 CRITICAL. 1 perf regression (+14.0% tls.pcap, STORY-149). Fix routes: A (docs PR), B (code PR PC-016/017), C (holdout factory), D (spec hygiene factory). MANUAL: STORY-149 escalation + ADV-4 OVERDUE + TD-MAINT-RISK-REGISTRY-BACKFILL (P1) + ASM-CAND-003/009. Report: `.factory/maintenance/sweep-report-2026-07-06.md`. tech-debt-register v1.3.** | **SWEEPS_COMPLETE (D-389)** | Awaiting human triage gate. trajectory-tail →0→0→0→0. |
-| **FIX-A: docs PR #369 READY-FOR-HUMAN-MERGE (maint-2026-07-06, 2026-07-06). DOC-009 (README protocols subcommand) + DOC-010 (observability counters + 6 minor doc items). CI green, reviews converged.** | **READY-FOR-MERGE** | PR #369 awaiting human merge. |
-| **FIX-B: code PR #370 READY-FOR-HUMAN-MERGE (maint-2026-07-06, 2026-07-06). PC-016 (DNP3 master_addrs_seen cap counter) + PC-017 (DNP3 pending_requests LRU eviction counter). BC-INDEX v2.19 (BC-2.15.016 v2.2, BC-2.15.020 v2.1, BC-2.15.022 v2.1 amended). CI green, reviews converged.** | **READY-FOR-MERGE** | PR #370 awaiting human merge. |
-| **FIX-C: 4 holdout scenarios repaired + HS-INDEX v2.12 committed to factory-artifacts (maint-2026-07-06, 2026-07-06). HS-061 (HTTP summary output shape), HS-064 (JSON reporter schema+encoding), HS-066 (TLS summarize output completeness), HS-075 (JSON reporter skipped-packets always present) — all updated to reflect observability counter additions from v0.11.4.** | **DONE** | Committed factory-artifacts. |
-| **FIX-D: VP shards + spec hygiene committed to factory-artifacts (maint-2026-07-06, 2026-07-06). 10 new VP shard files (vp-025..031, vp-041..043); module-criticality v1.6 (26 components); VP-INDEX v2.35 (TD-031 remediation). Spec-changelog entry added. STORY-156 (E-16 BC-2.16.016 gap); STORY-149 wave TBD→70; STORY-107 v1.4 propagation; STORY-INDEX v3.15 (109 stories / 70 waves / 697 pts). Tech-debt-register v1.3+ (nomenclature corrections, FIX-B in-progress). Research: df-validation-pc019-pc020-2026-07-06.md.** | **DONE** | Committed factory-artifacts. |
 | **FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C + FIX-D artifacts committed. Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out.** | **FIX_PHASE_COMPLETE (D-390)** | trajectory-tail →0→0→0→0. |
 | **STATE-FINAL maint-2026-07-06 COMPLETE (D-391, 2026-07-06). All fix PRs merged. PR #369 (e40fe8a) + PR #370 (d3e153c) + PR #371 (359726b) merged to develop. tech-debt-register v1.4. Lessons logged (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). develop=d3e153c (3 unreleased commits ahead of v0.11.4).** | **COMPLETE (D-391)** | trajectory-tail →0→0→0→0. |
 | **SESSION REVIEW maint-2026-07-06 COMPLETE (D-392, 2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: artifact-sourced counts mandate PROP-03; sweep_8: incremental-write PROP-01 + canonical-ID re-read PROP-02 + dedup-check PROP-04). 4 proposals deferred to improvement-backlog.md (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.** | **COMPLETE (D-392)** | trajectory-tail →0→0→0→0. |
 | **v0.11.5 RELEASED (2026-07-07). PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest with binaries. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Human-requested session wrap 2026-07-07. Only PR #373 back-merge outstanding.** | **RELEASED/PAUSED** | v0.11.5 released. PR #373 back-merge awaiting human merge. Session wrapped 2026-07-07. trajectory-tail →0→0→0→0. |
+| **v0.11.5 RELEASE CHAIN COMPLETE (D-393, 2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z; squash 19569ae. develop HEAD=19569ae; Cargo.toml 0.11.5 on both branches. Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned (GitHub auto-deleted on merge; verified via git fetch --prune). Pipeline IDLE. trajectory-tail →0→0→0→0.** | **CHAIN COMPLETE/IDLE (D-393)** | v0.11.5 chain complete. develop=19569ae. No open release/backmerge branches. Pipeline IDLE. |
 
 ## Decisions Log
 
@@ -233,6 +224,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-390 | maint-2026-07-06 FIX PHASE COMPLETE (2026-07-06). FIX-A (docs PR #369: DOC-009+DOC-010) + FIX-B (code PR #370: PC-016/017 DNP3 counter gaps; BC-2.15.016 v2.2 + BC-2.15.020 v2.1 + BC-2.15.022 v2.1; BC-INDEX v2.19) both READY-FOR-HUMAN-MERGE (CI green, reviews converged). FIX-C (4 holdout scenario repairs: HS-061/064/066/075 + HS-INDEX v2.12) + FIX-D (10 VP shards vp-025..031/041..043; module-criticality v1.6; VP-INDEX v2.35 TD-031 remediation; spec-changelog entry; STORY-156 + STORY-149 wave 70 + STORY-107 v1.4; STORY-INDEX v3.15; tech-debt-register v1.3+ nomenclature + FIX-B in-progress; research df-validation-pc019-pc020-2026-07-06.md) committed to factory-artifacts. Awaiting human merge of PRs #369+#370, then state-final close-out. | 2026-07-06 |
 | D-391 | maint-2026-07-06 STATE-FINAL (2026-07-06). All fix PRs merged by human. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged to develop. develop HEAD d3e153c (3 unreleased commits ahead of v0.11.4). tech-debt-register v1.4: DOC-009/010 + ADV-4 RESOLVED (PR #369); TD-MAINT-PC003/PC-016/PC-017 RESOLVED (PR #370); HOLDOUT-001/002 RESOLVED (FIX-C); RUSTSEC-2026-0204 CLOSED (PR #371); PERF-002 escalated STORY-149 wave 70. Lessons logged: cycles/maint-2026-07-06/lessons.md (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or next request. | 2026-07-06 |
 | D-392 | maint-2026-07-06 session review COMPLETE (2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into .factory/maintenance-config.yaml dispatch_templates: sweep_7 artifact_sourced_counts_mandate (PROP-03); sweep_8 incremental_write_mandate (PROP-01) + canonical_id_reread_mandate (PROP-02) + dedup_check_step (PROP-04). 4 proposals appended to .factory/session-reviews/improvement-backlog.md with revisit triggers (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Benchmarks.yaml updated with maint-2026-07-06 run metrics. Session review frontmatter annotated. Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. | 2026-07-06 |
+| D-393 | v0.11.5 release chain COMPLETE. PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z; squash 19569ae (full: 19569aea12b07804e391b158931f92b4cbc94d21). develop HEAD=19569ae; Cargo.toml 0.11.5 on both main and develop. Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned (GitHub auto-deleted on merge; verified via git fetch --prune — 0 stale remote release/* or chore/backmerge-* branches). Pipeline IDLE (steady-state). | 2026-07-07 |
 
 ---
 
@@ -334,18 +326,15 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**v0.11.5 RELEASED (2026-07-07). Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Human-requested session wrap. No other pending work.**
+**v0.11.5 release chain COMPLETE (2026-07-07, D-393). PR #373 MERGED 19569ae. Pipeline IDLE. No pending work or in-flight items.**
 
-- **Date:** 2026-07-07. Position: maintenance run maint-2026-07-06 COMPLETE (8 sweeps, 39 findings, 0 CRITICAL; fix PRs #369/#370/#371 all merged). Session review COMPLETE (PROP-01..04 adopted into maintenance-config dispatch_templates; PROP-05..08 deferred to improvement-backlog). v0.11.5 RELEASED: release PR #372 merged to main (merge commit `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`); tag v0.11.5 (tag object `de3392a9e3cea99ad424e9172f24d6d938368a06`); GitHub Release Latest with binaries.
-- **Ground truth:** main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj `de3392a9e3cea99ad424e9172f24d6d938368a06`), develop=`d3e153c` (full `d3e153cf9926746a48cd7d1394f4a55be0950fd6`; Cargo.toml 0.11.4). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **IN-FLIGHT (the ONLY pending item):** back-merge PR #373 (main → develop, branch `chore/backmerge-v0.11.5`) OPEN, CI all green, AWAITING HUMAN MERGE (squash per #368/#364 precedent). After merge: record new develop HEAD in STATE.md, confirm Cargo.toml 0.11.5 on both branches, delete remote branches `release/0.11.5` + `chore/backmerge-v0.11.5` if still present.
-- **Housekeeping notes:**
-  - Local develop checkout is behind origin (f7460b4; fast-forward on resume with `git pull --ff-only`)
-  - Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6
-  - STORY-149 scheduled wave 70 (next delivery candidate after back-merge completes)
-  - STORY-156 draft (E-16, BC-2.16.016 gap, added during maint-2026-07-06)
-- **No abandoned sub-agent steps; no unresolved blockers; no pending human decisions besides the #373 merge.**
-- **Resume command:** `/vsdd-factory:next-step` (it will verify #373 merge status first)
+- **Date:** 2026-07-07. Position: v0.11.5 release chain FULLY COMPLETE. Maintenance run maint-2026-07-06 COMPLETE (8 sweeps, 39 findings, 0 CRITICAL; PRs #369/#370/#371 merged). Session review COMPLETE (PROP-01..04 adopted; PROP-05..08 deferred). v0.11.5 RELEASED (PR #372, main=3c0ad3a, tag v0.11.5 obj de3392a). Back-merge PR #373 MERGED (squash 19569ae; develop=19569ae; Cargo.toml 0.11.5 on both branches). Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned.
+- **Ground truth:** main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj `de3392a9e3cea99ad424e9172f24d6d938368a06`); develop=`19569ae` (full `19569aea12b07804e391b158931f92b4cbc94d21`; Cargo.toml 0.11.5). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
+- **No in-flight work.** Pipeline is IDLE. No open release/*, chore/backmerge-* branches on origin.
+- **Next work candidates:** wave 70 (STORY-149 perf regression, E-11, 5 pts) ∥ STORY-156 (E-16, BC-2.16.016 gap, draft) — whichever human prioritizes; next scheduled maintenance sweep; or a new feature request.
+- **Spec versions:** BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6.
+- **No abandoned sub-agent steps; no unresolved blockers; no pending human decisions.**
+- **Resume command:** `/vsdd-factory:next-step`
 
 ---
 
