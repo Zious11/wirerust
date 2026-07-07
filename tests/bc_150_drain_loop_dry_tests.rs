@@ -2,17 +2,18 @@
 //!
 //! # Structure
 //!
-//! ## Red Gate tests (AC-150-001) — MUST FAIL before implementation
+//! ## Structural tests (AC-150-001) — Red Gate; GREEN after implementation
 //!
 //! Two structural tests assert that the C2S/S2C dispatch-arm duplication
-//! (TLS-DRAIN-DUP-001) is gone from `process_handshake_carry`:
+//! (TLS-DRAIN-DUP-001) was eliminated from `process_handshake_carry`:
 //!
 //!   - `test_BC_150_001_..._parse_hs_call_not_duplicated`: expects exactly ONE
-//!     call to `parse_tls_message_handshake` in the function body (currently 2).
+//!     call to `parse_tls_message_handshake` in the function body (was 2 before
+//!     AC-150-001; unified to 1 by the shared dispatch abstraction).
 //!   - `test_BC_150_001_..._msg_bytes_extraction_not_duplicated`: expects at most
-//!     ONE `let msg_bytes` extraction site (currently 2).
+//!     ONE `let msg_bytes` extraction site (was 2 before AC-150-001).
 //!
-//! Both tests FAIL NOW (before implementation) and PASS after AC-150-001.
+//! Both tests FAILED before AC-150-001 implementation and PASS after.
 //!
 //! ## AC-150-003 — not machine-checkable as a Red Gate; documented below
 //!
@@ -34,9 +35,9 @@
 //!
 //! These tests verify that the C2S and S2C carry-drain paths produce identical
 //! observable outcomes (carry accumulation, flag-set, parse_errors) before AND
-//! after the DRY refactor. They PASS NOW and must continue to PASS after
-//! AC-150-001 implementation. If any of these fail after refactor, the
-//! implementation broke behavioral equivalence — not these tests.
+//! after the DRY refactor. They passed before AC-150-001 implementation and
+//! continue to pass after. If any of these fail, the implementation broke
+//! behavioral equivalence — not these tests.
 //!
 //! Tests are wrapped in `mod story_150` per DF-TEST-NAMESPACE-001.
 //! `#![allow(non_snake_case)]` required per factory BC-naming mandate.
@@ -192,16 +193,17 @@ mod story_150 {
         })
     }
 
-    // ── AC-150-001: Red Gate structural tests ─────────────────────────────────
+    // ── AC-150-001: Structural tests (Green after implementation) ────────────
     //
-    // These tests MUST FAIL before AC-150-001 implementation and MUST PASS after.
+    // These tests FAILED before AC-150-001 implementation and PASS after.
     //
-    // Current state: `process_handshake_carry` contains TWO symmetric arms
-    // (Direction::ClientToServer and Direction::ServerToClient) that each contain
-    // a `let msg_bytes = carry[...].to_vec()` extraction and a
-    // `parse_tls_message_handshake(&msg_bytes)` call. After AC-150-001 the shared
-    // dispatch abstraction (closure, helper function, or macro) will have exactly
-    // one call site for each.
+    // Before AC-150-001, `process_handshake_carry` contained TWO symmetric
+    // direction arms (Direction::ClientToServer and Direction::ServerToClient)
+    // that each duplicated the `msg_bytes` extraction and the
+    // `parse_tls_message_handshake` call. The AC-150-001 refactor unified them
+    // into a single guarded dispatch site: one `msg_bytes` extraction, one
+    // `parse_tls_message_handshake` call, and direction-guarded Hello match arms
+    // (hoisted `expected_msg_type`).
 
     /// AC-150-001 (TLS-DRAIN-DUP-001): `process_handshake_carry` must contain
     /// exactly ONE call to `parse_tls_message_handshake` after the C2S/S2C dispatch
@@ -294,8 +296,8 @@ mod story_150 {
     /// within the table are current — that is a manual review obligation
     /// (see AC-150-003 commentary above).
     ///
-    /// GREEN (before implementation): the VP-039 module header exists.
-    /// Must remain GREEN after AC-150-001 implementation.
+    /// GREEN: the VP-039 module header exists and remained present after the
+    /// AC-150-001 refactor.
     #[test]
     fn test_BC_150_003_vp039_proof_module_marker_present() {
         let source = read_tls_source();
@@ -320,10 +322,9 @@ mod story_150 {
     // ── Behavior-preservation regression pins ─────────────────────────────────
     //
     // The following tests verify directional symmetry of the carry-drain paths
-    // in `process_handshake_carry`. They PASS before the AC-150-001 refactor
-    // and must continue to PASS after. A failing regression pin after refactor
-    // indicates the implementation changed behavior — fix the implementation,
-    // not these tests.
+    // in `process_handshake_carry`. They passed before the AC-150-001 refactor
+    // and continue to pass after. A failing regression pin indicates the
+    // implementation changed behavior — fix the implementation, not these tests.
     //
     // VP-039 coverage note: these tests exercise the exact loop paths that the
     // Kani `drain_loop_model` in `kani_proofs_vp039` models:
@@ -608,10 +609,10 @@ mod story_150 {
     /// Equivalent malformed handshake messages in the C2S (msg_type=0x01) and
     /// S2C (msg_type=0x02) arms must produce the same `parse_errors` increment.
     ///
-    /// The current implementation duplicates `Ok(_) => self.parse_errors += 1` /
-    /// `Err(_) => self.parse_errors += 1` in both arms (AC-150-001 notes this as
-    /// part of the duplication). After the DRY refactor the shared abstraction
-    /// must apply the same increment for both directions.
+    /// Before AC-150-001, the implementation duplicated
+    /// `Ok(_) => self.parse_errors += 1` / `Err(_) => self.parse_errors += 1`
+    /// in both arms. After the DRY refactor, the shared abstraction applies the
+    /// same increment for both directions from a single call site.
     ///
     /// Malformed payload: msg_type byte + body_len=5 + 5 bytes of 0xFF garbage.
     /// A ClientHello/ServerHello body of 5 bytes is far too short for the parser
