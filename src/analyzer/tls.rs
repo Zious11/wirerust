@@ -925,15 +925,23 @@ impl TlsAnalyzer {
             // Other msg_types: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
             if msg_type == expected_msg_type {
                 let msg_bytes = carry[consumed..consumed + 4 + body_len].to_vec();
+                // F-150-P1-003 (defense-in-depth): direction guards restore pre-refactor
+                // semantics — a cross-type parser result (parser bug: ClientHello bytes
+                // parsed as ServerHello, or vice versa) falls through to parse_errors
+                // instead of firing the wrong direction's flag-set and dispatch.
                 match parse_tls_message_handshake(&msg_bytes) {
-                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ref ch)))) => {
+                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ref ch))))
+                        if matches!(direction, Direction::ClientToServer) =>
+                    {
                         // BORROW BUDGET (STORY-149): site 1 of ≤3 — flag-set (client_hello_seen).
                         if let Some(state) = self.flows.get_mut(flow_key) {
                             state.client_hello_seen = true;
                         }
                         self.handle_client_hello(ch, flow_key, last_ts);
                     }
-                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ServerHello(ref sh)))) => {
+                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ServerHello(ref sh))))
+                        if matches!(direction, Direction::ServerToClient) =>
+                    {
                         // BORROW BUDGET (STORY-149): site 2 of ≤3 — flag-set (server_hello_seen).
                         if let Some(state) = self.flows.get_mut(flow_key) {
                             state.server_hello_seen = true;
@@ -1801,8 +1809,8 @@ mod proptest_proofs_vp005 {
 //     `body_len > MAX_BUF → break`       Decision-4 spoof guard           (line ~910)
 //     `len-consumed < 4+body_len → break` incomplete-body guard           (line ~920)
 //     `&carry[consumed..consumed+4+bl]`  dispatch clone slice             (line ~927)
-//     `consumed += 4 + body_len`         cursor advance                   (line ~949)
-//     `drain(..consumed)`                single post-loop drain           (line ~955)
+//     `consumed += 4 + body_len`         cursor advance                   (line ~957)
+//     `drain(..consumed)`                single post-loop drain           (line ~963)
 //
 // The fuzz target `fuzz_tls_reassembly` independently exercises the REAL
 // `try_parse_records` over the live HashMap path as a dynamic cross-check.
