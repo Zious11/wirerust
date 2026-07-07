@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: steady-state
 status: complete
-current_step: "v0.11.5 release chain COMPLETE (D-393, 2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z, squash 19569ae. develop=19569ae; Cargo.toml 0.11.5 on both branches. Remote branches cleaned. Pipeline IDLE. trajectory-tail →0→0→0→0"
+current_step: "Wave 70 STARTED (D-394, 2026-07-07). Human approved wave 70 start. STORY-149 pre-story baseline captured (story149-pre, develop 19569ae): reassembly/tls.pcap slope 25.880 µs [25.823, 25.941]. AC-149-003 target ≤ 24.445 µs. Pipeline IN_PROGRESS. Next: per-story delivery STORY-149. trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-06"
-pipeline: IDLE
-timestamp: 2026-07-07T02:18:00Z
+pipeline: IN_PROGRESS
+timestamp: 2026-07-07T12:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**D-393 v0.11.5 release chain COMPLETE (2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 19569ae. develop=19569ae, Cargo.toml 0.11.5 on both branches. Remote branches cleaned. Pipeline IDLE (steady-state). Next expected work: wave 70 / STORY-149+STORY-156, next maintenance sweep, or new feature request. trajectory-tail →0→0→0→0.**
+**D-394 Wave 70 STARTED (2026-07-07). Human approved wave 70 start. STORY-149 pre-story baseline captured: story149-pre on develop 19569ae, reassembly/tls.pcap slope 25.880 µs [25.823, 25.941] (+11.16% vs May-19 anchor 23.281 µs; +5.94% vs Jun-22 24.429 µs; -7.05% vs maint-2026-07-06 reading 27.842 µs). AC-149-003 post-story target ≤ 24.445 µs. Baseline report: .factory/maintenance/story149-baseline-2026-07-07.md (committed b424bc9). Pipeline IN_PROGRESS. Next: per-story delivery of STORY-149 (worktree → stubs → failing tests → TDD implementation → per-story adversarial convergence 3 clean passes → demo evidence → PR). trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -81,7 +81,7 @@ maintenance_prior_run: maint-2026-07-01
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 109 total (STORY-INDEX v3.15) |
-| **Last Updated** | 2026-07-07 — v0.11.5 release chain COMPLETE (D-393). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 19569ae. develop=19569ae, Cargo.toml 0.11.5. Remote branches cleaned. Pipeline IDLE. trajectory-tail →0→0→0→0. |
+| **Last Updated** | 2026-07-07 — Wave 70 STARTED (D-394). Human approved 2026-07-07. STORY-149 pre-story baseline captured (story149-pre, 25.880 µs; AC-149-003 target ≤ 24.445 µs; baseline report b424bc9). Pipeline IN_PROGRESS. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -122,11 +122,11 @@ maintenance_prior_run: maint-2026-07-01
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C + FIX-D artifacts committed. Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out.** | **FIX_PHASE_COMPLETE (D-390)** | trajectory-tail →0→0→0→0. |
 | **STATE-FINAL maint-2026-07-06 COMPLETE (D-391, 2026-07-06). All fix PRs merged. PR #369 (e40fe8a) + PR #370 (d3e153c) + PR #371 (359726b) merged to develop. tech-debt-register v1.4. Lessons logged (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). develop=d3e153c (3 unreleased commits ahead of v0.11.4).** | **COMPLETE (D-391)** | trajectory-tail →0→0→0→0. |
 | **SESSION REVIEW maint-2026-07-06 COMPLETE (D-392, 2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: artifact-sourced counts mandate PROP-03; sweep_8: incremental-write PROP-01 + canonical-ID re-read PROP-02 + dedup-check PROP-04). 4 proposals deferred to improvement-backlog.md (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.** | **COMPLETE (D-392)** | trajectory-tail →0→0→0→0. |
 | **v0.11.5 RELEASED (2026-07-07). PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest with binaries. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Human-requested session wrap 2026-07-07. Only PR #373 back-merge outstanding.** | **RELEASED/PAUSED** | v0.11.5 released. PR #373 back-merge awaiting human merge. Session wrapped 2026-07-07. trajectory-tail →0→0→0→0. |
 | **v0.11.5 RELEASE CHAIN COMPLETE (D-393, 2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z; squash 19569ae. develop HEAD=19569ae; Cargo.toml 0.11.5 on both branches. Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned (GitHub auto-deleted on merge; verified via git fetch --prune). Pipeline IDLE. trajectory-tail →0→0→0→0.** | **CHAIN COMPLETE/IDLE (D-393)** | v0.11.5 chain complete. develop=19569ae. No open release/backmerge branches. Pipeline IDLE. |
+| **WAVE 70 STARTED (D-394, 2026-07-07). Human approved wave 70 start 2026-07-07. STORY-149 pre-story baseline captured: story149-pre on develop 19569ae, reassembly/tls.pcap slope 25.880 µs [25.823, 25.941] (+11.16% vs May-19 anchor 23.281 µs). AC-149-003 post-story target ≤ 24.445 µs. Baseline report committed b424bc9. Pipeline IN_PROGRESS. trajectory-tail →0→0→0→0.** | **IN_PROGRESS (D-394)** | Wave 70 started. STORY-149 baseline captured. Next: per-story delivery. |
 
 ## Decisions Log
 
@@ -225,6 +225,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-391 | maint-2026-07-06 STATE-FINAL (2026-07-06). All fix PRs merged by human. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged to develop. develop HEAD d3e153c (3 unreleased commits ahead of v0.11.4). tech-debt-register v1.4: DOC-009/010 + ADV-4 RESOLVED (PR #369); TD-MAINT-PC003/PC-016/PC-017 RESOLVED (PR #370); HOLDOUT-001/002 RESOLVED (FIX-C); RUSTSEC-2026-0204 CLOSED (PR #371); PERF-002 escalated STORY-149 wave 70. Lessons logged: cycles/maint-2026-07-06/lessons.md (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or next request. | 2026-07-06 |
 | D-392 | maint-2026-07-06 session review COMPLETE (2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into .factory/maintenance-config.yaml dispatch_templates: sweep_7 artifact_sourced_counts_mandate (PROP-03); sweep_8 incremental_write_mandate (PROP-01) + canonical_id_reread_mandate (PROP-02) + dedup_check_step (PROP-04). 4 proposals appended to .factory/session-reviews/improvement-backlog.md with revisit triggers (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Benchmarks.yaml updated with maint-2026-07-06 run metrics. Session review frontmatter annotated. Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. | 2026-07-06 |
 | D-393 | v0.11.5 release chain COMPLETE. PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 2026-07-07T02:17:57Z; squash 19569ae (full: 19569aea12b07804e391b158931f92b4cbc94d21). develop HEAD=19569ae; Cargo.toml 0.11.5 on both main and develop. Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned (GitHub auto-deleted on merge; verified via git fetch --prune — 0 stale remote release/* or chore/backmerge-* branches). Pipeline IDLE (steady-state). | 2026-07-07 |
+| D-394 | Wave 70 STARTED; human approved 2026-07-07. STORY-149 pre-story baseline captured (story149-pre on develop 19569ae): reassembly/tls.pcap slope 25.880 µs [25.823, 25.941] (+11.16% vs May-19 anchor 23.281 µs; +5.94% vs Jun-22 24.429 µs; -7.05% vs maint-2026-07-06 reading 27.842 µs). AC-149-003 post-story target ≤ 24.445 µs. Baseline report: .factory/maintenance/story149-baseline-2026-07-07.md (committed b424bc9). Pipeline IN_PROGRESS. | 2026-07-07 |
 
 ---
 
@@ -326,14 +327,13 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**v0.11.5 release chain COMPLETE (2026-07-07, D-393). PR #373 MERGED 19569ae. Pipeline IDLE. No pending work or in-flight items.**
+**Wave 70 STARTED (2026-07-07, D-394). STORY-149 pre-story baseline captured (story149-pre, 25.880 µs). Pipeline IN_PROGRESS. Next: per-story delivery STORY-149.**
 
-- **Date:** 2026-07-07. Position: v0.11.5 release chain FULLY COMPLETE. Maintenance run maint-2026-07-06 COMPLETE (8 sweeps, 39 findings, 0 CRITICAL; PRs #369/#370/#371 merged). Session review COMPLETE (PROP-01..04 adopted; PROP-05..08 deferred). v0.11.5 RELEASED (PR #372, main=3c0ad3a, tag v0.11.5 obj de3392a). Back-merge PR #373 MERGED (squash 19569ae; develop=19569ae; Cargo.toml 0.11.5 on both branches). Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned.
+- **Date:** 2026-07-07. Position: Wave 70 in progress. Human approved 2026-07-07. STORY-149 (E-11, 5 pts, P1, TLS carry-path perf recovery) pre-story baseline on develop 19569ae: reassembly/tls.pcap slope 25.880 µs [25.823, 25.941] (+11.16% vs May-19 anchor 23.281 µs; +5.94% vs Jun-22 24.429 µs; -7.05% vs maint-2026-07-06 reading 27.842 µs). AC-149-003 target ≤ 24.445 µs. Criterion saved-baseline name: story149-pre. Baseline report: `.factory/maintenance/story149-baseline-2026-07-07.md` (committed b424bc9).
 - **Ground truth:** main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj `de3392a9e3cea99ad424e9172f24d6d938368a06`); develop=`19569ae` (full `19569aea12b07804e391b158931f92b4cbc94d21`; Cargo.toml 0.11.5). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **No in-flight work.** Pipeline is IDLE. No open release/*, chore/backmerge-* branches on origin.
-- **Next work candidates:** wave 70 (STORY-149 perf regression, E-11, 5 pts) ∥ STORY-156 (E-16, BC-2.16.016 gap, draft) — whichever human prioritizes; next scheduled maintenance sweep; or a new feature request.
+- **In-flight:** Wave 70 / STORY-149 delivery. No open story worktrees yet. Next sub-step: create worktree, stub-architect Red Gate, test-writer failing tests, TDD implementation, per-story adversarial convergence 3 clean passes, demo evidence, PR.
 - **Spec versions:** BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6.
-- **No abandoned sub-agent steps; no unresolved blockers; no pending human decisions.**
+- **No unresolved blockers; no pending human decisions beyond story delivery.**
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---

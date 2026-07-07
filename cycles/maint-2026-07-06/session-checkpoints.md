@@ -11,6 +11,31 @@ input-hash: "[live-state]"
 traces_to: STATE.md
 ---
 
+## Session Resume Checkpoint (2026-07-07) — D-393 v0.11.5 chain COMPLETE; Pipeline IDLE
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-07 |
+| **Position** | v0.11.5 release chain FULLY COMPLETE (D-393). PR #373 MERGED 19569ae. Pipeline IDLE. |
+| **Ground truth** | develop=`19569ae` (full `19569aea12b07804e391b158931f92b4cbc94d21`; Cargo.toml 0.11.5), main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj de3392a9e3cea99ad424e9172f24d6d938368a06`) |
+| **In-flight** | None. No open release/* or chore/backmerge-* branches. |
+| **Next step** | Wave 70 / STORY-149+STORY-156, next maintenance sweep, or new feature request |
+
+### Resume Prompt (archived from STATE.md 2026-07-07)
+
+**D-393 v0.11.5 release chain COMPLETE (2026-07-07). PR #373 (chore/backmerge-v0.11.5 → develop) MERGED 19569ae. develop=19569ae, Cargo.toml 0.11.5 on both branches. Remote branches cleaned. Pipeline IDLE (steady-state). Next expected work: wave 70 / STORY-149+STORY-156, next maintenance sweep, or new feature request. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-07. Position: v0.11.5 release chain FULLY COMPLETE. Maintenance run maint-2026-07-06 COMPLETE (8 sweeps, 39 findings, 0 CRITICAL; PRs #369/#370/#371 merged). Session review COMPLETE (PROP-01..04 adopted; PROP-05..08 deferred). v0.11.5 RELEASED (PR #372, main=3c0ad3a, tag v0.11.5 obj de3392a). Back-merge PR #373 MERGED (squash 19569ae; develop=19569ae; Cargo.toml 0.11.5 on both branches). Remote branches release/0.11.5 + chore/backmerge-v0.11.5 cleaned.
+- **Ground truth:** main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj `de3392a9e3cea99ad424e9172f24d6d938368a06`); develop=`19569ae` (full `19569aea12b07804e391b158931f92b4cbc94d21`; Cargo.toml 0.11.5). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
+- **No in-flight work.** Pipeline is IDLE. No open release/*, chore/backmerge-* branches on origin.
+- **Next work candidates:** wave 70 (STORY-149 perf regression, E-11, 5 pts) ∥ STORY-156 (E-16, BC-2.16.016 gap, draft) — whichever human prioritizes; next scheduled maintenance sweep; or a new feature request.
+- **Spec versions:** BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6.
+- **No abandoned sub-agent steps; no unresolved blockers; no pending human decisions.**
+
+---
+
 # Session Checkpoints — maint-2026-07-06
 
 <!-- Archived session resume checkpoints extracted from STATE.md.
