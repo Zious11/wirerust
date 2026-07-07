@@ -1801,8 +1801,8 @@ mod proptest_proofs_vp005 {
 //     `body_len > MAX_BUF → break`       Decision-4 spoof guard           (line ~910)
 //     `len-consumed < 4+body_len → break` incomplete-body guard           (line ~920)
 //     `&carry[consumed..consumed+4+bl]`  dispatch clone slice             (line ~927)
-//     `consumed += 4 + body_len`         cursor advance                   (line ~955)
-//     `drain(..consumed)`                single post-loop drain           (line ~961)
+//     `consumed += 4 + body_len`         cursor advance                   (line ~949)
+//     `drain(..consumed)`                single post-loop drain           (line ~955)
 //
 // The fuzz target `fuzz_tls_reassembly` independently exercises the REAL
 // `try_parse_records` over the live HashMap path as a dynamic cross-check.
