@@ -72,7 +72,13 @@ fn build_client_hello_handshake_bytes() -> Vec<u8> {
 /// `wrap_as_tls_record` helper. `content_type` must be 0x16 for handshake records.
 fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
     let len = payload.len();
-    let mut record = vec![content_type, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
+    let mut record = vec![
+        content_type,
+        0x03,
+        0x03,
+        (len >> 8) as u8,
+        (len & 0xff) as u8,
+    ];
     record.extend_from_slice(payload);
     record
 }

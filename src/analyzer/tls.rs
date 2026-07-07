@@ -836,10 +836,11 @@ impl TlsAnalyzer {
         hs_carry.extend_from_slice(&buf[5..total_record_len]);
         buf.drain(..total_record_len);
 
-        // Step 3: Extract carry via replace (PERF-002). After replace, `hs_carry` in
+        // Step 3: Extract carry via take (PERF-002). After take, `hs_carry` in
         // the flow state is an empty `Vec::new()` — EC-002: no heap allocation when the
-        // carry was empty before this record.
-        let carry = std::mem::replace(hs_carry, Vec::new());
+        // carry was empty before this record. `std::mem::take` is equivalent to
+        // `std::mem::replace(hs_carry, Vec::new())` but is the idiomatic form.
+        let carry = std::mem::take(hs_carry);
         let last_ts = state.last_ts;
 
         RecordStep::Handshake { carry, last_ts }

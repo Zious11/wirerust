@@ -22,7 +22,13 @@ use wirerust::reassembly::handler::{Direction, StreamHandler};
 /// Wrap `payload` in a minimal 5-byte TLS record header (version TLS 1.2).
 fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
     let len = payload.len();
-    let mut record = vec![content_type, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
+    let mut record = vec![
+        content_type,
+        0x03,
+        0x03,
+        (len >> 8) as u8,
+        (len & 0xff) as u8,
+    ];
     record.extend_from_slice(payload);
     record
 }
