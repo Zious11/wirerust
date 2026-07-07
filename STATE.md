@@ -10,7 +10,7 @@ project: wirerust
 mode: steady-state
 phase: steady-state
 status: complete
-current_step: "D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A-D delivered: PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) all merged. FIX-C holdouts repaired (HS-INDEX v2.12), FIX-D spec hygiene (VP-INDEX v2.35, module-criticality v1.6), BC-INDEX v2.19, STORY-INDEX v3.15 (STORY-156 new; STORY-149 wave 70). Pipeline IDLE. Next: deliver wave 70 (STORY-149) or await next request. Note: develop 3 commits ahead of v0.11.4 — release when appropriate. trajectory-tail →0→0→0→0"
+current_step: "D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config (PROP-MAINT-01/02/03/04), 4 deferred to backlog (PROP-MAINT-05/06/07/08). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-06"
 pipeline: PAUSED
 timestamp: 2026-07-06T23:59:00Z
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A-D delivered: PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) all merged. FIX-C holdouts repaired (HS-INDEX v2.12), FIX-D spec hygiene (VP-INDEX v2.35, module-criticality v1.6), BC-INDEX v2.19, STORY-INDEX v3.15 (STORY-156 new; STORY-149 wave 70). Pipeline IDLE. Next: deliver wave 70 (STORY-149) or await next request. develop 3 commits ahead of v0.11.4 — release when appropriate. trajectory-tail →0→0→0→0.**
+**D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: PROP-MAINT-03; sweep_8: PROP-MAINT-01/02/04). 4 proposals deferred to improvement-backlog.md (PROP-MAINT-05/06/08: next maintenance sweep; PROP-MAINT-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-07-01
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state (maint-2026-07-06 COMPLETE D-391) |
+| Mode | steady-state (maint-2026-07-06 session review COMPLETE D-392; release v0.11.5 IN PROGRESS) |
 | Version | 0.11.4 (released 2026-07-06); develop has 3 unreleased commits ahead of v0.11.4 |
 | Main HEAD | `f0f2136` (full: `f0f2136d1f43475cb2372193875ea516cc137218`) |
 | Develop HEAD | `d3e153c` (full: `d3e153cf9926746a48cd7d1394f4a55be0950fd6`) — 3 unreleased commits ahead of v0.11.4 |
@@ -81,7 +81,7 @@ maintenance_prior_run: maint-2026-07-01
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 109 total (STORY-INDEX v3.15) |
-| **Last Updated** | 2026-07-06 — D-391 maint-2026-07-06 COMPLETE. PRs #369+#370+#371 merged. BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15. develop=d3e153c (3 unreleased commits). trajectory-tail →0→0→0→0. |
+| **Last Updated** | 2026-07-06 — D-392 session review COMPLETE. 4 proposals adopted into maintenance-config (PROP-MAINT-01/02/03/04); 4 deferred to backlog (PROP-MAINT-05/06/07/08). Release v0.11.5 IN PROGRESS (PR pending human merge). trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -133,6 +133,7 @@ maintenance_prior_run: maint-2026-07-01
 | **FIX-D: VP shards + spec hygiene committed to factory-artifacts (maint-2026-07-06, 2026-07-06). 10 new VP shard files (vp-025..031, vp-041..043); module-criticality v1.6 (26 components); VP-INDEX v2.35 (TD-031 remediation). Spec-changelog entry added. STORY-156 (E-16 BC-2.16.016 gap); STORY-149 wave TBD→70; STORY-107 v1.4 propagation; STORY-INDEX v3.15 (109 stories / 70 waves / 697 pts). Tech-debt-register v1.3+ (nomenclature corrections, FIX-B in-progress). Research: df-validation-pc019-pc020-2026-07-06.md.** | **DONE** | Committed factory-artifacts. |
 | **FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C + FIX-D artifacts committed. Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out.** | **FIX_PHASE_COMPLETE (D-390)** | trajectory-tail →0→0→0→0. |
 | **STATE-FINAL maint-2026-07-06 COMPLETE (D-391, 2026-07-06). All fix PRs merged. PR #369 (e40fe8a) + PR #370 (d3e153c) + PR #371 (359726b) merged to develop. tech-debt-register v1.4. Lessons logged (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). develop=d3e153c (3 unreleased commits ahead of v0.11.4).** | **COMPLETE (D-391)** | trajectory-tail →0→0→0→0. |
+| **SESSION REVIEW maint-2026-07-06 COMPLETE (D-392, 2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: artifact-sourced counts mandate PROP-03; sweep_8: incremental-write PROP-01 + canonical-ID re-read PROP-02 + dedup-check PROP-04). 4 proposals deferred to improvement-backlog.md (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.** | **COMPLETE (D-392)** | trajectory-tail →0→0→0→0. |
 
 ## Decisions Log
 
@@ -229,6 +230,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-388 | Maintenance run maint-2026-07-06 STARTED. Sweeps 1-5,7,8,11 applicable; 6 (DTU) / 9 (a11y) / 10 (design-drift) N/A (CLI product, dtu_required:false). Baseline: develop f7460b4, main f0f2136, v0.11.4 released, no open PRs, no story worktrees. Log: `.factory/cycles/maint-2026-07-06/maintenance-log.md`. | 2026-07-06 |
 | D-390 | maint-2026-07-06 FIX PHASE COMPLETE (2026-07-06). FIX-A (docs PR #369: DOC-009+DOC-010) + FIX-B (code PR #370: PC-016/017 DNP3 counter gaps; BC-2.15.016 v2.2 + BC-2.15.020 v2.1 + BC-2.15.022 v2.1; BC-INDEX v2.19) both READY-FOR-HUMAN-MERGE (CI green, reviews converged). FIX-C (4 holdout scenario repairs: HS-061/064/066/075 + HS-INDEX v2.12) + FIX-D (10 VP shards vp-025..031/041..043; module-criticality v1.6; VP-INDEX v2.35 TD-031 remediation; spec-changelog entry; STORY-156 + STORY-149 wave 70 + STORY-107 v1.4; STORY-INDEX v3.15; tech-debt-register v1.3+ nomenclature + FIX-B in-progress; research df-validation-pc019-pc020-2026-07-06.md) committed to factory-artifacts. Awaiting human merge of PRs #369+#370, then state-final close-out. | 2026-07-06 |
 | D-391 | maint-2026-07-06 STATE-FINAL (2026-07-06). All fix PRs merged by human. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged to develop. develop HEAD d3e153c (3 unreleased commits ahead of v0.11.4). tech-debt-register v1.4: DOC-009/010 + ADV-4 RESOLVED (PR #369); TD-MAINT-PC003/PC-016/PC-017 RESOLVED (PR #370); HOLDOUT-001/002 RESOLVED (FIX-C); RUSTSEC-2026-0204 CLOSED (PR #371); PERF-002 escalated STORY-149 wave 70. Lessons logged: cycles/maint-2026-07-06/lessons.md (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or next request. | 2026-07-06 |
+| D-392 | maint-2026-07-06 session review COMPLETE (2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into .factory/maintenance-config.yaml dispatch_templates: sweep_7 artifact_sourced_counts_mandate (PROP-03); sweep_8 incremental_write_mandate (PROP-01) + canonical_id_reread_mandate (PROP-02) + dedup_check_step (PROP-04). 4 proposals appended to .factory/session-reviews/improvement-backlog.md with revisit triggers (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Benchmarks.yaml updated with maint-2026-07-06 run metrics. Session review frontmatter annotated. Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. | 2026-07-06 |
 
 ---
 
@@ -330,11 +332,11 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**D-391 MAINTENANCE maint-2026-07-06 COMPLETE (2026-07-06). All PRs merged. Pipeline PAUSED (steady-state). Next: wave 70 (STORY-149) or await next request.**
+**D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config; 4 deferred to backlog. Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.**
 
-- **Date:** 2026-07-06. Position: maint-2026-07-06 COMPLETE. All fix PRs merged. Pipeline IDLE.
+- **Date:** 2026-07-06. Position: maint-2026-07-06 session review COMPLETE (D-392). Release v0.11.5 IN PROGRESS.
 - **Ground truth:** develop=`d3e153c` (full `d3e153cf9926746a48cd7d1394f4a55be0950fd6`; Cargo.toml 0.11.4; 3 unreleased commits ahead of v0.11.4), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4, tag obj e6ee614). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight work:** NONE. No open PRs, no story worktrees.
+- **In-flight work:** release/0.11.5 branch — release PR pending human merge. No story worktrees.
 - **Sweep progress (maint-2026-07-06):** ALL COMPLETE (8 applicable; 6/9/10 N/A).
   - Sweep 1 (dependency/supply-chain): DONE — CLEAN (0 vulns; 2 LOW hygiene)
   - Sweep 2 (doc-drift): DONE — 8 findings (1H/4M/3L) → RESOLVED PR #369

@@ -49,6 +49,23 @@ See full proposals in: `.factory/session-reviews/review-2026-06-19-v0.9.0-e18-gr
 
 ---
 
+## From: maint-2026-07-06 Session Review (2026-07-06)
+
+See full proposals in: `.factory/session-reviews/session-review-maint-2026-07-06.md`
+
+Human decisions recorded 2026-07-06: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08.
+
+| ID | Category | Priority | Summary | Status | Revisit Trigger |
+|---|---|---|---|---|---|
+| PROP-MAINT-05 | process-documentation | LOW | Advisory-race triage annotation in fix-phase dispatch template: if cargo audit CI fails on a PR whose diff does not touch Cargo.toml or Cargo.lock, check advisory DB delta first. | DEFERRED | Next maintenance sweep |
+| PROP-MAINT-06 | sweep-3 methodology | MEDIUM | Mechanism-verification step for HIGH technique-impact findings in sweep 3 — code-trace before asserting detection-technique masking impact. | DEFERRED | Next maintenance sweep |
+| PROP-MAINT-07 | story decomposition / tech-debt | MEDIUM | Pattern-debt batching: decompose a batch-refactor STORY for PC-002/013 (import style) and PC-007/015 (BTreeMap imports) at wave 71+. Keep PC-001 (DNP3 StreamHandler arch) separate. | DEFERRED | Wave 71 planning |
+| PROP-MAINT-08 | tooling / maintenance automation | LOW | Holdout freshness exact-key-count staleness heuristic: flag holdout ACs containing "Exactly N" / "exactly N" patterns as regression-prone when a counter-adding PR is merged. | DEFERRED | Next maintenance sweep |
+
+Evidence pointer: `.factory/session-reviews/session-review-maint-2026-07-06.md` § Improvement Proposals (PROP-MAINT-05..08).
+
+---
+
 ## Auto-Deferral Note
 
 If no human response within 72h of session review completion (2026-06-16), all

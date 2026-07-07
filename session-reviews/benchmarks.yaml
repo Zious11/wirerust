@@ -123,3 +123,54 @@ runs:
     proposals_p1: 2  # PROP-E18-01, PROP-E18-02
     proposals_p2: 4  # PROP-E18-03, PROP-E18-04, PROP-E18-05, PROP-E18-06
     proposals_p3: 1  # PROP-E18-07
+
+  - cycle: maint-2026-07-06
+    run_type: maintenance
+    pipeline_path: "Path 10 — maintenance sweep"
+    date: "2026-07-06"
+    duration: "~4h12m"
+    stories_delivered: 0  # STORY-156 created, not delivered
+    prs_merged: [369, 370, 371]
+
+    findings:
+      total: 39
+      critical: 0
+      high: 4
+      medium: 15
+      low: 20
+
+    sweep_health:
+      sweeps_applicable: 8
+      sweeps_completed: 8
+      sweeps_first_try: 7
+      sweep_8_attempt_count: 3  # stalled twice; third attempt with incremental-write succeeded
+      register_id_corrections_post_sweep: 1  # PC-019/020 dispatch labels → PC-016/017 canonical IDs
+      cross_report_inconsistencies: 1  # sweep 7 vs sweep 2 doc-drift count (0 vs 1 HIGH)
+
+    pr_cycle_times_minutes:
+      pr_369_docs: 139   # 2h19m (FIX-A)
+      pr_370_dnp3_counters: 76   # 1h16m (FIX-B; blocked ~4m by advisory race)
+      pr_371_dep_fix: 5   # advisory-race recovery
+
+    gate_outcomes:
+      df_validation_001: PASS  # refuted T1692.001 masking claim; confirmed observability gap; caught register ID drift
+      human_merge_policy: PASS  # 2 agent merge attempts blocked; all 4 merges human-executed
+      fix_b_3_reviewer_convergence: PASS  # HIGH over-count bug caught and fixed pre-merge
+      advisory_race_ci_recovery: PASS  # PR #371 landed before PR #370 merged; audit gate never disabled
+
+    process_improvements:
+      proposals_generated: 8
+      proposals_approved: 4  # PROP-MAINT-01/02/03/04 → adopted into maintenance-config.yaml
+      proposals_deferred: 4  # PROP-MAINT-05/06/07/08 → improvement-backlog.md
+
+    # Baseline metrics for next-run comparison (from "Metrics for Next Run" section)
+    targets_for_next_run:
+      sweep_8_attempt_count: 1   # baseline 3 (this run); target 1 with PROP-01/02/03 applied
+      register_id_corrections: 0   # baseline 1; target 0
+      cross_report_inconsistencies: 0   # baseline 1; target 0
+
+    ongoing_metrics:
+      pattern_consistency_carry_forward: 20   # 12 carry from prior + 8 new this run
+      story_149_perf_regression_pct: 14.0   # tls.pcap +14.0%; escalated to wave 70
+      asm_cand_003_past_escalation_threshold: true
+      asm_cand_009_past_escalation_threshold: true

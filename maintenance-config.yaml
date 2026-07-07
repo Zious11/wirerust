@@ -26,3 +26,35 @@ gates:
   require_holdout_pass: true
   require_adversarial_review: true
   require_regression_pass: true
+
+# Dispatch template instructions injected into sweep agent prompts.
+# Each key under a sweep block is a named instruction; {sweep_report_path} is
+# a runtime variable resolved by the orchestrator from the current run's sweep
+# report file (e.g. .factory/maintenance/sweep-report-<date>.md).
+#
+# Adopted 2026-07-06 from maint-2026-07-06 session review (PROP-MAINT-01..04).
+dispatch_templates:
+
+  sweep_7:
+    # PROP-MAINT-03 — artifact-sourced counts mandate (adopted 2026-07-06)
+    artifact_sourced_counts_mandate: >-
+      For each dimension in the summary table, read the corresponding sweep report at
+      {sweep_report_path} and extract counts from that artifact. Do not independently
+      re-evaluate.
+
+  sweep_8:
+    # PROP-MAINT-01 — incremental-write mandate (adopted 2026-07-06)
+    incremental_write_mandate: >-
+      Write each section incrementally — do not accumulate all changes for a single
+      large write; keep reply prose minimal — emit writes only; on second stall,
+      check for partial writes before retrying.
+    # PROP-MAINT-02 — canonical-ID re-read mandate (adopted 2026-07-06)
+    canonical_id_reread_mandate: >-
+      Before writing each register entry ID, re-read the canonical ID from
+      {sweep_report_path}. Do not use IDs from the orchestrator dispatch label or
+      working memory.
+    # PROP-MAINT-04 — dedup-check step (adopted 2026-07-06)
+    dedup_check_step: >-
+      Before creating a new register row, grep the existing register for the finding's
+      short description and source-sweep ID. If a prior entry covers the same defect,
+      update it rather than creating a new row.
