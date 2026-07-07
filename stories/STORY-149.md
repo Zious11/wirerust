@@ -4,7 +4,7 @@ story_id: STORY-149
 title: "TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture"
 epic_id: E-11
 version: "1.4"
-status: pending
+status: merged
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
 phase: f3
@@ -32,7 +32,7 @@ inputs: []
 # STORY-149 — TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** pending
+**Status:** merged
 **Wave:** 70
 **Points:** 5
 
