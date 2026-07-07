@@ -16,7 +16,7 @@ Set Padding 20
 # Traces to: BC-2.15.020 postcondition 1; Canonical Test Vectors; STORY-108 AC-010.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/fix-pc-014-evidence && cargo build 2>/dev/null"
+Type "cd <REPO-ROOT>/.worktrees/fix-pc-014-evidence && cargo build 2>/dev/null"
 Enter
 Sleep 10s
 Show

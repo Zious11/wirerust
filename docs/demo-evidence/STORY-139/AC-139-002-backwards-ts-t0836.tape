@@ -16,7 +16,7 @@ Set Padding 20
 # Error path: misspelled suffix (_reset vs _no_reset) → 0 tests run.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/enip-direction-clock"
+Type "cd <REPO-ROOT>/.worktrees/enip-direction-clock"
 Enter
 Sleep 2s
 Show

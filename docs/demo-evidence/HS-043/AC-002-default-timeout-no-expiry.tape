@@ -15,7 +15,7 @@ Set Framerate 24
 # flows_expired=0 proves the knob controls expiry, not a side-effect.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/hs043-flow-expiry"
+Type "cd <REPO-ROOT>/.worktrees/hs043-flow-expiry"
 Enter
 Type "clear"
 Enter

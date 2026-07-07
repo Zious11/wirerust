@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 
 # wirerust --help — shows global output-format and reassembly flags surface
 Hide
-Type 'export BIN=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-087/target/debug/wirerust'
+Type 'export BIN=<REPO-ROOT>/.worktrees/STORY-087/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

@@ -17,7 +17,7 @@ Set Padding 20
 # Error path: misspelled test name → 0 tests run (demonstrates test filter precision).
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/enip-direction-clock"
+Type "cd <REPO-ROOT>/.worktrees/enip-direction-clock"
 Enter
 Sleep 2s
 Show

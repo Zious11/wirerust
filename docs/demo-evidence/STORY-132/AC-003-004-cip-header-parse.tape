@@ -24,7 +24,7 @@ Set Shell "zsh"
 Set TypingSpeed 60ms
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-132-cpf-cip-parse"
+Type "cd <REPO-ROOT>/.worktrees/STORY-132-cpf-cip-parse"
 Enter
 Wait
 Show

@@ -13,7 +13,7 @@ Set PlaybackSpeed 1.0
 # AC-008 (BC-2.12.005 postcondition 6): --overlap-threshold 256 → clap range error
 # Expected: "error: invalid value '256' for '--overlap-threshold': 256 is not in 0..=255"
 Hide
-Type 'export BIN=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-087/target/debug/wirerust'
+Type 'export BIN=<REPO-ROOT>/.worktrees/STORY-087/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

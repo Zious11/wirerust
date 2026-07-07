@@ -15,7 +15,7 @@ Set Padding 20
 # Traces to: BC-2.15.010 postconditions 1/2; STORY-108 AC-001.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-108 && cargo build 2>/dev/null"
+Type "cd <REPO-ROOT>/.worktrees/STORY-108 && cargo build 2>/dev/null"
 Enter
 Sleep 10s
 Show

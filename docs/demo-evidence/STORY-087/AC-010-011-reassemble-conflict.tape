@@ -14,7 +14,7 @@ Set PlaybackSpeed 1.0
 # AC-011 (BC-2.12.007 invariant 1): reversed order --no-reassemble --reassemble → also conflict error
 # Expected: "error: the argument '--reassemble' cannot be used with '--no-reassemble'"
 Hide
-Type 'export BIN=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-087/target/debug/wirerust'
+Type 'export BIN=<REPO-ROOT>/.worktrees/STORY-087/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show
