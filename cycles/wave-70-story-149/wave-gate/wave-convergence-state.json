@@ -1,0 +1,104 @@
+{
+  "wave": 70,
+  "stories": ["STORY-149"],
+  "passes": 5,
+  "streak": 3,
+  "streak_passes": ["W3-triaged", "W4", "W5"],
+  "converged": true,
+  "converged_date": "2026-07-07",
+  "final_develop_head": "87035da040b7b7aedade82fbb47b8afff70d5339",
+  "develop_chain": [
+    "116100d3096e66723c825f8157935b08a37c48c2",
+    "83196242f81024dd127ba7caafb76a1990297290",
+    "6e1b682e9e3ddb68ab9c5315f02f24b415502815",
+    "87035da040b7b7aedade82fbb47b8afff70d5339"
+  ],
+  "prs_merged": [
+    { "pr": "#374", "sha": "116100d", "title": "perf(tls): single-borrow carry-path restructure + fragmented-handshake benchmark (STORY-149)" },
+    { "pr": "#375", "sha": "6e1b682", "title": "chore(deps): bump indicatif from 0.18.4 to 0.18.5 (dependabot unrelated)" },
+    { "pr": "#376", "sha": "8319624", "title": "docs: scrub absolute host paths from committed demo evidence (F-W70P2-002)" },
+    { "pr": "#377", "sha": "87035da", "title": "docs: wave-70 unreleased changelog entries + demo-evidence conventions (F-W70P3-001/002)" }
+  ],
+  "gate_dimensions": {
+    "a_full_suite": {
+      "verdict": "PASS",
+      "detail": "2367/0/5-ignored; clippy -D warnings clean; fmt clean; bench sane; no todo!()"
+    },
+    "b_wave_adversarial": {
+      "verdict": "PASS",
+      "passes": 5,
+      "streak": 3,
+      "streak_basis": "W3-triaged/W4/W5",
+      "detail": "5-pass adversarial convergence on develop chain 116100d -> 8319624 -> 6e1b682 -> 87035da"
+    },
+    "c_code_review": {
+      "verdict": "PASS",
+      "blocking": 0,
+      "improvement": 7,
+      "praise": 5,
+      "detail": "0 BLOCKING / 7 IMPROVEMENT (CR-001..007, absorbed into STORY-150 v1.1 candidate scope) / 5 PRAISE"
+    },
+    "d_security": {
+      "verdict": "APPROVE",
+      "deferred_findings": ["SEC-001 (w70-context)", "SEC-002 (w70-context)", "SEC-W70-001"],
+      "detail": "APPROVE; 3 LOW deferred pending DF-VALIDATION-001 research validation before any GitHub issue filing"
+    },
+    "e_consistency": {
+      "verdict": "PASS",
+      "finding_fixed": "F-GATE70-001 status-field drift fixed d852b50",
+      "detail": "PASS (F-GATE70-001 status-field drift fixed d852b50)"
+    },
+    "f_holdout": {
+      "verdict": "GATE PASS",
+      "scenarios": 15,
+      "mean_satisfaction": 0.920,
+      "min_must_pass": 0.80,
+      "detail": "15 TLS scenarios, mean 0.920, min must-pass 0.80; gate PASS"
+    }
+  },
+  "orchestrator_triage_note": {
+    "pass": "W3",
+    "finding": "F-W70P3-001",
+    "severity_claimed": "MEDIUM",
+    "triage_verdict": "FALSE_PREMISE",
+    "evidence": "Adversary claimed v0.11.5 was untagged; ground truth: v0.11.5 shipped 2026-07-07 (PR #372, tag object de3392a9e3cea99ad424e9172f24d6d938368a06). Finding premise is false.",
+    "action": "Downgraded to NITPICK_ONLY. Residual LOW items (F-W70P3-002 [Unreleased]-empty + docs/DEMO-EVIDENCE.md conventions) fixed in PR #377 (87035da).",
+    "gate_counting": "W3 counts toward streak as triaged-clean-by-gate-threshold; W4 + W5 are independently clean. Streak = 3/3 (W3-triaged + W4 + W5)."
+  },
+  "s702": {
+    "satisfied": true,
+    "story": "STORY-157",
+    "story_version": "e6aa1fc",
+    "story_index_version": "v3.17",
+    "total_stories": 110,
+    "total_points": 700,
+    "process_gaps_codified": ["PG-S149-001", "PG-W70-DEMO-SCRUB", "PG-HASH-EMPTY-INPUTS"]
+  },
+  "deferred_security_findings": [
+    {
+      "wave_context_id": "SEC-001",
+      "tech_debt_register_id": "SEC-010",
+      "cwe": "CWE-197",
+      "description": "Test-only u16 truncation in bench/test code; LOW",
+      "gate": "DF-VALIDATION-001"
+    },
+    {
+      "wave_context_id": "SEC-002",
+      "tech_debt_register_id": "SEC-011",
+      "cwe": null,
+      "description": "Borrow-budget comment gap; subsequently addressed by BORROW BUDGET annotations at 5b41eca; LOW",
+      "gate": "DF-VALIDATION-001"
+    },
+    {
+      "wave_context_id": "SEC-W70-001",
+      "tech_debt_register_id": "SEC-W70-001",
+      "cwe": "CWE-770",
+      "description": "Pre-existing unbounded TlsAnalyzer::all_findings Vec; predates wave; LOW",
+      "gate": "DF-VALIDATION-001"
+    }
+  ],
+  "process_notes": [
+    "PR manager step-8 merges executed by orchestrator via gh CLI with explicit human authorization each time (classifier blocks relayed authorization) — DF-PR-MANAGER-COMPLETE-001 enforcement clause (b), tagged for session review.",
+    "PR #375 (dependabot indicatif 0.18.5, 6e1b682) is unrelated to wave-70 story scope; merged during wave window."
+  ]
+}
