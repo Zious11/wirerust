@@ -9,6 +9,10 @@
 //! - Grand total across both functions: at most 4.
 //! - Anti-gameability guard: neither body may alias `self.flows` or use
 //!   `entry()`/`iter_mut()` — patterns that would hide re-hashing from the count.
+//! - `process_handshake_carry` BORROW BUDGET annotation coverage: body contains
+//!   at least one `BORROW BUDGET` inline marker, and the marker count equals the
+//!   acquisition-site count — so any new unannotated borrow site fails CI
+//!   (AC-149-001 Architecture Compliance Rule; F-S149P5-001).
 //!
 //! All tests pass after the STORY-149 single-borrow restructure.
 //! Tests are wrapped in `mod bc_149_single_borrow` per DF-TEST-NAMESPACE-001.
