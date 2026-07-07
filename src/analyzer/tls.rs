@@ -1794,18 +1794,19 @@ mod proptest_proofs_vp005 {
 //   below replicates the EXACT pointer arithmetic of the production loop over a
 //   bounded symbolic carry buffer. The correspondence is line-for-line:
 //
-//     model step                         production (tls.rs, ClientToServer
-//                                         ~875-977; ServerToClient ~1016-1101
-//                                         is byte-for-byte identical)
+//     model step                         production (`process_handshake_carry`,
+//                                         STORY-149 unified direction-parameterized
+//                                         loop; pre-refactor per-direction copies
+//                                         removed)
 //     ──────────────────────────────     ──────────────────────────────────
-//     `carry.len()-consumed<4 → break`   tls.rs:887  `carry.len()-consumed < 4`
-//     `mt = carry[consumed]`             tls.rs:890
-//     `bl = (b1<<16)|(b2<<8)|b3`         tls.rs:891-893
-//     `body_len > MAX_BUF → break`       tls.rs:900  Decision-4 spoof guard
-//     `len-consumed < 4+body_len → break` tls.rs:911 incomplete-body guard
-//     `&carry[consumed..consumed+4+bl]`  tls.rs:933  dispatch clone slice
-//     `consumed += 4 + body_len`         tls.rs:967  cursor advance
-//     `drain(..consumed)`                tls.rs:976  single post-loop drain
+//     `carry.len()-consumed<4 → break`   header-incomplete guard
+//     `mt = carry[consumed]`             msg_type read
+//     `bl = (b1<<16)|(b2<<8)|b3`         body_len 3-byte big-endian decode
+//     `body_len > MAX_BUF → break`       Decision-4 spoof guard
+//     `len-consumed < 4+body_len → break` incomplete-body guard
+//     `&carry[consumed..consumed+4+bl]`  dispatch clone slice
+//     `consumed += 4 + body_len`         cursor advance
+//     `drain(..consumed)`                single post-loop drain
 //
 // The fuzz target `fuzz_tls_reassembly` independently exercises the REAL
 // `try_parse_records` over the live HashMap path as a dynamic cross-check.
@@ -1949,7 +1950,8 @@ mod kani_proofs_vp039 {
     /// is maintained, and the guard's own `carry_len_before + payload_len` add
     /// does not overflow (payload is bounded upstream by `MAX_RECORD_PAYLOAD`).
     ///
-    /// Models tls.rs:829-844 (ClientToServer) / 998-1010 (ServerToClient) Step-1.
+    /// Models the Step-1 pre-append guard in `prepare_record_step`
+    /// (direction-parameterized, STORY-149 single-borrow refactor).
     #[kani::proof]
     fn verify_carry_bounded_after_append() {
         let carry_len_before: usize = kani::any();
