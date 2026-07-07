@@ -5,9 +5,11 @@
   "bc_gating": "BC-5.39.001",
   "policy": "DF-CONVERGENCE-BEFORE-MERGE-001",
   "converged": false,
-  "passes_clean_consecutive": 0,
+  "passes_clean_consecutive": 1,
   "passes_clean_consecutive_required": 3,
-  "total_passes": 1,
+  "total_passes": 3,
+  "story_spec_version": "v1.3",
+  "story_spec_version_commit": "0841cce",
   "trajectory": [
     {
       "pass": 1,
@@ -30,6 +32,57 @@
         "story_writer_factory_note": "STORY-149 v1.2",
         "test_writer": "a02eb6f"
       }
+    },
+    {
+      "pass": 2,
+      "date": "2026-07-07",
+      "classification": "FINDINGS",
+      "novelty": "low",
+      "worktree_head_reviewed": "a02eb6f",
+      "findings_raised": 1,
+      "findings_ids": [
+        "F-S149P2-001"
+      ],
+      "pass_1_fixes_verified": {
+        "result": "ALL_FIXED",
+        "phantom_regressions": 0,
+        "note": "All 5 actionable Pass-1 remediation targets confirmed FIXED; no phantom fixes or behavior regressions observed"
+      },
+      "remediation": {
+        "implementer": "208b2d4",
+        "note": "Comment-only fix; 4 sites updated via sibling sweep"
+      },
+      "clean_pass": false,
+      "clean_pass_reason": "Remediation applied (comment-only); counted NOT-clean per convergence policy"
+    },
+    {
+      "pass": 3,
+      "date": "2026-07-07",
+      "classification": "NITPICK_ONLY",
+      "novelty": "very_low",
+      "worktree_head_reviewed": "208b2d4",
+      "findings_raised": 2,
+      "findings_ids": [
+        "F-S149P3-001",
+        "F-S149P3-002"
+      ],
+      "code_findings": 0,
+      "pass_2_fix_verified": {
+        "result": "FIXED",
+        "finding": "F-S149P2-001",
+        "note": "mem::replace doc drift resolved at 208b2d4; all 4 comment sites confirmed clean"
+      },
+      "checkout_guard_attestation": {
+        "branch": "PASS",
+        "grep_counts": "4/3 PASS",
+        "freshness": "CONFIRM"
+      },
+      "remediation": {
+        "story_writer_factory": "0841cce",
+        "note": "Story wording nitpicks only; bumped to v1.3; no code changes — does NOT void the clean pass"
+      },
+      "clean_pass": true,
+      "clean_pass_reason": "NITPICK_ONLY classification; zero code findings; story-wording remediation in factory artifacts does not touch implementation"
     }
   ],
   "findings": [
@@ -80,6 +133,32 @@
       "summary": "Missing mod wrappers: new test files lacked #[cfg(test)] mod wrapper, relying on file-level test gating; inconsistent with project conventions observed in adjacent test files",
       "resolution_route": "FIXED — mod wrappers added (a02eb6f)",
       "fix_commit": "a02eb6f"
+    },
+    {
+      "id": "F-S149P2-001",
+      "pass": 2,
+      "severity": "LOW",
+      "summary": "mem::replace doc drift: two comment sites in the carry-path implementation and two in the test file still referenced 'mem::replace swap pattern' after the Pass-1 rename to mem::take; created misleading inline documentation for future maintainers",
+      "resolution_route": "FIXED — comment-only update at 4 sites via sibling sweep (implementer commit 208b2d4)",
+      "fix_commit": "208b2d4"
+    },
+    {
+      "id": "F-S149P3-001",
+      "pass": 3,
+      "severity": "LOW",
+      "category": "NITPICK",
+      "summary": "Bench name wording: the benchmark function name used an abbreviated slug that did not match the story's terminology convention for carry-path benchmarks; purely cosmetic, no functional impact",
+      "resolution_route": "FIXED — story v1.3 wording clarified (0841cce); no code change required",
+      "fix_commit": "0841cce"
+    },
+    {
+      "id": "F-S149P3-002",
+      "pass": 3,
+      "severity": "LOW",
+      "category": "NITPICK",
+      "summary": "WARNING-threshold conflation: a story acceptance-criterion comment conflated the observability WARNING counter threshold with the MAX_BUF eviction boundary; two distinct thresholds were described as if they were the same value",
+      "resolution_route": "FIXED — story v1.3 wording disambiguated (0841cce); no code change required",
+      "fix_commit": "0841cce"
     }
   ],
   "behavior_preservation_check": {
@@ -91,5 +170,15 @@
     "tests": "2366 pass / 0 fail",
     "clippy": "clean (-D warnings)",
     "fmt": "clean"
+  },
+  "gates_at_pass2_remediation_head": {
+    "worktree_head": "208b2d4",
+    "note": "comment-only commit; no test/clippy/fmt state change expected from pass-2 remediation"
+  },
+  "notes": {
+    "worktree_head_current": "208b2d4",
+    "story_spec_current": "v1.3 (0841cce)",
+    "next_pass": 4,
+    "convergence_status": "1 / 3 consecutive clean passes achieved (pass 3 was NITPICK_ONLY, qualifies as clean)"
   }
 }
