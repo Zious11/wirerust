@@ -5,13 +5,11 @@
 //! combined) and carries the "SINGLE-BORROW INVARIANT" comment marker at
 //! the single borrow acquisition site.
 //!
-//! RED GATE — FAILS NOW (pre-refactor):
-//!   - Current implementation has 10+ `flows.get_mut(` and 9+ `flows.get(`
-//!     call sites inside `try_parse_records` (PERF-001: 6–8 re-hashes per
-//!     0x16 record).
-//!   - No "SINGLE-BORROW INVARIANT" marker exists in the current code.
-//!
-//! Both tests become green after the single-borrow restructure in STORY-149.
+//! GREEN (STORY-149): `try_parse_records` now acquires exactly one
+//! `flows.get_mut(` borrow per loop iteration via `prepare_record_step()`.
+//! The "SINGLE-BORROW INVARIANT" comment marker is present at the borrow
+//! acquisition site. Both tests pass after the single-borrow restructure
+//! in STORY-149.
 //!
 //! `#![allow(non_snake_case)]` required per factory BC-naming mandate.
 #![allow(non_snake_case)]
@@ -75,8 +73,8 @@ fn extract_fn_body(source: &str, fn_sig: &str) -> String {
 /// compiler to keep the mutable reference live throughout without re-hashing
 /// the `FlowKey` on every sub-step.
 ///
-/// RED GATE — FAILS NOW: the pre-refactor code contains 10+ `flows.get_mut(`
-/// and 9+ `flows.get(` call sites (total >> 1).
+/// GREEN (STORY-149): after the single-borrow restructure, `try_parse_records`
+/// has exactly 1 `flows.get_mut(` borrow call site (total <= 1). This test passes.
 #[test]
 fn test_BC_149_001_at_most_one_flows_borrow_in_try_parse_records() {
     let source = std::fs::read_to_string("src/analyzer/tls.rs").unwrap_or_else(|e| {
@@ -107,7 +105,8 @@ fn test_BC_149_001_at_most_one_flows_borrow_in_try_parse_records() {
 /// INVARIANT" comment marker at the borrow acquisition site so that the
 /// invariant is asserted inline and visible in future diffs.
 ///
-/// RED GATE — FAILS NOW: no such marker exists in the pre-refactor code.
+/// GREEN (STORY-149): the "SINGLE-BORROW INVARIANT" marker is present
+/// in the restructured `try_parse_records`. This test passes.
 #[test]
 fn test_BC_149_001_single_borrow_invariant_comment_marker_present() {
     let source = std::fs::read_to_string("src/analyzer/tls.rs").unwrap_or_else(|e| {

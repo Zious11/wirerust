@@ -5,15 +5,15 @@
 //!   (b) exercises the carry-drain loop across record boundaries, and
 //!   (c) is deterministic (two builds are byte-identical).
 //!
-//! RED GATE — FAILS NOW: `build_fragmented_handshake_fixture()` is a stub
-//! (`todo!()`) — all three tests panic with:
-//!   "STORY-149: implement synthetic >=3-record fragmented TLS handshake builder"
+//! GREEN (STORY-149): `build_fragmented_handshake_fixture()` is fully
+//! implemented — a deterministic 3-record ClientHello (45 bytes, 15 bytes/record)
+//! that exercises the carry-drain loop >= 2 times. All three tests pass.
 //!
 //! NOTE: The fixture builder is defined here independently of the parallel
-//! stub in `benches/tls_fragmented.rs`. Bench files use `harness = false`
+//! builder in `benches/tls_fragmented.rs`. Bench files use `harness = false`
 //! and are not importable as library modules, so the test-facing builder
-//! lives here. Both stubs carry the same `todo!()` body; the implementer
-//! updates them to matching implementations simultaneously (STORY-149).
+//! lives here. Both builders deliver byte-identical segment sequences
+//! (STORY-149).
 //!
 //! `#![allow(non_snake_case)]` required per factory BC-naming mandate.
 #![allow(non_snake_case)]
@@ -132,8 +132,8 @@ fn fixture_flow_key() -> FlowKey {
 /// records 1 .. N-1 leave partial data in the carry buffer and only
 /// record N completes the carry-drain.
 ///
-/// RED GATE — FAILS NOW: `build_fragmented_handshake_fixture()` panics with
-/// `todo!("STORY-149: implement synthetic >=3-record fragmented TLS handshake builder")`.
+/// GREEN (STORY-149): `build_fragmented_handshake_fixture()` returns a
+/// deterministic 3-record sequence; this test passes.
 #[test]
 fn test_BC_149_002_fixture_spans_at_least_3_records() {
     let segments = build_fragmented_handshake_fixture();
@@ -153,8 +153,8 @@ fn test_BC_149_002_fixture_spans_at_least_3_records() {
 /// must leave the carry buffer non-empty (proving the carry-drain loop is
 /// traversed across record boundaries, not resolved within a single delivery).
 ///
-/// RED GATE — FAILS NOW: `build_fragmented_handshake_fixture()` panics with
-/// `todo!("STORY-149: implement synthetic >=3-record fragmented TLS handshake builder")`.
+/// GREEN (STORY-149): `build_fragmented_handshake_fixture()` returns a
+/// deterministic 3-record sequence; this test passes.
 #[test]
 fn test_BC_149_002_carry_drain_loop_exercised_across_records() {
     let segments = build_fragmented_handshake_fixture();
@@ -210,8 +210,8 @@ fn test_BC_149_002_carry_drain_loop_exercised_across_records() {
 /// must return byte-identical segment sequences so Criterion can produce
 /// meaningful statistics across iterations.
 ///
-/// RED GATE — FAILS NOW: `build_fragmented_handshake_fixture()` panics with
-/// `todo!("STORY-149: implement synthetic >=3-record fragmented TLS handshake builder")`.
+/// GREEN (STORY-149): `build_fragmented_handshake_fixture()` returns a
+/// deterministic 3-record sequence; this test passes.
 #[test]
 fn test_BC_149_002_fixture_is_deterministic() {
     let first = build_fragmented_handshake_fixture();

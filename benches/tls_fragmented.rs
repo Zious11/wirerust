@@ -6,8 +6,9 @@
 //! records, forcing the carry-drain loop to execute at least twice per
 //! iteration. Run with `cargo bench --bench tls_fragmented`.
 //!
-//! The synthetic-handshake builder (`build_fragmented_handshake`) is a stub
-//! (`todo!()`) until STORY-149 implements it. Once implemented, this bench
+//! The synthetic-handshake builder (`build_fragmented_handshake`) is implemented
+//! (STORY-149): a deterministic 3-record ClientHello (45 bytes, 15 bytes/record)
+//! that exercises the carry-drain loop >= 2 times per iteration. This bench
 //! establishes the regression baseline for future carry-path changes.
 
 use std::hint::black_box;
