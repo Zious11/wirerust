@@ -51,3 +51,8 @@ criterion = "0.8"
 [[bench]]
 name = "pipeline"
 harness = false
+
+# STORY-149: fragmented-handshake carry-drain regression fixture (AC-149-002; closes #360).
+[[bench]]
+name = "tls_fragmented"
+harness = false

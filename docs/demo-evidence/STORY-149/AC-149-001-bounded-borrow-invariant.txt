@@ -1,0 +1,70 @@
+AC-149-001 Evidence: Bounded-Borrow Invariant (Single-Borrow INVARIANT + Budget <= 4)
+======================================================================================
+Story: STORY-149
+Branch: feature/STORY-149-tls-carry-perf
+Commit: 2418048
+Date: 2026-07-07
+
+--- SUCCESS PATH: 5 source-inspection tests pass ---
+
+Command:
+  cargo test --test bc_149_single_borrow_invariant_tests -- --nocapture
+
+Output:
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running tests/bc_149_single_borrow_invariant_tests.rs (target/debug/deps/bc_149_single_borrow_invariant_tests-998e602a9a2174d9)
+
+running 5 tests
+test bc_149_single_borrow::test_BC_149_001_exactly_one_flows_borrow_in_try_parse_records ... ok
+test bc_149_single_borrow::test_BC_149_001_single_borrow_invariant_comment_marker_present ... ok
+test bc_149_single_borrow::test_BC_149_001_process_handshake_carry_budget_annotations_match_sites ... ok
+test bc_149_single_borrow::test_BC_149_001_process_handshake_carry_borrow_budget ... ok
+test bc_149_single_borrow::test_BC_149_001_no_aliasing_patterns_hide_borrow_count ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+--- SUCCESS PATH: Marker + annotation presence in source ---
+
+Command:
+  grep -n 'SINGLE-BORROW INVARIANT\|BORROW BUDGET' src/analyzer/tls.rs
+
+Output (7 matches across both functions — 1 marker + 1 header in try_parse_records/prepare_record_step,
+         plus 1 header + 3 site annotations in process_handshake_carry):
+
+330:/// SINGLE-BORROW INVARIANT (STORY-149 / PERF-001): `try_parse_records` acquires
+858:    /// BORROW BUDGET (STORY-149 / AC-149-001): this helper re-borrows `self.flows`
+924:                                // BORROW BUDGET (STORY-149): site 1 of <=3 — flag-set (client_hello_seen).
+948:                                // BORROW BUDGET (STORY-149): site 2 of <=3 — flag-set (server_hello_seen).
+977:        // BORROW BUDGET (STORY-149): site 3 of <=3 — carry-restore.
+988:    /// SINGLE-BORROW INVARIANT (STORY-149 / PERF-001): This function acquires exactly
+997:            // SINGLE-BORROW INVARIANT: exactly one HashMap borrow acquired per
+
+Interpretation:
+- Line 330 / 988 / 997: SINGLE-BORROW INVARIANT markers in try_parse_records / prepare_record_step
+- Line 858: BORROW BUDGET header for process_handshake_carry helper
+- Lines 924, 948, 977: 3 annotation sites in process_handshake_carry (budget = 3 of <=3)
+- Total budget: 1 (try_parse_records body) + 3 (process_handshake_carry) = 4 <= 4  [PASS]
+
+--- ERROR PATH: What a violation would report ---
+
+Total flows.get_mut() sites across entire file (for context):
+  Command: grep -c 'flows\.get_mut(' src/analyzer/tls.rs
+  Output: 7
+
+Note: The 7 total sites span multiple functions including test helpers, private helpers,
+and non-hot-path code. The test scope is specifically the try_parse_records body (must == 1)
+and process_handshake_carry body (must <= 3). Both constraints are satisfied.
+
+Violation message (from test source — what would print if budget exceeded):
+  AC-149-001 (PERF-001): try_parse_records must acquire EXACTLY 1
+  HashMap borrow (flows.get / flows.get_mut) per invocation — the
+  SINGLE-BORROW INVARIANT eliminates repeated FlowKey re-hashing
+  (STORY-149).
+  Found {get_mut_count} flows.get_mut( + {get_count} flows.get(
+  = {total} total borrow call site(s).
+  Maintain exactly one acquisition site in try_parse_records.
+
+  (test: test_BC_149_001_exactly_one_flows_borrow_in_try_parse_records)
+
+--- VERDICT: PASS ---
+All 5 tests green. Invariant marker present. Budget = 4 of <= 4.
