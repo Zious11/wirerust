@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-06T22:26:25Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/fix-crossbeam-audit && cargo test --all-targets 2>&1; echo \"EXIT:$?\""}
+{"status":"pass","timestamp":"2026-07-06T23:07:18Z","command":"cd /Users/zious/Documents/GITHUB/wirerust-release-0.11.5 && cargo test --all-targets 2>&1 | grep -E \"^test result|FAILED|error\\[\" | head -20"}

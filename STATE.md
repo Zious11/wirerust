@@ -10,27 +10,27 @@ project: wirerust
 mode: steady-state
 phase: steady-state
 status: complete
-current_step: "D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config (PROP-MAINT-01/02/03/04), 4 deferred to backlog (PROP-MAINT-05/06/07/08). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes. trajectory-tail →0→0→0→0"
+current_step: "v0.11.5 RELEASED (2026-07-07). PR #372 merged to main (3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Session wrap 2026-07-07. trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-06"
 pipeline: PAUSED
-timestamp: 2026-07-06T23:59:00Z
+timestamp: 2026-07-07T02:00:00Z
 
 # Release chain (latest)
-released_version: v0.11.4
-released_at: "2026-07-06"
-release_tag: v0.11.4
-release_tag_object: e6ee614011bf3778f6a602d62dac673a9526ead0
-release_commit: f0f2136d1f43475cb2372193875ea516cc137218
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.4
-prior_released_version: v0.11.3
+released_version: v0.11.5
+released_at: "2026-07-07"
+release_tag: v0.11.5
+release_tag_object: de3392a9e3cea99ad424e9172f24d6d938368a06
+release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
+prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (verified 2026-07-06 — maint-2026-07-06 COMPLETE; PRs #369+#370+#371 merged; develop has 3 unreleased commits ahead of v0.11.4)
-main_head: f0f2136d1f43475cb2372193875ea516cc137218
+# Ground-truth HEADs (verified 2026-07-07 — v0.11.5 released PR #372; back-merge PR #373 open; develop d3e153c still at v0.11.4)
+main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 develop_head: d3e153cf9926746a48cd7d1394f4a55be0950fd6
-# Cargo.toml version on main and develop (in sync)
-cargo_version_main: "0.11.4"
+# Cargo.toml version: main=0.11.5 (released); develop=0.11.4 (back-merge PR #373 pending)
+cargo_version_main: "0.11.5"
 cargo_version_develop: "0.11.4"
-# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/back-merge worktrees removed.
+# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. release/0.11.5 + chore/backmerge-v0.11.5 remote branches open (delete after #373 merge).
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
@@ -72,16 +72,16 @@ maintenance_prior_run: maint-2026-07-01
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state (maint-2026-07-06 session review COMPLETE D-392; release v0.11.5 IN PROGRESS) |
-| Version | 0.11.4 (released 2026-07-06); develop has 3 unreleased commits ahead of v0.11.4 |
-| Main HEAD | `f0f2136` (full: `f0f2136d1f43475cb2372193875ea516cc137218`) |
-| Develop HEAD | `d3e153c` (full: `d3e153cf9926746a48cd7d1394f4a55be0950fd6`) — 3 unreleased commits ahead of v0.11.4 |
-| Tag v0.11.4 | commit `f0f2136`; tag object `e6ee614` |
-| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.4 (Latest, not draft) |
+| Mode | steady-state (v0.11.5 RELEASED 2026-07-07; back-merge PR #373 OPEN; session wrap 2026-07-07) |
+| Version | 0.11.5 (released 2026-07-07); develop=d3e153c at v0.11.4 (back-merge PR #373 awaiting human merge) |
+| Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
+| Develop HEAD | `d3e153c` (full: `d3e153cf9926746a48cd7d1394f4a55be0950fd6`) — back-merge PR #373 OPEN; fast-forward on resume |
+| Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
+| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 98 delivered / 109 total (STORY-INDEX v3.15) |
-| **Last Updated** | 2026-07-06 — D-392 session review COMPLETE. 4 proposals adopted into maintenance-config (PROP-MAINT-01/02/03/04); 4 deferred to backlog (PROP-MAINT-05/06/07/08). Release v0.11.5 IN PROGRESS (PR pending human merge). trajectory-tail →0→0→0→0. |
+| **Last Updated** | 2026-07-07 — v0.11.5 RELEASED. PR #372 → main (3c0ad3a); tag v0.11.5 (obj de3392a). Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green. Session wrap 2026-07-07. trajectory-tail →0→0→0→0. |
 
 ---
 
@@ -114,6 +114,7 @@ maintenance_prior_run: maint-2026-07-01
 | Silent-limit audit + observability counters (D-385, 2026-07-06) | **RELEASED in v0.11.4 (PR #365, cc2a87c + PR #366 follow-ups, f7460b4)** | 13-site audit → 4 gaps + 9 cleared + modbus-latch REJECTED. Counters: `bindings_evicted`, `storm_counters_evicted`, `dropped_transactions`, `dropped_map_entries`. 8 BCs amended → BC-INDEX v2.18. |
 | v0.11.4 RELEASED (D-386, 2026-07-06) | **RELEASED 2026-07-06** | PR #366 (follow-up test hardening + ARP refactor, squash to develop); PR #367 (release/0.11.4 → main, merge f0f2136); tag v0.11.4 (tag obj e6ee614); GitHub Release Latest. Back-merge PR #368 (main → develop, squash f7460b4). develop has NO unreleased commits. |
 | Maintenance maint-2026-07-06 | **COMPLETE 2026-07-06 (D-391)** | 8 sweeps, 39 findings, 0 CRITICAL. Fix routes A–D delivered. PR #369 (docs, e40fe8a), PR #370 (DNP3 counters, d3e153c), PR #371 (crossbeam-epoch RUSTSEC-2026-0204, 359726b) merged. FIX-C: HS-INDEX v2.12 (HOLDOUT-001 repaired; HOLDOUT-002 false finding). FIX-D: VP-INDEX v2.35 / module-criticality v1.6. BC-INDEX v2.19. STORY-156 new; STORY-149 wave 70. develop=d3e153c (3 unreleased commits ahead of v0.11.4). findings_count: 39, fixes_applied: 4 routes + 1 out-of-band dep fix, fixes_pending: 0. trajectory-tail →0→0→0→0. |
+| v0.11.5 RELEASED | **RELEASED 2026-07-07** | PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (tag obj de3392a9e3cea99ad424e9172f24d6d938368a06); GitHub Release Latest with binaries. Back-merge PR #373 (main → develop, chore/backmerge-v0.11.5) OPEN CI-green AWAITING HUMAN MERGE. |
 
 ---
 
@@ -134,6 +135,7 @@ maintenance_prior_run: maint-2026-07-01
 | **FIX PHASE COMPLETE (D-390, 2026-07-06). FIX-A PR #369 + FIX-B PR #370 READY-FOR-HUMAN-MERGE. FIX-C + FIX-D artifacts committed. Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6. Awaiting human merge of PRs #369+#370, then state-final close-out.** | **FIX_PHASE_COMPLETE (D-390)** | trajectory-tail →0→0→0→0. |
 | **STATE-FINAL maint-2026-07-06 COMPLETE (D-391, 2026-07-06). All fix PRs merged. PR #369 (e40fe8a) + PR #370 (d3e153c) + PR #371 (359726b) merged to develop. tech-debt-register v1.4. Lessons logged (advisory-race, API stall, register ID drift). Pipeline PAUSED (steady-state). develop=d3e153c (3 unreleased commits ahead of v0.11.4).** | **COMPLETE (D-391)** | trajectory-tail →0→0→0→0. |
 | **SESSION REVIEW maint-2026-07-06 COMPLETE (D-392, 2026-07-06). Human decisions recorded: APPROVE PROP-MAINT-01/02/03/04; DEFER PROP-MAINT-05/06/07/08. 4 proposals adopted into maintenance-config.yaml dispatch_templates (sweep_7: artifact-sourced counts mandate PROP-03; sweep_8: incremental-write PROP-01 + canonical-ID re-read PROP-02 + dedup-check PROP-04). 4 proposals deferred to improvement-backlog.md (PROP-05/06/08: next maintenance sweep; PROP-07: wave 71 planning). Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.** | **COMPLETE (D-392)** | trajectory-tail →0→0→0→0. |
+| **v0.11.5 RELEASED (2026-07-07). PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest with binaries. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Human-requested session wrap 2026-07-07. Only PR #373 back-merge outstanding.** | **RELEASED/PAUSED** | v0.11.5 released. PR #373 back-merge awaiting human merge. Session wrapped 2026-07-07. trajectory-tail →0→0→0→0. |
 
 ## Decisions Log
 
@@ -332,28 +334,19 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**D-392 maint-2026-07-06 session review COMPLETE (2026-07-06). 4 proposals adopted into maintenance-config; 4 deferred to backlog. Release v0.11.5 IN PROGRESS (release PR pending human merge). Pipeline resumes IDLE after release chain completes.**
+**v0.11.5 RELEASED (2026-07-07). Back-merge PR #373 (chore/backmerge-v0.11.5 → develop) OPEN CI-green AWAITING HUMAN MERGE. Human-requested session wrap. No other pending work.**
 
-- **Date:** 2026-07-06. Position: maint-2026-07-06 session review COMPLETE (D-392). Release v0.11.5 IN PROGRESS.
-- **Ground truth:** develop=`d3e153c` (full `d3e153cf9926746a48cd7d1394f4a55be0950fd6`; Cargo.toml 0.11.4; 3 unreleased commits ahead of v0.11.4), main=`f0f2136` (full `f0f2136d1f43475cb2372193875ea516cc137218`, v0.11.4, tag obj e6ee614). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight work:** release/0.11.5 branch — release PR pending human merge. No story worktrees.
-- **Sweep progress (maint-2026-07-06):** ALL COMPLETE (8 applicable; 6/9/10 N/A).
-  - Sweep 1 (dependency/supply-chain): DONE — CLEAN (0 vulns; 2 LOW hygiene)
-  - Sweep 2 (doc-drift): DONE — 8 findings (1H/4M/3L) → RESOLVED PR #369
-  - Sweep 3 (pattern-consistency): DONE — 20 findings (3H/11M/6L) → PC-016/017 RESOLVED PR #370
-  - Sweep 4 (holdout-freshness): DONE — 4 stale (HS-061/064/066/075) → RESOLVED FIX-C
-  - Sweep 5 (performance): DONE — 1 REGRESSION (+14.0% tls.pcap) → STORY-149 wave 70
-  - Sweep 6 (DTU): N/A (dtu_required:false)
-  - Sweep 7 (spec-coherence): DONE — 3 new MAJOR + 3 carry-forward → FIX-D
-  - Sweep 8 (tech-debt-register): DONE — v1.2→v1.4; 13 new + 8 resolved this run
-  - Sweep 9 (accessibility): N/A (CLI product)
-  - Sweep 10 (design-drift): N/A (CLI product)
-  - Sweep 11 (risk-assumption): DONE — 2 ESCALATE (ASM-CAND-003/009) → OPEN P1
-- **RESUME PROCEDURE:**
-  1. Check `git log origin/develop` — ground truth is `d3e153c`.
-  2. Next work: deliver STORY-149 (wave 70, TLS carry-path perf) or await human direction.
-  3. Open P1 items: TD-MAINT-THRESHOLD-CALIB-001 + TD-MAINT-RISK-REGISTRY-BACKFILL.
-- **Pending human decisions:** TD-MAINT-THRESHOLD-CALIB-001 (formal accept vs. calibration exercise) + TD-MAINT-RISK-REGISTRY-BACKFILL (registry creation before next ICS feature). Release decision for 3 unreleased develop commits when appropriate.
+- **Date:** 2026-07-07. Position: maintenance run maint-2026-07-06 COMPLETE (8 sweeps, 39 findings, 0 CRITICAL; fix PRs #369/#370/#371 all merged). Session review COMPLETE (PROP-01..04 adopted into maintenance-config dispatch_templates; PROP-05..08 deferred to improvement-backlog). v0.11.5 RELEASED: release PR #372 merged to main (merge commit `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`); tag v0.11.5 (tag object `de3392a9e3cea99ad424e9172f24d6d938368a06`); GitHub Release Latest with binaries.
+- **Ground truth:** main=`3c0ad3a` (full `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5, tag obj `de3392a9e3cea99ad424e9172f24d6d938368a06`), develop=`d3e153c` (full `d3e153cf9926746a48cd7d1394f4a55be0950fd6`; Cargo.toml 0.11.4). factory-artifacts HEAD: run `git -C .factory log -1 --format='%h %s'`. Worktrees: main checkout [develop] + .factory [factory-artifacts] only.
+- **IN-FLIGHT (the ONLY pending item):** back-merge PR #373 (main → develop, branch `chore/backmerge-v0.11.5`) OPEN, CI all green, AWAITING HUMAN MERGE (squash per #368/#364 precedent). After merge: record new develop HEAD in STATE.md, confirm Cargo.toml 0.11.5 on both branches, delete remote branches `release/0.11.5` + `chore/backmerge-v0.11.5` if still present.
+- **Housekeeping notes:**
+  - Local develop checkout is behind origin (f7460b4; fast-forward on resume with `git pull --ff-only`)
+  - Spec versions: BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.15 / module-criticality v1.6
+  - STORY-149 scheduled wave 70 (next delivery candidate after back-merge completes)
+  - STORY-156 draft (E-16, BC-2.16.016 gap, added during maint-2026-07-06)
+- **No abandoned sub-agent steps; no unresolved blockers; no pending human decisions besides the #373 merge.**
+- **Resume command:** `/vsdd-factory:next-step` (it will verify #373 merge status first)
+
 ---
 
 ## Governance Policy
