@@ -18,7 +18,7 @@ Set Padding 20
 # Traces to: BC-2.15.017, BC-2.15.021; STORY-110 end-to-end CLI evidence.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-110 && cargo build --release 2>&1 | tail -1"
+Type "cd <REPO-ROOT>/.worktrees/STORY-110 && cargo build --release 2>&1 | tail -1"
 Enter
 Sleep 30s
 Show

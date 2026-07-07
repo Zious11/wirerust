@@ -11,7 +11,7 @@ Set WaitTimeout 120s
 
 # Setup: navigate to the worktree
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-144-tls-carry-reassembly"
+Type "cd <REPO-ROOT>/.worktrees/story-144-tls-carry-reassembly"
 Enter
 Sleep 300ms
 Show

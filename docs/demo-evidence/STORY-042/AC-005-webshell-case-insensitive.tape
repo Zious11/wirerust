@@ -13,7 +13,7 @@ Set Padding 20
 Set Framerate 30
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-042"
+Type "cd <REPO-ROOT>/.worktrees/STORY-042"
 Enter
 Sleep 1s
 Show

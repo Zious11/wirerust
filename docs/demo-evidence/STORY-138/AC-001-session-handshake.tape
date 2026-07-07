@@ -23,7 +23,7 @@ Set Shell "zsh"
 Set TypingSpeed 60ms
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-138-session-summary"
+Type "cd <REPO-ROOT>/.worktrees/STORY-138-session-summary"
 Enter
 Wait
 Show

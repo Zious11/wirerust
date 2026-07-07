@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-003 (BC-2.12.001 invariant 1): analyze with no targets → clap required-arg error
 # clap prints "the following required arguments were not provided: <TARGETS>..."
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

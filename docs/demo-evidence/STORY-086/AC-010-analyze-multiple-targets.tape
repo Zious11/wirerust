@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-010 (BC-2.12.006): multiple positional targets accepted in order
 # IO error for each file proves clap parsed all three; not a usage/parse error
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

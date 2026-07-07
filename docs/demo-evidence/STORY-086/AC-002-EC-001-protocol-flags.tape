@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-002/EC-001 (BC-2.12.001 postcondition 3): --dns --http --all flags accepted by clap
 # IO error proves parsing succeeded; clap accepted all three flags
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

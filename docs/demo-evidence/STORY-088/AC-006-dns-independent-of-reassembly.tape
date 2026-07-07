@@ -10,7 +10,7 @@ Set Theme "Dracula"
 Set Padding 20
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-088"
+Type "cd <REPO-ROOT>/.worktrees/STORY-088"
 Enter
 Sleep 500ms
 Show

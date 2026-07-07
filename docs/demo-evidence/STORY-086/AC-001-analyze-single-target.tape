@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-001 (BC-2.12.001): wirerust analyze cap.pcap — clap accepts single target
 # "Error: Target not found" proves parsing succeeded; a clap error would print usage
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

@@ -11,7 +11,7 @@ Set Padding 20
 Set PlaybackSpeed 1.0
 
 Hide
-Type "export PATH=/Users/zious/.cargo/bin:$PATH && cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/dnp3-direction-clock"
+Type "export PATH=<HOME>/.cargo/bin:$PATH && cd <REPO-ROOT>/.worktrees/dnp3-direction-clock"
 Enter
 Sleep 1s
 Show

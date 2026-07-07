@@ -17,7 +17,7 @@ Hide
 Type "source ~/.zshrc 2>/dev/null || true"
 Enter
 Sleep 1s
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-052"
+Type "cd <REPO-ROOT>/.worktrees/STORY-052"
 Enter
 Sleep 1s
 Show

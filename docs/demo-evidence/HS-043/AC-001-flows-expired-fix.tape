@@ -16,7 +16,7 @@ Set Framerate 24
 # --flow-timeout 5 is set and two TCP flows are 6s apart in the capture.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/hs043-flow-expiry"
+Type "cd <REPO-ROOT>/.worktrees/hs043-flow-expiry"
 Enter
 Type "clear"
 Enter

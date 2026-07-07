@@ -48,7 +48,7 @@ Command (run at HEAD 2418048, 2026-07-07):
   cargo bench --bench pipeline -- reassembly
 
 Output:
-   Compiling wirerust v0.11.5 (/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-149)
+   Compiling wirerust v0.11.5 (<REPO-ROOT>/.worktrees/STORY-149)
     Finished `bench` profile [optimized] target(s) in 0.82s
      Running benches/pipeline.rs (target/release/deps/pipeline-3a2deb2de7289dec)
 Gnuplot not found, using plotters backend

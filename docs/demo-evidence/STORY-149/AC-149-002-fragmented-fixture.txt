@@ -32,7 +32,7 @@ Command:
   cargo bench --bench tls_fragmented
 
 Output:
-   Compiling wirerust v0.11.5 (/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-149)
+   Compiling wirerust v0.11.5 (<REPO-ROOT>/.worktrees/STORY-149)
     Finished `bench` profile [optimized] target(s) in 3.00s
      Running benches/tls_fragmented.rs (target/release/deps/tls_fragmented-0b5ab18b16991783)
 Gnuplot not found, using plotters backend

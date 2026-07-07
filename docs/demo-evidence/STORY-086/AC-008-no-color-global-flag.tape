@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-008 (BC-2.12.003 postcondition 1): --no-color accepted before AND after subcommand
 # Both placements succeed (IO error, not clap parse error) — demonstrates global flag semantics
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

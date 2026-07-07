@@ -20,7 +20,7 @@ Set PlaybackSpeed 1.0
 Require wirerust
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/ics-tactic-ids"
+Type "cd <REPO-ROOT>/.worktrees/ics-tactic-ids"
 Enter
 Sleep 1s
 Show

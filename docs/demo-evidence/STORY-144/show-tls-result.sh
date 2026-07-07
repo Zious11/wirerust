@@ -3,7 +3,7 @@
 # Uses the STORY-144 release binary in the worktree
 PCAP="$1"
 LABEL="$2"
-WDIR="/Users/zious/Documents/GITHUB/wirerust/.worktrees/story-144-tls-carry-reassembly"
+WDIR="<REPO-ROOT>/.worktrees/story-144-tls-carry-reassembly"
 echo "=== $LABEL ==="
 "$WDIR/target/release/wirerust" analyze --tls --json /tmp/wrtls-out.json "$PCAP" 2>/dev/null
 python3 -c "
