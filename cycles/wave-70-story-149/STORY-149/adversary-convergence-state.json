@@ -366,6 +366,16 @@
     "worktree_head_final": "2418048",
     "story_spec_final": "v1.4 (d68af34)",
     "convergence_status": "CONVERGED — 3 / 3 consecutive clean passes (passes 6, 7, 8). Pass 6 NITPICK_ONLY, passes 7-8 CLEAN.",
+    "delivery": {
+      "status": "delivered",
+      "pr": 374,
+      "merge_commit": "116100d3096e66723c825f8157935b08a37c48c2",
+      "merged_date": "2026-07-07",
+      "merged_at": "2026-07-07T13:14:38Z",
+      "issue_closed": 360,
+      "factory_artifacts_state_sha": "b9ae849",
+      "decision": "D-395"
+    },
     "process_gap_observation": {
       "id": "PG-S149-001",
       "category": "process-gap",

@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.15"
+version: "3.16"
 status: draft
 producer: story-writer
-timestamp: 2026-07-06T00:00:00Z
+timestamp: 2026-07-07T13:14:38Z
 phase: f7
 total_stories: 109
 total_waves: 70
 total_points: 697  # = 694 pre-v3.15 + 3 (STORY-156=3 E-16 ARP BC-2.16.016 gap); wave-table scheduled: 667 (STORY-149 now wave 70 adds 5 pts; STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-150+STORY-155+STORY-156 all wave-TBD excluded); epic-table grand total: 697; stories: 108+1=109; waves: 70
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.16 (2026-07-07): STORY-149 delivered — PR #374 merged 116100d 2026-07-07T13:14:38Z; status pending→merged; wave 70 DELIVERED & CLOSED. stories_delivered=99. No numeric totals changed.
 # v3.15 (2026-07-06): maint-2026-07-06 BC amendment propagation + spec-coherence gap — STORY-156 added (E-16, wave TBD, 3 pts, ARP findings unbounded-cap documentation + regression test, BC-2.16.016 gap F-NEW-MAJ-003). STORY-149 escalated wave TBD→70 (TLS carry-path perf recovery). Wave 70 added. E-16 count 5→6, points 47→50. total_stories 108→109. total_points 694→697. wave-table scheduled 662→667 (STORY-149 +5 pts now scheduled). epic-table total 694→697.
 # v3.14 (2026-07-05): S-7.02 E-21 cycle-close process-gap codification — STORY-155 added (E-11, wave TBD, 3 pts, auto-update STORY-INDEX status draft→merged on story PR merge, PG-INDEX-DRIFT-001). E-11 count 6→7, points 24→27. total_stories 107→108. total_points 691→694. epic-table total 691→694.
 # v3.13 (2026-07-05): F7 consistency audit P0-001 — E-21 status reconciliation: STORY-151/152/153/154 status draft→merged (all four E-21 stories merged on develop; PR #351/963a69a STORY-151, PR #352/b285feb STORY-153, PR #353/5c4437a STORY-152, PR #355/cad7024 STORY-154); wave-delivery rows 67/68/69 updated to DELIVERED & CLOSED; stories_delivered=98.
@@ -146,7 +147,7 @@ traces_to:
 | STORY-121 | F1/F2 Story-Input Analysis Docs — Mandatory Numeric Self-Audit + Consuming-Surface Sweep Checklist | E-11 | ~ | 3 | draft | — |
 | STORY-143 | Harden Release Changelog Step: Full Prev-Tag..HEAD Range Enumeration | E-11 | ~ | 3 | draft | — |
 | STORY-147 | Harden Mutation-Testing Defaults: mutants.toml Low-Parallelism + CLAUDE.md Guidance | E-11 | ~ | 3 | draft | — |
-| STORY-149 | TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture | E-11 | 70 | 5 | pending | — |
+| STORY-149 | TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture | E-11 | 70 | 5 | merged | — |
 | STORY-150 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run | E-11 | ~ | 5 | draft | — |
 | STORY-155 | Auto-update STORY-INDEX status draft→merged on story PR merge | E-11 | ~ | 3 | draft | — |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
@@ -386,7 +387,7 @@ traces_to:
 | 67 | STORY-151, STORY-153 | **DELIVERED & CLOSED** | #351, #352 | 963a69a, b285feb | 2026-07-04 |
 | 68 | STORY-152 | **DELIVERED & CLOSED** | #353, #354 | 5c4437a, 0e700a9 | 2026-07-04 |
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
-| 70 | STORY-149 | pending | — | — | — |
+| 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
 
 ## Coverage Verification
 

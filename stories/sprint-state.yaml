@@ -677,3 +677,20 @@ stories:
     branch: null  # squash-merged; worktree cleaned
     worktree: null
     blocked_by: [STORY-122]  # static dep-edge resolved; STORY-119/B delivered (PR #269 → develop 181d5e2; D-125)
+
+  # ---------------------------------------------------------------------------
+  # Wave 70 — 1 story (E-11 TLS carry-path perf recovery + fragmented-handshake benchmark)
+  # STORY-149 DELIVERED 2026-07-07: PR #374 squash-merged → develop 116100d (D-395).
+  # Adversarial convergence CONVERGED (8 passes, streak 3/3, state b9ae849).
+  # AC-149-003 PASS (23.841 µs, +2.41% vs May-19 anchor). Issue #360 CLOSED.
+  # ---------------------------------------------------------------------------
+
+  STORY-149:
+    status: done
+    wave: 70
+    branch: feature/STORY-149-tls-carry-perf
+    worktree: null
+    blocked_by: []
+    pr: 374
+    merge_commit: 116100d
+    merged_date: "2026-07-07"
