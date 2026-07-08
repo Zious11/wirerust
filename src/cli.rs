@@ -236,8 +236,9 @@ pub enum Commands {
 
         /// D3 storm rate threshold: frames/second per source MAC at or above which a
         /// MEDIUM/Anomaly storm finding is emitted. Default: 50 (wirerust engineering
-        /// default — not derived from any external standard). ICS/OT operators with
-        /// PLCs or RTUs should typically lower this to 5–20/s.
+        /// default — not derived from any external standard). Typical quiet ICS/OT
+        /// segments may lower this to 5–20/s to catch low-rate storms; raise it above
+        /// the baseline of chatty PLCs/RTUs to avoid false positives.
         // BC-2.16.013 / STORY-115
         #[arg(long, default_value_t = 50)]
         arp_storm_rate: u32,
