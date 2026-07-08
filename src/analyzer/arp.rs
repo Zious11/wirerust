@@ -4510,6 +4510,67 @@ mod bc_2_16_016 {
             summary.detail.keys().collect::<Vec<_>>()
         );
     }
+
+    /// BC-2.16.016 PC-2/PC-3 standalone pin: `summarize()` NEVER emits a
+    /// `"dropped_findings"` key.
+    ///
+    /// This test is standalone — it does NOT rely on `test_BC_2_16_016_arp_findings_vec_has_no_cap`.
+    /// Checks two cases:
+    ///
+    /// 1. **EC-001 (zero frames):** A fresh `ArpAnalyzer` with no frames processed must
+    ///    not include `"dropped_findings"` in `summarize()` output.
+    /// 2. **EC-003 (>10,000 events):** After processing N = 10,001 D1-producing frames,
+    ///    `summarize()` must still not include `"dropped_findings"`. Adding that key would
+    ///    be a BC-2.16.010 breaking change (requires its own BC version bump + delivery story).
+    ///
+    /// Assertions use `!contains_key` (clippy `unnecessary_get_then_check` lint compliance).
+    ///
+    /// Postconditions covered:
+    /// - BC-2.16.016 PC-2: no `dropped_findings` counter is maintained by `ArpAnalyzer`.
+    /// - BC-2.16.016 PC-3: `summarize()` NEVER emits a `dropped_findings` key.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_016_summarize_has_no_dropped_findings_key() {
+        // --- EC-001: zero-frame edge case — fresh analyzer with no traffic ---
+        let zero_analyzer = ArpAnalyzer::new(1, u32::MAX);
+        let zero_summary = zero_analyzer.summarize();
+        assert!(
+            !zero_summary.detail.contains_key("dropped_findings"),
+            "BC-2.16.016 PC-2/3 (zero-frame): summarize() must NOT emit \
+             'dropped_findings' on a fresh analyzer. Keys present: {:?}",
+            zero_summary.detail.keys().collect::<Vec<_>>()
+        );
+
+        // --- EC-003: >10,000-event sequence (10,001 D1 spoof findings) ---
+        // storm_rate=u32::MAX suppresses all D3 findings so all findings are D1.
+        let mut analyzer = ArpAnalyzer::new(1, u32::MAX);
+        const MAC_A: [u8; 6] = [0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA];
+        const MAC_B: [u8; 6] = [0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB];
+        const N: usize = 10_001;
+
+        for i in 0..N {
+            let hi = (i / 256) as u8;
+            let lo = (i % 256) as u8;
+            let sender_ip: [u8; 4] = [10, 0, hi, lo];
+            let ts = i as u32;
+            // Frame 1: first observation — inserts binding, no D1 finding.
+            let _ = analyzer.process_arp(&make_reply_frame(sender_ip, MAC_A), ts);
+            // Frame 2: rebind (MAC_A → MAC_B). spoof_threshold=1 → D1 emitted.
+            let _ = analyzer.process_arp(&make_reply_frame(sender_ip, MAC_B), ts);
+        }
+
+        let summary = analyzer.summarize();
+        // BC-2.16.016 PC-2/3: no dropped_findings key — ArpAnalyzer has no such
+        // counter. Adding it would be a BC-2.16.010 breaking change (13-key contract).
+        assert!(
+            !summary.detail.contains_key("dropped_findings"),
+            "BC-2.16.016 PC-2/3 (>10k events): summarize() must NOT emit \
+             'dropped_findings' after processing {N} D1 spoof findings. \
+             Adding this key would break the BC-2.16.010 13-key summarize contract. \
+             Keys present: {:?}",
+            summary.detail.keys().collect::<Vec<_>>()
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
