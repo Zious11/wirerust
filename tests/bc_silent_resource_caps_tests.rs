@@ -490,7 +490,8 @@ mod silent_resource_caps {
         // Wire format: TLS record (0x16, ver, len) + Handshake header + ClientHello body.
         let build_ch = |sni: &str| -> Vec<u8> {
             let sni_bytes = sni.as_bytes();
-            let sni_name_len = sni_bytes.len() as u16;
+            let sni_name_len =
+                u16::try_from(sni_bytes.len()).expect("SNI name exceeds u16 length field");
             // SNI entry: NameType(1) + NameLen(2) + Name
             let sni_entry_len = 1u16 + 2u16 + sni_name_len;
             // SNI ext data: ServerNameListLength(2) + entry
@@ -511,7 +512,8 @@ mod silent_resource_caps {
             // EC point formats
             extensions.extend_from_slice(&[0x00, 0x0b, 0x00, 0x02, 0x01, 0x00]);
 
-            let actual_ext_total = extensions.len() as u16;
+            let actual_ext_total =
+                u16::try_from(extensions.len()).expect("extensions block exceeds u16 length field");
 
             let mut ch_body = Vec::new();
             ch_body.extend_from_slice(&[0x03, 0x03]); // TLS 1.2
@@ -524,7 +526,8 @@ mod silent_resource_caps {
             ch_body.extend_from_slice(&actual_ext_total.to_be_bytes()); // extensions len
             ch_body.extend_from_slice(&extensions);
 
-            let ch_len = ch_body.len() as u32;
+            let ch_len = u32::try_from(ch_body.len())
+                .expect("fixture ch_body exceeds u32 handshake length field");
             let mut handshake = vec![
                 0x01, // ClientHello
                 (ch_len >> 16) as u8,
@@ -533,7 +536,8 @@ mod silent_resource_caps {
             ];
             handshake.extend_from_slice(&ch_body);
 
-            let hs_len = handshake.len() as u16;
+            let hs_len = u16::try_from(handshake.len())
+                .expect("fixture handshake exceeds u16 TLS record length");
             let mut record = vec![0x16]; // handshake record
             record.extend_from_slice(&[0x03, 0x01]); // record version TLS 1.0
             record.extend_from_slice(&hs_len.to_be_bytes());

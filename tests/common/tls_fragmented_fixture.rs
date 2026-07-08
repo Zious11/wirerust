@@ -13,7 +13,8 @@
 /// Uses version bytes `[0x03, 0x03]` (TLS 1.2). `content_type` must be 0x16
 /// for handshake records — consistent with the VP-039 `wrap_as_tls_record` helper.
 fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
-    let len = payload.len();
+    let len = u16::try_from(payload.len())
+        .expect("fixture payload exceeds u16 TLS record length");
     let mut record = vec![
         content_type,
         0x03,
@@ -57,6 +58,7 @@ fn build_client_hello_handshake_bytes() -> Vec<u8> {
     // No extensions field — ch.ext will be None; handle_client_hello handles this.
 
     // Build 4-byte handshake header.
+    // SEC-010 disposition: accepted-as-bounded-by-construction — fixed 41-byte ClientHello body
     let body_len = body.len() as u32;
     let mut hs: Vec<u8> = Vec::with_capacity(4 + body.len());
     hs.push(0x01); // msg_type = ClientHello

@@ -7,8 +7,10 @@
 //!   acquisition site (SINGLE-BORROW INVARIANT marker required at that site).
 //! - `process_handshake_carry` body: at most 3 acquisition sites.
 //! - Grand total across both functions: at most 4.
-//! - Anti-gameability guard: neither body may alias `self.flows` or use
-//!   `entry()`/`iter_mut()` — patterns that would hide re-hashing from the count.
+//! - Anti-gameability guard (5 patterns): neither body may alias `self.flows`,
+//!   use `entry()`, `iter_mut()`, or direct-index `self.flows[` — patterns that
+//!   hide re-hashing from the count. These checks are incremental hardening;
+//!   the primary defence is the get_mut/get acquisition-site count invariant.
 //! - `process_handshake_carry` BORROW BUDGET annotation coverage: body contains
 //!   at least one `BORROW BUDGET` inline marker, and the marker count equals the
 //!   acquisition-site count — so any new unannotated borrow site fails CI
@@ -223,12 +225,16 @@ mod bc_149_single_borrow {
     /// `process_handshake_carry` may contain patterns that would hide HashMap
     /// re-hashing from the acquisition-site count (F-S149P1-001).
     ///
-    /// Forbidden patterns in both function bodies:
+    /// Forbidden patterns (5) in both function bodies:
     /// - `= &mut self.flows` / `= &self.flows` — reference alias bypasses the
     ///   explicit `get_mut`/`get` count while still causing a re-hash.
     /// - `self.flows.entry(` — entry API is not counted by the `get_mut`/`get`
     ///   grep but still performs a hash lookup.
     /// - `self.flows.iter_mut(` — iterator bypasses the per-key borrow count.
+    /// - `self.flows[` — direct index bypasses the per-key borrow-site count.
+    ///
+    /// Note: these substring checks are incremental hardening; the primary
+    /// defence is the get_mut/get acquisition-site count invariant above.
     ///
     /// GREEN (STORY-149): neither function body contains any of these patterns.
     #[test]
@@ -268,6 +274,13 @@ mod bc_149_single_borrow {
                  self.flows.iter_mut( — iteration bypasses the per-key borrow-site \
                  count (STORY-149 / F-S149P1-001). Found iter_mut() call in \
                  `{fn_name}`."
+            );
+            assert!(
+                !body.contains("self.flows["),
+                "AC-149-001 anti-gameability: `{fn_name}` must not use \
+                 self.flows[ direct indexing — direct index bypasses the \
+                 per-key borrow-site count (STORY-149 / F-S149P1-001). \
+                 Found direct index in `{fn_name}`."
             );
         }
     }
