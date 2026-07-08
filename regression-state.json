@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-08T04:34:12Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-156 && cargo test \"bc_2_16_016\" -- --show-output 2>&1 | grep -E \"running|PASSED|FAILED|ok|test_BC_2_16_016\" | head -30"}
+{"status":"pass","timestamp":"2026-07-08T04:37:15Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-156 && cargo test --no-run 2>&1 | tail -5"}
