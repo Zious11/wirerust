@@ -131,8 +131,7 @@ def parse_inputs(frontmatter: str, story_path: Path) -> list[str]:
             paths.append(stripped[2:].strip())
         elif stripped.startswith("-"):
             paths.append(stripped[1:].strip())
-    if not paths:
-        raise SystemExit(f"'inputs:' block is empty in {story_path}")
+    # AC-157-004: empty multiline block → return [] (caller handles via compute_hash guard)
     return paths
 
 
