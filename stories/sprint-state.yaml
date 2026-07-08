@@ -711,3 +711,20 @@ stories:
     pr: 378
     merge_commit: e2c2b33
     merged_date: "2026-07-08"
+
+  # ---------------------------------------------------------------------------
+  # Wave 71 — STORY-150 (E-11 TLS drain-loop DRY refactor + Kani VP-039 + mutation re-run)
+  # STORY-150 DELIVERED 2026-07-08: PR #379 squash-merged → develop
+  # 9d0d1757f70fa251983af62d9cc74afac19bc987; stories_delivered=101 (delivery #101).
+  # Branch feature/STORY-150-tls-drain-dry deleted post-merge.
+  # ---------------------------------------------------------------------------
+
+  STORY-150:
+    status: completed
+    wave: 71
+    branch: feature/STORY-150-tls-drain-dry  # deleted post-merge
+    worktree: null
+    blocked_by: []
+    pr: 379
+    merge_commit: 9d0d175
+    merged_date: "2026-07-08"
