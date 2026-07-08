@@ -69,9 +69,9 @@ impl ProtocolAnalyzer for DnsAnalyzer {
 
     fn analyze(&mut self, packet: &ParsedPacket) -> Vec<Finding> {
         if Self::is_query(&packet.payload) {
-            self.query_count += 1;
+            self.query_count = self.query_count.saturating_add(1);
         } else {
-            self.response_count += 1;
+            self.response_count = self.response_count.saturating_add(1);
         }
 
         Vec::new()

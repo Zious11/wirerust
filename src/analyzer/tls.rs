@@ -483,7 +483,7 @@ impl TlsAnalyzer {
         _flow_key: &FlowKey,
         last_ts: u32,
     ) {
-        self.handshakes_seen += 1;
+        self.handshakes_seen = self.handshakes_seen.saturating_add(1);
 
         let version = ch.version.0;
         Self::increment(
@@ -498,7 +498,7 @@ impl TlsAnalyzer {
             Some(raw) => match parse_tls_extensions(raw) {
                 Ok((_, v)) => v,
                 Err(_) => {
-                    self.parse_errors += 1;
+                    self.parse_errors = self.parse_errors.saturating_add(1);
                     Vec::new()
                 }
             },
@@ -707,7 +707,7 @@ impl TlsAnalyzer {
             Some(raw) => match parse_tls_extensions(raw) {
                 Ok((_, v)) => v,
                 Err(_) => {
-                    self.parse_errors += 1;
+                    self.parse_errors = self.parse_errors.saturating_add(1);
                     Vec::new()
                 }
             },
@@ -948,7 +948,7 @@ impl TlsAnalyzer {
                         }
                         self.handle_server_hello(sh, flow_key, last_ts);
                     }
-                    Ok(_) | Err(_) => self.parse_errors += 1,
+                    Ok(_) | Err(_) => self.parse_errors = self.parse_errors.saturating_add(1),
                 }
             }
 
@@ -1006,8 +1006,8 @@ impl TlsAnalyzer {
                 RecordStep::OversizedRecord => {
                     // LESSON-P1.05 / CNV-PAT-002: bump both counters so JSON consumers
                     // can distinguish DoS-protection drops from parse failures.
-                    self.parse_errors += 1;
-                    self.truncated_records += 1;
+                    self.parse_errors = self.parse_errors.saturating_add(1);
+                    self.truncated_records = self.truncated_records.saturating_add(1);
                     return;
                 }
                 RecordStep::CarryOverflow => {

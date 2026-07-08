@@ -464,11 +464,11 @@ impl ArpAnalyzer {
         let mut findings = Vec::new();
 
         // (b) Count frame + opcode — all frames (including zero/broadcast sender_ip).
-        self.frames_analyzed += 1;
+        self.frames_analyzed = self.frames_analyzed.saturating_add(1);
         match frame.operation {
-            1 => self.request_count += 1,
-            2 => self.reply_count += 1,
-            _ => self.other_opcode_count += 1,
+            1 => self.request_count = self.request_count.saturating_add(1),
+            2 => self.reply_count = self.reply_count.saturating_add(1),
+            _ => self.other_opcode_count = self.other_opcode_count.saturating_add(1),
         }
 
         // (a) Filter zero/broadcast sender_ip — BC-2.16.005 Invariant 5.
@@ -853,7 +853,7 @@ impl ArpAnalyzer {
         }
 
         // Step 1: increment rebind_count (BC-2.16.004 PC1.a).
-        entry.rebind_count += 1;
+        entry.rebind_count = entry.rebind_count.saturating_add(1);
 
         // Step 2: set first_rebind_ts if currently None (BC-2.16.004 PC1.b).
         if entry.first_rebind_ts.is_none() {
