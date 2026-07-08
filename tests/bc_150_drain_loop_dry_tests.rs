@@ -75,11 +75,8 @@ mod story_150 {
 
     /// Wrap `payload` bytes in a 5-byte TLS 1.2 handshake record header (0x16).
     fn wrap_as_tls_record(payload: &[u8]) -> Vec<u8> {
-        debug_assert!(
-            payload.len() <= u16::MAX as usize,
-            "fixture payload exceeds u16 TLS record length"
-        );
-        let len = payload.len();
+        let len =
+            u16::try_from(payload.len()).expect("fixture payload exceeds u16 TLS record length");
         let mut record = vec![0x16u8, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
         record.extend_from_slice(payload);
         record
@@ -102,6 +99,7 @@ mod story_150 {
         body.push(0x00); // null compression
         // body = 41 bytes; no extensions field so ch.ext will be None.
 
+        // SEC-010 disposition: accepted-as-bounded-by-construction — fixed 41-byte ClientHello body
         let body_len = body.len() as u32;
         let mut hs = vec![
             0x01_u8, // msg_type = ClientHello
@@ -134,11 +132,13 @@ mod story_150 {
         body.extend_from_slice(&[0x13, 0x01]); // cipher TLS_AES_128_GCM_SHA256
         body.push(0x00); // compression: null
 
+        // SEC-010 disposition: accepted-as-bounded-by-construction — extensions is a fixed 5-byte blob
         let ext_len = extensions.len() as u16;
         body.extend_from_slice(&ext_len.to_be_bytes()); // extensions length
         body.extend_from_slice(&extensions); // 5 bytes extensions
         // body = 2+32+1+2+1+2+5 = 45 bytes
 
+        // SEC-010 disposition: accepted-as-bounded-by-construction — fixed 45-byte ServerHello body
         let body_len = body.len() as u32;
         let mut hs = vec![
             0x02_u8, // msg_type = ServerHello

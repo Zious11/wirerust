@@ -46,7 +46,8 @@ fn make_eth_ipv4_tcp(
     flags: u8,
     payload: &[u8],
 ) -> Vec<u8> {
-    let ip_total: u16 = 20 + 20 + payload.len() as u16;
+    let ip_total = u16::try_from(40 + payload.len())
+        .expect("fixture payload too large for IPv4 total length field");
 
     let mut frame = Vec::new();
 
@@ -235,6 +236,7 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
         let tcp_payload = [0xCC; 40];
         let ip_options = [0x01u8, 0x01, 0x01, 0x00]; // NOP, NOP, NOP, End-of-options
         let ip_header_len: usize = 20 + ip_options.len(); // 24 bytes
+        // SEC-010 disposition: accepted-as-bounded-by-construction — hardcoded 84-byte frame
         let ip_total: u16 = (ip_header_len + 20 + tcp_payload.len()) as u16; // 84
 
         let mut frame = Vec::new();
