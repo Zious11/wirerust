@@ -355,6 +355,33 @@ Guidelines:
 This is a documentation of existing practice — the test suite already
 follows it; new tests should match.
 
+## Known Limitations
+
+### Uncalibrated detection-threshold defaults
+
+Three detection thresholds ship with engineering defaults that have not been validated against
+a labelled ICS/OT traffic corpus. They were accepted as reasonable starting points on
+2026-07-08 and may produce false positives or false negatives on unusual networks.
+
+**Reassembly anomaly thresholds** — the TCP reassembly engine emits anomaly findings when
+overlapping-segment counts exceed 50 per flow direction (`--overlap-threshold`, default 50),
+when consecutive runs of small segments (under 16 bytes) exceed 100 (`--small-segment-threshold`,
+default 100; `--small-segment-max-bytes`, default 16), or when out-of-window segments exceed
+100 per flow direction (`--out-of-window-threshold`, default 100). No NIDS ships enabled,
+directly-comparable count-based defaults for these detectors; these values are conservative
+engineering estimates.
+
+**ARP storm rate** — the ARP storm detector (`--arp`) fires when a source MAC sends more than
+50 ARP frames per second (`--arp-storm-rate`, default 50). This value is not derived from any
+external standard. OT/ICS environments with PLCs or RTUs that issue frequent ARP probes may
+need to lower this to 5–20 to reduce false positives.
+
+**DNP3 direct-operate burst threshold** — the DNP3 analyzer (`--dnp3`) fires a control-command
+burst finding when more than 10 Control-class function codes arrive within the 60-second
+detection window (`--dnp3-direct-operate-threshold`, default 10). This value was chosen to
+tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
+need a lower value (3–5).
+
 ## Roadmap
 
 See [open issues](https://github.com/Zious11/wirerust/issues) for planned features:
