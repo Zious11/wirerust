@@ -221,13 +221,11 @@ mod story_150 {
         assert_eq!(
             count, 1,
             "AC-150-001 (TLS-DRAIN-DUP-001): `process_handshake_carry` must \
-             contain exactly ONE call to `parse_tls_message_handshake` after \
-             the C2S and S2C dispatch arms are unified via a shared abstraction \
-             (STORY-150). Found {count} call site(s). BEFORE implementation: 2 \
-             sites exist — one in the Direction::ClientToServer arm and one in \
-             the Direction::ServerToClient arm. AFTER AC-150-001: the shared \
-             dispatch abstraction (closure/function/macro) reduces this to 1. \
-             This test is the Red Gate for AC-150-001 (TLS-DRAIN-DUP-001)."
+             contain exactly ONE call to `parse_tls_message_handshake` — the \
+             unified inline dispatch site (AC-150-001) reduces this to 1. \
+             Found {count} call site(s). A regression re-introducing the \
+             pre-refactor duplicated call across direction arms would violate \
+             AC-150-001 (TLS-DRAIN-DUP-001)."
         );
     }
 
@@ -248,14 +246,11 @@ mod story_150 {
         assert!(
             count <= 1,
             "AC-150-001 (TLS-DRAIN-DUP-001): `process_handshake_carry` must \
-             contain at most ONE `let msg_bytes` carry-slice extraction \
-             (`carry[consumed..consumed + 4 + body_len].to_vec()`) — the \
-             current implementation duplicates this extraction in both the \
-             Direction::ClientToServer arm and the Direction::ServerToClient \
-             arm (STORY-150). Found {count} occurrence(s). BEFORE implementation: \
-             2 occur — one per direction arm. AFTER AC-150-001: the shared dispatch \
-             abstraction reduces this to at most 1. \
-             Red Gate for AC-150-001 (TLS-DRAIN-DUP-001)."
+             contain at most ONE `let msg_bytes` carry-slice extraction — the \
+             unified inline dispatch site (AC-150-001) reduces this to at most 1. \
+             Found {count} occurrence(s). A regression re-introducing the \
+             pre-refactor duplicated extraction across direction arms would \
+             violate AC-150-001 (TLS-DRAIN-DUP-001)."
         );
     }
 
