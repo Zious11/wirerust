@@ -878,10 +878,23 @@ impl TlsAnalyzer {
         //   - Each message advances cursor by exactly 4 + body_len (BC-2.07.038 PC-4).
         //   - Decision-4 body_len-spoof guard: carry.clear() + overflows+1 + break.
         //   - Partial trailing messages remain in carry for the next on_data call.
-        //   - Clone for dispatch: only dispatched msg types clone (0x01 / 0x02).
+        //   - Clone for dispatch: only the expected Hello msg type clones (0x01 / 0x02).
         // BC-2.07.042: back-to-back coalesced messages are each dispatched.
+        //
+        // AC-150-001 (TLS-DRAIN-DUP-001 STORY-150): the C2S and S2C dispatch arms are
+        // unified via a single shared extraction + parse site. Direction-specific logic
+        // (flag-set, dispatch function) is selected inside the shared match arm rather
+        // than duplicated across two symmetric outer arms.
         let mut consumed: usize = 0;
         let mut decision4_fired = false;
+
+        // Pre-compute the expected handshake message type for this direction:
+        // C2S → 0x01 (ClientHello); S2C → 0x02 (ServerHello). Hoisted outside
+        // the loop because `direction` is constant across all iterations.
+        let expected_msg_type: u8 = match direction {
+            Direction::ClientToServer => 0x01,
+            Direction::ServerToClient => 0x02,
+        };
 
         loop {
             if carry.len() - consumed < 4 {
@@ -908,54 +921,34 @@ impl TlsAnalyzer {
                 break;
             }
 
-            match direction {
-                Direction::ClientToServer => {
-                    // Dispatch on msg_type:
-                    // 0x01 → ClientHello. Ok(CH): set client_hello_seen, dispatch.
-                    //   Err or Ok(non-CH): parse_errors+1, no finding (PC-9).
-                    // Other: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
-                    if msg_type == 0x01 {
-                        let msg_bytes = carry[consumed..consumed + 4 + body_len].to_vec();
-                        match parse_tls_message_handshake(&msg_bytes) {
-                            Ok((
-                                _rem,
-                                TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ref ch)),
-                            )) => {
-                                // BORROW BUDGET (STORY-149): site 1 of ≤3 — flag-set (client_hello_seen).
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.client_hello_seen = true;
-                                }
-                                self.handle_client_hello(ch, flow_key, last_ts);
-                            }
-                            Ok(_) => self.parse_errors += 1,
-                            Err(_) => self.parse_errors += 1,
+            // Dispatch on expected msg_type (0x01 = ClientHello C2S; 0x02 = ServerHello S2C).
+            // Other msg_types: consume silently (BC-2.07.038 Inv-1; BC-2.07.042 EC-002).
+            if msg_type == expected_msg_type {
+                let msg_bytes = carry[consumed..consumed + 4 + body_len].to_vec();
+                // F-150-P1-003 (defense-in-depth): direction guards restore pre-refactor
+                // semantics — a cross-type parser result (parser bug: ClientHello bytes
+                // parsed as ServerHello, or vice versa) falls through to parse_errors
+                // instead of firing the wrong direction's flag-set and dispatch.
+                match parse_tls_message_handshake(&msg_bytes) {
+                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ClientHello(ref ch))))
+                        if matches!(direction, Direction::ClientToServer) =>
+                    {
+                        // BORROW BUDGET (STORY-149): site 1 of ≤3 — flag-set (client_hello_seen).
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.client_hello_seen = true;
                         }
+                        self.handle_client_hello(ch, flow_key, last_ts);
                     }
-                    // Other handshake types (Certificate=0x0b, etc.): consume silently
-                    // (BC-2.07.038 Invariant 1; BC-2.07.042 EC-002).
-                }
-                Direction::ServerToClient => {
-                    // 0x02 → ServerHello. Ok(SH): set server_hello_seen, dispatch.
-                    //   Err or Ok(non-SH): parse_errors+1.
-                    // Other: consume silently (BC-2.07.038 Inv-1).
-                    if msg_type == 0x02 {
-                        let msg_bytes = carry[consumed..consumed + 4 + body_len].to_vec();
-                        match parse_tls_message_handshake(&msg_bytes) {
-                            Ok((
-                                _rem,
-                                TlsMessage::Handshake(TlsMessageHandshake::ServerHello(ref sh)),
-                            )) => {
-                                // BORROW BUDGET (STORY-149): site 2 of ≤3 — flag-set (server_hello_seen).
-                                if let Some(state) = self.flows.get_mut(flow_key) {
-                                    state.server_hello_seen = true;
-                                }
-                                self.handle_server_hello(sh, flow_key, last_ts);
-                            }
-                            Ok(_) => self.parse_errors += 1,
-                            Err(_) => self.parse_errors += 1,
+                    Ok((_rem, TlsMessage::Handshake(TlsMessageHandshake::ServerHello(ref sh))))
+                        if matches!(direction, Direction::ServerToClient) =>
+                    {
+                        // BORROW BUDGET (STORY-149): site 2 of ≤3 — flag-set (server_hello_seen).
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.server_hello_seen = true;
                         }
+                        self.handle_server_hello(sh, flow_key, last_ts);
                     }
-                    // Other handshake types: consume silently (BC-2.07.038 Invariant 1).
+                    Ok(_) | Err(_) => self.parse_errors += 1,
                 }
             }
 
@@ -1804,18 +1797,20 @@ mod proptest_proofs_vp005 {
 //   bounded symbolic carry buffer. The correspondence is line-for-line:
 //
 //     model step                         production (`process_handshake_carry`,
-//                                         STORY-149 unified direction-parameterized
-//                                         loop; pre-refactor per-direction copies
-//                                         removed)
-//     ──────────────────────────────     ──────────────────────────────────
-//     `carry.len()-consumed<4 → break`   header-incomplete guard
-//     `mt = carry[consumed]`             msg_type read
-//     `bl = (b1<<16)|(b2<<8)|b3`         body_len 3-byte big-endian decode
-//     `body_len > MAX_BUF → break`       Decision-4 spoof guard
-//     `len-consumed < 4+body_len → break` incomplete-body guard
-//     `&carry[consumed..consumed+4+bl]`  dispatch clone slice
-//     `consumed += 4 + body_len`         cursor advance
-//     `drain(..consumed)`                single post-loop drain
+//                                         STORY-150 / AC-150-001: DRY refactor —
+//                                         per-direction arms unified; single shared
+//                                         extraction + parse site; direction-specific
+//                                         dispatch (flag-set, helper call) selected
+//                                         inside the unified match arm)
+//     ──────────────────────────────     ──────────────────────────────────────────
+//     `carry.len()-consumed<4 → break`   header-incomplete guard          (line ~900)
+//     `mt = carry[consumed]`             msg_type read                    (line ~903)
+//     `bl = (b1<<16)|(b2<<8)|b3`         body_len 3-byte big-endian decode (line ~904)
+//     `body_len > MAX_BUF → break`       Decision-4 spoof guard           (line ~910)
+//     `len-consumed < 4+body_len → break` incomplete-body guard           (line ~920)
+//     `&carry[consumed..consumed+4+bl]`  dispatch clone slice             (line ~927)
+//     `consumed += 4 + body_len`         cursor advance                   (line ~957)
+//     `drain(..consumed)`                single post-loop drain           (line ~963)
 //
 // The fuzz target `fuzz_tls_reassembly` independently exercises the REAL
 // `try_parse_records` over the live HashMap path as a dynamic cross-check.
