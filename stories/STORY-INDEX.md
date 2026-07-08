@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.24"
+version: "3.25"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T13:30:49Z
@@ -9,6 +9,7 @@ total_stories: 112
 total_waves: 71
 total_points: 708  # = 705 pre-v3.24 +3 STORY-159 (wave-TBD draft, 3 pts); wave-table scheduled: 680 (STORY-159 excluded wave-TBD); epic-table grand total: 708; stories: 112; waves: 71
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.25 (2026-07-08): STORY-158 amendment (maint-2026-07-08, S-7.02 cycle-close codification) — PG-W71-CODEREVIEW-ARTIFACT added as fourth process gap (gate-level code-review output not persisted; MINOR finding re-keyed CR-W71-001); AC-158-006 added (CLAUDE.md gate-close code-review artifact protocol); STORY-158 v1.0→v1.1; input-hash updated 595de8c→d3cf551; no numeric totals changed.
 # v3.24 (2026-07-08): maint-2026-07-08 NEW-001 doc-drift follow-up — STORY-159 added (wave-TBD draft, E-11, 3 pts; ADR-012 public doc authoring + CLAUDE.md Project References row). total_stories: 111→112; total_points: 705→708; E-11: 9→10 stories, 35→38 pts. Wave-table scheduled unchanged (STORY-159 excluded wave-TBD).
 # v3.23 (2026-07-08): S-7.02 wave-71 cycle-close process-gap codification — STORY-158 added (wave-TBD draft, E-11, 3 pts; PG-W71-CHANGELOG+PG-W71-CYCLE-ARTIFACT-IDENTITY+PG-W71-CI-SCAN-GUARDS). total_stories: 110→111; total_points: 702→705; E-11: 8→9 stories, 32→35 pts. Wave-table scheduled unchanged (STORY-158 excluded wave-TBD).
 # v3.22 (2026-07-08): STORY-157 DELIVERED — PR #380 squash 11c37b61cc12e4465eb362ef95d963430c5f0e76 merged 2026-07-08; status draft→merged; stories_delivered=102 (delivery #102). Wave 71: ALL THREE DELIVERED: STORY-150 (PR #379, 9d0d175), STORY-156 (PR #378, e2c2b33), STORY-157 (PR #380, 11c37b6, merged 2026-07-08). No numeric totals changed.

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -28,10 +28,11 @@ traces_to:
   - .github/workflows/ci.yml
   - bin/check-green-doc-tense
   - bin/lint-cycle-artifact
-input-hash: "595de8c"
+input-hash: "d3cf551"
 inputs:
   - .factory/cycles/wave-71/STORY-157/FINDINGS.md
   - .github/workflows/ci.yml
+  - .factory/maintenance/backlog-triage-maint-2026-07-08.md
 ---
 
 # STORY-158: Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening
@@ -45,13 +46,16 @@ inputs:
 ## Narrative
 
 - **As a** factory orchestrator and developer on the wirerust project
-- **I want** three wave-71 process gaps codified into durable project artifacts (a CI
-  gate, a bin/ lint tool, and two CI scan-guard amendments)
+- **I want** four wave-71 process gaps codified into durable project artifacts (a CI
+  gate, a bin/ lint tool, two CI scan-guard amendments, and a wave-gate code-review
+  artifact protocol requirement)
 - **So that** PRs with production-code changes but missing CHANGELOG entries are caught
   at CI time, cycle-artifact identity drift (wrong story title, fabricated BC IDs) is
-  caught by a lint step rather than relying solely on adversarial review, and two CI
+  caught by a lint step rather than relying solely on adversarial review, two CI
   scan-guard weaknesses (trust-boundary no-src-directory guard, check-green-doc-tense
-  silent zero-file scan) are hardened to fail loudly on misconfiguration
+  silent zero-file scan) are hardened to fail loudly on misconfiguration, and future
+  wave gates cannot close without persisting a code-review artifact enumerating every
+  MINOR and NIT finding
 
 ## Behavioral Contracts
 
@@ -60,7 +64,8 @@ _(none — E-11 convention: no BCs authored yet; status: draft, pending PO autho
 ## Background
 
 Wave-71 (STORY-150/156/157, delivered 2026-07-08) and the wave-71 wave-gate
-integration review surfaced three process gaps. S-7.02 (cycle-close requirement)
+integration review surfaced three process gaps directly; a fourth was identified
+during the maint-2026-07-08 backlog triage. S-7.02 (cycle-close requirement)
 mandates codification of recurring process gaps as follow-up stories.
 
 ### PG-W71-CHANGELOG — Unreleased CHANGELOG entries not gated at CI
@@ -137,6 +142,22 @@ Source: F-W71-P3-002 (wave-71 wave-gate pass 3, LOW, process-gap).
 Concrete evidence: `bin/check-green-doc-tense` line 367 — `print("WARNING: …",
 file=sys.stderr)` followed by continued execution and eventual exit 0.
 
+### PG-W71-CODEREVIEW-ARTIFACT — Gate-level code-review output not persisted
+
+Wave-71's wave-gate integration review ran a code-review pass whose output was summarized
+as "CR-001 MINOR + 3 NITs; all routed to maintenance/debt; 0 BLOCKING" in
+`cycles/wave-71/wave-gate/gate-summary.md`, but no standalone code-review artifact was
+written to `cycles/wave-71/wave-gate/`. The MINOR finding text is unrecoverable;
+maint-2026-07-08 triage verdict: UNVERIFIABLE. The finding was re-keyed to CR-W71-001 to
+resolve a canonical-ID collision with the closed CR-001/PR #177 register row.
+
+Source: maint-2026-07-08 backlog-triage item 7 + pattern-findings.md PF-008.
+
+Root cause: the factory artifact protocol has no standing requirement that gate-level
+code-review output be persisted to `cycles/wave-NNN/wave-gate/code-review.md` before
+the gate is declared closed. Gate-level reviews exist only as one-line summaries in
+gate-summary.md, making individual findings unrecoverable after the review session ends.
+
 ## Acceptance Criteria
 
 ### AC-158-001 (traces to PG-W71-CHANGELOG — CI gate)
@@ -189,6 +210,14 @@ continuing to exit 0. The updated error message MUST direct the maintainer to
 verify the scan target. `bin/test_check_green_doc_tense.py` is updated with a test
 that asserts exit non-zero when `_collect_rust_files` returns `[]`.
 
+### AC-158-006 (traces to PG-W71-CODEREVIEW-ARTIFACT — gate code-review artifact protocol)
+`CLAUDE.md` is updated to add a standing gate-close requirement: "Before a wave gate is
+declared closed, a `cycles/wave-NNN/wave-gate/code-review.md` artifact MUST be written
+enumerating every MINOR and NIT finding from the gate-level code review together with
+its disposition (accepted/deferred/fixed). A gate with zero findings MUST still create
+the file with a 'No findings' note." The requirement MUST reference
+PG-W71-CODEREVIEW-ARTIFACT and AC-158-006.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -200,6 +229,7 @@ that asserts exit non-zero when `_collect_rust_files` returns `[]`.
 | Trust-boundary src/ guard | `.github/workflows/ci.yml` (amendment) | Configuration artifact |
 | check-green-doc-tense zero-file guard | `bin/check-green-doc-tense` (amendment) | Effectful (I/O) |
 | check-green-doc-tense self-test update | `bin/test_check_green_doc_tense.py` (amendment) | Pure (test-only) |
+| Gate code-review artifact protocol | `CLAUDE.md` (amendment) | Documentation artifact |
 
 No production Rust modules are modified. The `tdd_mode: strict` requirement applies
 to `bin/lint-cycle-artifact` — the self-test in `bin/test_lint_cycle_artifact.py`
@@ -230,6 +260,7 @@ serves as the Red Gate.
 | EC-008 | `src/` directory renamed or removed | trust-boundary: FAIL loudly (existence guard fires, exit 1) |
 | EC-009 | `_collect_rust_files` returns empty list | check-green-doc-tense: FAIL, exit non-zero, message directs to scan target |
 | EC-010 | `_collect_rust_files` returns non-empty list (normal operation) | check-green-doc-tense: behavior unchanged from pre-fix |
+| EC-011 | Wave gate closed without writing `code-review.md` | Violates AC-158-006 protocol requirement; future gates must write the artifact before declaring closed |
 
 ## Tasks
 
@@ -261,6 +292,13 @@ serves as the Red Gate.
    `bin/test_check_green_doc_tense.py` to add a test asserting exit non-zero when
    `_collect_rust_files` returns `[]`.
 
+6. **Gate code-review artifact protocol (AC-158-006):** Add a standing requirement to
+   `CLAUDE.md` (in the wave-gate or delivery guidance section) that before a wave gate is
+   declared closed, a `cycles/wave-NNN/wave-gate/code-review.md` artifact MUST be written
+   enumerating every MINOR and NIT finding from the gate-level code review together with
+   its disposition (accepted/deferred/fixed). A gate with zero findings still creates the
+   file with a "No findings" note. Reference PG-W71-CODEREVIEW-ARTIFACT and AC-158-006.
+
 ## Previous Story Intelligence
 
 Lessons from closest analogues:
@@ -278,8 +316,10 @@ Lessons from closest analogues:
 ## Architecture Compliance Rules
 
 - This story modifies ONLY: `.github/workflows/ci.yml`, `bin/check-green-doc-tense`,
-  `bin/test_check_green_doc_tense.py`, `CLAUDE.md`, and new files `bin/lint-cycle-artifact`
-  and `bin/test_lint_cycle_artifact.py`. No production Rust is touched.
+  `bin/test_check_green_doc_tense.py`, `CLAUDE.md` (two amendments: AC-158-002 CHANGELOG
+  obligation + AC-158-006 gate code-review artifact protocol), and new files
+  `bin/lint-cycle-artifact` and `bin/test_lint_cycle_artifact.py`. No production Rust is
+  touched.
 - The CHANGELOG CI gate MUST NOT break CI on the current develop branch (no false
   positives on merged commits).
 - The trust-boundary src/ guard MUST use the same pattern as `help-provenance-gate`
@@ -299,7 +339,7 @@ Lessons from closest analogues:
 | File | Action | Notes |
 |------|--------|-------|
 | `.github/workflows/ci.yml` | Modify | Add changelog-gate job/step; add trust-boundary src/ existence guard |
-| `CLAUDE.md` | Modify | Add CHANGELOG obligation to delivery/pr-manager guidance |
+| `CLAUDE.md` | Modify | Add CHANGELOG obligation (AC-158-002) + gate code-review artifact protocol (AC-158-006) |
 | `bin/lint-cycle-artifact` | Create | New Python 3 identity validator for cycle artifacts |
 | `bin/test_lint_cycle_artifact.py` | Create | Self-test covering clean + mismatch cases |
 | `bin/check-green-doc-tense` | Modify | Change WARNING→ERROR + sys.exit(1) on zero files |
@@ -322,27 +362,33 @@ Well within context window. No story split required.
 
 ## Notes
 
-- **DF-VALIDATION-001 gate:** All three process gaps originate from wave-71 adversarial
-  review and wave-gate pass observations — they are validated in-process and do not
-  require separate research-agent validation before issue filing per DF-VALIDATION-001,
-  which applies to deferred open findings (not directly-observed adversarial findings).
+- **DF-VALIDATION-001 gate:** Three of the four process gaps (PG-W71-CHANGELOG,
+  PG-W71-CYCLE-ARTIFACT-IDENTITY, PG-W71-CI-SCAN-GUARDS) originate from wave-71 adversarial
+  review and wave-gate pass observations — validated in-process. PG-W71-CODEREVIEW-ARTIFACT
+  originates from the maint-2026-07-08 research-agent triage (backlog-triage item 7 +
+  PF-008) and is therefore DF-VALIDATION-001-validated by that triage run. None of the four
+  require separate research-agent validation before issue filing.
 - Source process-gaps: PG-W71-CHANGELOG (F-W71-P1-001, wave-71 wave-gate pass 1, MEDIUM);
   PG-W71-CYCLE-ARTIFACT-IDENTITY (O-W71-P4-002, wave-71 wave-gate pass 4, observation;
   related: F-W71-P4-001 fabricated BC ID in cycle evidence);
-  PG-W71-CI-SCAN-GUARDS (F-W71-P3-001/002, wave-71 wave-gate pass 3, LOW).
+  PG-W71-CI-SCAN-GUARDS (F-W71-P3-001/002, wave-71 wave-gate pass 3, LOW);
+  PG-W71-CODEREVIEW-ARTIFACT (maint-2026-07-08 item 7 + PF-008; UNVERIFIABLE finding
+  re-keyed CR-W71-001 to resolve canonical-ID collision with closed CR-001/PR #177).
 - Concrete evidence for PG-W71-CI-SCAN-GUARDS: `.github/workflows/ci.yml` trust-boundary
   job grep scan has no `test -d src/` guard; `bin/check-green-doc-tense` line 367 emits
   `WARNING` and exits 0 on empty file list. The `help-provenance-gate` job has the
   correct SEC-001 pattern as the reference implementation.
-- S-7.02 disposition: creating this story at draft status codifies three wave-71 PG-*
+- S-7.02 disposition: creating this story at draft status codifies four wave-71 PG-*
   open items for S-7.02 wave-71 cycle-close purposes.
 - No behavioral contract required: E-11 convention (epics.md E-11: "BCs: none authored
   yet — status: draft; pending PO authorship").
-- input-hash note: v1.0 declares two real spec inputs
-  (`.factory/cycles/wave-71/STORY-157/FINDINGS.md` — primary evidence source for all
-  three PG wave-71 process observations; `.github/workflows/ci.yml` — source artifact
-  for the trust-boundary and check-green-doc-tense CI gaps). The frontmatter input-hash
-  field is always the authoritative current value.
+- input-hash note: v1.1 declares three real spec inputs
+  (`.factory/cycles/wave-71/STORY-157/FINDINGS.md` — primary evidence source for the
+  three PG wave-71 CI/tooling process observations; `.github/workflows/ci.yml` — source
+  artifact for the trust-boundary and check-green-doc-tense CI gaps;
+  `.factory/maintenance/backlog-triage-maint-2026-07-08.md` — triage evidence for
+  PG-W71-CODEREVIEW-ARTIFACT, item 7 + PF-008). The frontmatter input-hash field is
+  always the authoritative current value.
 - Precedent: STORY-157 (PG-W70-*, wave-71 delivery, 2026-07-08) — same E-11 pattern:
   cycle process-gap follow-up encoding lessons into project workflow, tooling, and docs.
 
@@ -350,4 +396,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-08 | story-writer | Amendment (maint-2026-07-08, S-7.02 cycle-close codification) — add PG-W71-CODEREVIEW-ARTIFACT as fourth process gap: gate-level code-review output not persisted at wave-71 wave gate; MINOR finding text unrecoverable, finding re-keyed CR-W71-001 (canonical-ID collision resolution); adds AC-158-006 (CLAUDE.md gate-close code-review protocol); adds backlog-triage-maint-2026-07-08.md to inputs; input-hash updated; count updated three→four gaps throughout. Evidence: backlog-triage-maint-2026-07-08.md item 7 + pattern-findings.md PF-008. |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — wave-71 process-gap codifications: PG-W71-CHANGELOG (changelog gate AC-158-001/002), PG-W71-CYCLE-ARTIFACT-IDENTITY (lint tool AC-158-003), PG-W71-CI-SCAN-GUARDS (trust-boundary guard AC-158-004, check-green-doc-tense fix AC-158-005); S-7.02 wave-71 cycle-close. |
