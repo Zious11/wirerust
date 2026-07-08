@@ -7,13 +7,13 @@ inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
-mode: maintenance
+mode: steady-state
 phase: steady-state
-status: in-progress
-current_step: "maint-2026-07-08 STARTED (D-405) — 6 sweeps + DF-VALIDATION-001 backlog triage; develop=b642c0f. wave-71 trajectory-tail →1→0→0→0"
+status: complete
+current_step: "maint-2026-07-08 COMPLETE (D-406) — 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3 convergence); STORY-158 v1.1 + STORY-159 drafted; develop=c4eb1f4. Pipeline PAUSED. maint trajectory-tail →0→0→0→0"
 current_cycle: "maint-2026-07-08"
-pipeline: ACTIVE
-timestamp: 2026-07-08T21:30:00Z
+pipeline: PAUSED
+timestamp: 2026-07-08T23:59:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -24,10 +24,10 @@ release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
 prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (updated 2026-07-08 — WAVE 71 CLOSED D-404: PRs #378/379/380/381 merged; develop=b642c0f; pipeline PAUSED)
+# Ground-truth HEADs (updated 2026-07-08 — maint-2026-07-08 COMPLETE D-406: PRs #382/383/384 merged; develop=c4eb1f4; pipeline PAUSED)
 main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
-develop_head: b642c0fdabfd6ae9f9ea8d1680b50662c5654e93
-# Cargo.toml version: main=0.11.5; develop=0.11.5 (wave-70 docs/deps only, no version bump)
+develop_head: c4eb1f43af78b2588be4bfa4a629542f6de15d7b
+# Cargo.toml version: main=0.11.5; develop=0.11.5 (8 unreleased commits since v0.11.5; PRs #382/383/384 + wave-71 #378-381 + wave-70 docs #377)
 cargo_version_main: "0.11.5"
 cargo_version_develop: "0.11.5"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts]. No open release/* or chore/backmerge-* branches.
@@ -37,9 +37,9 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 102
-story_index_version: "v3.24"
+story_index_version: "v3.25"
 total_stories: 112
-story_index_note: "112 stories / 71 waves / 708 pts. v3.24: STORY-159 DRAFTED (wave-TBD, E-11, 3 pts; maint-2026-07-08 NEW-001 doc-drift — ADR-012 public doc authoring + CLAUDE.md Project References row). dependency-graph v3.7 (edges 125). 2026-07-08."
+story_index_note: "112 stories / 71 waves / 708 pts. v3.25: STORY-158 v1.1 AMENDED (AC-158-006 wave gate code-review artifact protocol, maint-2026-07-08). v3.24: STORY-159 DRAFTED (wave-TBD, E-11, 3 pts; maint-2026-07-08 NEW-001 doc-drift — ADR-012 public doc authoring + CLAUDE.md Project References row). dependency-graph v3.7 (edges 125). 2026-07-08."
 # Spec versions (current)
 bc_index_version: "v2.20"
 vp_index_version: "v2.35"
@@ -52,9 +52,10 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 # Maintenance
-maintenance_run: STARTED
+maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-07-08
 maintenance_started_at: "2026-07-08"
+maintenance_completed_at: "2026-07-08"
 maintenance_prior_run: maint-2026-07-06
 ---
 
@@ -62,7 +63,7 @@ maintenance_prior_run: maint-2026-07-06
 
 ## EXACT RESUME POINT
 
-**Maintenance maint-2026-07-08 STARTED (D-405, 2026-07-08). Human selected option (b) at resume gate. Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) skipped (dtu_required: false); sweep 9 (a11y) skipped (CLI, no UI). DF-VALIDATION-001 research-agent triage dispatched for deferred backlog: SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001. develop=b642c0f (v0.11.5 + 5 unreleased commits). wave-71 trajectory-tail →1→0→0→0.**
+**Maintenance maint-2026-07-08 COMPLETE (D-406, 2026-07-08). 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3 convergence). STORY-158 v1.1 amended (AC-158-006); STORY-159 drafted. develop=c4eb1f4 (v0.11.5 + 8 unreleased commits). Pipeline PAUSED (steady-state). maint trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -71,16 +72,16 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | maintenance — maint-2026-07-08 STARTED (D-405, 2026-07-08); 6 sweeps + DF-VALIDATION-001 backlog triage |
-| Version | 0.11.5 (released 2026-07-07; develop=b642c0f, Cargo.toml 0.11.5; 5 unreleased commits) |
+| Mode | steady-state — maint-2026-07-08 COMPLETE (D-406, 2026-07-08); 3 PRs merged; pipeline PAUSED |
+| Version | 0.11.5 (released 2026-07-07; develop=c4eb1f4, Cargo.toml 0.11.5; 8 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
-| Develop HEAD | `b642c0f` (full: `b642c0fdabfd6ae9f9ea8d1680b50662c5654e93`) — PR #381 gate-fix merged 2026-07-08 (ground-truth) |
+| Develop HEAD | `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08 (ground-truth) |
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.20 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 102 delivered / 111 total (STORY-INDEX v3.23) |
-| **Last Updated** | 2026-07-08 — maint-2026-07-08 STARTED (D-405). 6 sweeps + DF-VALIDATION-001 backlog triage dispatched. develop=b642c0f. wave-71 trajectory-tail →1→0→0→0. |
+| Stories | 102 delivered / 112 total (STORY-INDEX v3.25) |
+| **Last Updated** | 2026-07-08 — maint-2026-07-08 COMPLETE (D-406). 3 PRs merged (#382/383/384, strict 3/3). STORY-158 v1.1 + STORY-159. develop=c4eb1f4. maint trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -117,7 +118,7 @@ maintenance_prior_run: maint-2026-07-06
 | Wave 70 — STORY-149 delivered (D-395, 2026-07-07) | **DELIVERED** | PR #374 merged 116100d 2026-07-07T13:14:38Z. AC-149-003 PASS (23.841 µs, +2.41% vs May-19 anchor 23.281 µs). stories_delivered=99. Wave 70 integration gate PENDING. |
 | Wave 70 CLOSED (D-396, 2026-07-07) | **CLOSED** | 5-pass wave adversarial convergence, streak 3/3 (W3-triaged/W4/W5); PRs #374/#375/#376/#377 merged; STORY-157 drafted (S-7.02); deferred LOW security findings (SEC-010/SEC-011/SEC-W70-001) pending DF-VALIDATION-001. develop=87035da. |
 | Wave 71 (v0.12.0): STORY-150/156/157 | **CLOSED (D-404, 2026-07-08)** | PRs #378/379/380/381; develop=b642c0f. 7-pass adversary CONVERGED streak 3/3; trajectory →1→0→0→0. S-7.02 SATISFIED (STORY-158). Pipeline PAUSED (human-approved). |
-| Maintenance maint-2026-07-08 | **STARTED 2026-07-08 (D-405)** | 6 sweeps + backlog triage; prior run maint-2026-07-06 |
+| Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 
 ---
 
@@ -129,6 +130,7 @@ maintenance_prior_run: maint-2026-07-06
 | **WAVE 71 ADVERSARY P5-P7 CONVERGED (2026-07-08). P5 CLEAN (4 LOW nits → bd41afd); P6 CLEAN; P7 CLEAN. Streak 3/3 (P5/P6/P7). CONVERGED. Gate dims (c)-(g) all PASS/APPROVE.** | **CONVERGED** | Gate complete. All 7 dims PASS. trajectory →1→0→0→0. |
 | **WAVE 71 CLOSED (D-404, 2026-07-08). Human approved CLOSED + PAUSED. STORY-158 drafted (S-7.02, STORY-INDEX v3.23). develop=b642c0f. Pipeline PAUSED. trajectory-tail →1→0→0→0.** | **CLOSED (D-404)** | Pipeline PAUSED (human-approved 2026-07-08). |
 | **maint-2026-07-08 STARTED (D-405, 2026-07-08). Human selected option (b) at resume gate. Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) skipped (dtu_required: false); sweep 9 (a11y) skipped (CLI). DF-VALIDATION-001 triage dispatched for: SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001.** | **STARTED** | 6 sweeps + backlog triage in flight. |
+| **maint-2026-07-08 COMPLETE (D-406, 2026-07-08). 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3 convergence); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased). Pipeline PAUSED. maint trajectory-tail →0→0→0→0.** | **COMPLETE (D-406)** | Pipeline PAUSED (steady-state). |
 
 ## Decisions Log
 
@@ -239,6 +241,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-403 | STORY-157 DELIVERED. PR #380 squash 11c37b61cc12e4465eb362ef95d963430c5f0e76 merged to develop 2026-07-08. stories_delivered=102 (delivery #102). STORY-157 delivered (PR #380, 11c37b6) — first PR merged under DF-MERGE-AUTH-CLASSIFIER-001 clause (b) with dual-outcome completion report; wave-70 process gaps fully codified (PG-S149-001 + PG-W70-DEMO-SCRUB + PG-HASH-EMPTY-INPUTS + PG-HASH-INLINE-COMMENT + PG-HASH-HOOK-DIVERGENCE + PG-W70-MERGE-AUTH); canonical hash scan first-ever fully clean (MATCH=110 STALE=0 with fixed tool). develop HEAD=11c37b6. STORY-INDEX v3.22. | 2026-07-08 |
 | D-404 | WAVE 71 CLOSED (human-approved 2026-07-08). Gate: all 7 steps green; wave adversary CONVERGED 3/3 (7 passes); S-7.02 satisfied via STORY-158 + justified deferrals. Human chose: close + pause. Unreleased changelog ready for v0.12.0 cut. develop=b642c0fdabfd6ae9f9ea8d1680b50662c5654e93. trajectory 1→0→0→1→0→0→0 (tail →1→0→0→0). | 2026-07-08 |
 | D-405 | Maintenance run maint-2026-07-08 STARTED. Human selected option (b) at resume gate (2026-07-08). Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) N/A (dtu_required:false); sweep 9 (a11y) N/A (CLI product). DF-VALIDATION-001 research-agent triage dispatched for deferred backlog: SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001. develop=b642c0f (5 unreleased commits, v0.11.5). Log: `.factory/cycles/maint-2026-07-08/`. | 2026-07-08 |
+| D-406 | maint-2026-07-08 COMPLETE (2026-07-08). All sweeps + DF-VALIDATION-001 triage complete. PRs #382 (624bae3, docs Known Limitations + TD-MAINT-THRESHOLD-CALIB-001 RESOLVED-ACCEPTED), #383 (3ebd801, SEC-010+SEC-011 Gap B RESOLVED), #384 (c4eb1f4, PF-001 109 sites + REBIND-COUNT-SATURATING-001 RESOLVED) — all squash-merged, strict 3/3 adversarial convergence each. STORY-158 v1.1 amended (AC-158-006 wave gate code-review artifact protocol). STORY-159 drafted (ADR-012 doc authoring). SEC-W71-001 CONFIRMED CWE-22, human deferred issue filing. HS-INDEX-ENIP-WAVE-DRIFT-001 + EPICS-TOTAL-BCS-DRIFT-001 confirmed and deferred Route C. INPUT-HASH-ERROR-STORIES-001 REFUTED and closed. develop=c4eb1f4 (8 unreleased commits ahead of v0.11.5). tech-debt-register v1.7. | 2026-07-08 |
 
 ---
 
@@ -286,7 +289,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | F-F2P11-002 | BC-2.05.011 EC-002 illustrative label 'Http/502' should be 'Modbus/502' — port-502 routes to DispatchTarget::Modbus; expected output unaffected by the label error. | LOW | F3-carry (spec-layer polish deferred to implementation) |
 | ARCH-INDEX-DOCMAP-COMPONENT-COUNT-001 | ARCH-INDEX Document Map (~line 147) describes module-criticality.md as 'all 24 components' — system now has 26 (C-1..C-26; C-25 EnipAnalyzer + C-26 protocols.rs). Same derived-doc-lag class as PG-F2-DERIVED-DOC-SWEEP-001. Batch with derived-doc consistency sweep at F3. | LOW | **RESOLVED (ARCH-INDEX v2.12, D-362, 2026-07-03 — 24→26 applied)** |
 | F-F2P13-OBS-VP042D | VP-042 sub-property (d) 'both counters consistent' is described in ADR-012 Decision 6 Clarification + VP-INDEX but not mapped to a dedicated named harness — folded into total_count_equals_n's precondition; F3/F6 to either add a (d) assertion or drop the (d) enumeration to 3 sub-properties. | LOW | **RESOLVED (D-375, 2026-07-04) — (d) dropped; co-increment is inherent dual-gate consequence (not a separate harness); VP-042 = 3 harnesses A/B/C** |
-| INPUT-HASH-ERROR-STORIES-001 | STORY-001 retired-BC input reference (→BC-2.01.009); STORY-091/STORY-121 missing inputs: block. Pre-existing; validate via research-agent, fix in a maintenance sweep. | LOW | **OPEN — maintenance backlog (DF-VALIDATION-001-gated)** |
+| INPUT-HASH-ERROR-STORIES-001 | STORY-001 retired-BC input reference (→BC-2.01.009); STORY-091/STORY-121 missing inputs: block. Pre-existing; validate via research-agent, fix in a maintenance sweep. | LOW | **REFUTED-CLOSED (maint-2026-07-08 DF-VALIDATION-001 triage): STORY-091/121 use `inputs:[]` by design (E-11, no spec inputs); STORY-001 hash scans MATCH on canonical Python tool. No action needed. Row closed.** |
 | PG-F3-HOLDOUT-HASH-DUP-001 | [process-gap, S-7.02] Holdout authoring template appends computed input-hash without removing the 'tbd' seed → duplicate YAML keys (9/10 E-21 holdout files). Surfaced F3 Pass-2 as F-F3P2-003 (HIGH). Recommend a lint (bin/compute-input-hash --scan variant or pre-commit grep) failing on >1 '^input-hash:' key or literal 'tbd' in holdout files. | LOW | cycle-close retrospective (S-7.02) |
 | F-F3P5-001 | dependency-graph.md:277 edge justification cites phantom `ProtocolsArgs`/`AnalyzeArgs` types — real cli.rs uses inline Commands struct-variants (Commands::Protocols { ... } / Commands::Analyze { ... }); the stories themselves are correct; fix the edge prose to 'inline Commands::Protocols/Analyze struct-variant' at F4 implementation time. | LOW | **RESOLVED as F-F3P6-004 (Pass-6 remediation, dep-graph v3.6)** |
 | F-F3P5-002 | STORY-154 AC-154-002 states 'run_analyze() wires args.coverage_gaps' — run_analyze takes scalar params, not an args struct; at implementation time thread coverage_gaps as a new scalar param like enable_dns and apply .with_coverage_gaps() at the single StreamDispatcher::new site in main.rs:306; F4 clarification. | LOW | **RESOLVED as F-F3P6-005 (Pass-6 remediation, STORY-153/154 v1.5)** |
@@ -294,7 +297,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | F3-ADV-P7-O1 | STORY-153 AC-153-005 udp_unclassified_counts declaration scope — clarify 'run_analyze() function scope, before outermost target loop' at F4 implementation (data-flow already forces correct placement; annotation clarification only). Surfaced F3 Pass-7 as O-1; non-blocking. | LOW | F4-carry (no spec change; decomposition held stable) |
 | PG-F3-SIBLING-UNDERSWEEP-001 | [process-gap, S-7.02] STORY-152 (least-changed E-21 sibling) was skipped by BOTH the F-F3P2-005 and F-F3P6-005 fix bursts while STORY-151/153/154 received both. DF-SIBLING-SWEEP-001 fix bursts should explicitly enumerate ALL same-epic siblings — including the least-changed one — as a checklist item. Surfaced F3 Pass-8 as F-F3P8-001/002. | LOW | cycle-close retrospective (S-7.02) |
 | F-F3P9-001 | STORY-152 run_protocols(filter, cli.json.is_some()) collapses Option<Option<PathBuf>> to bool → `protocols --json=<path>` file-routing dropped. NON-breaking for current holdouts (no HS exercises protocols --json=<path>; stdout common-case satisfies BC-2.12.022 tested surface). F4 clarification: either give run_protocols access to &cli/path or document protocols --json is stdout-only. Surfaced F3 Pass-9 as LOW; DEFERRED — hold decomposition stable. | LOW | **RESOLVED (STORY-152 v1.5, D-366, 2026-07-03 — AC-152-002 prose reconciled to stdout-only; code stdout-only is correct per frozen BC-2.12.022 + BC-2.18.002 PC-1)** |
-| HS-INDEX-ENIP-WAVE-DRIFT-001 | HS-INDEX ENIP feature section lists waves '63-68' and STORY-131..141, which disagrees with dep-graph E-20 waves 58-61. Pre-existing E-20 index drift (NOT E-21). Surfaced F3 Pass-9 as out-of-scope obs F-F3P9-O1. Route to maintenance sweep; DF-VALIDATION-001-gated before any issue is filed. | LOW | **OPEN — maintenance backlog (DF-VALIDATION-001-gated)** |
+| HS-INDEX-ENIP-WAVE-DRIFT-001 | HS-INDEX ENIP feature section lists waves '63-68' and STORY-131..141, which disagrees with dep-graph E-20 waves 58-61. Pre-existing E-20 index drift (NOT E-21). Surfaced F3 Pass-9 as out-of-scope obs F-F3P9-O1. Route to maintenance sweep; DF-VALIDATION-001-gated before any issue is filed. | LOW | **CONFIRMED — DEFERRED Route C (human decision 2026-07-08). Batch into next spec-coherence sweep (HS-INDEX v2.13 ENIP waves fix).** |
 | F-F3P10-001 | STORY-153 has no within-story Red-Gate test asserting that unclassified_flows fires when coverage_gaps_enabled=false. F4 test-writer MUST add `test_BC_2_05_010_unclassified_flows_fires_when_gaps_disabled` (≥1 analyzer, no with_coverage_gaps, one None-target close → assert unclassified_flows()==1 AND unclassified_port_counts() empty). Regression also covered by holdouts HS-040/HS-095. Surfaced F3 Pass-10; DEFERRED as F4 test-writer directive (NOT F4-breaking — no spec change). | LOW (F4-test-writer-directive) | **OPEN — F4 test-writer carry** |
 | VP042D-FROZEN-RESIDUAL-001 | VP-INDEX:192,236 + ADR-012:283 retain VP-042 sub-property (d) 'both counters consistent' while BCs list only 3 harnesses. REINFORCED wave-67 F-W67-M1: VP-INDEX is internally inconsistent (line 192 cites (d); line 236 + both BCs + STORY-153 + delivered code use exactly 3 harnesses A/B/C). Phase-5 reconciliation: drop (d) from ADR-012:283-293 + VP-INDEX:192 to match A/B/C resolution. NOTE: if (d) retained, add positive dual-increment test (gaps=true + ≥1 analyzer → both counters increment); only gaps-DISABLED case currently tested. | LOW (phase-5) | **RESOLVED (D-375, 2026-07-04) — VP-INDEX v2.32→v2.33 + ADR-012 updated; (d) label dropped; co-increment is inherent dual-gate consequence; VP-042 = 3 harnesses A/B/C** |
 | BC-2.05.010-LOWERPORT-WORDING-001 | Frozen BC-2.05.010 PC-1/PC-2/anchor reference non-existent flow_key.src_port/dst_port; FlowKey exposes only lower_port()/upper_port(). Code (STORY-153 v1.7) correctly uses lower_port().min(upper_port()). Reconfirmed wave-67 (phase-5): reconcile spec wording to match code. | LOW (phase-5) | **RESOLVED (D-375, 2026-07-04) — BC-2.05.010 v1.4; lower_port().min(upper_port()) wording applied; input-hash rebaselined** |
@@ -307,7 +310,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | F-F3P16-001/002/003 | Pass-16 consolidation note: all 3 findings are re-derivations of already-deferred items — F-F3P16-001 = F-F3P13-001 (STORY-152 --json=path routing; F4-carry, see row above); F-F3P16-002 = F-F3P13-002 class (dep-graph wave-69 STORY-154 subsystem cell SS-12 only vs frontmatter [SS-12,SS-18]; frontmatter authoritative; F4-carry, see F-F3P13-002 row); F-F3P16-003 = F-F3P12-001 (STORY-151 mirror test port-53 carve-out; F4-carry, see row above). No new defects. | LOW | **OPEN — covered by existing deferred items F-F3P13-001, F-F3P13-002, F-F3P12-001** |
 | F-F3P17-001 | STORY-154 AC-154-002 'Traces-to' cites BC-2.05.010 v1.3 PC-1 which is not in STORY-154's bcs: frontmatter — benign cross-layer relevance reference; BC-2.05.010 fully owned/covered by STORY-153, no coverage gap; add a cross-story relevance note at F4 mirroring the VP-relevance-note pattern, OR accept as intentional cross-layer traceability. Surfaced F3 Pass-17 as LOW; DEFERRED — hold decomposition stable. | LOW | **OPEN — F4-carry (pending-intent: annotate or accept cross-layer traceability)** |
 | F-F3P18-O2 | STORY-154 render path must re-lookup KNOWN_PROTOCOLS for the `name` field (CoverageGapsSummary entry name is not stored in the counter map — must be derived from KNOWN_PROTOCOLS at render time). F4 one-line refinement. Surfaced F3 Pass-18 as non-blocking obs. | LOW | **RESOLVED (D-371, 2026-07-04 — applied at STORY-154 F4 implementation; render re-lookups KNOWN_PROTOCOLS for name)** |
-| F-F3P18-O1 | Frozen BC-2.12.024 PC-4 uses 'supported: false' field notation — story compensates via derived predicate (SUPPORTED_PORTS check); reconcile wording at phase-5. Surfaced F3 Pass-18 as non-blocking obs. | LOW | **OPEN — phase-5 spec-wording reconciliation** |
+| F-F3P18-O1 | Frozen BC-2.12.024 PC-4 uses 'supported: false' field notation — story compensates via derived predicate (SUPPORTED_PORTS check); reconcile wording at phase-5. Surfaced F3 Pass-18 as non-blocking obs. | LOW | **RESOLVED-STALE — same issue as BC-2.12.024-PC4-PHANTOM-SUPPORTED-001 below, resolved D-375 2026-07-04. Row closed.** |
 | BC-2.05.010-EC006-UNREACHABLE-001 | BC-2.05.010 EC-006 claims the gap counter reaches 2 for the (Tcp,502) flow pair, but classify() Rule 5 always routes (Tcp,502) to DispatchTarget::Modbus, making the None-target arm physically unreachable. Phase-5 BC reconciliation needed; stories navigate correctly. NEW — DF-VALIDATION-001-gated: research-agent must validate before any GitHub issue is filed. | LOW (phase-5) | **OPEN — phase-5 BC reconciliation (DF-VALIDATION-001-gated)** |
 | STORY-152-GLOBAL-FLAG-NOOP-001 | Global `--csv` and `--output-format json` flags are accepted (global=true) but silently no-op under the `protocols` subcommand (only `--json` is honored). Consistent with frozen BC-2.12.022 (--json-only bool model), so NOT a spec violation. Phase-5 UX reconciliation: either reject unsupported global flags on `protocols` or document the scope. Surfaced STORY-152 per-story convergence (LESSON-P1.04). DF-VALIDATION-001-gated before any issue is filed. | LOW (phase-5) | **RESOLVED (D-370, 2026-07-04): F-W68-01 fix (PR #354, 0e700a9) ships in develop. --json=PATH writes file; bare --json/--output-format json → stdout; --csv/--output-format csv → explicit error + non-zero exit. LOW residual: `--csv=PATH` variant not directly test-guarded (code correct; `resolve_format` keys on `cli.csv.is_some()`).** |
 | BC-2.12.022-FWFIX-SYNC-001 | BC-2.12.022 v1.0 (draft) lags shipped behavior after F-W68-01 fix: does not document `--json=PATH` file-routing or `--csv`/`--output-format csv` explicit-rejection (non-zero exit); PC-1/Architecture-Anchors describe stale `json:bool` model (impl uses `Option<Option<PathBuf>>` + `run_protocols(filter,&cli)`). STORY-152 v1.6 documents the behavior correctly. Phase-5 action: amend BC to v1.1 + move draft→active (will cascade STORY-152 input-hash → re-baseline mechanically per DF-INPUT-HASH-CANONICAL-001). Human elected "no BC content change" during wave-68 fix; deferred by design. DF-VALIDATION-001-gated. | LOW (phase-5) | **RESOLVED (D-375, 2026-07-04) — BC-2.12.022 v1.1; run_protocols(filter,&cli) + --json[=PATH]/--csv routing synced; STORY-152 input-hash rebaselined** |
@@ -316,7 +319,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | PG-HELP-PROVENANCE-CLI-DOC-001 | [process-gap, S-7.02] clap `///` doc-comments (which become `wirerust --help` text) MUST NOT contain internal factory IDs (BC-/VP-/SS-/ADR-). Help-provenance CI gate catches this but neither local clippy/fmt nor adversary axes do. Surfaced: STORY-152 tip d34a05f→c4b14f7 CI fix (D-368, 2026-07-03). Codify: (a) add "no internal IDs in clap `///` doc-comments" to implementer green-step checklist + adversary CLI-story axes; (b) apply to STORY-154 (adds `--coverage-gaps` clap flag) BEFORE first push to avoid a CI round-trip. Route to cycle-close lessons (S-7.02). | LOW (process-gap) | **OPEN — codify in checklist + STORY-154 pre-push application; cycle-close lessons** |
 | STORY-154-DNS53-TCP-GAP-001 | F-W67 Pass-3 observation: CoverageGapsSummary tri-state must classify (Tcp,53) DNS-over-TCP as a GENUINE gap, NOT "known-supported". Port 53 is SUPPORTED for UDP DNS decode-loop only; there is no DNS-over-TCP dissector. STORY-154 F4-carry: ensure lookup_protocol_state((Tcp,53)) returns Gap, not KnownSupported. | LOW (F4-carry) | **RESOLVED (D-371, 2026-07-04 — applied at STORY-154 F4 implementation; (Tcp,53)→unknown genuine gap, non-null canonical TCP gap count in integration test)** |
 | STORY-154-CAN-DECODE-HOIST-001 | F-W67-L3 micro-opt: hoist single `let classified_by_dns = dns_analyzer.can_decode(&parsed)` in main.rs to avoid double can_decode evaluation when --coverage-gaps is wired. Non-blocking; apply at STORY-154 implementation time. | LOW (F4-carry) | **RESOLVED (D-371, 2026-07-04 — applied at STORY-154 F4 implementation; single can_decode call)** |
-| EPICS-TOTAL-BCS-DRIFT-001 | epics.md v2.1 total_bcs 337 vs BC-INDEX v2.13 345 active — E-5 Per-Epic BC row omits TLS BCs BC-2.07.038..043 (6 missing) + 2 unresolved. Full reconcile deferred to a maintenance sweep or phase-5 pass. DF-VALIDATION-001-gated before any GitHub issue is filed. | LOW (maintenance) | **OPEN — maintenance/phase-5 (DF-VALIDATION-001-gated)** |
+| EPICS-TOTAL-BCS-DRIFT-001 | epics.md v2.1 total_bcs 337 vs BC-INDEX v2.13 345 active — E-5 Per-Epic BC row omits TLS BCs BC-2.07.038..043 (6 missing) + 2 unresolved. Full reconcile deferred to a maintenance sweep or phase-5 pass. DF-VALIDATION-001-gated before any GitHub issue is filed. | LOW (maintenance) | **CONFIRMED — DEFERRED Route C (human decision 2026-07-08). Batch into next spec-coherence sweep (epics.md/STORY-INDEX tally reconcile).** |
 | STORY-154-ALL-COVERAGEGAPS-TEST-001 | No integration test for `analyze --all --coverage-gaps` combined canonical vector (BC-2.12.023 EC-004 / EC-154-3). Behavior is compositionally covered; F4 holdout evaluator will exercise it. Add a dedicated integration test in F5/F6 hardening. | LOW (phase-5-or-holdout) | **RESOLVED (D-379, 2026-07-04) — PR #356 commit abc048e added analyze --all --coverage-gaps combined integration test** |
 | STORY-154-TESTCOUNT-COMMENT-001 | tests/integration_tests.rs ~line 1161 comment says "All 20 tests pass"; mod story_154 now has 21 integration tests (tcp_53 added in D-371). Fix in a follow-up touch. | LOW (cosmetic) | **OPEN — follow-up touch** |
 | STORY-154-WEAK-UNKNOWN-ASSERT-001 | 2 terminal tests in mod story_154 use bare `contains("unknown")` assertion; tighten to line-anchored assertions in F5/F6 hardening. | LOW | **RESOLVED (D-379, 2026-07-04) — PR #356 commit f90dfb8 tightened 3 weak contains("unknown") assertions to line-level port+state checks** |
@@ -324,7 +327,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | STORY-153-RUNANALYZE-DOC-STALE-001 | `src/main.rs` run_analyze `coverage_gaps` param doc-comment (~lines 193-196) still reads "Passed as false from main() until STORY-154 changes the call-site" — that transition is complete (main.rs:147 now passes `*coverage_gaps`). Stale scaffolding prose on develop cad7024; clean up in a maintenance doc-sweep. | LOW (green-doc-tense/maintenance) | **RESOLVED (D-379, 2026-07-04) — PR #356 commit 7fbb57c corrected stale doc-comment to match shipped behavior** |
 | STORY-154-LOOKUP-ARP-DEADCLAUSE-001 | `lookup_protocol_state` `OR p.name=="ARP"` disjunct (main.rs:1064) is unreachable — ARP is LinkLayer, never port-matched; the SUPPORTED_PORTS path handles all port-based protocols. Harmless defensive parity; optional cleanup. DF-VALIDATION-001-gated before any issue is filed. | LOW | **RESOLVED (D-379, 2026-07-04) — PR #356 commit 0fdaa29 removed provably-unreachable ARP disjunct in lookup_protocol_state** |
 
-| STORY-148-BASIS-RESOLVED-001 | STORY-148 (E-20, 5 pts, draft) was drafted as the fix vehicle for SEC-005+SEC-006. PR #362 closed those findings out-of-cycle. Story-writer must reconcile STORY-148 next cycle: narrow scope (e.g., add flow-count metrics or additional eviction hardening) or withdraw. Do NOT edit STORY-INDEX story status here — story-writer owns that. | MEDIUM | **OPEN — story-writer must reconcile STORY-148 (DF-VALIDATION-001-gated before re-scoping)** |
+| STORY-148-BASIS-RESOLVED-001 | STORY-148 (E-20, 5 pts, draft) was drafted as the fix vehicle for SEC-005+SEC-006. PR #362 closed those findings out-of-cycle. Story-writer must reconcile STORY-148 next cycle: narrow scope (e.g., add flow-count metrics or additional eviction hardening) or withdraw. Do NOT edit STORY-INDEX story status here — story-writer owns that. | MEDIUM | **RESOLVED (D-399, 2026-07-07 — STORY-148 SUPERSEDED by PR #362; backlog row was stale at maint-2026-07-08 triage). Row closed.** |
 | DNP3-CLOSEDFLOW-REOPEN-REUSE-001 | pr-reviewer non-blocking finding (PR #362): if same 5-tuple (FlowKey) closes and re-opens within one capture (NAT port reuse), `closed_flow_direct_operates` (Vec) lists that flow twice under separate indices in `control_operation_counts`. LOW. Candidate fix: use `HashMap<FlowKey,u32>` for `closed_flow_direct_operates` (idempotent under re-open) or document distinct-flow-lifetime accounting. DF-VALIDATION-001-gated before any issue is filed. | LOW | **OPEN — DF-VALIDATION-001-gated (research-agent validation required before filing)** |
 | SEC-008 + SEC-009 (PR #362 non-blocking obs) | SEC-008: `closed_flow_direct_operates` Vec not cleared on `on_flow_close` — documented acceptable (Vec is drained at `summarize()` end-of-capture; not a per-flow leak). SEC-009: `CloseReason` dropped in DNP3 `on_flow_close` — pre-existing deliberate design. Both non-blocking; no action required. | LOW (informational) | **OPEN — documented acceptable; no issue to file** |
 | SILENT-LIMIT-GAPS-001..004 | 4 observability gaps: ARP `bindings_evicted` + `storm_counters_evicted`; Modbus `dropped_transactions`; TLS+HTTP `dropped_map_entries`. | MEDIUM | **RESOLVED (D-385, PR #365, develop cc2a87c, 2026-07-06)** — 4 counters delivered via uniform saturating_add approach. Invariants confirmed preserved. |
@@ -332,10 +335,10 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | HTTP-AC008-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add negative regression test that existing-key map hits do NOT increment `dropped_map_entries` (guards HTTP AC-008 / D-385 invariant). | LOW | **RESOLVED (D-386, PR #366, 2026-07-06)** — negative regression test delivered. |
 | EVICTION-NO-FINDING-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add regression test asserting eviction/drop events emit no Finding (invariant guard). | LOW | **RESOLVED (D-386, PR #366, 2026-07-06)** — Modbus pending-drop (live) + ARP eviction (#[ignore]) emit-no-Finding tests delivered. |
 | ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 | pr-reviewer cosmetic (PR #365): ARP bindings-evicted pre-check condition is duplicated — optional refactor only. | LOW (cosmetic) | **RESOLVED (D-386, PR #366, 2026-07-06)** — insert_binding_lru now returns bool; 2 call sites deduped. |
-| REBIND-COUNT-SATURATING-001 | PR #366 security review informational note: `rebind_count` in `src/analyzer/arp.rs` uses plain `+=` (not `saturating_add`) — pre-existing, non-introduced, realistically unreachable overflow (u64 ARP rebind events bounded by capture size; same LOW/informational class as cleared SEC-004+SEC-007). Optional hardening to match saturating_add discipline at other counter sites. DF-VALIDATION-001-gated before any GitHub issue is filed. | LOW (informational) | **OPEN — optional hardening (DF-VALIDATION-001-gated)** |
-| SEC-W71-001 | Wave-71 security pass LOW finding (details in cycles/wave-71/wave-gate/ security pass report). Pending DF-VALIDATION-001 research-agent validation before any GitHub issue filing. | LOW | **OPEN — pending DF-VALIDATION-001 (maintenance sweep)** |
+| REBIND-COUNT-SATURATING-001 | PR #366 security review informational note: `rebind_count` in `src/analyzer/arp.rs` uses plain `+=` (not `saturating_add`) — pre-existing, non-introduced (u32 at arp.rs:856). Folded into PF-001 sweep. DF-VALIDATION-001-gated confirmed. | LOW (informational) | **RESOLVED — folded into PR #384 PF-001 sweep (c4eb1f4 2026-07-08). 109 sites converted total; arp.rs:856 `entry.rebind_count += 1` included.** |
+| SEC-W71-001 | CWE-22 path traversal in `bin/compute-input-hash`: comment-strip + `PurePath.__truediv__` absolute-path swallow. Validated by DF-VALIDATION-001 research-agent triage (maint-2026-07-08). Human deferred GitHub issue filing 2026-07-08. | LOW | **VALIDATED-PENDING-FILING — CWE-22 CONFIRMED. Human elected not to file immediately. Retained in register SEC-W71-001 VALIDATED-PENDING-FILING.** |
 | SEC-W71-002 + SEC-W71-003 | Wave-71 security pass LOW observations; accepted as no-action design constraints at gate review (2026-07-08). | LOW | **ACCEPTED — no issue to file** |
-| CR-001 (wave-71) | Code review MINOR finding + 3 NITs from wave-71 code review; non-blocking; no gate action required. | LOW | **OPEN — maintenance/tech-debt backlog** |
+| CR-W71-001 | Code review MINOR finding + 3 NITs from wave-71 code review (renamed from CR-001 to avoid collision with closed CR-001 PR #177). Finding detail unverifiable — no dedicated code-review.md was written at gate close (PG-W71-CODEREVIEW-ARTIFACT). Non-blocking. | LOW | **CLOSED-UNVERIFIABLE (maint-2026-07-08 DF-VALIDATION-001 triage). PG-W71-CODEREVIEW-ARTIFACT codified to STORY-158 v1.1 AC-158-006.** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -343,19 +346,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Maintenance maint-2026-07-08 STARTED (D-405, 2026-07-08). Human selected option (b) at resume gate. Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) skipped (dtu_required: false); sweep 9 (a11y) skipped (CLI). DF-VALIDATION-001 research-agent triage dispatched for deferred backlog (SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001). develop=b642c0f. wave-71 trajectory-tail →1→0→0→0.**
+**Maintenance maint-2026-07-08 COMPLETE (D-406, 2026-07-08). Pipeline PAUSED (steady-state). 3 PRs merged (#382/383/384, strict 3/3 each). develop=c4eb1f4 (8 unreleased commits ahead of v0.11.5). STORY-158 v1.1 + STORY-159 drafted. maint trajectory-tail →0→0→0→0.**
 
-- **Date:** 2026-07-08. Position: maintenance mode, maint-2026-07-08 IN PROGRESS.
-- **develop HEAD:** `b642c0f` (full: `b642c0fdabfd6ae9f9ea8d1680b50662c5654e93`) — PR #381 gate-fix merged 2026-07-08. 5 unreleased commits ahead of v0.11.5.
+- **Date:** 2026-07-08. Position: steady-state, maint-2026-07-08 COMPLETE. Pipeline PAUSED.
+- **develop HEAD:** `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08. 8 unreleased commits ahead of v0.11.5.
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
 - **Open PRs:** none. **Open story worktrees:** none. **Convergence loop active:** none.
-- **current_cycle:** maint-2026-07-08 (STARTED). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight:** 6 sweeps + DF-VALIDATION-001 backlog triage (parallel dispatch, 2026-07-08).
-- **Pending human decisions:**
-  - (a) v0.12.0 release cut timing — Unreleased has 5 entries (PRs #378/#379/#380/#381 + wave-70 docs PR #377).
-  - (c) Wave-72 planning (wave-TBD queue: STORY-091/121/143/147/155/158).
+- **current_cycle:** maint-2026-07-08 (COMPLETE). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
+- **In-flight:** nothing. Pipeline PAUSED.
+- **Pending human decisions / next options:**
+  - (a) v0.12.0 release cut — Unreleased has 8 entries (PRs #378-384 + wave-70 docs PR #377); cut release/0.12.0 from develop c4eb1f4.
+  - (b) Wave-72 planning — wave-TBD queue: STORY-091/121/143/147/155/158/159.
+  - (c) Route C spec-coherence sweep — HS-INDEX v2.13 ENIP waves fix + epics.md/STORY-INDEX tally reconcile (deferred maint-2026-07-08).
+  - (d) Route B docs PR — README --coverage-gaps flag + ADR-0001 STORY-153 fields (deferred maint-2026-07-08).
+  - (e) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
 - **Unresolved blockers:** none.
-- **Spec versions:** BC-INDEX v2.20 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.23 / dependency-graph v3.7 / module-criticality v1.6.
+- **Spec versions:** BC-INDEX v2.20 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.25 / dependency-graph v3.7 / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
@@ -380,6 +386,8 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | Session checkpoints (maint) | `cycles/maint-2026-07-06/session-checkpoints.md` |
 | Lessons learned (maint) | `cycles/maint-2026-07-06/lessons.md` |
 | Session checkpoints (maint-2026-07-08) | `cycles/maint-2026-07-08/session-checkpoints.md` |
+| Sweep report (maint-2026-07-08) | `maintenance/sweep-report-2026-07-08.md` |
+| Lessons learned (maint-2026-07-08) | `cycles/maint-2026-07-08/lessons.md` |
 
 ---
 

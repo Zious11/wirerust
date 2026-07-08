@@ -1,168 +1,123 @@
 # Dependency Audit Findings — Maintenance Sweep 1 (ANALYSIS phase)
 
-- **Date:** 2026-06-22
-- **Crate version audited:** wirerust v0.9.3 (193 locked dependencies)
-- **Raw scan source:** `.factory/maintenance/dependency-audit-raw.log`
-- **Reviewer:** security-reviewer agent
-- **Prior sweep reference:** `.factory/maintenance/dependency-audit.md` (sweep dated 2026-06-17, v0.7.1)
+- **Date:** 2026-07-08
+- **Run ID:** maint-2026-07-08
+- **Producer:** security-reviewer
+- **Crate version audited:** wirerust v0.11.5 (193 locked dependencies)
+- **Tools:** cargo-audit 0.22.1, cargo-deny 0.19.6; cargo-outdated NOT INSTALLED
+- **Advisory DB entries at scan time:** 1159 (delta: +1 from maint-2026-07-06 baseline of 1158)
+- **Raw scan source:** `.factory/maintenance/dependency-audit-raw.log` (timestamp 2026-07-08T17:23:34Z)
+- **Prior sweep reference:** this file, run maint-2026-07-06
+
+---
+
+## Overall Verdict: CLEAN
+
+**cargo audit:** ZERO advisories against 193 locked crates.
+**cargo deny:** ZERO errors. 9 warnings — all known, all already registered (DEP-006 × 8, DEP-007 × 1).
+**cargo outdated:** SKIPPED — tool not installed; see note below.
+
+No CRITICAL or HIGH findings. No MEDIUM findings. The audit is NON-BLOCKING for continued development. No immediate fix PR is required.
 
 ---
 
 ## Findings Table
 
-| Finding ID | Advisory / CWE / CVE | Dependency | Severity | CLI-Reachable | Recommended Action | Auto-Fixable |
-|---|---|---|---|---|---|---|
-| DEP-001 | RUSTSEC-2026-0097 / CWE-119 (soundness) | rand 0.8.5 (transitive build-dep) | LOW | NO | `cargo update -p rand` (bumps to 0.8.6); remove `--ignore RUSTSEC-2026-0097` from CI after update | YES — patch-only semver bump |
-| DEP-002 | N/A (supply-chain hygiene) | deny.toml — 8 stale license-not-encountered entries | LOW (informational) | NO | Optional: prune `allow` list to only actually-used licenses; run `cargo deny list` first | NO — requires manual inspection |
-| DEP-003 | N/A (ecosystem migration pattern) | syn v1.0.109 + v2.0.117 duplicate | LOW (informational) | NO | No action; upstream (tls-parser, pcap-file) must migrate proc-macro chains to syn 2.x | NO — upstream dependency |
-| DEP-004 | CWE-1104 (Use of Unmaintained Third-Party Components — partial analogy) | 35 crates with available patch/minor updates | LOW | NO | Full `cargo update`; validate CI green; shlex 2.0.1 major bump requires explicit verification (build dep only) | YES for 34/35; NO for shlex 2.0.1 major |
-| DEP-005 | CWE-119 (precautionary — prior RUSTSEC-2023-0074 soundness history) | zerocopy 0.8.48 → 0.8.52 available | MEDIUM (precautionary) | NO | Upgrade via `cargo update` — no active advisory against 0.8.48 but zerocopy has a track record of post-release soundness fixes in sub-patches | YES — included in full `cargo update` |
-| DEP-006 | N/A — dead direct production dependency | rayon v1.12.0 (Cargo.toml [dependencies], line 37) | LOW (tech debt) | NO | Remove `rayon = "1"` from `[dependencies]` in Cargo.toml — no usage in src/; tech debt item O-07 | YES — one-line Cargo.toml deletion + `cargo update` |
+| Finding ID | Advisory / CWE | Dependency | Severity | Status | Action |
+|---|---|---|---|---|---|
+| DEP-006 | N/A (hygiene) | deny.toml — 8 unused `license-not-encountered` entries | LOW (informational) | DEFERRED (registered maint-2026-07-06) | Remain deferred — see recommendation below |
+| DEP-007 | N/A (ecosystem migration) | syn 1.0.109 + 2.0.117 duplicate | LOW (informational) | DEFERRED (registered maint-2026-07-06) | No action; upstream resolution |
+
+**CRITICAL:** 0 | **HIGH:** 0 | **MEDIUM:** 0 | **LOW:** 2 (both pre-existing, deferred)
 
 ---
 
 ## Detailed Analysis
 
-### DEP-001 — RUSTSEC-2026-0097: rand 0.8.5 unsound (transitive, build-dep only)
+### Raw Log Verification
 
-**Advisory:** RUSTSEC-2026-0097 (published 2026-04-09)
-**Title:** "Rand is unsound with a custom logger using `rand::rng()`"
-**CWE:** CWE-119 — Improper Restriction of Operations within Bounds of a Memory Buffer (soundness / undefined-behaviour category)
-**OWASP:** Not applicable (not an application-layer vulnerability)
+The raw log at `.factory/maintenance/dependency-audit-raw.log` (2026-07-08T17:23:34Z) confirms:
 
-**Dependency chain:**
-```
-rand 0.8.5
-└── phf_generator 0.11.3
-    └── phf_codegen 0.11.3
-        └── tls-parser 0.12.2   [build-dependency only — code generation step]
-            └── wirerust 0.9.3
-```
+1. **cargo audit** loaded 1159 advisories and scanned all 193 Cargo.lock entries. The output contains no advisory blocks, no `RUSTSEC-` findings, no `[VULNERABILITY]` or `[WARNING]` entries. The implicit clean exit is consistent with the "advisories ok" summary line from cargo deny confirming advisory pass.
 
-**Reachability / Exploitability Assessment:**
+2. **cargo deny** emitted exactly 9 warnings, no errors:
+   - 8× `warning[license-not-encountered]` for: `0BSD` (deny.toml:34), `Apache-2.0 WITH LLVM-exception` (deny.toml:25), `BSD-2-Clause` (deny.toml:26), `CC0-1.0` (deny.toml:32), `ISC` (deny.toml:28), `MPL-2.0` (deny.toml:33), `Unicode-DFS-2016` (deny.toml:30), `Zlib` (deny.toml:31) — all map to DEP-006.
+   - 1× `warning[duplicate]` for `syn 1.0.109 / 2.0.117` at Cargo.lock:135 — maps to DEP-007.
 
-The unsound condition requires two simultaneous conditions:
-1. A custom global logger that calls `rand::rng()` from within a log macro invocation (i.e., the `log` crate's global logger is user-supplied and invokes rand internally).
-2. A concurrent thread racing on rand's internal state during a reseed operation.
+3. **Terminator line:** `advisories ok, bans ok, licenses ok, sources ok` — all four cargo deny check categories passed with no errors. The log contains no buried errors or suppressed output. The 9 warnings are the complete and exhaustive set.
 
-wirerust satisfies NEITHER condition:
-- rand 0.8.5 is consumed exclusively at **build time** by phf_codegen, which uses it to generate static perfect-hash tables. The rand crate does not appear in the production binary's dependency tree — it is a build-script tool, not a runtime crate.
-- wirerust does not install a custom global logger; it uses indicatif and owo-colors for terminal output, neither of which routes through `log` or calls `rand::rng()`.
-- The produced binary has no code path that touches rand at runtime.
-
-**Verdict: NOT REACHABLE. Severity is LOW (advisory class is `unsound`, not a CVSS-scored CVE). Runtime exploitability is NIL.**
-
-**Prior disposition:** ACCEPTED-TRANSITIVE since F6 hardening cycle. CI suppresses via `--ignore RUSTSEC-2026-0097`.
-
-**New status for v0.9.3 sweep:** rand 0.8.6 is available as a semver-compatible patch bump and resolves the advisory. The fix is now trivially self-serviceable via `cargo update -p rand`. Recommend applying in the next patch batch and removing the CI suppression.
+4. **cargo outdated:** Not installed; no outdated-version data available for this sweep. For reference, maint-2026-07-06 found 35 crates with available updates, of which all relevant security items (rand 0.8.6, zerocopy 0.8.52) were resolved by PR #304 (maint-2026-06-22). No new outdated-version intelligence can be produced without installing the tool.
 
 ---
 
-### DEP-002 — Stale deny.toml license allowlist (8 license-not-encountered warnings)
+### DEP-006 — Stale deny.toml license allowlist (8 license-not-encountered warnings)
 
+**Status:** DEFERRED (registered maint-2026-07-06)
 **Severity:** LOW (informational, no security implication)
 **CWE:** Not applicable
-**OWASP:** Not applicable
 
-Eight entries in `deny.toml` `[licenses] allow` are broader than the current dependency graph requires. No crate uses these licenses today: `0BSD`, `Apache-2.0 WITH LLVM-exception`, `BSD-2-Clause`, `CC0-1.0`, `ISC`, `MPL-2.0`, `Unicode-DFS-2016`, `Zlib`.
+Eight entries in `deny.toml` `[licenses] allow` are broader than the current dependency graph requires. The same 8 licenses flagged in maint-2026-07-06 are still unmatched: `0BSD`, `Apache-2.0 WITH LLVM-exception`, `BSD-2-Clause`, `CC0-1.0`, `ISC`, `MPL-2.0`, `Unicode-DFS-2016`, `Zlib`. No new license-not-encountered entries appeared; no previously-flagged entries were resolved. The finding is stable and unchanged.
 
-**Security implication:** None. Overly broad allowlists are a hygiene concern — a future dependency using one of these licenses would be silently accepted — but all eight are permissive licenses compatible with MIT. The risk of inadvertently accepting a copyleft or hostile license via this vector is minimal.
-
-**Recommendation:** Defer to next license-audit sweep. When pruning, use `cargo deny list` to enumerate actually-encountered licenses first; removing a license that a transitive dep silently uses would break `cargo deny check`.
+**Security implication:** None. All eight are permissive licenses compatible with MIT. The risk of inadvertently accepting a copyleft or hostile license through this vector is minimal.
 
 ---
 
-### DEP-003 — syn v1/v2 duplicate
+### DEP-007 — syn 1.0.109 + 2.0.117 duplicate
 
+**Status:** DEFERRED (registered maint-2026-07-06)
 **Severity:** LOW (informational, expected ecosystem pattern)
 **CWE:** Not applicable
-**OWASP:** Not applicable
 
-syn 1.0.109 is pulled by `derive-into-owned` (via pcap-file) and `nom-derive-impl` (via nom-derive / tls-parser). syn 2.0.117 is pulled by clap, serde, thiserror, zerocopy, and wasm-bindgen chains. This is the standard Rust ecosystem proc-macro migration pattern — no security concern; no advisory against either version.
-
-**Recommendation:** No action. Resolution is upstream's responsibility (tls-parser, pcap-file). syn 2.0.118 would arrive automatically with `cargo update`.
+syn 1.0.109 remains in the lock file via `derive-into-owned` (pcap-file) and `nom-derive-impl` (tls-parser/nom-derive). syn 2.0.117 is the dominant version pulled by clap, serde, thiserror, zerocopy, and wasm-bindgen chains. No change from maint-2026-07-06. No security advisory exists against either version.
 
 ---
 
-### DEP-004 — 35 crates with available patch/minor updates
+### Unmaintained / Yanked / Compromised Check
 
-**Severity:** LOW (supply-chain freshness)
-**CWE:** CWE-1104 (Use of Unmaintained Third-Party Components — partial analogy for stale patch versions)
-
-35 crates have patch or minor updates available. Most are routine. Notable items:
-- `rand 0.8.5 → 0.8.6` — resolves DEP-001
-- `zerocopy 0.8.48 → 0.8.52` — see DEP-005
-- `shlex 1.3.0 → 2.0.1` — major version bump; build dep only (via `cc` crate); verify CI green before accepting
-- `syn 2.0.117 → 2.0.118` — safe proc-macro chain patch
-- `wasm-bindgen 0.2.117 → 0.2.125` — dev-dep only (criterion/plotters chain)
-
-**Recommendation:** Run `cargo update` and `cargo test --all-targets` to confirm no regressions. shlex 2.0.1 is the only item requiring CI-green confirmation before acceptance.
+cargo audit performed an explicit scan against all 193 locked crates using the RustSec advisory database. The database includes advisories in the `unmaintained`, `yanked`, and `unsound` categories in addition to CVE-class vulnerabilities. Zero advisories of any category were returned. No crates are flagged as unmaintained, yanked, or compromised as of the 1159-advisory DB snapshot at scan time.
 
 ---
 
-### DEP-005 — zerocopy 0.8.48 (precautionary; no active advisory)
+## Diff vs maint-2026-07-06
 
-**Severity:** MEDIUM (precautionary — no active CVE)
-**CWE:** CWE-119 — Improper Restriction of Operations within Bounds of a Memory Buffer (memory safety concern; established by prior RUSTSEC-2023-0074 in this crate's history)
+| Dimension | maint-2026-07-06 | maint-2026-07-08 | Delta |
+|---|---|---|---|
+| cargo audit advisories | 0 (after RUSTSEC-2026-0204 fix PR #371) | 0 | No change — CLEAN |
+| Advisory DB entries | 1158 (end-of-day, post-RUSTSEC-2026-0204) | 1159 | +1 new advisory (does not affect wirerust) |
+| cargo deny errors | 0 | 0 | No change |
+| cargo deny warnings | 9 | 9 | No change — same DEP-006/DEP-007 set |
+| New advisories against wirerust deps | N/A | 0 | No new exposure |
+| Resolved advisories since last sweep | N/A | 0 | Nothing to resolve |
+| syn versions | 1.0.109 / 2.0.117 | 1.0.109 / 2.0.117 | Unchanged (DEP-007 stable) |
+| deny.toml unused licenses | 8 | 8 | Unchanged (DEP-006 stable) |
 
-zerocopy 0.8.52 is available. cargo audit reports **zero active advisories** against zerocopy 0.8.48 as of this scan. This is a **precautionary** finding based on zerocopy's demonstrated pattern of discovering post-release soundness issues in sub-patches (most notably RUSTSEC-2023-0074, since resolved). A gap of four patch versions (.48 → .52) in a crate with this history warrants proactive updating.
-
-**Exploitability:** Not currently exploitable — no active advisory exists against 0.8.48. Upgrading is prudent.
-
-**Recommendation:** Include in `cargo update` batch. HIGH priority within that batch given zerocopy's soundness history.
-
----
-
-### DEP-006 — rayon: dead direct production dependency (tech debt O-07)
-
-**Severity:** LOW (tech debt — dead code in dependency tree; no security attack surface created by an unused dep)
-**CWE:** Not directly applicable. CWE-561 (Dead Code) is the closest analogue for unnecessary dependency inclusion.
-**OWASP:** Not applicable (no runtime attack surface)
-
-**Finding:** `rayon = "1"` appears at line 37 of `Cargo.toml` in the `[dependencies]` section (production dependencies, not `[dev-dependencies]`). The resolved version is rayon v1.12.0.
-
-**Usage investigation:**
-- `grep -rn "rayon\|par_iter\|par_bridge\|ParallelIterator\|into_par_iter\|par_chunks\|par_extend\|rayon::" src/` — **zero matches**
-- `grep -rn "rayon" benches/ tests/` — **zero matches**
-- The cargo tree shows rayon is also pulled in by criterion (dev-dependency), but criterion's pull of rayon is independent of the Cargo.toml direct declaration.
-
-**Verdict: DEAD DIRECT PRODUCTION DEPENDENCY. rayon has zero usage in `src/` and has been confirmed unused across multiple prior release cycles (v0.5.0, v0.6.0, v0.7.x per tech-debt-check.md entry O-07). The direct dependency declaration in `[dependencies]` adds rayon to the production binary link graph unnecessarily.**
-
-**Context from tech-debt-check.md (O-07):** Issue #6 ("Add parallel file processing with rayon") is the intended future consumer. If issue #6 is not on the near-term roadmap, the dependency should be removed. If it IS planned, the entry should be moved to a `# Planned: issue #6` comment with the dep removed until actually implemented.
-
-**Auto-fixable:** YES — single-line deletion from Cargo.toml (`rayon = "1"` at line 37). Low-risk change; rayon will still be transitively present via criterion in the dev build, so benchmarks are unaffected. The production binary drops the rayon link.
-
-**Recommended action:** Remove `rayon = "1"` from `[dependencies]`. If issue #6 is actively planned, add a code comment above the bench that links the intent. The dx-engineer or implementer can execute this as a `chore:` PR.
+**RUSTSEC-2026-0204 advisory-race lesson (carried forward):** The advisory-race pattern observed in maint-2026-07-06 (cargo-audit DB grew 1157→1158 mid-run, turning a CLEAN morning scan into a CI failure hours later) is now a standing monitoring note. This sweep records DB entry count 1159 at 2026-07-08T17:23:34Z. Future sweeps should compare their DB entry count against this baseline to detect new additions. A DB delta does not automatically mean new exposure; it means new advisories were published and the scan should be re-examined against the full crate list. A CLEAN cargo audit against an incremented DB count (as seen here: 1158→1159, still CLEAN) confirms no wirerust dependency was newly affected.
 
 ---
 
-## O-07 Disposition (Tech Debt Resolution)
+## DEP-006 Recommendation: Remain Deferred
 
-Tech debt item **O-07** (`rayon` declared in `[dependencies]`, zero usage in `src/`) is **confirmed as a genuine, auto-fixable finding**.
+**Question:** Should DEP-006 (deny.toml allowlist trim) be folded into this sweep's fix PR or remain deferred?
 
-| Attribute | Value |
-|---|---|
-| Item | O-07 |
-| Status | OPEN — confirmed genuine |
-| Auto-fixable | YES (one-line Cargo.toml deletion) |
-| Complexity | Trivial — no code changes required, only Cargo.toml edit |
-| Risk | LOW — rayon remains available transitively via criterion; benches unaffected |
-| Blocker | None — safe to file as a `chore:` PR immediately |
+**Recommendation: Remain deferred.**
+
+Rationale:
+1. This sweep has zero actionable security findings. There is no fix PR to bundle DEP-006 with — creating a standalone `chore:` PR solely to trim 8 allowlist entries would be disproportionate effort for zero security gain.
+2. DEP-006 requires running `cargo deny list` first to enumerate currently-active licenses before removing any entry, because removing a license that a transitive dependency actually uses (even if cargo deny does not currently warn about it) would break `cargo deny check`. This adds non-trivial investigation overhead.
+3. The risk of deferral is minimal: all eight flagged licenses are permissive and MIT-compatible. A future dependency using one of these licenses would be silently accepted by `cargo deny`, but would not introduce a license-compliance risk.
+4. The appropriate time to execute DEP-006 is when a `chore:` PR is already in flight for another reason (e.g., a doc-drift or tech-debt batch), so the fix can be bundled at near-zero marginal cost.
+
+**Trigger condition for unblocking DEP-006:** Fold into the next `chore:` or `docs:` maintenance PR. Pre-condition: run `cargo deny list` to enumerate active licenses, verify the 8 flagged entries are genuinely absent, then remove them from deny.toml.
 
 ---
 
-## Overall Verdict
+## Summary
 
-**Highest severity:** MEDIUM (DEP-005 — zerocopy precautionary; no active CVE)
+| Severity | Count | Finding IDs | Fix PR Required? |
+|---|---|---|---|
+| CRITICAL | 0 | — | — |
+| HIGH | 0 | — | — |
+| MEDIUM | 0 | — | — |
+| LOW | 2 | DEP-006, DEP-007 | No — both deferred |
 
-**CRITICAL findings:** 0
-**HIGH findings:** 0
-**MEDIUM findings:** 1 (DEP-005 — precautionary, no active advisory)
-**LOW findings:** 5 (DEP-001 through DEP-004, DEP-006)
-
-**No CRITICAL or HIGH findings. No finding triggers an immediate fix PR requirement. The audit is NON-BLOCKING for continued development.**
-
-The only recommended-priority actions are:
-1. `cargo update -p rand` (resolves DEP-001; low-risk patch bump; enables CI suppression removal)
-2. `cargo update` for the full batch including zerocopy (DEP-004/DEP-005)
-3. Remove `rayon = "1"` from Cargo.toml `[dependencies]` (O-07; one-line chore PR)
+**No fix PR required. Audit CLEAN. DB advisory count recorded: 1159 at 2026-07-08T17:23:34Z.**

@@ -1,46 +1,16 @@
-================================================================================
-DEPENDENCY AUDIT RAW LOG
-Run ID   : maint-2026-07-06
-Project  : wirerust
-Branch   : develop
-Commit   : f7460b4
-Version  : v0.11.4
-Date     : 2026-07-06
-================================================================================
+# maint-2026-07-08 dependency audit raw log
+# Run timestamp: 2026-07-08T17:23:34Z
+# Tools: cargo-audit 0.22.1, cargo-deny 0.19.6, cargo-outdated NOT INSTALLED
 
-ENVIRONMENT
------------
-rustc   : rustc 1.96.0 (ac68faa20 2026-05-25)
-cargo   : cargo 1.96.0 (30a34c682 2026-05-25)
-OS      : darwin 25.5.0
-
-TOOL INVENTORY
---------------
-cargo-audit   : 0.22.1  (PRESENT — ran)
-cargo-deny    : 0.19.6  (PRESENT — ran)
-cargo-outdated: NOT INSTALLED (skipped — not installed, not installed per instructions)
-semgrep       : NOT INSTALLED (skipped — not installed per instructions)
-deny.toml     : PRESENT at /Users/zious/Documents/GITHUB/wirerust/deny.toml
-
-================================================================================
-TOOL: cargo audit 0.22.1
-COMMAND: cargo audit
-EXIT CODE: 0
---------------------------------------------------------------------------------
+## cargo audit
+---
     Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
-      Loaded 1157 security advisories (from /Users/zious/.cargo/advisory-db)
+      Loaded 1159 security advisories (from /Users/zious/.cargo/advisory-db)
     Updating crates.io index
     Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
 
-(no vulnerabilities, no warnings — output ends here; tool exited cleanly)
-
-ADVISORY COUNT: 0 vulnerabilities, 0 warnings
-
-================================================================================
-TOOL: cargo deny 0.19.6
-COMMAND: cargo deny check
-EXIT CODE: 0
---------------------------------------------------------------------------------
+## cargo deny check
+---
 warning[license-not-encountered]: license was not encountered
    ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:34:6
    │
@@ -91,43 +61,43 @@ warning[license-not-encountered]: license was not encountered
 
 warning[duplicate]: found 2 duplicate entries for crate 'syn'
     ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
-    │
+    │  
 135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
 136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
     │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
-    │
+    │  
     ├ syn v1.0.109
       ├── derive-into-owned v0.2.0
       │   └── pcap-file v2.0.0
-      │       └── wirerust v0.11.4
+      │       └── wirerust v0.11.5
       └── nom-derive-impl v0.10.1
           └── nom-derive v0.10.1
               └── tls-parser v0.12.2
-                  └── wirerust v0.11.4 (*)
+                  └── wirerust v0.11.5 (*)
     ├ syn v2.0.117
       ├── clap_derive v4.6.1
       │   └── clap v4.6.1
       │       ├── criterion v0.8.2
-      │       │   └── (dev) wirerust v0.11.4
-      │       └── wirerust v0.11.4 (*)
+      │       │   └── (dev) wirerust v0.11.5
+      │       └── wirerust v0.11.5 (*)
       ├── num_enum_derive v0.7.6
       │   └── num_enum v0.7.6
       │       └── tls-parser v0.12.2
-      │           └── wirerust v0.11.4 (*)
+      │           └── wirerust v0.11.5 (*)
       ├── serde_derive v1.0.228
       │   └── serde v1.0.228
       │       ├── chrono v0.4.45
-      │       │   └── wirerust v0.11.4 (*)
+      │       │   └── wirerust v0.11.5 (*)
       │       ├── ciborium v0.2.2
       │       │   └── criterion v0.8.2 (*)
       │       ├── criterion v0.8.2 (*)
       │       ├── tinytemplate v1.2.1
       │       │   └── criterion v0.8.2 (*)
-      │       └── wirerust v0.11.4 (*)
+      │       └── wirerust v0.11.5 (*)
       ├── thiserror-impl v1.0.69
       │   └── thiserror v1.0.69
       │       └── pcap-file v2.0.0
-      │           └── wirerust v0.11.4 (*)
+      │           └── wirerust v0.11.5 (*)
       ├── wasm-bindgen-macro-support v0.2.117
       │   └── wasm-bindgen-macro v0.2.117
       │       └── wasm-bindgen v0.2.117
@@ -141,8 +111,8 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │           │   │   └── plotters v0.3.7
       │           │   │       └── criterion v0.8.2 (*)
       │           │   └── web-time v1.1.0
-      │           │       └── indicatif v0.18.4
-      │           │           └── wirerust v0.11.4 (*)
+      │           │       └── indicatif v0.18.5
+      │           │           └── wirerust v0.11.5 (*)
       │           ├── plotters v0.3.7 (*)
       │           ├── web-sys v0.3.94 (*)
       │           └── web-time v1.1.0 (*)
@@ -159,21 +129,10 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
               └── ppv-lite86 v0.2.21
                   └── rand_chacha v0.9.0
                       └── proptest v1.11.0
-                          └── (dev) wirerust v0.11.4 (*)
+                          └── (dev) wirerust v0.11.5 (*)
 
 advisories ok, bans ok, licenses ok, sources ok
 
-DENY WARNING COUNT : 9 warnings (8 license-not-encountered, 1 duplicate crate)
-DENY CHECKS PASSED : advisories ok, bans ok, licenses ok, sources ok
-
-================================================================================
-TOOL: cargo outdated
-STATUS: NOT INSTALLED — skipped (not installed; instructions say skip install if absent)
-
-================================================================================
-TOOL: semgrep
-STATUS: NOT INSTALLED — skipped (instructions say only run if already installed)
-
-================================================================================
-END OF LOG
-================================================================================
+## cargo outdated
+---
+SKIPPED: cargo-outdated not installed

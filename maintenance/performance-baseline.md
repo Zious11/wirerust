@@ -1,23 +1,127 @@
 ---
 document_type: maintenance-performance-baseline
-sweep: 5-controlled-rerun
+sweep: 6-maint-2026-07-08
 producer: performance-engineer
 created: 2026-06-22
+last_updated: 2026-07-08
 branch: develop
-version: v0.9.3
+commit: b642c0f
+version: v0.11.5
 baseline_date: 2026-05-19
 baseline_source: .factory/maintenance/performance.md (maint-2026-06-17 recorded values)
-prior_sweep_date: 2026-06-17
-current_run_date: 2026-06-22
+prior_sweep_date: 2026-06-22
+current_run_date: 2026-07-08
 hardware_note: >
   Apple Silicon Mac, darwin 25.5.0. All measurements are wall-clock on the
   benchmark machine. Absolute µs values are not portable across hardware;
   only relative deltas (same machine, same branch) are meaningful for
   regression tracking.
 benchmark_command: cargo bench --bench pipeline
-rust_version: stable (v0.9.3 release)
+rust_version: stable (v0.11.5)
 criterion_version: "0.8"
 samples: 100 per benchmark
+---
+
+# Performance Baseline — Running History
+
+---
+
+## maint-2026-07-08 (Sweep 6)
+
+**Commit:** b642c0f (develop, v0.11.5)
+**Context:** Post-STORY-150 (PR #379, merged 2026-07-08) — refactored TLS drain-loop dispatch
+arms. Paying particular attention to TLS-path benches for regression from that refactor.
+Also first run to include the `tls_fragmented` bench (added in STORY-149).
+
+### Run Quality Assessment
+
+This run exhibited high severe-outlier counts across all pipeline benchmarks
+(11–20 severe outliers per 100 samples). Wide confidence intervals (e.g.
+decode/segmented.pcap: [1.67–2.41 µs]) indicate the machine was not fully quiescent
+during measurement. This is the same noise signature observed in the June-17 run
+(which showed a +54.5% CRITICAL later confirmed as thermal/scheduling noise in the
+June-22 controlled re-run).
+
+**Recommendation: treat CRITICAL/WARNING flags on non-TLS paths as NOISE-SUSPECT pending a
+controlled re-run with the machine quiescent. Do not open fix PRs based solely on this run.**
+
+### Results Table — pipeline bench
+
+All times are Criterion point estimates (median of CI). Delta vs Jun-22 anchor (maint-2026-06-22).
+
+| Benchmark | Fixture | Jun-22 anchor (µs) | Today 2026-07-08 (µs) | Criterion CI | Outliers | vs Jun-22 | Verdict |
+|-----------|---------|-------------------|----------------------|-------------|---------|-----------|---------|
+| decode | segmented.pcap | 1.459 | 2.0145 | [1.671–2.417] | 12 (11 severe) | +38.1% | CRITICAL (NOISE-SUSPECT) |
+| decode | tls.pcap | 3.369 | 4.3810 | [4.091–4.706] | 12 (8 severe) | +30.0% | CRITICAL (NOISE-SUSPECT) |
+| decode | dns-remoteshell.pcap | 4.840 | 5.9408 | [5.500–6.544] | 15 (13 severe) | +22.7% | WARNING (NOISE-SUSPECT) |
+| summary | segmented.pcap | 0.639 | 0.9003 | [0.820–0.990] | 11 (7 severe) | +40.9% | CRITICAL (NOISE-SUSPECT) |
+| summary | dns-remoteshell.pcap | 2.589 | 3.5304 | [3.148–3.974] | 20 (16 severe) | +36.4% | CRITICAL (NOISE-SUSPECT) |
+| reassembly | segmented.pcap | 5.858 | 8.8937 | [7.929–10.069] | 15 (9 severe) | +51.8% | CRITICAL (NOISE-SUSPECT) |
+| reassembly | tls.pcap | 24.429 | 26.353 | [25.101–27.850] | 18 (13 severe) | +7.9% | NOISE |
+
+Criterion verdicts vs stored base (prior criterion run):
+- `decode/segmented.pcap`: Performance has regressed (+15.9% vs stored base, p<0.05)
+- `decode/tls.pcap`: Performance has regressed (+25.2% vs stored base, p<0.05)
+- `decode/dns-remoteshell.pcap`: Performance has regressed (+27.8% vs stored base, p<0.05)
+- `summary/segmented.pcap`: Performance has regressed (+20.3% vs stored base, p<0.05)
+- `summary/dns-remoteshell.pcap`: Performance has regressed (+35.5% vs stored base, p<0.05)
+- `reassembly/segmented.pcap`: Performance has regressed (+34.9% vs stored base, p<0.05)
+- `reassembly/tls.pcap`: No change in performance detected (p=0.37)
+
+### Results Table — tls_fragmented bench (NEW — first appearance in maintenance sweep)
+
+This bench was added in STORY-149 (AC-149-002) to isolate the TLS carry-drain loop.
+No prior maintenance sweep anchor exists; this run establishes the initial baseline.
+
+| Benchmark | Fixture | Today 2026-07-08 (µs) | Criterion CI | Outliers | vs prior | Verdict |
+|-----------|---------|----------------------|-------------|---------|---------|---------|
+| tls_fragmented | 3-record-carry-drain | 2.0662 | [1.902–2.252] | 18 (15 severe) | N/A (initial) | INITIAL BASELINE |
+
+Criterion: +22.6% vs stored base (p<0.05). High outlier count (18/100 severe) same as other benches,
+consistent with machine-noise run. **Initial baseline value recorded; a controlled re-run should
+anchor this before using as a regression comparator.**
+
+### STORY-150 TLS Drain-Loop Regression Check
+
+STORY-150 (PR #379, merged 2026-07-08) refactored TLS drain-loop dispatch arms in the
+`drain_carry` / stream-dispatch path. Relevant measurements:
+
+| Bench | Today (µs) | STORY-149 pre-story anchor (µs) | Delta | vs May-19 (23.281 µs) |
+|-------|-----------|--------------------------------|-------|----------------------|
+| reassembly/tls.pcap | 26.353 | 25.880 | +1.8% (NOISE) | +13.2% (WARNING vs long-run anchor) |
+| tls_fragmented/3-record-carry-drain | 2.0662 | N/A (no prior) | — | — |
+
+**Finding: No evidence of regression from the STORY-150 TLS drain-loop refactor.**
+`reassembly/tls.pcap` at +1.8% vs the STORY-149 pre-story anchor is well within noise;
+criterion reports no change (p=0.37). The tls_fragmented path also shows the same
+high-outlier noise pattern as all other benches, meaning its absolute value this run is
+unreliable as an anchor.
+
+### Noise Diagnosis: Why CRITICAL flags are NOISE-SUSPECT
+
+The key diagnostic is that decode and summary paths are completely unchanged by STORY-150's
+TLS drain-loop refactor. If their regressions were real code regressions, there would need
+to be an unrelated code change touching decode/summary paths — but there is none (b642c0f is
+the STORY-150 merge commit). The simultaneous regression across all independent paths, combined
+with high severe-outlier counts in every group, is the canonical fingerprint of OS scheduling
+or thermal interference — identical to the June-17 run (later confirmed noise in the Jun-22
+controlled re-run).
+
+### Long-Run Trend Table (reassembly/tls.pcap — primary regression-tracking metric)
+
+| Date | Commit | µs (slope/mean) | vs May-19 | Notes |
+|------|--------|-----------------|-----------|-------|
+| 2026-05-19 | (anchor) | 23.281 | 0.0% | Original baseline |
+| 2026-06-17 | (maint) | 35.960 | +54.5% | NOISE — confirmed thermal spike |
+| 2026-06-22 | (maint) | 24.429 | +4.9% | Controlled re-run; noise resolved |
+| 2026-07-06 | f7460b4 | 27.842 | +19.6% | v0.11.4 (maint-2026-07-06) |
+| 2026-07-07 | 19569ae | 25.880 | +11.2% | STORY-149 pre-story anchor (v0.11.5) |
+| 2026-07-08 | b642c0f | 26.353 | +13.2% | This run; high outliers — noise-suspect |
+
+The long-run trend for reassembly/tls.pcap shows a stable elevation of ~11–13% above the
+May-19 anchor, consistent with the ARP feature cycle overhead identified in prior sweeps.
+No step-change attributable to STORY-150.
+
 ---
 
 # Maintenance Sweep 5 — Controlled Re-run Performance Baseline
