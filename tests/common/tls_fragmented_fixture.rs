@@ -58,6 +58,7 @@ fn build_client_hello_handshake_bytes() -> Vec<u8> {
     // No extensions field — ch.ext will be None; handle_client_hello handles this.
 
     // Build 4-byte handshake header.
+    // SEC-010 disposition: accepted-as-bounded-by-construction — fixed 41-byte ClientHello body
     let body_len = body.len() as u32;
     let mut hs: Vec<u8> = Vec::with_capacity(4 + body.len());
     hs.push(0x01); // msg_type = ClientHello
