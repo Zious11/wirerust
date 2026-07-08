@@ -52,8 +52,8 @@ mod bc_2_16_016 {
     ///   absence of a findings cap."
     ///   Invariant 4 (Security awareness): "A malicious pcap with millions of ARP
     ///   spoof or storm events can cause unbounded Vec<Finding> growth..."
-    ///   Architecture Anchor: `src/cli.rs` lines 194–213 — `--arp` flag definition;
-    ///   `long_help` MUST document unbounded findings behavior (PC-015 doc fix).
+    ///   Architecture Anchor: the `--arp` flag definition's `long_help` attribute
+    ///   in `src/cli.rs` MUST document unbounded findings behavior (PC-015 doc fix).
     #[test]
     fn test_BC_2_16_016_cli_help_documents_arp_findings_unbounded() {
         let output = Command::cargo_bin("wirerust")
