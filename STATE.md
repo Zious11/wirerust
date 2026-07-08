@@ -37,9 +37,9 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 102
-story_index_version: "v3.23"
-total_stories: 111
-story_index_note: "111 stories / 71 waves / 705 pts. v3.23: STORY-158 DRAFTED (wave-TBD, E-11, 3 pts; S-7.02 wave-71 cycle-close process-gap codification — PG-W71-CHANGELOG+PG-W71-CYCLE-ARTIFACT-IDENTITY+PG-W71-CI-SCAN-GUARDS). dependency-graph v3.7 (edges 125). 2026-07-08."
+story_index_version: "v3.24"
+total_stories: 112
+story_index_note: "112 stories / 71 waves / 708 pts. v3.24: STORY-159 DRAFTED (wave-TBD, E-11, 3 pts; maint-2026-07-08 NEW-001 doc-drift — ADR-012 public doc authoring + CLAUDE.md Project References row). dependency-graph v3.7 (edges 125). 2026-07-08."
 # Spec versions (current)
 bc_index_version: "v2.20"
 vp_index_version: "v2.35"
