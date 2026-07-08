@@ -362,7 +362,9 @@ follows it; new tests should match.
 Three families of detection thresholds ship with engineering defaults that have not been validated against
 a labelled ICS/OT traffic corpus. They were accepted as reasonable starting points on
 2026-07-08 and may produce false positives or false negatives on unusual networks.
-Other detector thresholds (e.g. Modbus and EtherNet/IP write-burst limits, the ARP spoof rebind threshold) are likewise engineering defaults; the three families below are those with the least external calibration evidence.
+Other detector thresholds (e.g. Modbus and EtherNet/IP write-burst limits, the ARP spoof rebind
+threshold) are likewise engineering defaults; the three families below are those with the least
+external calibration evidence.
 
 **Reassembly anomaly thresholds** — the TCP reassembly engine emits anomaly findings when
 overlapping-segment counts exceed 50 per flow direction (`--overlap-threshold`, default 50),
@@ -374,8 +376,9 @@ engineering estimates.
 
 **ARP storm rate** — the ARP storm detector (`--arp`) fires when a source MAC sends 50 or more
 ARP frames per second (at or above `--arp-storm-rate`, default 50). This value is not derived from any
-external standard. OT/ICS environments with PLCs or RTUs that issue frequent ARP probes may
-need to lower this to 5–20 to reduce false positives.
+external standard. Typical OT/ICS segments are quiet, so operators may lower this to 5–20 to
+catch low-rate storms; conversely, environments with chatty PLCs or RTUs that legitimately probe
+at high rates should raise it above their baseline to avoid false positives.
 
 **DNP3 direct-operate burst threshold** — the DNP3 analyzer (`--dnp3`) fires a control-command
 burst finding when more than 10 Control-class function codes arrive within the 60-second
