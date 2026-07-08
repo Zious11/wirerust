@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: bin/lint-cycle-artifact
 subsystems: []
 estimated_days: 1
-wave: "~"
+wave: "72"
 traces_to:
   - .factory/policies.yaml
   - .github/workflows/ci.yml

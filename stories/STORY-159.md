@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: docs/adr/0012-protocols-catalog-and-coverage-gaps.md
 subsystems: []
 estimated_days: 1
-wave: "~"
+wave: "72"
 traces_to:
   - .factory/maintenance/doc-drift-findings.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
