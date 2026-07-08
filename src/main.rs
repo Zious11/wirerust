@@ -439,7 +439,8 @@ fn run_analyze(
                         if enable_arp {
                             all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
                         } else {
-                            arp_analyzer.malformed_frames += 1;
+                            arp_analyzer.malformed_frames =
+                                arp_analyzer.malformed_frames.saturating_add(1);
                         }
                     }
                     Err(e) => {
@@ -448,7 +449,7 @@ fn run_analyze(
                                 "Warning: failed to decode packet ({e}). Further errors counted silently."
                             );
                         }
-                        total_decode_errors += 1;
+                        total_decode_errors = total_decode_errors.saturating_add(1);
                     }
                 }
                 pb.inc(1);
@@ -834,7 +835,7 @@ fn run_summary(
                                 "Warning: failed to decode packet ({e}). Further errors counted silently."
                             );
                         }
-                        total_decode_errors += 1;
+                        total_decode_errors = total_decode_errors.saturating_add(1);
                     }
                 }
             }

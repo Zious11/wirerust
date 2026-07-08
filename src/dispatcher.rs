@@ -474,7 +474,7 @@ impl StreamHandler for StreamDispatcher {
                     // NOT on coverage_gaps_enabled. Moving this inside the coverage_gaps block
                     // would zero the counter on all normal (coverage_gaps=false) runs, breaking
                     // BC-2.05.009 + holdouts HS-040/HS-095.
-                    self.unclassified_flows += 1;
+                    self.unclassified_flows = self.unclassified_flows.saturating_add(1);
                     // STORY-153 (BC-2.05.010 PC-1, AC-153-003): per-port TCP counter increment.
                     // Dual-gate: (outer) analyzer-present guard AND (inner) coverage_gaps_enabled.
                     // ADR-012 Decision 6 Clarification EXACT: unclassified_flows += 1 is above,

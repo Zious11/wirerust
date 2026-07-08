@@ -163,7 +163,7 @@ impl TcpReassembler {
             if self.total_memory <= self.config.memcap && self.flows.len() <= flow_count_target {
                 break;
             }
-            self.stats.evictions += 1;
+            self.stats.evictions = self.stats.evictions.saturating_add(1);
             self.close_flow(key, CloseReason::MemoryPressure, handler);
         }
     }
@@ -180,7 +180,7 @@ impl TcpReassembler {
         timestamp: u32,
     ) {
         if self.findings.len() >= MAX_FINDINGS {
-            self.stats.dropped_findings += 1;
+            self.stats.dropped_findings = self.stats.dropped_findings.saturating_add(1);
             return;
         }
         self.findings.push(Finding {
@@ -210,7 +210,7 @@ impl TcpReassembler {
         timestamp: u32,
     ) {
         if self.findings.len() >= MAX_FINDINGS {
-            self.stats.dropped_findings += 1;
+            self.stats.dropped_findings = self.stats.dropped_findings.saturating_add(1);
             return;
         }
         self.findings.push(Finding {
