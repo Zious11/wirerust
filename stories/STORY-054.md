@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-054"
 epic_id: "E-5"
-version: "1.2"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -119,13 +119,13 @@ For recognized cipher IDs, `cipher_name` returns the IANA canonical name string 
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| `is_weak_cipher` | src/analyzer/tls.rs:56-64 | pure-core |
-| `is_weak_server_cipher` | src/analyzer/tls.rs:66-75 | pure-core |
-| `cipher_name` | src/analyzer/tls.rs:77-83 | pure-core |
-| Weak-cipher scan in `handle_client_hello` | src/analyzer/tls.rs:497-517 | effectful-shell |
-| Server cipher check in `handle_server_hello` | src/analyzer/tls.rs:570-582 | effectful-shell |
-| Deprecated version check (client) | src/analyzer/tls.rs:519-539 | effectful-shell |
-| Deprecated version check (server) | src/analyzer/tls.rs:584-604 | effectful-shell |
+| `is_weak_cipher` | src/analyzer/tls.rs:60-68 | pure-core |
+| `is_weak_server_cipher` | src/analyzer/tls.rs:71-79 | pure-core |
+| `cipher_name` | src/analyzer/tls.rs:82-87 | pure-core |
+| Weak-cipher scan in `handle_client_hello` | src/analyzer/tls.rs:628-662 | effectful-shell |
+| Server cipher check in `handle_server_hello` | src/analyzer/tls.rs:735-748 | effectful-shell |
+| Deprecated version check (client) | src/analyzer/tls.rs:664-685 | effectful-shell |
+| Deprecated version check (server) | src/analyzer/tls.rs:750-771 | effectful-shell |
 
 ## Edge Cases
 
@@ -153,7 +153,7 @@ For recognized cipher IDs, `cipher_name` returns the IANA canonical name string 
 | Context Source | Estimated Tokens |
 |---------------|-----------------|
 | This story spec | ~4,000 |
-| Referenced code (tls.rs lines 56-83, 497-604) | ~4,500 |
+| Referenced code (tls.rs lines 60-87, 628-771) | ~4,500 |
 | Test files (tls_analyzer_tests.rs cipher/version finding tests) | ~4,000 |
 | BC files (6 BCs) | ~7,000 |
 | Tool outputs overhead | ~2,000 |
@@ -205,7 +205,7 @@ For recognized cipher IDs, `cipher_name` returns the IANA canonical name string 
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/analyzer/tls.rs | modify | `is_weak_cipher` (56-64), `is_weak_server_cipher` (66-75), `cipher_name` (77-83), weak-cipher scan in `handle_client_hello` (497-517), deprecated-version checks (519-539, 584-604), server weak-cipher (570-582) |
+| src/analyzer/tls.rs | modify | `is_weak_cipher` (60-68), `is_weak_server_cipher` (71-79), `cipher_name` (82-87), weak-cipher scan in `handle_client_hello` (628-662), deprecated-version checks (664-685, 750-771), server weak-cipher (735-748) |
 | tests/tls_analyzer_tests.rs | modify | `test_weak_cipher_finding_client`, `test_weak_cipher_finding_server`, `test_normal_handshake_no_findings`, `test_client_tls10_no_deprecated_finding`, `test_ssl30_client_weak_cipher_both_findings`, `test_server_ssl30_deprecated_finding`, `test_client_and_server_ssl30_distinct_directions`, `test_cipher_name_unknown_hex_lowercase`, `test_cipher_name_recognized_and_ffff` |
 | tests/tls_integration_tests.rs | modify | `test_ssl30_pcap_generates_findings` (AC-006) |
 
@@ -213,5 +213,8 @@ For recognized cipher IDs, `cipher_name` returns the IANA canonical name string 
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
-| v1.0 | 2026-05-21 | story-writer | Initial story decomposition |
+| 1.5 | 2026-07-07 | state-manager | Pass-5 remediation F-150-P5-001 — Token Budget pure-core range 56-83→60-87; full line-range citation sweep: Architecture Mapping rows 122-128 verified, File Structure table verified, changelog rows exempt. |
+| 1.4 | 2026-07-07 | story-writer | adversarial Pass-1 remediation F-150-P1-005, wave 71 — updated Architecture Mapping rows 122-124 (is_weak_cipher :56-64→:60-68; is_weak_server_cipher :66-75→:71-79; cipher_name :77-83→:82-87); sibling sweep applied to File Structure table. |
+| 1.3 | 2026-07-07 | story-writer | AC-150-006 anchor sweep, wave 71, post-STORY-150-refactor line numbers: updated 6 stale tls.rs anchors in Architecture Mapping (4 sites), Token Budget, and File Structure table. |
 | v1.1 | 2026-05-29 | story-writer | AC-citation sync — AC-007/008/009/010/012/013 now cite concrete test fn names (DF-AC-TEST-NAME-SYNC-001, proactive PG-W17-001 fix) |
+| v1.0 | 2026-05-21 | story-writer | Initial story decomposition |

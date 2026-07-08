@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,12 +17,15 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: PG-ARP-F2-007 ss-07 full re-anchor — increment 372-376→379-383; key selection+count 402-416→421-427; SNI emission 424-490→435-515 — 2026-06-13"
   - "v1.4 (2026-07-06): silent-limit audit — add PC-5 noting that dropped new keys increment TlsAnalyzer.dropped_map_entries (observable in BC-2.07.031 PC-10); no Finding behavior unchanged (Invariant 1 preserved); add Related BC reference to BC-2.07.031"
+  - "v1.5 (2026-07-07): AC-150-006 anchor sweep, wave 71, post-STORY-150-refactor — convert line-number anchors to symbol anchors (TD-031); increment :379-383→::increment; sni_counts insert :421-427→::handle_client_hello; SNI emission :435-515→::handle_client_hello; full section :413-515→::handle_client_hello"
 deprecated: null
 deprecated_by: null
 replacement: null
 retired: null
 removed: null
 removal_reason: null
+inputs: []
+input-hash: "d41d8cd"
 ---
 
 # BC-2.07.028: sni_counts Cap: Finding Still Fires When Map at Capacity
@@ -93,7 +96,7 @@ observed malicious SNIs.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- finding/count decoupling is a forensic-correctness property of TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:379-383, 413-515, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs::TlsAnalyzer::increment, ::TlsAnalyzer::handle_client_hello, C-13) |
 | Stories | STORY-057 |
 | Origin BC | BC-TLS-028 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,16 +108,16 @@ observed malicious SNIs.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:379-383` -- TlsAnalyzer::increment helper (cap logic)
-- `src/analyzer/tls.rs:421-427` -- sni_counts key selection and insertion (before match sni)
-- `src/analyzer/tls.rs:435-515` -- SNI finding emission (after, independent of count)
+- `src/analyzer/tls.rs::TlsAnalyzer::increment` -- increment helper (cap logic)
+- `src/analyzer/tls.rs::TlsAnalyzer::handle_client_hello` -- sni_counts key selection and insertion (before `match sni`)
+- `src/analyzer/tls.rs::TlsAnalyzer::handle_client_hello` -- SNI `match sni { ... }` finding emission (after count insertion, independent of count)
 - `tests/tls_analyzer_tests.rs` -- test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:413-515` |
+| **Path** | `src/analyzer/tls.rs::TlsAnalyzer::handle_client_hello` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-057"
 epic_id: "E-5"
-version: "1.1"
+version: "1.2"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.026.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.027.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.028.md
-input-hash: "41521b4"
+input-hash: "6d7bc12"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-055, STORY-056]
@@ -211,5 +211,6 @@ Finding emission is decoupled from count insertion. The `Self::increment` call (
 
 | Version | Date | Author | Note |
 |---------|------|--------|------|
+| 1.2 | 2026-07-07 | state-manager | Input re-hash after anchor-only BC amendment BC-2.07.028 v1.5, wave 71; no scope impact |
 | 1.1 | 2026-07-06 | story-writer | BC-2.07.028 v1.4 propagation (silent-limit audit) — update BC table annotation to v1.4; AC-012/AC-013 extended to assert dropped_map_entries counter increment on new-key drop (PC-5); Task 5 updated to wire dropped_map_entries increment in increment helper; add Architecture Compliance Rule for dropped_map_entries |
 | 1.0 | 2026-05-21 | story-writer | Initial story |

@@ -163,5 +163,5 @@ Unknown cipher IDs (where `TlsCipherSuite::from_id` returns `None`) are rendered
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/analyzer/tls.rs | modify | `handle_server_hello` (lines 542-604); `cipher_name` function (lines 77-83) |
+| src/analyzer/tls.rs | modify | `handle_server_hello` (lines 542-604); `cipher_name` function (lines 82-87) |
 | tests/tls_analyzer_tests.rs | modify | `test_BC_2_07_002_server_hello_seen_set_true`, `test_BC_2_07_002_server_version_inserted_in_version_counts`, `test_BC_2_07_002_ja3s_hash_computed_and_inserted`, `test_BC_2_07_002_cipher_name_inserted_in_cipher_counts`, `test_BC_2_07_002_ja3s_grease_ext_filtered_cipher_not_filtered`, `test_BC_2_07_002_unknown_cipher_id_renders_as_hex_in_cipher_counts`, `test_BC_2_07_002_version_counts_client_and_server_versions_independent` (AC-001..007) |

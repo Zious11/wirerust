@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-23T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: fix-pc-013-014-015
-modified: []
+modified:
+  - "v1.1 (2026-07-07): Location citation corrected to delivered test placement; wave 71, STORY-156 delivery. Also converted three src/reassembly/mod.rs line-number anchors to ::MAX_FINDINGS symbol anchor (TD-031, required to unblock Write)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -24,7 +25,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
   - .factory/code-delivery/fix-pc-013-014-015/scope.md
-input-hash: TBD
+input-hash: "cc54cb0"
 ---
 
 # BC-2.16.016: ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec
@@ -72,8 +73,9 @@ reassembly-layer MAX_FINDINGS gate does not apply to it.
 2. **Contrast with stream-reassembly analyzers**: HTTP (`src/analyzer/http.rs`), TLS
    (`src/analyzer/tls.rs`), Modbus (`src/analyzer/modbus.rs`), and DNP3
    (`src/analyzer/dnp3.rs`) all operate via `TcpReassembler` which applies
-   `MAX_FINDINGS = 10,000` from `src/reassembly/mod.rs:57`. ARP bypasses TCP reassembly
-   entirely because ARP is an Ethernet-layer protocol, not a TCP/IP application protocol.
+   `MAX_FINDINGS = 10,000` from `src/reassembly/mod.rs::MAX_FINDINGS`. ARP bypasses TCP
+   reassembly entirely because ARP is an Ethernet-layer protocol, not a TCP/IP application
+   protocol.
 3. **Intentional design — not a missing implementation**: The absence of a cap is a
    deliberate choice for a forensics tool where users own their pcap files and need complete
    finding records. Adding a cap would be a behavioral change requiring a new BC, a
@@ -105,8 +107,10 @@ reassembly-layer MAX_FINDINGS gate does not apply to it.
 PASSES after the cap-absence invariant is established and FAILS if a cap is accidentally
 introduced.
 
-**Location:** `src/analyzer/arp.rs` `#[cfg(test)] mod tests` OR
-`tests/bc_2_16_story113_arp_tests.rs`
+**Location:** `src/analyzer/arp.rs` mod `bc_2_16_016` (delivered; commits eca21e9 + 7e4fe6d).
+Also delivered: `test_BC_2_16_016_summarize_has_no_dropped_findings_key` in `src/analyzer/arp.rs`
+mod `bc_2_16_016` (commit 7e4fe6d, STORY-156); `test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`
+in `tests/bc_2_16_016_arp_tests.rs` (commit eca21e9).
 
 **Protocol:**
 1. Create `ArpAnalyzer::new(spoof_threshold=1, storm_rate=u32::MAX)`.
@@ -159,10 +163,10 @@ introduced.
 ## Architecture Anchors
 
 - `src/analyzer/arp.rs` — `impl ArpAnalyzer { pub fn process_arp(...) -> Vec<Finding> }` — returns unbounded Vec
-- `src/reassembly/mod.rs:57` — `const MAX_FINDINGS: usize = 10_000` — applies to HTTP/TLS/Modbus/DNP3 ONLY; NOT to ARP
+- `src/reassembly/mod.rs::MAX_FINDINGS` — `const MAX_FINDINGS: usize = 10_000` — applies to HTTP/TLS/Modbus/DNP3 ONLY; NOT to ARP
 - `src/analyzer/arp.rs` — `const MAX_ARP_BINDINGS: usize = 65_536` — binding TABLE cap; distinct from findings cap
 - `src/analyzer/arp.rs` — `const MAX_STORM_COUNTERS: usize = 4_096` — storm counter TABLE cap; distinct from findings cap
-- `src/cli.rs` lines 194–213 — `--arp` flag definition; `long_help` MUST document unbounded findings behavior (PC-015 doc fix)
+- `src/cli.rs` — `--arp` flag definition; `long_help` MUST document unbounded findings behavior (PC-015 doc fix)
 - `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md §Invariant 2` — link-layer bypass rationale
 
 ## Story Anchor
@@ -177,7 +181,7 @@ introduced.
 
 | Property | Value |
 |----------|-------|
-| **Path** | fix-pc-013-014-015/scope.md §PC-015 (ARP Findings Cap Not Documented — clarification that NO cap exists); src/analyzer/arp.rs (no MAX_FINDINGS constant defined); src/reassembly/mod.rs:57 (MAX_FINDINGS=10,000 applies to HTTP/TLS/Modbus/DNP3 only) |
+| **Path** | fix-pc-013-014-015/scope.md §PC-015 (ARP Findings Cap Not Documented — clarification that NO cap exists); src/analyzer/arp.rs (no MAX_FINDINGS constant defined); src/reassembly/mod.rs::MAX_FINDINGS (MAX_FINDINGS=10,000 applies to HTTP/TLS/Modbus/DNP3 only) |
 | **Confidence** | high — code confirms absence of MAX_FINDINGS on ARP path; intentional-design status confirmed by scope.md §PC-015 Fix Classification |
 | **Extraction Date** | 2026-06-23 |
 

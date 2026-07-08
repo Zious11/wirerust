@@ -4,7 +4,7 @@ story_id: STORY-150
 id: STORY-150
 title: "TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run"
 epic_id: E-11
-version: "1.3"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-01T00:00:00Z
@@ -15,6 +15,9 @@ points: 5
 estimated_days: 2
 priority: P2
 wave: "71"
+# v1.6 (2026-07-07): Pass-4 remediation F-150-P4-001 — body Wave header synced to frontmatter wave 71. Pass-5 remediation O-150-P5-001/002 — subsystems SS-5→SS-07; FSR ss-7/→ss-07/ (2 sites).
+# v1.5 (2026-07-07): Pass-3 remediation F-150-P3-001/003 — Narrative/Goal/Tasks/FSR/Notes aligned to inline-hoisting + symbol-anchor reality; exhaustive terminology sweep.
+# v1.4 (2026-07-07): adversarial Pass-1 remediation F-150-P1-002/004, wave 71 — AC-150-001 updated to describe shipped inline unification (no named abstraction); AC-150-006 BC-2.07.004 bullet updated (3 symbol-anchor conversions, TD-031).
 # v1.3 (2026-07-07): input-hash gate (wave-71 planning) — declared spec inputs (VP-039, BC-2.07.004, BC-2.07.028, ADR-011); hash d41d8cd→c5acbe4.
 # v1.2 (2026-07-07): Human decision (v0.12.0 planning gate) — fold BC-ANCHOR-DRIFT-OUTOFCYCLE-001 into scope:
 #   AC-150-006 added covering the 12 stale tls.rs BC-anchor sites from maint-2026-07-01 maintenance log.
@@ -32,8 +35,8 @@ risk_mitigations: []
 traces_to: null
 tdd_mode: strict
 target_module: "analyzer/tls"
-subsystems: [SS-5]
-input-hash: "c5acbe4"
+subsystems: [SS-07]
+input-hash: "a001aa4"
 inputs:
   - .factory/specs/verification-properties/vp-039-tls-handshake-reassembly.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md
@@ -45,14 +48,15 @@ inputs:
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
-**Wave:** TBD
+**Wave:** 71
 **Points:** 5
 
 ## Narrative
 
 - **As a** wirerust maintainer evolving the TLS analyzer
-- **I want** the per-direction dispatch duplication in `process_handshake_carry` unified via a
-  shared abstraction, and the wave-70 code-review improvement queue addressed
+- **I want** the per-direction dispatch duplication in `process_handshake_carry` unified via
+  inline hoisting of direction-specific parameters into a single shared extraction and parse
+  site, and the wave-70 code-review improvement queue addressed
 - **So that** correctness fixes and behavioral changes applied to one dispatch arm are
   automatically applied to the other, the same divergence class that required dedicated fix
   stories for ENIP (STORY-139), DNP3 (STORY-140), and Modbus (STORY-141) is eliminated
@@ -107,10 +111,12 @@ adds back meaningful scope — particularly CR-006 (RAII `CarryGuard`) and CR-00
 
 ## Goal
 
-1. Unify the C2S and S2C dispatch arms in `process_handshake_carry` via a shared
-   abstraction (function, closure, or macro) that avoids borrow-checker friction. Each
-   arm reduces to a single parameterized call site. The duplicate `Ok(_)/Err(_)`
-   parse-error arms are collapsed (CR-003).
+1. Unify the C2S and S2C dispatch arms in `process_handshake_carry` via inline hoisting:
+   hoist direction-specific parameters (`expected_msg_type`, hello-seen flag, dispatch fn)
+   outside both arms; consolidate `msg_bytes` extraction and `parse_tls_message_handshake`
+   into a single shared site; select direction-specific dispatch inside the unified arm.
+   No named abstraction is required. The duplicate `Ok(_)/Err(_)` parse-error arms are
+   collapsed (CR-003).
 2. Re-run all Kani VP-039 harnesses after the refactor and confirm they still prove the
    carry-drain correctness properties without changes to harness assertions.
 3. Update the VP-039 line-correspondence table in the proof module to reflect the
@@ -122,12 +128,15 @@ adds back meaningful scope — particularly CR-006 (RAII `CarryGuard`) and CR-00
 ## Acceptance Criteria
 
 AC-150-001: The C2S and S2C direction-dispatch arms in `process_handshake_carry` are
-  unified via a shared abstraction (`drain_dispatch` function, closure, or macro). In the
-  final implementation each arm calls this abstraction with direction-specific parameters
-  (message-type byte, hello-seen flag setter, dispatch function); no substantive logic
-  block — meaning the `msg_bytes` extraction, `parse_tls_message_handshake` call,
-  hello-seen flag assignment, parse_errors increment, and dispatch invocation — is
-  duplicated between the arms.
+  unified via inline hoisting: `expected_msg_type` and other direction-specific parameters
+  are hoisted outside both arms; the `msg_bytes` extraction and
+  `parse_tls_message_handshake` call are consolidated into a single shared site;
+  direction-specific dispatch is selected inside the unified arm. No named abstraction
+  (function, closure, or macro) is required. The testable invariant: there is exactly
+  one `parse_tls_message_handshake` call site and at most one `msg_bytes` extraction
+  inside `process_handshake_carry`; no substantive logic block — meaning the `msg_bytes`
+  extraction, `parse_tls_message_handshake` call, hello-seen flag assignment,
+  `parse_errors` increment, and dispatch invocation — is duplicated between the arms.
 
 AC-150-002: All Kani harnesses in the VP-039 proof module (`#[cfg(kani)]` mod) pass
   without modification to their assertions after the refactor. If any harness required
@@ -147,19 +156,25 @@ AC-150-005: `cargo test --all-targets` passes; existing VP-039 and VP-040 unit t
   remain green. `cargo clippy --all-targets -- -D warnings` passes with no new warnings.
 
 AC-150-006: All stale line-anchor sites from BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (maint-2026-07-01
-  maintenance log) are corrected in the affected spec and story files. The 12 stale
-  tls.rs line references are updated to reflect the final post-STORY-150-refactor line
-  numbers (not the intermediate post-STORY-149 numbers from the maintenance log, which
-  shift again after the DRY dispatch-arm refactor). Affected files and corrections:
-  - `BC-2.07.004.md` (or wherever the BC text references tls.rs): 2 sites updated
-    (`:319→:339` and `:689-699→:731-741` per maint-2026-07-01, then adjusted for refactor)
-  - `BC-2.07.028.md` (or wherever the BC text references tls.rs): 4 sites updated
-    (`:379-383`, `:421-427`, `:435-515`, `:413-515` per maint-2026-07-01 corrections)
-  - `STORY-054.md` Tasks table and tls.rs cross-references: up to 6 sites updated
-    (`:497-517`, `:570-582`, `:519-539`, `:584-604`, `:Tasks-table line 208` per
-    maint-2026-07-01, adjusted for post-refactor final line numbers)
-  The anchor updates must be performed AFTER the dispatch-arm refactor (AC-150-001) and
-  VP-039 table update (AC-150-003) have stabilized tls.rs line numbers for this wave.
+  maintenance log) are corrected in the affected spec and story files. BC files
+  (`BC-2.07.004.md`, `BC-2.07.028.md`) receive symbol-anchor conversions (TD-031
+  compliance); the story file (`STORY-054.md`) receives corrected line-range updates.
+  Affected files and corrections:
+  - `BC-2.07.004.md`: 3 anchor conversions (2 numeric-anchor sites per maint-2026-07-01:
+    `:319`→`::TlsAnalyzer::truncated_records`; `:689-699`→`::TlsAnalyzer::prepare_record_step`);
+    plus `::MAX_RECORD_PAYLOAD` anchor cleanup required by TD-031 to unblock the file. All
+    converted to symbol anchors rather than updated line numbers (TD-031 compliance).
+  - `BC-2.07.028.md`: 4 symbol-anchor conversions (TD-031 compliance):
+    `:379-383`→`::TlsAnalyzer::increment`; `:421-427`→`::TlsAnalyzer::handle_client_hello`
+    (sni_counts insert); `:435-515`→`::TlsAnalyzer::handle_client_hello` (SNI emission);
+    `:413-515`→`::TlsAnalyzer::handle_client_hello` (full section). Converted to symbol
+    anchors rather than updated line numbers (TD-031 compliance).
+  - `STORY-054.md`: 7 stale line-range references corrected (story files are exempt from
+    TD-031 symbol-anchor requirement): 4 effectful-shell Architecture Mapping rows updated
+    to post-STORY-150-refactor ranges; File Structure Requirements row updated; 3 pure-core
+    rows corrected per F-150-P1-005 (is_weak_cipher, is_weak_server_cipher, cipher_name).
+  The anchor corrections must be performed AFTER the dispatch-arm refactor (AC-150-001) and
+  VP-039 table update (AC-150-003) have stabilized tls.rs structure for this wave.
 
 ## Architecture Mapping
 
@@ -201,12 +216,12 @@ AC-150-006: All stale line-anchor sites from BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (mai
 
 1. [ ] Read `src/analyzer/tls.rs` `process_handshake_carry` (lines ~866–984) — identify the
        exact per-direction dispatch arms and the duplicate `Ok(_)/Err(_)` parse-error arms
-2. [ ] Design the shared dispatch abstraction (function, closure, or macro); prefer a closure
-       to avoid borrow-checker friction; confirm it does not require changes outside
-       `process_handshake_carry`
+2. [ ] Design the inline hoisting unification: identify direction-specific parameters to
+       hoist (`expected_msg_type`, hello-seen flag, dispatch fn); confirm the approach
+       requires no changes outside `process_handshake_carry`
 3. [ ] Write failing tests for AC-150-001 (dispatch arm duplication eliminated; grep-based
        source-inspection or unit test verifying symmetry)
-4. [ ] Implement the shared dispatch abstraction; collapse duplicate `Ok(_)/Err(_)` arms (CR-003)
+4. [ ] Implement the inline hoisting unification; collapse duplicate `Ok(_)/Err(_)` arms (CR-003)
 5. [ ] Address in-scope CR queue items (see §Candidate Scope — at minimum CR-003; others
        at implementer discretion subject to no-regression gate)
 6. [ ] Update VP-039 line-correspondence table to new line numbers (AC-150-003)
@@ -214,12 +229,13 @@ AC-150-006: All stale line-anchor sites from BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (mai
 8. [ ] Re-run `cargo mutants --jobs 1` on `src/analyzer/tls.rs`; confirm no new survivors (AC-150-004)
 9. [ ] Run `cargo test --all-targets` — VP-039, VP-040, and all existing tests green (AC-150-005)
 10. [ ] Run `cargo clippy --all-targets -- -D warnings` — clean
-11. [ ] After tls.rs line numbers have stabilized (post-refactor + VP-039 table update),
-        apply BC-ANCHOR-DRIFT-OUTOFCYCLE-001 corrections: update all stale tls.rs
-        line-anchor references in `BC-2.07.004.md`, `BC-2.07.028.md`, and `STORY-054.md`
-        using the FINAL post-refactor line numbers (AC-150-006). Reference the exact
-        correction list in maint-2026-07-01 maintenance-log as the starting point;
-        adjust each correction to the post-refactor line numbers before applying.
+11. [ ] After tls.rs has stabilized (post-refactor + VP-039 table update), apply
+        BC-ANCHOR-DRIFT-OUTOFCYCLE-001 corrections (AC-150-006): convert all stale
+        tls.rs line-number anchors in `BC-2.07.004.md` and `BC-2.07.028.md` to stable
+        symbol anchors (TD-031 compliance; Write-tool path required while violations
+        exist); apply corrected line-range updates to `STORY-054.md` (story files are
+        exempt from TD-031 symbol-anchor requirement). Use the maint-2026-07-01
+        correction list as the starting point.
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -254,9 +270,9 @@ AC-150-006: All stale line-anchor sites from BC-ANCHOR-DRIFT-OUTOFCYCLE-001 (mai
 |------|--------|---------|
 | `src/analyzer/tls.rs` | modify | Unify C2S/S2C dispatch arms in `process_handshake_carry`; collapse duplicate `Ok(_)/Err(_)` arms; update VP-039 line-correspondence table |
 | `tests/bc_149_single_borrow_invariant_tests.rs` | verify (no change expected) | Source-inspection test for borrow budget — must still pass after refactor |
-| `BC-2.07.004.md` (path: `.factory/specs/behavioral-contracts/ss-7/` or equivalent) | modify | Update 2 stale tls.rs line-anchor references (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
-| `BC-2.07.028.md` (path: `.factory/specs/behavioral-contracts/ss-7/` or equivalent) | modify | Update 4 stale tls.rs line-anchor references (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
-| `.factory/stories/STORY-054.md` | modify | Update 4–6 stale tls.rs line-anchor references + Tasks-table entry (BC-ANCHOR-DRIFT-OUTOFCYCLE-001) |
+| `BC-2.07.004.md` (path: `.factory/specs/behavioral-contracts/ss-07/` or equivalent) | modify | Convert 3 stale tls.rs line-number anchors to symbol anchors (TD-031, AC-150-006) |
+| `BC-2.07.028.md` (path: `.factory/specs/behavioral-contracts/ss-07/` or equivalent) | modify | Convert 4 stale tls.rs line-number anchors to symbol anchors (TD-031, AC-150-006) |
+| `.factory/stories/STORY-054.md` | modify | Correct 7 stale tls.rs line-range references to post-STORY-150 values (AC-150-006; story files exempt from TD-031) |
 
 ## Candidate Scope: Wave-70 CR Queue
 
@@ -306,8 +322,9 @@ discretion.
   tls.rs:421-427→:455-469; tls.rs:435-515→:477-558; tls.rs:413-515→~:455-558), STORY-054
   (tls.rs:497-517→:563-598; tls.rs:570-582→:656-669; tls.rs:519-539→:600-621;
   tls.rs:584-604→~:672-691; Tasks-table line 208). These are the post-STORY-149 corrections;
-  after STORY-150's refactor, line numbers will shift again — implementer must use final
-  post-refactor numbers, not the intermediate values listed here.
+  after STORY-150's refactor, references would shift again — BC files received symbol-anchor
+  conversions (TD-031; not dependent on line numbers), story file `STORY-054.md` received
+  corrected line-range updates using post-STORY-150 final values.
 - S-7.02 disposition: this story's creation at draft status documents TLS-DRAIN-DUP-001
   for v0.12.0 planning and closes the maint-2026-07-01 refactor-debt open item.
 
@@ -315,6 +332,9 @@ discretion.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-07-07 | state-manager | Pass-4 remediation F-150-P4-001 — body Wave header synced to frontmatter wave 71. Pass-5 remediation O-150-P5-001 — subsystems [SS-5]→[SS-07] (frontmatter); O-150-P5-002 — FSR path ss-7/→ss-07/ at 2 sites. |
+| 1.5 | 2026-07-07 | story-writer | Pass-3 remediation F-150-P3-001/003 — Goal/Tasks/FSR aligned to inline-hoisting + symbol-anchor reality; exhaustive terminology sweep: Narrative/Goal/Tasks updated from "shared abstraction (function, closure, or macro)" to inline hoisting; AC-150-006 BC-2.07.028 bullet corrected to symbol-anchor conversions (TD-031); STORY-054 bullet corrected to line-range updates; Task 11 + Notes + FSR rows updated to match delivered approach; input re-hash after anchor-only BC amendment(s) BC-2.07.004/BC-2.07.028, wave 71; no scope impact. |
+| 1.4 | 2026-07-07 | story-writer | adversarial Pass-1 remediation F-150-P1-002/004, wave 71 — AC-150-001 updated to describe shipped inline unification (no named abstraction); AC-150-006 BC-2.07.004 bullet updated to reflect 3 symbol-anchor conversions (TD-031). |
 | 1.3 | 2026-07-07 | story-writer | input-hash gate (wave-71 planning): replaced `inputs: []` with declared spec inputs (VP-039, BC-2.07.004, BC-2.07.028, ADR-011); canonical hash `c5acbe4` computed. Added v1.3 frontmatter comment. |
 | 1.2 | 2026-07-07 | story-writer | **v0.12.0 planning gate:** fold BC-ANCHOR-DRIFT-OUTOFCYCLE-001 into scope — added AC-150-006 (sweep and correct 12 stale tls.rs BC-anchor sites from maint-2026-07-01 maintenance log: BC-2.07.004 ×2, BC-2.07.028 ×4, STORY-054 ×5/6). Updated tasks, file structure requirements, and notes. Points unchanged at 5 (anchor sweep is LOW-effort; bundles naturally with tls.rs touch + VP-039 line-correspondence update). Wave assigned: 71 (2026-07-07 human gate approval). |
 | 1.1 | 2026-07-07 | story-writer | **F-W70P2-001 re-anchor:** updated duplication site from `try_parse_records` (~220 lines) to `process_handshake_carry` (~50 lines, lines ~866–984) per post-STORY-149 (PR #374, 116100d) code reality. Updated Background, Goal, AC-150-001, Notes, module references. Added wave-70 CR queue (CR-001..CR-007) as §Candidate Scope. Bumped story points rationale note. Added full template compliance (story-template.md) with all frontmatter keys and mandatory sections. |

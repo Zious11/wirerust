@@ -1,0 +1,85 @@
+{
+  "story": "STORY-156",
+  "cycle": "wave-71",
+  "criterion": "passes_clean >= 3 AND last_classification == NITPICK_ONLY (BC-5.39.001)",
+  "passes": [
+    {
+      "pass": 1,
+      "date": "2026-07-07",
+      "verdict": "NOT-CLEAN",
+      "classification": "HAS_SUBSTANTIVE",
+      "findings": [
+        "F-156-P1-001 MEDIUM phantom test citation",
+        "F-156-P1-002 MEDIUM provenance",
+        "F-156-P1-003 LOW placement notes",
+        "F-156-P1-004 LOW BC 11-vs-13-key drift — DEFERRED spec-coherence pass",
+        "F-156-P1-005 observation",
+        "F-156-P1-006 observation"
+      ],
+      "remediation": "STORY-156 v1.3 + BC-2.16.016 v1.1",
+      "head_reviewed": "7e4fe6d"
+    },
+    {
+      "pass": 2,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "classification": "HAS_SUBSTANTIVE",
+      "findings": [
+        "F-156-P2-001 MEDIUM body freshness: wave TBD",
+        "F-156-P2-002 MEDIUM BC version cell",
+        "F-156-P2-003 MEDIUM --arp anchor mis-attribution",
+        "F-156-P2-004 LOW",
+        "F-156-P2-005 LOW",
+        "F-156-P2-006 LOW"
+      ],
+      "remediation": "STORY-156 v1.5 + worktree commit a61950f",
+      "remediation_commit": "a61950f",
+      "head_reviewed": "7e4fe6d"
+    },
+    {
+      "pass": 3,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "NITPICK_ONLY",
+      "findings": [
+        "F-156-P3-001 LOW test-file line citations — triaged ACCEPT-FIX, folded into v1.5",
+        "F-156-P3-002 LOW status:draft = convention"
+      ],
+      "remediation": "F-156-P3-001 folded into STORY-156 v1.5 (already applied); F-156-P3-002 accepted as-is (convention)",
+      "head_reviewed": "a61950f",
+      "streak": 1
+    },
+    {
+      "pass": 4,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "CLEAN-after-triage",
+      "findings": [
+        "F-156-P4-001 MEDIUM — REFUTED: adversary read develop baseline copy of tests/bc_2_16_016_arp_tests.rs:55, not worktree copy fixed at a61950f (wrong-tree read). Orchestrator verified worktree copy is symbol-style. All other axes clean, Part A confirmed."
+      ],
+      "triage": "REFUTED",
+      "refutation_cause": "Wrong-tree read — adversary accessed develop branch copy instead of worktree copy at commit a61950f. DF-ADVERSARY-CHECKOUT-GUARD-001 guard was asserted but reads drifted. Mitigated by tree-discipline preamble in subsequent dispatches.",
+      "precedent": "D-396 (wave-70 triaged-pass precedent)",
+      "head_reviewed": "a61950f",
+      "streak": 2
+    },
+    {
+      "pass": 5,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "NITPICK_ONLY",
+      "findings": [
+        "O-156-P5-001 LOW reassembly/mod.rs:57 citation — accurate, accepted as-is"
+      ],
+      "notes": "Refutation from pass 4 re-verified. One LOW observation (line citation accurate, no change needed).",
+      "head_reviewed": "a61950f",
+      "streak": 3
+    }
+  ],
+  "passes_clean_streak": 3,
+  "status": "CONVERGED",
+  "converged_at": "2026-07-08",
+  "convergence_criterion_satisfied": "BC-5.39.001 satisfied 2026-07-08 (streak 3/3)",
+  "next_action": "Step 5 demo recording dispatched",
+  "process_observation": "Adversary wrong-tree read at pass 4: DF-ADVERSARY-CHECKOUT-GUARD-001 guard was asserted but reads drifted to develop branch. Mitigated by tree-discipline preamble added to subsequent dispatches."
+}

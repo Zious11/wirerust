@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-157
 epic_id: E-11
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-07-07T00:00:00Z
@@ -11,6 +11,7 @@ level: feature
 cycle: wave-70-story-149
 points: 5
 priority: P3
+# v1.3 (2026-07-07): Sibling fix — body Wave header synced to frontmatter wave 71 (wave-TBD drift class, scheduling-burst propagation gap).
 # v1.2 (2026-07-07): input-hash gate (wave-71 planning): declared spec inputs (policies.yaml,
 #   wave-70 gate-summary); canonical hash 357bca5 computed. Folded PG-HASH-HOOK-DIVERGENCE and
 #   PG-HASH-INLINE-COMMENT into PG-HASH codification scope: AC-157-009/010 added.
@@ -47,7 +48,7 @@ inputs:
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
-**Wave:** TBD
+**Wave:** 71
 **Points:** 5
 **Priority:** P3
 
@@ -306,8 +307,8 @@ Python tool fix — the self-test cases serve as the Red Gate.
    tests: one for inline `inputs: []`, one for empty multiline block; both assert
    `d41d8cd`.
 5. **Verify scan gate (AC-157-006):** Run `bin/compute-input-hash --scan` and confirm
-   MATCH for all E-11 wave-TBD stories (STORY-091, STORY-121, STORY-143, STORY-147,
-   STORY-150, STORY-155, STORY-157).
+   MATCH for all seven E-11 stories in scope: STORY-091, STORY-121, STORY-143, STORY-147,
+   STORY-155 (wave-TBD) and STORY-150, STORY-157 (wave 71).
 6. **Research-agent validation:** All gap codifications require research-agent
    validation per DF-VALIDATION-001 before any GitHub issue is filed.
 7. **Merge-authorization procedure (AC-157-007/008):** Read DF-PR-MANAGER-COMPLETE-001
@@ -407,3 +408,12 @@ Well within the 20–30% context-window threshold. No story split required.
 - Precedent: STORY-147 (PG-MUTANTS-JOBS-001, 2026-07-01) and STORY-155
   (PG-INDEX-DRIFT-001, 2026-07-05) — same E-11 pattern: cycle process-gap follow-up
   encoding lessons into project workflow/tooling/docs.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.3 | 2026-07-07 | state-manager | Sibling fix — body Wave header synced to frontmatter wave 71 (wave-TBD drift class, scheduling-burst propagation gap); corrected Task step 5 stale E-11 story list: split into wave-TBD (STORY-091/121/143/147/155) and wave-71 (STORY-150/157). |
+| 1.2 | 2026-07-07 | story-writer | Input-hash gate (wave-71 planning) — declared spec inputs (policies.yaml, wave-70 gate-summary); canonical hash 357bca5 computed. Folded PG-HASH-HOOK-DIVERGENCE and PG-HASH-INLINE-COMMENT into PG-HASH codification scope: AC-157-009/010 added. |
+| 1.1 | 2026-07-07 | story-writer | Human decision (pipeline resume) — fold wave-70 retrospective open question into scope: PG-W70-MERGE-AUTH merge-authorization procedure codification added as fourth item. Points raised 3→5. |
+| 1.0 | 2026-07-07 | story-writer | Initial authorship — wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling. |

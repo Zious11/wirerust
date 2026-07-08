@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -41,7 +41,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.011.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "c9dd3be"
+input-hash: "9794871"
 ---
 
 # STORY-113: ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D
@@ -372,6 +372,7 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 
 ## Changelog
 
+- v1.5: Input re-hash after anchor-only BC amendment BC-2.16.016 v1.1, wave 71; no scope impact.
 - v1.4: BC-2.16.010 v1.9 propagation (silent-limit audit) — update BC table annotation v1.8→v1.9; "eleven keys"→"thirteen keys" throughout body, AC-013, EC-012, Architecture Compliance Rule 5, Task 1, Task 9; add bindings_evicted and storm_counters_evicted to key list in AC-013 and Task 1; rename test to test_BC_2_16_010_summarize_zero_frames_all_thirteen_keys_zero.
 - v1.3: fix-pc-013-014-015 BC propagation — ADD BC-2.16.016 v1.0 (ARP Findings Output is Unbounded) to frontmatter `bcs:`, inputs list, body BC table, and AC-022. Sync BC-2.16.010 table annotation to v1.8. Token budget updated: 7 BCs → 8 BCs (~33k total). Input-hash will be recomputed after BC file additions.
 - v1.2: F7 consistency F2 — Sub-D surrogate renamed from `insert_binding_lru_btree` (BTreeMap) to `insert_binding_lru_array` (array; signature `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`). All six loci updated: Sub-D description (§VP-024 Sub-B/C/D), AC-019, Architecture Mapping table, Task 6, Task 15, Architecture Compliance Rule 2, Library table. Matches F6 implementation; sanctioned by VP-024 v2.2 + arp-architecture-delta v1.17.

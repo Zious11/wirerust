@@ -34,8 +34,53 @@
       "remediation": "nitpick sweep (assertion-string wording) committed at 0818f5c — gates re-verified green",
       "remediation_commit": "0818f5c",
       "head_reviewed": "5fe40e7"
+    },
+    {
+      "pass": 3,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "classification": "HAS_SUBSTANTIVE",
+      "findings": [
+        "F-150-P3-001 HIGH STORY-150 Goal/Tasks stale 'shared abstraction' language",
+        "F-150-P3-002 MEDIUM 9 unswept test-file doc sites",
+        "F-150-P3-003 MEDIUM FSR/Task-11 line-anchor language"
+      ],
+      "remediation": "all remediated — STORY-150 v1.5 + worktree commit 9b9010c",
+      "remediation_commit": "9b9010c",
+      "head_reviewed": "0818f5c",
+      "streak_reset": true
+    },
+    {
+      "pass": 4,
+      "date": "2026-07-08",
+      "verdict": "NITPICK_ONLY",
+      "classification": "NITPICK_ONLY",
+      "calibration_note": "Adversary recorded NOT-CLEAN under stricter personal calibration; calibration standardized afterward (CLEAN = no MEDIUM+). Counted as CLEAN per standardized criterion.",
+      "findings": [
+        "F-150-P4-001 LOW body Wave header TBD"
+      ],
+      "remediation": "STORY-150 v1.6 — Wave header TBD resolved",
+      "head_reviewed": "9b9010c"
+    },
+    {
+      "pass": 5,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "classification": "HAS_SUBSTANTIVE",
+      "findings": [
+        "F-150-P5-001 MEDIUM STORY-054 Token Budget range 56-83 → corrected to 60-87",
+        "O-150-P5-001 LOW SS-5→SS-07 frontmatter anchor (fixed); STORY-149 half deferred to wave-gate",
+        "O-150-P5-002 LOW ss-7/→ss-07/ path references (fixed)"
+      ],
+      "remediation": "STORY-054 v1.5 + STORY-150 v1.6 amended; O-150-P5-001 STORY-149 half deferred to wave-gate adjudication",
+      "head_reviewed": "9b9010c",
+      "streak_reset": true,
+      "deferred": [
+        "O-150-P5-001-STORY-149-HALF: SS-5 anchor in merged STORY-149 → wave-gate adjudication"
+      ]
     }
   ],
-  "passes_clean_streak": 1,
-  "status": "IN_PROGRESS"
+  "passes_clean_streak": 0,
+  "status": "IN_PROGRESS",
+  "notes": "Pass 6 dispatched. Streak reset at pass 5 (MEDIUM finding F-150-P5-001). Calibration note: Pass 4 adversary applied stricter-than-standard threshold; standardized to CLEAN = no MEDIUM+."
 }

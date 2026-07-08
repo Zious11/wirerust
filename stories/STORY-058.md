@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-058"
 epic_id: "E-5"
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -14,7 +14,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.031.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.033.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.035.md
-input-hash: "d510292"
+input-hash: "a0b6662"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-052, STORY-053]
@@ -241,6 +241,7 @@ When multiple SNIs share the same count, the tied group is ordered by SNI name a
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.7 | 2026-07-07 | state-manager | Input re-hash after anchor-only BC amendment BC-2.07.004 v1.5, wave 71; no scope impact |
 | v1.6 | 2026-07-06 | story-writer | BC-2.07.031 v1.5 propagation (silent-limit audit) — update BC table annotation to v1.5; AC-009 updated to reference postconditions 1-10 and add dropped_map_entries key; Task 7 updated; add EC-013; add Architecture Compliance Rule for dropped_map_entries |
 | v1.4 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-016 (top_snis tiebreaker: SNI name ASC, deterministic); expand AC-009 and AC-010 descriptions with SNI-name-ascending tiebreaker and determinism guarantee; add EC-012; update Architecture Compliance Rules and FSR for top_snis determinism (BC-2.07.031 v1.3 postcondition 3 / invariant 2 / EC-004) |
 | v1.3 | 2026-05-29 | story-writer | Qualify AC-002 "preceding partial record" sub-clause as defensive/by-inspection per BC-2.07.004 v1.3 (F-S058-P6-002): that scenario is not reachable via the public `on_data` API (parser reads from `buf[0]` and returns at the incompleteness check before a later oversized record could be encountered). Normative assertion retained: buffer clearing is unconditional. |

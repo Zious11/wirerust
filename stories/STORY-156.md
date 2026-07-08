@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-156
 epic_id: E-16
-version: "1.1"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
@@ -25,7 +25,10 @@ subsystems: [SS-16]
 estimated_days: 1
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.016 v1.0 authored 2026-06-23 (fix-pc-013-014-015, D-221). No prior story coverage;
+# v1.5 (2026-07-07): Pass-2 remediation F-156-P2-001..006 — wave TBD→71 (body+notes), BC-2.16.016 v1.0→v1.1 (table+authorship comment), --arp anchor corrected to symbol style, AC-003 pairs/20002-frames/assert fidelity, AC-004 clippy-compliant assert form.
+# v1.3 (2026-07-07): adversarial Pass-1 remediation F-156-P1-001/002/003/006, wave 71 — AC-001 test name corrected; AC-001 provenance updated (909d55c+eca21e9); all bc_2_16_story113_arp_tests.rs refs updated to actual test locations; EC-003 trimmed to negative assertion.
+# v1.2 (2026-07-07): provenance annotation — per-AC delivery notes (AC-001/003 pre-existing commits 909d55c/eca21e9; AC-002 invariant-by-inspection; AC-004 new delivery commit 7e4fe6d). Clarified Notes section. Added Changelog.
+# BC status: BC-2.16.016 v1.0 authored 2026-06-23 (fix-pc-013-014-015, D-221; now v1.1). No prior story coverage;
 # spec-coherence sweep 7 (maint-2026-07-06) finding F-NEW-MAJ-003 identified this gap (criterion 27 FAIL).
 # This story closes the gap; it is the primary delivery story for BC-2.16.016 behavioral tests and CLI doc.
 # v1.1 (2026-07-07): Wave assigned 71 (v0.12.0 planning gate, 2026-07-07 human approval). Added
@@ -42,14 +45,14 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
-input-hash: "ce96d86"
+input-hash: "934138e"
 ---
 
 # STORY-156: ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016)
 
 **Epic:** E-16 (ARP Security Analyzer)
 **Status:** draft
-**Wave:** TBD
+**Wave:** 71
 **Points:** 3
 
 ## Narrative
@@ -65,7 +68,7 @@ input-hash: "ce96d86"
 
 | BC | Title |
 |----|-------|
-| BC-2.16.016 v1.0 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
+| BC-2.16.016 v1.1 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
 
 ## Background
 
@@ -92,16 +95,18 @@ Source gap: spec-coherence sweep 7 (maint-2026-07-06) finding F-NEW-MAJ-003 — 
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.16.016 Postcondition 4 — CLI --arp flag documents unbounded findings)
-`--arp` flag definition in `src/cli.rs` (Architecture Anchor: approximately lines 194–213 per
-BC-2.16.016) has a `long_help` attribute or doc comment that explicitly states ARP findings output is
+`--arp` flag definition in `src/cli.rs` (Architecture Anchor: `src/cli.rs` — `--arp` flag
+definition, `long_help` attribute; per BC-2.16.016 Architecture Anchors, no line numbers) has a
+`long_help` attribute or doc comment that explicitly states ARP findings output is
 NOT bounded by any platform-imposed cap and can grow proportional to the number of triggering ARP
 events in the capture. Operators analyzing untrusted captures from adversarial sources must be
 informed of this behavior (PC-015 documentation fix).
-- **Test:** `test_arp_flag_help_documents_unbounded` — use clap introspection or `--help` output
+- **Test:** `test_BC_2_16_016_cli_help_documents_arp_findings_unbounded` (`tests/bc_2_16_016_arp_tests.rs — fn test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`) — use clap introspection or `--help` output
   capture to assert the `--arp` help text contains language indicating unbounded findings (e.g.,
   substring match on `"unbounded"` or `"no cap"` or `"proportional"`). If clap help text is not
   accessible in unit tests, verify manually during implementation and add an inline comment citing
   BC-2.16.016 PC-4 at the `long_help` site.
+- **Provenance:** Pre-existing — commit 909d55c (`fix(cli): document ARP findings output is unbounded in --arp long_help [PC-015, BC-2.16.016]`, long_help doc fix) + commit eca21e9 (`test(arp): add BC-2.16.016 characterization + CLI help Red Gate tests [PC-015]`, CLI help test) — both from the fix-pc-013-014-015 cycle (D-221). Satisfied before this story was drafted.
 
 ### AC-002 (traces to BC-2.16.016 Invariant 1 — no MAX_FINDINGS on ARP path)
 `ArpAnalyzer` does NOT define or reference a `MAX_FINDINGS` constant. Code inspection confirms
@@ -110,23 +115,27 @@ informed of this behavior (PC-015 documentation fix).
 4,096` (storm-counter memory cap); neither caps the findings Vec. This invariant is
 enforced by the regression test in AC-003 (if a MAX_FINDINGS cap were accidentally introduced,
 that test's `findings.len() > 10,000` assertion would fail).
+- **Provenance:** Invariant verified by code inspection — no `MAX_FINDINGS` constant in `src/analyzer/arp.rs`. Enforced implicitly by the AC-003 regression test (commit eca21e9).
 
 ### AC-003 (traces to BC-2.16.016 canonical test vectors — Red Gate regression test)
-`test_BC_2_16_016_arp_findings_vec_has_no_cap` in `src/analyzer/arp.rs` `#[cfg(test)] mod tests`
-or `tests/bc_2_16_story113_arp_tests.rs`:
+`test_BC_2_16_016_arp_findings_vec_has_no_cap` in `src/analyzer/arp.rs` mod `bc_2_16_016`:
 
 1. Creates `ArpAnalyzer::new(spoof_threshold=1, storm_rate=u32::MAX)` — `spoof_threshold=1` ensures
    the first rebind of any IP triggers a D1 finding immediately; `storm_rate=u32::MAX` suppresses
    D3 storm findings so all findings are D1.
-2. Synthesizes 10,001 ARP reply frames (`op=2`): each unique `sender_ip`, alternating between two
-   sender MACs (even index → `AA:AA:AA:AA:AA:AA`, odd index → `BB:BB:BB:BB:BB:BB`), producing MAC
-   rebind events on every second frame per IP.
+2. Synthesizes 10,001 alternating-MAC pairs of ARP reply frames (`op=2`): each pair uses a unique
+   `sender_ip`; the first frame of each pair sends MAC `AA:AA:AA:AA:AA:AA`, the second sends
+   `BB:BB:BB:BB:BB:BB`, producing one MAC rebind (D1 finding) per pair. Total frames processed:
+   20,002; total D1 findings expected: exactly 10,001 (matching BC-2.16.016 Canonical Test Vectors).
 3. Calls `process_arp` for each frame; accumulates all returned `Vec<Finding>` items into a single
    `all_findings` vec.
-4. **Asserts `all_findings.len() > 10_000`** — the finding count exceeds the reassembly-layer
-   `MAX_FINDINGS = 10,000`, confirming no cap is applied to the ARP path.
+4. **Primary assert: `assert_eq!(all_findings.len(), 10_001)`** — exactly one D1 finding per pair
+   (10,001 pairs × 1 finding = 10,001 total). Secondary assert: `all_findings.len() > 10_000` —
+   the finding count exceeds the reassembly-layer `MAX_FINDINGS = 10,000`, confirming no cap is
+   applied to the ARP path.
 5. The assertion MUST NOT be `all_findings.len() <= 10_000` (that would test the opposite invariant).
 - **Test:** `test_BC_2_16_016_arp_findings_vec_has_no_cap`
+- **Provenance:** Pre-existing — commit eca21e9 (`test(arp): add BC-2.16.016 characterization + CLI help Red Gate tests [PC-015]`) from the fix-pc-013-014-015 cycle (D-221), in `src/analyzer/arp.rs` mod `bc_2_16_016` and `tests/bc_2_16_016_arp_tests.rs`. Satisfied before this story was drafted.
 
 ### AC-004 (traces to BC-2.16.016 Postconditions 2+3 — summarize() NEVER emits dropped_findings)
 `ArpAnalyzer::summarize()` output does NOT contain a `"dropped_findings"` key after processing any
@@ -135,7 +144,9 @@ sequence of ARP frames, including sequences producing more than 10,000 findings.
 contract does not include `"dropped_findings"` and adding it would require a new contract version
 plus its own delivery story).
 - **Test:** `test_BC_2_16_016_summarize_has_no_dropped_findings_key` — after processing 10,001+
-  ARP spoof events, assert `summarize().get("dropped_findings").is_none()`.
+  ARP spoof events, assert `!summary.detail.contains_key("dropped_findings")` (clippy
+  `unnecessary_get_then_check` compliance per the test's own docstring).
+- **Provenance:** New delivery — `test_BC_2_16_016_summarize_has_no_dropped_findings_key` delivered by STORY-156 commit 7e4fe6d on `feature/STORY-156-arp-unbounded-doc`. This is the only net-new work in this story.
 
 ### AC-005 (standard gate)
 `cargo test --all-targets` passes without regression; all existing VP-024 Sub-B/C/D harnesses from
@@ -146,7 +157,7 @@ STORY-112/113/114 remain green. `cargo clippy --all-targets -- -D warnings` pass
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | `--arp` flag `long_help` text (PC-015 doc fix) | `src/cli.rs` | Effectful shell (CLI) |
-| `test_BC_2_16_016_arp_findings_vec_has_no_cap` | `src/analyzer/arp.rs` tests or `tests/bc_2_16_story113_arp_tests.rs` | Test (pure) |
+| `test_BC_2_16_016_arp_findings_vec_has_no_cap` | `src/analyzer/arp.rs` mod `bc_2_16_016` | Test (pure) |
 | `test_BC_2_16_016_summarize_has_no_dropped_findings_key` | same test module | Test (pure) |
 | `ArpAnalyzer::process_arp` (NO behavior change — cap absence is the current shipped behavior) | `src/analyzer/arp.rs` | Pure core (stateful) |
 
@@ -160,7 +171,7 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 |----|-------------|-------------------|
 | EC-001 | 0 ARP frames processed | `all_findings.len() == 0`; `summarize()` has no `"dropped_findings"` key |
 | EC-002 | Exactly 10,001 D1 spoof events | `all_findings.len() >= 10,001` (> 10,000); no cap applied |
-| EC-003 | `summarize()` after >10,000 events | 13-key output per the summarize contract; no `"dropped_findings"` key |
+| EC-003 | `summarize()` after >10,000 events | no `"dropped_findings"` key (key-count contract covered under BC-2.16.010) |
 | EC-004 | `MAX_ARP_BINDINGS` reached during >10,000-event test | Binding-table eviction fires (LRU eviction policy); `bindings_evicted` incremented in summarize(); findings Vec still unbounded |
 
 ## Tasks
@@ -173,9 +184,9 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 2. **Write `test_BC_2_16_016_arp_findings_vec_has_no_cap`** (AC-003): follow the canonical test
    protocol from BC-2.16.016 §Canonical Test Vectors exactly. Assert `all_findings.len() > 10_000`.
 3. **Write `test_BC_2_16_016_summarize_has_no_dropped_findings_key`** (AC-004): after >10,000
-   events, assert `summarize().get("dropped_findings").is_none()`.
-4. **Add `test_arp_flag_help_documents_unbounded`** (AC-001): if clap `--help` text is accessible
-   in unit tests, assert the substring. Otherwise verify manually during implementation.
+   events, assert `!summary.detail.contains_key("dropped_findings")` (clippy
+   `unnecessary_get_then_check` compliance).
+4. **`test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`** (AC-001, `tests/bc_2_16_016_arp_tests.rs — fn test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`): already delivered by eca21e9. Verify the test passes in the final `cargo test` run.
 5. **Run `cargo test --all-targets`**: all tests green; existing VP-024 harnesses pass.
 6. **Run `cargo clippy --all-targets -- -D warnings`**: clean.
 
@@ -183,7 +194,7 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 
 | AC | Test | Type |
 |----|------|------|
-| AC-001 | `test_arp_flag_help_documents_unbounded` (or manual verification) | Unit / CLI |
+| AC-001 | `test_BC_2_16_016_cli_help_documents_arp_findings_unbounded` (`tests/bc_2_16_016_arp_tests.rs — fn test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`) | Unit / CLI |
 | AC-002 | Enforced implicitly via AC-003 | Implicit regression |
 | AC-003 | `test_BC_2_16_016_arp_findings_vec_has_no_cap` | Unit (10,001 frames) |
 | AC-004 | `test_BC_2_16_016_summarize_has_no_dropped_findings_key` | Unit |
@@ -194,13 +205,23 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 - **No code behavior change required.** The absence of a MAX_FINDINGS cap on the ARP path is
   already the shipped behavior. This story adds CLI documentation (PC-015 fix) and regression tests
   that assert the existing invariant.
-- The test file `tests/bc_2_16_story113_arp_tests.rs` may already exist from STORY-113. If so, add
-  these tests to the existing file. Do NOT create a duplicate test file.
+- AC-001 test (`test_BC_2_16_016_cli_help_documents_arp_findings_unbounded`) lives in
+  `tests/bc_2_16_016_arp_tests.rs` (created by eca21e9). AC-003 and AC-004 tests live in
+  `src/analyzer/arp.rs` mod `bc_2_16_016`. Do NOT add a duplicate test to `tests/bc_2_16_story113_arp_tests.rs`.
 - Relationship to STORY-113: STORY-113 holds BC-2.16.016 in its `behavioral_contracts` frontmatter
   (added in the v1.4 amendment after BC-2.16.016 was authored). STORY-156 is the primary DELIVERY
   story for BC-2.16.016 behavioral tests and CLI documentation.
-- STORY-116 (E-17, wave 45) also depends on STORY-115 and coexists with this story's wave-TBD
+- STORY-116 (E-17, wave 45) also depends on STORY-115 and coexists with this story's wave 71
   assignment. STORY-156 is logically independent of E-17 QinQ/MACsec changes.
+- **Delivery provenance context (why the PR diff is small, ~61 lines):** ACs 001, 002, and 003 were
+  already satisfied on `develop` before this story was drafted — they were delivered as part of the
+  fix-pc-013-014-015 cycle (D-221) via commits 909d55c (AC-001, CLI `long_help` doc fix) and
+  eca21e9 (AC-003, regression test). AC-002 is an invariant verified by code inspection with no
+  separate test required. Only AC-004 (`test_BC_2_16_016_summarize_has_no_dropped_findings_key`)
+  required net-new work, delivered in commit 7e4fe6d on `feature/STORY-156-arp-unbounded-doc`.
+  STORY-156 is the **traceability-closure and primary-coverage story for BC-2.16.016** (as indicated
+  in its `behavioral_contracts:` frontmatter). Its purpose is to make the existing pre-existing work
+  traceable under the VSDD pipeline, not to deliver from scratch.
 
 ## Dependency Rationale
 
@@ -222,7 +243,7 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 
 | Story | Key Decisions | Patterns Established | Gotchas Discovered |
 |-------|--------------|---------------------|-------------------|
-| STORY-113 | Introduced `ArpAnalyzer` with `process_arp` returning `Vec<Finding>` — no `MAX_FINDINGS` cap by design | `process_arp` unbounded on the link-layer path | Test file `tests/bc_2_16_story113_arp_tests.rs` may already exist — add AC-003/004 tests there, do NOT create a duplicate file |
+| STORY-113 | Introduced `ArpAnalyzer` with `process_arp` returning `Vec<Finding>` — no `MAX_FINDINGS` cap by design | `process_arp` unbounded on the link-layer path | AC-001 test is in `tests/bc_2_16_016_arp_tests.rs`; AC-003/004 tests are in `src/analyzer/arp.rs` mod `bc_2_16_016` — do NOT add duplicates to `tests/bc_2_16_story113_arp_tests.rs` |
 | STORY-115 | Added `storm_rate` constructor parameter | `ArpAnalyzer::new(spoof_threshold, storm_rate)` signature; `storm_rate=u32::MAX` suppresses D3 storm findings | STORY-115 finalizes the 13-key `summarize()` contract — AC-004 is only fully testable after STORY-115 merges |
 
 ## Architecture Compliance Rules (MANDATORY)
@@ -231,8 +252,8 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 |------|--------|-------------|
 | No behavior change to `ArpAnalyzer::process_arp` — documentation + tests only | BC-2.16.016 design intent | Code review; test outcome confirms cap absence |
 | Must NOT introduce a `MAX_FINDINGS` constant on the ARP path | BC-2.16.016 Invariant 1 | AC-003 regression test asserts `findings.len() > 10_000` |
-| Must NOT add `"dropped_findings"` key to `summarize()` output | 13-key summarize contract | AC-004 test asserts `.get("dropped_findings").is_none()` |
-| Reuse existing test file if `tests/bc_2_16_story113_arp_tests.rs` exists | No duplicate test files | Code review |
+| Must NOT add `"dropped_findings"` key to `summarize()` output | 13-key summarize contract | AC-004 test asserts `!summary.detail.contains_key("dropped_findings")` (clippy `unnecessary_get_then_check`) |
+| AC-001 test is in `tests/bc_2_16_016_arp_tests.rs`; AC-003/004 tests are in `src/analyzer/arp.rs` mod `bc_2_16_016` — do NOT add to `tests/bc_2_16_story113_arp_tests.rs` | No duplicate test files | Code review |
 | `cargo clippy --all-targets -- -D warnings` must pass | CLAUDE.md CI gate | CI |
 
 ## Library & Framework Requirements (MANDATORY)
@@ -247,7 +268,7 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/cli.rs` | modify | Add `long_help` attribute to `--arp` flag documenting unbounded findings (BC-2.16.016 PC-4 / PC-015) |
-| `src/analyzer/arp.rs` test module or `tests/bc_2_16_story113_arp_tests.rs` | modify | Add `test_BC_2_16_016_arp_findings_vec_has_no_cap` (AC-003) and `test_BC_2_16_016_summarize_has_no_dropped_findings_key` (AC-004) |
+| `src/analyzer/arp.rs` mod `bc_2_16_016` | modify | Add `test_BC_2_16_016_arp_findings_vec_has_no_cap` (AC-003) and `test_BC_2_16_016_summarize_has_no_dropped_findings_key` (AC-004) — tests live here per eca21e9/7e4fe6d |
 
 ## Token Budget Estimate
 
@@ -261,3 +282,13 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 | Existing `src/analyzer/arp.rs` (after STORY-113/114/115) | ~3,500 |
 | Tool outputs (cargo test) | ~1,500 |
 | **Total estimated** | **~18,500** |
+
+## Changelog
+
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.5 | 2026-07-07 | state-manager | Pass-2 remediation F-156-P2-001..006 — body freshness sweep: wave TBD→71 (body field + notes), BC-2.16.016 v1.0→v1.1 in BC table + authorship comment; --arp anchor corrected to symbol style (removed mis-attributed lines 194–213); AC-003 step 2 updated to pairs/20,002-frames fidelity; AC-003 step 4 documents both primary assert_eq!(len, 10_001) and secondary > 10_000; AC-004 assert updated to clippy-compliant !contains_key form at 3 sites; test-file line citations converted to symbol-style (F-156-P3-001). |
+| 1.4 | 2026-07-07 | state-manager | Input re-hash after anchor-only BC amendment BC-2.16.016 v1.1, wave 71; no scope impact. |
+| 1.3 | 2026-07-07 | state-manager | Adversarial Pass-1 remediation F-156-P1-001/002/003/006, wave 71 — corrected AC-001 test name to test_BC_2_16_016_cli_help_documents_arp_findings_unbounded (tests/bc_2_16_016_arp_tests.rs:58); updated AC-001 provenance to credit both 909d55c (long_help doc) and eca21e9 (CLI help test); updated all test-file references from bc_2_16_story113_arp_tests.rs to actual placement (AC-001 in tests/bc_2_16_016_arp_tests.rs, AC-003/004 in src/analyzer/arp.rs mod bc_2_16_016); trimmed EC-003 to negative assertion with BC-2.16.010 cross-reference. |
+| 1.2 | 2026-07-07 | state-manager | Provenance annotation — per-AC delivery notes (AC-001/003 pre-existing commits 909d55c/eca21e9; AC-002 invariant-by-inspection; AC-004 new delivery commit 7e4fe6d on feature/STORY-156-arp-unbounded-doc). Notes section clarified: traceability-closure/primary-coverage framing for BC-2.16.016; explains why story PR diff is small (~61 lines). |
+| 1.1 | 2026-07-07 | state-manager | Wave assigned 71 (v0.12.0 planning gate, 2026-07-07 human approval). Added missing template compliance fields (wave, level, cycle, assumption_validations, risk_mitigations, traces_to) and mandatory sections (Purity Classification, Previous Story Intelligence, Architecture Compliance Rules, Library & Framework Requirements, File Structure Requirements). |
