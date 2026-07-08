@@ -97,7 +97,8 @@ have changed without the story being regenerated — i.e., spec drift.
 
 ### Canonical Algorithm
 
-The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps).
+The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps;
+requires Python 3.10+ — the tool uses modern type syntax).
 This tool defines the algorithm; there is no separate spec document.
 
 1. Parse the story's YAML frontmatter and extract the `inputs:` list **in declaration order**.
@@ -214,3 +215,5 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |
 | `.factory/` | VSDD factory artifacts (STATE.md, stories, specs, research, maintenance logs) |
+| `.factory/maintenance/demo-evidence-scrub-gate.md` | Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB; run before committing demo evidence) |
+| `.factory/maintenance/pr-manager-merge-auth-guidance.md` | PR merge-authorization classifier guidance (DF-MERGE-AUTH-CLASSIFIER-001) |

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 compute-input-hash — Canonical input-hash tool for wirerust factory stories.
+(requires Python 3.10+ — the tool uses modern type syntax)
 
 ALGORITHM (canonical definition — this tool IS the spec):
   1. Parse the target story .md YAML frontmatter (delimited by leading/trailing
