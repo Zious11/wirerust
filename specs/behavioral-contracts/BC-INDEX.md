@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.20"
+version: "2.21"
 status: draft
 producer: product-owner
 timestamp: 2026-07-08T00:00:00Z
@@ -14,7 +14,10 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 348 entries (346 prior + 2 new BCs for issue #255 snake_case JSON enums: BC-2.11.036..037; BC-2.01.004 retired). Active count: 347.
+>
+> **v2.21 2026-07-08 (issue #255 snake_case JSON enums — 2 new BCs BC-2.11.036..037, BC-2.11.001 v1.7→v1.8 advisory + TD-031 fix; SS-11 count 35→37):**
+> Issue #255 snake_case JSON enum behavioral contracts (research-validated 2026-07-08, issue-backlog-triage-2026-07-08.md). NEW BC-2.11.036 v1.0 (P0, greenfield, breaking): JSON enum-value casing — `Verdict` and `Confidence` enums gain `#[serde(rename_all = "lowercase")]`; `ThreatCategory` gains `#[serde(rename_all = "snake_case")]`; full variant mapping documented (e.g. `LateralMovement` → `"lateral_movement"`, `C2` → `"c2"`); terminal Display tokens (UPPERCASE) UNCHANGED — governed independently by BC-2.09.003/BC-2.09.004; CSV unaffected; BREAKING for JSON consumers at v0.12.0; JSON schema is a governed surface outside cargo-semver-checks scope. NEW BC-2.11.037 v1.0 (P1, greenfield): schema_version envelope field — top-level `"schema_version": "2"` added to JSON report; value `"2"` because pre-v0.12.0 implicit format is schema v1 (no field present); co-ships with BC-2.11.036 breaking change so consumers can gate on `schema_version == "2"` to confirm v0.12.0+ format; emitted unconditionally; string type (not integer); JSON-only (CSV/terminal unaffected). BC-2.11.001 v1.7→v1.8: advisory pointer for both new BCs + TD-031 stable-anchor fix (volatile `json.rs:NN` line citations in Invariant 1, Architecture Anchors, and Source Evidence Evidence Types replaced with stable symbol anchors: `JsonReporter::render` infallible unwrap). SS-11: 35→37 BCs. Total on disk: 346→348. Active: 345→347. No PRD change. No new VPs (enum rename is pure annotation; schema_version is a constant field; test-writer authors unit tests per BC VP tables).
 >
 > **v2.20 2026-07-08 (wave-71 consistency audit — GAP-W71-001/002: BC-INDEX row annotations + BC-2.16.016 Traceability backfill; spec-only, no code change):**
 > Wave-71 consistency audit gap remediation. GAP-W71-001: BC-INDEX row annotations — BC-2.07.004 v1.5 row comment added (AC-150-006 symbol-anchor sweep, wave 71, 2026-07-07); BC-2.07.028 v1.4→v1.5 row comment updated (same sweep); BC-2.16.016 v1.2 row comment added (v1.1 TD-031 location fix 2026-07-07 + v1.2 Traceability backfill 2026-07-08). GAP-W71-002: BC-2.16.016 v1.1→v1.2 — Traceability Stories row backfilled to "STORY-156 (wave 71, PR #378, merged 2026-07-08)"; modified log entry added. No BC count change (346 on disk; 345 active). No PRD change. Input-hashes for STORY-156 and STORY-113 rebaselined (both declare BC-2.16.016.md as input).
@@ -538,16 +541,18 @@ traces_to: .factory/specs/prd.md
 
 ## ss-11: Reporting and Output (CAP-11)
 
-> 35 BCs total; 35 fully written; 0 planned.
+> 37 BCs total; 37 fully written; 0 planned.
 > BCs 001-019: JsonReporter / TerminalReporter / MITRE grouping (brownfield ingestion).
 > BCs 020-024: CsvReporter (added pass-4, adversarial finding H-1).
 > BCs 025-029: terminal finding collapse (greenfield, issue #259, v0.8.0).
 > BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0).
 > BC-035: per-finding mitre_attack JSON enrichment (greenfield, issue #64, v0.11.0).
+> BC-036: JSON enum-value casing — lowercase/snake_case (BREAKING, greenfield, issue #255, v0.12.0).
+> BC-037: schema_version envelope field (greenfield, issue #255, v0.12.0).
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin -->
+| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin; v1.8: v0.12.0 advisory — enum casing (BC-2.11.036) + schema_version (BC-2.11.037); TD-031 stable-anchor fix -->
 | BC-2.11.002 | JsonReporter Includes skipped_packets in Summary | P1 | [WRITTEN] | BC-RPT-002 |
 | BC-2.11.003 | JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde | P0 | [WRITTEN] | BC-RPT-003 |
 | BC-2.11.004 | JsonReporter Preserves Non-ASCII Unicode in Readable Form | P1 | [WRITTEN] | BC-RPT-004 |
@@ -582,6 +587,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.033 | Tactic-Bucket Ordering Invariant Under Grouped-Collapse — Bucket Sequence Unchanged; Collapse Operates Within Buckets Only | P0 | [WRITTEN] | STORY-119 greenfield | <!-- v1.1 2026-06-18: STORY-119 F2 adv-round-1 — within-bucket sort corrected to ascending, matching BC-2.11.014; test anchors renumbered; v1.2 2026-06-18: R2-1 all four verdicts (Description/PC-5/Inv4); R2-2 introduced→v0.9.0; v1.3 2026-06-18: F3 adversarial round-1 remediation — (C-1) Architecture Anchors/Description/PC-5/PC-6/Inv3/Inv4 updated: collapse_findings_pass_refs named as per-bucket caller; collapse_findings_pass at :340 retained as thin adapter; (H-1/CARRY-119-F3-RESIDUALS-001 item 1) Verification Properties: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order → test_BC_2_11_033_grouped_collapsed_preserves_bucket_order; v1.4 2026-06-18: D-120 — traceability: Stories = STORY-119(B) PRIMARY; STORY-122 excluded (A is type reshape only) -->
 | BC-2.11.034 | MITRE Line Format in Grouped-Collapse — Em-Dash Name Expansion Sourced from Group Representative (`members[0]`); No `(xN)` on MITRE Line | P1 | [WRITTEN] | STORY-119 greenfield | <!-- v1.1 2026-06-18: STORY-119 F2 adv-round-1 — EC-008 multi-tag member sharing [0] added; PRD-delta phantom header format corrected to MITRE-line description; test anchor renumbered; v1.2 2026-06-18: R2-2 introduced→v0.9.0; R2-5 Inv3 rescoped: BC-026 ref→SOURCING only; BC-016 for em-dash FORMAT; Related-BCs updated; v1.3 2026-06-18: R3 representative-ordering clarification — Inv3/Related-BCs explicit that grouped rep is post-sort member[0], not emission-order; v1.4 2026-06-18: D-120 — traceability: Stories = STORY-119(B) PRIMARY; STORY-122 excluded (A is type reshape only) -->
 | BC-2.11.035 | Per-Finding `mitre_attack` Array Enriches JSON Output with Resolved Technique Objects; Order-Preserving; Unknown IDs Emit Partial Objects; Empty Vec Omits Field | P1 | [WRITTEN] | issue-#64 greenfield | <!-- v1.0 2026-06-22: F2 spec evolution issue #64 — new BC; all 5 fields specified (id/name/tactic_id/tactic_name/reference); catalog extension required: technique_tactic_id() in src/mitre.rs; reference URL synthesized (not cataloged); unknown IDs partial (id never lost); empty vec omits mitre_attack; additive non-breaking; no new VP (Option-chaining over VP-007); no new error codes --> <!-- v1.1: D-209 F5 ICS catalog fix — tactic_id/tactic_name fields now emit ICS-domain tactic IDs for ICS techniques (e.g., IcsDiscovery→TA0102, not Enterprise Discovery→TA0007); EC-010 test renamed ec010_ics_collection. -->
+| BC-2.11.036 | JSON Enum Values Use `lowercase` (Verdict/Confidence) and `snake_case` (ThreatCategory); Terminal Display Tokens UNCHANGED | P0 | [WRITTEN] | issue-#255 greenfield | <!-- v1.0 2026-07-08: issue #255 snake_case JSON enums — BREAKING at v0.12.0; rename_all="lowercase" on Verdict/Confidence, rename_all="snake_case" on ThreatCategory; full variant mapping documented; terminal Display (UPPERCASE) unchanged per BC-2.09.003/004; CSV unchanged; JSON schema outside cargo-semver-checks scope -->
+| BC-2.11.037 | JSON Report Envelope Includes `schema_version` Field; Value `"2"`; Always Emitted; Enables Consumer Schema Gating | P1 | [WRITTEN] | issue-#255 greenfield | <!-- v1.0 2026-07-08: issue #255 — schema_version="2" top-level envelope field; absence signals pre-v0.12.0 format (implicit v1); co-ships with BC-2.11.036 breaking enum casing; string type; unconditional; JSON-only -->
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 

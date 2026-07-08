@@ -1,11 +1,13 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
 phase: 1a
+inputs: []
+input-hash: "d41d8cd"
 origin: brownfield
 extracted_from: src/reporter/json.rs
 traces_to: .factory/specs/domain/domain-spec.md
@@ -16,10 +18,11 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-017 VP-table Proof Method cells corrected unit→integration to match VP-017 authoritative method — 2026-05-30"
-  - "v1.4: ADV-IMPL-P07-LOW-001 correction — Architecture Anchor and Invariant line citations json.rs:59 corrected to json.rs:60 (verified: serde_json::to_string_pretty(&output).unwrap() is at line 60; line 59 is the closing `});` of the json! macro) — 2026-06-01"
+  - "v1.4: ADV-IMPL-P07-LOW-001 correction — Architecture Anchor and Invariant citations for the infallible `serde_json::to_string_pretty` unwrap in `JsonReporter::render` were pointing to the wrong statement (the unwrap is in the function's closing expression, not at the preceding `json!` macro closing brace); stable symbol anchors substituted for volatile line citations (TD-031 compliance) — 2026-06-01"
   - "v1.5: ADD-ON 1 (research-backed, f2-multitag-schema.md §1.4) — add mitre_domain and mitre_attack_version to JSON report envelope; both fields are top-level envelope fields (not per-finding); CSV reporters carry no envelope fields. mitre_attack_version value flagged for F4 to pin. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. F4 FLAG updated: T0855 replaced by T1692.001 in the list of ICS technique IDs to pin the catalog version against. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.7: Advisory pointer — BC-2.11.035 (F2 issue #64) defines the per-finding `mitre_attack` array that extends each `findings[*]` object with resolved technique objects. This BC (BC-2.11.001) governs the JSON envelope shape and `mitre_attack_version` field; BC-2.11.035 governs the per-finding enrichment. The two contracts compose: BC-2.11.001 PC-3 (`findings` is an array; one element per Finding) is the entry point; BC-2.11.035 specifies the additive `mitre_attack` field within each element. No normative change to this BC. — 2026-06-22"
+  - "v1.8: v0.12.0 JSON schema transition advisory (issue #255) — Two breaking JSON surface changes target v0.12.0: (1) BREAKING enum-value casing change (BC-2.11.036): Verdict/Confidence/ThreatCategory enum values in `findings[*]` switch from PascalCase to lowercase/snake_case serde rendering — consumers matching exact enum strings must update; (2) schema_version envelope field (BC-2.11.037): a new top-level `schema_version: '2'` key is added to the JSON envelope, enabling consumers to machine-detect the v0.12.0+ schema. After BC-2.11.037 ships, Postcondition 2 and Invariant 1 of this BC will be updated to reflect six top-level keys. JSON schema is a governed surface outside cargo-semver-checks scope (CHANGELOG + BC enforcement). No normative change to this BC's current five-key description. — 2026-07-08"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +81,8 @@ fields; these are JSON-only.
 
 ## Invariants
 
-1. The `unwrap()` at `json.rs:60` is infallible; `serde_json::to_string_pretty` cannot fail
-   on a `serde_json::Value`.
+1. The infallible `unwrap()` in `JsonReporter::render` (closing expression of the function,
+   applied to `serde_json::to_string_pretty`) cannot fail on a `serde_json::Value`.
 2. No manual escaping is performed; ADR 0003 delegates escaping to serde_json's RFC 8259
    path (C0+DEL escaped as `\uNNNN`; C1 passed through as raw UTF-8).
 3. Protocol keys are converted via `{k:?}` (Debug) format to produce string keys in the
@@ -142,11 +145,13 @@ fields; these are JSON-only.
 - BC-2.11.004 -- composes with (Unicode preservation behavior)
 - BC-2.09.006 -- depends on (Finding Option fields serialization)
 - BC-2.11.035 -- composes with (per-finding `mitre_attack` array — additive enrichment within each `findings[*]` element; BC-2.11.001 governs the envelope, BC-2.11.035 governs the per-finding MITRE object array)
+- BC-2.11.036 -- v0.12.0 advisory (enum-value casing change: Verdict/Confidence/ThreatCategory fields in `findings[*]` switch from PascalCase to lowercase/snake_case — BREAKING for JSON consumers; terminal Display unchanged)
+- BC-2.11.037 -- v0.12.0 advisory (schema_version envelope field: new top-level `"schema_version": "2"` key added to this envelope, enabling consumers to detect the v0.12.0+ format; after that story ships, Postcondition 2 of this BC will be updated to reflect six keys)
 
 ## Architecture Anchors
 
-- `src/reporter/json.rs:23-60` -- JsonReporter::render implementation
-- `src/reporter/json.rs:60` -- infallible unwrap on serde_json::to_string_pretty
+- `src/reporter/json.rs` -- `JsonReporter::render` implementation body
+- `src/reporter/json.rs` -- `JsonReporter::render` infallible `serde_json::to_string_pretty` unwrap (closing expression of the function; Value serialization cannot fail)
 - `src/reporter/json.rs` -- MITRE_DOMAIN constant (`"ics-attack"`) and MITRE_ATTACK_VERSION
   constant (placeholder `"ics-attack-v15"`; F4 must pin) to be added in v0.3.0
 
@@ -167,8 +172,8 @@ fields; these are JSON-only.
 - **type constraint**: serde::Serialize derived on Summary and Finding
 - **assertion**: test_json_reporter_produces_valid_json verifies parseable output
 - **structural guarantee**: `serde_json::to_string_pretty` on a `serde_json::Value` cannot fail
-  (Value implements Serialize and contains only JSON-representable types); the `unwrap()` at
-  `json.rs:60` is therefore infallible by construction, not by documentation
+  (Value implements Serialize and contains only JSON-representable types); the `unwrap()` in
+  `JsonReporter::render` is therefore infallible by construction, not by documentation
 
 #### Purity Classification
 
