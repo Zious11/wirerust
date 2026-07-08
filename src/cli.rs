@@ -234,7 +234,7 @@ pub enum Commands {
         #[arg(long, default_value_t = 3)]
         arp_spoof_threshold: u32,
 
-        /// D3 storm rate threshold: frames/second per source MAC above which a
+        /// D3 storm rate threshold: frames/second per source MAC at or above which a
         /// MEDIUM/Anomaly storm finding is emitted. Default: 50 (wirerust engineering
         /// default — not derived from any external standard). ICS/OT operators with
         /// PLCs or RTUs should typically lower this to 5–20/s.
