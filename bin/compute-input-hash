@@ -97,6 +97,7 @@ def find_repo_root() -> Path:
 
 _FM_RE = re.compile(r"^---\n(.*?)\n---(?:\n|$)", re.DOTALL)
 _INPUTS_RE = re.compile(r"^inputs:\s*\n((?:[ \t]+-[ \t]+\S.*\n)*)", re.MULTILINE)
+_INPUTS_INLINE_EMPTY_RE = re.compile(r"^inputs:\s*\[\s*\]\s*$", re.MULTILINE)
 _HASH_RE = re.compile(r'^(input-hash:\s*)(["\']?)([0-9a-f]{7,})\2', re.MULTILINE)
 _DOCTYPE_RE = re.compile(r"^document_type:\s*(.+)", re.MULTILINE)
 
@@ -112,6 +113,10 @@ def extract_frontmatter(story_path: Path) -> str:
 
 def parse_inputs(frontmatter: str, story_path: Path) -> list[str]:
     """Return the ordered list of input paths from the frontmatter."""
+    # AC-157-003: inline compact empty form `inputs: []` → empty list, no SystemExit
+    if _INPUTS_INLINE_EMPTY_RE.search(frontmatter):
+        return []
+
     m = _INPUTS_RE.search(frontmatter)
     if not m:
         raise SystemExit(
@@ -156,6 +161,10 @@ def compute_hash(story_path: Path, repo_root: Path) -> str:
     """
     fm = extract_frontmatter(story_path)
     input_paths = parse_inputs(fm, story_path)
+
+    # AC-157-003/004: empty inputs → MD5 of empty bytes (derived, not hard-coded)
+    if not input_paths:
+        return hashlib.md5(b"").hexdigest()[:7]
 
     concatenated = b""
     for rel_path in input_paths:
