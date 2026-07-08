@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -160,8 +160,9 @@ The `fmt::Display` implementations for `Verdict` and `Confidence` are NOT modifi
 `rename_all` attribute on the derive affects only `Serialize`, not `Display`.
 
 ```
-test_BC_2_11_036_terminal_display_unchanged_uppercase — pass
+test_BC_2_11_036_terminal_display_unchanged — pass
     Asserts: Verdict::Likely → "LIKELY"; Confidence::High → "HIGH"
+    (Display tokens are PascalCase-derived uppercase, not serde-controlled)
 ```
 
 The test must use the `Display` trait directly (not `Serialize`) to confirm surface independence.
@@ -212,6 +213,20 @@ that covers:
 The pull request title uses the `feat:` semantic prefix (e.g.,
 `feat(reporter): align JSON enum casing + schema_version envelope (#255)`), consistent with
 the v0.12.0 breaking JSON change and `feat` type used for prior JSON output additions.
+
+### AC-160-010 (BC-2.11.001 amended to v1.9 in the same PR)
+
+BC-2.11.001 is amended to v1.9 in the same PR as the production code changes:
+- **Postcondition 2** is updated from five to six top-level JSON keys, adding `schema_version`
+  to the enumerated key list.
+- **Invariant 1** (JSON envelope shape) is updated to reflect six top-level keys.
+- A **modified-log entry** (`v1.9`) is appended resolving the v1.8 advisory pointer
+  ("schema_version addition tracked; see BC-2.11.037 and STORY-160").
+
+> **Note for implementer:** STORY-160's `input-hash:` field in story frontmatter is computed
+> from the BC-2.11.001 content at story-draft time (v1.8). After amending BC-2.11.001 to v1.9
+> in the implementation PR, the canonical input hash will drift. Recompute with
+> `bin/compute-input-hash --write .factory/stories/STORY-160.md` before merging.
 
 ## Architecture Mapping
 
@@ -274,6 +289,13 @@ the v0.12.0 breaking JSON change and `feat` type used for prior JSON output addi
    v0.12.0 section. Include the full mapping table or a clear prose summary.
 
 7. **Open a `feat:` pull request** targeting `develop` with all file changes.
+
+8. **Amend BC-2.11.001 to v1.9 (AC-160-010):** In
+   `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md`, update Postcondition 2 and
+   Invariant 1 to enumerate six top-level JSON keys (adding `schema_version`). Append a v1.9
+   modified-log entry resolving the v1.8 advisory pointer. Include this file in the same PR.
+   After amending, recompute this story's input-hash with
+   `bin/compute-input-hash --write .factory/stories/STORY-160.md`.
 
 ## Previous Story Intelligence
 
@@ -347,4 +369,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-002 (HIGH) — add AC-160-010 (BC-2.11.001 amended to v1.9 in same PR: Postcondition 2 + Invariant 1 updated from five to six top-level keys, modified-log entry resolves v1.8 advisory pointer; implementer note to recompute input-hash after BC amendment); Task 8 added. F-W72-P1-009 (LOW) — rename test `terminal_display_unchanged_uppercase` → `terminal_display_unchanged` in AC-160-005 (ThreatCategory Display is PascalCase-derived, not "uppercase"). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #255 follow-up: JSON enum casing alignment (BC-2.11.036) + schema_version envelope (BC-2.11.037); wave-72 draft. |

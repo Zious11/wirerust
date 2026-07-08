@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -106,7 +106,7 @@ violations:
 
 ```bash
 VIOLATIONS=$(grep -rn "_for_testing(" src/ \
-  | grep -v "fn [a-zA-Z_]*_for_testing(" || true)
+  | grep -v "fn [a-zA-Z_]*_for_testing(") || true
 ```
 
 There is no existence guard on `src/` before this grep. If `src/` is renamed or
@@ -162,12 +162,19 @@ gate-summary.md, making individual findings unrecoverable after the review sessi
 
 ### AC-158-001 (traces to PG-W71-CHANGELOG — CI gate)
 A CI job or step exists in `.github/workflows/ci.yml` that detects when a PR
-modifies at least one file under `src/` without also modifying `CHANGELOG.md`,
-and fails with a human-readable message. The check MUST:
+modifies at least one file under `src/`, `Cargo.toml`, or `bin/` without also
+modifying `CHANGELOG.md`, and fails with a human-readable message. The check MUST:
 (a) run on every push/PR against `develop`,
 (b) emit a message naming the CHANGELOG obligation (reference PG-W71-CHANGELOG and
     this story's AC-158-001),
 (c) exit non-zero so the CI job is marked FAILED — not a warning.
+
+**Trigger set rationale:** `src/` (production Rust), `Cargo.toml` (dependency and
+version changes), and `bin/` (factory tooling shipped with the repo) are all
+user-visible surfaces that warrant a CHANGELOG entry. `tests/` and `.github/` are
+process-internal (not user-visible behavior changes). `docs/` is self-documenting
+(ADR authoring, README updates do not describe product behavior changes). These
+exclusions are explicit and must be documented in the CI job comment.
 
 ### AC-158-002 (traces to PG-W71-CHANGELOG — pr-manager guidance)
 `CLAUDE.md` is updated to add a standing obligation in the pr-manager or delivery
@@ -181,9 +188,14 @@ extension to `validate-template-compliance` exists that accepts `--story <path>`
 and `--artifact <path>` and verifies:
 (a) the artifact's story ID reference matches the story's `story_id` frontmatter
     field,
-(b) any BC IDs cited in the artifact appear in the story's `behavioral_contracts`
-    frontmatter list (for stories with `behavioral_contracts: []` the check passes
-    only if the artifact cites no BC IDs).
+(b) any BC IDs **asserted as scope** in the artifact — meaning BC IDs that appear
+    in the artifact's own `bcs:` frontmatter field or in an explicit scope-assertion
+    header (e.g., "## Behavioral Contracts Under Test") — appear in the story's
+    `behavioral_contracts` frontmatter list. References to BC IDs in artifact body
+    prose as narrative context (e.g., "this fixes a gap identified in BC-2.11.036")
+    are **NOT flagged** — only scoped assertions are checked. For stories with
+    `behavioral_contracts: []` the check passes only if the artifact asserts no BC
+    IDs as scope.
 The tool MUST exit non-zero with a human-readable diff on any mismatch, and exit 0
 on a clean identity match. A self-test (`bin/test_lint_cycle_artifact.py`) MUST
 cover the mismatch case and the clean case.
@@ -253,7 +265,7 @@ serves as the Red Gate.
 | EC-001 | PR modifies `src/` AND `CHANGELOG.md` | CHANGELOG gate: PASS |
 | EC-002 | PR modifies only `CHANGELOG.md` (no src/ change) | CHANGELOG gate: PASS (no src/ delta) |
 | EC-003 | PR modifies `src/` without `CHANGELOG.md` | CHANGELOG gate: FAIL with clear message |
-| EC-004 | PR modifies only docs/ or .factory/ (no src/ or CHANGELOG change) | CHANGELOG gate: PASS |
+| EC-004 | PR modifies only docs/, .factory/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting) |
 | EC-005 | Cycle artifact matches story ID + zero BC IDs cited (empty behavioral_contracts) | lint-cycle-artifact: PASS |
 | EC-006 | Cycle artifact cites BC ID not in story's behavioral_contracts | lint-cycle-artifact: FAIL with unmatched BC ID listed |
 | EC-007 | Cycle artifact references wrong story ID | lint-cycle-artifact: FAIL with expected vs. actual |
@@ -266,9 +278,11 @@ serves as the Red Gate.
 
 1. **CHANGELOG CI gate (AC-158-001):** Add a new CI job (or step in an existing job)
    to `.github/workflows/ci.yml` that runs `git diff --name-only origin/develop HEAD`
-   (or `${{ github.event.pull_request.base.sha }}` on PR events), checks for any
-   `src/` path in the diff, and fails if `CHANGELOG.md` is not also in the diff. SHA-pin
-   any new action refs per the Action pin gate policy.
+   (or `${{ github.event.pull_request.base.sha }}` on PR events), checks for any path
+   under `src/`, `Cargo.toml`, or `bin/` in the diff, and fails if `CHANGELOG.md` is
+   not also in the diff. Add a comment in the job body documenting the exclusion
+   rationale for `tests/`, `.github/`, and `docs/` (process-internal or self-documenting).
+   SHA-pin any new action refs per the Action pin gate policy.
 
 2. **CHANGELOG pr-manager guidance (AC-158-002):** Add a sentence to `CLAUDE.md` under
    the delivery or pr-manager section: "PRs that modify files under `src/` MUST include
@@ -276,10 +290,13 @@ serves as the Red Gate.
 
 3. **Cycle-artifact identity lint (AC-158-003):** Create `bin/lint-cycle-artifact`
    (Python 3, stdlib only). Accepts `--story <path>` and `--artifact <path>`. Reads
-   `story_id` and `behavioral_contracts` from story YAML frontmatter. Scans artifact
-   text for story ID reference and BC-S.SS.NNN patterns. Exits 1 on any mismatch with
-   a diff. Create `bin/test_lint_cycle_artifact.py` with at least two test cases: clean
-   identity (exit 0) and fabricated BC ID (exit 1).
+   `story_id` and `behavioral_contracts` from story YAML frontmatter. Checks artifact
+   for: (a) story ID reference match; (b) BC IDs in the artifact's `bcs:` frontmatter
+   field or scope-assertion headers — NOT BC IDs in body prose, which are permitted as
+   narrative context. Exits 1 on any scoped-assertion mismatch with a human-readable
+   diff. Create `bin/test_lint_cycle_artifact.py` with at least two test cases: clean
+   identity (exit 0) and fabricated scoped BC ID (exit 1). Include a third case
+   confirming that a BC ID appearing only in body prose does NOT trigger a failure.
 
 4. **Trust-boundary src/ guard (AC-158-004):** In `.github/workflows/ci.yml` under the
    `trust-boundary` job's `run:` block, prepend the SEC-001-style existence guard:
@@ -396,5 +413,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-005 (MEDIUM) — AC-158-003 BC-citation lint tightened: lint flags only BC IDs asserted as scope (artifact bcs: frontmatter or scope-assertion headers), NOT BC IDs in body prose; explicit "narrative context permitted" note added; Tasks item 3 updated with scoped-assertion semantics and third test case (prose-only BC does not trigger). F-W72-P1-007 (MEDIUM) — CHANGELOG-gate trigger broadened from src/-only to src/, Cargo.toml, bin/; explicit exclusion rationale for tests/, .github/, docs/ added to AC-158-001 and CI job comment requirement; EC-004 updated; Tasks item 1 updated. F-W72-P1-008 (LOW) — bash block in Background fixed: || true moved outside $() substitution to mirror .github/workflows/ci.yml:196 verbatim. |
 | 1.1 | 2026-07-08 | story-writer | Amendment (maint-2026-07-08, S-7.02 cycle-close codification) — add PG-W71-CODEREVIEW-ARTIFACT as fourth process gap: gate-level code-review output not persisted at wave-71 wave gate; MINOR finding text unrecoverable, finding re-keyed CR-W71-001 (canonical-ID collision resolution); adds AC-158-006 (CLAUDE.md gate-close code-review protocol); adds backlog-triage-maint-2026-07-08.md to inputs; input-hash updated; count updated three→four gaps throughout. Evidence: backlog-triage-maint-2026-07-08.md item 7 + pattern-findings.md PF-008. |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — wave-71 process-gap codifications: PG-W71-CHANGELOG (changelog gate AC-158-001/002), PG-W71-CYCLE-ARTIFACT-IDENTITY (lint tool AC-158-003), PG-W71-CI-SCAN-GUARDS (trust-boundary guard AC-158-004, check-green-doc-tense fix AC-158-005); S-7.02 wave-71 cycle-close. |

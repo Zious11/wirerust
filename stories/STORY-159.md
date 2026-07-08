@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -47,8 +47,8 @@ inputs:
   account of the ten design decisions it documents
 - **So that** any of the 38 inline `ADR-012 Decision N` citations found across
   `src/protocols.rs`, `src/dispatcher.rs`, `src/main.rs`, `tests/protocols_tests.rs`,
-  and `tests/dispatcher_tests.rs` can be resolved by a reader without access to the
-  factory specification layer
+  `tests/dispatcher_tests.rs`, and `tests/integration_tests.rs` can be resolved by a
+  reader without access to the factory specification layer
 
 ## Behavioral Contracts
 
@@ -57,7 +57,7 @@ _(none — E-11 convention: no BCs authored yet; status: draft, pending PO autho
 ## Background
 
 Maintenance sweep `maint-2026-07-08` (finding NEW-001, HIGH) identified that ADR-012 is
-cited 38 times across five source and test files but no corresponding public document
+cited 38 times across six source and test files but no corresponding public document
 exists in `docs/adr/`. The `docs/adr/` directory contains `0001`–`0007`, `0009`–`0011`;
 ADR-012 is the current missing entry (ADR-008 was intentionally skipped in sequence).
 
@@ -74,7 +74,7 @@ add the CLAUDE.md Project References row.
 
 ### Finding NEW-001 — source citations recovered
 
-Representative inline citations from the five affected files:
+Representative inline citations from the six affected files:
 
 | File | Line | Citation |
 |------|------|---------|
@@ -83,8 +83,12 @@ Representative inline citations from the five affected files:
 | `src/dispatcher.rs` | ~44 | `(ADR-012 Decision 6)` |
 | `src/dispatcher.rs` | ~98 | `(ADR-012 Decision 6 Clarification)` |
 | `src/main.rs` | ~195 | `(ADR-012 Decision 9)` |
+| `tests/integration_tests.rs` | various | `(ADR-012 Decision N)` — 4 occurrences |
 
-Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 occurrences total.
+Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 occurrences total across six files:
+`src/protocols.rs` (2) + `src/main.rs` (6) + `src/dispatcher.rs` (8) +
+`tests/protocols_tests.rs` (10) + `tests/dispatcher_tests.rs` (8) +
+`tests/integration_tests.rs` (4) = 38.
 Decision numbers cited in source: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 (all ten decisions
 from the factory ADR are referenced somewhere in the codebase).
 
@@ -283,4 +287,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-08 | story-writer | Adversary P1 fix: F-W72-P1-003 (HIGH) — ground-truth file inventory corrected from five to six files: added tests/integration_tests.rs (4 citations). Narrative updated ("six source and test files"); Background intro updated ("six source and test files"); NEW-001 table row added for tests/integration_tests.rs; full per-file count breakdown added (src/protocols.rs(2)+src/main.rs(6)+src/dispatcher.rs(8)+tests/protocols_tests.rs(10)+tests/dispatcher_tests.rs(8)+tests/integration_tests.rs(4)=38). AC-159-003 repo-wide grep left unchanged (already correct). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — maint-2026-07-08 NEW-001 follow-up: author public docs/adr/0012-protocols-catalog-and-coverage-gaps.md from factory ADR-012; add CLAUDE.md Project References row; verify all 38 inline ADR-012 citations resolve. |

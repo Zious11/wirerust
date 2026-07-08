@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -27,7 +27,7 @@ traces_to:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md
   - .factory/maintenance/issue-backlog-triage-2026-07-08.md
-input-hash: "92569e0"
+input-hash: "188dc17"
 inputs:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md
@@ -87,7 +87,7 @@ The research-validated design (triage record entry #252) specifies:
   (integrity anchor, not advisory). These disciplines are deliberately distinct and must not
   be conflated.
 - **kani_version field:** VP-024 gains a `kani_version:` sibling frontmatter field pinned to
-  the Kani release current at re-lock time, verified from
+  the Kani release current at population time, verified from
   `github.com/model-checking/kani/releases`.
 
 ### What this story does NOT do
@@ -110,7 +110,9 @@ VP-INDEX (`.factory/specs/verification-properties/VP-INDEX.md`) gains a prose se
 1. The mini-Merkle construction verbatim:
    `sha256( sha256(LF-normalized section bytes of fileA) || sha256(LF-normalized section bytes of fileB) )`
    where `||` denotes byte concatenation of the raw (non-hex) SHA-256 digest bytes, and files
-   are processed in the order they appear in the VP frontmatter `module:` field.
+   are processed in the order they appear in the VP frontmatter `module:` field. The `module:`
+   field order is normative. For VP-024 specifically: arp.rs is fileA (listed first in `module:`)
+   and decoder.rs is fileB.
 
 2. The LF normalization rule: `\r\n` → `\n`; lone `\r` → `\n`.
 
@@ -118,7 +120,7 @@ VP-INDEX (`.factory/specs/verification-properties/VP-INDEX.md`) gains a prose se
    either file, (b) cross-file harness moves (the section hashes swap position), and (c)
    additions or deletions of entire harness blocks.
 
-VP-INDEX version is bumped from `"2.35"` to `"2.36"` and the `modified:` field updated.
+VP-INDEX version is bumped from `"2.36"` to `"2.37"` and the `modified:` field updated.
 
 ### AC-161-002 (Section-scoping rule explicit in VP-INDEX)
 
@@ -148,13 +150,17 @@ VP-024 (`vp-024-arp-parse-safety.md`) `proof_file_hash:` field is populated with
 mini-Merkle hash. The comment `# No canonical recomputation method defined...` and the
 `null` value are both replaced. The implementer computes the hash by:
 
-1. Extracting the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/decoder.rs`
+The `module:` field order is normative: arp.rs is fileA (listed first in VP-024's `module:`
+field: `src/analyzer/arp.rs + src/decoder.rs`), decoder.rs is fileB.
+
+1. Extracting the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/analyzer/arp.rs`
    (byte range: from the `#[cfg(kani)]` attribute line to the closing `}` of `mod kani_proofs`).
-2. Extracting the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/analyzer/arp.rs`
-   (same boundary rule).
+   This is fileA — arp.rs is listed first in VP-024's `module:` field.
+2. Extracting the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/decoder.rs`
+   (same boundary rule). This is fileB.
 3. LF-normalizing both extracted byte strings.
-4. Computing `sha256_A = SHA-256(normalized_decoder_section)`.
-5. Computing `sha256_B = SHA-256(normalized_arp_section)`.
+4. Computing `sha256_A = SHA-256(normalized_arp_section)`.
+5. Computing `sha256_B = SHA-256(normalized_decoder_section)`.
 6. Computing `final_hash = SHA-256(sha256_A_raw_bytes || sha256_B_raw_bytes)`.
 7. Storing the hex representation of `final_hash` (lowercase hex, full 64 chars) in the
    `proof_file_hash:` field.
@@ -169,7 +175,7 @@ After population, an independent recomputation from the same source files at the
 ### AC-161-004 (VP-024 gains kani_version frontmatter field)
 
 VP-024 frontmatter gains a `kani_version:` field as a sibling of `proof_file_hash:` and
-`verified_at_commit:`, pinned to the Kani release current at re-lock time. The implementer
+`verified_at_commit:`, pinned to the Kani release current at population time. The implementer
 MUST verify the current stable Kani release from `github.com/model-checking/kani/releases`
 at implementation time and record the exact version string (e.g., `"0.65.0"` or whatever is
 current). The triage record noted "latest ~0.65.0" as an approximation; the story AC requires
@@ -177,20 +183,27 @@ the exact verified value.
 
 The field form is:
 ```yaml
-kani_version: "X.Y.Z"  # verified at re-lock 2026-07-08 from github.com/model-checking/kani/releases
+kani_version: "X.Y.Z"  # verified at population <implementation-date> from github.com/model-checking/kani/releases
 ```
 
-### AC-161-005 (VP-024 FU-F6-KANI-CLEANUP resolved; verification_lock unchanged)
+### AC-161-005 (VP-024 FU-F6-KANI-CLEANUP resolved; verification_lock unchanged; LMR-001)
 
-The `FU-F6-KANI-CLEANUP` marker is resolved:
+The `FU-F6-KANI-CLEANUP` marker is resolved per **LMR-001 (Deferred-Null Anchor
+First-Population)**: a `null` sentinel left at lock time is absent-at-lock, not a locked
+value. First-population (null → computed hash) requires **NO unlock ceremony**;
+`verification_lock: true` stays set throughout. The modified-log entry is required to
+record the population event.
+
 1. The `proof_file_hash: null  # No canonical recomputation method defined...` line is replaced
    with the populated `proof_file_hash: "<64-char-hex>"` (no trailing comment).
 2. VP-024 `modified:` log gains a `v2.5` entry documenting: proof_file_hash populated per
-   mini-Merkle algorithm codified in VP-INDEX v2.36; kani_version field added; FU-F6-KANI-CLEANUP
-   resolved; verification_lock remains true; no proof content changed.
+   mini-Merkle algorithm codified in VP-INDEX v2.37; kani_version field added; FU-F6-KANI-CLEANUP
+   resolved per LMR-001; verification_lock remains true throughout (no unlock ceremony performed);
+   no proof content changed.
 3. VP-024 version is bumped from `"2.4"` to `"2.5"`.
 4. `verification_lock: true` remains unchanged — this story does NOT re-run harnesses and does
-   NOT modify any proof content (harness code, postconditions, or property statements).
+   NOT modify any proof content (harness code, postconditions, or property statements). Per
+   LMR-001, null-to-value first-population is a governance amendment, not a re-proof event.
 
 ### AC-161-006 (CLAUDE.md "Two hash disciplines" note added)
 
@@ -240,15 +253,8 @@ No Rust source files, no tests, no CI configuration.
 | EC-001 | VP-024 `verification_lock: true` during proof_file_hash population | Lock is NOT cleared; this is a governance amendment, not a re-proof. Append-only rule for L4 docs applies |
 | EC-002 | kani_proofs block in decoder.rs has additional harnesses added since `6e9f2cc` | Compute from the `6e9f2cc` snapshot, not from current HEAD. Document the commit used in the v2.5 modified log |
 | EC-003 | Trailing whitespace or CRLF in extracted kani_proofs block on Windows checkout | LF-normalize before hashing; OS-independent result required |
-| EC-004 | Order of files in mini-Merkle construction | decoder.rs is fileA, arp.rs is fileB, matching VP-024 `module:` field declaration order: `src/analyzer/arp.rs + src/decoder.rs`. However the module: field lists arp.rs first — implementer MUST note the actual hash computation order used and document it in the v2.5 entry |
+| EC-004 | Order of files in mini-Merkle construction | arp.rs is fileA, decoder.rs is fileB — the `module:` field order is normative (`src/analyzer/arp.rs + src/decoder.rs`, arp.rs listed first). No implementer decision required; this order is fully determined by the VP-024 frontmatter |
 | EC-005 | VP-INDEX section placement | The algorithm section should appear before the catalog table (near the Summary) so it is readable without scrolling to the end of the file |
-
-> **EC-004 implementer note:** The VP-024 `module:` field reads `src/analyzer/arp.rs + src/decoder.rs`
-> (arp.rs listed first). The algorithm specifies "files in declared order." The implementer must
-> decide whether "declared order" means the module: field order (arp.rs → decoder.rs) or the
-> logical dependency order (decoder.rs provides Sub-A, arp.rs provides Sub-B/D). The implementer
-> MUST document the chosen order explicitly in the VP-024 v2.5 modified log so the hash can be
-> independently reproduced.
 
 ## Tasks
 
@@ -264,15 +270,17 @@ No Rust source files, no tests, no CI configuration.
    - The Section-Scoping Rule (AC-161-002)
    - LF normalization rule
    - Detection coverage note
-   Bump VP-INDEX version to `"2.36"` and update the `modified:` field.
+   Bump VP-INDEX version to `"2.37"` and update the `modified:` field.
 
-4. **Compute proof_file_hash.** From the `6e9f2cc` checkout:
-   a. Extract the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/decoder.rs`.
-   b. Extract the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/analyzer/arp.rs`.
+4. **Compute proof_file_hash.** From the `6e9f2cc` checkout (arp.rs=fileA, decoder.rs=fileB
+   per the normative module: field order):
+   a. Extract the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/analyzer/arp.rs`
+      (fileA — listed first in VP-024's `module:` field).
+   b. Extract the `#[cfg(kani)] mod kani_proofs { ... }` block from `src/decoder.rs` (fileB).
    c. LF-normalize both.
-   d. Compute sha256_A and sha256_B of the normalized sections.
+   d. Compute sha256_A = SHA-256(normalized_arp_section) and sha256_B = SHA-256(normalized_decoder_section).
    e. Compute `final_hash = sha256(sha256_A_bytes || sha256_B_bytes)`.
-   f. Record the file order used (EC-004).
+   f. Record in the v2.5 modified log: "proof_file_hash computed with arp.rs=fileA, decoder.rs=fileB per module: field order."
 
 5. **Populate VP-024 proof_file_hash.** Replace the `proof_file_hash: null  # ...` line with
    `proof_file_hash: "<final_hash>"`. Add the `kani_version:` field. Add v2.5 modified log entry.
@@ -310,7 +318,9 @@ Lessons from analogous governance stories:
   only governance amendments (frontmatter field population, modified log append) — it does NOT
   modify proof content (harness code, postconditions, property statements, or the BC anchor
   table).
-- The `verification_lock: true` flag must NOT be cleared or modified.
+- The `verification_lock: true` flag must NOT be cleared or modified. Per **LMR-001
+  (Deferred-Null Anchor First-Population)**, null-to-value first-population is a governance
+  amendment event, not a re-proof event. No unlock ceremony is performed; the lock stays true.
 - The `FU-F6-KANI-CLEANUP` follow-up is resolved by populating the hash field, not by removing
   it or changing its governance intent.
 
@@ -323,7 +333,7 @@ or equivalent). No Rust toolchain changes.
 
 | File | Action | Notes |
 |------|--------|-------|
-| `.factory/specs/verification-properties/VP-INDEX.md` | Modify | Add "Multi-File Proof Anchor Algorithm" prose section; bump version 2.35→2.36 |
+| `.factory/specs/verification-properties/VP-INDEX.md` | Modify | Add "Multi-File Proof Anchor Algorithm" prose section; bump version 2.36→2.37 |
 | `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` | Modify | Populate proof_file_hash; add kani_version; bump version 2.4→2.5; add v2.5 modified log entry |
 | `CLAUDE.md` | Modify | Add "Two hash disciplines" note after Input Hash Computation section |
 
@@ -346,9 +356,10 @@ Well within context window. No story split required.
 - **FU-F6-KANI-CLEANUP is the originating obligation.** VP-024 v2.1 modified log records this
   as a follow-up at the time of F6 lock (2026-06-16). The triage-2026-07-08 session determined
   the algorithm and unblocked the story.
-- **EC-004 file order must be resolved by the implementer.** The story cannot pre-determine the
-  canonical order without inspecting the VP-024 module: field declaration. The implementer must
-  choose and document the order in the v2.5 modified log.
+- **EC-004 file order is fully determined.** The canonical order is arp.rs = fileA, decoder.rs =
+  fileB, per the VP-024 `module:` field (`src/analyzer/arp.rs + src/decoder.rs`, arp.rs listed
+  first). The `module:` field order is normative (F-W72-P1-001). No implementer decision required;
+  the v2.5 modified log records the algorithm reference, not an order choice.
 - **kani_version verification is mandatory.** The triage record says "~0.65.0" as an estimate.
   The AC requires the exact version from the GitHub releases page. Do not guess.
 - **CLAUDE.md note is in scope for a governance-only story.** CLAUDE.md is a project guidance
@@ -359,4 +370,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-001 (CRITICAL) — file-order canonicalized: arp.rs=fileA, decoder.rs=fileB per VP-024 module: field; AC-161-001 explicit statement added, AC-161-003 steps 1–6 reordered, EC-004 carve-out removed, EC-004 Notes updated. F-W72-P1-004 — LMR-001 adoption: AC-161-005 cites LMR-001 explicitly, no unlock ceremony language, lock stays true throughout; VP-INDEX required bump updated 2.35→2.36 → 2.36→2.37 (spec-steward commit b0248ba took v2.36); Tasks item 3 + File Structure Requirements updated. F-W72-P1-006 — kani_version comment wording: "re-lock 2026-07-08" → "population <implementation-date>"; Background + Notes "re-lock time" → "population time". Architecture Compliance Rules updated with LMR-001 citation. |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #252 follow-up: codify multi-file proof_file_hash mini-Merkle algorithm in VP-INDEX; populate VP-024 proof_file_hash + kani_version; resolve FU-F6-KANI-CLEANUP; add CLAUDE.md two-hash-disciplines note; wave-72 draft. |
