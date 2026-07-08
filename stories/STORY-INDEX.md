@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.21"
+version: "3.22"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T13:30:49Z
@@ -9,6 +9,7 @@ total_stories: 110
 total_waves: 71
 total_points: 702  # = 702 pre-v3.19 (unchanged); wave-table scheduled: 680 (+13: STORY-150+5, STORY-156+3, STORY-157+5 now wave 71); STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-155 all wave-TBD/superseded excluded; epic-table grand total: 702 (unchanged); stories: 110 (unchanged); waves: 71
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.22 (2026-07-08): STORY-157 DELIVERED — PR #380 squash 11c37b61cc12e4465eb362ef95d963430c5f0e76 merged 2026-07-08; status draft→merged; stories_delivered=102 (delivery #102). Wave 71: ALL THREE DELIVERED: STORY-150 (PR #379, 9d0d175), STORY-156 (PR #378, e2c2b33), STORY-157 (PR #380, 11c37b6, merged 2026-07-08). No numeric totals changed.
 # v3.21 (2026-07-08): STORY-150 DELIVERED — PR #379 squash 9d0d1757f70fa251983af62d9cc74afac19bc987 merged 2026-07-08; status draft→merged; stories_delivered=101 (delivery #101). Wave 71: STORY-150 DELIVERED + STORY-156 DELIVERED (PR #378, e2c2b33); STORY-157 in flight. No numeric totals changed.
 # v3.20 (2026-07-08): STORY-156 DELIVERED — PR #378 squash e2c2b33c5b8ff3de784326672aaaa76b4e7b0cf1 merged 2026-07-08T13:30:49Z; status draft→merged; stories_delivered=100 (delivery #100). Wave 71 partial: STORY-156 DELIVERED, STORY-150/157 in flight. No numeric totals changed.
 # v3.19 (2026-07-07): Wave-71 / v0.12.0 scheduling gate (2026-07-07 human approval) — STORY-150, STORY-156, STORY-157 assigned wave 71. Wave-table TOTAL: 667→680 (+5 STORY-150, +3 STORY-156, +5 STORY-157). total_waves 70→71. Exclusion list updated: STORY-150/156/157 removed (now scheduled). STORY-149 was already in wave-table (wave 70); dep-graph v3.7 companion updated (edges 124→125, intra 103→104, STORY-115→STORY-156 added).
@@ -155,7 +156,7 @@ traces_to:
 | STORY-149 | TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture | E-11 | 70 | 5 | merged | — |
 | STORY-150 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run | E-11 | 71 | 5 | merged | — |
 | STORY-155 | Auto-update STORY-INDEX status draft→merged on story PR merge | E-11 | ~ | 3 | draft | — |
-| STORY-157 | Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure | E-11 | 71 | 5 | draft | — |
+| STORY-157 | Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure | E-11 | 71 | 5 | merged | — |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
@@ -395,7 +396,7 @@ traces_to:
 | 68 | STORY-152 | **DELIVERED & CLOSED** | #353, #354 | 5c4437a, 0e700a9 | 2026-07-04 |
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
-| 71 | STORY-150, STORY-156, STORY-157 | STORY-150 DELIVERED (PR #379, squash 9d0d1757f70fa251983af62d9cc74afac19bc987, merged 2026-07-08) + STORY-156 DELIVERED (PR #378, e2c2b33); STORY-157 in flight | #378, #379 | e2c2b33, 9d0d175 | 2026-07-08 |
+| 71 | STORY-150, STORY-156, STORY-157 | **ALL THREE DELIVERED: STORY-150 (PR #379, 9d0d175), STORY-156 (PR #378, e2c2b33), STORY-157 (PR #380, 11c37b61cc12e4465eb362ef95d963430c5f0e76, merged 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
 
 ## Coverage Verification
 

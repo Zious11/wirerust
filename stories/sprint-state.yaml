@@ -728,3 +728,22 @@ stories:
     pr: 379
     merge_commit: 9d0d175
     merged_date: "2026-07-08"
+
+  # ---------------------------------------------------------------------------
+  # Wave 71 — STORY-157 (E-11 wave-70 process-gap codifications)
+  # STORY-157 DELIVERED 2026-07-08: PR #380 squash-merged → develop
+  # 11c37b61cc12e4465eb362ef95d963430c5f0e76 (D-403).
+  # PG-S149-001 + PG-W70-DEMO-SCRUB + PG-HASH-EMPTY-INPUTS + PG-HASH-INLINE-COMMENT
+  # + PG-HASH-HOOK-DIVERGENCE + PG-W70-MERGE-AUTH fully codified and delivered.
+  # First PR merged under DF-MERGE-AUTH-CLASSIFIER-001 clause (b) dual-outcome report.
+  # ---------------------------------------------------------------------------
+
+  STORY-157:
+    status: completed
+    wave: 71
+    branch: null  # squash-merged; worktree cleaned
+    worktree: null
+    blocked_by: []
+    pr: 380
+    merge_commit: 11c37b6
+    merged_date: "2026-07-08"

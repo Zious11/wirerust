@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-08T13:45:30Z","command":"cargo test --all-targets 2>&1 | tail -100"}
+{"status":"pass","timestamp":"2026-07-08T15:16:40Z","command":"cargo test --all-targets 2>&1"}

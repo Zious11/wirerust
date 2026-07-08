@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: steady-state
 status: complete
-current_step: "WAVE 71 IN PROGRESS — STORY-150 MERGED (PR #379, 9d0d175, 2026-07-08, D-402); STORY-156 MERGED (PR #378, e2c2b33, 2026-07-08, D-401); STORY-157 implementation in flight. stories_delivered=101 (delivery #101). develop=9d0d1757f70fa251983af62d9cc74afac19bc987. trajectory-tail →2→0→0→0. Pipeline IN_PROGRESS."
+current_step: "WAVE 71: ALL THREE STORIES MERGED (PRs #378/#379/#380, 2026-07-08). STORY-157 DELIVERED (D-403, PR #380, 11c37b6). stories_delivered=102 (delivery #102). develop=11c37b61cc12e4465eb362ef95d963430c5f0e76. trajectory-tail →2→0→0→0. Pipeline IN_PROGRESS (wave-71 integration gate pending)."
 current_cycle: "wave-71"
 pipeline: IN PROGRESS
-timestamp: 2026-07-08T14:00:00Z
+timestamp: 2026-07-08T16:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -24,9 +24,9 @@ release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
 prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (updated 2026-07-08 — WAVE 71 partial: STORY-150 PR #379 9d0d175 + STORY-156 PR #378 e2c2b33 merged; STORY-157 in flight)
+# Ground-truth HEADs (updated 2026-07-08 — WAVE 71 COMPLETE: STORY-150 PR #379 9d0d175 + STORY-156 PR #378 e2c2b33 + STORY-157 PR #380 11c37b6 merged; stories_delivered=102)
 main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
-develop_head: 9d0d1757f70fa251983af62d9cc74afac19bc987
+develop_head: 11c37b61cc12e4465eb362ef95d963430c5f0e76
 # Cargo.toml version: main=0.11.5; develop=0.11.5 (wave-70 docs/deps only, no version bump)
 cargo_version_main: "0.11.5"
 cargo_version_develop: "0.11.5"
@@ -36,10 +36,10 @@ bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
-stories_delivered: 101
-story_index_version: "v3.21"
+stories_delivered: 102
+story_index_version: "v3.22"
 total_stories: 110
-story_index_note: "110 stories / 71 waves / 702 pts. v3.21: STORY-150 DELIVERED (PR #379, 9d0d175, 2026-07-08); stories_delivered=101 (delivery #101); STORY-157 in flight. dependency-graph v3.7 (edges 125). 2026-07-08."
+story_index_note: "110 stories / 71 waves / 702 pts. v3.22: STORY-157 DELIVERED (PR #380, 11c37b6, 2026-07-08); stories_delivered=102 (delivery #102); wave-71 all three delivered. dependency-graph v3.7 (edges 125). 2026-07-08."
 # Spec versions (current)
 bc_index_version: "v2.19"
 vp_index_version: "v2.35"
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-01
 
 ## EXACT RESUME POINT
 
-**D-402 WAVE 71 IN PROGRESS — STORY-150 MERGED (PR #379, 9d0d175, 2026-07-08) + STORY-156 MERGED (PR #378, e2c2b33, 2026-07-08); stories_delivered=101 (delivery #101). STORY-157 in flight (develop-tree half implemented 8dfe955, factory-half + convergence + PR pending). STORY-INDEX v3.21 / dependency-graph v3.7. develop=9d0d175. Pipeline IN_PROGRESS.**
+**D-403 WAVE 71: ALL THREE STORIES MERGED (PRs #378/#379/#380, 2026-07-08). stories_delivered=102 (delivery #102). develop=11c37b6. STORY-INDEX v3.22 / dependency-graph v3.7. Next: wave-71 integration gate (full suite on merged develop → wave-level adversary → code review → security → consistency audit → holdout re-eval → wave demos), then wave CLOSED + S-7.02 cycle-closing checklist.**
 
 ---
 
@@ -72,16 +72,16 @@ maintenance_prior_run: maint-2026-07-01
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state (WAVE 71 IN PROGRESS — STORY-150 DELIVERED 2026-07-08; STORY-157 in flight; develop=9d0d175) |
+| Mode | steady-state (WAVE 71 ALL THREE DELIVERED 2026-07-08; integration gate PENDING; develop=11c37b6) |
 | Version | 0.11.5 (released 2026-07-07; develop=9d0d175, Cargo.toml 0.11.5 on both branches) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
-| Develop HEAD | `9d0d175` (full: `9d0d1757f70fa251983af62d9cc74afac19bc987`) — STORY-150 PR #379 merged 2026-07-08 |
+| Develop HEAD | `11c37b6` (full: `11c37b61cc12e4465eb362ef95d963430c5f0e76`) — STORY-157 PR #380 merged 2026-07-08 (ground-truth) |
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.19 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 101 delivered / 110 total (STORY-INDEX v3.21) |
-| **Last Updated** | 2026-07-08 — STORY-150 DELIVERED (D-402, PR #379, 9d0d175). stories_delivered=101 (delivery #101). STORY-INDEX v3.21. STORY-157 in flight. trajectory-tail →2→0→0→0. |
+| Stories | 102 delivered / 110 total (STORY-INDEX v3.22) |
+| **Last Updated** | 2026-07-08 — STORY-157 DELIVERED (D-403, PR #380, 11c37b6). stories_delivered=102 (delivery #102). STORY-INDEX v3.22. Wave-71 all three MERGED. trajectory-tail →2→0→0→0. |
 
 ---
 
@@ -117,7 +117,7 @@ maintenance_prior_run: maint-2026-07-01
 | v0.11.5 RELEASED + CHAIN COMPLETE (D-393) | **CHAIN COMPLETE 2026-07-07** | PR #372 (release/0.11.5 → main, merge 3c0ad3a); tag v0.11.5 (obj de3392a); GitHub Release Latest with binaries. Back-merge PR #373 (chore/backmerge-v0.11.5 → develop, squash 19569ae) MERGED 2026-07-07T02:17:57Z. develop=19569ae, Cargo.toml 0.11.5. Remote branches cleaned. Pipeline IDLE. |
 | Wave 70 — STORY-149 delivered (D-395, 2026-07-07) | **DELIVERED** | PR #374 merged 116100d 2026-07-07T13:14:38Z. AC-149-003 PASS (23.841 µs, +2.41% vs May-19 anchor 23.281 µs). stories_delivered=99. Wave 70 integration gate PENDING. |
 | Wave 70 CLOSED (D-396, 2026-07-07) | **CLOSED** | 5-pass wave adversarial convergence, streak 3/3 (W3-triaged/W4/W5); PRs #374/#375/#376/#377 merged; STORY-157 drafted (S-7.02); deferred LOW security findings (SEC-010/SEC-011/SEC-W70-001) pending DF-VALIDATION-001. develop=87035da. |
-| Wave 71 (v0.12.0): STORY-150/156/157 | **IN PROGRESS (D-401/D-402)** | STORY-150 DELIVERED (PR #379, 9d0d175, 2026-07-08, D-402); STORY-156 DELIVERED (PR #378, e2c2b33, 2026-07-08, D-401); stories_delivered=101. STORY-157 in flight. |
+| Wave 71 (v0.12.0): STORY-150/156/157 | **ALL DELIVERED (D-401/D-402/D-403)** | STORY-150 (PR #379, 9d0d175, D-402) + STORY-156 (PR #378, e2c2b33, D-401) + STORY-157 (PR #380, 11c37b6, D-403) — ALL THREE MERGED 2026-07-08; stories_delivered=102. Integration gate PENDING. |
 
 ---
 
@@ -125,11 +125,11 @@ maintenance_prior_run: maint-2026-07-01
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **WAVE 70 CLOSED (D-396, 2026-07-07). 5-pass wave adversarial convergence streak 3/3 (W3-triaged/W4/W5). PRs #374/#375/#376/#377 merged. develop=87035da. STORY-157 drafted (S-7.02, STORY-INDEX v3.17, 110 stories/700 pts). 3 deferred LOW security findings (SEC-010/SEC-011/SEC-W70-001) pending DF-VALIDATION-001. Pipeline IDLE. trajectory-tail →2→0→0→0.** | **CLOSED (D-396)** | Wave 70 converged. STORY-157 drafted (S-7.02). |
 | **SESSION WRAP (human-requested, 2026-07-07). Pipeline PAUSED after WAVE 70 CLOSED (D-396). develop=87035da (v0.11.5 + 4 unreleased wave-70 commits). No active cycle, no open PRs, no story worktrees. Pending: wave-71 scope, 3 deferred LOW security findings (DF-VALIDATION-001), merge-auth codification.** | **PAUSED** | Human-requested session wrap. |
 | **WAVE 71 PLANNING BURST COMPLETE (D-397..D-400 (exhaustive), 2026-07-07). Pipeline RESUMED. Human gate APPROVED (D-398). STORY-150 v1.3 + STORY-156 v1.1 + STORY-157 v1.2 scheduled wave 71 (13 pts, single parallel wave, disjoint file sets). STORY-148 SUPERSEDED (D-399). Input-hash MATCH=102/STALE=0/ERROR=5 (D-400). STORY-INDEX v3.19, dependency-graph v3.7. Pipeline IN_PROGRESS. trajectory-tail →2→0→0→0.** | **IN_PROGRESS (D-398)** | Wave 71 approved. Waiting: per-story delivery. |
 | **STORY-156 DELIVERED (D-401, 2026-07-08). PR #378 squash e2c2b33c5b8ff3de784326672aaaa76b4e7b0cf1 merged 2026-07-08T13:30:49Z. stories_delivered=100 (delivery #100). Wave-level merge authorization granted by human (D-401). STORY-150 PR in flight; STORY-157 implementation in flight. Pipeline IN_PROGRESS. trajectory-tail →2→0→0→0.** | **DELIVERED (D-401)** | STORY-156 merged. Wave 71 partial delivery. |
 | **STORY-150 DELIVERED (D-402, 2026-07-08). PR #379 squash 9d0d1757f70fa251983af62d9cc74afac19bc987 merged 2026-07-08. stories_delivered=101 (delivery #101). TLS-DRAIN-DUP-001 RESOLVED. STORY-157 in flight (develop-tree half implemented 8dfe955, factory-half + convergence + PR pending). Pipeline IN_PROGRESS. trajectory-tail →2→0→0→0.** | **DELIVERED (D-402)** | STORY-150 merged. Wave 71: 2/3 stories delivered. |
+| **STORY-157 DELIVERED (D-403, 2026-07-08). PR #380 squash 11c37b61cc12e4465eb362ef95d963430c5f0e76 merged 2026-07-08. stories_delivered=102 (delivery #102). Wave-70 process gaps fully codified (PG-S149-001 + PG-W70-DEMO-SCRUB + PG-HASH-EMPTY-INPUTS + PG-HASH-INLINE-COMMENT + PG-HASH-HOOK-DIVERGENCE + PG-W70-MERGE-AUTH). Canonical hash scan MATCH=110/STALE=0 (first-ever clean with fixed tool). Pipeline IN_PROGRESS (wave-71 integration gate pending). trajectory-tail →2→0→0→0.** | **DELIVERED (D-403)** | STORY-157 merged. Wave 71: all three delivered. |
 
 ## Decisions Log
 
@@ -237,6 +237,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-400 | Pre-gate input-hash drift check (check-input-drift mandate): canonical scan went MATCH=96/STALE=4/ERROR=7 → MATCH=102/STALE=0/ERROR=5. STORY-156 hash reverted to canonical ce96d86; STORY-150/157 inputs declared (c5acbe4/357bca5); merged STORY-107/108/140 re-hashed after confirming BC amendments additive-only. Two new process gaps codified into STORY-157: PG-HASH-HOOK-DIVERGENCE (bash hook vs canonical Python tool, trailing-newline stripping → AC-157-009) and PG-HASH-INLINE-COMMENT (inputs parser swallows inline # comments, STORY-001 evidence → AC-157-010). Remaining 5 ERRORs pre-existing with codified follow-ups. | 2026-07-07 |
 | D-401 | Human granted WAVE-LEVEL merge authorization for wave-71 story PRs (2026-07-08), conditional on: per-story adversarial convergence 3/3 + pr-reviewer APPROVE + security clean + CI green + dependency order. Prompted by auto-mode classifier denial of orchestrator-issued AUTHORIZE_MERGE=yes (the PG-W70-MERGE-AUTH question made concrete — codification evidence for STORY-157 AC-157-007/008). STORY-156 DELIVERED: PR #378 squash e2c2b33c5b8ff3de784326672aaaa76b4e7b0cf1 merged 2026-07-08T13:30:49Z; stories_delivered=100 (delivery #100). | 2026-07-08 |
 | D-402 | STORY-150 DELIVERED. PR #379 squash 9d0d1757f70fa251983af62d9cc74afac19bc987 merged to develop 2026-07-08. TLS drain-loop DRY refactor + Kani VP-039 re-run + mutation re-run. TLS-DRAIN-DUP-001 RESOLVED. BC-ANCHOR-DRIFT-OUTOFCYCLE-001 fully resolved (folded into AC-150-006). stories_delivered=101 (delivery #101). STORY-INDEX v3.21. | 2026-07-08 |
+| D-403 | STORY-157 DELIVERED. PR #380 squash 11c37b61cc12e4465eb362ef95d963430c5f0e76 merged to develop 2026-07-08. stories_delivered=102 (delivery #102). STORY-157 delivered (PR #380, 11c37b6) — first PR merged under DF-MERGE-AUTH-CLASSIFIER-001 clause (b) with dual-outcome completion report; wave-70 process gaps fully codified (PG-S149-001 + PG-W70-DEMO-SCRUB + PG-HASH-EMPTY-INPUTS + PG-HASH-INLINE-COMMENT + PG-HASH-HOOK-DIVERGENCE + PG-W70-MERGE-AUTH); canonical hash scan first-ever fully clean (MATCH=110 STALE=0 with fixed tool). develop HEAD=11c37b6. STORY-INDEX v3.22. | 2026-07-08 |
 
 ---
 
@@ -338,21 +339,21 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**WAVE 71: STORY-150 + STORY-156 MERGED (PRs #379/#378); STORY-157 in flight (develop-tree half implemented 8dfe955, factory-half + convergence + PR pending). Pipeline IN PROGRESS. stories_delivered=101 (delivery #101). develop=9d0d175. D-401/D-402. trajectory-tail →2→0→0→0.**
+**WAVE 71: all three stories MERGED (PRs #378/#379/#380). Next: wave-71 integration gate (full suite on merged develop → wave-level adversary → code review → security → consistency audit → holdout re-eval → wave demos), then wave CLOSED + S-7.02 cycle-closing checklist.**
 
-- **Date:** 2026-07-08. Position: steady-state, pipeline IN PROGRESS. STORY-150 DELIVERED (D-402, PR #379, 9d0d175); STORY-156 DELIVERED (D-401, PR #378, e2c2b33).
-- **develop HEAD:** `9d0d175` (full: `9d0d1757f70fa251983af62d9cc74afac19bc987`) — STORY-150 squash PR #379 merged 2026-07-08.
+- **Date:** 2026-07-08. Position: steady-state, pipeline IN PROGRESS. All three wave-71 stories delivered: STORY-150 (D-402, PR #379, 9d0d175); STORY-156 (D-401, PR #378, e2c2b33); STORY-157 (D-403, PR #380, 11c37b6).
+- **develop HEAD:** `11c37b6` (full: `11c37b61cc12e4465eb362ef95d963430c5f0e76`) — STORY-157 PR #380 merged 2026-07-08 (ground-truth).
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released).
-- **Open PRs:** none. **Open story worktrees:** STORY-157 implementation in flight (develop-tree half 8dfe955). **Convergence loop active:** STORY-157.
-- **current_cycle:** wave-71. **Active wave:** wave 71 (STORY-150/156/157, 13 pts; STORY-150 + STORY-156 DELIVERED; STORY-157 in flight).
+- **Open PRs:** none. **Open story worktrees:** none. **Convergence loop active:** none (wave-71 per-story delivery COMPLETE).
+- **current_cycle:** wave-71. **Active wave:** wave 71 (STORY-150/156/157, 13 pts; ALL THREE DELIVERED 2026-07-08).
 - **In-flight:**
   - STORY-150: DELIVERED (PR #379, 9d0d175, 2026-07-08)
   - STORY-156: DELIVERED (PR #378, e2c2b33, 2026-07-08)
-  - STORY-157: implementation in flight (develop-tree half 8dfe955; factory-half + convergence + PR pending)
+  - STORY-157: DELIVERED (PR #380, 11c37b6, 2026-07-08)
 - **Pending human decisions:** 3 deferred LOW security findings (SEC-010/SEC-011/SEC-W70-001) pending DF-VALIDATION-001 research validation.
 - **Unresolved blockers:** none.
-- **Spec versions:** BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.21 / dependency-graph v3.7 / module-criticality v1.6.
-- **Resume command:** `/vsdd-factory:per-story-delivery` — continue wave-71 delivery for STORY-157.
+- **Spec versions:** BC-INDEX v2.19 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.22 / dependency-graph v3.7 / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:wave-gate` — run wave-71 integration gate (full suite on merged develop → wave-level adversary → code review → security → consistency audit → holdout re-eval → wave demos).
 
 ---
 
