@@ -13,7 +13,7 @@
 //! D12 L2/L3 mismatch findings carry `mitre_techniques: ["T0830", "T1557.002"]`
 //! (BC-2.16.007 PC1). `src/mitre.rs` was updated atomically (VP-007): SEEDED=25, EMITTED=17.
 //! D3 storm detection (BC-2.16.008) emits MEDIUM/Anomaly findings with `mitre_techniques: []`
-//! (T0814 withheld per DF-VALIDATION-001) when source MAC rate exceeds `storm_rate` threshold.
+//! (T0814 withheld per DF-VALIDATION-001) when source MAC rate reaches `storm_rate` or more.
 //!
 //! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
 //! `verify_binding_table_cap`) were filled and formally proven at the F6
