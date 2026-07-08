@@ -226,14 +226,14 @@ Detections emitted:
 |-----------|-----------|--------|---------|
 | ARP spoofing (D1) | T0830, T1557.002 | Collection (ICS), Credential Access | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
 | Gratuitous ARP (D2) | — | Anomaly | Unsolicited GARP frame observed; escalates to MEDIUM and co-emits a D1 finding when the announced MAC conflicts with an established binding |
-| ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
+| ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate reaches `--arp-storm-rate` frames/second or more |
 | Malformed ARP frame (D11) | — | Anomaly | Frame fails both strict and lax/snaplen-truncated ARP parse |
 | L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Collection (ICS), Credential Access | Ethernet source MAC differs from ARP sender hardware address |
 
 CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
-- `--arp-storm-rate N` — frames/second per source MAC above which a storm finding is emitted (default: 50)
+- `--arp-storm-rate N` — frames/second per source MAC at or above which a storm finding is emitted (default: 50)
 
 JSON output counters (present in `arp_summary` when using `--json` / `--output-format json`):
 - `bindings_evicted` — count of IP→MAC binding-table LRU evictions (table cap: 65 536 entries); a
@@ -354,6 +354,37 @@ Guidelines:
 
 This is a documentation of existing practice — the test suite already
 follows it; new tests should match.
+
+## Known Limitations
+
+### Uncalibrated detection-threshold defaults
+
+Three families of detection thresholds ship with engineering defaults that have not been validated against
+a labelled ICS/OT traffic corpus. They were accepted as reasonable starting points on
+2026-07-08 and may produce false positives or false negatives on unusual networks.
+Other detector thresholds (e.g. Modbus and EtherNet/IP write-burst limits, the ARP spoof rebind
+threshold) are likewise engineering defaults; the three families below are those with the least
+external calibration evidence.
+
+**Reassembly anomaly thresholds** — the TCP reassembly engine emits anomaly findings when
+overlapping-segment counts exceed 50 per flow direction (`--overlap-threshold`, default 50),
+when consecutive runs of small segments (under 16 bytes) exceed 100 (`--small-segment-threshold`,
+default 100; `--small-segment-max-bytes`, default 16), or when out-of-window segments exceed
+100 per flow direction (`--out-of-window-threshold`, default 100). No NIDS ships enabled,
+directly-comparable count-based defaults for these detectors; these values are conservative
+engineering estimates.
+
+**ARP storm rate** — the ARP storm detector (`--arp`) fires when a source MAC sends 50 or more
+ARP frames per second (at or above `--arp-storm-rate`, default 50). This value is not derived from any
+external standard. Typical OT/ICS segments are quiet, so operators may lower this to 5–20 to
+catch low-rate storms; conversely, environments with chatty PLCs or RTUs that legitimately probe
+at high rates should raise it above their baseline to avoid false positives.
+
+**DNP3 direct-operate burst threshold** — the DNP3 analyzer (`--dnp3`) fires a control-command
+burst finding when more than 10 Control-class function codes arrive within the 60-second
+detection window (`--dnp3-direct-operate-threshold`, default 10). This value was chosen to
+tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
+need a lower value (3–5).
 
 ## Roadmap
 
