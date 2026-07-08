@@ -31,7 +31,8 @@
         "F-150-P2-002 LOW dormant assertion wording",
         "O-150-P2-001 observation cross-story STORY-053 handle_server_hello anchor drift → maintenance backlog"
       ],
-      "remediation": "nitpick sweep dispatched post-pass",
+      "remediation": "nitpick sweep (assertion-string wording) committed at 0818f5c — gates re-verified green",
+      "remediation_commit": "0818f5c",
       "head_reviewed": "5fe40e7"
     }
   ],

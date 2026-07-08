@@ -5,11 +5,14 @@
 
 ## Formal Verification (Kani VP-039)
 
-**Status:** 3/3 SUCCESSFUL
+**Status:** 3/3 SUCCESSFUL — zero failures, zero skips, zero timeouts
 
-- **Checks:** 75 PASS + 12 SKIP + 12 TIMEOUT
 - **Tool:** Kani formal verifier
 - **Property:** VP-039 (TLS handshake state machine safety)
+- **Harnesses:**
+  - `verify_drain_loop_cursor_safety` — 75 checks PASS
+  - `verify_no_usize_overflow_on_advance` — 12 checks PASS
+  - `verify_carry_bounded_after_append` — 12 checks PASS
 - **Coverage:** All non-deterministic paths exercised
 - **Evidence:** Full proof trace at 5fe40e7
 
