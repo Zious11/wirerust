@@ -14,9 +14,9 @@
 | 1    | 2026-07-08 | NOT-CLEAN | 0      | 3 MED / 0 LOW / 0 NITPICK  | 2927c02       |
 | 2    | 2026-07-08 | NOT-CLEAN | 0      | 1 MED / 2 LOW / 0 NITPICK  | 2927c02       |
 | 3    | 2026-07-08 | NOT-CLEAN | 0      | 1 MED / 1 LOW / 0 NITPICK  | 2927c02       |
-| 4    | 2026-07-08 | CLEAN     | 1      | 0 MED / 2 LOW / 1 NITPICK  | e023e79       |
+| 4    | 2026-07-08 | CLEAN     | 1      | 0 MED / 3 LOW / 1 NITPICK  | e023e79       |
 | 5    | 2026-07-08 | CLEAN     | 2      | 0 / 0 / 0 (zero findings)   | 70d99ad       |
-| 6    | 2026-07-08 | CLEAN     | 3      | 0 MED / 3 LOW / 2 NITPICK  | 70d99ad       |
+| 6    | 2026-07-08 | CLEAN     | 3      | 0 MED / 5 LOW / 1 NITPICK  | 70d99ad       |
 
 ---
 
@@ -162,5 +162,7 @@ Zero findings at any severity level. Clean pass with no observations.
 - **Status:** RESOLVED — no recurrences after guard was applied.
 
 ---
+
+*(audit-record corrections 2026-07-08, F-W71-P5-001/002 + O-W71-P5-001/002, wave-gate Pass 5)*
 
 *Generated: 2026-07-08 | STORY-157 | wave-71 | State Manager*

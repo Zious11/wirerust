@@ -9,7 +9,7 @@ phase: 3
 inputs:
   - .factory/stories/STORY-150.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
-input-hash: "df4d8de"
+input-hash: "c07db35"
 traces_to: "wave-71 / STORY-150 v1.3"
 stub_architect_agent: "NO_STUBS_NEEDED"
 stub_compile_verified: true
@@ -37,15 +37,17 @@ red_gate_verified: true
 ### STORY-150 TDD Tests (10 total)
 
 #### Expected Failures (Red Gate FAIL-as-expected)
-- **BC-150-001 / test_BC_150_001_process_handshake_carry_parse_hs_call_not_duplicated** — FAIL
+- **AC-150-001 / test_BC_150_001_process_handshake_carry_parse_hs_call_not_duplicated** — FAIL
   - Assertion: exactly 1 `parse_tls_message_handshake` call per carry iteration
   - Observed: 2 calls (duplicate parse before closure restructure)
   - Status: Expected behavior-preservation regression pin; verifies test harness detects the redundancy
 
-- **BC-150-001 / test_BC_150_001_process_handshake_carry_msg_bytes_extraction_not_duplicated** — FAIL
+- **AC-150-001 / test_BC_150_001_process_handshake_carry_msg_bytes_extraction_not_duplicated** — FAIL
   - Assertion: ≤1 `msg_bytes` extraction per carry iteration
   - Observed: 2 extractions (pre-optimization)
   - Status: Expected behavior-preservation regression pin; verifies test harness detects the inefficiency
+
+> **Note (O-W71-P5-002):** tests are named `test_BC_150_001_*` per the factory test-naming convention; the story's traceability is AC-150-001 → BC-2.07.004/028 + VP-039, behavioral_contracts: [] per E-11 convention.
 
 #### Structural Marker Pass
 - **AC-150-003 / kani_proofs_vp039 module present** — PASS
@@ -68,8 +70,8 @@ All pass. These pins verify no unintended regressions in existing handshake proc
 |---------------|--------|
 | 7 behavior-preservation regression pins | 7 pass |
 | 1 structural marker (AC-150-003) | 1 pass |
-| 2 BC-150-001 Red Gate pins | 2 fail (as expected) |
-| **Total** | **10 pass + 2 fail (expected)** |
+| 2 AC-150-001 Red Gate pins | 2 fail (as expected) |
+| **Total** | **10 total (8 pass + 2 fail-as-expected)** |
 
 ### Verification
 - Test suite: `tests/bc_150_drain_loop_dry_tests.rs`
@@ -91,8 +93,8 @@ All pass. These pins verify no unintended regressions in existing handshake proc
 1. Next step: Stub Architect generates compilable stubs for `process_handshake_carry` (no new public symbols)
 2. Stubs will fail the 2 Red Gate tests by design
 3. Implementer picks up the failing tests and optimizes the carry loop closure to:
-   - Eliminate duplicate `parse_tls_message_handshake` calls (BC-150-001 Pin 1)
-   - Consolidate `msg_bytes` extraction (BC-150-001 Pin 2)
+   - Eliminate duplicate `parse_tls_message_handshake` calls (AC-150-001 Pin 1)
+   - Consolidate `msg_bytes` extraction (AC-150-001 Pin 2)
    - Maintain all 7 behavior-preservation invariants (regression pins)
 4. VP-039 formal proof body will be written post-implementation to verify line correspondence
 
@@ -101,3 +103,7 @@ All pass. These pins verify no unintended regressions in existing handshake proc
 - No new public API symbols required
 - All tests are assertion-based (not build errors, not todo! panics)
 - Carry-path restructure is internal optimization; public surface unchanged
+
+---
+
+*(audit-record corrections 2026-07-08, F-W71-P5-001/002 + O-W71-P5-001/002, wave-gate Pass 5)*

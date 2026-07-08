@@ -8,7 +8,7 @@ timestamp: 2026-07-08T07:30:00Z
 phase: 3
 inputs: []
 input-hash: "d41d8cd"
-traces_to: ""
+traces_to: "wave-71 / STORY-157 v1.3"
 stub_architect_agent: "n/a"
 stub_compile_verified: false
 test_writer_agent: "wave-71-orchestrator"
@@ -65,3 +65,7 @@ None. NO_STUBS_NEEDED — inline modifications to existing `parse_inputs()` and 
 **Red Gate Gate Verdict:** PASSED
 **Orchestrator Verification:** Independent ✓
 **Date:** 2026-07-08
+
+---
+
+*(audit-record corrections 2026-07-08, F-W71-P5-001/002 + O-W71-P5-001/002, wave-gate Pass 5)*
