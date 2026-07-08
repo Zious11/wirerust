@@ -88,7 +88,8 @@ const E_INP_010: &str = "E-INP-010";
 /// Pads the value to the next 4-byte boundary with zero bytes.
 /// All multi-byte fields encoded in the given endianness.
 fn tlv_option(code: u16, value: &[u8], little_endian: bool) -> Vec<u8> {
-    let opt_len = value.len() as u16;
+    let opt_len =
+        u16::try_from(value.len()).expect("fixture option value exceeds u16 TLV length field");
     let pad = (4usize.wrapping_sub(value.len() % 4)) % 4;
     let mut v = Vec::new();
     if little_endian {

@@ -59,7 +59,8 @@ fn make_eth_ipv4_tcp(
     payload: &[u8],
 ) -> Vec<u8> {
     // Total IP length: 20 (IP hdr) + 20 (TCP hdr) + payload
-    let ip_total: u16 = 20 + 20 + payload.len() as u16;
+    let ip_total = u16::try_from(40 + payload.len())
+        .expect("fixture payload too large for IPv4 total length field");
 
     let mut frame = Vec::new();
 
@@ -107,7 +108,8 @@ fn make_raw_ipv4_tcp(
     flags: u8,
     payload: &[u8],
 ) -> Vec<u8> {
-    let ip_total: u16 = 20 + 20 + payload.len() as u16;
+    let ip_total = u16::try_from(40 + payload.len())
+        .expect("fixture payload too large for IPv4 total length field");
 
     let mut frame = Vec::new();
 
@@ -148,7 +150,8 @@ fn make_eth_ipv4_udp(
     payload: &[u8],
 ) -> Vec<u8> {
     // UDP total length: 8 (header) + payload
-    let udp_len: u16 = 8 + payload.len() as u16;
+    let udp_len =
+        u16::try_from(8 + payload.len()).expect("fixture payload too large for UDP length field");
     let ip_total: u16 = 20 + udp_len;
 
     let mut frame = Vec::new();
@@ -192,7 +195,8 @@ fn make_raw_ipv6_tcp(
     payload: &[u8],
 ) -> Vec<u8> {
     // IPv6 payload length: 20 (TCP header) + payload
-    let payload_len: u16 = 20 + payload.len() as u16;
+    let payload_len = u16::try_from(20 + payload.len())
+        .expect("fixture payload too large for IPv6 payload length field");
 
     let [pl_hi, pl_lo] = payload_len.to_be_bytes();
     // IPv6 fixed header (40 bytes): version/TC/flow, payload len, next-hdr=TCP, hop limit
@@ -239,7 +243,8 @@ fn make_raw_ipv6_udp(
     payload: &[u8],
 ) -> Vec<u8> {
     // UDP total length: 8 (header) + payload
-    let udp_len: u16 = 8 + payload.len() as u16;
+    let udp_len =
+        u16::try_from(8 + payload.len()).expect("fixture payload too large for UDP length field");
     // IPv6 payload length = UDP header + UDP payload
     let ipv6_payload_len = udp_len;
 
@@ -287,6 +292,7 @@ fn make_raw_ipv6_icmpv6(src_ip: [u16; 8], dst_ip: [u16; 8]) -> Vec<u8> {
         0x00, 0x01, // sequence = 1
     ];
 
+    // SEC-010 disposition: accepted-as-bounded-by-construction — icmpv6_body is a fixed [u8; 8]
     let ipv6_payload_len: u16 = icmpv6_body.len() as u16;
     let [pl_hi, pl_lo] = ipv6_payload_len.to_be_bytes();
 
@@ -1122,6 +1128,7 @@ fn test_BC_2_02_005_ec007_ipv6_extension_headers_tcp_surfaced() {
     };
 
     // IPv6 payload = HBH extension header (8 bytes) + TCP header (20 bytes)
+    // SEC-010 disposition: accepted-as-bounded-by-construction — hbh is 8 bytes, tcp is [u8; 20]
     let payload_len: u16 = (hbh.len() + tcp.len()) as u16;
 
     let [pl_hi, pl_lo] = payload_len.to_be_bytes();
