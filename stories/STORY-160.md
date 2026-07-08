@@ -1,0 +1,350 @@
+---
+document_type: story
+story_id: STORY-160
+epic_id: E-8
+version: "1.0"
+status: draft
+producer: story-writer
+timestamp: 2026-07-08T00:00:00Z
+phase: f7
+level: feature
+cycle: triage-2026-07-08
+points: 3
+priority: P2
+depends_on: []
+blocks: []
+behavioral_contracts:
+  - BC-2.11.036
+  - BC-2.11.037
+  - BC-2.11.001
+verification_properties: []
+assumption_validations: []
+risk_mitigations: []
+tdd_mode: strict
+target_module: src/findings.rs + src/reporter/json.rs
+subsystems:
+  - SS-11
+estimated_days: 1
+wave: "72"
+traces_to:
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
+input-hash: "611c0bb"
+inputs:
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
+  - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
+---
+
+# STORY-160: Align JSON Finding-Enum Serialization to Lowercase/snake_case + schema_version Envelope
+
+**Epic:** E-8 (Reporting and Output Formats)
+**Status:** draft
+**Wave:** 72
+**Points:** 3
+**Priority:** P2
+
+## Narrative
+
+- **As a** consumer of wirerust JSON output (SIEM pipeline, downstream parser, or dashboard)
+- **I want** finding enum fields (`verdict`, `confidence`, `category`) to use idiomatic
+  lowercase/snake_case values and a `schema_version` field to signal format generation
+- **So that** I can integrate wirerust output with tools following Suricata EVE / ECS / OCSF
+  conventions without custom case-conversion shims, and reliably gate on schema format
+
+## Behavioral Contracts
+
+- **BC-2.11.036** — JSON enum values use `lowercase` (Verdict/Confidence) and `snake_case`
+  (ThreatCategory); terminal Display tokens UNCHANGED. Anchors the three `serde(rename_all)`
+  attributes on `src/findings.rs` enums and all 17 variant-level assertions.
+- **BC-2.11.037** — JSON report envelope includes `schema_version: "2"`; value is the constant
+  string `"2"`; emitted unconditionally; absent from CSV and terminal output.
+- **BC-2.11.001 v1.8** — JSON envelope shape; advisory pointer to schema_version addition.
+
+## Background
+
+GitHub issue #255 (`snake_case JSON enums`) was validated and triaged on 2026-07-08
+(triage record `triage-2026-07-08`, research verdicts 10/10 CONFIRMED).
+
+The research-validated scope (triage record entry #255):
+- `rename_all = "lowercase"` for `Verdict` and `Confidence` (single-word enums).
+- `rename_all = "snake_case"` for `ThreatCategory` (multi-word enum) per Suricata EVE / ECS /
+  OCSF conventions.
+- `schema_version` envelope field added in the same PR to future-proof the next breaking change.
+- Hard cutover at v0.12.0. No dual-output mode, no opt-in flag, no deprecation period.
+- JSON schema is a governed surface **outside `cargo-semver-checks` scope** — must be
+  documented in the CHANGELOG and announced via `schema_version`.
+
+The product owner authored BC-2.11.036 and BC-2.11.037 (commit 00d67b1, BC-INDEX v2.21,
+2026-07-08) after the triage. BC-2.11.001 was simultaneously amended to v1.8 with an advisory
+pointer to the schema_version addition.
+
+### Representative variant assertions (BC-2.11.036)
+
+| Enum | Variant | Pre-v0.12.0 JSON | v0.12.0+ JSON |
+|------|---------|-----------------|--------------|
+| `Verdict` | `Likely` | `"Likely"` | `"likely"` |
+| `Verdict` | `Inconclusive` | `"Inconclusive"` | `"inconclusive"` |
+| `Confidence` | `High` | `"High"` | `"high"` |
+| `Confidence` | `Low` | `"Low"` | `"low"` |
+| `ThreatCategory` | `LateralMovement` | `"LateralMovement"` | `"lateral_movement"` |
+| `ThreatCategory` | `C2` | `"C2"` | `"c2"` |
+| `ThreatCategory` | `CredentialAccess` | `"CredentialAccess"` | `"credential_access"` |
+
+### Current state
+
+`src/findings.rs` defines `Verdict`, `Confidence`, and `ThreatCategory` with `#[derive(Serialize)]`
+but no `rename_all` attribute. Serialized values are therefore the Rust PascalCase variant names.
+`src/reporter/json.rs` has no `schema_version` field in the JSON envelope.
+
+## Acceptance Criteria
+
+### AC-160-001 (Verdict rename_all lowercase)
+
+`Verdict` in `src/findings.rs` carries `#[serde(rename_all = "lowercase")]`. All four variants
+serialize to their lowercase form in JSON output:
+
+```
+test_BC_2_11_036_verdict_likely_serializes_lowercase — pass
+test_BC_2_11_036_verdict_all_variants_lowercase      — pass
+```
+
+The `test_BC_2_11_036_verdict_all_variants_lowercase` test asserts that a JSON array of all
+four `Verdict` variants contains `["likely", "unlikely", "inconclusive", "possible"]` in some
+order, with zero PascalCase occurrences (no `"Likely"`, no `"Unlikely"`, etc.).
+
+### AC-160-002 (Confidence rename_all lowercase)
+
+`Confidence` in `src/findings.rs` carries `#[serde(rename_all = "lowercase")]`. All three
+variants serialize to their lowercase form:
+
+```
+test_BC_2_11_036_confidence_high_serializes_lowercase  — pass
+test_BC_2_11_036_confidence_all_variants_lowercase     — pass
+```
+
+### AC-160-003 (ThreatCategory rename_all snake_case — including lateral_movement and c2)
+
+`ThreatCategory` in `src/findings.rs` carries `#[serde(rename_all = "snake_case")]`. All ten
+variants serialize to their snake_case form. Representative AC assertions:
+
+```
+test_BC_2_11_036_threat_category_lateral_movement_snake_case — pass
+    Asserts: ThreatCategory::LateralMovement → "lateral_movement"
+test_BC_2_11_036_threat_category_c2_snake_case               — pass
+    Asserts: ThreatCategory::C2 → "c2" (no underscore; serde lowercases single letter,
+    treats digit as non-alpha continuation, producing "c2")
+test_BC_2_11_036_threat_category_all_variants_snake_case     — pass
+    Asserts: all 10 variants present with their snake_case forms; no PascalCase occurrence
+```
+
+### AC-160-004 (schema_version present in every JSON report)
+
+`src/reporter/json.rs` defines `const SCHEMA_VERSION: &str = "2";` (analogous to the existing
+`MITRE_DOMAIN` and `MITRE_ATTACK_VERSION` constants). Every `JsonReporter::render` call includes
+`"schema_version": "2"` at the top level of the JSON envelope:
+
+```
+test_BC_2_11_037_schema_version_present_in_json           — pass
+    Asserts: JSON output contains "schema_version" key
+test_BC_2_11_037_schema_version_value_is_two              — pass
+    Asserts: value is the JSON string "2", not the integer 2, not null
+test_BC_2_11_037_schema_version_unconditional_empty_findings — pass
+    Asserts: field present even when findings slice is empty
+```
+
+### AC-160-005 (Terminal Display regression — uppercase tokens unchanged)
+
+The `fmt::Display` implementations for `Verdict` and `Confidence` are NOT modified. The serde
+`rename_all` attribute on the derive affects only `Serialize`, not `Display`.
+
+```
+test_BC_2_11_036_terminal_display_unchanged_uppercase — pass
+    Asserts: Verdict::Likely → "LIKELY"; Confidence::High → "HIGH"
+```
+
+The test must use the `Display` trait directly (not `Serialize`) to confirm surface independence.
+
+### AC-160-006 (CSV and terminal schema_version regression)
+
+The CSV reporter and terminal reporter are unaffected.
+
+```
+test_BC_2_11_037_schema_version_absent_from_csv      — pass
+    Asserts: no "schema_version" in CSV output
+test_BC_2_11_037_schema_version_absent_from_terminal — pass
+    Asserts: no "schema_version" in terminal output
+test_BC_2_11_036_csv_category_unchanged              — pass
+    Asserts: ThreatCategory::LateralMovement in CSV renders as "LateralMovement"
+    (Debug repr via Display — unchanged by serde annotation)
+```
+
+### AC-160-007 (Existing JSON-asserting tests updated)
+
+Any existing test in `tests/` or `src/` that asserts exact JSON enum string values (`"Likely"`,
+`"High"`, `"LateralMovement"`, etc.) is updated to the new lowercase/snake_case forms. The test
+suite passes with `cargo test --all-targets` after the change.
+
+The scan command to find stale JSON string literals:
+
+```bash
+grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' tests/ src/
+```
+
+must return zero results in JSON-assertion contexts after the change. (Note: the strings are
+still valid Rust variant names — only JSON value assertions must be updated.)
+
+### AC-160-008 (CHANGELOG.md BREAKING CHANGE entry)
+
+`CHANGELOG.md` contains an unreleased section entry for v0.12.0 with a BREAKING CHANGE note
+that covers:
+
+1. `verdict`, `confidence`, and `category` JSON field values are now lowercase / snake_case
+   (Suricata EVE / ECS / OCSF convention). Full mapping table (or reference to BC-2.11.036).
+2. A new `schema_version: "2"` field appears in every JSON report envelope.
+3. Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.
+4. JSON schema changes are outside `cargo-semver-checks` scope; this entry is the authoritative
+   change notice.
+
+### AC-160-009 (PR type)
+
+The pull request title uses the `feat:` semantic prefix (e.g.,
+`feat(reporter): align JSON enum casing + schema_version envelope (#255)`), consistent with
+the v0.12.0 breaking JSON change and `feat` type used for prior JSON output additions.
+
+## Architecture Mapping
+
+| Component | File | Pure/Effectful |
+|-----------|------|---------------|
+| Verdict enum serde annotation | `src/findings.rs` (amend derive) | Pure |
+| Confidence enum serde annotation | `src/findings.rs` (amend derive) | Pure |
+| ThreatCategory enum serde annotation | `src/findings.rs` (amend derive) | Pure |
+| SCHEMA_VERSION constant + envelope wiring | `src/reporter/json.rs` (amend) | Pure |
+| New BC-driven unit tests | `tests/` or `src/reporter/json.rs` tests module | Test |
+| CHANGELOG | `CHANGELOG.md` (amend) | Documentation |
+
+## Purity Classification
+
+| File | Classification | Reason |
+|------|---------------|--------|
+| `src/findings.rs` | Pure | serde `rename_all` is a compile-time annotation on derive; no runtime I/O or mutable state |
+| `src/reporter/json.rs` | Pure | Constant string insertion into in-memory `serde_json::Value`; returns owned String |
+| `CHANGELOG.md` | Documentation | Markdown text |
+
+## Edge Cases
+
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-001 | `ThreatCategory::C2` serialized to JSON | `"c2"` — single uppercase letter lowercased; digit `2` treated as non-alpha continuation by serde snake_case algorithm; no underscore inserted |
+| EC-002 | `ThreatCategory::LateralMovement` serialized to JSON | `"lateral_movement"` — word boundary before uppercase `M` creates underscore |
+| EC-003 | `schema_version` field when findings slice is empty | `"schema_version": "2"` present alongside `"findings": []` |
+| EC-004 | `schema_version` value type | JSON string `"2"`, not JSON integer `2` — consumers MUST compare as string |
+| EC-005 | Terminal renderer reading Verdict | Reads `fmt::Display`, not `serde`; "LIKELY" is unchanged |
+| EC-006 | CSV renderer reading ThreatCategory | Reads `{:?}` Debug repr (`"LateralMovement"`); unchanged |
+| EC-007 | Future ThreatCategory variant with multiple uppercase words (e.g., `NewMultiWordThreat`) | Automatically inherits snake_case via `rename_all`; no per-variant override needed |
+
+## Tasks
+
+1. **Add serde rename_all attributes.** In `src/findings.rs`, add:
+   - `#[serde(rename_all = "lowercase")]` to the `Verdict` derive attribute group
+   - `#[serde(rename_all = "lowercase")]` to the `Confidence` derive attribute group
+   - `#[serde(rename_all = "snake_case")]` to the `ThreatCategory` derive attribute group
+   Do NOT modify `impl fmt::Display` for any of the three enums.
+
+2. **Add SCHEMA_VERSION constant to json.rs.** In `src/reporter/json.rs`, add:
+   ```rust
+   const SCHEMA_VERSION: &str = "2";
+   ```
+   Then wire `"schema_version": SCHEMA_VERSION` into the top-level `serde_json::json!({})` or
+   equivalent Value construction in `JsonReporter::render`. Pattern follows `MITRE_DOMAIN` and
+   `MITRE_ATTACK_VERSION` (BC-2.11.001 Invariants 4 and 5).
+
+3. **Write BC-driven tests.** Author the nine unit tests named in the BC-2.11.036 and BC-2.11.037
+   VP tables. Place them in the appropriate module (likely `src/reporter/json.rs` tests block or
+   `tests/json_reporter_tests.rs`). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention if
+   applicable.
+
+4. **Update existing JSON-asserting tests.** Run the scan grep from AC-160-007 and update any
+   hit in a JSON value assertion context. Confirm `cargo test --all-targets` is green.
+
+5. **Verify clippy.** Run `cargo clippy --all-targets -- -D warnings`. No new warnings.
+
+6. **Update CHANGELOG.md.** Add the BREAKING CHANGE entry (AC-160-008) in the unreleased /
+   v0.12.0 section. Include the full mapping table or a clear prose summary.
+
+7. **Open a `feat:` pull request** targeting `develop` with all file changes.
+
+## Previous Story Intelligence
+
+Lessons from closest analogues:
+
+- **STORY-129 (issue #64, wave 57, E-8):** Added `mitre_attack` JSON array to `FindingJsonDto`
+  via a new DTO wrapper. Pattern: new field → constant definition → wiring in `render` →
+  test per BC VP table. Follow the same test-naming convention (`test_BC_2_NN_NNN_*`).
+- **STORY-101 (wave 31, E-13):** Extended the JSON envelope with additional reporter fields.
+  `serde_json::json!` macro is the pattern used in `JsonReporter::render`; inspect the current
+  envelope construction before adding `schema_version`.
+- **DF-AC-TEST-NAME-SYNC-001:** Test names in this story's ACs come directly from BC-2.11.036
+  and BC-2.11.037 VP tables. Do NOT rename them — the BC is the canonical source.
+
+## Architecture Compliance Rules
+
+- This story modifies: `src/findings.rs` (three enum derive blocks ONLY — no other changes),
+  `src/reporter/json.rs` (SCHEMA_VERSION constant + envelope wiring), `CHANGELOG.md`, and test
+  files. No other files.
+- `fmt::Display` implementations for `Verdict`, `Confidence`, `ThreatCategory` are
+  **explicitly off-limits** — any change there would violate BC-2.09.003 and BC-2.09.004.
+- The CSV reporter (`src/reporter/csv.rs`) is **explicitly off-limits** — BC-2.11.020 governs
+  nine fixed CSV columns and must not change.
+- The terminal reporter (`src/reporter/terminal.rs`) is **explicitly off-limits** for enum
+  rendering.
+
+## Library & Framework Requirements
+
+- `serde` with `derive` feature: already a Cargo dependency. No new dependencies.
+- `serde_json`: already a Cargo dependency.
+
+## File Structure Requirements
+
+| File | Action | Notes |
+|------|--------|-------|
+| `src/findings.rs` | Modify | Add `#[serde(rename_all = ...)]` to three enum derive blocks |
+| `src/reporter/json.rs` | Modify | Add `SCHEMA_VERSION` constant; add `schema_version` to envelope |
+| Test file (new or existing) | Modify/Create | Nine BC-driven tests from AC-160-001 through AC-160-006 |
+| `CHANGELOG.md` | Modify | v0.12.0 BREAKING CHANGE entry |
+
+## Token Budget Estimate
+
+| Component | Estimated tokens |
+|-----------|-----------------|
+| Story spec (this file) | ~4 k |
+| `src/findings.rs` annotation changes (3 one-liners) | ~0.1 k |
+| `src/reporter/json.rs` constant + wiring | ~0.2 k |
+| Nine new unit tests | ~2 k |
+| Existing test updates | ~0.5 k |
+| `CHANGELOG.md` entry | ~0.5 k |
+| **Total** | **~7.3 k** |
+
+Well within context window. No story split required.
+
+## Notes
+
+- **Provenance:** GitHub issue #255. Validated by research agent (triage-2026-07-08). BCs authored
+  by product owner in commit 00d67b1 (BC-INDEX v2.21, 2026-07-08). Story drafted in wave-72
+  planning burst.
+- **Breaking surface:** JSON output only. `cargo-semver-checks` does NOT detect JSON value
+  serialization changes. CHANGELOG entry and BC enforcement are the authoritative mechanisms.
+- **v0.12.0 target:** This story and STORY-161 (VP-024 proof_file_hash re-lock) are wave-72
+  candidates. No scheduling dependency between the two — they are independent.
+- **C2 note:** `ThreatCategory::C2` → `"c2"` by serde snake_case algorithm. This is consistent
+  with EVE/ECS abbreviated category names. Confirm via a direct `serde_json::to_string` unit test
+  before claiming the variant is handled correctly.
+- **DF-VALIDATION-001 gate:** Both BCs were authored after the triage research-validation pass
+  (10/10 CONFIRMED). Story drafting is permitted per policy.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #255 follow-up: JSON enum casing alignment (BC-2.11.036) + schema_version envelope (BC-2.11.037); wave-72 draft. |

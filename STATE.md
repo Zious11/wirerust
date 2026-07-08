@@ -37,11 +37,11 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 102
-story_index_version: "v3.25"
-total_stories: 112
-story_index_note: "112 stories / 71 waves / 708 pts. v3.25: STORY-158 v1.1 AMENDED (AC-158-006 wave gate code-review artifact protocol, maint-2026-07-08). v3.24: STORY-159 DRAFTED (wave-TBD, E-11, 3 pts; maint-2026-07-08 NEW-001 doc-drift — ADR-012 public doc authoring + CLAUDE.md Project References row). dependency-graph v3.7 (edges 125). 2026-07-08."
+story_index_version: "v3.26"
+total_stories: 114
+story_index_note: "114 stories / 72 waves / 714 pts. v3.26: STORY-160 DRAFTED (wave-72, E-8, 3 pts; triage-2026-07-08 #255 — JSON enum casing + schema_version envelope, BC-2.11.036/037) + STORY-161 DRAFTED (wave-72, E-11, 3 pts; triage-2026-07-08 #252 — VP-024 proof_file_hash algorithm codification + re-lock). dependency-graph v3.7 (edges 125). 2026-07-08."
 # Spec versions (current)
-bc_index_version: "v2.20"
+bc_index_version: "v2.21"
 vp_index_version: "v2.35"
 arch_index_version: "v2.12"
 prd_version: "v1.51"
@@ -79,8 +79,8 @@ maintenance_prior_run: maint-2026-07-06
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.20 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 102 delivered / 112 total (STORY-INDEX v3.25) |
+| Spec versions | BC-INDEX v2.21 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
+| Stories | 102 delivered / 114 total (STORY-INDEX v3.26) |
 | **Last Updated** | 2026-07-08 — triage-2026-07-08 COMPLETE (D-407). 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED); #101+#4 closed, #385 filed, #67+#6 annotated; 6 validated-backlog items. develop=c4eb1f4. triage trajectory-tail →0→0→0→0 |
 
 ---
