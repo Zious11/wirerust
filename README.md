@@ -359,9 +359,10 @@ follows it; new tests should match.
 
 ### Uncalibrated detection-threshold defaults
 
-Three detection thresholds ship with engineering defaults that have not been validated against
+Three families of detection thresholds ship with engineering defaults that have not been validated against
 a labelled ICS/OT traffic corpus. They were accepted as reasonable starting points on
 2026-07-08 and may produce false positives or false negatives on unusual networks.
+Other detector thresholds (e.g. Modbus and EtherNet/IP write-burst limits, the ARP spoof rebind threshold) are likewise engineering defaults; the three families above are those with the least external calibration evidence.
 
 **Reassembly anomaly thresholds** — the TCP reassembly engine emits anomaly findings when
 overlapping-segment counts exceed 50 per flow direction (`--overlap-threshold`, default 50),
