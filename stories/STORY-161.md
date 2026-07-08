@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -27,7 +27,7 @@ traces_to:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md
   - .factory/maintenance/issue-backlog-triage-2026-07-08.md
-input-hash: "188dc17"
+input-hash: "7ac8cfc"
 inputs:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md
@@ -86,9 +86,13 @@ The research-validated design (triage record entry #252) specifies:
   canonical `bin/compute-input-hash` tool); `proof_file_hash` uses SHA-256 mini-Merkle
   (integrity anchor, not advisory). These disciplines are deliberately distinct and must not
   be conflated.
-- **kani_version field:** VP-024 gains a `kani_version:` sibling frontmatter field pinned to
-  the Kani release current at population time, verified from
-  `github.com/model-checking/kani/releases`.
+- **kani_version field:** VP-024 gains a `kani_version:` sibling frontmatter field recording
+  the HISTORICAL Kani version that performed the verification at
+  `verified_at_commit: "6e9f2cc"`. The implementer MUST attempt historical recovery (CI logs,
+  Cargo.lock, toolchain records at commit `6e9f2cc`). Honest-unknown fallback:
+  `"unknown (pre-LMR verification, <proof_completed_date>)"` if unrecoverable. Recording the
+  currently-available GitHub release is FORBIDDEN. Full cargo-kani re-run is the
+  always-preferred alternative (per **LMR-002**; document in modified log).
 
 ### What this story does NOT do
 
@@ -120,7 +124,7 @@ VP-INDEX (`.factory/specs/verification-properties/VP-INDEX.md`) gains a prose se
    either file, (b) cross-file harness moves (the section hashes swap position), and (c)
    additions or deletions of entire harness blocks.
 
-VP-INDEX version is bumped from `"2.36"` to `"2.37"` and the `modified:` field updated.
+VP-INDEX version is bumped from `"2.37"` to `"2.38"` and the `modified:` field updated.
 
 ### AC-161-002 (Section-scoping rule explicit in VP-INDEX)
 
@@ -172,18 +176,39 @@ After population, an independent recomputation from the same source files at the
 > before computing from HEAD. If the kani_proofs blocks have been amended since that commit,
 > compute from the `6e9f2cc` snapshot, not from current HEAD.
 
-### AC-161-004 (VP-024 gains kani_version frontmatter field)
+### AC-161-004 (VP-024 gains kani_version frontmatter field — per LMR-002)
 
-VP-024 frontmatter gains a `kani_version:` field as a sibling of `proof_file_hash:` and
-`verified_at_commit:`, pinned to the Kani release current at population time. The implementer
-MUST verify the current stable Kani release from `github.com/model-checking/kani/releases`
-at implementation time and record the exact version string (e.g., `"0.65.0"` or whatever is
-current). The triage record noted "latest ~0.65.0" as an approximation; the story AC requires
-the exact verified value.
+Per **LMR-002 (Historical Kani Version Record)**, `kani_version:` records the HISTORICAL
+Kani version that performed the verification at `verified_at_commit: "6e9f2cc"` — not the
+version available at population time.
 
-The field form is:
+The implementer MUST attempt historical recovery of the Kani version at commit `6e9f2cc`:
+check CI logs from the verification run, `Cargo.lock` at that commit, and any toolchain
+records present at `6e9f2cc`. If the historical version is unrecoverable, the honest-unknown
+fallback MUST be used:
+
 ```yaml
-kani_version: "X.Y.Z"  # verified at population <implementation-date> from github.com/model-checking/kani/releases
+kani_version: "unknown (pre-LMR verification, <proof_completed_date>)"
+```
+
+**Recording the currently-available GitHub release is FORBIDDEN** — it would misrepresent
+which version actually performed the proof.
+
+**Full cargo-kani re-run is the always-preferred alternative**: if a re-run is feasible,
+run `cargo kani` against the harnesses and record the exact version used; document the
+re-run in the VP-024 v2.5 modified log.
+
+VP-024 frontmatter gains the `kani_version:` field as a sibling of `proof_file_hash:` and
+`verified_at_commit:`. The field form after historical recovery or re-run is:
+
+```yaml
+kani_version: "X.Y.Z"  # historical version at verified_at_commit 6e9f2cc; recovered from <source>
+```
+
+Or, if using the honest-unknown fallback:
+
+```yaml
+kani_version: "unknown (pre-LMR verification, <proof_completed_date>)"
 ```
 
 ### AC-161-005 (VP-024 FU-F6-KANI-CLEANUP resolved; verification_lock unchanged; LMR-001)
@@ -197,7 +222,7 @@ record the population event.
 1. The `proof_file_hash: null  # No canonical recomputation method defined...` line is replaced
    with the populated `proof_file_hash: "<64-char-hex>"` (no trailing comment).
 2. VP-024 `modified:` log gains a `v2.5` entry documenting: proof_file_hash populated per
-   mini-Merkle algorithm codified in VP-INDEX v2.37; kani_version field added; FU-F6-KANI-CLEANUP
+   mini-Merkle algorithm codified in VP-INDEX v2.38; kani_version field added; FU-F6-KANI-CLEANUP
    resolved per LMR-001; verification_lock remains true throughout (no unlock ceremony performed);
    no proof content changed.
 3. VP-024 version is bumped from `"2.4"` to `"2.5"`.
@@ -261,8 +286,13 @@ No Rust source files, no tests, no CI configuration.
 1. **Read VP-024 and VP-INDEX in their entirety.** Understand the existing proof structure,
    the `FU-F6-KANI-CLEANUP` comment, and the VP-INDEX catalog row for VP-024.
 
-2. **Verify current Kani version.** Fetch `github.com/model-checking/kani/releases` to find
-   the latest stable Kani release tag. Record the exact version string.
+2. **Recover historical Kani version at commit `6e9f2cc` (per LMR-002).** Check CI logs from
+   the verification run at commit `6e9f2cc`, `Cargo.lock` at that commit, and any toolchain
+   records present at `6e9f2cc`. If the historical version is unrecoverable, use the
+   honest-unknown fallback: `"unknown (pre-LMR verification, <proof_completed_date>)"`. Do
+   NOT record the currently-available GitHub release — that is FORBIDDEN per LMR-002. If a
+   full cargo-kani re-run is feasible, prefer that path and document the re-run in the
+   v2.5 modified log.
 
 3. **Add algorithm prose to VP-INDEX.** Under a new "Multi-File Proof Anchor Algorithm" section
    (near the Summary, before the catalog table), add:
@@ -270,7 +300,7 @@ No Rust source files, no tests, no CI configuration.
    - The Section-Scoping Rule (AC-161-002)
    - LF normalization rule
    - Detection coverage note
-   Bump VP-INDEX version to `"2.37"` and update the `modified:` field.
+   Bump VP-INDEX version to `"2.38"` and update the `modified:` field.
 
 4. **Compute proof_file_hash.** From the `6e9f2cc` checkout (arp.rs=fileA, decoder.rs=fileB
    per the normative module: field order):
@@ -333,7 +363,7 @@ or equivalent). No Rust toolchain changes.
 
 | File | Action | Notes |
 |------|--------|-------|
-| `.factory/specs/verification-properties/VP-INDEX.md` | Modify | Add "Multi-File Proof Anchor Algorithm" prose section; bump version 2.36→2.37 |
+| `.factory/specs/verification-properties/VP-INDEX.md` | Modify | Add "Multi-File Proof Anchor Algorithm" prose section; bump version 2.37→2.38 |
 | `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` | Modify | Populate proof_file_hash; add kani_version; bump version 2.4→2.5; add v2.5 modified log entry |
 | `CLAUDE.md` | Modify | Add "Two hash disciplines" note after Input Hash Computation section |
 
@@ -360,8 +390,11 @@ Well within context window. No story split required.
   fileB, per the VP-024 `module:` field (`src/analyzer/arp.rs + src/decoder.rs`, arp.rs listed
   first). The `module:` field order is normative (F-W72-P1-001). No implementer decision required;
   the v2.5 modified log records the algorithm reference, not an order choice.
-- **kani_version verification is mandatory.** The triage record says "~0.65.0" as an estimate.
-  The AC requires the exact version from the GitHub releases page. Do not guess.
+- **kani_version is the HISTORICAL version at commit `6e9f2cc` (LMR-002).** The triage record
+  noted "~0.65.0" as an estimate. The AC requires historical recovery (CI logs, Cargo.lock,
+  toolchain records at `6e9f2cc`). Recording the currently-available GitHub release is
+  FORBIDDEN per LMR-002. Use the honest-unknown fallback if unrecoverable; prefer a full
+  cargo-kani re-run if feasible (document in modified log).
 - **CLAUDE.md note is in scope for a governance-only story.** CLAUDE.md is a project guidance
   file, not a product file. The "Two hash disciplines" note is consistent with prior STORY-157
   and STORY-158 CLAUDE.md amendments.
@@ -370,5 +403,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-007 (HIGH) — LMR-002 alignment throughout: AC-161-004 rewritten (kani_version records HISTORICAL version at 6e9f2cc; historical recovery required; honest-unknown fallback if unrecoverable; current release FORBIDDEN; re-run always-preferred); Background kani_version bullet updated; Tasks item 2 updated for historical recovery; Notes kani_version note updated. VP-INDEX bump math updated throughout from 2.36→2.37 to 2.37→2.38 (AC-161-001, Tasks item 3, File Structure Requirements, AC-161-005 modified-log template). |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-001 (CRITICAL) — file-order canonicalized: arp.rs=fileA, decoder.rs=fileB per VP-024 module: field; AC-161-001 explicit statement added, AC-161-003 steps 1–6 reordered, EC-004 carve-out removed, EC-004 Notes updated. F-W72-P1-004 — LMR-001 adoption: AC-161-005 cites LMR-001 explicitly, no unlock ceremony language, lock stays true throughout; VP-INDEX required bump updated 2.35→2.36 → 2.36→2.37 (spec-steward commit b0248ba took v2.36); Tasks item 3 + File Structure Requirements updated. F-W72-P1-006 — kani_version comment wording: "re-lock 2026-07-08" → "population <implementation-date>"; Background + Notes "re-lock time" → "population time". Architecture Compliance Rules updated with LMR-001 citation. |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #252 follow-up: codify multi-file proof_file_hash mini-Merkle algorithm in VP-INDEX; populate VP-024 proof_file_hash + kani_version; resolve FU-F6-KANI-CLEANUP; add CLAUDE.md two-hash-disciplines note; wave-72 draft. |

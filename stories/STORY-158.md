@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -39,7 +39,7 @@ inputs:
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
-**Wave:** TBD
+**Wave:** 72
 **Points:** 3
 **Priority:** P3
 
@@ -112,7 +112,7 @@ VIOLATIONS=$(grep -rn "_for_testing(" src/ \
 There is no existence guard on `src/` before this grep. If `src/` is renamed or
 deleted, `grep` exits 2, `|| true` suppresses the error, `$VIOLATIONS` is empty,
 and the job falsely PASSes. The `help-provenance-gate` job (`.github/workflows/ci.yml`
-lines 290–296) has the correct SEC-001 pattern:
+lines 290–295) has the correct SEC-001 pattern:
 
 ```bash
 if ! test -f src/cli.rs; then
@@ -178,9 +178,9 @@ exclusions are explicit and must be documented in the CI job comment.
 
 ### AC-158-002 (traces to PG-W71-CHANGELOG — pr-manager guidance)
 `CLAUDE.md` is updated to add a standing obligation in the pr-manager or delivery
-guidance: "PRs that modify files under `src/` MUST include an `[Unreleased]`
-CHANGELOG entry (enforced by CI; AC-158-001)." The note must reference
-PG-W71-CHANGELOG and the AC-158-001 CI gate.
+guidance: "PRs that modify files under `src/`, `Cargo.toml`, or `bin/` MUST include
+an `[Unreleased]` CHANGELOG entry (enforced by CI; AC-158-001)." The note must
+reference PG-W71-CHANGELOG and the AC-158-001 CI gate.
 
 ### AC-158-003 (traces to PG-W71-CYCLE-ARTIFACT-IDENTITY — identity lint)
 A new `bin/lint-cycle-artifact` script (Python 3, stdlib only) or a validated
@@ -265,14 +265,14 @@ serves as the Red Gate.
 | EC-001 | PR modifies `src/` AND `CHANGELOG.md` | CHANGELOG gate: PASS |
 | EC-002 | PR modifies only `CHANGELOG.md` (no src/ change) | CHANGELOG gate: PASS (no src/ delta) |
 | EC-003 | PR modifies `src/` without `CHANGELOG.md` | CHANGELOG gate: FAIL with clear message |
-| EC-004 | PR modifies only docs/, .factory/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting) |
+| EC-004 | PR modifies only docs/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting; .factory/ lives on a separate orphan branch and never appears in a develop PR diff) |
 | EC-005 | Cycle artifact matches story ID + zero BC IDs cited (empty behavioral_contracts) | lint-cycle-artifact: PASS |
 | EC-006 | Cycle artifact cites BC ID not in story's behavioral_contracts | lint-cycle-artifact: FAIL with unmatched BC ID listed |
 | EC-007 | Cycle artifact references wrong story ID | lint-cycle-artifact: FAIL with expected vs. actual |
 | EC-008 | `src/` directory renamed or removed | trust-boundary: FAIL loudly (existence guard fires, exit 1) |
 | EC-009 | `_collect_rust_files` returns empty list | check-green-doc-tense: FAIL, exit non-zero, message directs to scan target |
 | EC-010 | `_collect_rust_files` returns non-empty list (normal operation) | check-green-doc-tense: behavior unchanged from pre-fix |
-| EC-011 | Wave gate closed without writing `code-review.md` | Violates AC-158-006 protocol requirement; future gates must write the artifact before declaring closed |
+| EC-011 | `code-review.md` written but EMPTY (no findings content) | Lint fails: empty artifact does not satisfy AC-158-006 (must enumerate all MINOR/NIT findings or state "No findings" explicitly) |
 
 ## Tasks
 
@@ -285,8 +285,9 @@ serves as the Red Gate.
    SHA-pin any new action refs per the Action pin gate policy.
 
 2. **CHANGELOG pr-manager guidance (AC-158-002):** Add a sentence to `CLAUDE.md` under
-   the delivery or pr-manager section: "PRs that modify files under `src/` MUST include
-   an `[Unreleased]` CHANGELOG entry (enforced by CI; AC-158-001, PG-W71-CHANGELOG)."
+   the delivery or pr-manager section: "PRs that modify files under `src/`, `Cargo.toml`,
+   or `bin/` MUST include an `[Unreleased]` CHANGELOG entry (enforced by CI; AC-158-001,
+   PG-W71-CHANGELOG)."
 
 3. **Cycle-artifact identity lint (AC-158-003):** Create `bin/lint-cycle-artifact`
    (Python 3, stdlib only). Accepts `--story <path>` and `--artifact <path>`. Reads
@@ -413,6 +414,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-005 (MEDIUM) — AC-158-002 and Task 2 updated to three-path trigger set (src/, Cargo.toml, bin/) matching AC-158-001. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. F-W72-P2-008 (LOW) — ci.yml line-range citation corrected 290–296 → 290–295. F-W72-P2-009 (LOW) — EC-011 rewritten from tautological gate-violation restatement to discriminating edge case: code-review.md written but EMPTY → lint fails. F-W72-P2-010 (LOW) — EC-004 drops .factory/ from excluded surfaces (lives on orphan branch, never appears in develop PR diff). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-005 (MEDIUM) — AC-158-003 BC-citation lint tightened: lint flags only BC IDs asserted as scope (artifact bcs: frontmatter or scope-assertion headers), NOT BC IDs in body prose; explicit "narrative context permitted" note added; Tasks item 3 updated with scoped-assertion semantics and third test case (prose-only BC does not trigger). F-W72-P1-007 (MEDIUM) — CHANGELOG-gate trigger broadened from src/-only to src/, Cargo.toml, bin/; explicit exclusion rationale for tests/, .github/, docs/ added to AC-158-001 and CI job comment requirement; EC-004 updated; Tasks item 1 updated. F-W72-P1-008 (LOW) — bash block in Background fixed: || true moved outside $() substitution to mirror .github/workflows/ci.yml:196 verbatim. |
 | 1.1 | 2026-07-08 | story-writer | Amendment (maint-2026-07-08, S-7.02 cycle-close codification) — add PG-W71-CODEREVIEW-ARTIFACT as fourth process gap: gate-level code-review output not persisted at wave-71 wave gate; MINOR finding text unrecoverable, finding re-keyed CR-W71-001 (canonical-ID collision resolution); adds AC-158-006 (CLAUDE.md gate-close code-review protocol); adds backlog-triage-maint-2026-07-08.md to inputs; input-hash updated; count updated three→four gaps throughout. Evidence: backlog-triage-maint-2026-07-08.md item 7 + pattern-findings.md PF-008. |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — wave-71 process-gap codifications: PG-W71-CHANGELOG (changelog gate AC-158-001/002), PG-W71-CYCLE-ARTIFACT-IDENTITY (lint tool AC-158-003), PG-W71-CI-SCAN-GUARDS (trust-boundary guard AC-158-004, check-green-doc-tense fix AC-158-005); S-7.02 wave-71 cycle-close. |

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -36,7 +36,7 @@ inputs:
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
-**Wave:** TBD
+**Wave:** 72
 **Points:** 3
 **Priority:** P3
 
@@ -89,8 +89,9 @@ Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 occurrences total across six
 `src/protocols.rs` (2) + `src/main.rs` (6) + `src/dispatcher.rs` (8) +
 `tests/protocols_tests.rs` (10) + `tests/dispatcher_tests.rs` (8) +
 `tests/integration_tests.rs` (4) = 38.
-Decision numbers cited in source: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 (all ten decisions
-from the factory ADR are referenced somewhere in the codebase).
+Decision numbers cited in source: 1, 2, 3, 4, 5, 6, 7, 9, 10 (nine of ten ADR-012
+decisions are referenced in the codebase; Decision 8 has no source citation yet —
+the public doc documents it for completeness).
 
 ### Factory ADR-012 Decisions Summary (authoritative content)
 
@@ -287,5 +288,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-002 (HIGH) — lines 92-93 corrected: nine of ten ADR-012 decisions referenced in source (not all ten); Decision 8 has no source citation; list updated to 1,2,3,4,5,6,7,9,10 with explanatory note. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fix: F-W72-P1-003 (HIGH) — ground-truth file inventory corrected from five to six files: added tests/integration_tests.rs (4 citations). Narrative updated ("six source and test files"); Background intro updated ("six source and test files"); NEW-001 table row added for tests/integration_tests.rs; full per-file count breakdown added (src/protocols.rs(2)+src/main.rs(6)+src/dispatcher.rs(8)+tests/protocols_tests.rs(10)+tests/dispatcher_tests.rs(8)+tests/integration_tests.rs(4)=38). AC-159-003 repo-wide grep left unchanged (already correct). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — maint-2026-07-08 NEW-001 follow-up: author public docs/adr/0012-protocols-catalog-and-coverage-gaps.md from factory ADR-012; add CLAUDE.md Project References row; verify all 38 inline ADR-012 citations resolve. |

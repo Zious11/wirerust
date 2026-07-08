@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -30,7 +30,7 @@ traces_to:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
-input-hash: "611c0bb"
+input-hash: "7e22ccb"
 inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
@@ -193,8 +193,10 @@ The scan command to find stale JSON string literals:
 grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' tests/ src/
 ```
 
-must return zero results in JSON-assertion contexts after the change. (Note: the strings are
-still valid Rust variant names — only JSON value assertions must be updated.)
+must return zero results in `assert_eq!` or `.contains()` argument slots after the change
+(i.e., positions where the string is an asserted expected JSON value, not a struct-field
+name or inline comment). Note: these strings remain valid Rust variant names — only JSON
+value assertions are targeted.
 
 ### AC-160-008 (CHANGELOG.md BREAKING CHANGE entry)
 
@@ -216,10 +218,17 @@ the v0.12.0 breaking JSON change and `feat` type used for prior JSON output addi
 
 ### AC-160-010 (BC-2.11.001 amended to v1.9 in the same PR)
 
-BC-2.11.001 is amended to v1.9 in the same PR as the production code changes:
+BC-2.11.001 is amended to v1.9 in the same PR as the production code changes. The v1.9
+amendment targets the **Description block**, **Postcondition 2**, and **Canonical Test
+Vector rows** — the three locations that enumerate the JSON envelope's top-level keys.
+**Invariant 1** governs `unwrap()` infallibility of `JsonReporter::render` and is
+explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count or names):
+
+- **Description block** is updated to list six top-level keys (adding `schema_version`).
 - **Postcondition 2** is updated from five to six top-level JSON keys, adding `schema_version`
   to the enumerated key list.
-- **Invariant 1** (JSON envelope shape) is updated to reflect six top-level keys.
+- **Canonical Test Vector rows** are updated to include `schema_version` in the expected
+  JSON envelope output.
 - A **modified-log entry** (`v1.9`) is appended resolving the v1.8 advisory pointer
   ("schema_version addition tracked; see BC-2.11.037 and STORY-160").
 
@@ -275,8 +284,9 @@ BC-2.11.001 is amended to v1.9 in the same PR as the production code changes:
    equivalent Value construction in `JsonReporter::render`. Pattern follows `MITRE_DOMAIN` and
    `MITRE_ATTACK_VERSION` (BC-2.11.001 Invariants 4 and 5).
 
-3. **Write BC-driven tests.** Author the nine unit tests named in the BC-2.11.036 and BC-2.11.037
-   VP tables. Place them in the appropriate module (likely `src/reporter/json.rs` tests block or
+3. **Write BC-driven tests.** Author the fourteen unit tests named in the BC-2.11.036 and
+   BC-2.11.037 VP tables (nine from BC-2.11.036 + five from BC-2.11.037). Place them in the
+   appropriate module (likely `src/reporter/json.rs` tests block or
    `tests/json_reporter_tests.rs`). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention if
    applicable.
 
@@ -291,10 +301,12 @@ BC-2.11.001 is amended to v1.9 in the same PR as the production code changes:
 7. **Open a `feat:` pull request** targeting `develop` with all file changes.
 
 8. **Amend BC-2.11.001 to v1.9 (AC-160-010):** In
-   `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md`, update Postcondition 2 and
-   Invariant 1 to enumerate six top-level JSON keys (adding `schema_version`). Append a v1.9
-   modified-log entry resolving the v1.8 advisory pointer. Include this file in the same PR.
-   After amending, recompute this story's input-hash with
+   `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md`, update the Description block,
+   Postcondition 2, and Canonical Test Vector rows to enumerate six top-level JSON keys
+   (adding `schema_version`). Do NOT amend Invariant 1 — it governs `unwrap()` infallibility
+   of `JsonReporter::render`, not key enumeration, and is explicitly out of scope. Append a
+   v1.9 modified-log entry resolving the v1.8 advisory pointer. Include this file in the
+   same PR. After amending, recompute this story's input-hash with
    `bin/compute-input-hash --write .factory/stories/STORY-160.md`.
 
 ## Previous Story Intelligence
@@ -333,7 +345,7 @@ Lessons from closest analogues:
 |------|--------|-------|
 | `src/findings.rs` | Modify | Add `#[serde(rename_all = ...)]` to three enum derive blocks |
 | `src/reporter/json.rs` | Modify | Add `SCHEMA_VERSION` constant; add `schema_version` to envelope |
-| Test file (new or existing) | Modify/Create | Nine BC-driven tests from AC-160-001 through AC-160-006 |
+| Test file (new or existing) | Modify/Create | Fourteen BC-driven tests from AC-160-001 through AC-160-006 (nine from BC-2.11.036 VP table + five from BC-2.11.037 VP table) |
 | `CHANGELOG.md` | Modify | v0.12.0 BREAKING CHANGE entry |
 
 ## Token Budget Estimate
@@ -343,7 +355,7 @@ Lessons from closest analogues:
 | Story spec (this file) | ~4 k |
 | `src/findings.rs` annotation changes (3 one-liners) | ~0.1 k |
 | `src/reporter/json.rs` constant + wiring | ~0.2 k |
-| Nine new unit tests | ~2 k |
+| Fourteen new unit tests (9 from BC-2.11.036 + 5 from BC-2.11.037) | ~2 k |
 | Existing test updates | ~0.5 k |
 | `CHANGELOG.md` entry | ~0.5 k |
 | **Total** | **~7.3 k** |
@@ -369,5 +381,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-001 (HIGH) — AC-160-010 rewritten: v1.9 amendment targets Description block + Postcondition 2 + Canonical Test Vector rows (not Invariant 1); Invariant 1 governs unwrap() infallibility and is explicitly OUT OF SCOPE; Task 8 updated to match. F-W72-P2-003 (MEDIUM) — "nine unit tests" corrected to "fourteen" in Task 3, Token Budget, and File Structure Requirements (BC-2.11.036 VP table has 9 rows + BC-2.11.037 has 5 = 14). F-W72-P2-011 (LOW) — AC-160-007 grep assertion tightened to assert_eq!/.contains() argument slots rather than vague "JSON-assertion contexts". |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-002 (HIGH) — add AC-160-010 (BC-2.11.001 amended to v1.9 in same PR: Postcondition 2 + Invariant 1 updated from five to six top-level keys, modified-log entry resolves v1.8 advisory pointer; implementer note to recompute input-hash after BC amendment); Task 8 added. F-W72-P1-009 (LOW) — rename test `terminal_display_unchanged_uppercase` → `terminal_display_unchanged` in AC-160-005 (ThreatCategory Display is PascalCase-derived, not "uppercase"). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #255 follow-up: JSON enum casing alignment (BC-2.11.036) + schema_version envelope (BC-2.11.037); wave-72 draft. |
