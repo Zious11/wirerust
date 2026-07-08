@@ -233,7 +233,7 @@ Detections emitted:
 CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
-- `--arp-storm-rate N` — frames/second per source MAC above which a storm finding is emitted (default: 50)
+- `--arp-storm-rate N` — frames/second per source MAC at or above which a storm finding is emitted (default: 50)
 
 JSON output counters (present in `arp_summary` when using `--json` / `--output-format json`):
 - `bindings_evicted` — count of IP→MAC binding-table LRU evictions (table cap: 65 536 entries); a
