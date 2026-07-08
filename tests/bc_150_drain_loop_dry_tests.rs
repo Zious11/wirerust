@@ -9,7 +9,7 @@
 //!
 //!   - `test_BC_150_001_..._parse_hs_call_not_duplicated`: expects exactly ONE
 //!     call to `parse_tls_message_handshake` in the function body (was 2 before
-//!     AC-150-001; unified to 1 by the shared dispatch abstraction).
+//!     AC-150-001; unified to 1 by the AC-150-001 inline dispatch site).
 //!   - `test_BC_150_001_..._msg_bytes_extraction_not_duplicated`: expects at most
 //!     ONE `let msg_bytes` extraction site (was 2 before AC-150-001).
 //!
@@ -207,10 +207,10 @@ mod story_150 {
 
     /// AC-150-001 (TLS-DRAIN-DUP-001): `process_handshake_carry` must contain
     /// exactly ONE call to `parse_tls_message_handshake` after the C2S/S2C dispatch
-    /// arms are unified via a shared abstraction.
+    /// arms were unified at the inline dispatch site (AC-150-001).
     ///
     /// RED GATE — FAILS before implementation (2 occurrences present; one per arm).
-    /// PASSES after AC-150-001 (shared abstraction has 1 call site).
+    /// PASSES after AC-150-001 (inline dispatch site has 1 call site).
     #[test]
     fn test_BC_150_001_process_handshake_carry_parse_hs_call_not_duplicated() {
         let source = read_tls_source();
@@ -234,8 +234,8 @@ mod story_150 {
     /// are unified.
     ///
     /// RED GATE — FAILS before implementation (2 occurrences present; one per arm).
-    /// PASSES after AC-150-001 (shared abstraction has at most 1 extraction site;
-    /// possibly 0 if the extraction is expressed differently inside the abstraction).
+    /// PASSES after AC-150-001 (inline dispatch site has at most 1 extraction site;
+    /// possibly 0 if the extraction is not needed at the inline dispatch site).
     #[test]
     fn test_BC_150_001_process_handshake_carry_msg_bytes_extraction_not_duplicated() {
         let source = read_tls_source();
@@ -393,7 +393,7 @@ mod story_150 {
     /// C2S ClientHello delivery sets `client_hello_seen` but must NOT set
     /// `server_hello_seen` or accumulate bytes in the server carry buffer.
     ///
-    /// Verifies that the refactored shared dispatch abstraction maintains strict
+    /// Verifies that the AC-150-001 inline dispatch site maintains strict
     /// direction isolation: the C2S arm must only affect C2S state.
     ///
     /// REGRESSION PIN — PASSES before and after AC-150-001 implementation.
@@ -415,7 +415,7 @@ mod story_150 {
             !analyzer.server_hello_seen_for_testing(&key),
             "BC-2.07.038 directional isolation regression pin: \
              C2S ClientHello delivery must NOT set server_hello_seen — \
-             the refactored shared dispatch abstraction must maintain strict \
+             the AC-150-001 inline dispatch site must maintain strict \
              per-direction flag assignment (STORY-150 AC-150-001)"
         );
         assert_eq!(
@@ -451,7 +451,7 @@ mod story_150 {
             "BC-2.07.038 directional isolation regression pin: \
              S2C ServerHello delivery must NOT set client_hello_seen — \
              strict per-direction flag assignment must be maintained by the \
-             shared dispatch abstraction (STORY-150 AC-150-001)"
+             AC-150-001 inline dispatch site (STORY-150 AC-150-001)"
         );
         assert_eq!(
             analyzer.client_hs_carry_len_for_testing(&key),
@@ -542,7 +542,7 @@ mod story_150 {
     /// arms must produce identical carry-accumulation and dispatch behavior
     /// modulo the direction-specific flag (`server_hello_seen` vs
     /// `client_hello_seen`). This is the key directional symmetry property that
-    /// AC-150-001's shared abstraction must preserve.
+    /// the AC-150-001 inline dispatch site must preserve.
     ///
     /// REGRESSION PIN — PASSES before and after AC-150-001 implementation.
     #[test]
@@ -606,8 +606,8 @@ mod story_150 {
     ///
     /// Before AC-150-001, the implementation duplicated
     /// `Ok(_) => self.parse_errors += 1` / `Err(_) => self.parse_errors += 1`
-    /// in both arms. After the DRY refactor, the shared abstraction applies the
-    /// same increment for both directions from a single call site.
+    /// in both arms. After the DRY refactor, the AC-150-001 inline dispatch site
+    /// applies the same increment for both directions from a single call site.
     ///
     /// Malformed payload: msg_type byte + body_len=5 + 5 bytes of 0xFF garbage.
     /// A ClientHello/ServerHello body of 5 bytes is far too short for the parser
@@ -662,7 +662,7 @@ mod story_150 {
              equivalent malformed messages in C2S (msg_type=0x01) and S2C \
              (msg_type=0x02) arms must produce the same parse_errors increment \
              ({c2s_errors} vs {s2c_errors}). After the DRY refactor, both arms \
-             must delegate error counting to the same shared abstraction \
+             must route through the same AC-150-001 inline dispatch site \
              (STORY-150 AC-150-001)."
         );
     }
