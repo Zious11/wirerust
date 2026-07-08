@@ -22,6 +22,12 @@
 | O-150-P5-001 | 5 | LOW | PARTIAL — see deferred | SS-5→SS-07 frontmatter anchor fixed; STORY-149 half deferred to wave-gate |
 | O-150-P5-002 | 5 | LOW | RESOLVED | ss-7/→ss-07/ path references corrected |
 | O-150-P5-001-STORY-149-HALF | 5 | - | DEFERRED [wave-gate] | SS-5 anchor in merged STORY-149 → wave-gate adjudication |
+| O-150-P6-001 | 6 | LOW | ACCEPTED-AS-IS | Tilde-approximated range convention interpretation — within ~ specification scope |
+| O-150-P6-002 | 6 | LOW | ACCEPTED-AS-IS | Tilde-approximated range convention interpretation — within ~ specification scope |
+| — | 7 | — | CLEAN | Zero findings; tilde acceptance re-assessed as sound |
+| O-150-P8-001 | 8 | LOW | DEFERRED [maintenance] | BC-2.07.004 L141 stale Evidence-Types code snippet post-STORY-149 → maintenance backlog |
+| O-150-P8-002 | 8 | LOW | DEFERRED [future-touch] | borrow-budget docstring static-vs-dynamic wording → future-touch doc clarification |
+| O-150-P8-003 | 8 | LOW | DEFERRED [accepted] | residual present-tense Primary-module prose → accepted historical anchor |
 
 ## Pass 1 Details
 
@@ -133,6 +139,70 @@ STORY-150 v1.6 — Wave header TBD resolved to wave-71.
 
 Streak reset to 0. Pass 6 dispatched.
 
+## Pass 6 Details
+
+**Date:** 2026-07-08
+**Verdict:** CLEAN
+**Classification:** NITPICK_ONLY
+**Head Reviewed:** 9b9010c
+**Part A Status:** 5/5 fixes FIX-CONFIRMED
+
+### Findings
+
+- O-150-P6-001 (LOW): Tilde-approximated range convention interpretation on acceptance criteria. Reviewed and confirmed within ~ specification scope.
+- O-150-P6-002 (LOW): Tilde-approximated range convention interpretation on acceptance criteria. Reviewed and confirmed within ~ specification scope.
+
+### Adjudication
+
+Both observations accepted as-is. Tilde approximation ranges conform to specification language and prior validation (wave-70 precedent).
+
+**Streak:** 1/3 required
+
+## Pass 7 Details
+
+**Date:** 2026-07-08
+**Verdict:** CLEAN
+**Classification:** CLEAN
+**Head Reviewed:** 9b9010c
+
+### Findings
+
+Zero findings. Tilde acceptance criterion re-assessed for soundness. No new observations raised.
+
+### Continuity
+
+Pass 7 confirms pass 6 adjudication. No findings introduced.
+
+**Streak:** 2/3 required
+
+## Pass 8 Details
+
+**Date:** 2026-07-08
+**Verdict:** CLEAN
+**Classification:** CLEAN
+**Head Reviewed:** 9b9010c
+
+### Novel-Angle Sweep
+
+- Caller integration paths
+- Borrow budget accounting
+- Panic propagation paths
+- Fixture authenticity validation
+
+All novel-angle sweeps clean.
+
+### Findings
+
+- O-150-P8-001 (LOW): BC-2.07.004 L141 carries stale Evidence-Types code snippet post-STORY-149 merge. Deferred to maintenance backlog (same class as O-150-P2-001 cross-story drift).
+- O-150-P8-002 (LOW): borrow-budget docstring contains ambiguous static-vs-dynamic wording. Deferred to future-touch doc clarification (low-risk documentation).
+- O-150-P8-003 (LOW): Primary-module section retains present-tense prose from prior iteration. Deferred as accepted historical anchor (factual narrative of implementation history).
+
+### Adjudication
+
+Three LOW observations. All deferred-class: maintenance backlog, future-touch, accepted historical. No substantive findings.
+
+**Streak:** 3/3 required → **CONVERGENCE CRITERION MET (BC-5.39.001)**
+
 ## Deferred Items (Updated)
 
 ### Process-Gap: E-11 Empty-BC-Array Convention
@@ -160,6 +230,33 @@ Streak reset to 0. Pass 6 dispatched.
 **Status:** DEFERRED — wave-gate adjudication required
 **Next Step:** Raise at wave-71 wave-gate. If approved, create a follow-up fix story or maintenance task targeting the anchor update.
 
+### Maintenance Backlog: Evidence-Types Code Snippet Refresh
+
+**Finding:** O-150-P8-001
+**Category:** Maintenance
+**Description:** BC-2.07.004 L141 carries stale Evidence-Types code snippet from pre-STORY-149. Reflects now-deprecated implementation path after TLS fragmented handshake refactor (STORY-149).
+**Affected Spec:** `.factory/specs/behavioral-contracts/BC-2.07.004.md`
+**Status:** Maintenance backlog (same class as O-150-P2-001)
+**Next Step:** Update Evidence-Types snippet during next maintenance sweep. Non-critical; does not affect current story correctness.
+
+### Future-Touch: Borrow-Budget Docstring Clarification
+
+**Finding:** O-150-P8-002
+**Category:** Documentation wording
+**Description:** borrow-budget docstring contains ambiguous wording distinguishing static vs dynamic aspects. Current text is not wrong, but could benefit from clarification on scope.
+**Affected Location:** STORY-150 docstring, borrow budget section
+**Status:** Deferred — low-risk future-touch
+**Next Step:** Review during next documentation touch. Non-blocking for convergence.
+
+### Accepted Historical Anchor: Primary-Module Prose
+
+**Finding:** O-150-P8-003
+**Category:** Accepted historical narrative
+**Description:** Primary-module section retains present-tense prose from earlier implementation iteration. Accurately reflects the historical path to current design. Accepted as legitimate narrative anchor.
+**Affected Location:** STORY-150 primary-module section header and narrative
+**Status:** Accepted as-is (historical narrative precedent from wave-70)
+**Rationale:** Present-tense prose documents implementation evolution; factual and non-misleading. No change required.
+
 ---
 
-**Convergence Status:** IN_PROGRESS. Streak reset at pass 5 (MEDIUM finding F-150-P5-001). Pass 6 dispatched. Streak: 0/3 required.
+**Convergence Status:** CONVERGED. Streak: 3/3 SATISFIED (passes 6-8 CLEAN). Convergence criterion BC-5.39.001 met 2026-07-08. Step 5 demo recording dispatched.

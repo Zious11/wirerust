@@ -78,9 +78,55 @@
       "deferred": [
         "O-150-P5-001-STORY-149-HALF: SS-5 anchor in merged STORY-149 → wave-gate adjudication"
       ]
+    },
+    {
+      "pass": 6,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "NITPICK_ONLY",
+      "part_a": "5/5 fixes FIX-CONFIRMED (F-150-P5-001, O-150-P5-001, O-150-P5-002)",
+      "findings": [
+        "O-150-P6-001 LOW tilde-approximated range convention interpretation (ACCEPTED-AS-IS)",
+        "O-150-P6-002 LOW tilde-approximated range convention interpretation (ACCEPTED-AS-IS)"
+      ],
+      "adjudication_note": "Two LOW observations on tilde-approximated range acceptance criteria. Both within ~ convention scope. Accepted as-is per specification language.",
+      "head_reviewed": "9b9010c",
+      "streak": 1
+    },
+    {
+      "pass": 7,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "CLEAN",
+      "findings": [],
+      "reassessment_note": "Tilde acceptance criterion re-assessed for soundness. No new findings. Continuity with pass 6 confirmed.",
+      "head_reviewed": "9b9010c",
+      "streak": 2
+    },
+    {
+      "pass": 8,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "classification": "CLEAN",
+      "novel_angle_sweep": "caller integration, borrow budget, panic paths, fixture authenticity",
+      "findings": [
+        "O-150-P8-001 LOW BC-2.07.004 L141 stale Evidence-Types code snippet post-STORY-149 (deferred, maintenance class)",
+        "O-150-P8-002 LOW borrow-budget docstring static-vs-dynamic wording (deferred, future-touch doc)",
+        "O-150-P8-003 LOW residual present-tense Primary-module prose (deferred, accepted historical anchor)"
+      ],
+      "deferred_summary": "Three LOW observations, all deferred-class. Same caliber as O-150-P2-001 and cross-story maintenance items.",
+      "head_reviewed": "9b9010c",
+      "streak": 3,
+      "deferred": [
+        "O-150-P8-001: BC-2.07.004 L141 stale Evidence-Types code snippet post-STORY-149 → maintenance backlog",
+        "O-150-P8-002: borrow-budget docstring static-vs-dynamic wording → future-touch doc clarification",
+        "O-150-P8-003: residual present-tense Primary-module prose → accepted historical anchor"
+      ]
     }
   ],
-  "passes_clean_streak": 0,
-  "status": "IN_PROGRESS",
-  "notes": "Pass 6 dispatched. Streak reset at pass 5 (MEDIUM finding F-150-P5-001). Calibration note: Pass 4 adversary applied stricter-than-standard threshold; standardized to CLEAN = no MEDIUM+."
+  "passes_clean_streak": 3,
+  "status": "CONVERGED",
+  "convergence_date": "2026-07-08",
+  "criterion_satisfied": "BC-5.39.001 — passes_clean_streak >= 3 AND last_classification == NITPICK_ONLY/CLEAN",
+  "notes": "Passes 6-8 CLEAN. Convergence criterion satisfied 2026-07-08. Step 5 demo recording dispatched. Deferred items: three LOW observations at pass 8 (maintenance class, future-touch, accepted historical). All remediation commits verified at head 9b9010c."
 }
