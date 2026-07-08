@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -164,7 +164,9 @@ gate-summary.md, making individual findings unrecoverable after the review sessi
 A CI job or step exists in `.github/workflows/ci.yml` that detects when a PR
 modifies at least one file under `src/`, `Cargo.toml`, or `bin/` without also
 modifying `CHANGELOG.md`, and fails with a human-readable message. The check MUST:
-(a) run on every push/PR against `develop`,
+(a) run on `pull_request` events against `develop`; push-to-develop events are
+    inherently no-op (origin/develop == HEAD on direct pushes to develop) and the
+    trigger MUST be restricted to `pull_request` only to avoid false signals,
 (b) emit a message naming the CHANGELOG obligation (reference PG-W71-CHANGELOG and
     this story's AC-158-001),
 (c) exit non-zero so the CI job is marked FAILED — not a warning.
@@ -188,14 +190,12 @@ extension to `validate-template-compliance` exists that accepts `--story <path>`
 and `--artifact <path>` and verifies:
 (a) the artifact's story ID reference matches the story's `story_id` frontmatter
     field,
-(b) any BC IDs **asserted as scope** in the artifact — meaning BC IDs that appear
-    in the artifact's own `bcs:` frontmatter field or in an explicit scope-assertion
-    header (e.g., "## Behavioral Contracts Under Test") — appear in the story's
+(b) any BC IDs in the artifact's own `bcs:` frontmatter field appear in the story's
     `behavioral_contracts` frontmatter list. References to BC IDs in artifact body
-    prose as narrative context (e.g., "this fixes a gap identified in BC-2.11.036")
-    are **NOT flagged** — only scoped assertions are checked. For stories with
-    `behavioral_contracts: []` the check passes only if the artifact asserts no BC
-    IDs as scope.
+    prose or section headers as narrative context (e.g., "this fixes a gap identified
+    in BC-2.11.036") are **NOT flagged** — only the `bcs:` frontmatter field is
+    checked. For stories with `behavioral_contracts: []` the check passes only if the
+    artifact's `bcs:` field is empty or absent.
 The tool MUST exit non-zero with a human-readable diff on any mismatch, and exit 0
 on a clean identity match. A self-test (`bin/test_lint_cycle_artifact.py`) MUST
 cover the mismatch case and the clean case.
@@ -265,14 +265,14 @@ serves as the Red Gate.
 | EC-001 | PR modifies `src/` AND `CHANGELOG.md` | CHANGELOG gate: PASS |
 | EC-002 | PR modifies only `CHANGELOG.md` (no src/ change) | CHANGELOG gate: PASS (no src/ delta) |
 | EC-003 | PR modifies `src/` without `CHANGELOG.md` | CHANGELOG gate: FAIL with clear message |
-| EC-004 | PR modifies only docs/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting; .factory/ lives on a separate orphan branch and never appears in a develop PR diff) |
+| EC-004 | PR modifies only docs/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting) |
 | EC-005 | Cycle artifact matches story ID + zero BC IDs cited (empty behavioral_contracts) | lint-cycle-artifact: PASS |
 | EC-006 | Cycle artifact cites BC ID not in story's behavioral_contracts | lint-cycle-artifact: FAIL with unmatched BC ID listed |
 | EC-007 | Cycle artifact references wrong story ID | lint-cycle-artifact: FAIL with expected vs. actual |
 | EC-008 | `src/` directory renamed or removed | trust-boundary: FAIL loudly (existence guard fires, exit 1) |
 | EC-009 | `_collect_rust_files` returns empty list | check-green-doc-tense: FAIL, exit non-zero, message directs to scan target |
 | EC-010 | `_collect_rust_files` returns non-empty list (normal operation) | check-green-doc-tense: behavior unchanged from pre-fix |
-| EC-011 | `code-review.md` written but EMPTY (no findings content) | Lint fails: empty artifact does not satisfy AC-158-006 (must enumerate all MINOR/NIT findings or state "No findings" explicitly) |
+| EC-011 | `code-review.md` written but EMPTY (no findings content) | Caught by adversarial reviewer per the CLAUDE.md rule (AC-158-006); NO automation exists to detect this — documentation-only control |
 
 ## Tasks
 
@@ -293,11 +293,12 @@ serves as the Red Gate.
    (Python 3, stdlib only). Accepts `--story <path>` and `--artifact <path>`. Reads
    `story_id` and `behavioral_contracts` from story YAML frontmatter. Checks artifact
    for: (a) story ID reference match; (b) BC IDs in the artifact's `bcs:` frontmatter
-   field or scope-assertion headers — NOT BC IDs in body prose, which are permitted as
-   narrative context. Exits 1 on any scoped-assertion mismatch with a human-readable
-   diff. Create `bin/test_lint_cycle_artifact.py` with at least two test cases: clean
-   identity (exit 0) and fabricated scoped BC ID (exit 1). Include a third case
-   confirming that a BC ID appearing only in body prose does NOT trigger a failure.
+   field ONLY — NOT BC IDs in body prose or section headers, which are permitted as
+   narrative context. Exits 1 on any mismatch with a human-readable diff. Create
+   `bin/test_lint_cycle_artifact.py` with at least two test cases: clean identity
+   (exit 0) and fabricated `bcs:` frontmatter BC ID (exit 1). Include a third case
+   confirming that a BC ID appearing only in body prose or a section header does NOT
+   trigger a failure.
 
 4. **Trust-boundary src/ guard (AC-158-004):** In `.github/workflows/ci.yml` under the
    `trust-boundary` job's `run:` block, prepend the SEC-001-style existence guard:
@@ -414,6 +415,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.4 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-002 (MEDIUM) — EC-011 narrowed: no automation detects empty code-review.md; caught by adversarial reviewer per CLAUDE.md rule only (documentation-only control). F-W72-P3-004 (LOW) — AC-158-001(a) restricted to pull_request trigger only; push-to-develop events are inherently no-op (origin/develop == HEAD) and must not be included. F-W72-P3-006 (LOW) — AC-158-003 and Task 3: scope-asserted BC IDs are ONLY those in artifact bcs: frontmatter field; open-ended scope-assertion header path dropped throughout. F-W72-P3-009 (LOW) — EC-004 Expected Behavior parenthetical trimmed to match the three described surfaces; .factory/ mention removed entirely. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-005 (MEDIUM) — AC-158-002 and Task 2 updated to three-path trigger set (src/, Cargo.toml, bin/) matching AC-158-001. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. F-W72-P2-008 (LOW) — ci.yml line-range citation corrected 290–296 → 290–295. F-W72-P2-009 (LOW) — EC-011 rewritten from tautological gate-violation restatement to discriminating edge case: code-review.md written but EMPTY → lint fails. F-W72-P2-010 (LOW) — EC-004 drops .factory/ from excluded surfaces (lives on orphan branch, never appears in develop PR diff). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-005 (MEDIUM) — AC-158-003 BC-citation lint tightened: lint flags only BC IDs asserted as scope (artifact bcs: frontmatter or scope-assertion headers), NOT BC IDs in body prose; explicit "narrative context permitted" note added; Tasks item 3 updated with scoped-assertion semantics and third test case (prose-only BC does not trigger). F-W72-P1-007 (MEDIUM) — CHANGELOG-gate trigger broadened from src/-only to src/, Cargo.toml, bin/; explicit exclusion rationale for tests/, .github/, docs/ added to AC-158-001 and CI job comment requirement; EC-004 updated; Tasks item 1 updated. F-W72-P1-008 (LOW) — bash block in Background fixed: || true moved outside $() substitution to mirror .github/workflows/ci.yml:196 verbatim. |
 | 1.1 | 2026-07-08 | story-writer | Amendment (maint-2026-07-08, S-7.02 cycle-close codification) — add PG-W71-CODEREVIEW-ARTIFACT as fourth process gap: gate-level code-review output not persisted at wave-71 wave gate; MINOR finding text unrecoverable, finding re-keyed CR-W71-001 (canonical-ID collision resolution); adds AC-158-006 (CLAUDE.md gate-close code-review protocol); adds backlog-triage-maint-2026-07-08.md to inputs; input-hash updated; count updated three→four gaps throughout. Evidence: backlog-triage-maint-2026-07-08.md item 7 + pattern-findings.md PF-008. |

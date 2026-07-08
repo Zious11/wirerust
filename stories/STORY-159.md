@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -45,10 +45,12 @@ inputs:
 - **As a** contributor or maintainer reading wirerust source code
 - **I want** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` to exist with a full
   account of the ten design decisions it documents
-- **So that** any of the 38 inline `ADR-012 Decision N` citations found across
-  `src/protocols.rs`, `src/dispatcher.rs`, `src/main.rs`, `tests/protocols_tests.rs`,
+- **So that** any of the 38 ADR-012 citations found across `src/protocols.rs`,
+  `src/dispatcher.rs`, `src/main.rs`, `tests/protocols_tests.rs`,
   `tests/dispatcher_tests.rs`, and `tests/integration_tests.rs` can be resolved by a
-  reader without access to the factory specification layer
+  reader without access to the factory specification layer (37 use the canonical
+  `ADR-012 Decision N` form; one uses the abbreviated `ADR-012 Dec 10` form at
+  `tests/integration_tests.rs:1166`)
 
 ## Behavioral Contracts
 
@@ -57,8 +59,9 @@ _(none — E-11 convention: no BCs authored yet; status: draft, pending PO autho
 ## Background
 
 Maintenance sweep `maint-2026-07-08` (finding NEW-001, HIGH) identified that ADR-012 is
-cited 38 times across six source and test files but no corresponding public document
-exists in `docs/adr/`. The `docs/adr/` directory contains `0001`–`0007`, `0009`–`0011`;
+cited 38 times across six source and test files (37 using the `ADR-012 Decision N` form;
+one using the abbreviated `ADR-012 Dec 10` form at `tests/integration_tests.rs:1166`)
+but no corresponding public document exists in `docs/adr/`. The `docs/adr/` directory contains `0001`–`0007`, `0009`–`0011`;
 ADR-012 is the current missing entry (ADR-008 was intentionally skipped in sequence).
 
 The authoritative factory-side record is
@@ -83,12 +86,14 @@ Representative inline citations from the six affected files:
 | `src/dispatcher.rs` | ~44 | `(ADR-012 Decision 6)` |
 | `src/dispatcher.rs` | ~98 | `(ADR-012 Decision 6 Clarification)` |
 | `src/main.rs` | ~195 | `(ADR-012 Decision 9)` |
-| `tests/integration_tests.rs` | various | `(ADR-012 Decision N)` — 4 occurrences |
+| `tests/integration_tests.rs` | various | 3 `ADR-012 Decision N` + 1 `ADR-012 Dec 10` (line ~1166) = 4 occurrences |
 
 Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 occurrences total across six files:
 `src/protocols.rs` (2) + `src/main.rs` (6) + `src/dispatcher.rs` (8) +
 `tests/protocols_tests.rs` (10) + `tests/dispatcher_tests.rs` (8) +
 `tests/integration_tests.rs` (4) = 38.
+Of these 38, 37 use the exact form `ADR-012 Decision N` and one uses the abbreviated
+form `ADR-012 Dec 10` at `tests/integration_tests.rs:1166`.
 Decision numbers cited in source: 1, 2, 3, 4, 5, 6, 7, 9, 10 (nine of ten ADR-012
 decisions are referenced in the codebase; Decision 8 has no source citation yet —
 the public doc documents it for completeness).
@@ -142,19 +147,26 @@ must exit 0.
 
 ### AC-159-003 (all 38 inline source citations resolvable)
 
-Every decision number referenced in the source files (`ADR-012 Decision N` where
-`N` ∈ {1..10}) resolves to a section in the authored public doc. Verification:
+Every decision number referenced in the source files resolves to a section in the
+authored public doc. The grep covers both citation forms: the canonical
+`ADR-012 Decision N` form (37 occurrences) and the abbreviated `ADR-012 Dec 10` form
+at `tests/integration_tests.rs:1166` (1 occurrence). Verification:
 
 ```bash
-# Extract unique decision numbers cited in source
-CITED=$(grep -roh "ADR-012 Decision [0-9]*" src/ tests/ \
-  | grep -oP '\d+$' | sort -nu)
+# Extract unique decision numbers cited in source (both Decision and Dec forms)
+CITED=$(grep -roh -E "ADR-012 (Decision|Dec) [0-9]+" src/ tests/ \
+  | grep -oE "(Decision|Dec) [0-9]+" | awk '{print $2}' | sort -nu)
 # Verify each is in the public doc
 for n in $CITED; do
   grep -q "Decision $n" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
     || { echo "UNRESOLVED: Decision $n"; exit 1; }
 done
 echo "All cited decisions resolvable"
+
+# Post-normalization check: after Task 3 runs, the abbreviated Dec form must return zero
+REMAINING=$(grep -roh -E "ADR-012 Dec [0-9]+" src/ tests/ | wc -l | tr -d ' ')
+[ "$REMAINING" -eq 0 ] || { echo "FAIL: $REMAINING abbreviated ADR-012 Dec form(s) remain"; exit 1; }
+echo "Abbreviated Dec form count: 0 (normalized)"
 ```
 
 ### AC-159-004 (CLAUDE.md Project References row added)
@@ -211,15 +223,23 @@ No production Rust source files are modified. No tests are added or changed.
    summarize relevant architecture-level consequences inline within each decision
    rather than as a standalone Consequences section.
 
-3. **Run the AC-159-002 and AC-159-003 verification scripts** and fix any missing
+3. **Normalize `tests/integration_tests.rs:1166`**: change the inline comment from
+   `ADR-012 Dec 10` to `ADR-012 Decision 10`. This is a one-word source cleanup to
+   enforce uniform citation form across the codebase. After the edit, the
+   AC-159-003 post-normalization check (`grep -roh -E "ADR-012 Dec [0-9]+"`) must
+   return zero. `tests/integration_tests.rs` is a touched file for this story.
+
+4. **Run the AC-159-002 and AC-159-003 verification scripts** and fix any missing
    sections before proceeding.
 
-4. **Update `CLAUDE.md`** Project References table: append
+5. **Update `CLAUDE.md`** Project References table: append
    `, 0012 protocols catalog and coverage-gaps system` to the `docs/adr/` row
    description (inside the existing parenthesized list, after `0011 TLS handshake
    reassembly`).
 
-5. **Open a `docs:` pull request** targeting `develop` with both file changes.
+6. **Open a `docs:` pull request** targeting `develop` with all three file changes
+   (`docs/adr/0012-protocols-catalog-and-coverage-gaps.md`, `CLAUDE.md`,
+   `tests/integration_tests.rs`).
 
 ## Previous Story Intelligence
 
@@ -236,8 +256,9 @@ Lessons from closest analogues:
 ## Architecture Compliance Rules
 
 - This story modifies ONLY: `docs/adr/0012-protocols-catalog-and-coverage-gaps.md`
-  (create) and `CLAUDE.md` (one-line amendment). No Rust source, no tests,
-  no CI configuration.
+  (create), `CLAUDE.md` (one-line amendment), and `tests/integration_tests.rs`
+  (one comment line normalization — `ADR-012 Dec 10` → `ADR-012 Decision 10` at
+  line ~1166). No production Rust logic, no CI configuration.
 - The public ADR content is derived from the factory ADR-012 — do not invent or
   paraphrase decisions. Transcribe accurately, then strip internal IDs.
 - ADR-012 sequence number (0012) follows 0011. ADR-008 was intentionally skipped;
@@ -253,6 +274,7 @@ None. Markdown authoring only; no third-party tools required beyond a text edito
 |------|--------|-------|
 | `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` | Create | From factory ADR-012; internal IDs stripped; ten decisions + Decision 6 Clarification |
 | `CLAUDE.md` | Modify | Append `, 0012 protocols catalog and coverage-gaps system` to `docs/adr/` row |
+| `tests/integration_tests.rs` | Modify | Normalize one comment line: `ADR-012 Dec 10` → `ADR-012 Decision 10` (line ~1166) |
 
 ## Token Budget Estimate
 
@@ -288,6 +310,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-001 (MEDIUM) — 37+1 citation precision: Narrative, Background intro, NEW-001 table row (integration_tests.rs: 3 Decision-N + 1 Dec-10 = 4), and sweep paragraph updated to reflect 37 canonical + 1 abbreviated form. New Task 3: normalize tests/integration_tests.rs:1166 comment (ADR-012 Dec 10 → ADR-012 Decision 10). Architecture Compliance Rules and File Structure Requirements updated to include tests/integration_tests.rs. F-W72-P3-008 (LOW) — AC-159-003 portability: grep broadened to -E "ADR-012 (Decision\|Dec) [0-9]+" with POSIX extraction (grep -oE + awk); post-normalization Dec-form zero-check added. |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-002 (HIGH) — lines 92-93 corrected: nine of ten ADR-012 decisions referenced in source (not all ten); Decision 8 has no source citation; list updated to 1,2,3,4,5,6,7,9,10 with explanatory note. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fix: F-W72-P1-003 (HIGH) — ground-truth file inventory corrected from five to six files: added tests/integration_tests.rs (4 citations). Narrative updated ("six source and test files"); Background intro updated ("six source and test files"); NEW-001 table row added for tests/integration_tests.rs; full per-file count breakdown added (src/protocols.rs(2)+src/main.rs(6)+src/dispatcher.rs(8)+tests/protocols_tests.rs(10)+tests/dispatcher_tests.rs(8)+tests/integration_tests.rs(4)=38). AC-159-003 repo-wide grep left unchanged (already correct). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — maint-2026-07-08 NEW-001 follow-up: author public docs/adr/0012-protocols-catalog-and-coverage-gaps.md from factory ADR-012; add CLAUDE.md Project References row; verify all 38 inline ADR-012 citations resolve. |

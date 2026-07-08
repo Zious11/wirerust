@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -183,14 +183,16 @@ test_BC_2_11_036_csv_category_unchanged              — pass
 
 ### AC-160-007 (Existing JSON-asserting tests updated)
 
-Any existing test in `tests/` or `src/` that asserts exact JSON enum string values (`"Likely"`,
-`"High"`, `"LateralMovement"`, etc.) is updated to the new lowercase/snake_case forms. The test
-suite passes with `cargo test --all-targets` after the change.
+Any existing test in `tests/reporter_json_tests.rs` or `src/reporter/json.rs` that asserts
+exact JSON enum string values (`"Likely"`, `"High"`, `"LateralMovement"`, etc.) is updated
+to the new lowercase/snake_case forms. The test suite passes with `cargo test --all-targets`
+after the change.
 
-The scan command to find stale JSON string literals:
+The scan command to find stale JSON string literals (scoped to the two files that contain
+JSON value assertions):
 
 ```bash
-grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' tests/ src/
+grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' tests/reporter_json_tests.rs src/reporter/json.rs
 ```
 
 must return zero results in `assert_eq!` or `.contains()` argument slots after the change
@@ -229,8 +231,10 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
   to the enumerated key list.
 - **Canonical Test Vector rows** are updated to include `schema_version` in the expected
   JSON envelope output.
-- A **modified-log entry** (`v1.9`) is appended resolving the v1.8 advisory pointer
-  ("schema_version addition tracked; see BC-2.11.037 and STORY-160").
+- A **modified-log entry** (`v1.9`) is appended that: (1) resolves the v1.8 advisory pointer
+  and (2) includes corrective note: "v1.8 misidentified Invariant 1 as key-enumerating;
+  Invariant 1 governs `unwrap()` infallibility; correct amendment scope: Description +
+  Postcondition 2 + Canonical Test Vectors."
 
 > **Note for implementer:** STORY-160's `input-hash:` field in story frontmatter is computed
 > from the BC-2.11.001 content at story-draft time (v1.8). After amending BC-2.11.001 to v1.9
@@ -275,6 +279,9 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
    - `#[serde(rename_all = "lowercase")]` to the `Confidence` derive attribute group
    - `#[serde(rename_all = "snake_case")]` to the `ThreatCategory` derive attribute group
    Do NOT modify `impl fmt::Display` for any of the three enums.
+   The `#[non_exhaustive]` attribute on all three enums is orthogonal to `serde(rename_all)` —
+   the attribute affects match exhaustiveness for downstream crates; `rename_all` affects only
+   the `Serialize` output.
 
 2. **Add SCHEMA_VERSION constant to json.rs.** In `src/reporter/json.rs`, add:
    ```rust
@@ -305,8 +312,10 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
    Postcondition 2, and Canonical Test Vector rows to enumerate six top-level JSON keys
    (adding `schema_version`). Do NOT amend Invariant 1 — it governs `unwrap()` infallibility
    of `JsonReporter::render`, not key enumeration, and is explicitly out of scope. Append a
-   v1.9 modified-log entry resolving the v1.8 advisory pointer. Include this file in the
-   same PR. After amending, recompute this story's input-hash with
+   v1.9 modified-log entry that: (1) resolves the v1.8 advisory pointer and (2) includes
+   corrective note: "v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs
+   `unwrap()` infallibility; correct amendment scope: Description + Postcondition 2 +
+   Canonical Test Vectors." Include this file in the same PR. After amending, recompute this story's input-hash with
    `bin/compute-input-hash --write .factory/stories/STORY-160.md`.
 
 ## Previous Story Intelligence
@@ -381,6 +390,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-010 (LOW) — Task 1: added note that #[non_exhaustive] on all three enums is orthogonal to serde(rename_all); attribute affects match exhaustiveness, not Serialize output. F-W72-P3-005 (MEDIUM) — AC-160-007: grep scope restricted from tests/ src/ to two named files (tests/reporter_json_tests.rs src/reporter/json.rs); surrounding prose updated to match. F-W72-P3-007 (MEDIUM) — AC-160-010 modified-log bullet and Task 8: added corrective note ("v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs unwrap() infallibility; correct amendment scope: Description + Postcondition 2 + Canonical Test Vectors"). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-001 (HIGH) — AC-160-010 rewritten: v1.9 amendment targets Description block + Postcondition 2 + Canonical Test Vector rows (not Invariant 1); Invariant 1 governs unwrap() infallibility and is explicitly OUT OF SCOPE; Task 8 updated to match. F-W72-P2-003 (MEDIUM) — "nine unit tests" corrected to "fourteen" in Task 3, Token Budget, and File Structure Requirements (BC-2.11.036 VP table has 9 rows + BC-2.11.037 has 5 = 14). F-W72-P2-011 (LOW) — AC-160-007 grep assertion tightened to assert_eq!/.contains() argument slots rather than vague "JSON-assertion contexts". |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-002 (HIGH) — add AC-160-010 (BC-2.11.001 amended to v1.9 in same PR: Postcondition 2 + Invariant 1 updated from five to six top-level keys, modified-log entry resolves v1.8 advisory pointer; implementer note to recompute input-hash after BC amendment); Task 8 added. F-W72-P1-009 (LOW) — rename test `terminal_display_unchanged_uppercase` → `terminal_display_unchanged` in AC-160-005 (ThreatCategory Display is PascalCase-derived, not "uppercase"). |
 | 1.0 | 2026-07-08 | story-writer | Initial authorship — triage-2026-07-08 #255 follow-up: JSON enum casing alignment (BC-2.11.036) + schema_version envelope (BC-2.11.037); wave-72 draft. |
