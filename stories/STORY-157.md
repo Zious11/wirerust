@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-157
 epic_id: E-11
-version: "1.3"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-07-07T00:00:00Z
@@ -11,6 +11,10 @@ level: feature
 cycle: wave-70-story-149
 points: 5
 priority: P3
+# v1.7 (2026-07-08): Pass-2 remediation F-157-P2-001/002/003 — hash chain note rewritten (no "current" claims), DF-PR-MANAGER-COMPLETE-001 converted to last-extended/version/derived-from convention (v2), CLASSIFIER-001 CLEAN note simplified; re-hash 7d287cc→4ca0ad4.
+# v1.6 (2026-07-08): Input re-hash 9f2eb1e→7d287cc after policies.yaml amendments for Pass-1 remediation F-157-P1-002/003 (DF-PR-MANAGER-COMPLETE-001 HALT terminal state + DF-MERGE-AUTH-CLASSIFIER-001 cross-ref).
+# v1.5 (2026-07-08): Pass-1 remediation F-157-P1-001 — Notes input-hash stale/hallucinated value corrected: v1.2 canonical 357bca5, v1.4 re-hash 9f2eb1e explicitly named.
+# v1.4 (2026-07-08): Input re-hash after policies.yaml amendments (DF-ADVERSARY-CHECKOUT-GUARD-002 + DF-MERGE-AUTH-CLASSIFIER-001 added per AC-157-001/007 implementation); no scope impact.
 # v1.3 (2026-07-07): Sibling fix — body Wave header synced to frontmatter wave 71 (wave-TBD drift class, scheduling-burst propagation gap).
 # v1.2 (2026-07-07): input-hash gate (wave-71 planning): declared spec inputs (policies.yaml,
 #   wave-70 gate-summary); canonical hash 357bca5 computed. Folded PG-HASH-HOOK-DIVERGENCE and
@@ -38,7 +42,7 @@ traces_to:
   - .factory/STATE.md
   - bin/compute-input-hash
   - bin/test_compute_input_hash.py
-input-hash: "357bca5"
+input-hash: "4ca0ad4"
 inputs:
   - .factory/policies.yaml
   - .factory/cycles/wave-70-story-149/wave-gate/gate-summary.md
@@ -399,12 +403,15 @@ Well within the 20–30% context-window threshold. No story split required.
 - No behavioral contract required: E-11 convention (epics.md E-11: "BCs: none
   authored yet — status: draft; pending PO authorship").
 - input-hash note: v1.2 declares real spec inputs (policies.yaml, wave-70 gate-summary);
-  canonical Python hash `f401b29` is stored. The plugin bash hook computes a divergent
-  value (`4a47ab6`) due to PG-HASH-HOOK-DIVERGENCE (trailing-newline stripping); this
-  is the documented false-positive that AC-157-009 addresses. The original `d41d8cd`
-  placeholder (MD5 of empty string) was stored at v1.0/v1.1 when `inputs: []` was used;
-  AC-157-003 will fix the scanner to handle `inputs: []` without error for other E-11
-  stories that legitimately have no spec inputs.
+  canonical Python hash chain: `357bca5` (v1.2 initial declared-inputs hash) → `9f2eb1e`
+  (v1.4 re-hash after AC-157-001/007 policy additions) → `7d287cc` (v1.6 re-hash after
+  Pass-1 remediation F-157-P1-002/003 policy amendments). The frontmatter input-hash field
+  is always the authoritative current value. The plugin bash hook computed a divergent value
+  (`4a47ab6`) against the v1.2 hash due to PG-HASH-HOOK-DIVERGENCE (trailing-newline
+  stripping); this is the documented false-positive that AC-157-009 addresses. The original
+  `d41d8cd` placeholder (MD5 of empty string) was stored at v1.0/v1.1 when `inputs: []`
+  was used; AC-157-003 will fix the scanner to handle `inputs: []` without error for other
+  E-11 stories that legitimately have no spec inputs.
 - Precedent: STORY-147 (PG-MUTANTS-JOBS-001, 2026-07-01) and STORY-155
   (PG-INDEX-DRIFT-001, 2026-07-05) — same E-11 pattern: cycle process-gap follow-up
   encoding lessons into project workflow/tooling/docs.
@@ -413,6 +420,10 @@ Well within the 20–30% context-window threshold. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.7 | 2026-07-08 | state-manager | Pass-2 remediation F-157-P2-001/002/003 — Notes hash chain rewritten as version-of-origin chain (no "current" claims); DF-PR-MANAGER-COMPLETE-001 converted to last-extended/version/derived-from amendment convention (v2); CLASSIFIER-001 CLEAN note simplified to "CLEAN is stricter than NITPICK_ONLY; both are in the allowed set"; re-hash 7d287cc→4ca0ad4 after policies.yaml amendments. |
+| 1.6 | 2026-07-08 | state-manager | Input re-hash 9f2eb1e→7d287cc after policies.yaml amendments for Pass-1 remediation F-157-P1-002/003 (DF-PR-MANAGER-COMPLETE-001 HALT terminal state + DF-MERGE-AUTH-CLASSIFIER-001 CLEAN/NITPICK_ONLY + cross-ref); no scope impact. |
+| 1.5 | 2026-07-08 | state-manager | Pass-1 remediation F-157-P1-001 — Notes input-hash hallucinated value corrected to v1.2 canonical `357bca5` and v1.4 re-hash `9f2eb1e` explicitly named; no scope impact. |
+| 1.4 | 2026-07-08 | state-manager | Input re-hash after policies.yaml amendments (DF-ADVERSARY-CHECKOUT-GUARD-002 + DF-MERGE-AUTH-CLASSIFIER-001 added per AC-157-001/007 implementation); no scope impact. |
 | 1.3 | 2026-07-07 | state-manager | Sibling fix — body Wave header synced to frontmatter wave 71 (wave-TBD drift class, scheduling-burst propagation gap); corrected Task step 5 stale E-11 story list: split into wave-TBD (STORY-091/121/143/147/155) and wave-71 (STORY-150/157). |
 | 1.2 | 2026-07-07 | story-writer | Input-hash gate (wave-71 planning) — declared spec inputs (policies.yaml, wave-70 gate-summary); canonical hash 357bca5 computed. Folded PG-HASH-HOOK-DIVERGENCE and PG-HASH-INLINE-COMMENT into PG-HASH codification scope: AC-157-009/010 added. |
 | 1.1 | 2026-07-07 | story-writer | Human decision (pipeline resume) — fold wave-70 retrospective open question into scope: PG-W70-MERGE-AUTH merge-authorization procedure codification added as fourth item. Points raised 3→5. |

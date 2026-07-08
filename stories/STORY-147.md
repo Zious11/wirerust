@@ -1,4 +1,5 @@
 ---
+document_type: story
 id: STORY-147
 title: "Harden Mutation-Testing Defaults: mutants.toml Low-Parallelism + CLAUDE.md Guidance"
 epic: E-11
@@ -6,7 +7,7 @@ wave: "~"
 points: 3
 status: draft
 depends_on: []
-input-hash: TBD
+input-hash: d41d8cd
 inputs: []
 ---
 
@@ -89,3 +90,7 @@ AC-147-004: A self-audit confirms that after this story ships, a developer runni
   tooling/docs.
 - S-7.02 disposition: this story's creation at draft status closes the
   PG-MUTANTS-JOBS-001 open item in STATE.md for S-7.02 cycle-close purposes.
+
+## Changelog
+
+- 2026-07-08 (state-manager): Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash).

@@ -240,8 +240,13 @@ policies:
       pr-manager MUST NOT terminate its dispatch after receiving an
       APPROVE verdict from pr-reviewer (or a third-party reviewer agent
       it spawned, e.g., zclaude:security-reviewer). The dispatch ends
-      ONLY after the merge commit SHA is confirmed on develop AND the
-      worktree branch is deleted both locally and remotely.
+      ONLY after one of two terminal states: (a) the merge commit SHA is
+      confirmed on develop AND the worktree branch is deleted both locally
+      and remotely; OR (b) pr-manager executes a HALT-to-human per
+      DF-MERGE-AUTH-CLASSIFIER-001 — a surfaced HALT naming the specific
+      unmet authorization condition is a valid terminal state for the
+      step-8 dispatch. In the HALT case the HALT message IS the reportable
+      step-8 outcome; no merge SHA is required.
 
       Concrete completion criteria (ALL required before reporting back):
 
@@ -307,7 +312,14 @@ policies:
       should be escalated as agent-prompt-defect bugs to the
       vsdd-factory plugin maintainer.
     added: "2026-05-26"
-    derived-from: W9.L3 (closed during codification)
+    last-extended: "2026-07-08"
+    version: v2
+    derived-from: >
+      W9.L3 (closed during codification); extended v2 2026-07-08 (STORY-157
+      F-157-P1-003: added HALT-to-human as alternative terminal state for
+      the step-8 dispatch per DF-MERGE-AUTH-CLASSIFIER-001; a surfaced HALT
+      naming the specific unmet authorization condition is a valid dispatch
+      completion; no merge SHA required in the HALT case)
 
   - id: DF-AC-TEST-NAME-SYNC-001
     name: ac-test-name-sync
@@ -1443,3 +1455,180 @@ policies:
       this repo's policies.yaml (different codebase). This policies.yaml
       entry is the in-repo enforcement registration; the engine-repo prompt
       update is a separate engine follow-up.
+
+  - id: DF-ADVERSARY-CHECKOUT-GUARD-002
+    name: adversary-dispatch-structural-attestation-preamble
+    description: >
+      Adversary dispatch MUST structurally enforce the checkout-guard
+      attestation preamble as Phase A of a two-phase dispatch pattern.
+      Phase A (attestation) is a mandatory prerequisite gate — no findings
+      output may appear until Phase A attestation output is confirmed.
+      Phase B (findings) begins only after Phase A completes.
+
+      Two-phase dispatch structure:
+
+      Phase A — Attestation (MUST precede any findings):
+        1. Run and report the checkout-guard components from
+           DF-ADVERSARY-CHECKOUT-GUARD-001 (branch assertion, grep-count
+           assertion, .factory artifact path verification).
+        2. Confirm the develop freshness attestation per
+           DF-DEVELOP-FRESHNESS-001 (reporting develop at SHA <sha>).
+        3. The Phase A output MUST appear as the opening block of the
+           adversary's first reply, before any findings section or
+           analysis paragraph.
+
+      Phase B — Findings (ONLY after Phase A attestation confirmed):
+        1. Begin per-AC/per-finding analysis after the Phase A block.
+        2. Reference the Phase A attestation results in the methodology
+           section of the findings report.
+
+      Orchestrator VOID instruction:
+        - A findings report that LACKS Phase A attestation output in its
+          opening block MUST be treated as VOID — not triaged, not
+          remediated, not counted toward the 3-pass convergence criterion.
+        - The orchestrator MUST void the report and re-dispatch the
+          adversary with explicit feedback: "Phase A attestation is MISSING
+          from your report — provide it before any findings in your next
+          reply."
+        - A voided pass does NOT count toward the convergence criterion
+          (BC-5.39.001 3-clean-pass requirement). This removes the
+          incentive to skip attestation under time pressure.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - adversary
+      - dispatch-templates
+    rationale: >
+      PG-S149-001 evidence (STORY-149 wave-70 adversarial convergence,
+      2026-07-07): the adversary agent omitted the mandatory checkout-guard
+      attestation block in 4 of the 8 per-story passes, requiring
+      retroactive orchestrator requests each time.
+      DF-ADVERSARY-CHECKOUT-GUARD-001 mandates the attestation in prose but
+      does not structurally prevent findings output from appearing before
+      attestation is confirmed. The two-phase dispatch pattern (Phase A gate
+      → Phase B findings) structurally prevents this by making attestation a
+      required output before findings are admissible. VOID treatment of
+      non-compliant reports (rather than triage) removes the incentive to
+      skip attestation under time pressure, since a voided pass is a
+      zero-progress outcome.
+    enforcement: >
+      Orchestrator dispatch templates MUST restructure the adversary prompt
+      to explicitly label the two phases: "## Phase A — Attestation
+      (MANDATORY FIRST — no findings until this section is complete)" and
+      "## Phase B — Findings (begin ONLY after Phase A)". The orchestrator
+      MUST inspect the first reply for a Phase A block before reading any
+      findings. If Phase A is absent, the orchestrator MUST SendMessage a
+      correction: "Your report lacks Phase A attestation. This pass is VOID.
+      Provide Phase A attestation before any findings in your next reply."
+      The voided pass MUST NOT be counted in the convergence tracker.
+      Persistent omissions SHOULD be escalated as an agent-prompt defect.
+    added: "2026-07-08"
+    version: v1
+    derived-from: >
+      PG-S149-001 (STORY-149 wave-70, 4 of 8 adversarial passes missing
+      attestation preamble; retroactive orchestrator requests; codified
+      2026-07-08 as STORY-157 AC-157-001). Extends
+      DF-ADVERSARY-CHECKOUT-GUARD-001 with structural two-phase dispatch
+      enforcement and VOID treatment for non-compliant reports.
+
+  - id: DF-MERGE-AUTH-CLASSIFIER-001
+    name: merge-authorization-wave-level-classifier
+    description: >
+      Codifies the PG-W70-MERGE-AUTH merge-authorization decision classifier
+      under DF-PR-MANAGER-COMPLETE-001 clause (b). Defines the conditions
+      under which orchestrator-executed PR merges are authorized without
+      per-PR human authorization, and the conditions that require fresh
+      per-PR human authorization regardless of wave-level grants.
+
+      Clause (b) SUFFICIENCY — wave-level authorization applies when ALL
+      of the following are true for the story PR:
+        1. Human has explicitly granted wave-level merge authorization at
+           the wave gate (a specific human merge-authorization grant —
+           NOT merely wave-schedule approval, and NOT an orchestrator-issued
+           AUTHORIZE_MERGE=yes flag which is not a human grant).
+        2. Per-story adversarial convergence: CONVERGED verdict with
+           passes_clean >= 3 AND last_classification in {"CLEAN",
+           "NITPICK_ONLY"} (BC-5.39.001), confirmed in the convergence
+           state file. CLEAN is stricter than NITPICK_ONLY; both are in
+           the allowed set.
+        3. pr-reviewer APPROVE verdict received (step 5 of pr-manager
+           9-step cycle).
+        4. Security review clean: no open HIGH or CRITICAL findings from
+           security-reviewer.
+        5. CI green: all checks pass on the feature branch HEAD at the
+           time of merge.
+        6. Dependency order respected: all stories in this story's
+           `depends_on` frontmatter field are already merged to develop
+           (verified via `git log --oneline origin/develop`).
+
+      FRESH PER-PR HUMAN AUTHORIZATION REQUIRED when ANY of the following
+      occur, even within a wave with existing wave-level authorization:
+        1. Unexpected CI failure: any test, lint, or build check fails on
+           the feature branch HEAD at merge time.
+        2. Blocking findings: the pr-reviewer or security-reviewer returns
+           HIGH or CRITICAL findings not marked resolved in the convergence
+           state file.
+        3. Scope change: the story diff materially deviates from the AC
+           scope (new functions, changed behavioral semantics, or added
+           dependencies outside the story's FSR).
+        4. Wave-level authorization absent: no explicit human wave-level
+           grant exists for this wave. Orchestrator-issued AUTHORIZE_MERGE=yes
+           flags are NOT human grants and do not satisfy this condition.
+
+      Communication pattern (step-8 mandate):
+        - All conditions met: pr-manager step-8 executes the merge
+          autonomously and reports: "Merged under wave-level authorization
+          (DF-MERGE-AUTH-CLASSIFIER-001 clause (b) satisfied)."
+        - Any blocking condition triggered: pr-manager step-8 MUST HALT
+          and surface the specific condition to the human, naming which
+          condition failed and requesting human authorization before
+          proceeding. pr-manager MUST NOT default to autonomous merge under
+          orchestrator pressure.
+
+      Concrete precedent (D-401, 2026-07-08):
+        The 2026-07-08 auto-mode classifier denied an orchestrator-issued
+        AUTHORIZE_MERGE=yes because no explicit human wave-level grant
+        existed. Resolution required an explicit human wave-level grant at
+        the wave gate. This is the canonical evidence that human wave-level
+        authorization must be a direct human action, not an
+        orchestrator-internal flag.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - pr-manager
+    rationale: >
+      PG-W70-MERGE-AUTH (2026-07-07 pipeline resume retrospective): the
+      boundary between clause (b) wave-level authorization and per-PR
+      human authorization under DF-PR-MANAGER-COMPLETE-001 was never
+      formally codified. Wave-70 PR merges were executed under orchestrator
+      AUTHORIZE_MERGE=yes without an explicit human wave-level grant,
+      creating retrospective ambiguity about authorization scope. The
+      2026-07-08 human decision (D-401) resolved the open question: wave-70
+      merges were correctly executed, and the classifier must be codified
+      to prevent future ambiguity. The six sufficiency conditions and four
+      fresh-authorization triggers are mechanically evaluable by the
+      orchestrator without human interpretation.
+    enforcement: >
+      Orchestrator MUST inject this policy into every pr-manager dispatch
+      under a "## Merge Authorization Classifier (MANDATORY per
+      DF-MERGE-AUTH-CLASSIFIER-001)" heading. The injection MUST list the
+      six clause (b) conditions and require pr-manager to evaluate each
+      before executing step-8. If any fresh-per-PR-authorization trigger
+      is present, pr-manager MUST halt and surface it explicitly — the
+      orchestrator MUST NOT override this halt without explicit human
+      authorization. pr-manager step-8 completion report MUST state which
+      authorization path was taken (wave-level or per-PR human) and cite
+      this policy ID. A HALT per this policy is a valid terminal state for
+      the step-8 dispatch per DF-PR-MANAGER-COMPLETE-001 (amended
+      2026-07-08) — the HALT message naming the specific unmet condition
+      satisfies the COMPLETE-001 completion criterion for that dispatch.
+    added: "2026-07-08"
+    version: v1
+    derived-from: >
+      PG-W70-MERGE-AUTH (2026-07-07 pipeline resume: wave-70 merge
+      authorization scope ambiguous; human decision D-401 2026-07-08;
+      STORY-157 AC-157-007). Complements DF-PR-MANAGER-COMPLETE-001
+      (merge execution steps) by defining the authorization decision
+      classifier for step-8.

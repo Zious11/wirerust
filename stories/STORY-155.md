@@ -1,4 +1,5 @@
 ---
+document_type: story
 id: STORY-155
 title: "Auto-update STORY-INDEX status draft→merged on story PR merge"
 epic: E-11
@@ -6,7 +7,7 @@ wave: "~"
 points: 3
 status: draft
 depends_on: []
-input-hash: TBD
+input-hash: d41d8cd
 inputs: []
 ---
 
@@ -94,3 +95,7 @@ AC-155-003: The post-merge STORY-INDEX update is idempotent: applying it to an
   PG-INDEX-DRIFT-001 process gap for S-7.02 E-21 cycle-close purposes.
 - No behavioral contract required: E-11 convention (see epics.md E-11 note:
   "BCs: none authored yet — status: draft; pending PO authorship").
+
+## Changelog
+
+- 2026-07-08 (state-manager): Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash).

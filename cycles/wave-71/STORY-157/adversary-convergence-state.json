@@ -1,0 +1,205 @@
+{
+  "story": "STORY-157",
+  "cycle": "wave-71",
+  "convergence_criterion": "BC-5.39.001 (streak >= 3 consecutive CLEAN passes)",
+  "status": "CONVERGED",
+  "converged_at": "2026-07-08",
+  "passes_clean_streak": 3,
+  "passes": [
+    {
+      "pass": 1,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "head_reviewed": "2927c02",
+      "findings": [
+        {
+          "id": "F-157-P1-001",
+          "severity": "MED",
+          "summary": "Notes section contained hallucinated hash f401b29 — not present in any commit on develop",
+          "disposition": "REMEDIATED",
+          "remediation": "STORY-157 v1.5/v1.6 — hash corrected to actual value"
+        },
+        {
+          "id": "F-157-P1-002",
+          "severity": "MED",
+          "summary": "NITPICK_ONLY equality in classifier excluded CLEAN verdict path; CLEAN was unreachable for passes with only nitpicks",
+          "disposition": "REMEDIATED",
+          "remediation": "policies.yaml CLASSIFIER-001 amendment — NITPICK_ONLY branch added"
+        },
+        {
+          "id": "F-157-P1-003",
+          "severity": "MED",
+          "summary": "COMPLETE-001 / CLASSIFIER-001 had a terminal-state gap: policy did not define the convergence exit condition",
+          "disposition": "REMEDIATED",
+          "remediation": "COMPLETE-001 v2 terminal-state section added; CLASSIFIER-001 cross-reference updated"
+        }
+      ]
+    },
+    {
+      "pass": 2,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "head_reviewed": "2927c02",
+      "findings": [
+        {
+          "id": "F-157-P2-001",
+          "severity": "MED",
+          "summary": "\"(current frontmatter)\" staleness recurrence — placeholder text persisted in STORY-157 frontmatter after v1.6 edit",
+          "disposition": "REMEDIATED",
+          "remediation": "STORY-157 v1.7 — placeholder replaced with live values"
+        },
+        {
+          "id": "F-157-P2-002",
+          "severity": "LOW",
+          "summary": "Amendment-field convention not followed: policies.yaml amendment entries lacked required amendment_date / amendment_reason fields",
+          "disposition": "REMEDIATED",
+          "remediation": "policies.yaml amendment fields standardized per convention"
+        },
+        {
+          "id": "F-157-P2-003",
+          "severity": "LOW",
+          "summary": "A-fortiori wording in COMPLETE-001 was ambiguous — 'even stronger' qualifier read as adding a new condition rather than clarifying the existing one",
+          "disposition": "REMEDIATED",
+          "remediation": "COMPLETE-001 v2 wording clarified; hash updated to 4ca0ad4"
+        }
+      ]
+    },
+    {
+      "pass": 3,
+      "date": "2026-07-08",
+      "verdict": "NOT-CLEAN",
+      "head_reviewed": "2927c02",
+      "findings": [
+        {
+          "id": "F-157-P3-001",
+          "severity": "MED",
+          "summary": "Stale RED banner in compute-input-hash self-test file per DF-GREEN-DOC-TENSE-SWEEP — file still described a failing assertion that was already fixed",
+          "disposition": "REMEDIATED",
+          "remediation": "Commit e023e79 — banner updated to GREEN, doc tense corrected"
+        },
+        {
+          "id": "F-157-P3-002",
+          "severity": "LOW",
+          "summary": "Docstring coverage: 3 of 9 public functions lacked docstrings in compute-input-hash module",
+          "disposition": "REMEDIATED",
+          "remediation": "Commit e023e79 — docstrings added to all 9 public functions"
+        }
+      ],
+      "observations_accepted": [
+        {
+          "id": "OBS-001",
+          "summary": "Historical clause narrative in COMPLETE-001 was clear and useful; no change needed",
+          "disposition": "ACCEPTED"
+        },
+        {
+          "id": "OBS-002",
+          "summary": "Chain ergonomics in compute-input-hash could be improved; deferred to maintenance backlog",
+          "disposition": "ACCEPTED"
+        }
+      ]
+    },
+    {
+      "pass": 4,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "head_reviewed": "e023e79",
+      "streak_after": 1,
+      "findings": [
+        {
+          "id": "F-157-P4-OBS-001",
+          "severity": "LOW",
+          "summary": "CLAUDE.md historical clause cross-references inconsistent casing",
+          "disposition": "REMEDIATED",
+          "remediation": "Commit 70d99ad — CLAUDE.md refs normalized + Python 3.10+ floor added"
+        },
+        {
+          "id": "F-157-P4-OBS-003",
+          "severity": "LOW",
+          "summary": "CLAUDE.md missing explicit Python 3.10+ minimum version floor for compute-input-hash",
+          "disposition": "REMEDIATED",
+          "remediation": "Commit 70d99ad — Python 3.10+ floor documented"
+        },
+        {
+          "id": "F-157-P4-OBS-002",
+          "severity": "LOW",
+          "summary": "DF-INPUT-HASH-CANONICAL-001 cross-reference extension desirable in CLAUDE.md",
+          "disposition": "DEFERRED",
+          "deferred_to": "maintenance backlog",
+          "deferred_id": "F-157-P4-OBS-002"
+        },
+        {
+          "id": "F-157-P4-NITPICK-001",
+          "severity": "NITPICK",
+          "summary": "--write flag touches MATCH files unnecessarily (pre-existing behavior, not introduced by STORY-157)",
+          "disposition": "DEFERRED",
+          "deferred_to": "maintenance backlog",
+          "deferred_id": "F-157-P4-NITPICK-001"
+        }
+      ]
+    },
+    {
+      "pass": 5,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "head_reviewed": "70d99ad",
+      "streak_after": 2,
+      "findings": [],
+      "note": "Zero findings at any severity level"
+    },
+    {
+      "pass": 6,
+      "date": "2026-07-08",
+      "verdict": "CLEAN",
+      "head_reviewed": "70d99ad",
+      "streak_after": 3,
+      "findings": [
+        {
+          "id": "F-157-P6-OBS-001",
+          "severity": "LOW",
+          "summary": "Cross-half doc window: STORY-157 references a file outside its delivery scope by one commit",
+          "disposition": "ACCEPTED",
+          "note": "Existing convention; no action required"
+        },
+        {
+          "id": "F-157-P6-OBS-002",
+          "severity": "LOW",
+          "summary": "FSR row site drift — minor field ordering inconsistency across FSR table rows",
+          "disposition": "ACCEPTED",
+          "note": "Within AC-157-002 latitude"
+        },
+        {
+          "id": "F-157-P6-OBS-003",
+          "severity": "NITPICK",
+          "summary": "Token-budget weight for compute-input-hash slightly underweight relative to module complexity",
+          "disposition": "ACCEPTED",
+          "note": "Cosmetic; no action required"
+        },
+        {
+          "id": "F-157-P6-OBS-004",
+          "severity": "LOW",
+          "summary": "sed path-depth in demo-evidence scrub-gate example may not generalize to deeply nested paths on Linux",
+          "disposition": "DEFERRED",
+          "deferred_to": "maintenance backlog",
+          "deferred_id": "F-157-P6-OBS-004"
+        },
+        {
+          "id": "F-157-P6-OBS-005",
+          "severity": "LOW",
+          "summary": "macOS specificity in scrub-gate example: uses BSD sed syntax not portable to GNU sed",
+          "disposition": "DEFERRED",
+          "deferred_to": "maintenance backlog",
+          "deferred_id": "F-157-P6-OBS-005"
+        },
+        {
+          "id": "F-157-P6-OBS-006",
+          "severity": "LOW",
+          "summary": "exec-namespace __name__ defensive seeding absent in compute-input-hash module",
+          "disposition": "DEFERRED",
+          "deferred_to": "maintenance backlog",
+          "deferred_id": "F-157-P6-OBS-006",
+          "note": "Out of scope for STORY-157 delivery"
+        }
+      ]
+    }
+  ]
+}

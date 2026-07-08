@@ -1,4 +1,5 @@
 ---
+document_type: story
 id: STORY-143
 title: "Harden Release Changelog Step: Full Prev-Tag..HEAD Range Enumeration"
 epic: E-11
@@ -6,7 +7,7 @@ wave: "~"
 points: 3
 status: draft
 depends_on: []
-input-hash: TBD
+input-hash: d41d8cd
 inputs: []
 ---
 
@@ -74,3 +75,7 @@ AC-143-004: The story includes a self-audit confirming that the correction PRs #
 - Source lesson: cycles/feature-enip-v0.11.0/lessons.md §
   RELEASE-CHANGELOG-FULL-RANGE-001 (D-301, 2026-06-29).
 - Related policy being proposed: DF-RELEASE-CHANGELOG-RANGE-001.
+
+## Changelog
+
+- 2026-07-08 (state-manager): Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash).

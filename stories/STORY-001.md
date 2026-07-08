@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-001"
 epic_id: "E-1"
-version: "1.6"
+version: "1.7"
 status: completed
 producer: story-writer
 timestamp: 2026-06-19T00:00:00Z
@@ -17,7 +17,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.007.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.008.md
   - .factory/specs/prd.md
-input-hash: "a0e2946"
+input-hash: "4ae9f11"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: []
@@ -206,6 +206,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.7 | 2026-07-08 | state-manager | Input-hash recomputed after PG-HASH-INLINE-COMMENT tool fix, wave 71 STORY-157; no scope impact. |
 | 1.6 | 2026-06-19 | story-writer | F2 pcapng-reader-support re-anchor: BC-2.01.004 retired (superseded by BC-2.01.009). `inputs:` entry annotated as retired (file retained per append-only-numbering policy). `bcs:` entry annotated as retired/STORY-123-inverted. Body BC table row struck through with RETIRED annotation. AC-006 annotated with behavioral inversion note (STORY-123 inverts rejection → acceptance; test must be updated). EC-003 struck through with STORY-123/BC-2.01.009 inversion note. Historical truth preserved: STORY-001 delivered rejection as specified; STORY-123 owns the acceptance behavior. |
 | 1.4 | 2026-05-28 | story-writer | DF-16.A propagation: BC-2.01.001 re-anchored capability CAP-01→CAP-02 (v1.6). No body text references CAP numbers; change is BC-internal. input-hash bumped a1dc7b8→9d26ee7 to reflect BC-2.01.001 v1.6 content. DF-SIBLING-SWEEP-001: grep confirmed no CAP-01 occurrence in story body. |
 | 1.5 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `9d26ee7` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `2ac856f`. |
