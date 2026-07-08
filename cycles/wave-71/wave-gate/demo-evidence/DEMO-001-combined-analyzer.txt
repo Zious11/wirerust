@@ -1,0 +1,89 @@
+=== DEMO-001: Combined Analyzer Run (Wave-71 integration) ===
+
+--- Command 1: TLS analyzer (STORY-150 post-drain-loop) ---
+$ ./target/release/wirerust analyze tests/fixtures/tls13-rfc8446.pcap --tls
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 13  Bytes: 3926  Hosts: 2
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 13
+
+SERVICES
+────────────────────────────────────────
+  TLS: 13
+
+ANALYZER: TCP Reassembly
+────────────────────────────────────────
+  Packets analyzed: 13
+  bytes_reassembled: 3068
+  dropped_findings: 0
+  evictions: 0
+  flows_completed: 0
+  flows_expired: 0
+  flows_fin: 0
+  flows_partial: 2
+  flows_rst: 0
+  flows_total: 2
+  packets_processed: 13
+  packets_skipped_non_tcp: 0
+  segments_depth_exceeded: 0
+  segments_duplicates: 0
+  segments_inserted: 13
+  segments_out_of_window: 0
+  segments_overlaps: 0
+  segments_segment_limit: 0
+  unclassified_flows: 0
+
+ANALYZER: TLS
+────────────────────────────────────────
+  Packets analyzed: 2
+  buffer_saturation_drops: 0
+  cipher_suites: {"TLS_AES_128_GCM_SHA256":2}
+  dropped_map_entries: 0
+  handshake_reassembly_overflows: 0
+  ja3_hashes: {"25bd5fc6fcc031c1c87f93613e0252ce":1,"7ed44a80eb19c620609c3b5cbc2eafd0":1}
+  ja3s_hashes: {"2b0648ab686ee45e0e7c35fcfb0eea7e":1,"eb1d94daa7e0344597e756a1fb6e7054":1}
+  parse_errors: 0
+  tls_versions: {"771":4}
+  top_snis: []
+  truncated_records: 0
+
+
+
+--- Command 2: ARP analyzer (STORY-156 BC-2.16.016 coverage) ---
+$ ./target/release/wirerust analyze tests/fixtures/local-samples/arp-storm.pcap --arp --arp-storm-rate 5
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 0  Bytes: 0  Hosts: 0
+
+PROTOCOLS
+────────────────────────────────────────
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] POSSIBLE (MEDIUM) - D3: ARP storm detected — high ARP frame rate from source MAC 00:07:0D:AF:F4:54
+    > source_mac=00:07:0D:AF:F4:54
+    > frame_count=5
+    > window_secs=0
+    > rate_pps=5
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 622
+  bindings_evicted: 0
+  bindings_tracked: 9
+  frames_analyzed: 622
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 622
+  spoof_findings: 0
+  storm_counters_evicted: 0
+  storm_findings: 1
+
+

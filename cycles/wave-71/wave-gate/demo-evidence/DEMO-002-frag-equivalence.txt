@@ -1,0 +1,25 @@
+=== DEMO-002: Fragmented ClientHello Equivalence (Wave-71 behavior-preservation claim) ===
+
+--- Fragmented ClientHello (2 TLS records) ---
+$ ./target/release/wirerust analyze .factory/demo-evidence/fix-tls-clienthello-frag/tls-clienthello-fragmented.pcap --tls --json 2>/dev/null | jq ...
+{
+  "ja3": {
+    "6169fabc98e3e6c9690301eaf306d632": 1
+  },
+  "sni": [
+    "example.com"
+  ]
+}
+
+--- Control ClientHello (1 TLS record) ---
+$ ./target/release/wirerust analyze .factory/demo-evidence/fix-tls-clienthello-frag/tls-clienthello-control.pcap --tls --json 2>/dev/null | jq ...
+{
+  "ja3": {
+    "6169fabc98e3e6c9690301eaf306d632": 1
+  },
+  "sni": [
+    "example.com"
+  ]
+}
+
+=== EQUIVALENCE: identical ja3 hash 6169fabc98e3e6c9690301eaf306d632 and sni example.com ===

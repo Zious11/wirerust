@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-23T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: fix-pc-013-014-015
 modified:
   - "v1.1 (2026-07-07): Location citation corrected to delivered test placement; wave 71, STORY-156 delivery. Also converted three src/reassembly/mod.rs line-number anchors to ::MAX_FINDINGS symbol anchor (TD-031, required to unblock Write)."
+  - "v1.2 (2026-07-08): Traceability Stories backfilled to STORY-156 post-delivery (GAP-W71-002, wave-71 consistency audit)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -149,7 +150,7 @@ in `tests/bc_2_16_016_arp_tests.rs` (commit eca21e9).
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per capabilities.md §CAP-16 — the unbounded findings output is a fundamental characteristic of the ARP Security Analysis capability's forensic design; documenting and contractually specifying this behavior is a direct property of how the ARP analyzer exposes its security findings to operators |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::process_arp); BC-2.16.015 (link-layer bypass of reassembly); BC-2.16.006 (binding table cap — distinct from findings cap) |
-| Stories | (none yet — new BC authored for fix-pc-013-014-015; story decomposition TBD) |
+| Stories | STORY-156 (wave 71, PR #378, merged 2026-07-08) |
 | Feature | fix-pc-013-014-015 (PC-015 spec/doc fix) |
 | MITRE Techniques | (none — design-invariant BC; no finding emission) |
 

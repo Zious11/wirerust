@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -41,7 +41,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.011.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "9794871"
+input-hash: "e01cc3d"
 ---
 
 # STORY-113: ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D
@@ -63,7 +63,7 @@ input-hash: "9794871"
 | BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 HW/Proto Address Sizes Emit LOW Finding |
 | BC-2.16.010 v1.9 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (13 Keys) — PRIMARY OWNER |
 | BC-2.16.011 | --arp CLI Flag Gates ARP Security Analysis |
-| BC-2.16.016 v1.0 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
+| BC-2.16.016 v1.2 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
 
 ## Scope Boundary: D1 Deferred to STORY-114
 
@@ -372,6 +372,7 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 
 ## Changelog
 
+- v1.6: Input re-hash after BC-2.16.016 v1.2 Traceability backfill, wave-71 gate; no scope impact.
 - v1.5: Input re-hash after anchor-only BC amendment BC-2.16.016 v1.1, wave 71; no scope impact.
 - v1.4: BC-2.16.010 v1.9 propagation (silent-limit audit) — update BC table annotation v1.8→v1.9; "eleven keys"→"thirteen keys" throughout body, AC-013, EC-012, Architecture Compliance Rule 5, Task 1, Task 9; add bindings_evicted and storm_counters_evicted to key list in AC-013 and Task 1; rename test to test_BC_2_16_010_summarize_zero_frames_all_thirteen_keys_zero.
 - v1.3: fix-pc-013-014-015 BC propagation — ADD BC-2.16.016 v1.0 (ARP Findings Output is Unbounded) to frontmatter `bcs:`, inputs list, body BC table, and AC-022. Sync BC-2.16.010 table annotation to v1.8. Token budget updated: 7 BCs → 8 BCs (~33k total). Input-hash will be recomputed after BC file additions.

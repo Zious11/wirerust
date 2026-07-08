@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-08T15:16:40Z","command":"cargo test --all-targets 2>&1"}
+{"status":"pass","timestamp":"2026-07-08T16:05:22Z","command":"cargo test --all-targets 2>&1 | grep \"^test result\" | grep -oE '[0-9]+ passed' | awk '{sum += $1} END {print sum}'"}

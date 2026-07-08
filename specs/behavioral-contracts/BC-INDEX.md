@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.19"
+version: "2.20"
 status: draft
 producer: product-owner
-timestamp: 2026-07-06T00:00:00Z
+timestamp: 2026-07-08T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 346 entries (337 prior + 9 new BCs for feature-protocol-coverage-F2: BC-2.05.010..011, BC-2.12.022..024, BC-2.18.001..004; BC-2.01.004 retired). Active count: 345.
+>
+> **v2.20 2026-07-08 (wave-71 consistency audit — GAP-W71-001/002: BC-INDEX row annotations + BC-2.16.016 Traceability backfill; spec-only, no code change):**
+> Wave-71 consistency audit gap remediation. GAP-W71-001: BC-INDEX row annotations — BC-2.07.004 v1.5 row comment added (AC-150-006 symbol-anchor sweep, wave 71, 2026-07-07); BC-2.07.028 v1.4→v1.5 row comment updated (same sweep); BC-2.16.016 v1.2 row comment added (v1.1 TD-031 location fix 2026-07-07 + v1.2 Traceability backfill 2026-07-08). GAP-W71-002: BC-2.16.016 v1.1→v1.2 — Traceability Stories row backfilled to "STORY-156 (wave 71, PR #378, merged 2026-07-08)"; modified log entry added. No BC count change (346 on disk; 345 active). No PRD change. Input-hashes for STORY-156 and STORY-113 rebaselined (both declare BC-2.16.016.md as input).
 >
 > **v2.19 2026-07-06 (silent-limit audit — Amendment 5: DNP3 observability counters; spec-only, no code change):**
 > Silent-limit audit DNP3 observability amendment. BC-2.15.022 v1.4→v1.5: PC-5 added — when MAX_FINDINGS cap fires (`all_findings.len() >= MAX_FINDINGS = 10,000`), `Dnp3Analyzer.dropped_findings: u64` increments by 1; counter monotonically non-decreasing; surfaced in `summarize()` as detail key `"dropped_findings"` (BC-2.15.020 PC-1); no Finding emitted; Invariant 5 added (counter-only, cap behavior unchanged); EC-005 added (50 cap events); canonical test vectors updated; Related BCs adds BC-2.15.020 dependency; Architecture Anchor for `dropped_findings` field added; Description updated. BC-2.15.016 v2.0→v2.1: PC-6 amended — new master address silently ignored at MAX_MASTER_ADDRS=64 cap now increments `Dnp3Analyzer.master_addrs_dropped: u64` by 1; PC-10 amended — LRU eviction from `pending_requests` at MAX_PENDING_REQUESTS=256 now increments `Dnp3Analyzer.pending_requests_evicted: u64` by 1; both counters monotonically non-decreasing and surfaced in `summarize()` (BC-2.15.020 PC-1) as detail keys `"master_addrs_dropped"` / `"pending_requests_evicted"`; no Finding emitted for either event; Invariant 2 updated to note `master_addrs_dropped` for observability; Invariant 5 updated to note `pending_requests_evicted` for observability; EC-005 and EC-008 updated to note counter increments; EC-011 added (65 distinct masters → `master_addrs_dropped=1`); EC-012 added (300 unique Control requests → `pending_requests_evicted=44`); Architecture Anchors for both new fields added; Related BCs adds BC-2.15.020 dependency; Purity Classification global-state-access updated. BC-2.15.020 v1.4→v1.5: three observability counter keys added as keys 6, 7, 8 of the EIGHT-key detail map: `"dropped_findings"` (u64, BC-2.15.022 PC-5), `"master_addrs_dropped"` (u64, BC-2.15.016 PC-6), `"pending_requests_evicted"` (u64, BC-2.15.016 PC-10); all three ALWAYS present even when 0; Postcondition 1 updated; Invariant 1 updated to enumerate eight keys; Invariant 5 added (counter-only, no Finding); EC-001 updated; EC-005/EC-006/EC-007 added; canonical test vectors extended; Architecture Anchors for three new fields; Related BCs adds BC-2.15.022 + BC-2.15.016 as counter-source dependencies; volatile `file.rs:NNN` line citations in v1.4 changelog entry and body replaced with stable symbol anchors (TD-031 compliance). FOLLOW-UP REQUIRED (bc_array_changes_propagate_to_body_and_acs): STORY-108 (BC-2.15.020) — story-writer must propagate new keys/counters into story body BC tables and ACs. Input-hashes for STORY-108 will need rebaselining after story-writer completes propagation. No BC count change (346 on disk; 345 active). No VP amendment required.
@@ -444,7 +447,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.001 | Parse Complete TLS ClientHello: Version, Ciphers, Extensions, SNI, JA3 | P0 | [WRITTEN] | BC-TLS-001 | <!-- v2.0: F5 F-F5-001 anchor re-anchor — handle_client_hello 389-580→431-622; handshakes_seen/version_counts 437/440; JA3 561; SNI 455-558; develop 8b52046 -->
 | BC-2.07.002 | Parse Complete TLS ServerHello: JA3S Fingerprint Computed | P0 | [WRITTEN] | BC-TLS-002 | <!-- v1.7: F5 F-F5-001 anchor re-anchor — handle_server_hello 586-651→628-693; JA3S 649; cipher tracking 653-654; develop 8b52046 -->
 | BC-2.07.003 | After Both Hellos Seen, Subsequent Records Are Silently Skipped | P0 | [WRITTEN] | BC-TLS-003 |
-| BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors and truncated_records | P0 | [WRITTEN] | BC-TLS-004 |
+| BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors and truncated_records | P0 | [WRITTEN] | BC-TLS-004 | <!-- v1.5: AC-150-006 symbol-anchor sweep, wave 71, 2026-07-07 -->
 | BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043) | P1 | [WRITTEN] | BC-TLS-005 | <!-- v1.8: F5 F-F5-001 anchor re-anchor — on_data buffer-append 820-835→1137-1161; MAX_BUF const :30→:33; develop 8b52046 -->
 | BC-2.07.006 | JA3 Computation Filters GREASE Values per RFC 8701 | P0 | [WRITTEN] | BC-TLS-006 |
 | BC-2.07.007 | JA3 String Format: version,ciphers,...; MD5 Hex | P0 | [WRITTEN] | BC-TLS-007 |
@@ -468,7 +471,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.025 | Non-Zero NameType Entries Treated as Hostnames | P2 | [WRITTEN] | BC-TLS-025 |
 | BC-2.07.026 | Trailing Bytes in ServerNameList Tolerated | P2 | [WRITTEN] | BC-TLS-026 |
 | BC-2.07.027 | Large SNI (16 KB) Under MAX_RECORD_PAYLOAD Parses Successfully | P1 | [WRITTEN] | BC-TLS-027 |
-| BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity | P0 | [WRITTEN] | BC-TLS-028 | <!-- v1.4: silent-limit audit — PC-5 added: drop observable via dropped_map_entries counter -->
+| BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity | P0 | [WRITTEN] | BC-TLS-028 | <!-- v1.4: silent-limit audit — PC-5 added: drop observable via dropped_map_entries counter; v1.5: AC-150-006 symbol-anchor sweep, wave 71, 2026-07-07 -->
 | BC-2.07.029 | Bad TLS Record Body Increments parse_errors; No Panic | P0 | [WRITTEN] | BC-TLS-029 |
 | BC-2.07.030 | Normal Handshake with Strong Cipher Produces Zero Findings | P0 | [WRITTEN] | BC-TLS-030 |
 | BC-2.07.031 | summarize Emits AnalysisSummary with TLS Stats Detail Map | P1 | [WRITTEN] | BC-TLS-031 | <!-- v1.5: silent-limit audit — dropped_map_entries added as PC-10 -->
@@ -742,7 +745,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.014 | GARP-That-Conflicts Upgrades to MEDIUM and Triggers D1 Spoof Finding | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.015 | Decode-vs-Analysis Separation — DecodedFrame::Arp Always Produced; Analysis Gated on --arp | P0 | [WRITTEN] | feature-009-F2 |
-| BC-2.16.016 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec | P1 | [WRITTEN] | fix-pc-013-014-015 |
+| BC-2.16.016 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec | P1 | [WRITTEN] | fix-pc-013-014-015 | <!-- v1.1: TD-031 location fix 2026-07-07; v1.2: Traceability backfill 2026-07-08 -->
 
 ## ss-17: EtherNet/IP + CIP Analysis (CAP-17)
 

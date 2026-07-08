@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-156
 epic_id: E-16
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
@@ -28,7 +28,7 @@ github_issue: 9
 # v1.5 (2026-07-07): Pass-2 remediation F-156-P2-001..006 — wave TBD→71 (body+notes), BC-2.16.016 v1.0→v1.1 (table+authorship comment), --arp anchor corrected to symbol style, AC-003 pairs/20002-frames/assert fidelity, AC-004 clippy-compliant assert form.
 # v1.3 (2026-07-07): adversarial Pass-1 remediation F-156-P1-001/002/003/006, wave 71 — AC-001 test name corrected; AC-001 provenance updated (909d55c+eca21e9); all bc_2_16_story113_arp_tests.rs refs updated to actual test locations; EC-003 trimmed to negative assertion.
 # v1.2 (2026-07-07): provenance annotation — per-AC delivery notes (AC-001/003 pre-existing commits 909d55c/eca21e9; AC-002 invariant-by-inspection; AC-004 new delivery commit 7e4fe6d). Clarified Notes section. Added Changelog.
-# BC status: BC-2.16.016 v1.0 authored 2026-06-23 (fix-pc-013-014-015, D-221; now v1.1). No prior story coverage;
+# BC status: BC-2.16.016 v1.0 authored 2026-06-23 (fix-pc-013-014-015, D-221; now v1.2). No prior story coverage;
 # spec-coherence sweep 7 (maint-2026-07-06) finding F-NEW-MAJ-003 identified this gap (criterion 27 FAIL).
 # This story closes the gap; it is the primary delivery story for BC-2.16.016 behavioral tests and CLI doc.
 # v1.1 (2026-07-07): Wave assigned 71 (v0.12.0 planning gate, 2026-07-07 human approval). Added
@@ -45,7 +45,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
-input-hash: "934138e"
+input-hash: "8c9b0ba"
 ---
 
 # STORY-156: ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016)
@@ -68,7 +68,7 @@ input-hash: "934138e"
 
 | BC | Title |
 |----|-------|
-| BC-2.16.016 v1.1 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
+| BC-2.16.016 v1.2 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
 
 ## Background
 
@@ -287,6 +287,7 @@ Architecture references: ARP link-layer bypass invariant (ARP bypasses TCP reass
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
+| 1.6 | 2026-07-08 | state-manager | Input re-hash after BC-2.16.016 v1.2 Traceability backfill, wave-71 gate; no scope impact. |
 | 1.5 | 2026-07-07 | state-manager | Pass-2 remediation F-156-P2-001..006 — body freshness sweep: wave TBD→71 (body field + notes), BC-2.16.016 v1.0→v1.1 in BC table + authorship comment; --arp anchor corrected to symbol style (removed mis-attributed lines 194–213); AC-003 step 2 updated to pairs/20,002-frames fidelity; AC-003 step 4 documents both primary assert_eq!(len, 10_001) and secondary > 10_000; AC-004 assert updated to clippy-compliant !contains_key form at 3 sites; test-file line citations converted to symbol-style (F-156-P3-001). |
 | 1.4 | 2026-07-07 | state-manager | Input re-hash after anchor-only BC amendment BC-2.16.016 v1.1, wave 71; no scope impact. |
 | 1.3 | 2026-07-07 | state-manager | Adversarial Pass-1 remediation F-156-P1-001/002/003/006, wave 71 — corrected AC-001 test name to test_BC_2_16_016_cli_help_documents_arp_findings_unbounded (tests/bc_2_16_016_arp_tests.rs:58); updated AC-001 provenance to credit both 909d55c (long_help doc) and eca21e9 (CLI help test); updated all test-file references from bc_2_16_story113_arp_tests.rs to actual placement (AC-001 in tests/bc_2_16_016_arp_tests.rs, AC-003/004 in src/analyzer/arp.rs mod bc_2_16_016); trimmed EC-003 to negative assertion with BC-2.16.010 cross-reference. |

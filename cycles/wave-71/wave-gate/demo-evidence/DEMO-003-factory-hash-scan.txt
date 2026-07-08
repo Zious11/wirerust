@@ -1,0 +1,15 @@
+=== DEMO-003: Factory Tooling End-to-End (STORY-157 input-hash scan) ===
+
+$ WIRERUST_REPO_ROOT=<repo> bin/compute-input-hash --scan | tail -12
+STORY-148.md     d41d8cd    d41d8cd    MATCH
+STORY-149.md     d41d8cd    d41d8cd    MATCH
+STORY-150.md     a001aa4    a001aa4    MATCH
+STORY-151.md     f973d8f    f973d8f    MATCH
+STORY-152.md     591aed1    591aed1    MATCH
+STORY-153.md     f3bd85f    f3bd85f    MATCH
+STORY-154.md     3f1dca5    3f1dca5    MATCH
+STORY-155.md     d41d8cd    d41d8cd    MATCH
+STORY-156.md     8c9b0ba    8c9b0ba    MATCH
+STORY-157.md     4ca0ad4    4ca0ad4    MATCH
+
+MATCH=110 STALE=0
