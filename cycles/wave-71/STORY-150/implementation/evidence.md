@@ -32,7 +32,7 @@
 
 - **Test Command:** `cargo test --all-targets`
 - **Result:** All tests passing
-- **Coverage:** Complete against acceptance criteria (BC-150-*)
+- **Coverage:** Complete against acceptance criteria (AC-150-001..006; traces to BC-2.07.004, BC-2.07.028, VP-039)
 
 ## Code Quality Gates
 
@@ -44,4 +44,7 @@
 
 ## Deliverables Summary
 
-Implementation of STORY-150 (TLS 1.3 handshake robustness) is formally verified, mutation-tested, and ready for wave-gate advancement. No regressions introduced. All acceptance criteria satisfied by test evidence and formal proofs.
+Implementation of STORY-150 (TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) + Kani VP-039 + Mutation Re-run) is formally verified, mutation-tested, and ready for wave-gate advancement. No regressions introduced. All acceptance criteria satisfied by test evidence and formal proofs.
+
+---
+Identity strings corrected 2026-07-08 (F-W71-P4-001, wave-gate Pass 4); technical results unchanged.
