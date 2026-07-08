@@ -26,6 +26,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   behavior change: 8-pass adversarial convergence and holdout re-evaluation score 0.920
   unchanged.
 
+- **TLS handshake drain-loop DRY unification in `process_handshake_carry` (STORY-150,
+  PR #379).** Single `msg_bytes` extraction and single `parse_tls_message_handshake` call
+  site with direction-guarded dispatch arms replace two duplicated extraction+parse sequences
+  (defense-in-depth refactor). Behavior-preserving: Kani VP-039 3/3 proofs re-verified,
+  zero new mutation survivors.
+
 ### Fixed
 
 - **Absolute host paths scrubbed from 193 committed demo-evidence files (PR #376,
@@ -33,6 +39,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   replaced with `<REPO-ROOT>` and `<HOME>` placeholder tokens. These are scrub markers —
   not environment variables — indicating where former machine-specific paths appeared.
   See `docs/DEMO-EVIDENCE.md` for the placeholder convention.
+
+- **Factory input-hash tool edge cases: empty inputs and inline comment stripping
+  (STORY-157, PR #380).** `bin/compute-input-hash`: `inputs: []` (empty inputs list) now
+  derives hash `d41d8cd` (MD5 of empty bytes) instead of raising an error; inline
+  ` # comment` suffixes are stripped from input path entries before file resolution.
+  `CLAUDE.md` documents the canonical-tool/hook divergence (PG-HASH-HOOK-DIVERGENCE),
+  edge cases, and Python 3.10+ floor.
+
+### Tests / Internal
+
+- **BC-2.16.016 ARP unbounded-findings coverage (STORY-156, PR #378).** Standalone
+  `summarize()` no-`dropped_findings` regression pin closes the coverage gap for
+  BC-2.16.016 unbounded-findings behavior; docstring anchor corrected. CLI `--arp`
+  `long_help` unbounded-findings documentation coverage pinned.
 
 ## [0.11.5] - 2026-07-06
 
