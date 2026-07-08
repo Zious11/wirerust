@@ -6,10 +6,7 @@ NOTE: This is the NEW canonical algorithm (re-baseline). There is no legacy
 hash to reproduce — the old algorithm was never written down and its
 implementation is lost. These tests pin the NEW algorithm's output.
 
-Tests:
-  (a) Determinism: same inputs → same hash on repeated calls.
-  (b) Known-fixture: two temp files with known content → pinned 7-char hash.
-  (c) CRLF/LF normalization: CRLF and LF inputs produce the SAME hash.
+See main() for the authoritative test list.
 """
 
 import hashlib
@@ -201,10 +198,12 @@ def test_missing_input_raises() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Red Gate tests — AC-157-003, AC-157-004, AC-157-010
-# These tests MUST FAIL until the corresponding fixes land in compute-input-hash.
-# Each catches the current SystemExit and converts it to AssertionError so the
-# harness runner (which catches Exception) can report [FAIL] cleanly.
+# Regression-guard tests for AC-157-003, AC-157-004, AC-157-010.
+# These guard against reintroduction of the pre-fix SystemExit behavior: they
+# FAIL if a future refactor removes the empty-inputs short-circuit or the
+# inline-comment stripping in parse_inputs. The SystemExit-catch branch is a
+# defensive path that triggers only under regression, converting it into a
+# clean [FAIL] with AC attribution.
 # ---------------------------------------------------------------------------
 
 def test_empty_inputs_inline_compact() -> None:
