@@ -97,7 +97,8 @@ have changed without the story being regenerated — i.e., spec drift.
 
 ### Canonical Algorithm
 
-The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps).
+The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps;
+requires Python 3.10+ — the tool uses modern type syntax).
 This tool defines the algorithm; there is no separate spec document.
 
 1. Parse the story's YAML frontmatter and extract the `inputs:` list **in declaration order**.
@@ -160,7 +161,45 @@ python3 bin/test_compute_input_hash.py
 ```
 
 Verifies: determinism, pinned known-fixture hash, CRLF/LF normalization equivalence,
-lone-CR normalization, declaration-order sensitivity, and clear error on missing input.
+lone-CR normalization, declaration-order sensitivity, clear error on missing input,
+empty `inputs: []` inline compact form (→ `d41d8cd`), empty multiline inputs block
+(→ `d41d8cd`), and inline comment stripping from path entries.
+
+### Edge Cases
+
+- **Empty inputs (`inputs: []` or empty multiline block):** Produces hash `d41d8cd`
+  (MD5 of empty bytes). E-11 stories use `inputs: []` because they have no spec inputs;
+  the scanner correctly reports MATCH for these stories.
+- **Inline comment suffixes:** Path entries like `path/to/file.md  # RETIRED 2026-06-19`
+  have the ` # ...` suffix stripped before file resolution; only the base path is hashed.
+
+### Known Tool Divergences (PG-HASH-HOOK-DIVERGENCE)
+
+`bin/compute-input-hash` (Python, this repo's `bin/` directory) is the **canonical
+algorithm** for all `input-hash:` values stored in story frontmatter.
+
+The plugin's `validate-input-hash` hook uses a bash implementation that computes MD5
+via `$(cat file)` concatenation. The bash `$()` subshell strips all trailing newlines
+from each file's content before concatenation, producing a **different hash** than the
+canonical Python tool (which reads raw bytes including trailing newlines).
+
+Consequence: the hook will report false-positive drift warnings against canonical Python
+hashes on every story edit.
+
+**Rule:** `input-hash:` values MUST be set using the canonical Python tool only:
+```bash
+bin/compute-input-hash --write .factory/stories/STORY-NNN.md
+```
+Hook validation errors citing a divergent hash MUST be treated as advisory-only
+until the plugin is reconciled to the canonical algorithm.
+
+Concrete evidence (wave-71 input-hash drift resolution, 2026-07-07):
+- STORY-156: Python=`ce96d86`, hook=`7b7dc6b`
+- STORY-150: Python=`c5acbe4`, hook=`26416e1`
+- STORY-157: Python=`357bca5`, hook=`4a47ab6`
+
+Root cause: `CONCAT="${CONCAT}$(cat "$RESOLVED")"` in the plugin hook strips trailing
+newlines. The canonical Python tool reads raw bytes with no stripping. (PG-HASH-HOOK-DIVERGENCE)
 
 ## Deferred Findings
 
@@ -176,3 +215,5 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |
 | `.factory/` | VSDD factory artifacts (STATE.md, stories, specs, research, maintenance logs) |
+| `.factory/maintenance/demo-evidence-scrub-gate.md` | Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB; run before committing demo evidence) |
+| `.factory/maintenance/pr-manager-merge-auth-guidance.md` | PR merge-authorization classifier guidance (DF-MERGE-AUTH-CLASSIFIER-001) |
