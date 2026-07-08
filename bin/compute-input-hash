@@ -128,9 +128,17 @@ def parse_inputs(frontmatter: str, story_path: Path) -> list[str]:
     for line in raw_lines:
         stripped = line.strip()
         if stripped.startswith("- "):
-            paths.append(stripped[2:].strip())
+            path = stripped[2:].strip()
         elif stripped.startswith("-"):
-            paths.append(stripped[1:].strip())
+            path = stripped[1:].strip()
+        else:
+            continue
+        # AC-157-010: strip inline comment suffix (` # ...`) from each path entry
+        comment_idx = path.find(" #")
+        if comment_idx != -1:
+            path = path[:comment_idx].strip()
+        if path:
+            paths.append(path)
     # AC-157-004: empty multiline block → return [] (caller handles via compute_hash guard)
     return paths
 
