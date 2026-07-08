@@ -269,6 +269,13 @@ mod bc_149_single_borrow {
                  count (STORY-149 / F-S149P1-001). Found iter_mut() call in \
                  `{fn_name}`."
             );
+            assert!(
+                !body.contains("self.flows["),
+                "AC-149-001 anti-gameability: `{fn_name}` must not use \
+                 self.flows[ direct indexing — direct index bypasses the \
+                 per-key borrow-site count (STORY-149 / F-S149P1-001). \
+                 Found direct index in `{fn_name}`."
+            );
         }
     }
 }

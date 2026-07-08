@@ -533,6 +533,10 @@ mod silent_resource_caps {
             ];
             handshake.extend_from_slice(&ch_body);
 
+            debug_assert!(
+                handshake.len() <= u16::MAX as usize,
+                "fixture handshake exceeds u16 TLS record length"
+            );
             let hs_len = handshake.len() as u16;
             let mut record = vec![0x16]; // handshake record
             record.extend_from_slice(&[0x03, 0x01]); // record version TLS 1.0

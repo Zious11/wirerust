@@ -13,6 +13,10 @@
 /// Uses version bytes `[0x03, 0x03]` (TLS 1.2). `content_type` must be 0x16
 /// for handshake records — consistent with the VP-039 `wrap_as_tls_record` helper.
 fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
+    debug_assert!(
+        payload.len() <= u16::MAX as usize,
+        "fixture payload exceeds u16 TLS record length"
+    );
     let len = payload.len();
     let mut record = vec![
         content_type,

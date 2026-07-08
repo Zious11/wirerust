@@ -75,6 +75,10 @@ mod story_150 {
 
     /// Wrap `payload` bytes in a 5-byte TLS 1.2 handshake record header (0x16).
     fn wrap_as_tls_record(payload: &[u8]) -> Vec<u8> {
+        debug_assert!(
+            payload.len() <= u16::MAX as usize,
+            "fixture payload exceeds u16 TLS record length"
+        );
         let len = payload.len();
         let mut record = vec![0x16u8, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
         record.extend_from_slice(payload);
