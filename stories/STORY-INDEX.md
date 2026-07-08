@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.19"
+version: "3.20"
 status: draft
 producer: story-writer
-timestamp: 2026-07-07T13:14:38Z
+timestamp: 2026-07-08T13:30:49Z
 phase: f7
 total_stories: 110
 total_waves: 71
 total_points: 702  # = 702 pre-v3.19 (unchanged); wave-table scheduled: 680 (+13: STORY-150+5, STORY-156+3, STORY-157+5 now wave 71); STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-155 all wave-TBD/superseded excluded; epic-table grand total: 702 (unchanged); stories: 110 (unchanged); waves: 71
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.20 (2026-07-08): STORY-156 DELIVERED — PR #378 squash e2c2b33c5b8ff3de784326672aaaa76b4e7b0cf1 merged 2026-07-08T13:30:49Z; status draft→merged; stories_delivered=100 (delivery #100). Wave 71 partial: STORY-156 DELIVERED, STORY-150/157 in flight. No numeric totals changed.
 # v3.19 (2026-07-07): Wave-71 / v0.12.0 scheduling gate (2026-07-07 human approval) — STORY-150, STORY-156, STORY-157 assigned wave 71. Wave-table TOTAL: 667→680 (+5 STORY-150, +3 STORY-156, +5 STORY-157). total_waves 70→71. Exclusion list updated: STORY-150/156/157 removed (now scheduled). STORY-149 was already in wave-table (wave 70); dep-graph v3.7 companion updated (edges 124→125, intra 103→104, STORY-115→STORY-156 added).
 # v3.18 (2026-07-07): Two story amendments — (A) STORY-157 scope addition: PG-W70-MERGE-AUTH merge-authorization procedure added as fourth codification item; points raised 3→5 (human decision 2026-07-07 pipeline resume); E-11 points 30→32; total_points 700→702; epic-table total 700→702; wave-table scheduled unchanged (667, STORY-157 wave-TBD excluded). (B) STORY-148 reconciliation: status draft→superseded; all scope delivered by PR #362 (D-383, issue #342 closed 2026-07-06); SEC-005 ENIP on_flow_close wiring + SEC-006 DNP3 on_flow_close routing both verified on develop; no point change (5 pts remain in E-20 total).
 # v3.17 (2026-07-07): S-7.02 wave-70 cycle-close process-gap codification — STORY-157 added (E-11, wave TBD, 3 pts, wave-70 process gaps: PG-S149-001 adversary attestation preamble + PG-W70-DEMO-SCRUB demo-evidence scrub gate + PG-HASH-EMPTY-INPUTS input-hash empty-inputs handling, cycle wave-70-story-149). E-11 count 7→8, points 27→30. total_stories 109→110. total_points 697→700. epic-table total 697→700. wave-table scheduled unchanged (667, STORY-157 wave-TBD excluded).
@@ -173,7 +174,7 @@ traces_to:
 | STORY-113 | ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D | E-16 | 42 | 13 | draft | STORY-112 |
 | STORY-114 | D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update | E-16 | 43 | 13 | draft | STORY-113 |
 | STORY-115 | D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key | E-16 | 44 | 8 | draft | STORY-114 |
-| STORY-156 | ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016) | E-16 | 71 | 3 | draft | STORY-115 |
+| STORY-156 | ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016) | E-16 | 71 | 3 | merged | STORY-115 |
 | STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | draft | STORY-115 |
 | STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
@@ -393,7 +394,7 @@ traces_to:
 | 68 | STORY-152 | **DELIVERED & CLOSED** | #353, #354 | 5c4437a, 0e700a9 | 2026-07-04 |
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
-| 71 | STORY-150, STORY-156, STORY-157 | draft | — | — | — |
+| 71 | STORY-150, STORY-156, STORY-157 | STORY-156 DELIVERED (PR #378, e2c2b33, 2026-07-08); STORY-150/157 in flight | #378 | e2c2b33 | 2026-07-08 |
 
 ## Coverage Verification
 

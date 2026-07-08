@@ -694,3 +694,20 @@ stories:
     pr: 374
     merge_commit: 116100d
     merged_date: "2026-07-07"
+
+  # ---------------------------------------------------------------------------
+  # Wave 71 — STORY-156 (E-16 ARP unbounded-cap docs + regression test)
+  # STORY-156 DELIVERED 2026-07-08: PR #378 squash-merged → develop
+  # e2c2b33c5b8ff3de784326672aaaa76b4e7b0cf1 (D-401).
+  # Branch feature/STORY-156-arp-unbounded-doc deleted post-merge.
+  # ---------------------------------------------------------------------------
+
+  STORY-156:
+    status: completed
+    wave: 71
+    branch: feature/STORY-156-arp-unbounded-doc  # deleted post-merge
+    worktree: null
+    blocked_by: [STORY-115]
+    pr: 378
+    merge_commit: e2c2b33
+    merged_date: "2026-07-08"

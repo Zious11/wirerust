@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-08T04:59:25Z","command":"cat > /tmp/test-wait3.tape << 'TAPE'\nOutput test-wait3-out.gif\nSet Shell \"bash\"\nSet Width 1200\nSet Height 600\n\nType \"cargo test --test bc_150_drain_loop_dry_tests 2>&1\"\nEnter\nSleep 10s\nTAPE\nvhs /tmp/test-wait3.tape 2>&1\necho \"EXIT: $?\"\nls -la test-wait3-out.gif 2>/dev/null && echo \"GIF created\"\nrm -f test-wait3-out.gif"}
+{"status":"pass","timestamp":"2026-07-08T13:34:36Z","command":"cargo test --all-targets 2>&1 | tail -20"}
