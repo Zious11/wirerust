@@ -1,0 +1,40 @@
+{
+  "story": "STORY-150",
+  "cycle": "wave-71",
+  "criterion": "passes_clean >= 3 AND last_classification == NITPICK_ONLY (BC-5.39.001)",
+  "passes": [
+    {
+      "pass": 1,
+      "date": "2026-07-07",
+      "verdict": "NOT-CLEAN",
+      "classification": "HAS_SUBSTANTIVE",
+      "findings": [
+        "F-150-P1-001 HIGH stale RED prose",
+        "F-150-P1-002 LOW AC wording",
+        "F-150-P1-003 LOW defense-in-depth",
+        "F-150-P1-004 LOW AC-150-006 count",
+        "F-150-P1-005 LOW STORY-054 anchors",
+        "F-150-P1-006 observation",
+        "F-150-P1-007 observation [process-gap]"
+      ],
+      "remediation": "all fixed — commits e367f5e/5fe40e7 + STORY-150 v1.4 + STORY-054 v1.4 + STORY-053 sibling fix",
+      "head_reviewed": "683c4c2"
+    },
+    {
+      "pass": 2,
+      "date": "2026-07-07",
+      "verdict": "CLEAN",
+      "classification": "NITPICK_ONLY",
+      "part_a": "5/5 fixes FIX-CONFIRMED",
+      "findings": [
+        "F-150-P2-001 LOW dormant assertion wording",
+        "F-150-P2-002 LOW dormant assertion wording",
+        "O-150-P2-001 observation cross-story STORY-053 handle_server_hello anchor drift → maintenance backlog"
+      ],
+      "remediation": "nitpick sweep dispatched post-pass",
+      "head_reviewed": "5fe40e7"
+    }
+  ],
+  "passes_clean_streak": 1,
+  "status": "IN_PROGRESS"
+}
