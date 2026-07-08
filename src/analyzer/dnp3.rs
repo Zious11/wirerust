@@ -873,7 +873,8 @@ impl Dnp3Analyzer {
                             if app_fc != 0x06 {
                                 let app_seq = active_carry!(flow, direction)[11] & 0x0F;
                                 if Self::insert_pending_request(flow, (dest, app_seq), ts) {
-                                    self.pending_requests_evicted += 1;
+                                    self.pending_requests_evicted =
+                                        self.pending_requests_evicted.saturating_add(1);
                                 }
                             }
 

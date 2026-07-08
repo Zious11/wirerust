@@ -434,14 +434,14 @@ impl HttpAnalyzer {
                 Some(Ok(None)) => return, // Partial — wait for more data
                 Some(Err(e)) => {
                     if !had_success {
-                        self.parse_errors += 1;
+                        self.parse_errors = self.parse_errors.saturating_add(1);
                         if let Some(state) = self.flows.get_mut(flow_key) {
                             state.request_error_count = state.request_error_count.saturating_add(1);
                             if state.request_error_count >= POISON_THRESHOLD {
                                 state.request_poisoned = true;
                                 if !state.counted_as_non_http {
                                     state.counted_as_non_http = true;
-                                    self.non_http_flows += 1;
+                                    self.non_http_flows = self.non_http_flows.saturating_add(1);
                                 }
                             }
                         }
@@ -484,7 +484,7 @@ impl HttpAnalyzer {
                 Some(Ok(Some(parsed))) => {
                     had_success = true;
                     *self.status_codes.entry(parsed.status_code).or_insert(0) += 1;
-                    self.transactions += 1;
+                    self.transactions = self.transactions.saturating_add(1);
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.response_buf.drain(..parsed.bytes_consumed);
@@ -494,7 +494,7 @@ impl HttpAnalyzer {
                 Some(Ok(None)) => return,
                 Some(Err(e)) => {
                     if !had_success {
-                        self.parse_errors += 1;
+                        self.parse_errors = self.parse_errors.saturating_add(1);
                         if let Some(state) = self.flows.get_mut(flow_key) {
                             state.response_error_count =
                                 state.response_error_count.saturating_add(1);
@@ -502,7 +502,7 @@ impl HttpAnalyzer {
                                 state.response_poisoned = true;
                                 if !state.counted_as_non_http {
                                     state.counted_as_non_http = true;
-                                    self.non_http_flows += 1;
+                                    self.non_http_flows = self.non_http_flows.saturating_add(1);
                                 }
                             }
                         }
@@ -905,7 +905,7 @@ mod vp_006_proptest_proofs {
                 return len;
             }
             if invalid {
-                self.consecutive_errors += 1;
+                self.consecutive_errors = self.consecutive_errors.saturating_add(1);
                 if self.consecutive_errors >= POISON_THRESHOLD as u32 {
                     self.poisoned = true; // poisons now, but THIS event is not skipped
                 }

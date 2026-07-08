@@ -397,15 +397,15 @@ impl ModbusAnalyzer {
 
         // --- total_flows_analyzed: increment once per flow on first PDU (BC-2.14.021 post.3) ---
         if flow.pdu_count == 0 {
-            self.total_flows_analyzed += 1;
+            self.total_flows_analyzed = self.total_flows_analyzed.saturating_add(1);
         }
 
         // --- Per-flow PDU counter + last timestamp (always, regardless of direction) ---
-        flow.pdu_count += 1;
+        flow.pdu_count = flow.pdu_count.saturating_add(1);
         flow.last_ts = timestamp;
 
         // --- Analyzer-level PDU counter + FC distribution (always, regardless of direction) ---
-        self.total_pdu_count += 1;
+        self.total_pdu_count = self.total_pdu_count.saturating_add(1);
         *self.fn_code_counts.entry(fc).or_insert(0) += 1;
 
         // --- Classify FC ---
@@ -515,7 +515,7 @@ impl ModbusAnalyzer {
                     let overwrite =
                         flow.insert_request(header.transaction_id, header.unit_id, fc, timestamp);
                     if overwrite.is_some() {
-                        self.duplicate_inflight_txn += 1;
+                        self.duplicate_inflight_txn = self.duplicate_inflight_txn.saturating_add(1);
                     }
                 }
 
@@ -524,8 +524,8 @@ impl ModbusAnalyzer {
                         // -------------------------------------------------------
                         // Write-class detection (BC-2.14.013–016)
                         // -------------------------------------------------------
-                        self.total_write_count += 1;
-                        flow.write_count += 1; // per-flow counter (BC-2.14.013 post.2)
+                        self.total_write_count = self.total_write_count.saturating_add(1);
+                        flow.write_count = flow.write_count.saturating_add(1); // per-flow counter (BC-2.14.013 post.2)
 
                         // Determine tag subset per ORCHESTRATOR RULING BC-DISCREPANCY-001:
                         // Register-write set {0x06,0x10,0x16,0x17} → T0836.
@@ -556,7 +556,8 @@ impl ModbusAnalyzer {
                                 flow.t0831_burst_emitted = false;
                             } else {
                                 // Still within window → increment count FIRST (update-before-check).
-                                flow.t0831_window_write_count += 1;
+                                flow.t0831_window_write_count =
+                                    flow.t0831_window_write_count.saturating_add(1);
                                 // Now check emission: count >= 2 and not yet emitted.
                                 if flow.t0831_window_write_count >= 2 && !flow.t0831_burst_emitted {
                                     emit_t0831 = true;
@@ -617,7 +618,7 @@ impl ModbusAnalyzer {
                                 flow.window_write_count = 1;
                                 flow.window_burst_emitted = false;
                             } else {
-                                flow.window_write_count += 1;
+                                flow.window_write_count = flow.window_write_count.saturating_add(1);
                                 if flow.window_write_count > self.write_burst_threshold
                                     && !flow.window_burst_emitted
                                 {
@@ -683,7 +684,8 @@ impl ModbusAnalyzer {
                                 flow.sustained_burst_emitted = false;
                             } else {
                                 // Accumulate first (update-before-check).
-                                flow.sustained_window_write_count += 1;
+                                flow.sustained_window_write_count =
+                                    flow.sustained_window_write_count.saturating_add(1);
                                 // saturating_sub: backwards-clock → elapsed=0 → no spurious reset.
                                 // `>=` operator is INTENTIONAL (RULING-MODBUS-SIBLING-001 §2.3):
                                 // sustained window fires ON the 2-second mark (minimum-duration gate).
@@ -825,8 +827,8 @@ impl ModbusAnalyzer {
                     // -------------------------------------------------------
                     // Exception response (BC-2.14.011 + BC-2.14.019)
                     // -------------------------------------------------------
-                    self.total_exception_count += 1;
-                    flow.exception_count += 1; // per-flow counter (BC-2.14.019 inv4)
+                    self.total_exception_count = self.total_exception_count.saturating_add(1);
+                    flow.exception_count = flow.exception_count.saturating_add(1); // per-flow counter (BC-2.14.019 inv4)
 
                     // Attribute exception to pending request (BC-2.14.011).
                     flow.attribute_exception(header.transaction_id, header.unit_id, fc);
@@ -930,7 +932,7 @@ impl ModbusAnalyzer {
         // -------------------------------------------------------
         for f in &local_findings {
             if self.all_findings.len() >= MAX_FINDINGS {
-                self.dropped_findings += 1;
+                self.dropped_findings = self.dropped_findings.saturating_add(1);
             } else {
                 self.all_findings.push(f.clone());
             }
@@ -1125,7 +1127,7 @@ impl StreamHandler for ModbusAnalyzer {
                     // cargo-mutants survivors here are EQUIVALENT.
                     if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                         flow.is_non_modbus = true;
-                        self.parse_errors += 1;
+                        self.parse_errors = self.parse_errors.saturating_add(1);
                     } else {
                         dir_carry.extend_from_slice(remaining);
                     }
@@ -1147,7 +1149,7 @@ impl StreamHandler for ModbusAnalyzer {
                 flow.is_non_modbus = true;
                 flow.carry_c2s.clear();
                 flow.carry_s2c.clear();
-                self.parse_errors += 1;
+                self.parse_errors = self.parse_errors.saturating_add(1);
                 break; // Cannot safely advance: length field is invalid.
             }
 
@@ -1177,7 +1179,7 @@ impl StreamHandler for ModbusAnalyzer {
                 // cargo-mutants survivors here are EQUIVALENT.
                 if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                     flow.is_non_modbus = true;
-                    self.parse_errors += 1;
+                    self.parse_errors = self.parse_errors.saturating_add(1);
                 } else {
                     dir_carry.extend_from_slice(remaining);
                 }

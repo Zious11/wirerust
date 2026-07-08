@@ -56,7 +56,7 @@ impl Summary {
     }
 
     pub fn ingest(&mut self, packet: &ParsedPacket) {
-        self.total_packets += 1;
+        self.total_packets = self.total_packets.saturating_add(1);
         self.total_bytes += packet.packet_len as u64;
         self.hosts.insert(packet.src_ip);
         self.hosts.insert(packet.dst_ip);

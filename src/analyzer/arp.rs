@@ -483,7 +483,7 @@ impl ArpAnalyzer {
         if let Some(eth_mac) = frame.outer_src_mac
             && eth_mac != frame.sender_mac
         {
-            self.mismatch_findings += 1;
+            self.mismatch_findings = self.mismatch_findings.saturating_add(1);
             findings.push(Finding {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Possible,
@@ -529,7 +529,7 @@ impl ArpAnalyzer {
         // keyed on sender_mac. Executed before the GARP/D1 branching so GARP floods
         // are detected uniformly with all other ARP frame types (BC-2.16.008 PC1).
         if let Some(storm_finding) = self.detect_storm(sender_mac, timestamp_secs) {
-            self.storm_findings += 1;
+            self.storm_findings = self.storm_findings.saturating_add(1);
             findings.push(storm_finding);
         }
 
@@ -582,8 +582,8 @@ impl ArpAnalyzer {
                     self.spoof_threshold,
                 );
 
-                self.garp_findings += 1;
-                self.spoof_findings += 1;
+                self.garp_findings = self.garp_findings.saturating_add(1);
+                self.spoof_findings = self.spoof_findings.saturating_add(1);
                 findings.push(upgraded_garp);
                 findings.push(d1);
 
@@ -598,7 +598,7 @@ impl ArpAnalyzer {
                 entry.mac = sender_mac;
             } else {
                 // BC-2.16.014 PC6 / EC-009: benign GARP (no conflict) → LOW only, no D1, no MITRE.
-                self.garp_findings += 1;
+                self.garp_findings = self.garp_findings.saturating_add(1);
                 findings.push(Finding {
                     category: ThreatCategory::Anomaly,
                     verdict: Verdict::Possible,
@@ -658,7 +658,7 @@ impl ArpAnalyzer {
                     timestamp_secs,
                     self.spoof_threshold,
                 );
-                self.spoof_findings += 1;
+                self.spoof_findings = self.spoof_findings.saturating_add(1);
                 findings.push(d1);
 
                 // Step 4 (Architecture Compliance Rule 1): MAC update AFTER emission.
@@ -699,11 +699,11 @@ impl ArpAnalyzer {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
         // Always increment malformed_frames (BC-2.16.009 PC4; AC-012).
-        self.malformed_frames += 1;
+        self.malformed_frames = self.malformed_frames.saturating_add(1);
 
         // Increment malformed_findings — this method is only called from the
         // --arp-gated path in main.rs (BC-2.16.009 PC3/PC4; AC-012).
-        self.malformed_findings += 1;
+        self.malformed_findings = self.malformed_findings.saturating_add(1);
 
         // Construct and return the D11 LOW/Anomaly Finding (BC-2.16.009 PC3).
         // mitre_techniques: [] — T0814 withheld per DF-VALIDATION-001 / BC-2.16.009 Invariant 3.
@@ -1029,7 +1029,7 @@ impl ArpAnalyzer {
         } else {
             // Step 2 — in-window increment.
             if let Some(entry) = self.storm_counters.get_mut(&source_mac) {
-                entry.count_in_window += 1;
+                entry.count_in_window = entry.count_in_window.saturating_add(1);
             }
         }
 
