@@ -28,6 +28,7 @@ use crate::reassembly::handler::Direction;
 /// add new verdicts (e.g. `Suspected`) in the future without breaking
 /// SemVer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum Verdict {
     /// The finding is likely a real threat / anomaly.
@@ -62,6 +63,7 @@ impl fmt::Display for Verdict {
 /// "Negligible" tier can be added without breaking downstream
 /// pattern matches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum Confidence {
     /// Strong signal — false-positive rate is expected to be low.
@@ -93,6 +95,7 @@ impl fmt::Display for Confidence {
 /// detection families are added (Impact, Collection, Discovery,
 /// etc.) without breaking SemVer on downstream pattern matches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ThreatCategory {
     /// Active or passive information gathering (port scans, host
