@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -91,8 +91,10 @@ The research-validated design (triage record entry #252) specifies:
   `verified_at_commit: "6e9f2cc"`. The implementer MUST attempt historical recovery (CI logs,
   Cargo.lock, toolchain records at commit `6e9f2cc`). Honest-unknown fallback:
   `"unknown (pre-LMR verification, <proof_completed_date>)"` if unrecoverable. Recording the
-  currently-available GitHub release is FORBIDDEN. Full cargo-kani re-run is the
-  always-preferred alternative (per **LMR-002**; document in modified log).
+  currently-available GitHub release is FORBIDDEN. This story's in-scope method is
+  historical recovery per LMR-002; a full cargo-kani re-run is OUT OF SCOPE for this
+  governance-only story (requires cargo-kani toolchain; contradicts "No Rust toolchain
+  changes" constraint).
 
 ### What this story does NOT do
 
@@ -148,6 +150,12 @@ grep -A3 "Section-Scoping Rule\|section.scoping\|closing brace" \
 
 must emit the rule text (non-empty output).
 
+Additionally, the Section-Scoping Rule MUST document that it anchors on the module NAMED
+`kani_proofs` — specifically the entire `#[cfg(kani)] mod kani_proofs { ... }` block. If a
+source file ever contains more than one module named `kani_proofs`, the algorithm is
+undefined; any implementation MUST fail loudly (exit non-zero) rather than guess which
+block to hash.
+
 ### AC-161-003 (VP-024 proof_file_hash populated)
 
 VP-024 (`vp-024-arp-parse-safety.md`) `proof_file_hash:` field is populated with the computed
@@ -199,9 +207,12 @@ kani_version: "unknown (pre-LMR verification, <proof_completed_date>)"
 **Recording the currently-available GitHub release is FORBIDDEN** — it would misrepresent
 which version actually performed the proof.
 
-**Full cargo-kani re-run is the always-preferred alternative**: if a re-run is feasible,
-run `cargo kani` against the harnesses and record the exact version used; document the
-re-run in the VP-024 v2.5 modified log.
+**This story's in-scope method is historical recovery per LMR-002** (CI logs / Cargo.lock /
+toolchain records at `6e9f2cc`), with the honest-unknown fallback. The cargo-kani re-run
+alternative remains available LMR-002 doctrine but is **OUT OF SCOPE for this
+governance-only story** — an implementer choosing to re-run must do so under a separate
+story (requires the cargo-kani toolchain, which contradicts this story's "No Rust toolchain
+changes" Library & Framework Requirements constraint).
 
 VP-024 frontmatter gains the `kani_version:` field as a sibling of `proof_file_hash:` and
 `verified_at_commit:`. The field form after historical recovery or re-run is:
@@ -305,9 +316,10 @@ No Rust source files, no tests, no CI configuration.
    the verification run at commit `6e9f2cc`, `Cargo.lock` at that commit, and any toolchain
    records present at `6e9f2cc`. If the historical version is unrecoverable, use the
    honest-unknown fallback: `"unknown (pre-LMR verification, <proof_completed_date>)"`. Do
-   NOT record the currently-available GitHub release — that is FORBIDDEN per LMR-002. If a
-   full cargo-kani re-run is feasible, prefer that path and document the re-run in the
-   v2.5 modified log.
+   NOT record the currently-available GitHub release — that is FORBIDDEN per LMR-002. A
+   full cargo-kani re-run is OUT OF SCOPE for this governance-only story (requires the
+   cargo-kani toolchain; contradicts the "No Rust toolchain changes" constraint in Library
+   &amp; Framework Requirements). Historical recovery is the only in-scope method.
 
 3. **Add algorithm prose to VP-INDEX.** Under a new "Multi-File Proof Anchor Algorithm" section
    (near the Summary, before the catalog table), add:
@@ -413,8 +425,9 @@ Well within context window. No story split required.
 - **kani_version is the HISTORICAL version at commit `6e9f2cc` (LMR-002).** The triage record
   noted "~0.65.0" as an estimate. The AC requires historical recovery (CI logs, Cargo.lock,
   toolchain records at `6e9f2cc`). Recording the currently-available GitHub release is
-  FORBIDDEN per LMR-002. Use the honest-unknown fallback if unrecoverable; prefer a full
-  cargo-kani re-run if feasible (document in modified log).
+  FORBIDDEN per LMR-002. Use the honest-unknown fallback if unrecoverable. A full
+  cargo-kani re-run is OUT OF SCOPE for this governance-only story (requires cargo-kani
+  toolchain; contradicts "No Rust toolchain changes" constraint).
 - **CLAUDE.md note is in scope for a governance-only story.** CLAUDE.md is a project guidance
   file, not a product file. The "Two hash disciplines" note is consistent with prior STORY-157
   and STORY-158 CLAUDE.md amendments.
@@ -423,6 +436,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-002+005 (HIGH+MEDIUM) — re-run de-scoped throughout: Background kani_version bullet, AC-161-004, Task 2, and Notes all replace "always-preferred alternative" framing with explicit out-of-scope statement (requires cargo-kani toolchain; contradicts "No Rust toolchain changes" constraint; implementer choosing to re-run must do so under a separate story); historical recovery via CI logs/Cargo.lock/toolchain records is the only in-scope method. F-W72-P6-010 (LOW) — AC-161-002: Section-Scoping Rule uniqueness requirement added (algorithm anchors on module NAMED kani_proofs; if a source file contains multiple kani_proofs-named modules the algorithm is undefined; implementation MUST fail loudly, exit non-zero, rather than guess which block to hash). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-006 (LOW) — AC-161-007 added: PR title uses the docs: semantic prefix (develop-side diff is CLAUDE.md-only; VP-INDEX and VP-024 amendments land on factory-artifacts branch and never appear in the develop PR diff); mirrors STORY-159's AC-159-005 phrasing style. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-006 (LOW) — EC-005 extended with cross-reference requirement: the new "Multi-File Proof Anchor Algorithm" section and the "## VP Lock Mutation Rules" section (LMR-003) MUST cross-link each other with one sentence each — algorithm section notes kani_version: is governed by LMR-003; VP Lock Mutation Rules section notes kani_version: is the only currently-allowlisted field for the multi-file proof anchor pattern. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-003 (HIGH) — LMR-003 alignment: AC-161-001 bump math corrected 2.37→2.38 to 2.38→2.39 (VP-INDEX now v2.38 per commit 8a4977f). AC-161-004 header updated to cite LMR-003 + LMR-002; LMR-003 governance paragraph added (field absent at lock time; on Locked-Doc-Appendable Provenance Field Allowlist; sibling placement; lock not cleared). AC-161-005 modified-log template updated: VP-INDEX v2.38→v2.39; kani_version entry now cites LMR-003 with required conditions; kani_version value sourced via LMR-002. Architecture Compliance Rules: LMR-003 bullet added alongside LMR-001. Tasks item 3: bump target 2.38→2.39. File Structure Requirements: bump notation 2.37→2.38 corrected to 2.38→2.39. |
