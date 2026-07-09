@@ -118,6 +118,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Docs / Internal
 
+- **Governance codification: multi-file `proof_file_hash` mini-Merkle algorithm (STORY-161,
+  wave-72) [governance].** Multi-file `proof_file_hash` mini-Merkle algorithm codified in
+  VP-INDEX v2.39; VP-024 v2.5 proof anchor populated and `kani_version` recorded
+  (factory-artifacts branch). `CLAUDE.md` gains "Two Hash Disciplines" note distinguishing
+  `input-hash` (MD5-first-7, advisory) from `proof_file_hash` (SHA-256 mini-Merkle,
+  integrity anchor).
+
 - **Public ADR-012 authored for protocols catalog and coverage-gaps system (STORY-159,
   wave-72) [doc-drift].** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` created,
   resolving a maintenance-sweep finding (NEW-001, HIGH) that identified 38 lines across

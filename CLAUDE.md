@@ -216,6 +216,20 @@ Concrete evidence (wave-71 input-hash drift resolution, 2026-07-07):
 Root cause: `CONCAT="${CONCAT}$(cat "$RESOLVED")"` in the plugin hook strips trailing
 newlines. The canonical Python tool reads raw bytes with no stripping. (PG-HASH-HOOK-DIVERGENCE)
 
+### Two Hash Disciplines
+
+**Two hash disciplines in this repository are deliberately distinct:**
+
+- `input-hash` (story frontmatter): MD5-first-7 hex, computed by `bin/compute-input-hash`
+  (canonical Python tool). Purpose: advisory drift detection for spec inputs. Lightweight,
+  not a security primitive.
+- `proof_file_hash` (VP frontmatter): SHA-256 mini-Merkle over Kani proof sections,
+  full 64-char hex. Purpose: integrity anchor for formal verification artifacts. Tamper-evident.
+
+Do not conflate the two. `input-hash` and `proof_file_hash` use different algorithms,
+different truncations, and serve different roles. Changing an `input-hash` has no effect
+on `proof_file_hash` and vice versa.
+
 ## Deferred Findings
 
 Deferred or open findings — STATE.md Drift Items, spec contradictions, and review/adversarial backlog items — MUST be validated by the research agent (`vsdd-factory:research-agent`) before being filed as GitHub issues. No issue is created from an unvalidated finding. The canonical, machine-enforced version of this rule is policy `DF-VALIDATION-001` in `.factory/policies.yaml`.
