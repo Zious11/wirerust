@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-08T00:00:00Z
@@ -17,6 +17,7 @@ lifecycle_status: active
 introduced: v0.12.0
 modified:
   - "v1.1: F-W72-P2-004 (DF-AC-TEST-NAME-SYNC-001) — VP table row 8 test name corrected: `test_BC_2_11_036_terminal_display_unchanged_uppercase` → `test_BC_2_11_036_terminal_display_unchanged`. The `_uppercase` suffix was inaccurate: the VP row covers Display for Verdict, Confidence, AND ThreatCategory; ThreatCategory::fmt returns the Debug repr (PascalCase, e.g. 'LateralMovement'), not an UPPERCASE string. The property description ('Terminal Display for Verdict and Confidence is UNCHANGED (uppercase tokens)') correctly limits the uppercase characterization to Verdict/Confidence only and is unchanged. STORY-160 AC-160-005 already uses the corrected name; this BC amendment syncs the canonical source. STORY-160 input-hash will need rebaselining (story-writer). — 2026-07-08"
+  - "v1.2: F-W72-P11-M03 (MEDIUM) — VP table row 8 covered-scope extended: test_BC_2_11_036_terminal_display_unchanged now explicitly asserts Display invariance for all three enums: Verdict UPPERCASE (Verdict::Likely.to_string() == 'LIKELY'), Confidence UPPERCASE (Confidence::High.to_string() == 'HIGH'), and ThreatCategory PascalCase Debug repr (ThreatCategory::LateralMovement.to_string() == 'LateralMovement'). Description sentence clarified: Verdict/Confidence produce UPPERCASE tokens; ThreatCategory::fmt uses write!(f, \"{self:?}\") returning PascalCase. Architecture Anchor added for impl fmt::Display for ThreatCategory. BC-INDEX row v1.2 annotation added. DF-SIBLING-SWEEP-001 sweep: BC-2.11.037 and BC-2.11.001 untouched (no terminal-display assertions therein). STORY-160 input-hash needs rebaselining (story-writer). — 2026-07-08"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,10 +58,10 @@ This matches the value conventions used by Suricata EVE JSON, Elastic Common Sch
 and the Open Cybersecurity Schema Framework (OCSF) — the dominant JSON event schemas in
 security tooling. These conventions use lowercase/snake_case enum values, not PascalCase.
 
-The terminal `Display` implementation for all three enums is **UNCHANGED**: `Verdict::fmt`,
-`Confidence::fmt`, and `ThreatCategory::fmt` continue to produce UPPERCASE tokens
-(`"LIKELY"`, `"HIGH"`, `"LATERAL_MOVEMENT"` is NOT relevant — `ThreatCategory::fmt` returns
-`{self:?}` which is the Debug repr e.g. `"LateralMovement"`). The two serialization surfaces
+The terminal `Display` implementation for all three enums is **UNCHANGED**: `Verdict::fmt`
+and `Confidence::fmt` continue to produce UPPERCASE tokens (e.g. `"LIKELY"`, `"HIGH"`);
+`ThreatCategory::fmt` continues to return the PascalCase Debug repr via
+`write!(f, "{self:?}")` (e.g. `"LateralMovement"`, `"CredentialAccess"`). The two serialization surfaces
 are independent:
 - `serde::Serialize` governs JSON field values (this BC).
 - `fmt::Display` governs terminal output (BC-2.09.003 for Verdict, BC-2.09.004 for
@@ -212,7 +213,7 @@ and handles both current single-word and current multi-word variants uniformly.
 | — | `ThreatCategory::LateralMovement` serializes to `"lateral_movement"` in JSON output | unit: test_BC_2_11_036_threat_category_lateral_movement_snake_case |
 | — | `ThreatCategory::C2` serializes to `"c2"` (not `"C2"`) in JSON output | unit: test_BC_2_11_036_threat_category_c2_snake_case |
 | — | All ten `ThreatCategory` variants serialize to their snake_case form; no PascalCase variant present | unit: test_BC_2_11_036_threat_category_all_variants_snake_case |
-| — | Terminal Display for `Verdict` and `Confidence` is UNCHANGED (uppercase tokens) | unit: test_BC_2_11_036_terminal_display_unchanged |
+| — | Terminal Display for all three enums is UNCHANGED: `Verdict`/`Confidence` produce UPPERCASE tokens (e.g. `Verdict::Likely.to_string() == "LIKELY"`); `ThreatCategory` produces PascalCase Debug repr (e.g. `ThreatCategory::LateralMovement.to_string() == "LateralMovement"`) | unit: test_BC_2_11_036_terminal_display_unchanged |
 | — | CSV output for `ThreatCategory` is UNCHANGED (Debug repr PascalCase) | unit: test_BC_2_11_036_csv_category_unchanged |
 
 ## Traceability
@@ -245,6 +246,7 @@ and handles both current single-word and current multi-word variants uniformly.
   `#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]` attribute group
 - `src/findings.rs` — `impl fmt::Display for Verdict`: UNCHANGED (UPPERCASE tokens)
 - `src/findings.rs` — `impl fmt::Display for Confidence`: UNCHANGED (UPPERCASE tokens)
+- `src/findings.rs` — `impl fmt::Display for ThreatCategory`: UNCHANGED (PascalCase Debug repr via `write!(f, "{self:?}")`, e.g. `"LateralMovement"`)
 
 ---
 
