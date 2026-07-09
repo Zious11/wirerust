@@ -1264,8 +1264,8 @@ fn test_BC_2_11_036_verdict_all_variants_lowercase() {
         (Verdict::Possible, "possible"),
     ];
     for (variant, expected) in cases {
-        let json = serde_json::to_value(variant)
-            .expect("Verdict variant must serialize without error");
+        let json =
+            serde_json::to_value(variant).expect("Verdict variant must serialize without error");
         assert_eq!(
             json,
             serde_json::Value::String(expected.to_string()),
@@ -1281,7 +1281,12 @@ fn test_BC_2_11_036_verdict_all_variants_lowercase() {
         Verdict::Possible,
     ])
     .expect("serializing Verdict array must not fail");
-    for pascal in &["\"Likely\"", "\"Unlikely\"", "\"Inconclusive\"", "\"Possible\""] {
+    for pascal in &[
+        "\"Likely\"",
+        "\"Unlikely\"",
+        "\"Inconclusive\"",
+        "\"Possible\"",
+    ] {
         assert!(
             !arr_json.contains(pascal),
             "BC-2.11.036 pc4: PascalCase form {pascal} must not appear in \
@@ -1313,8 +1318,8 @@ fn test_BC_2_11_036_confidence_all_variants_lowercase() {
         (Confidence::Low, "low"),
     ];
     for (variant, expected) in cases {
-        let json = serde_json::to_value(variant)
-            .expect("Confidence variant must serialize without error");
+        let json =
+            serde_json::to_value(variant).expect("Confidence variant must serialize without error");
         assert_eq!(
             json,
             serde_json::Value::String(expected.to_string()),
@@ -1323,9 +1328,8 @@ fn test_BC_2_11_036_confidence_all_variants_lowercase() {
         );
     }
     // PascalCase-absence guard.
-    let arr_json =
-        serde_json::to_string(&[Confidence::High, Confidence::Medium, Confidence::Low])
-            .expect("serializing Confidence array must not fail");
+    let arr_json = serde_json::to_string(&[Confidence::High, Confidence::Medium, Confidence::Low])
+        .expect("serializing Confidence array must not fail");
     for pascal in &["\"High\"", "\"Medium\"", "\"Low\""] {
         assert!(
             !arr_json.contains(pascal),
@@ -1471,8 +1475,7 @@ fn test_BC_2_11_036_csv_category_unchanged() {
 
     let mut finding = make_finding("csv regression for ThreatCategory casing");
     finding.category = ThreatCategory::LateralMovement;
-    let csv_output =
-        CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
 
     assert!(
         csv_output.contains("LateralMovement"),
@@ -1498,9 +1501,7 @@ fn test_BC_2_11_036_csv_category_unchanged() {
 fn test_BC_2_11_037_schema_version_present_in_json() {
     let json_str = render(&[make_finding("test finding for schema_version check")]);
     let value = parse(&json_str);
-    let obj = value
-        .as_object()
-        .expect("top-level JSON must be an object");
+    let obj = value.as_object().expect("top-level JSON must be an object");
     assert!(
         obj.contains_key("schema_version"),
         "BC-2.11.037 pc1: JSON envelope must contain \"schema_version\" key; \
@@ -1558,8 +1559,7 @@ fn test_BC_2_11_037_schema_version_absent_from_csv() {
     use wirerust::reporter::csv::CsvReporter;
 
     let finding = make_finding("csv surface-independence check");
-    let csv_output =
-        CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
     assert!(
         !csv_output.contains("schema_version"),
         "BC-2.11.037 pc4: schema_version must NOT appear in CSV output; \
@@ -1580,8 +1580,7 @@ fn test_BC_2_11_037_schema_version_absent_from_terminal() {
         show_hosts_breakdown: false,
         render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
     };
-    let terminal_output =
-        reporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+    let terminal_output = reporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
     assert!(
         !terminal_output.contains("schema_version"),
         "BC-2.11.037 pc5: schema_version must NOT appear in terminal output; \
