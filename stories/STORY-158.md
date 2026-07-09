@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -192,7 +192,9 @@ A new `bin/lint-cycle-artifact` script (Python 3, stdlib only) exists that accep
     `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) — see current cycle-artifact template (STORY-158)`
     No legacy mode. No SKIP-with-warning. No fallback to body-prose or H1 heading.
 (2) If `bcs:` is present and explicitly empty (`bcs: []` or an empty list block), the tool
-    MUST exit 0 — this is a valid well-formed artifact with no BC citations.
+    MUST exit 0 — this is a valid well-formed artifact with no BC citations. This rule
+    short-circuits before rule (7)'s parent-story lookup runs — parent-story existence is NOT
+    required for empty-bcs artifacts (empty bcs = no BC claims to validate).
 (3) If `bcs:` lists one or more BC IDs, every ID MUST resolve on disk at
     `.factory/specs/behavioral-contracts/ss-NN/BC-S.SS.NNN.md` (where `ss-NN` is derived
     from the subsection digits in the ID). Any ID that does not resolve is fabricated. The
@@ -203,21 +205,20 @@ A new `bin/lint-cycle-artifact` script (Python 3, stdlib only) exists that accep
     will fail rule (1) if run through the tool, but the tool is not required to have a
     `--skip-legacy` flag or special-case these artifacts. The procedural boundary is
     documented in Task 4.
-(6) The `story_id:` value is validated against the artifact's path. The tool derives the
-    expected story ID from the `STORY-[0-9]+` directory component under
-    `.factory/cycles/<wave>/`. If the artifact is not inside a `STORY-NNN` directory, the
-    tool MUST exit non-zero with:
+(6) The `story_id:` value is validated against the artifact's path. The tool searches
+    **upward** from the artifact path for the nearest `STORY-[0-9]+` ancestor directory
+    component under `.factory/cycles/` (so `.factory/cycles/wave-72/STORY-158/subdir/finding.md`
+    resolves to `STORY-158`). If no such ancestor exists, the tool MUST exit non-zero with:
     `ERROR: artifact path does not match expected .factory/cycles/<wave>/STORY-NNN/<artifact> pattern — cannot derive expected story_id`
     If the declared `story_id:` does not match the directory-derived value, the tool MUST
     exit non-zero with:
     `ERROR: story_id: <declared> does not match directory-derived <expected>`
-(7) After rules (1) and (6) pass, the tool resolves the parent story at
-    `.factory/stories/<story_id>.md`, using the same factory-root upward search as
+(7) After rules (1), (2), and (6) pass (reached only when `bcs:` is non-empty — rule (2)
+    short-circuits before this point for empty-bcs artifacts), the tool resolves the parent
+    story at `.factory/stories/<story_id>.md`, using the same factory-root upward search as
     `bin/compute-input-hash` (supports `WIRERUST_REPO_ROOT` override for parity). If the
     parent story file is missing, the tool MUST exit non-zero (HARD FAIL). Then:
-    - If `bcs: []` → PASS (regardless of story `behavioral_contracts:` contents).
-    - If the story frontmatter lacks the `behavioral_contracts:` key AND `bcs:` is non-empty
-      → HARD FAIL.
+    - If the story frontmatter lacks the `behavioral_contracts:` key → HARD FAIL.
     - Any `bcs:` ID absent from the story's `behavioral_contracts:` list → HARD FAIL listing
       ALL offenders.
     **Asymmetry note:** Rules (3) and (7) are complementary — rule (3) guards against
@@ -364,6 +365,8 @@ serves as the Red Gate.
      with the exact `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) —
      see current cycle-artifact template (STORY-158)` message.
    - **TC2 (`bcs: []`):** artifact with valid `story_id:` and `bcs: []` → expect exit 0.
+     The fixture does NOT need a parent story file — rule (2) short-circuits before rule (7)'s
+     parent-story lookup runs.
    - **TC3 (unresolvable ID):** artifact with a fabricated ID in `bcs:` (no on-disk BC file)
      → expect exit 1 listing ALL unresolvable IDs.
    - **TC4 (prose BC ID only):** artifact with a BC ID referenced only in body prose (not
@@ -526,6 +529,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.9 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-L02 (LOW) — rule (2) gains explicit short-circuit note (exits before rule (7)'s parent-story lookup; parent-story existence NOT required for empty-bcs artifacts); rule (7) opening updated to "After rules (1), (2), and (6) pass (reached only when bcs: is non-empty)"; unreachable bcs: [] sub-bullet removed from rule (7); Task 3 TC2 gains note that fixture does NOT need a parent story file. F-W72-P8-L03 (LOW) — rule (6) rewritten to specify upward-search behavior: tool searches upward from artifact path for nearest STORY-[0-9]+ ancestor directory component under .factory/cycles/ (e.g., .factory/cycles/wave-72/STORY-158/subdir/finding.md resolves to STORY-158); no such ancestor → existing HARD FAIL applies. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P7 fixes: F-W72-P7-003 (MEDIUM) — ACR "modifies ONLY" list extended with CHANGELOG.md (AC-158-007) and .factory/templates/cycle-artifact.md + .factory/templates/wave-gate-checklist.md (factory-artifacts branch); FSR gains corresponding rows for CHANGELOG.md (Modify) and both template files (Create; factory-artifacts branch noted). F-W72-P7-004 (MEDIUM) — Task 4 gains cross-branch implementer note: .factory/templates/ files committed to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR. F-W72-P7-005 (MEDIUM) — Task 3 gains hermetic fixture-construction note: TCs MUST use tempfile.TemporaryDirectory() + WIRERUST_REPO_ROOT, mirroring bin/test_compute_input_hash.py; no live .factory/ references permitted (CI-safe on develop). F-W72-P7-007 (LOW) — Background bash block: two-line backslash continuation replaced with the one-line verbatim mirror of ci.yml:196. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-001 (HIGH) — AC-158-003 extended with Rules 6-7: Rule 6 derives expected story_id from .factory/cycles/<wave>/STORY-NNN/ path component (path mismatch or declared≠derived → HARD FAIL); Rule 7 checks every bcs: ID against parent story's behavioral_contracts: (borrowed ID not owned → HARD FAIL listing all offenders); TC6/TC7 added to Task 3; AC-158-003(a) replaced with pointer to Rule 6; Task 3 tool description updated with rules 6-7 and WIRERUST_REPO_ROOT override. F-W72-P6-004 (MEDIUM) — AC-158-008 added: PR title uses ci: semantic prefix (primary deliverable is CI gate); ordering corrected to AC-158-007 then AC-158-008. F-W72-P6-008 (LOW) — Task 1: fetch-depth: 0 required for changelog-gate job (default fetch-depth: 1 does not fetch origin/develop; base-SHA diff fails). F-W72-P6-009 (LOW) — Task 4: exact paths named (CREATE .factory/templates/cycle-artifact.md; CREATE .factory/templates/wave-gate-checklist.md as standalone file; .factory/templates/ directory must be created). |
 | 1.6 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-002 (MEDIUM) — AC-158-003 rewritten to HARD FAIL contract: (1) missing frontmatter or missing story_id:/bcs: keys → exit non-zero with exact error message; no legacy mode, no SKIP-with-warning; (2) bcs: [] → PASS; (3) unresolvable IDs in bcs: → HARD FAIL listing ALL; (4) body prose not checked; (5) legacy scope procedural (Task 4). AC-158-003(a) added: story_id: extracted from frontmatter only, must match STORY-NNN directory, no H1/bolded-header fallback. EC-005/006/007 updated to match new contract. Task 3 rewritten with five TCs. New Task 4 added (cycle-artifact template + wave-gate checklist update; wave-71-and-earlier outside lint scope); old Tasks 4-6 shifted to 5-7. F-W72-P5-005 (LOW) — AC-158-003(a) story_id extraction convention added (same commit). |

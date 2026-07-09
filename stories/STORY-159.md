@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -141,7 +141,8 @@ Clarification on increment-site semantics. The grep command:
 
 ```bash
 for n in 1 2 3 4 5 6 7 8 9 10; do
-  grep -q "Decision $n" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
+  # right-boundary guard: prevents "Decision 1" matching "Decision 10" as a substring
+  grep -qE "Decision $n(\.|:|,| |\)|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
     || { echo "MISSING: Decision $n"; exit 1; }
 done
 echo "All ten decisions present"
@@ -163,7 +164,8 @@ CITED=$(grep -roh -E "ADR-012 (Decision|Dec) [0-9]+" src/ tests/ \
   | grep -oE "(Decision|Dec) [0-9]+" | awk '{print $2}' | sort -nu)
 # Verify each is in the public doc
 for n in $CITED; do
-  grep -q "Decision $n" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
+  # right-boundary guard: prevents "Decision 1" matching "Decision 10" as a substring
+  grep -qE "Decision $n(\.|:|,| |\)|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
     || { echo "UNRESOLVED: Decision $n"; exit 1; }
 done
 echo "All cited decisions resolvable"
@@ -319,6 +321,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-001 (MEDIUM) [process-gap] — substring-boundary false positive fixed in both verification loops: AC-159-002 and AC-159-003 grep commands changed from `grep -q "Decision $n"` to `grep -qE "Decision $n(\.|:|,| |\)|$)"` (POSIX-portable right-boundary guard; `\b` not portable to BSD grep); one-line comment added to each loop explaining the guard's purpose. "Decision 1" can no longer match "Decision 10" as a substring. |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-003 (MEDIUM) — occurrence arithmetic corrected throughout: grep counts 38 LINES but src/main.rs:1100 is a double-mention line contributing 2 canonical citations, giving 39 total citations. Narrative updated: "38 lines totaling 39 ADR-012 citations". Background intro updated with double-mention note. NEW-001 table: column renamed "Lines"; src/main.rs row updated to "6 lines / 7 citations" with double-mention annotation. Sweep paragraph: "38 matched lines / 39 citations" with src/main.rs:1100 note. AC-159-003: "37 occurrences" → "38 occurrences (including 2 from src/main.rs:1100)"; "Of these 39, 38 use..." updated throughout. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-005 (LOW) — EC-004 Description reworded: "docs/adr/0008-*.md gap in sequence" → "docs/adr/0008-<slug>.md (no such file — ADR-008 intentionally skipped)" (wildcard implied a file existed). F-W72-P4-007 (LOW) — AC-159-005 extended with one-line note: docs: remains correct semantic type despite one-line test-comment normalization in tests/integration_tests.rs (majority surface is documentation; test change is comment-only with no behavioral effect). |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-001 (MEDIUM) — 37+1 citation precision: Narrative, Background intro, NEW-001 table row (integration_tests.rs: 3 Decision-N + 1 Dec-10 = 4), and sweep paragraph updated to reflect 37 canonical + 1 abbreviated form. New Task 3: normalize tests/integration_tests.rs:1166 comment (ADR-012 Dec 10 → ADR-012 Decision 10). Architecture Compliance Rules and File Structure Requirements updated to include tests/integration_tests.rs. F-W72-P3-008 (LOW) — AC-159-003 portability: grep broadened to -E "ADR-012 (Decision\|Dec) [0-9]+" with POSIX extraction (grep -oE + awk); post-normalization Dec-form zero-check added. |
