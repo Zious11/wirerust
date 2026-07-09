@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""
+lint-cycle-artifact — Cycle-artifact identity validator (AC-158-003, STORY-158).
+
+Validates cycle artifact identity fields (story_id: and bcs:) against the
+parent story and on-disk BC files.
+
+Usage:
+    bin/lint-cycle-artifact <artifact-path>
+    bin/lint-cycle-artifact --artifact <path> [--story <path>]
+
+Evaluation order per AC-158-003:
+  (1) frontmatter presence + required keys
+  (6) path/story_id identity (wave-NNN/STORY-NNN pattern)
+  (2) empty-bcs short-circuit → exit 0
+  (3) BC existence on disk (HARD FAIL listing ALL unresolvable)
+  (7) story ownership (HARD FAIL listing ALL unowned IDs)
+
+Environment:
+    WIRERUST_REPO_ROOT  Override repo root (dir containing .factory/).
+                        If not set, searches upward from the artifact path.
+"""
+
+import os
+import re
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Exact error messages per AC-158-003 v1.13 (ASCII -- per F-W72-P11-L01/P12-001)
+# ---------------------------------------------------------------------------
+
+_ERR_MISSING_FRONTMATTER = (
+    "ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) "
+    "-- see current cycle-artifact template (STORY-158)"
+)
+_ERR_INVALID_PATH = (
+    "ERROR: artifact path does not match expected "
+    ".factory/cycles/<wave>/STORY-NNN/<artifact> pattern "
+    "-- cannot derive expected story_id"
+)
+
+_STORY_ID_RE = re.compile(r"^STORY-[0-9]+$")
+_WAVE_RE = re.compile(r"^wave-[0-9]+$")
+
+
+# ---------------------------------------------------------------------------
+# Repo-root resolution (mirrors bin/compute-input-hash)
+# ---------------------------------------------------------------------------
+
+
+def _find_repo_root(artifact_path: Path) -> Path:
+    """Return the repo root (directory that contains .factory/).
+
+    Checks WIRERUST_REPO_ROOT first, then walks upward from the artifact.
+    """
+    override = os.environ.get("WIRERUST_REPO_ROOT")
+    if override:
+        return Path(override)
+    candidate = artifact_path.resolve().parent
+    for _ in range(20):
+        if (candidate / ".factory").is_dir():
+            return candidate
+        parent = candidate.parent
+        if parent == candidate:
+            break
+        candidate = parent
+    print("ERROR: could not locate repo root (no .factory/ found)", file=sys.stderr)
+    sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# Minimal YAML frontmatter parser (stdlib only)
+# ---------------------------------------------------------------------------
+
+
+def _parse_frontmatter(text: str) -> dict | None:
+    """Parse the YAML frontmatter block from a markdown file.
+
+    Returns a dict of top-level keys (scalars as str, lists as list[str]),
+    or None if no frontmatter block is present.
+
+    Handles: scalar values, inline lists (bcs: []), block lists (- item),
+    and YAML comment lines (#).  Does not handle nested mappings.
+    """
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    if end == -1:
+        return None
+    fm_text = text[3:end]
+    result: dict = {}
+    lines = fm_text.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        # Skip blank lines and YAML comment lines
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+        m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)", line)
+        if not m:
+            i += 1
+            continue
+        key = m.group(1)
+        val_str = m.group(2).strip()
+        if val_str.startswith("["):
+            # Inline list: bcs: [] or bcs: [BC-1.01.001, BC-1.01.002]
+            inner = val_str[1:]
+            close = inner.find("]")
+            if close != -1:
+                inner = inner[:close]
+            items = [s.strip() for s in inner.split(",") if s.strip()]
+            result[key] = items
+            i += 1
+        elif val_str == "":
+            # Block list or empty block
+            items: list[str] = []
+            i += 1
+            while i < len(lines):
+                item_line = lines[i]
+                item_stripped = item_line.strip()
+                item_m = re.match(r"^\s+-\s+(.*)", item_line)
+                if item_m:
+                    items.append(item_m.group(1).strip())
+                    i += 1
+                elif not item_stripped or item_stripped.startswith("#"):
+                    # Blank or comment line — end of block
+                    i += 1
+                    break
+                else:
+                    # Next key or end of frontmatter
+                    break
+            result[key] = items
+        else:
+            result[key] = val_str
+            i += 1
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Rule (6): path-based story_id derivation
+# ---------------------------------------------------------------------------
+
+
+def _derive_story_id_from_path(artifact_path: Path) -> str | None:
+    """Derive the expected story_id from the artifact's path.
+
+    Searches upward through path components for the nearest STORY-[0-9]+
+    component whose immediate parent matches wave-[0-9]+.
+
+    Returns the story_id string, or None if the pattern is not found or the
+    wave-NNN intermediate is absent (both trigger the invalid-path error).
+    """
+    parts = artifact_path.resolve().parts
+    # Walk from right to left (nearest ancestor first)
+    for i in range(len(parts) - 1, 0, -1):
+        if _STORY_ID_RE.match(parts[i]):
+            if _WAVE_RE.match(parts[i - 1]):
+                return parts[i]
+            # STORY-NNN found but parent is not wave-NNN → invalid path
+            return None
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Rule (3): BC on-disk existence
+# ---------------------------------------------------------------------------
+
+
+def _bc_on_disk(bc_id: str, repo_root: Path) -> bool:
+    """Return True if bc_id resolves to its canonical on-disk path.
+
+    BC-S.SS.NNN → .factory/specs/behavioral-contracts/ss-SS/BC-S.SS.NNN.md
+    """
+    try:
+        body = bc_id.split("-", 1)[1]
+        parts = body.split(".")
+        ss = parts[1]
+    except (IndexError, ValueError):
+        return False
+    bc_path = (
+        repo_root / ".factory" / "specs" / "behavioral-contracts"
+        / f"ss-{ss}" / f"{bc_id}.md"
+    )
+    return bc_path.is_file()
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    artifact_path: Path | None = None
+    story_path_override: Path | None = None
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--artifact",) and i + 1 < len(argv):
+            artifact_path = Path(argv[i + 1])
+            i += 2
+        elif arg in ("--story",) and i + 1 < len(argv):
+            story_path_override = Path(argv[i + 1])
+            i += 2
+        elif not arg.startswith("-"):
+            artifact_path = Path(arg)
+            i += 1
+        else:
+            i += 1
+
+    if artifact_path is None:
+        print("ERROR: artifact path required (pass as positional arg or --artifact)", file=sys.stderr)
+        return 2
+
+    artifact_path = artifact_path.resolve()
+
+    try:
+        text = artifact_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"ERROR: cannot read artifact {artifact_path}: {exc}", file=sys.stderr)
+        return 2
+
+    # --- Rule (1): frontmatter presence and required keys ---
+    fm = _parse_frontmatter(text)
+    if fm is None or "story_id" not in fm or "bcs" not in fm:
+        print(_ERR_MISSING_FRONTMATTER, file=sys.stderr)
+        return 1
+
+    declared_story_id: str = fm["story_id"]
+    bcs: list[str] = fm["bcs"]
+
+    # --- Rule (6): path/story_id identity ---
+    derived_story_id = _derive_story_id_from_path(artifact_path)
+    if derived_story_id is None:
+        print(_ERR_INVALID_PATH, file=sys.stderr)
+        return 1
+    if declared_story_id != derived_story_id:
+        print(
+            f"ERROR: story_id: {declared_story_id} does not match "
+            f"directory-derived {derived_story_id}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # --- Rule (2): empty bcs short-circuit ---
+    if not bcs:
+        return 0
+
+    # --- Rules (3) and (7) need the repo root ---
+    repo_root = _find_repo_root(artifact_path)
+
+    # --- Rule (3): BC existence on disk ---
+    unresolvable = [bc_id for bc_id in bcs if not _bc_on_disk(bc_id, repo_root)]
+    if unresolvable:
+        print(
+            f"ERROR: unresolvable BC IDs (no on-disk file found): "
+            f"{', '.join(unresolvable)}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # --- Rule (7): story ownership ---
+    if story_path_override:
+        story_path = story_path_override.resolve()
+    else:
+        story_path = repo_root / ".factory" / "stories" / f"{declared_story_id}.md"
+
+    if not story_path.is_file():
+        print(f"ERROR: parent story file not found: {story_path}", file=sys.stderr)
+        return 1
+
+    try:
+        story_text = story_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"ERROR: cannot read story file {story_path}: {exc}", file=sys.stderr)
+        return 1
+
+    story_fm = _parse_frontmatter(story_text)
+    if story_fm is None or "behavioral_contracts" not in story_fm:
+        print(
+            f"ERROR: parent story {story_path.name} lacks behavioral_contracts: key",
+            file=sys.stderr,
+        )
+        return 1
+
+    story_bcs: list[str] = story_fm["behavioral_contracts"]
+    unowned = [bc_id for bc_id in bcs if bc_id not in story_bcs]
+    if unowned:
+        print(
+            f"ERROR: BC IDs not owned by {declared_story_id} "
+            f"(not in behavioral_contracts:): {', '.join(unowned)}",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(
+        f"PASS: {artifact_path.name} identity valid "
+        f"(story_id: {declared_story_id}, {len(bcs)} BC(s) verified)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
