@@ -462,8 +462,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Fetch origin/develop so the diff base is available
-          git fetch origin develop --depth=1 2>/dev/null || true
+          # fetch-depth: 0 in the checkout step already provides origin/develop.
           CHANGED=$(git diff --name-only origin/develop...HEAD)
           # Check whether this PR touches the CHANGELOG-gate trigger set
           # F-S158-P1-004: Cargo\.toml$ anchored to prevent Cargo.toml.bak spurious match.
