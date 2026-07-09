@@ -140,6 +140,22 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `tests/integration_tests.rs:1166` normalized from `ADR-012 Dec 10` to the canonical
   `ADR-012 Decision 10` form, closing the one abbreviated citation in the codebase.
 
+- **Wave-72 integration-gate hardening: `action-pin-gate` existence guard + positive
+  coverage assertion; STORY-159 tape path scrub (F-W72G-P1-001, SEC-W72-001, wave-72).**
+  (1) `action-pin-gate` CI job gains a scan-target existence guard
+  (`test -d .github/workflows/` + zero-file check) that mirrors the SEC-001 pattern from
+  `trust-boundary` and `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS): a renamed or emptied
+  scan target now fails loudly instead of trivially PASSing. A positive-coverage assertion
+  (`VALIDATED` counter) ensures the gate processed at least one remote action ref; the PASS
+  line now reports the validated count (e.g., "PASS: N remote action ref(s) validated, 0
+  mutable"). (2) Five STORY-159 VHS tape scripts in `docs/demo-evidence/STORY-159/` had
+  `~/Documents/GITHUB/wirerust` absolute host paths in their `Type "cd …"` lines; scrubbed
+  to `<REPO-ROOT>` matching the STORY-160 tape convention (SEC-W72-001, CWE-200). Binary
+  `.gif`/`.webm` artifacts are historical evidence and not re-rendered. Note: the
+  demo-evidence scrub-gate doc (`.factory/maintenance/demo-evidence-scrub-gate.md`) needs a
+  `~/` tilde-expansion pattern extension — that file lives on factory-artifacts and is
+  routed to the orchestrator separately.
+
 ## [0.11.5] - 2026-07-06
 
 ### Added

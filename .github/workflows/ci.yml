@@ -352,7 +352,25 @@ jobs:
           # pinning to SHA would defeat its purpose of tracking rolling toolchain channels.
           ALLOWLIST="dtolnay/rust-toolchain@stable dtolnay/rust-toolchain@nightly"
 
+          # PG-W71-CI-SCAN-GUARDS / SEC-001: scan-target existence guard.
+          # Mirrors the trust-boundary and help-provenance-gate patterns.
+          # If .github/workflows/ is renamed or emptied, the grep loop processes zero
+          # files and trivially PASSes — an explicit guard ensures structural changes
+          # fail loudly so the scope can be updated intentionally before merging.
+          if ! test -d .github/workflows/; then
+            echo "FAIL: action-pin-gate: .github/workflows/ directory not found — scan target moved?"
+            echo "Update the scan target in .github/workflows/ci.yml before merging."
+            exit 1
+          fi
+          yml_count=$(find .github/workflows/ -maxdepth 1 -name "*.yml" | wc -l)
+          if [ "${yml_count}" -eq 0 ]; then
+            echo "FAIL: action-pin-gate: no *.yml files found in .github/workflows/ — scan target empty?"
+            echo "Update the scan target in .github/workflows/ci.yml before merging."
+            exit 1
+          fi
+
           FAILURES=0
+          VALIDATED=0
           SHA_RE='^[0-9a-f]{40}$'
 
           while IFS= read -r line; do
@@ -381,6 +399,11 @@ jobs:
             done
             [ "${skip}" -eq 1 ] && continue
 
+            # PG-W71-CI-SCAN-GUARDS: count each non-local, non-allowlisted ref toward the
+            # positive-coverage assertion below. A zero count means the scan found no remote
+            # action refs to validate — suspicious even if FAILURES is also zero.
+            VALIDATED=$((VALIDATED + 1))
+
             # Extract the ref token (after the @)
             ref_token="${ref_full##*@}"
 
@@ -398,7 +421,15 @@ jobs:
             echo "To exempt an action, add it to the ALLOWLIST in this script with a justification comment."
             exit 1
           fi
-          echo "PASS: All remote actions in .github/workflows/ are SHA-pinned (${FAILURES} violations)."
+          # Positive-coverage assertion (PG-W71-CI-SCAN-GUARDS): zero validated refs means
+          # no 'uses:' lines survived the filter — the gate produced no signal. A stripped
+          # workflow tree cannot bypass the check by containing no remote action refs at all.
+          if [ "${VALIDATED}" -eq 0 ]; then
+            echo "FAIL: action-pin-gate: zero remote action refs validated — 'uses:' lines missing from scan target?"
+            echo "If all workflows were intentionally removed, update or disable this gate explicitly."
+            exit 1
+          fi
+          echo "PASS: ${VALIDATED} remote action ref(s) validated, 0 mutable."
 
   # DF-GREEN-DOC-TENSE-SWEEP gate: detect stale RED-phase comment headers in test files.
   #

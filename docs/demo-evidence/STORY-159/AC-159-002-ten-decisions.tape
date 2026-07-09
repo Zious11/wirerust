@@ -10,7 +10,7 @@ Set Padding 20
 Set Theme "Dracula"
 
 Hide
-Type "cd ~/Documents/GITHUB/wirerust/.worktrees/STORY-159"
+Type "cd <REPO-ROOT>/.worktrees/STORY-159"
 Enter
 Wait
 Type "clear"
