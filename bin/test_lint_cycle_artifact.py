@@ -413,6 +413,145 @@ def test_tc8_no_wave_intermediate() -> None:
         )
 
 
+def test_tc9_comment_interleaved_bcs() -> None:
+    """
+    TC9 (F-S158-P1-005): bcs: block list with an interleaved YAML comment line.
+
+    The post-comment BC ID (BC-9.99.999) MUST be included in the parsed bcs: list
+    and reach rule (3). Before the fix, the block-list parser broke on the comment
+    line, silently dropping BC-9.99.999 — a false-PASS vector (escaped rules 3+7).
+
+    Fixture:
+      - Artifact at correct path with story_id: STORY-158
+      - bcs: block list: BC-2.11.036, # comment, BC-9.99.999
+      - BC-2.11.036 exists on disk (rule 3 passes for it)
+      - BC-9.99.999 NOT on disk → unresolvable
+    Expected: exit 1, BC-9.99.999 listed (proves it was not dropped by the parser).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs:\n"
+                "  - BC-2.11.036\n"
+                "  # this BC exists on disk; the next one does not\n"
+                "  - BC-9.99.999\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.036")
+        # BC-9.99.999 deliberately NOT created → unresolvable
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC9: expected exit non-zero, got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "BC-9.99.999" in combined, (
+            f"TC9: BC-9.99.999 (post-comment item) must appear in error output — "
+            f"parser must not drop items after comment lines.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC9: comment-interleaved bcs: → exit {result.returncode}, "
+            "post-comment BC-9.99.999 listed (not dropped)"
+        )
+
+
+def test_tc10_inline_comment_suffix_stripped() -> None:
+    """
+    TC10 (F-S158-P1-002): story_id: and bcs: values carry inline comment suffixes.
+
+    story_id: STORY-158  # note → must parse as STORY-158 (suffix stripped).
+    - BC-2.11.036  # ok  → must parse as BC-2.11.036 (suffix stripped).
+
+    Parity with bin/compute-input-hash's documented convention (CLAUDE.md
+    "Inline comment suffixes").
+
+    Fixture:
+      - Artifact with story_id: STORY-158  # note and block bcs: [BC-2.11.036  # ok]
+      - BC-2.11.036 exists on disk
+      - Parent story STORY-158 owns BC-2.11.036
+    Expected: exit 0 (inline comment suffixes stripped, all rules pass).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158  # note\n"
+                "bcs:\n"
+                "  - BC-2.11.036  # ok\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.036")
+        make_story(tmp_dir, "STORY-158", behavioral_contracts=["BC-2.11.036"])
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode == 0, (
+            f"TC10: expected exit 0 (inline comment suffixes stripped), "
+            f"got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(f"  [PASS] TC10: inline comment suffixes stripped → exit 0")
+
+
+def test_tc11_no_factory_cycles_ancestor() -> None:
+    """
+    TC11 (F-S158-P1-001): wave-NNN/STORY-NNN path without .factory/cycles/ ancestor.
+
+    Path: <tmp>/wave-72/STORY-158/x.md — has wave-NNN parent for STORY-NNN
+    but lacks the required .factory/cycles/ ancestor components.
+
+    Rule (6) branch-(a) must fire: .factory/cycles/ is required above wave-NNN.
+    Without this check, /tmp/wave-72/STORY-158/x.md would have silently passed
+    rule (6) (wave-NNN parent found) and exited 0 on empty bcs:.
+
+    Distinguishes from TC8 (.factory/cycles/STORY-NNN — missing wave-NNN):
+    TC11 has wave-NNN but no .factory/cycles/ above it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        # Artifact at wave-72/STORY-158/x.md — no .factory/cycles/ prefix
+        artifact = make_artifact(
+            tmp_dir,
+            "wave-72/STORY-158/x.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs: []\n"
+                "---\n"
+                "\n"
+                "# x\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC11: expected exit non-zero, got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert _ERR_INVALID_PATH in combined, (
+            f"TC11: expected exact invalid-path error message not found.\n"
+            f"Expected: {_ERR_INVALID_PATH!r}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC11: no .factory/cycles/ ancestor → exit {result.returncode}, "
+            "exact invalid-path error"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -428,6 +567,9 @@ def main() -> None:
         test_tc6_story_id_directory_mismatch,
         test_tc7_borrowed_bc_id,
         test_tc8_no_wave_intermediate,
+        test_tc9_comment_interleaved_bcs,
+        test_tc10_inline_comment_suffix_stripped,
+        test_tc11_no_factory_cycles_ancestor,
     ]
     passed = 0
     failed = 0

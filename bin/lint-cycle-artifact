@@ -125,8 +125,12 @@ def _parse_frontmatter(text: str) -> dict | None:
                 if item_m:
                     items.append(item_m.group(1).strip())
                     i += 1
-                elif not item_stripped or item_stripped.startswith("#"):
-                    # Blank or comment line — end of block
+                elif item_stripped.startswith("#"):
+                    # F-S158-P1-005: YAML comment inside block list — skip and CONTINUE
+                    # collecting; breaking here would silently drop all subsequent items.
+                    i += 1
+                elif not item_stripped:
+                    # Blank line — end of block
                     i += 1
                     break
                 else:
