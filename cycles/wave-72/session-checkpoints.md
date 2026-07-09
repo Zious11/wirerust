@@ -73,6 +73,24 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
 
 ---
 
+## Checkpoint — 2026-07-09 (wave-72 integration gate PASSED, D-415)
+
+**Wave-72 integration gate PASSED (D-415, 2026-07-09). ALL 8 dimensions green. trajectory →1→0→0→0 (3/3 streak P2/P3/P4). develop=44f8c9c (13 unreleased commits, v0.12.0 staged). Awaiting human wave-close approval.**
+
+- **Date:** 2026-07-09. Position: wave-72 integration gate PASSED (D-415). Pipeline RUNNING — awaiting human wave-close approval.
+- **develop HEAD:** `44f8c9c` (full: `44f8c9ce57b1ebe7ea1d166628a2518ebf981997`) — 13 unreleased commits ahead of v0.11.5.
+- **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
+- **Open PRs:** #386 (dependabot indicatif — untouched, still open). No open story PRs.
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
+- **Wave-72 story set:** ALL DELIVERED (D-408→D-413). STORY-158 D-410 PR #387 / STORY-159 D-411 PR #388 / STORY-160 D-412 PR #389 / STORY-161 D-413 PR #390. Delivery COMPLETE.
+- **Gate verdict:** PASS — all 8 dimensions green (suite, adversary CONVERGED, code-review, security, consistency, holdout, demos, runtime-probes).
+- **Convergence:** wave-72 adversarial trajectory →1→0→0→0; streak 3/3 (P2/P3/P4 CLEAN). BC-5.39.001 satisfied.
+- **Artifacts written this burst:** gate-summary.md, lessons.md, process-gap-ledger deferred items (F-W72G-P3-004 RESOLVED). STORY-162 + STORY-INDEX v3.32.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.13 / STORY-INDEX v3.32 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:wave-gate` (wave-72 — human wave-close approval; then punch list + v0.12.0 release).
+
+---
+
 ## Checkpoint — 2026-07-09 (STORY-160 DELIVERED, D-412)
 
 **Wave 72 delivery: STORY-160 DELIVERED (D-412, 2026-07-09). PR #389 squash-merged to develop 704fd2e at 2026-07-09. stories_delivered=105. issue #255 closed. BC-INDEX v2.22. STORY-161 unblocked (final wave-72 story). trajectory-tail →0→0→0→0.**

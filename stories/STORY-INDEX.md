@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.32"
+version: "3.33"
 status: draft
 producer: story-writer
-timestamp: 2026-07-09T22:45:00Z
+timestamp: 2026-07-09T23:59:00Z
 phase: f7
 total_stories: 115
 total_waves: 72
 total_points: 717  # = 714 pre-v3.32 +3 STORY-162 (wave-TBD draft, E-11, 3 pts); wave-table scheduled: 692 (unchanged; STORY-162 excluded wave-TBD); epic-table grand total: 717; stories: 115; waves: 72
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.33 (2026-07-09): wave-72 CLOSED (D-416, human-approved); Wave Delivery Progress row updated to DELIVERED & CLOSED (D-416, 2026-07-09). No numeric totals changed.
 # v3.32 (2026-07-09): STORY-162 added (wave-TBD draft, E-11, 3 pts; wave-72 S-7.02 cycle-close process-gap codifications: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001) VP-INDEX LMR-003 template-conformance exemption + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001) check-green-doc-tense main() guard self-tests). total_stories: 114→115; total_points: 714→717; E-11: 11→12 stories, 41→44 pts. Wave-table scheduled unchanged (STORY-162 excluded wave-TBD).
 # v3.31 (2026-07-09): STORY-161 DELIVERED (D-413, PR #390, 80fbb64; issue #252 closed; stories_delivered=106). BLOCKING-01 fix: STORY-161 catalog row status draft→delivered (wave-72 integration gate consistency audit). Wave-72 Wave Delivery Progress row updated: DELIVERED & CLOSED → DELIVERY COMPLETE (D-413) — integration gate IN PROGRESS (ADVISORY-01). No numeric totals changed.
 # v3.30 (2026-07-09): STORY-160 DELIVERED — PR #389 squash 704fd2e (D-412); status draft→delivered; stories_delivered=105; issue #255 closed; BC-INDEX v2.22 (BC-2.11.001 v1.9 AC-160-010). STORY-160 per-story convergence 3-pass CONVERGED (P1/P2/P3 CLEAN; BC-5.39.001 satisfied). STORY-076/101 input-hashes re-baselined (BC-2.11.001 v1.9 input cascade; MATCH=112 STALE=0). STORY-161 unblocked (final wave-72 story). No numeric totals changed.
@@ -413,7 +414,7 @@ traces_to:
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
 | 71 | STORY-150, STORY-156, STORY-157 | **DELIVERED & CLOSED (D-404, 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
-| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERY COMPLETE (D-413) — integration gate IN PROGRESS** | #387, #388, #389, #390 | 75c5ba5, d410b8d, 704fd2e, 80fbb64 | 2026-07-09 |
+| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERED & CLOSED (D-416, 2026-07-09)** | #387, #388, #389, #390, #391 | 75c5ba5, d410b8d, 704fd2e, 80fbb64, 44f8c9c | 2026-07-09 |
 
 ## Coverage Verification
 

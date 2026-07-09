@@ -3,13 +3,13 @@
 S-7.02 cycle-closing requirement: lessons recorded here for human review and
 engine-improvement triage.
 
-Wave: 72 | Gate passed: 2026-07-09 (D-415, human approval pending) | Stories: STORY-158, STORY-159, STORY-160, STORY-161 (29 pts).
+Wave: 72 | Gate passed: 2026-07-09 (D-415) | Wave CLOSED: 2026-07-09 (D-416, human-approved) | Stories: STORY-158, STORY-159, STORY-160, STORY-161 (29 pts).
 PRs merged: #387 (75c5ba5) / #388 (d410b8d) / #389 (704fd2e) / #390 (80fbb64) / #391 gate-fix (44f8c9c).
 Adversarial convergence: 4 passes; streak 3/3 (P2/P3/P4); trajectory 1→0→0→0.
 
 ---
 
-## Lesson 1 — [codified] Wave-Level Sibling-Sweep Catches What Per-Story Scope Cannot
+## Lesson 1 — [codified] via PR #391 CI hardening — Wave-Level Sibling-Sweep Catches What Per-Story Scope Cannot
 
 **Observation:**
 
@@ -43,7 +43,7 @@ wave-gate adversary dispatch scope.
 
 ---
 
-## Lesson 2 — [flag for STORY-162 scope] Breaking JSON Changes Cascade to Holdout Expectations
+## Lesson 2 — [candidate-codification — next maintenance] Breaking JSON Changes Cascade to Holdout Expectations
 
 **Observation:**
 
@@ -80,7 +80,7 @@ not, it should be a wave-73 STORY-163.
 
 ---
 
-## Lesson 3 — [codified via STORY-162] Hook-Forced Template Fields on Locked Docs Need Governance
+## Lesson 3 — [codified] STORY-162 — Hook-Forced Template Fields on Locked Docs Need Governance
 
 **Observation:**
 
@@ -113,7 +113,7 @@ STORY-162 (E-11, wave-TBD) codifies the governance boundary
 
 ---
 
-## Lesson 4 — [reinforce discipline] Triple-Verification for LMR-001-Permanent Hash Writes
+## Lesson 4 — [candidate-codification — next maintenance] Triple-Verification for LMR-001-Permanent Hash Writes
 
 **Observation:**
 
@@ -141,3 +141,18 @@ This discipline has no dedicated codification story; it is reinforced here as an
 explicit lessons-learned entry for future VP proof_file_hash writes.
 
 **Tags:** `discipline`, `lmr-001`, `hash-verification`, `correctness`
+
+---
+
+## Gate-Close Confirmation — Wave-72 CLOSED (D-416, 2026-07-09)
+
+Wave-72 officially CLOSED by human approval at orchestrator gate (D-416, 2026-07-09). All dimensions green per D-415 gate-summary.
+
+**Codification status summary (S-7.02):**
+
+| Lesson | Tag | Codification vehicle |
+|--------|-----|---------------------|
+| Lesson 1 (a) — Wave-Level Sibling-Sweep | `[codified] via PR #391 CI hardening` | PR #391 action-pin-gate existence-guard fix codifies the wave-level adversary scope value |
+| Lesson 2 (b) — Breaking JSON Holdout Sweep | `[candidate-codification — next maintenance]` | Needs a BREAKING-change delivery-protocol checklist item; route to next maintenance sweep or wave-73 story |
+| Lesson 3 (c) — Hook-Forced Template on Locked Docs | `[codified] STORY-162` | STORY-162 (wave-TBD) codifies PG-W72-LMR003-TEMPLATE-CONFORMANCE governance boundary |
+| Lesson 4 (d) — Triple-Verification LMR-001 Writes | `[candidate-codification — next maintenance]` | No dedicated story; reinforce via implementer checklist update in next maintenance sweep |
