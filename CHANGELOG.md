@@ -68,6 +68,23 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   BC-2.16.016 unbounded-findings behavior; docstring anchor corrected. CLI `--arp`
   `long_help` unbounded-findings documentation coverage pinned.
 
+### Docs / Internal
+
+- **Public ADR-012 authored for protocols catalog and coverage-gaps system (STORY-159,
+  wave-72) [doc-drift].** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` created,
+  resolving a maintenance-sweep finding (NEW-001, HIGH) that identified 38 lines across
+  six source and test files citing ADR-012 with no corresponding public document. The new
+  ADR covers all ten design decisions from the `feature-protocol-coverage` cycle (v0.11.2,
+  PRs #351–#357): hand-curated static array, tri-state Suricata-derived vocabulary,
+  port-detection caveats, catalog scope, supported-set derivation, TCP+UDP dynamic
+  detection (including Decision 6 Clarification on increment-site semantics), category
+  tagging, `--coverage-gaps` explicit flag, `CoverageGapsSummary` report section, and UDP
+  gap classification decoupled from `enable_dns`. Format follows the ADR-0009 precedent:
+  markdown headings, no YAML frontmatter, all internal factory IDs stripped.
+  `CLAUDE.md` Project References table updated to include the new entry. Inline comment at
+  `tests/integration_tests.rs:1166` normalized from `ADR-012 Dec 10` to the canonical
+  `ADR-012 Decision 10` form, closing the one abbreviated citation in the codebase.
+
 ## [0.11.5] - 2026-07-06
 
 ### Added
