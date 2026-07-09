@@ -1,0 +1,79 @@
+{
+  "story": "STORY-161",
+  "wave": 72,
+  "head_reviewed": "efe047a",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "VP-INDEX N>2 flat-concat Merkle terminology; brace-pairing prose lacks string/comment-awareness caveat; kani_proofs literal-name anchoring vs kani_proofs_vpNNN pattern (extensibility); Python tool archived as /tmp reference + prose; shasum-vs-sha256sum naming."
+    },
+    {
+      "pass": 2,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "No new HIGH/CRITICAL. Residual LOW: same class of naming/prose observations as P1."
+    },
+    {
+      "pass": 3,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "No new HIGH/CRITICAL. BC-5.39.001 satisfied (3 consecutive NITPICK_ONLY passes). Convergence declared."
+    }
+  ],
+  "carried_findings": [
+    {
+      "id": "F-S161P1-001",
+      "severity": "LOW",
+      "category": "process-gap",
+      "summary": "hook-forced template-conformance fields (inputs:, input-hash:) on locked VP vs closed LMR-003 allowlist — needs phase-5 architectural clarification; cycle-closing checklist S-7.02 requires a follow-up story or justified deferral at wave close."
+    },
+    {
+      "id": "F-S161P1-LOW-01",
+      "severity": "LOW",
+      "category": "terminology",
+      "summary": "VP-INDEX N>2 flat-concat described as 'Merkle' — flat-concat is not Merkle; clarify terminology in future spec amendment."
+    },
+    {
+      "id": "F-S161P1-LOW-02",
+      "severity": "LOW",
+      "category": "prose",
+      "summary": "brace-pairing prose in algorithm description lacks string/comment-awareness caveat."
+    },
+    {
+      "id": "F-S161P1-LOW-03",
+      "severity": "LOW",
+      "category": "extensibility",
+      "summary": "kani_proofs literal-name anchoring in VP-024 vs kani_proofs_vpNNN pattern — extensibility concern for future multi-VP anchor disambiguation."
+    },
+    {
+      "id": "F-S161P1-LOW-04",
+      "severity": "LOW",
+      "category": "prose",
+      "summary": "Python tool referenced as /tmp archive path in prose; should reference canonical bin/ location."
+    },
+    {
+      "id": "F-S161P1-LOW-05",
+      "severity": "LOW",
+      "category": "prose",
+      "summary": "shasum vs sha256sum naming inconsistency in algorithm description prose."
+    },
+    {
+      "id": "F-S161P3-001",
+      "severity": "LOW",
+      "category": "scope-note",
+      "summary": "CHANGELOG.md touch beyond Task-7 wording = intentional wave-72 convention (STORY-158 discipline), not scope creep — orchestrator adjudication."
+    }
+  ],
+  "process_notes": [
+    "Orchestrator executed STORY-161 branch push inline instead of dispatching implementer (mechanical, verified).",
+    "Two-phase proof_file_hash computation: Phase A dual-tool (Python hashlib + bash shasum/xxd) + independent orchestrator third recomputation, all three agreed on 48296b21a5bbce59750e6210da8d55be8bf7d3d4a1ed6719088dd4ef59a2c8a5.",
+    "Snapshot 6e9f2cc not reachable from develop squash history — EC-002 snapshot rule applied.",
+    "FU-F6-KANI-CLEANUP resolved per LMR-001; kani_version recovered per LMR-002 from in-tree evidence at 6e9f2cc."
+  ],
+  "convergence_date": "2026-07-09"
+}

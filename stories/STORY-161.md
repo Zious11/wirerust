@@ -27,7 +27,7 @@ traces_to:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md
   - .factory/maintenance/issue-backlog-triage-2026-07-08.md
-input-hash: "dddd9fd"
+input-hash: "1d63da9"
 inputs:
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
   - .factory/specs/verification-properties/VP-INDEX.md

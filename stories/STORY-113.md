@@ -41,7 +41,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.011.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "e01cc3d"
+input-hash: "d4e01fe"
 ---
 
 # STORY-113: ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D

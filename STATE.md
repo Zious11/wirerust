@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: in-progress
-current_step: "Wave 72 delivery: STORY-160 DELIVERED (D-412, PR #389 merged 704fd2e, issue #255 closed). Next: STORY-161 (final wave-72 story, unblocked). Then wave-72 integration gate. trajectory-tail →0→0→0→0"
+current_step: "Wave 72 DELIVERY COMPLETE (D-413, 2026-07-09): 4/4 stories merged (#387/#388/#389/#390). develop=80fbb64. NEXT: wave-72 integration gate (wave-level adversarial convergence + full-suite + consistency + holdout re-eval) before wave close. trajectory-tail →0→0→0→0"
 current_cycle: "wave-72"
 pipeline: RUNNING
-timestamp: 2026-07-09T22:00:00Z
+timestamp: 2026-07-09T22:30:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -24,9 +24,9 @@ release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
 prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (updated 2026-07-09 — wave-72 STORY-160 DELIVERED (D-412): PR #389 merged 704fd2e; stories_delivered=105; issue #255 closed; STORY-161 unblocked)
+# Ground-truth HEADs (updated 2026-07-09 — wave-72 STORY-161 DELIVERED (D-413): PR #390 merged 80fbb64; stories_delivered=106; issue #252 closed; DELIVERY COMPLETE)
 main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
-develop_head: 704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a
+develop_head: 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461
 # Cargo.toml version: main=0.11.5; develop=0.11.5 (8 unreleased commits since v0.11.5; PRs #382/383/384 + wave-71 #378-381 + wave-70 docs #377)
 cargo_version_main: "0.11.5"
 cargo_version_develop: "0.11.5"
@@ -36,13 +36,13 @@ bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
-stories_delivered: 105
-story_index_version: "v3.30"
+stories_delivered: 106
+story_index_version: "v3.31"
 total_stories: 114
-story_index_note: "114 stories / 72 waves / 714 pts. v3.30: STORY-160 DELIVERED (D-412, PR #389 squash 704fd2e; issue #255 closed; stories_delivered=105). BC-2.11.001 v1.9 + BC-INDEX v2.22 amendments. STORY-076/101 input-hashes re-baselined (BC-2.11.001 v1.9 cascade, MATCH=112 STALE=0). 2026-07-09."
+story_index_note: "114 stories / 72 waves / 714 pts. v3.31: STORY-161 DELIVERED (D-413, PR #390 squash 80fbb64; issue #252 closed; stories_delivered=106). VP-INDEX v2.39 (Multi-File Proof Anchor Algorithm + EC-005 cross-links). VP-024 v2.5 (proof_file_hash populated). STORY-112/113/161 input-hashes re-baselined (vp-024 v2.5 cascade, MATCH=114 STALE=0). wave-72 DELIVERY COMPLETE. 2026-07-09."
 # Spec versions (current)
 bc_index_version: "v2.22"
-vp_index_version: "v2.38"
+vp_index_version: "v2.39"
 arch_index_version: "v2.12"
 prd_version: "v1.51"
 epics_version: v2.1
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-06
 
 ## EXACT RESUME POINT
 
-**Wave 72 delivery: STORY-160 DELIVERED (D-412, 2026-07-09). PR #389 "feat(reporter): align JSON enum casing + schema_version envelope (#255)" squash-merged 704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a. Full cycle: worktree → Red Gate (11 assertion-failing tests verified red) → TDD implementation 5 micro-commits (7bb122d..73f30cc) → AC-160-010 spec amendment by product-owner (BC-2.11.001 v1.8→v1.9 + BC-INDEX v2.21→v2.22) → Step-4.5 adversarial convergence CONVERGED (P1/P2/P3 all CLEAN, zero HIGH/CRITICAL, BC-5.39.001 satisfied) → demo evidence fa6e695 (25 artifacts, scrub PASS) → CI 12/12; security 0 findings; pr-reviewer APPROVE (1 cycle); issue #255 auto-closed; merge auth wave-level D-408 clause (b). BREAKING JSON change staged for v0.12.0. Worktree + local branch cleaned. stories_delivered=105. STORY-161 unblocked (dep STORY-159 already satisfied). Next: STORY-161 (final wave-72 story), then wave-72 integration gate.**
+**Wave 72 DELIVERY COMPLETE (D-413, 2026-07-09). All 4 stories merged: STORY-158 #387 75c5ba5 / STORY-159 #388 d410b8d / STORY-160 #389 704fd2e / STORY-161 #390 80fbb64. stories_delivered=106. develop HEAD=80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461. STORY-161 full cycle: worktree → Red Gate (6 verifiable ACs red; log at cycles/wave-72/STORY-161/implementation/red-gate-log.md) → two-phase proof_file_hash computation (Python hashlib + bash shasum/xxd + independent orchestrator recomputation, all three agreed on 48296b21a5bbce59750e6210da8d55be8bf7d3d4a1ed6719088dd4ef59a2c8a5, EC-002 snapshot rule applied to 6e9f2cc) → VP-INDEX v2.38→v2.39 (Multi-File Proof Anchor Algorithm section + EC-005 bidirectional cross-links) + VP-024 v2.4→v2.5 (proof_file_hash populated, kani_version "0.67.0" per LMR-002 historical recovery, FU-F6-KANI-CLEANUP resolved per LMR-001, verification_lock unchanged) → CLAUDE.md Two Hash Disciplines note + CHANGELOG entry (efe047a) → Step-4.5 convergence CONVERGED (P1/P2/P3 all NITPICK_ONLY, zero HIGH/CRITICAL, BC-5.39.001 satisfied) → demos 5c3a3b3 (13 artifacts, scrub PASS, live hash-recomputation MATCH) → PR #390 squash-merged 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461; CI 12/12; security 0 HIGH/CRITICAL (1 LOW CWE-377 accepted); pr-reviewer APPROVE (1 cycle); issue #252 auto-closed; merge auth wave-level D-408 clause (b). Worktree cleaned. STORY-112/113/161 input-hashes re-baselined (vp-024 v2.5 cascade, MATCH=114 STALE=0). NEXT: wave-72 integration gate (wave-level adversarial convergence 3 clean passes + full suite + consistency audit + holdout re-eval) before wave close.**
 
 ---
 
@@ -72,16 +72,16 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-72-delivery — STORY-160 DELIVERED (D-412, 2026-07-09); STORY-161 unblocked, next up; pipeline RUNNING |
+| Mode | wave-72-delivery — DELIVERY COMPLETE (D-413, 2026-07-09); 4/4 stories merged; wave-72 integration gate PENDING |
 | Version | 0.11.5 (released 2026-07-07; develop=704fd2e, Cargo.toml 0.11.5; 11 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
-| Develop HEAD | `704fd2e` (full: `704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a`) — PR #389 STORY-160 squash-merged 2026-07-09 (D-412); issue #255 closed |
+| Develop HEAD | `80fbb64` (full: `80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461`) — PR #390 STORY-161 squash-merged 2026-07-09 (D-413); issue #252 closed |
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.22 / VP-INDEX v2.38 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 105 delivered / 114 total (STORY-INDEX v3.30) |
-| **Last Updated** | 2026-07-09 — STORY-160 DELIVERED (D-412). PR #389 squash-merged 704fd2e; issue #255 closed; BC-INDEX v2.22; branch+worktree cleaned; stories_delivered=105. STORY-161 UNBLOCKED; pipeline RUNNING. trajectory-tail →0→0→0→0 |
+| Spec versions | BC-INDEX v2.22 / VP-INDEX v2.39 / ARCH-INDEX v2.12 / PRD v1.51 |
+| Stories | 106 delivered / 114 total (STORY-INDEX v3.31) |
+| **Last Updated** | 2026-07-09 — STORY-161 DELIVERED (D-413). PR #390 squash-merged 80fbb64; issue #252 closed; VP-INDEX v2.39; VP-024 v2.5; branch+worktree cleaned; stories_delivered=106. wave-72 DELIVERY COMPLETE; integration gate PENDING. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -120,7 +120,7 @@ maintenance_prior_run: maint-2026-07-06
 | Wave 71 (v0.12.0): STORY-150/156/157 | **CLOSED (D-404, 2026-07-08)** | PRs #378/379/380/381; develop=b642c0f. 7-pass adversary CONVERGED streak 3/3; trajectory →1→0→0→0. S-7.02 SATISFIED (STORY-158). Pipeline PAUSED (human-approved). |
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
-| Wave 72 (v0.12.0): STORY-158/159/160/161 | **IN PROGRESS (D-408→D-412, 2026-07-09)** | Story convergence: 15 passes, ~100 findings fixed, 12 fix bursts, LMR-001/002/003 codified (VP-INDEX v2.38), BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.9 (AC-160-010); trajectory ...→2M→CLEAN→CLEAN→CLEAN. Consistency audit 0-blocking. Human approved. STORY-158 DELIVERED (D-410): PR #387 75c5ba5 2026-07-09; stories_delivered=103. STORY-159 DELIVERED (D-411): PR #388 d410b8d 2026-07-09; per-story 3-pass CONVERGED; stories_delivered=104. STORY-160 DELIVERED (D-412): PR #389 704fd2e 2026-07-09; per-story P1/P2/P3 CLEAN; BC-INDEX v2.22; issue #255 closed; stories_delivered=105. STORY-161 remaining — unblocked. |
+| Wave 72 (v0.12.0): STORY-158/159/160/161 | **DELIVERY COMPLETE (D-413, 2026-07-09) — integration gate PENDING** | All 4 stories delivered. STORY-158 D-410 PR #387 75c5ba5. STORY-159 D-411 PR #388 d410b8d. STORY-160 D-412 PR #389 704fd2e. STORY-161 D-413 PR #390 80fbb64; VP-INDEX v2.39 + VP-024 v2.5 + issue #252 closed; stories_delivered=106. trajectory-tail →0→0→0→0. NEXT: wave-level adversarial convergence (3 clean passes) + full-suite + consistency audit + holdout re-eval before wave close. |
 
 ---
 
@@ -128,11 +128,10 @@ maintenance_prior_run: maint-2026-07-06
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **STORY-158 DELIVERY CHAIN (D-409, 2026-07-09). Worktree 5e4264f; Red Gate 7f227a0; GREEN 5 commits 413d0da..481f900; 4 hardening bursts a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d + clippy drift fix c4831bc; 21 TCs fail-closed parser; convergence P5/P6/P7 clean 3/3 (BC-5.39.001); demos evidence cf8b1bf scrub PASS; PR #387 OPEN CI 12/12; pr-reviewer APPROVE; security-reviewer APPROVE (SEC-001-S158/SEC-002-S158 deferred LOW). Human HELD merge.** | **MERGE-HOLD (D-409)** | PR #387 open. STORY-159/160 blocked; STORY-161 blocked on 159. |
-| **Session wrap (human-requested, 2026-07-09). STORY-158 at merge-hold (PR #387); no sub-agents abandoned mid-step.** | **PAUSED** | STORY-158 at merge-hold (PR #387); no sub-agents abandoned mid-step. |
 | **STORY-158 DELIVERED (D-410, 2026-07-09). Merge hold D-409 RELEASED by human. PR #387 squash-merged to develop 75c5ba5f7713b9eb03f6c2cbb7c0bea3fd575a50 at 2026-07-09T16:41:36Z. Branch feature/STORY-158-changelog-gate-cycle-lint deleted; worktree .worktrees/STORY-158 removed. stories_delivered=103.** | **DONE (D-410)** | STORY-159/160 UNBLOCKED; STORY-161 blocked on 159. Dispatch 159+160 in parallel. |
 | **STORY-159 DELIVERED (D-411, 2026-07-09). Worktree STORY-159; Red Gate log committed; 4 micro-commits 8f6d540/3c54230/659b978/cd99a58; per-story adversarial convergence P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN (0 HIGH/CRITICAL; BC-5.39.001 satisfied; diff byte-stable); demo evidence 4a8cc37 (21 artifacts, scrub PASS); PR #388 squash-merged d410b8d64b5fa8835bcd3db5234fad48ebd46bd4; CI 12/12; security-review CLEAN; pr-reviewer APPROVE (1 cycle); merge auth DF-MERGE-AUTH-CLASSIFIER-001 clause (b). Branch+worktree cleaned. stories_delivered=104.** | **DONE (D-411)** | STORY-160 unblocked; STORY-161 now unblocked. Next: STORY-160+161 in parallel. |
-| **STORY-160 DELIVERED (D-412, 2026-07-09). Worktree STORY-160; Red Gate log committed (11 assertion-failing tests); 5 micro-commits 7bb122d..73f30cc; AC-160-010 spec amendment (BC-2.11.001 v1.9 + BC-INDEX v2.22); per-story adversarial convergence P1/P2/P3 CLEAN (0 HIGH/CRITICAL; BC-5.39.001 satisfied); demo evidence fa6e695 (25 artifacts, scrub PASS); PR #389 squash-merged 704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a; CI 12/12; security 0 findings; pr-reviewer APPROVE (1 cycle); issue #255 auto-closed; merge auth wave-level D-408 clause (b). Branch+worktree cleaned. BREAKING JSON change staged for v0.12.0. stories_delivered=105.** | **DONE (D-412)** | STORY-161 unblocked (final wave-72 story). Next: STORY-161 delivery, then wave-72 integration gate. |
+| **STORY-160 DELIVERED (D-412, 2026-07-09). Worktree STORY-160; Red Gate log committed (11 assertion-failing tests); 5 micro-commits 7bb122d..73f30cc; AC-160-010 spec amendment (BC-2.11.001 v1.9 + BC-INDEX v2.22); per-story adversarial convergence P1/P2/P3 CLEAN (0 HIGH/CRITICAL; BC-5.39.001 satisfied); demo evidence fa6e695 (25 artifacts, scrub PASS); PR #389 squash-merged 704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a; CI 12/12; security 0 findings; pr-reviewer APPROVE (1 cycle); issue #255 auto-closed; merge auth wave-level D-408 clause (b). Branch+worktree cleaned. BREAKING JSON change staged for v0.12.0. stories_delivered=105.** | **DONE (D-412)** | STORY-161 unblocked (final wave-72 story). |
+| **STORY-161 DELIVERED / WAVE-72 DELIVERY COMPLETE (D-413, 2026-07-09). Worktree STORY-161; Red Gate log committed (6 verifiable ACs red); two-phase proof_file_hash computation (Python hashlib + bash shasum/xxd + orchestrator, all three agreed 48296b21...); VP-INDEX v2.38→v2.39 (Multi-File Proof Anchor Algorithm + EC-005 cross-links) + VP-024 v2.4→v2.5 (proof_file_hash populated, kani_version 0.67.0 per LMR-002, FU-F6-KANI-CLEANUP resolved per LMR-001); CLAUDE.md Two Hash Disciplines note + CHANGELOG entry efe047a; Step-4.5 convergence CONVERGED (P1/P2/P3 NITPICK_ONLY, 0 HIGH/CRITICAL, BC-5.39.001 satisfied); demos 5c3a3b3 (13 artifacts, scrub PASS, live hash-recomputation MATCH); PR #390 squash-merged 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461; CI 12/12; security 0 HIGH/CRITICAL (1 LOW CWE-377 accepted); pr-reviewer APPROVE (1 cycle); issue #252 auto-closed; merge auth wave-level D-408 clause (b). Worktree cleaned. STORY-112/113/161 input-hashes re-baselined (MATCH=114 STALE=0). stories_delivered=106.** | **DONE (D-413)** | wave-72 DELIVERY COMPLETE. NEXT: integration gate (wave-level adversarial convergence 3 clean passes + full-suite + consistency + holdout re-eval). |
 
 ## Decisions Log
 
@@ -249,6 +248,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-409 | STORY-158 delivery COMPLETE through PR-open; merge HELD by human. Worktree branched from develop c4eb1f4; Red Gate 7f227a0; GREEN gate 413d0da..481f900 (5 commits); 4 hardening bursts (fail-closed parser, 21 TCs, commits a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d) + clippy drift fix c4831bc; per-story convergence 7 passes P5/P6/P7 clean 3/3 (BC-5.39.001 satisfied); demo evidence cf8b1bf (PG-W70-DEMO-SCRUB PASS); PR #387 opened (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc); CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE with 2 LOW CWE-22 advisories (SEC-001-S158/SEC-002-S158) deferred pending bin/lint-cycle-artifact mandatory CI wiring (DF-VALIDATION-001 applies before issue filing). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. | 2026-07-09 |
 | D-410 | Merge hold D-409 RELEASED by human. PR #387 squash-merged to develop at merge commit 75c5ba5f7713b9eb03f6c2cbb7c0bea3fd575a50 (mergedAt 2026-07-09T16:41:36Z, "ci: CHANGELOG gate + cycle-artifact identity lint + scan-guard hardening"). STORY-158 DELIVERED. stories_delivered=103. Remote branch feature/STORY-158-changelog-gate-cycle-lint deleted; worktree .worktrees/STORY-158 removed; local branch deleted. STORY-159/160 UNBLOCKED (both depend_on STORY-158 only; dispatch in parallel worktrees). STORY-161 remains blocked on STORY-159. PR #386 (dependabot indicatif) untouched, still open. | 2026-07-09 |
 | D-411 | STORY-159 DELIVERED (2026-07-09). PR #388 "docs: add ADR-012 protocols catalog and coverage-gaps system" squash-merged d410b8d64b5fa8835bcd3db5234fad48ebd46bd4. Per-story adversarial convergence CONVERGED: Pass 1 CLEAN / Pass 2 NITPICK_ONLY / Pass 3 CLEAN; zero HIGH/CRITICAL; BC-5.39.001 satisfied; diff byte-stable on cd99a58. Demo evidence 4a8cc37 (21 artifacts; scrub PASS). CI 12/12 green. security-review CLEAN. pr-reviewer APPROVE (1 cycle). Merge auth: wave-level D-408, DF-MERGE-AUTH-CLASSIFIER-001 clause (b). Worktree .worktrees/STORY-159 + local branch docs/adr-012-protocols-catalog deleted. stories_delivered=104. STORY-161 now UNBLOCKED (dep STORY-159 satisfied). 4 carried LOW observations (factory-ADR wording debt, non-blocking): sketch parsed.is_udp() vs dispatcher::udp_gap_key; sketch +=1 vs saturating_add; Decision-6 lower-port parenthetical; "approximately 30" vs exactly 30 — route to future maint doc-refresh. | 2026-07-09 |
+| D-413 | STORY-161 DELIVERED + WAVE-72 DELIVERY COMPLETE (2026-07-09). PR #390 "docs: codify multi-file proof_file_hash algorithm + VP-024 re-lock" squash-merged 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461. Full cycle: worktree → Red Gate (6 verifiable ACs red) → two-phase proof_file_hash computation (Python hashlib + bash shasum/xxd + independent orchestrator recomputation, all agreed 48296b21a5bbce59750e6210da8d55be8bf7d3d4a1ed6719088dd4ef59a2c8a5; EC-002 snapshot rule, 6e9f2cc) → VP-INDEX v2.38→v2.39 (Multi-File Proof Anchor Algorithm section + EC-005 bidirectional cross-links) + VP-024 v2.4→v2.5 (proof_file_hash populated, kani_version "0.67.0" per LMR-002 historical recovery from in-tree evidence at 6e9f2cc; FU-F6-KANI-CLEANUP resolved per LMR-001; verification_lock unchanged; bundled hook-forced hygiene: TD-031 anchor migration ×4 + inputs:[]/input-hash d41d8cd template fields) → CLAUDE.md Two Hash Disciplines note + CHANGELOG entry efe047a → Step-4.5 convergence CONVERGED (P1/P2/P3 NITPICK_ONLY, 0 HIGH/CRITICAL, BC-5.39.001 satisfied) → demos 5c3a3b3 (13 artifacts, scrub PASS, live hash-recomputation MATCH) → CI 12/12; security 0 HIGH/CRITICAL (1 LOW CWE-377 accepted); pr-reviewer APPROVE (1 cycle); issue #252 auto-closed; merge auth wave-level D-408 clause (b). Worktree cleaned. develop HEAD=80fbb64. STORY-112/113/161 input-hashes re-baselined (vp-024 v2.5 cascade, MATCH=114 STALE=0). stories_delivered=106. Carried LOW findings: F-S161P1-001 (process-gap — hook-forced template-conformance on locked VP, needs phase-5 clarification, S-7.02 wave-close); LOW carried: VP-INDEX Merkle terminology; brace-pairing prose lacks string/comment-awareness caveat; kani_proofs literal-name anchoring; Python tool /tmp reference; shasum-vs-sha256sum naming. From STORY-160: LO-S160-01/LO-S160-02 (belt-and-braces test suggestions). F-S161P3-001: CHANGELOG touch = intentional wave-72 convention. Wave-72 DELIVERY COMPLETE. Integration gate PENDING. | 2026-07-09 |
 | D-412 | STORY-160 DELIVERED (2026-07-09). PR #389 "feat(reporter): align JSON enum casing + schema_version envelope (#255)" squash-merged 704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a. Full cycle: worktree → Red Gate (11 assertion-failing tests verified red; log at .factory/cycles/wave-72/STORY-160/implementation/red-gate-log.md) → TDD implementation 5 micro-commits (7bb122d..73f30cc) → AC-160-010 spec amendment by product-owner (BC-2.11.001 v1.8→v1.9 + BC-INDEX v2.21→v2.22) → Step-4.5 adversarial convergence CONVERGED (P1/P2/P3 all CLEAN, zero HIGH/CRITICAL, BC-5.39.001 satisfied; state at cycles/wave-72/STORY-160/adversary-convergence-state.json) → demo evidence fa6e695 (25 artifacts, scrub PASS) → CI 12/12; security 0 findings; pr-reviewer APPROVE (1 cycle); GitHub issue #255 auto-closed; merge auth wave-level D-408 clause (b). BREAKING JSON change staged for v0.12.0. Branch feat/story-160-json-enum-casing cleaned; worktree .worktrees/STORY-160 removed. stories_delivered=105. Carried LOW observations (non-blocking): LO-S160-01 (belt-and-braces JsonReporter::render envelope-level enum assertion); LO-S160-02 (no regression test pins Direction PascalCase retention) — wave-gate follow-up triage. Input-hash scan: BC-2.11.001 v1.9 caused STALE on STORY-076 + STORY-101; re-baselined mechanically (MATCH=112 STALE=0). II-02-BC-INDEX-BUMP-ASYMMETRY RESOLVED (BC-INDEX v2.22 committed in this burst). STORY-STALE-INPUT-HASH-076-101 re-baselined. | 2026-07-09 |
 
 ---
@@ -354,7 +354,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | CD-03-RC-01 | STORY-INDEX release-mapping note predates wave-72 v0.12.0 targeting (note references v0.11.x release grouping). Must be fixed before v0.12.0 release PR is opened. | LOW | **OPEN — fix before v0.12.0 release PR** |
 | II-02-BC-INDEX-BUMP-ASYMMETRY | BC-INDEX bump asymmetry for pre-delivery BC amendments. BC-2.11.001 v1.9 (AC-160-010) + BC-INDEX v2.22 committed atomically in D-412 burst. | LOW | **RESOLVED (D-412, 2026-07-09) — BC-INDEX v2.22 committed; asymmetry closed** |
 | SC-01-TEMPLATE-REGISTRY | Template-registry entry absent for wave-72 story template variant. Advisory; STORY-158 delivery decides whether to add or accept absence. | LOW (advisory) | **OPEN — advisory; decide at STORY-158 delivery** |
-| CC-01-STORY-161-TDD-MODE | STORY-161 has tdd_mode:strict but is a governance-only E-11 story with no new code paths. Verify E-11 convention at delivery (E-11 stories may legitimately carry tdd_mode:strict if they include any test-writing AC). | LOW (advisory) | **OPEN — advisory; verify E-11 convention at STORY-161 delivery** |
+| CC-01-STORY-161-TDD-MODE | STORY-161 has tdd_mode:strict but is a governance-only E-11 story with no new code paths. Verify E-11 convention at delivery (E-11 stories may legitimately carry tdd_mode:strict if they include any test-writing AC). | LOW (advisory) | **RESOLVED (D-413, 2026-07-09) — STORY-161 confirmed governance-only (VP-024 proof_file_hash codification + re-lock); tdd_mode:strict consistent with E-11 stories that include test-writing ACs; no violation.** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -362,29 +362,30 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Wave 72 delivery: STORY-160 DELIVERED (D-412, 2026-07-09). PR #389 squash-merged to develop 704fd2e at 2026-07-09. stories_delivered=105. issue #255 closed. BC-INDEX v2.22. STORY-161 unblocked (final wave-72 story). trajectory-tail →0→0→0→0.**
+**Wave 72 DELIVERY COMPLETE (D-413, 2026-07-09). All 4 stories merged (#387/#388/#389/#390). develop=80fbb64. stories_delivered=106. VP-INDEX v2.39. NEXT: wave-72 integration gate (wave-level adversarial convergence 3 clean passes + full-suite + consistency + holdout re-eval). trajectory-tail →0→0→0→0.**
 
 Prior checkpoints archived to `cycles/wave-72/session-checkpoints.md`.
 
-- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-160 DELIVERED (D-412), pipeline RUNNING.
-- **develop HEAD:** `704fd2e` (full: `704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a`) — 11 unreleased commits ahead of v0.11.5. PR #389 "feat(reporter): align JSON enum casing + schema_version envelope (#255)" squash-merged 2026-07-09.
+- **Date:** 2026-07-09. Position: wave-72-delivery COMPLETE (D-413). Pipeline RUNNING.
+- **develop HEAD:** `80fbb64` (full: `80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461`) — 12 unreleased commits ahead of v0.11.5. PR #390 "docs: codify multi-file proof_file_hash algorithm + VP-024 re-lock" squash-merged 2026-07-09.
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
 - **Open PRs:** #386 (dependabot indicatif — untouched, still open). No open story PRs.
 - **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
-- **Wave-72 story set:** CONVERGED + APPROVED (D-408). Stories at: STORY-158 DELIVERED (D-410) / STORY-159 DELIVERED (D-411) / STORY-160 DELIVERED (D-412) / STORY-161 v1.9. Sequencing: 158 → {159, 160}, 159 → 161. STORY-161 unblocked (dep STORY-159 satisfied).
-- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied). STORY-158 per-story CLOSED (7 passes, P5/P6/P7 clean 3/3). STORY-159 per-story CLOSED (3 passes, P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN). STORY-160 per-story CLOSED (3 passes, P1/P2/P3 CLEAN, BC-5.39.001 satisfied).
+- **Wave-72 story set:** ALL DELIVERED (D-408→D-413). STORY-158 D-410 PR #387 / STORY-159 D-411 PR #388 / STORY-160 D-412 PR #389 / STORY-161 D-413 PR #390. Delivery COMPLETE.
+- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, BC-5.39.001 satisfied). Per-story: STORY-158 CLOSED (7 passes); STORY-159 CLOSED (3 passes); STORY-160 CLOSED (3 passes); STORY-161 CLOSED (3 passes, P1/P2/P3 NITPICK_ONLY).
 - **Next steps (in order):**
-  1. Dispatch **STORY-161 delivery** (dep STORY-159 satisfied; E-11 VP-024 proof_file_hash algorithm codification + re-lock). Per-story flow: `per-story-delivery.md` all steps.
-  2. After STORY-161: wave-72 integration gate.
-- **Advisory debt (non-blocking):**
-  - SEC-001-S158 + SEC-002-S158 (CWE-22 LOW, deferred until `bin/lint-cycle-artifact` is wired into mandatory CI; DF-VALIDATION-001-gated before issue filing).
-  - Wave-72 punch list: dep-graph totals (F-W72-P15-L01), release-mapping (CD-03-RC-01), tdd_mode (CC-01-STORY-161-TDD-MODE) — all owed codification-or-deferral at wave close per S-7.02.
-  - STORY-160 carried LOW (non-blocking): LO-S160-01 (belt-and-braces JsonReporter::render enum assertion); LO-S160-02 (no Direction PascalCase regression pin) — wave-gate follow-up triage.
-  - STORY-159 carried LOW (factory-ADR wording debt): parsed.is_udp() vs udp_gap_key; +=1 vs saturating_add; Decision-6 parenthetical; "approximately 30" — future maint doc-refresh.
-  - Process-gap ledger at `cycles/wave-72/process-gap-ledger.md` (6 items + delivery lessons to append at wave close).
-  - SEC-W71-001 GitHub issue filing — CWE-22 in `bin/compute-input-hash` (VALIDATED-PENDING-FILING; human deferred 2026-07-08).
-- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.30 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
-- **Resume command:** `/vsdd-factory:next-step` (reads STATE.md; STORY-161 unblocked — dispatch delivery).
+  1. **Wave-72 integration gate** — full test suite on merged develop (80fbb64), wave-level adversarial convergence (3 consecutive clean fresh-context passes), code/security review, consistency audit, holdout re-eval.
+  2. After gate PASS: wave-72 close (S-7.02 punch list: F-W72-P15-L01, CD-03-RC-01) → v0.12.0 release.
+- **Advisory debt (non-blocking — wave-gate triage):**
+  - F-S161P1-001 (process-gap): hook-forced template-conformance fields on locked VP vs closed LMR-003 allowlist — phase-5 architectural clarification or justified deferral at wave close (S-7.02).
+  - LOW carried from STORY-161: VP-INDEX Merkle terminology; brace-pairing prose caveat; kani_proofs anchoring extensibility; Python /tmp reference; shasum naming.
+  - SEC-001-S158 + SEC-002-S158 (CWE-22 LOW, deferred; DF-VALIDATION-001-gated).
+  - STORY-160 LO-S160-01/LO-S160-02 (belt-and-braces enum assertion; Direction PascalCase pin).
+  - STORY-159 carried LOW (factory-ADR wording debt): parsed.is_udp() vs udp_gap_key; +=1 vs saturating_add; Decision-6 parenthetical; "approximately 30".
+  - F-W72-P15-L01 (dep-graph totals stale) + CD-03-RC-01 (release-mapping note).
+  - SEC-W71-001 CWE-22 in bin/compute-input-hash — VALIDATED-PENDING-FILING (human deferred 2026-07-08).
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.12 / STORY-INDEX v3.31 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:wave-gate` (wave-72 integration gate — all 4 stories delivered).
 
 ---
 

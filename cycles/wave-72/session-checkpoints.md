@@ -55,3 +55,19 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
 - **In-flight:** STORY-158 at merge-hold (PR #387). After human approves merge: STORY-159 + STORY-160 (parallel), then STORY-161.
 - **Unresolved blockers:** none (merge-hold is human decision, not a CI/review blocker).
 - **Spec versions:** BC-INDEX v2.21 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.28 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+
+---
+
+## Checkpoint — 2026-07-09 (STORY-160 DELIVERED, D-412)
+
+**Wave 72 delivery: STORY-160 DELIVERED (D-412, 2026-07-09). PR #389 squash-merged to develop 704fd2e at 2026-07-09. stories_delivered=105. issue #255 closed. BC-INDEX v2.22. STORY-161 unblocked (final wave-72 story). trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-160 DELIVERED (D-412), pipeline RUNNING.
+- **develop HEAD:** `704fd2e` (full: `704fd2ef8fb0df7bb3521741ee2d1c1f9fcc8c5a`) — 11 unreleased commits ahead of v0.11.5. PR #389 "feat(reporter): align JSON enum casing + schema_version envelope (#255)" squash-merged 2026-07-09.
+- **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
+- **Open PRs:** #386 (dependabot indicatif — untouched, still open). No open story PRs.
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
+- **Wave-72 story set:** CONVERGED + APPROVED (D-408). Stories at: STORY-158 DELIVERED (D-410) / STORY-159 DELIVERED (D-411) / STORY-160 DELIVERED (D-412) / STORY-161 v1.9. STORY-161 unblocked (dep STORY-159 satisfied).
+- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, P13/P14/P15 clean 3/3). STORY-158 per-story CLOSED (7 passes, P5/P6/P7 clean 3/3). STORY-159 per-story CLOSED (3 passes). STORY-160 per-story CLOSED (3 passes, P1/P2/P3 CLEAN, BC-5.39.001 satisfied).
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.30 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step` (reads STATE.md; STORY-161 unblocked — dispatch delivery).

@@ -1,9 +1,9 @@
 ---
 document_type: story-index
-version: "3.30"
+version: "3.31"
 status: draft
 producer: story-writer
-timestamp: 2026-07-09T22:00:00Z
+timestamp: 2026-07-09T22:30:00Z
 phase: f7
 total_stories: 114
 total_waves: 72
@@ -410,7 +410,7 @@ traces_to:
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
 | 71 | STORY-150, STORY-156, STORY-157 | **DELIVERED & CLOSED (D-404, 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
-| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | IN PROGRESS (STORY-158+159+160 DELIVERED; 161 remaining) | #387, #388, #389 | 75c5ba5, d410b8d, 704fd2e | 2026-07-09 |
+| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERED & CLOSED (D-413, 2026-07-09)** | #387, #388, #389, #390 | 75c5ba5, d410b8d, 704fd2e, 80fbb64 | 2026-07-09 |
 
 ## Coverage Verification
 

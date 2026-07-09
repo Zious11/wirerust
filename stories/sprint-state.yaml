@@ -805,8 +805,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-161:
-    status: pending
+    status: done
     wave: 72
     branch: null
     worktree: null
-    blocked_by: [STORY-159]  # static file-seq dep-edge; resolved (STORY-159 delivered d410b8d)
+    blocked_by: []
+    pr: 390
+    merge_sha: 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461
+    merged_date: "2026-07-09"
