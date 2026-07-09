@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -105,8 +105,7 @@ The `trust-boundary` CI job (`.github/workflows/ci.yml`) scans for test-seam
 violations:
 
 ```bash
-VIOLATIONS=$(grep -rn "_for_testing(" src/ \
-  | grep -v "fn [a-zA-Z_]*_for_testing(") || true
+VIOLATIONS=$(grep -rn "_for_testing(" src/ | grep -v "fn [a-zA-Z_]*_for_testing(") || true
 ```
 
 There is no existence guard on `src/` before this grep. If `src/` is renamed or
@@ -380,6 +379,12 @@ serves as the Red Gate.
      `bcs: [BC-2.11.036]` where STORY-158 has `behavioral_contracts: []` → expect exit 1
      listing `BC-2.11.036` as an unowned ID (borrowed from a different story).
 
+   **Fixture construction (hermetic; CI-safe):** All TCs MUST construct isolated
+   parent-story and BC-file fixtures under `tempfile.TemporaryDirectory()` and pass the
+   temporary root via `WIRERUST_REPO_ROOT`, mirroring the pattern in
+   `bin/test_compute_input_hash.py`. Tests MUST NOT reference live `.factory/` files —
+   `.factory/` is absent on `develop` checkouts and any test touching it will fail in CI.
+
 4. **Cycle-artifact template and wave-gate checklist — CREATE new files (AC-158-003 legacy scope):**
    Create two new files (`.factory/templates/` directory does not yet exist and must be
    created):
@@ -395,6 +400,11 @@ serves as the Red Gate.
      Document explicitly that wave-71-and-earlier artifacts are outside lint scope —
      running `bin/lint-cycle-artifact` against them will fail rule (1) by design, but they
      are not required to be retroactively updated.
+
+> **Note for implementer:** `.factory/` lives on the orphan `factory-artifacts` branch and
+> cannot be included in a `develop`-targeted PR. Commit `.factory/templates/cycle-artifact.md`
+> and `.factory/templates/wave-gate-checklist.md` to `factory-artifacts` in the same delivery
+> burst as the develop PR. Do NOT include `.factory/` paths in the develop PR diff.
 
 5. **Trust-boundary src/ guard (AC-158-004):** In `.github/workflows/ci.yml` under the
    `trust-boundary` job's `run:` block, prepend the SEC-001-style existence guard:
@@ -432,9 +442,11 @@ Lessons from closest analogues:
 
 - This story modifies ONLY: `.github/workflows/ci.yml`, `bin/check-green-doc-tense`,
   `bin/test_check_green_doc_tense.py`, `CLAUDE.md` (two amendments: AC-158-002 CHANGELOG
-  obligation + AC-158-006 gate code-review artifact protocol), and new files
-  `bin/lint-cycle-artifact` and `bin/test_lint_cycle_artifact.py`. No production Rust is
-  touched.
+  obligation + AC-158-006 gate code-review artifact protocol), `CHANGELOG.md` (AC-158-007
+  bootstrap self-entry), new files `bin/lint-cycle-artifact` and
+  `bin/test_lint_cycle_artifact.py`, and (on `factory-artifacts`)
+  `.factory/templates/cycle-artifact.md` and `.factory/templates/wave-gate-checklist.md`.
+  No production Rust is touched.
 - The CHANGELOG CI gate MUST NOT break CI on the current develop branch (no false
   positives on merged commits).
 - The trust-boundary src/ guard MUST use the same pattern as `help-provenance-gate`
@@ -455,10 +467,13 @@ Lessons from closest analogues:
 |------|--------|-------|
 | `.github/workflows/ci.yml` | Modify | Add changelog-gate job/step; add trust-boundary src/ existence guard |
 | `CLAUDE.md` | Modify | Add CHANGELOG obligation (AC-158-002) + gate code-review artifact protocol (AC-158-006) |
+| `CHANGELOG.md` | Modify | Add [Unreleased] entry (AC-158-007 bootstrap self-consistency) |
 | `bin/lint-cycle-artifact` | Create | New Python 3 identity validator for cycle artifacts |
 | `bin/test_lint_cycle_artifact.py` | Create | Self-test covering clean + mismatch cases |
 | `bin/check-green-doc-tense` | Modify | Change WARNING→ERROR + sys.exit(1) on zero files |
 | `bin/test_check_green_doc_tense.py` | Modify | Add zero-file exit-non-zero assertion |
+| `.factory/templates/cycle-artifact.md` | Create | Canonical cycle-artifact template; factory-artifacts branch |
+| `.factory/templates/wave-gate-checklist.md` | Create | Standalone wave-gate checklist; factory-artifacts branch |
 
 ## Token Budget Estimate
 
@@ -511,6 +526,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.8 | 2026-07-08 | story-writer | Adversary P7 fixes: F-W72-P7-003 (MEDIUM) — ACR "modifies ONLY" list extended with CHANGELOG.md (AC-158-007) and .factory/templates/cycle-artifact.md + .factory/templates/wave-gate-checklist.md (factory-artifacts branch); FSR gains corresponding rows for CHANGELOG.md (Modify) and both template files (Create; factory-artifacts branch noted). F-W72-P7-004 (MEDIUM) — Task 4 gains cross-branch implementer note: .factory/templates/ files committed to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR. F-W72-P7-005 (MEDIUM) — Task 3 gains hermetic fixture-construction note: TCs MUST use tempfile.TemporaryDirectory() + WIRERUST_REPO_ROOT, mirroring bin/test_compute_input_hash.py; no live .factory/ references permitted (CI-safe on develop). F-W72-P7-007 (LOW) — Background bash block: two-line backslash continuation replaced with the one-line verbatim mirror of ci.yml:196. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-001 (HIGH) — AC-158-003 extended with Rules 6-7: Rule 6 derives expected story_id from .factory/cycles/<wave>/STORY-NNN/ path component (path mismatch or declared≠derived → HARD FAIL); Rule 7 checks every bcs: ID against parent story's behavioral_contracts: (borrowed ID not owned → HARD FAIL listing all offenders); TC6/TC7 added to Task 3; AC-158-003(a) replaced with pointer to Rule 6; Task 3 tool description updated with rules 6-7 and WIRERUST_REPO_ROOT override. F-W72-P6-004 (MEDIUM) — AC-158-008 added: PR title uses ci: semantic prefix (primary deliverable is CI gate); ordering corrected to AC-158-007 then AC-158-008. F-W72-P6-008 (LOW) — Task 1: fetch-depth: 0 required for changelog-gate job (default fetch-depth: 1 does not fetch origin/develop; base-SHA diff fails). F-W72-P6-009 (LOW) — Task 4: exact paths named (CREATE .factory/templates/cycle-artifact.md; CREATE .factory/templates/wave-gate-checklist.md as standalone file; .factory/templates/ directory must be created). |
 | 1.6 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-002 (MEDIUM) — AC-158-003 rewritten to HARD FAIL contract: (1) missing frontmatter or missing story_id:/bcs: keys → exit non-zero with exact error message; no legacy mode, no SKIP-with-warning; (2) bcs: [] → PASS; (3) unresolvable IDs in bcs: → HARD FAIL listing ALL; (4) body prose not checked; (5) legacy scope procedural (Task 4). AC-158-003(a) added: story_id: extracted from frontmatter only, must match STORY-NNN directory, no H1/bolded-header fallback. EC-005/006/007 updated to match new contract. Task 3 rewritten with five TCs. New Task 4 added (cycle-artifact template + wave-gate checklist update; wave-71-and-earlier outside lint scope); old Tasks 4-6 shifted to 5-7. F-W72-P5-005 (LOW) — AC-158-003(a) story_id extraction convention added (same commit). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-001 (HIGH) — add AC-158-007 (bootstrap self-consistency): this PR modifies bin/ and .github/ (CHANGELOG-gate trigger set), so it MUST include a CHANGELOG.md [Unreleased] entry with [process-gap] provenance note; AC documents the requirement and names the three items covered. Task 1 extended with explicit self-CHANGELOG bullet. |

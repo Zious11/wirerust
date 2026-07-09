@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -183,32 +183,21 @@ test_BC_2_11_036_csv_category_unchanged              — pass
 
 ### AC-160-007 (Existing JSON-asserting tests updated)
 
-Any existing test in `tests/reporter_json_tests.rs` or `src/reporter/json.rs` that asserts
-exact JSON enum string values (`"Likely"`, `"High"`, `"LateralMovement"`, etc.) is updated
-to the new lowercase/snake_case forms. The test suite passes with `cargo test --all-targets`
-after the change.
+Any existing test or source file under `src/` or `tests/` that asserts exact JSON enum
+string values (`"Likely"`, `"High"`, `"LateralMovement"`, etc.) is updated to the new
+lowercase/snake_case forms. The test suite passes with `cargo test --all-targets` after the
+change.
 
-The scan command to find stale JSON string literals (scoped to the two files that contain
-JSON value assertions):
+The scan command to find stale JSON string literals:
 
 ```bash
-grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' tests/reporter_json_tests.rs src/reporter/json.rs
+grep -rn '"Likely"\|"Unlikely"\|"Inconclusive"\|"Possible"\|"High"\|"Medium"\|"Low"\|"LateralMovement"\|"CredentialAccess"\|"Reconnaissance"\|"Exfiltration"\|"Persistence"\|"Execution"\|"Anomaly"\|"Suspicious"\|"Impact"\|"C2"' src/ tests/
 ```
 
 must return zero results in `assert_eq!` or `.contains()` argument slots after the change
 (i.e., positions where the string is an asserted expected JSON value, not a struct-field
 name or inline comment). Note: these strings remain valid Rust variant names — only JSON
 value assertions are targeted.
-
-A second scan clause targets the five legacy envelope key literals in `tests/reporter_json_tests.rs`:
-
-```bash
-grep -n '"summary"\|"findings"\|"analyzers"\|"mitre_domain"\|"mitre_attack_version"' tests/reporter_json_tests.rs
-```
-
-Before the change this returns exactly one hit (the `test_BC_2_11_001_top_level_keys` vec
-assertion); after the update it returns zero. The enum-literal clause above returns zero
-both before and after (belt-and-braces check). The envelope-key clause is the active check.
 
 ### AC-160-008 (CHANGELOG.md BREAKING CHANGE entry)
 
@@ -258,10 +247,11 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
   (`schema_version` inserts alphabetically between `mitre_domain` and `summary`). This is a
   **DF-SIBLING-SWEEP-001** requirement — this test WILL fail when `schema_version` lands
   and is the primary consuming-test surface for BC-2.11.001 v1.9.
-- The **module docstring** at `src/reporter/json.rs` lines 3-4, which currently publishes
-  the five-key envelope shape as a factual claim (e.g., `//! Emits a { "summary"... } object
-  (BC-2.11.001)`), MUST be updated to show the six-key envelope including `schema_version`.
-  This is a **DF-SIBLING-SWEEP-001** requirement — source-docstring propagation (W11.L4).
+- The **module docstring** envelope-shape prose spanning lines 3-4 of `src/reporter/json.rs`
+  (docstring continues through line 6), which currently publishes the five-key envelope shape
+  as a factual claim (e.g., `//! Emits a { "summary"... } object (BC-2.11.001)`), MUST be
+  updated to show the six-key envelope including `schema_version`. This is a
+  **DF-SIBLING-SWEEP-001** requirement — source-docstring propagation (W11.L4).
 
 > **Note for implementer:** `.factory/` lives on the orphan `factory-artifacts` branch and
 > cannot be included in a `develop`-targeted PR. Commit BC-2.11.001 v1.9 and the BC-INDEX
@@ -320,9 +310,9 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
    Then wire `"schema_version": SCHEMA_VERSION` into the top-level `serde_json::json!({})` or
    equivalent Value construction in `JsonReporter::render`. Pattern follows `MITRE_DOMAIN` and
    `MITRE_ATTACK_VERSION` (BC-2.11.001 Invariants 4 and 5).
-   Also update the module docstring at `src/reporter/json.rs` lines 3-4 to show the
-   six-key envelope including `schema_version` (DF-SIBLING-SWEEP-001 source-docstring
-   propagation, W11.L4).
+   Also update the module docstring envelope-shape prose at `src/reporter/json.rs` lines
+   3-4 (docstring continues through line 6) to show the six-key envelope including
+   `schema_version` (DF-SIBLING-SWEEP-001 source-docstring propagation, W11.L4).
 
 3. **Write BC-driven tests.** Author the fourteen unit tests named in the BC-2.11.036 and
    BC-2.11.037 VP tables (nine from BC-2.11.036 + five from BC-2.11.037). Place them in the
@@ -330,19 +320,22 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
    `src/reporter/json.rs` tests block). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention
    if applicable.
 
-4. **Update existing JSON-asserting tests.** Run both scan greps from AC-160-007:
+4. **Update existing JSON-asserting tests.** Run the scan grep from AC-160-007:
    - Enum-literal scan: update any hit in a JSON value assertion context to the new
      lowercase/snake_case forms.
-   - Envelope-key scan: the one pre-change hit is `test_BC_2_11_001_top_level_keys` at
-     `tests/reporter_json_tests.rs:66-111`. Update its vec from the five-key form to the
-     six-key form:
+   Additionally, update the following known sites explicitly:
+   - **`test_BC_2_11_001_top_level_keys`** at `tests/reporter_json_tests.rs:66-111`: update
+     its vec from the five-key form to the six-key form:
      `assert_eq!(keys, vec!["analyzers", "findings", "mitre_attack_version", "mitre_domain", "schema_version", "summary"])`
      (`schema_version` inserts alphabetically between `mitre_domain` and `summary`.)
-   Also update two additional five-key claims in `tests/reporter_json_tests.rs`:
-   - The **doc comment** above `test_BC_2_11_001_top_level_keys` at lines 62-63
-     (e.g., `// asserts no other top-level keys exist`) — update to reflect six keys.
-   - The **`assert_eq!` failure-message key list** at line 86 (if it enumerates the five
-     legacy keys as a string in the failure message) — update to the six-key list.
+   - **Doc comment** above `test_BC_2_11_001_top_level_keys` at lines 62-63 — update to
+     reflect six keys.
+   - **`assert_eq!` failure-message key list** at line 86 (if it enumerates the five legacy
+     keys as a string in the failure message) — update to the six-key list.
+   - **`src/analyzer/arp.rs:3439` stale comment**: currently reads
+     `A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "Likely").`
+     — after the change must read `serializes "likely"` (lowercase). This is (per adversary
+     grep) the only `serializes "..."` prose site in the tree.
    Confirm `cargo test --all-targets` is green after all updates.
 
 5. **Verify clippy.** Run `cargo clippy --all-targets -- -D warnings`. No new warnings.
@@ -436,15 +429,18 @@ Well within context window. No story split required.
 - **DF-VALIDATION-001 gate:** Both BCs were authored after the triage research-validation pass
   (10/10 CONFIRMED). Story drafting is permitted per policy.
 - **Direction enum scope carve-out (intentional):** `Direction` (`ClientToServer` /
-  `ServerToClient`, `src/findings.rs:161`) keeps PascalCase JSON serialization in v0.12.0.
-  BC-2.11.036 explicitly scopes enum casing alignment to `Verdict`, `Confidence`, and
-  `ThreatCategory` only. Extending the rename-all rule to `Direction` requires its own BC
-  amendment and must not be folded in silently under this story.
+  `ServerToClient`) keeps PascalCase JSON serialization in v0.12.0. The enum is declared in
+  `src/reassembly/handler.rs` (primary anchor; imported at `src/findings.rs:22`);
+  `src/findings.rs:161` is the field-usage site. BC-2.11.036 explicitly scopes enum casing
+  alignment to `Verdict`, `Confidence`, and `ThreatCategory` only. Extending the rename-all
+  rule to `Direction` requires its own BC amendment and must not be folded in silently under
+  this story.
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.7 | 2026-07-08 | story-writer | Adversary P7 fixes: F-W72-P7-001 (HIGH) — AC-160-007 second scan clause deleted (envelope-key grep over-counted ~37 legitimate contains_key hits; "zero after" was unreachable without destroying valid coverage; non-vacuity guaranteed by Task 4's explicit test_BC_2_11_001_top_level_keys enumeration). Task 4 updated to reference single scan grep and remove Envelope-key sub-bullet (replaced by explicit known-site list). F-W72-P7-002 (HIGH) — enum-literal grep widened from two named files to src/ tests/; Task 4 gains explicit src/analyzer/arp.rs:3439 stale comment update (serializes "Likely" → serializes "likely"; only serializes "..." prose site in the tree). F-W72-P7-006 (LOW) — AC-160-010 and Task 2 docstring citation reworded: "envelope-shape prose spanning lines 3-4 (docstring continues through line 6)". F-W72-P7-008 (LOW) — Direction carve-out note updated: enum declared in src/reassembly/handler.rs (primary anchor; imported at src/findings.rs:22); src/findings.rs:161 is the field-usage site. |
 | 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-003 (MEDIUM) — AC-160-010 gains module-docstring bullet (src/reporter/json.rs lines 3-4 must be updated to show six-key envelope including schema_version; DF-SIBLING-SWEEP-001 source-docstring propagation W11.L4); Task 2 gains matching bullet. F-W72-P6-006 (LOW) — Task 4 gains sibling note: also update doc comment above test_BC_2_11_001_top_level_keys (tests/reporter_json_tests.rs:62-63) and the assert_eq! failure-message key list at line 86 — both publish the five-key claim. F-W72-P6-007 (LOW) — Notes: Direction enum scope carve-out documented (Direction/ClientToServer/ServerToClient keeps PascalCase in v0.12.0; BC-2.11.036 scopes only Verdict/Confidence/ThreatCategory; extending to Direction requires own BC amendment). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-001 (HIGH) — consuming-test sibling gap closed: AC-160-010 gains new bullet explicitly enumerating test_BC_2_11_001_top_level_keys at tests/reporter_json_tests.rs:66-111 as DF-SIBLING-SWEEP-001 consuming-test surface; vec update documented (five-key → six-key; schema_version inserts alphabetically between mitre_domain and summary). Task 4 updated to enumerate this test explicitly with the required six-key assert_eq! form. F-W72-P5-004 (LOW) — AC-160-007 expanded with second scan clause targeting vec! with five legacy envelope key literals in tests/reporter_json_tests.rs; enum-literal clause returns zero before and after (belt-and-braces); envelope-key clause is active check (exactly one pre-change hit: test_BC_2_11_001_top_level_keys). |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-002 (HIGH) — AC-160-010 extended: BC-INDEX row for BC-2.11.001 (row ~555) MUST be updated in same factory-artifacts burst (six-key title; v1.9 annotation appended; BC-INDEX version bumped); DF-SIBLING-SWEEP-001 requirement. Task 8 extended with BC-INDEX update step. F-W72-P4-003 (MEDIUM) — Task 8 "Include this file in the same PR" rewritten to cross-branch wording: commit BC-2.11.001 v1.9 and BC-INDEX update to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR; recompute input-hash on factory-artifacts. AC-160-010 implementer note updated to match. F-W72-P4-004 (MEDIUM) — Task 3 test-file name corrected (tests/json_reporter_tests.rs → tests/reporter_json_tests.rs); File Structure Requirements row de-vaguified (named tests/reporter_json_tests.rs explicitly). |
