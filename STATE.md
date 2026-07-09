@@ -8,12 +8,12 @@ input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
 mode: steady-state
-phase: steady-state
-status: complete
-current_step: "triage-2026-07-08 COMPLETE (D-407) — 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED); #101+#4 closed; #385 created (SQLite reporter); #67+#6 annotated; 6 validated-backlog items recorded. Pipeline PAUSED (steady-state). triage trajectory-tail →0→0→0→0"
-current_cycle: "triage-2026-07-08"
-pipeline: PAUSED
-timestamp: 2026-07-09T00:30:00Z
+phase: "wave-72-delivery"
+status: in-progress
+current_step: "Wave 72 DELIVERY STARTED (D-408, 2026-07-09) — story set CONVERGED (15 adversarial passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied); consistency audit 0-blocking/7-advisory; human approved. Delivering STORY-158 first (sequencing 158→{159,160}→161). develop=c4eb1f4. trajectory-tail →2→0→0→0"
+current_cycle: "wave-72"
+pipeline: RUNNING
+timestamp: 2026-07-09T01:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -24,7 +24,7 @@ release_commit: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.11.5
 prior_released_version: v0.11.4
 prior_released_at: "2026-07-06"
-# Ground-truth HEADs (updated 2026-07-08 — maint-2026-07-08 COMPLETE D-406: PRs #382/383/384 merged; develop=c4eb1f4; pipeline PAUSED)
+# Ground-truth HEADs (updated 2026-07-09 — wave-72 delivery STARTED D-408: story set CONVERGED + human approved; develop=c4eb1f4; pipeline RUNNING)
 main_head: 3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3
 develop_head: c4eb1f43af78b2588be4bfa4a629542f6de15d7b
 # Cargo.toml version: main=0.11.5; develop=0.11.5 (8 unreleased commits since v0.11.5; PRs #382/383/384 + wave-71 #378-381 + wave-70 docs #377)
@@ -37,12 +37,12 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 102
-story_index_version: "v3.26"
+story_index_version: "v3.28"
 total_stories: 114
-story_index_note: "114 stories / 72 waves / 714 pts. v3.26: STORY-160 DRAFTED (wave-72, E-8, 3 pts; triage-2026-07-08 #255 — JSON enum casing + schema_version envelope, BC-2.11.036/037) + STORY-161 DRAFTED (wave-72, E-11, 3 pts; triage-2026-07-08 #252 — VP-024 proof_file_hash algorithm codification + re-lock). dependency-graph v3.7 (edges 125). 2026-07-08."
+story_index_note: "114 stories / 72 waves / 714 pts. v3.28: wave-72 story set CONVERGED (STORY-158/159/160/161; 15 adversarial passes, BC-5.39.001 satisfied); BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8 amendments; LMR-001/002/003 codified (VP-INDEX v2.38). dependency-graph v3.8 (edges 128). 2026-07-09."
 # Spec versions (current)
 bc_index_version: "v2.21"
-vp_index_version: "v2.35"
+vp_index_version: "v2.38"
 arch_index_version: "v2.12"
 prd_version: "v1.51"
 epics_version: v2.1
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-06
 
 ## EXACT RESUME POINT
 
-**Issue-backlog triage triage-2026-07-08 COMPLETE (D-407, 2026-07-08). 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED). #101+#4 closed; #385 filed (SQLite reporter); #67+#6 annotated; 6 validated-backlog items recorded (#255/#252/#63/#361/#103/#3). develop=c4eb1f4. Pipeline PAUSED (steady-state). triage trajectory-tail →0→0→0→0.**
+**Wave 72 delivery IN PROGRESS (D-408). Story set converged and approved. STORY-158 delivery starting (per-story-delivery flow). Sequencing: 158 → {159, 160} → 161. Punch list (11 LOW + 7 advisory) resolves in-burst; process-gap ledger (6 items incl. PG-W72-CODIFICATION-FIDELITY) owed codification/deferral at wave close per S-7.02.**
 
 ---
 
@@ -72,16 +72,16 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | steady-state — maint-2026-07-08 COMPLETE (D-406, 2026-07-08); 3 PRs merged; pipeline PAUSED |
+| Mode | wave-72-delivery — story set CONVERGED + human approved (D-408, 2026-07-09); delivery started; pipeline RUNNING |
 | Version | 0.11.5 (released 2026-07-07; develop=c4eb1f4, Cargo.toml 0.11.5; 8 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
 | Develop HEAD | `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08 (ground-truth) |
 | Tag v0.11.5 | commit `3c0ad3a`; tag object `de3392a` (full: `de3392a9e3cea99ad424e9172f24d6d938368a06`) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.5 (Latest, with binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.21 / VP-INDEX v2.35 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 102 delivered / 114 total (STORY-INDEX v3.26) |
-| **Last Updated** | 2026-07-08 — triage-2026-07-08 COMPLETE (D-407). 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED); #101+#4 closed, #385 filed, #67+#6 annotated; 6 validated-backlog items. develop=c4eb1f4. triage trajectory-tail →0→0→0→0 |
+| Spec versions | BC-INDEX v2.21 / VP-INDEX v2.38 / ARCH-INDEX v2.12 / PRD v1.51 |
+| Stories | 102 delivered / 114 total (STORY-INDEX v3.28) |
+| **Last Updated** | 2026-07-09 — Wave 72 delivery STARTED (D-408). Story set CONVERGED (15 passes, P13/P14/P15 clean 3/3); human approved; STORY-158 delivery starting. VP-INDEX v2.38 / STORY-INDEX v3.28 / dep-graph v3.8 (128 edges). develop=c4eb1f4. trajectory-tail →2→0→0→0 |
 
 ---
 
@@ -120,6 +120,7 @@ maintenance_prior_run: maint-2026-07-06
 | Wave 71 (v0.12.0): STORY-150/156/157 | **CLOSED (D-404, 2026-07-08)** | PRs #378/379/380/381; develop=b642c0f. 7-pass adversary CONVERGED streak 3/3; trajectory →1→0→0→0. S-7.02 SATISFIED (STORY-158). Pipeline PAUSED (human-approved). |
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
+| Wave 72 (v0.12.0): STORY-158/159/160/161 | **STARTED (D-408, 2026-07-09)** | Story convergence: 15 passes, ~100 findings fixed, 12 fix bursts, LMR-001/002/003 codified (VP-INDEX v2.38), BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8; trajectory ...→2M→CLEAN→CLEAN→CLEAN. Consistency audit 0-blocking. Human approved. |
 
 ---
 
@@ -127,11 +128,12 @@ maintenance_prior_run: maint-2026-07-06
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **WAVE 71 ADVERSARY P2-P4 COMPLETE (2026-07-08). P2 CLEAN; P3 CLEAN (2 LOW CI guards → STORY-158); P4 NOT-CLEAN (F-W71-P4-001 MEDIUM evidence.md identity → f16384c). trajectory 1→0→0→1.** | **IN_PROGRESS** | Streak reset at P4; P5 pending. |
-| **WAVE 71 ADVERSARY P5-P7 CONVERGED (2026-07-08). P5 CLEAN (4 LOW nits → bd41afd); P6 CLEAN; P7 CLEAN. Streak 3/3 (P5/P6/P7). CONVERGED. Gate dims (c)-(g) all PASS/APPROVE.** | **CONVERGED** | Gate complete. All 7 dims PASS. trajectory →1→0→0→0. |
-| **WAVE 71 CLOSED (D-404, 2026-07-08). Human approved CLOSED + PAUSED. STORY-158 drafted (S-7.02, STORY-INDEX v3.23). develop=b642c0f. Pipeline PAUSED. trajectory-tail →1→0→0→0.** | **CLOSED (D-404)** | Pipeline PAUSED (human-approved 2026-07-08). |
-| **maint-2026-07-08 STARTED (D-405, 2026-07-08). Human selected option (b) at resume gate. Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) skipped (dtu_required: false); sweep 9 (a11y) skipped (CLI). DF-VALIDATION-001 triage dispatched for: SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001.** | **STARTED** | 6 sweeps + backlog triage in flight. |
-| **maint-2026-07-08 COMPLETE (D-406, 2026-07-08). 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3 convergence); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased). Pipeline PAUSED. maint trajectory-tail →0→0→0→0.** | **COMPLETE (D-406)** | Pipeline PAUSED (steady-state). |
+| **WAVE 72 ADVERSARY P1-P12 FIX BURSTS COMPLETE (2026-07-09). ~100 findings fixed across 12 fix bursts; commits through 0dffd01/1d7db30/b6ba4b3. LMR-001/002/003 codified; BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8 amended. trajectory P1→...→P12: converging.** | **DONE** | 12 fix bursts complete; P13 pending. |
+| **WAVE 72 ADVERSARY P13 CLEAN (2026-07-09). Zero HIGH/CRITICAL. Consecutive-clean count 1. BC-5.39.001 streak started.** | **CLEAN** | Consecutive-clean #1. |
+| **WAVE 72 ADVERSARY P14 CLEAN (2026-07-09). Zero HIGH/CRITICAL. Consecutive-clean count 2. trajectory ...→2→0→0.** | **CLEAN** | Consecutive-clean #2. |
+| **WAVE 72 ADVERSARY P15 CLEAN (2026-07-09). BC-5.39.001 SATISFIED (P13/P14/P15 streak 3/3). CONVERGED. trajectory-tail →2→0→0→0.** | **CONVERGED** | BC-5.39.001 SATISFIED. |
+| **WAVE 72 GATE AUDIT COMPLETE (2026-07-09). Consistency audit: 0-blocking / 7-advisory. STORY-INDEX v3.28 / VP-INDEX v2.38 / dep-graph v3.8 (128 edges). Gate dims all PASS.** | **PASS** | 0 blocking; 7 advisory carried in-burst. |
+| **WAVE 72 D-408 HUMAN APPROVED (2026-07-09). Story set CONVERGED + approved. Delivery started: STORY-158 first (sequencing 158→{159,160}→161). Pipeline RUNNING.** | **APPROVED (D-408)** | Pipeline RUNNING. Delivery in progress. |
 
 ## Decisions Log
 
@@ -243,6 +245,8 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-404 | WAVE 71 CLOSED (human-approved 2026-07-08). Gate: all 7 steps green; wave adversary CONVERGED 3/3 (7 passes); S-7.02 satisfied via STORY-158 + justified deferrals. Human chose: close + pause. Unreleased changelog ready for v0.12.0 cut. develop=b642c0fdabfd6ae9f9ea8d1680b50662c5654e93. trajectory 1→0→0→1→0→0→0 (tail →1→0→0→0). | 2026-07-08 |
 | D-405 | Maintenance run maint-2026-07-08 STARTED. Human selected option (b) at resume gate (2026-07-08). Sweeps 1,2,3,4,5,7 dispatched in parallel; sweep 6 (DTU) N/A (dtu_required:false); sweep 9 (a11y) N/A (CLI product). DF-VALIDATION-001 research-agent triage dispatched for deferred backlog: SEC-W71-001, CR-001+nits, INPUT-HASH-ERROR-STORIES-001, HS-INDEX-ENIP-WAVE-DRIFT-001, EPICS-TOTAL-BCS-DRIFT-001, REBIND-COUNT-SATURATING-001, DNP3-CLOSEDFLOW-REOPEN-REUSE-001. develop=b642c0f (5 unreleased commits, v0.11.5). Log: `.factory/cycles/maint-2026-07-08/`. | 2026-07-08 |
 | D-406 | maint-2026-07-08 COMPLETE (2026-07-08). All sweeps + DF-VALIDATION-001 triage complete. PRs #382 (624bae3, docs Known Limitations + TD-MAINT-THRESHOLD-CALIB-001 RESOLVED-ACCEPTED), #383 (3ebd801, SEC-010+SEC-011 Gap B RESOLVED), #384 (c4eb1f4, PF-001 109 sites + REBIND-COUNT-SATURATING-001 RESOLVED) — all squash-merged, strict 3/3 adversarial convergence each. STORY-158 v1.1 amended (AC-158-006 wave gate code-review artifact protocol). STORY-159 drafted (ADR-012 doc authoring). SEC-W71-001 CONFIRMED CWE-22, human deferred issue filing. HS-INDEX-ENIP-WAVE-DRIFT-001 + EPICS-TOTAL-BCS-DRIFT-001 confirmed and deferred Route C. INPUT-HASH-ERROR-STORIES-001 REFUTED and closed. develop=c4eb1f4 (8 unreleased commits ahead of v0.11.5). tech-debt-register v1.7. | 2026-07-08 |
+| D-407 | Issue-backlog triage triage-2026-07-08 COMPLETE (2026-07-08). 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED): #101 closed (superseded by #362), #4 closed (CSV shipped), #385 filed (SQLite reporter, validated backlog item #255), #67 annotated (GOOSE detection scope), #6 annotated (crates.io D-300). 6 validated-backlog items: #255/#252/#63/#361/#103/#3. SEC-W71-001 retained VALIDATED-PENDING-FILING. HS-INDEX-ENIP-WAVE-DRIFT-001 + EPICS-TOTAL-BCS-DRIFT-001 deferred Route C. develop=c4eb1f4. triage trajectory-tail →0→0→0→0. | 2026-07-08 |
+| D-408 | Wave 72 story decomposition CONVERGED + HUMAN APPROVED (2026-07-09). 15 adversarial passes (P1-P12 fix bursts through commits 0dffd01/1d7db30/b6ba4b3; P13/P14/P15 clean 3/3); ~100 findings fixed; BC-5.39.001 SATISFIED. LMR-001/002/003 codified (VP-INDEX v2.38); BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8 amended; dep-graph v3.8 (128 edges); STORY-INDEX v3.28. Consistency audit 0-blocking/7-advisory. Human approved. Delivery started: STORY-158 first (sequencing 158→{159,160}→161). Pipeline RUNNING. trajectory-tail →2→0→0→0. | 2026-07-09 |
 
 ---
 
@@ -340,6 +344,12 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | SEC-W71-001 | CWE-22 path traversal in `bin/compute-input-hash`: comment-strip + `PurePath.__truediv__` absolute-path swallow. Validated by DF-VALIDATION-001 research-agent triage (maint-2026-07-08). Human deferred GitHub issue filing 2026-07-08. | LOW | **VALIDATED-PENDING-FILING — CWE-22 CONFIRMED. Human elected not to file immediately. Retained in register SEC-W71-001 VALIDATED-PENDING-FILING.** |
 | SEC-W71-002 + SEC-W71-003 | Wave-71 security pass LOW observations; accepted as no-action design constraints at gate review (2026-07-08). | LOW | **ACCEPTED — no issue to file** |
 | CR-W71-001 | Code review MINOR finding + 3 NITs from wave-71 code review (renamed from CR-001 to avoid collision with closed CR-001 PR #177). Finding detail unverifiable — no dedicated code-review.md was written at gate close (PG-W71-CODEREVIEW-ARTIFACT). Non-blocking. | LOW | **CLOSED-UNVERIFIABLE (maint-2026-07-08 DF-VALIDATION-001 triage). PG-W71-CODEREVIEW-ARTIFACT codified to STORY-158 v1.1 AC-158-006.** |
+| STALE-INPUT-HASH-076-101 | STORY-076 + STORY-101 have stale input-hashes (out-of-perimeter; predate current prd.md version). DF-VALIDATION-001 maintenance route — research-agent validation required before any issue is filed. Target: next maintenance sweep. | LOW | **OPEN — DF-VALIDATION-001-gated; route to next maint sweep** |
+| F-W72-P15-L01 | dep-graph v3.8 frontmatter totals are stale (total_stories/total_edges counts not updated to reflect wave-72 convergence amendments). Fix at wave close before STORY-161 delivers. | LOW | **OPEN — fix at wave close** |
+| CD-03-RC-01 | STORY-INDEX release-mapping note predates wave-72 v0.12.0 targeting (note references v0.11.x release grouping). Must be fixed before v0.12.0 release PR is opened. | LOW | **OPEN — fix before v0.12.0 release PR** |
+| II-02-BC-INDEX-BUMP-ASYMMETRY | BC-INDEX bump asymmetry for pre-delivery BC amendments (BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8 authored during convergence without a corresponding BC-INDEX version bump). Resolve on factory-artifacts before STORY-160 delivers. | LOW | **OPEN — resolve before STORY-160 delivery** |
+| SC-01-TEMPLATE-REGISTRY | Template-registry entry absent for wave-72 story template variant. Advisory; STORY-158 delivery decides whether to add or accept absence. | LOW (advisory) | **OPEN — advisory; decide at STORY-158 delivery** |
+| CC-01-STORY-161-TDD-MODE | STORY-161 has tdd_mode:strict but is a governance-only E-11 story with no new code paths. Verify E-11 convention at delivery (E-11 stories may legitimately carry tdd_mode:strict if they include any test-writing AC). | LOW (advisory) | **OPEN — advisory; verify E-11 convention at STORY-161 delivery** |
 
 Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-01/maintenance-log.md`.
 
@@ -347,22 +357,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Maintenance maint-2026-07-08 COMPLETE (D-406, 2026-07-08). Pipeline PAUSED (steady-state). 3 PRs merged (#382/383/384, strict 3/3 each). develop=c4eb1f4 (8 unreleased commits ahead of v0.11.5). STORY-158 v1.1 + STORY-159 drafted. maint trajectory-tail →0→0→0→0.**
+**Wave 72 delivery IN PROGRESS (D-408, 2026-07-09). Story set CONVERGED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied); human approved. STORY-158 delivery starting. Sequencing: 158 → {159, 160} → 161. develop=c4eb1f4. trajectory-tail →2→0→0→0.**
 
-- **Date:** 2026-07-08. Position: steady-state, maint-2026-07-08 COMPLETE. Pipeline PAUSED.
-- **develop HEAD:** `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08. 8 unreleased commits ahead of v0.11.5.
+- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-158 delivery starting. Pipeline RUNNING.
+- **develop HEAD:** `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — 8 unreleased commits ahead of v0.11.5.
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
-- **Open PRs:** none. **Open story worktrees:** none. **Convergence loop active:** none.
-- **current_cycle:** maint-2026-07-08 (COMPLETE). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight:** nothing. Pipeline PAUSED.
+- **Open PRs:** none. **Open story worktrees:** none. **Convergence loop active:** wave-72-delivery (STORY-158 next).
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
+- **In-flight:** STORY-158 delivery (per-story-delivery flow). Sequencing: 158 → {159, 160} → 161.
 - **Pending human decisions / next options:**
-  - (a) v0.12.0 release cut — Unreleased has 8 entries (PRs #378-384 + wave-70 docs PR #377); cut release/0.12.0 from develop c4eb1f4.
-  - (b) Wave-72 planning — wave-TBD queue: STORY-091/121/143/147/155/158/159.
-  - (c) Route C spec-coherence sweep — HS-INDEX v2.13 ENIP waves fix + epics.md/STORY-INDEX tally reconcile (deferred maint-2026-07-08).
-  - (d) Route B docs PR — README --coverage-gaps flag + ADR-0001 STORY-153 fields (deferred maint-2026-07-08).
-  - (e) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
+  - (a) STORY-158 delivery — per-story-delivery flow; sequencing 158 → {159,160} → 161.
+  - (b) Punch list (11 LOW + 7 advisory) resolves in-burst per delivery flow.
+  - (c) Process-gap ledger (6 items) requires codification/deferral at wave close per S-7.02 — see `.factory/cycles/wave-72/process-gap-ledger.md`.
+  - (d) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
+  - (e) v0.12.0 release cut — after all 4 wave-72 stories delivered.
 - **Unresolved blockers:** none.
-- **Spec versions:** BC-INDEX v2.20 / VP-INDEX v2.35 / HS-INDEX v2.12 / STORY-INDEX v3.25 / dependency-graph v3.7 / module-criticality v1.6.
+- **Spec versions:** BC-INDEX v2.21 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.28 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
