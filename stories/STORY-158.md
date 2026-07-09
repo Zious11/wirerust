@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.11"
+version: "1.12"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -177,6 +177,12 @@ process-internal (not user-visible behavior changes). `docs/` is self-documentin
 (ADR authoring, README updates do not describe product behavior changes). These
 exclusions are explicit and must be documented in the CI job comment.
 
+**Cargo.lock exclusion (by design):** `Cargo.lock` is also excluded from the trigger
+set. Transitive-dependency version bumps route through maintenance-sweep CHANGELOG
+discipline, not through this per-PR gate; including `Cargo.lock` in the trigger set
+would fire the gate on every routine dependency update that carries no product
+behavior change.
+
 ### AC-158-002 (traces to PG-W71-CHANGELOG — pr-manager guidance)
 `CLAUDE.md` is updated to add a standing obligation in the pr-manager or delivery
 guidance: "PRs that modify files under `src/`, `Cargo.toml`, or `bin/` MUST include
@@ -193,7 +199,7 @@ rule (2).
 (1) If the artifact is missing a YAML frontmatter block entirely, OR if the frontmatter
     block is present but missing either the `story_id:` or `bcs:` key, the tool MUST exit
     non-zero immediately with the exact message:
-    `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) — see current cycle-artifact template (STORY-158)`
+    `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) -- see current cycle-artifact template (STORY-158)`
     No legacy mode. No SKIP-with-warning. No fallback to body-prose or H1 heading.
 (2) If `bcs:` is present and explicitly empty (`bcs: []` or an empty list block), the tool
     MUST exit 0 — this is a valid well-formed artifact with no BC citations. This rule
@@ -213,11 +219,13 @@ rule (2).
     **upward** from the artifact path for the nearest `STORY-[0-9]+` ancestor directory
     component under `.factory/cycles/` (so `.factory/cycles/wave-72/STORY-158/subdir/finding.md`
     resolves to `STORY-158`). The matched `STORY-[0-9]+` component MUST have an immediate
-    parent directory matching the wave-directory naming convention (`wave-[0-9]+` or the
-    documented wave-directory form); a path like `.factory/cycles/STORY-158/x.md` (no
-    wave-NNN intermediate) → invalid-path HARD FAIL. If no valid `STORY-[0-9]+` ancestor
-    exists (or the wave-NNN intermediate is absent), the tool MUST exit non-zero with:
-    `ERROR: artifact path does not match expected .factory/cycles/<wave>/STORY-NNN/<artifact> pattern — cannot derive expected story_id`
+    parent directory matching the wave-directory naming convention (`wave-[0-9]+`);
+    a path like `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) →
+    invalid-path HARD FAIL. Cycle directories with other naming (maint-*, triage-*,
+    feature-*) are outside lint scope by design — the lint targets wave-cycle artifacts
+    only. If no valid `STORY-[0-9]+` ancestor exists (or the wave-NNN intermediate is
+    absent), the tool MUST exit non-zero with:
+    `ERROR: artifact path does not match expected .factory/cycles/<wave>/STORY-NNN/<artifact> pattern -- cannot derive expected story_id`
     If the declared `story_id:` does not match the directory-derived value, the tool MUST
     exit non-zero with:
     `ERROR: story_id: <declared> does not match directory-derived <expected>`
@@ -272,11 +280,12 @@ PG-W71-CODEREVIEW-ARTIFACT and AC-158-006.
 
 ### AC-158-007 (bootstrap self-consistency — this PR's own CHANGELOG entry)
 
-This story's own PR modifies `bin/lint-cycle-artifact`, `bin/check-green-doc-tense`, and
-`.github/workflows/ci.yml` — of which the two `bin/` tools are in the CHANGELOG-gate
-trigger set (`src/`, `Cargo.toml`, `bin/`); `.github/` is excluded by AC-158-001, but the
-two `bin/` modifications alone fire the gate (bootstrap self-consistency intact). The same
-PR introduces the gate that enforces this requirement.
+This story's own PR modifies nine files (see FSR table) — of which the `bin/` tools
+(`bin/lint-cycle-artifact`, `bin/check-green-doc-tense`, `bin/test_lint_cycle_artifact.py`,
+`bin/test_check_green_doc_tense.py`) are in the CHANGELOG-gate trigger set (`src/`,
+`Cargo.toml`, `bin/`); `.github/` and `CLAUDE.md` are excluded by AC-158-001, but the
+`bin/` modifications alone fire the gate (bootstrap self-consistency intact). The same PR
+introduces the gate that enforces this requirement.
 Therefore the PR MUST include a `CHANGELOG.md` `[Unreleased]` entry covering: the new
 changelog-gate CI step, the new `bin/lint-cycle-artifact` tool, and the
 `bin/check-green-doc-tense` zero-file-guard hardening — satisfying the gate this PR
@@ -370,14 +379,11 @@ serves as the Red Gate.
    against the story's `behavioral_contracts:` list — any unowned ID → exit non-zero listing
    ALL offenders; `bcs: []` → PASS regardless. `story_id:` is parsed from frontmatter only —
    no H1 or bolded-header fallback.
-   Create `bin/test_lint_cycle_artifact.py` with seven test cases:
+   Create `bin/test_lint_cycle_artifact.py` with eight test cases:
    - **TC1 (missing frontmatter):** artifact with no YAML frontmatter block → expect exit 1
-     with the exact `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) —
-     see current cycle-artifact template (STORY-158)` message.
-     **Em-dash note:** the error string contains a U+2014 em-dash (`—`); TC1 must copy the
-     string byte-for-byte from this AC, OR the tool may use ASCII `--` consistently in both
-     the tool output and TC fixture — implementer picks ONE form and keeps tool + test
-     identical.
+     with the exact `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) --
+     see current cycle-artifact template (STORY-158)` message. The tool uses ASCII `--`
+     (not U+2014) in all error strings; TC1 asserts this ASCII form.
    - **TC2 (`bcs: []`):** artifact placed at a CORRECT path (e.g.,
      `.factory/cycles/wave-72/STORY-158/artifact.md`) with matching `story_id: STORY-158`
      and `bcs: []` → expect exit 0. The fixture does NOT need a parent story file — rule (2)
@@ -397,6 +403,11 @@ serves as the Red Gate.
    - **TC7 (borrowed BC ID):** artifact with `story_id: STORY-158` and
      `bcs: [BC-2.11.036]` where STORY-158 has `behavioral_contracts: []` → expect exit 1
      listing `BC-2.11.036` as an unowned ID (borrowed from a different story).
+   - **TC8 (no wave-NNN intermediate):** artifact at
+     `.factory/cycles/STORY-158/x.md` (no `wave-NNN` directory between `.factory/cycles/`
+     and `STORY-158`) → expect exit 1 with the exact
+     `ERROR: artifact path does not match expected .factory/cycles/<wave>/STORY-NNN/<artifact> pattern -- cannot derive expected story_id`
+     message (rule (6) branch (a) — invalid-path HARD FAIL).
 
    **Fixture construction (hermetic; CI-safe):** All TCs MUST construct isolated
    parent-story and BC-file fixtures under `tempfile.TemporaryDirectory()` and pass the
@@ -545,6 +556,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.12 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-M01 (MEDIUM) — Rule (6) fallback "(or the documented wave-directory form)" deleted; constraint is `wave-[0-9]+` ONLY; added out-of-scope sentence: "Cycle directories with other naming (maint-*, triage-*, feature-*) are outside lint scope by design — the lint targets wave-cycle artifacts only." F-W72-P11-M02 (MEDIUM) — TC count bumped seven→eight; TC8 added: artifact at `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) → HARD FAIL with branch-(a) invalid-path error message (tests rule (6) branch (a); TC6 covers branch (b)). F-W72-P11-L01 (LOW) — Rule (1) and rule (6) error strings changed from U+2014 em-dash to ASCII `--` in all error strings; TC1 em-dash disjunction collapsed: tool emits ASCII `--`; TC1 asserts the ASCII form. F-W72-P11-L02 (LOW) — AC-158-001 gains explicit Cargo.lock exclusion note: excluded from trigger set by design (transitive-dep bumps route through maintenance-sweep CHANGELOG discipline, not the per-PR gate). F-W72-P11-L03 (LOW) — AC-158-007 reworded to "nine files (see FSR table)"; three-file undercounting sentence replaced with enumeration of all four `bin/` tools as trigger-set members. |
 | 1.11 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-L04 (LOW) — rule (6) extended with wave-NNN intermediate requirement: matched `STORY-[0-9]+` component MUST have an immediate parent matching wave-directory naming (`wave-[0-9]+`); path like `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) → invalid-path HARD FAIL; error message unchanged. F-W72-P10-L05 (LOW) — TC1 em-dash note added: error string contains U+2014 em-dash; TC1 must copy byte-for-byte from AC, OR tool uses ASCII `--` consistently in both tool and TC — implementer picks ONE form. F-W72-P10-L02 (LOW) — Notes input-hash note stale wording fixed: "v1.1 declares three real spec inputs" → "declares three real spec inputs (fourth PG added in the v1.1 amendment)". |
 | 1.10 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-M01 (MEDIUM) — AC-158-007 trigger-set claim corrected: sentence previously implied `.github/workflows/ci.yml` was in the CHANGELOG-gate trigger set (`src/`, `Cargo.toml`, `bin/`), contradicting AC-158-001; replaced with explicit wording distinguishing the two `bin/` tools (in trigger set; alone fire the gate) from `.github/` (excluded by AC-158-001). F-W72-P9-L01 (LOW) — rule-ordering DAG added at top of AC-158-003 contract: "Evaluation order: rule (1) frontmatter presence → rule (6) path/story_id identity → rule (2) empty-bcs short-circuit [exit 0] → rule (3) BC existence on disk → rule (7) story ownership"; TC2 fixture instructions clarified to require correct path with matching story_id (rule (6) passes before rule (2) short-circuits; wrong-path empty-bcs artifact still FAILS). |
 | 1.9 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-L02 (LOW) — rule (2) gains explicit short-circuit note (exits before rule (7)'s parent-story lookup; parent-story existence NOT required for empty-bcs artifacts); rule (7) opening updated to "After rules (1), (2), and (6) pass (reached only when bcs: is non-empty)"; unreachable bcs: [] sub-bullet removed from rule (7); Task 3 TC2 gains note that fixture does NOT need a parent story file. F-W72-P8-L03 (LOW) — rule (6) rewritten to specify upward-search behavior: tool searches upward from artifact path for nearest STORY-[0-9]+ ancestor directory component under .factory/cycles/ (e.g., .factory/cycles/wave-72/STORY-158/subdir/finding.md resolves to STORY-158); no such ancestor → existing HARD FAIL applies. |

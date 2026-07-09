@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -136,6 +136,10 @@ The same VP-INDEX prose section (AC-161-001) states explicitly:
 > starting from the `#[cfg(kani)]` attribute line (inclusive) and ending at the closing brace
 > of the module (inclusive). Whitespace and comments inside the block are included verbatim.
 
+The hashed section is byte-inclusive from the `#` of `#[cfg(kani)]` through the matching
+closing `}` of `mod kani_proofs` (balanced-brace pairing from the `{` following
+`mod kani_proofs`); NO trailing bytes (whitespace or newline after `}`) are captured.
+
 This rule must be stated as a standalone named rule (e.g., **Section-Scoping Rule**) so that
 an independent implementer can unambiguously identify the byte range to hash without reading the
 VP body. The closing brace inclusion rule is the most common source of off-by-one errors and
@@ -177,6 +181,11 @@ field: `src/analyzer/arp.rs + src/decoder.rs`), decoder.rs is fileB.
 7. Storing the hex representation of `final_hash` (lowercase hex, full 64 chars) in the
    `proof_file_hash:` field.
 
+The computed `proof_file_hash` MUST be independently recomputed with a second tool (bash
+`sha256sum` pipeline AND Python `hashlib`) and both command lines archived in the VP-024 v2.5
+modified-log entry; values must agree before writing. **LMR-001 forbids later correction —
+first write is permanent.**
+
 After population, an independent recomputation from the same source files at the same commit
 (`verified_at_commit: "6e9f2cc"`) produces the identical hash.
 
@@ -208,11 +217,12 @@ kani_version: "unknown (pre-LMR verification, <proof_completed_date>)"
 which version actually performed the proof.
 
 **This story's in-scope method is historical recovery per LMR-002** (CI logs / Cargo.lock /
-toolchain records at `6e9f2cc`), with the honest-unknown fallback. The cargo-kani re-run
-alternative remains available LMR-002 doctrine but is **OUT OF SCOPE for this
-governance-only story** — an implementer choosing to re-run must do so under a separate
-story (requires the cargo-kani toolchain, which contradicts this story's "No Rust toolchain
-changes" Library & Framework Requirements constraint).
+toolchain records at `6e9f2cc`), with the honest-unknown fallback. LMR-002 states: "A re-run
+is always the preferred population path when feasible." Feasibility explicitly excludes this
+story's charter — no Rust toolchain changes; the carve-out is story-scoped, not a doctrine
+change. An implementer choosing to re-run must do so under a separate story (requires the
+cargo-kani toolchain, which contradicts this story's "No Rust toolchain changes" Library &
+Framework Requirements constraint).
 
 VP-024 frontmatter gains the `kani_version:` field as a sibling of `proof_file_hash:` and
 `verified_at_commit:`. The field form after historical recovery or re-run is:
@@ -442,6 +452,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.8 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-L05 (LOW) — AC-161-002 byte-boundary tightened: hashed section is byte-inclusive from `#` of `#[cfg(kani)]` through matching closing `}` of `mod kani_proofs` (balanced-brace pairing from `{` following `mod kani_proofs`); NO trailing bytes (whitespace or newline after `}`) are captured. F-W72-P11-L06 (LOW) — AC-161-004 gains exact LMR-002 sentence: "A re-run is always the preferred population path when feasible"; feasibility explicitly excludes this story's charter (no Rust toolchain changes); carve-out is story-scoped, not a doctrine change. F-W72-P11-L10 (LOW) — AC-161-003 gains dual-tool recompute mandate: `proof_file_hash` MUST be independently recomputed with bash `sha256sum` pipeline AND Python `hashlib`; both command lines archived in VP-024 v2.5 modified-log entry; values must agree before writing; LMR-001 forbids later correction — first write is permanent. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-159]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; part of 158→159→161 chain; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. |
 | 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-002+005 (HIGH+MEDIUM) — re-run de-scoped throughout: Background kani_version bullet, AC-161-004, Task 2, and Notes all replace "always-preferred alternative" framing with explicit out-of-scope statement (requires cargo-kani toolchain; contradicts "No Rust toolchain changes" constraint; implementer choosing to re-run must do so under a separate story); historical recovery via CI logs/Cargo.lock/toolchain records is the only in-scope method. F-W72-P6-010 (LOW) — AC-161-002: Section-Scoping Rule uniqueness requirement added (algorithm anchors on module NAMED kani_proofs; if a source file contains multiple kani_proofs-named modules the algorithm is undefined; implementation MUST fail loudly, exit non-zero, rather than guess which block to hash). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-006 (LOW) — AC-161-007 added: PR title uses the docs: semantic prefix (develop-side diff is CLAUDE.md-only; VP-INDEX and VP-024 amendments land on factory-artifacts branch and never appear in the develop PR diff); mirrors STORY-159's AC-159-005 phrasing style. |

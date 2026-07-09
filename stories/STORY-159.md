@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -153,7 +153,8 @@ echo "All ten decisions present"
 must exit 0. This loop certifies presence of the canonical `### Decision N: <title>` heading
 form (colon boundary fully covered by `:` in the existing character class); prose-form
 continuation references (apostrophe, em-dash, or hyphen following "Decision N") are explicitly
-NOT certified by this guard.
+NOT certified by this guard. Non-canonical heading forms (e.g. `Decision 1;` `Decision 1?`)
+will fail the guard BY DESIGN — the ADR must use the canonical `### Decision N: <title>` form.
 
 ### AC-159-003 (all 38 inline source citations resolvable)
 
@@ -184,7 +185,8 @@ echo "Abbreviated Dec form count: 0 (normalized)"
 This loop certifies that each source-cited decision number has a corresponding canonical
 `### Decision N: <title>` heading in the public doc; prose-form continuation references
 (apostrophe, em-dash, or hyphen following "Decision N") are explicitly NOT certified by this
-guard.
+guard. Non-canonical heading forms (e.g. `Decision 1;` `Decision 1?`) will fail the guard
+BY DESIGN — the ADR must use the canonical `### Decision N: <title>` form.
 
 ### AC-159-004 (CLAUDE.md Project References row added)
 
@@ -250,8 +252,15 @@ No production Rust source files are modified. No tests are added or changed.
    AC-159-003 post-normalization check (`grep -roh -E "ADR-012 Dec [0-9]+"`) must
    return zero. `tests/integration_tests.rs` is a touched file for this story.
 
-4. **Run the AC-159-002 and AC-159-003 verification scripts** and fix any missing
-   sections before proceeding.
+4. **Run the verification scripts in two phases:**
+   (a) **Pre-normalization coverage check** (may run anytime after Task 2): run the
+       AC-159-002 verification script to confirm all ten decisions are present, and run
+       the first loop of AC-159-003 (`for n in $CITED; do … done`) to confirm all cited
+       decision numbers resolve. Fix any missing sections before proceeding.
+   (b) **Post-normalization Dec-zero check** (MUST run after Task 3): run the
+       AC-159-003 post-normalization check (`grep -roh -E "ADR-012 Dec [0-9]+"`) and
+       confirm it returns zero. This check is only meaningful after the Task 3 comment
+       normalization (`ADR-012 Dec 10` → `ADR-012 Decision 10`) has been applied.
 
 5. **Update `CLAUDE.md`** Project References table: append
    `, 0012 protocols catalog and coverage-gaps system` to the `docs/adr/` row
@@ -337,6 +346,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.9 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-L04 (LOW) — BY DESIGN note added after each verification loop: both AC-159-002 and AC-159-003 gain "Non-canonical heading forms (e.g. 'Decision 1;' 'Decision 1?') will fail the guard BY DESIGN — the ADR must use the canonical '### Decision N: <title>' form." F-W72-P11-L09 (LOW) — Task 4 split into (a) pre-normalization coverage check (may run anytime after Task 2) and (b) post-normalization Dec-zero check (MUST run after Task 3); ordering and dependency labeled explicitly. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-158]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. F-W72-P10-L03 (LOW) — normative-target sentence added after each verification loop: AC-159-002 loop note states it certifies the canonical `### Decision N: <title>` heading form (colon boundary covered by `:` in class); AC-159-003 loop note states it certifies each source-cited decision number has a corresponding canonical heading; prose-form continuation references explicitly NOT certified by either guard. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L03 (LOW) — boundary-guard character class widened in BOTH verification loops (AC-159-002 and AC-159-003): `(\.|:|,| |\)|$)` → `(\.|:|,| |\)|\*|\`|$)` to cover markdown emphasis chars; canonical heading form sentence added before AC-159-002 grep block: public ADR MUST use `### Decision N: <title>` as the canonical section heading form (so the guard's primary target is deterministic). |
 | 1.6 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-001 (MEDIUM) [process-gap] — substring-boundary false positive fixed in both verification loops: AC-159-002 and AC-159-003 grep commands changed from `grep -q "Decision $n"` to `grep -qE "Decision $n(\.|:|,| |\)|$)"` (POSIX-portable right-boundary guard; `\b` not portable to BSD grep); one-line comment added to each loop explaining the guard's purpose. "Decision 1" can no longer match "Decision 10" as a substring. |

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.10"
+version: "1.11"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -30,7 +30,7 @@ traces_to:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
-input-hash: "7e22ccb"
+input-hash: "548305f"
 inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.036.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.037.md
@@ -163,6 +163,8 @@ The `fmt::Display` implementations for `Verdict` and `Confidence` are NOT modifi
 test_BC_2_11_036_terminal_display_unchanged — pass
     Asserts: Verdict::Likely → "LIKELY"; Confidence::High → "HIGH"
     (Display tokens are PascalCase-derived uppercase, not serde-controlled)
+    Also asserts: ThreatCategory::LateralMovement.to_string() == "LateralMovement"
+    (PascalCase Debug repr invariance — unchanged by serde annotation)
 ```
 
 The test must use the `Display` trait directly (not `Serialize`) to confirm surface independence.
@@ -194,10 +196,11 @@ The scan command to find stale JSON string literals:
 grep -rEn '"Likely"|"Unlikely"|"Inconclusive"|"Possible"|"High"|"Medium"|"Low"|"LateralMovement"|"CredentialAccess"|"Reconnaissance"|"Exfiltration"|"Persistence"|"Execution"|"Anomaly"|"Suspicious"|"Impact"|"C2"' src/ tests/
 ```
 
-must return zero results in `assert_eq!` or `.contains()` argument slots after the change
-(i.e., positions where the string is an asserted expected JSON value, not a struct-field
-name or inline comment). Note: these strings remain valid Rust variant names — only JSON
-value assertions are targeted.
+The scan is a human-triage aid — the reviewer confirms every hit is an out-of-scope context
+(Display/Debug/match-arm sites, not a JSON-asserted expected value); the mechanical gate is
+`cargo test`, not the grep count. Ground truth: 32 legitimate out-of-scope hits exist
+tree-wide (Display/Debug/match-arm contexts). Note: these strings remain valid Rust variant
+names — only JSON value assertion contexts are targeted.
 
 ### AC-160-008 (CHANGELOG.md BREAKING CHANGE entry)
 
@@ -210,6 +213,9 @@ that covers:
 3. Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.
 4. JSON schema changes are outside `cargo-semver-checks` scope; this entry is the authoritative
    change notice.
+5. **Known heterogeneity:** `Direction` enum (`ClientToServer` / `ServerToClient`) retains
+   PascalCase JSON serialization in v0.12.0 — casing alignment is scoped to `verdict`,
+   `confidence`, and `category` only.
 
 ### AC-160-009 (PR type)
 
@@ -447,6 +453,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.11 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-M03 (MEDIUM) — BC-2.11.036 v1.2 upstream amendment (commit 8371855): AC-160-005 test block updated: `test_BC_2_11_036_terminal_display_unchanged` now also asserts `ThreatCategory::LateralMovement.to_string() == "LateralMovement"` (PascalCase Debug repr invariance); same test name; VP row 8 scope now covers all three enums. F-W72-P11-L07 (LOW) — AC-160-007 reworded from zero-hit gate to advisory scan: scan is human-triage aid; reviewer confirms every hit is out-of-scope (Display/Debug/match-arm contexts); mechanical gate is `cargo test`, not grep count; 32 legitimate out-of-scope hits noted. F-W72-P11-L08 (LOW) — AC-160-008 gains "Known heterogeneity" item 5: `Direction` enum retains PascalCase JSON serialization in v0.12.0; casing alignment scoped to `verdict`, `confidence`, and `category` only. |
 | 1.10 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-158]` (FILE-SEQUENCING edge only: both stories modify CHANGELOG.md; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. F-W72-P10-L06 (LOW) — AC-160-007 grep command switched from BRE (`grep -rn` with `\|` alternation) to ERE (`grep -rEn` with `|` alternation) — BRE `\|` is GNU-only; BSD grep treats it as literal, producing false-PASS on macOS. F-W72-P10-L07 (LOW) — Task 4 doc-comment citation corrected lines 62-63 → 61-63 (enumeration begins at line 61). |
 | 1.9 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L02 (LOW) — Task 3 DF-TEST-NAMESPACE-001 "if applicable" hedge replaced with definitive ruling: `tests/reporter_json_tests.rs` is a REPORTER test file, not an analyzer test file — DF-TEST-NAMESPACE-001 does NOT apply; the 14 new tests go at flat file root, matching the file's existing convention. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-L01 (LOW) — docstring line-number precision corrected: AC-160-010 and Task 2 now read "lines 3-5 (docstring continues through line 11)" instead of "lines 3-4 (continues through line 6)". |
