@@ -141,7 +141,7 @@ def _parse_frontmatter(text: str) -> dict | None:
             while i < len(lines):
                 item_line = lines[i]
                 item_stripped = item_line.strip()
-                item_m = re.match(r"^\s+-\s+(.*)", item_line)
+                item_m = re.match(r"^\s*-\s+(.*)", item_line)
                 if item_m:
                     items.append(_strip_inline_comment(item_m.group(1)))
                     i += 1

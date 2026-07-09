@@ -695,6 +695,58 @@ def test_tc14_duplicate_story_id_key() -> None:
         )
 
 
+def test_tc15_zero_indent_bcs_item() -> None:
+    """
+    TC15 (A17 zero-indent variant — F-S158-P2-001 class closure):
+    bcs: block list with a zero-indented item (column 0).
+
+    Zero-indent sequence items under a key are valid YAML (PyYAML returns
+    ['BC-9.99.999'] for this input).  The old regex `r"^\\s+-\\s+(.*)"` required
+    at least one leading whitespace character, so `- BC-9.99.999` at column 0
+    hit the `else: break` path, silently emptied bcs, and caused a false rule-2
+    PASS — the same early-termination class as F-S158-P1-005 (comment) and
+    F-S158-P2-001 (blank line).
+
+    Fixture:
+      - Artifact at correct path with story_id: STORY-158
+      - bcs: block list with `- BC-9.99.999` at column 0 (zero indent)
+      - BC-9.99.999 NOT on disk → unresolvable after parsing
+    Expected: exit non-zero, BC-9.99.999 listed in output (parser must not drop it).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs:\n"
+                "- BC-9.99.999\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        # BC-9.99.999 deliberately NOT created → unresolvable
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC15: expected exit non-zero (zero-indent item must not cause false "
+            f"rule-2 PASS), got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "BC-9.99.999" in combined, (
+            f"TC15: BC-9.99.999 (zero-indent item) must appear in error output — "
+            f"parser must not drop zero-indent block-list items.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC15: zero-indent bcs: item → exit {result.returncode}, "
+            "BC-9.99.999 listed (not dropped)"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -716,6 +768,7 @@ def main() -> None:
         test_tc12_blank_line_interleaved_bcs,
         test_tc13_non_utf8_artifact,
         test_tc14_duplicate_story_id_key,
+        test_tc15_zero_indent_bcs_item,
     ]
     passed = 0
     failed = 0
