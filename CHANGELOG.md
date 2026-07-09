@@ -9,6 +9,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **CHANGELOG CI gate, `bin/lint-cycle-artifact`, and `bin/check-green-doc-tense`
+  zero-file-guard hardening (STORY-158, wave-72) [process-gap].** Four wave-71 process
+  gaps codified as durable project artifacts: (1) `changelog-gate` CI job (pull_request
+  only) fails when `src/`, `Cargo.toml`, or `bin/` are modified without a corresponding
+  `CHANGELOG.md` update, enforcing the CHANGELOG obligation that wave-71 PRs missed
+  (PG-W71-CHANGELOG). (2) `bin/lint-cycle-artifact` (Python 3, stdlib-only) validates
+  cycle artifact identity fields (`story_id:` and `bcs:` frontmatter) against the parent
+  story and on-disk BC files, catching fabricated or borrowed BC IDs before adversarial
+  review (PG-W71-CYCLE-ARTIFACT-IDENTITY). (3) `bin/check-green-doc-tense` now exits
+  non-zero when no tracked Rust files are found, preventing a silent false-CI-PASS if the
+  scan target moves (PG-W71-CI-SCAN-GUARDS). (4) `trust-boundary` CI job gains a
+  `test -d src/` guard before the grep scan, mirroring the SEC-001 pattern in
+  `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS).
+
 - **Fragmented-handshake Criterion benchmark `tls_fragmented/3-record-carry-drain` +
   `[[bench]]` target (STORY-149, PR #374, closes #360).** A new Criterion benchmark
   exercises the TLS carry-path under realistic 3-record fragmented-handshake conditions,
