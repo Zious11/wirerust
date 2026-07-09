@@ -466,7 +466,8 @@ jobs:
           git fetch origin develop --depth=1 2>/dev/null || true
           CHANGED=$(git diff --name-only origin/develop...HEAD)
           # Check whether this PR touches the CHANGELOG-gate trigger set
-          TRIGGERS=$(echo "${CHANGED}" | grep -E '^(src/|Cargo\.toml|bin/)' || true)
+          # F-S158-P1-004: Cargo\.toml$ anchored to prevent Cargo.toml.bak spurious match.
+          TRIGGERS=$(echo "${CHANGED}" | grep -E '^(src/|Cargo\.toml$|bin/)' || true)
           if [ -z "${TRIGGERS}" ]; then
             echo "PASS: no files in CHANGELOG-gate trigger set changed (src/, Cargo.toml, bin/)."
             exit 0
