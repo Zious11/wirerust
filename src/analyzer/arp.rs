@@ -3436,7 +3436,7 @@ mod story_114 {
         );
 
         // Regression guard (BC-2.16.004 lines 74/118):
-        // A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "Likely").
+        // A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "likely").
         // D-075 introduced the conditional in emit_d1_spoof_finding_impl that routes
         // HIGH confidence to Verdict::Likely. This FAILS if that conditional is removed
         // or a refactor reverts HIGH-confidence D1 findings to Verdict::Possible.
