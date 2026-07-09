@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -11,7 +11,7 @@ level: feature
 cycle: triage-2026-07-08
 points: 3
 priority: P3
-depends_on: []
+depends_on: [STORY-159]
 blocks: []
 # Governance-only story — no BCs authored (E-11 convention; this story modifies VP governance docs, not Rust source)
 behavioral_contracts: []
@@ -431,11 +431,18 @@ Well within context window. No story split required.
 - **CLAUDE.md note is in scope for a governance-only story.** CLAUDE.md is a project guidance
   file, not a product file. The "Two hash disciplines" note is consistent with prior STORY-157
   and STORY-158 CLAUDE.md amendments.
+- **FILE-SEQUENCING edge STORY-159 → STORY-161 (F-W72-P10-M01):** `depends_on: [STORY-159]`
+  is a file-ordering constraint only — both stories modify `CLAUDE.md` (STORY-159 via
+  AC-159-004 Project References row; STORY-161 via its "Two hash disciplines" CLAUDE.md note).
+  The edge is part of the 158→159→161 chain (STORY-158 also modifies CLAUDE.md via AC-158-006).
+  The edge is NOT semantic: STORY-161 does not consume any runtime artifact from STORY-159.
+  Precedent: F-F3P2-005 (STORY-152→STORY-154, shared src files).
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.7 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-159]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; part of 158→159→161 chain; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. |
 | 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-002+005 (HIGH+MEDIUM) — re-run de-scoped throughout: Background kani_version bullet, AC-161-004, Task 2, and Notes all replace "always-preferred alternative" framing with explicit out-of-scope statement (requires cargo-kani toolchain; contradicts "No Rust toolchain changes" constraint; implementer choosing to re-run must do so under a separate story); historical recovery via CI logs/Cargo.lock/toolchain records is the only in-scope method. F-W72-P6-010 (LOW) — AC-161-002: Section-Scoping Rule uniqueness requirement added (algorithm anchors on module NAMED kani_proofs; if a source file contains multiple kani_proofs-named modules the algorithm is undefined; implementation MUST fail loudly, exit non-zero, rather than guess which block to hash). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-006 (LOW) — AC-161-007 added: PR title uses the docs: semantic prefix (develop-side diff is CLAUDE.md-only; VP-INDEX and VP-024 amendments land on factory-artifacts branch and never appear in the develop PR diff); mirrors STORY-159's AC-159-005 phrasing style. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-006 (LOW) — EC-005 extended with cross-reference requirement: the new "Multi-File Proof Anchor Algorithm" section and the "## VP Lock Mutation Rules" section (LMR-003) MUST cross-link each other with one sentence each — algorithm section notes kani_version: is governed by LMR-003; VP Lock Mutation Rules section notes kani_version: is the only currently-allowlisted field for the multi-file proof anchor pattern. |

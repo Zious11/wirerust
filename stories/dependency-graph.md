@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.7"
+version: "3.8"
 status: draft
 producer: story-writer
 phase: 3
@@ -30,10 +30,11 @@ modified:
   - "2026-07-02 v3.5: F-F3P3-004 remediation — acyclicity-proof narrative stale counts corrected to 107 (STORY-INDEX authoritative). Three locations updated: (1) Wave Schedule intro callout 'all 73 product stories' → 'all 107 product stories (STORY-INDEX authoritative; wave tables cover waves 1–69)'; (2) E-21 Cycle-Check callout 'All 93 product nodes' → 'All 107 product nodes (STORY-INDEX authoritative)'; (3) Acyclicity Proof bullet 'all 93 product stories processed' → 'all 107 product stories processed (STORY-INDEX authoritative)'. All three nodes in disagreement with frontmatter total_stories: 107 and with each other — now self-consistent. Edges, waves, and story tables unchanged."
   - "2026-07-02 v3.6: F-F3P6-004 remediation — replaced phantom type names ProtocolsArgs/AnalyzeArgs with correct inline enum variant references in 152→154 edge justification. Real cli.rs uses inline struct variants (Commands::Protocols { all, supported, unsupported } and Commands::Analyze { ..., coverage_gaps, ... }) with no separate *Args structs. Edge count and wave schedule unchanged."
   - "2026-07-07 v3.7: v0.12.0 wave-71 planning gate — waves 70+71 scheduled. Wave 70: STORY-149 (E-11, dep=[], 5pts, already delivered PR #374). Wave 71: STORY-150 (E-11, dep=[], 5pts), STORY-156 (E-16, dep=[STORY-115], 3pts), STORY-157 (E-11, dep=[], 5pts). New intra-E-16 edge: STORY-115→STORY-156 (file-ordering: ArpAnalyzer::new(spoof_threshold, storm_rate) + 13-key summarize() contract finalized by STORY-115 before STORY-156 regression tests can compile against it). total_stories 107→110 (+STORY-155/156/157 added to STORY-INDEX since v3.6). total_edges 124→125. intra_epic_edges 103→104. number_of_waves 69→71. total_points 662→680 (+5 wave-70, +13 wave-71)."
+  - "2026-07-08 v3.8: F-W72-P10-M01 file-sequencing edges (F-F3P2-005 precedent) — 3 new edges: STORY-158→STORY-159 (intra-E-11; CLAUDE.md shared by AC-158-006 + AC-159-004), STORY-158→STORY-160 (cross-epic E-11→E-8; CHANGELOG.md shared by AC-158-007 + AC-160-008), STORY-159→STORY-161 (intra-E-11; CLAUDE.md shared by AC-159-004 + STORY-161 CLAUDE.md note). All are FILE-SEQUENCING edges only (no semantic dependency). Chains: STORY-158→STORY-159→STORY-161 and STORY-158→STORY-160; trivially acyclic (forward-only). total_edges 125→128 (+3). intra_epic_edges 104→106 (+2: 158→159, 159→161). cross_epic_edges 21→22 (+1: 158→160). Wave-72 stories not yet added to wave schedule table in this doc (STORY-INDEX authoritative for scheduling)."
 total_stories: 110  # STORY-INDEX authoritative (110); wave tables cover waves 1-71; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-155 tracked in STORY-INDEX but not in wave schedule
-total_edges: 125
-intra_epic_edges: 104
-cross_epic_edges: 21
+total_edges: 128
+intra_epic_edges: 106
+cross_epic_edges: 22
 number_of_waves: 71
 acyclic: true
 traces_to:

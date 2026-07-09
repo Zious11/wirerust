@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.10"
+version: "1.11"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -212,7 +212,11 @@ rule (2).
 (6) The `story_id:` value is validated against the artifact's path. The tool searches
     **upward** from the artifact path for the nearest `STORY-[0-9]+` ancestor directory
     component under `.factory/cycles/` (so `.factory/cycles/wave-72/STORY-158/subdir/finding.md`
-    resolves to `STORY-158`). If no such ancestor exists, the tool MUST exit non-zero with:
+    resolves to `STORY-158`). The matched `STORY-[0-9]+` component MUST have an immediate
+    parent directory matching the wave-directory naming convention (`wave-[0-9]+` or the
+    documented wave-directory form); a path like `.factory/cycles/STORY-158/x.md` (no
+    wave-NNN intermediate) → invalid-path HARD FAIL. If no valid `STORY-[0-9]+` ancestor
+    exists (or the wave-NNN intermediate is absent), the tool MUST exit non-zero with:
     `ERROR: artifact path does not match expected .factory/cycles/<wave>/STORY-NNN/<artifact> pattern — cannot derive expected story_id`
     If the declared `story_id:` does not match the directory-derived value, the tool MUST
     exit non-zero with:
@@ -370,6 +374,10 @@ serves as the Red Gate.
    - **TC1 (missing frontmatter):** artifact with no YAML frontmatter block → expect exit 1
      with the exact `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) —
      see current cycle-artifact template (STORY-158)` message.
+     **Em-dash note:** the error string contains a U+2014 em-dash (`—`); TC1 must copy the
+     string byte-for-byte from this AC, OR the tool may use ASCII `--` consistently in both
+     the tool output and TC fixture — implementer picks ONE form and keeps tool + test
+     identical.
    - **TC2 (`bcs: []`):** artifact placed at a CORRECT path (e.g.,
      `.factory/cycles/wave-72/STORY-158/artifact.md`) with matching `story_id: STORY-158`
      and `bcs: []` → expect exit 0. The fixture does NOT need a parent story file — rule (2)
@@ -523,7 +531,7 @@ Well within context window. No story split required.
   open items for S-7.02 wave-71 cycle-close purposes.
 - No behavioral contract required: E-11 convention (epics.md E-11: "BCs: none authored
   yet — status: draft; pending PO authorship").
-- input-hash note: v1.1 declares three real spec inputs
+- input-hash note: declares three real spec inputs (fourth PG added in the v1.1 amendment)
   (`.factory/cycles/wave-71/STORY-157/FINDINGS.md` — primary evidence source for the
   three PG wave-71 CI/tooling process observations; `.github/workflows/ci.yml` — source
   artifact for the trust-boundary and check-green-doc-tense CI gaps;
@@ -537,6 +545,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.11 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-L04 (LOW) — rule (6) extended with wave-NNN intermediate requirement: matched `STORY-[0-9]+` component MUST have an immediate parent matching wave-directory naming (`wave-[0-9]+`); path like `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) → invalid-path HARD FAIL; error message unchanged. F-W72-P10-L05 (LOW) — TC1 em-dash note added: error string contains U+2014 em-dash; TC1 must copy byte-for-byte from AC, OR tool uses ASCII `--` consistently in both tool and TC — implementer picks ONE form. F-W72-P10-L02 (LOW) — Notes input-hash note stale wording fixed: "v1.1 declares three real spec inputs" → "declares three real spec inputs (fourth PG added in the v1.1 amendment)". |
 | 1.10 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-M01 (MEDIUM) — AC-158-007 trigger-set claim corrected: sentence previously implied `.github/workflows/ci.yml` was in the CHANGELOG-gate trigger set (`src/`, `Cargo.toml`, `bin/`), contradicting AC-158-001; replaced with explicit wording distinguishing the two `bin/` tools (in trigger set; alone fire the gate) from `.github/` (excluded by AC-158-001). F-W72-P9-L01 (LOW) — rule-ordering DAG added at top of AC-158-003 contract: "Evaluation order: rule (1) frontmatter presence → rule (6) path/story_id identity → rule (2) empty-bcs short-circuit [exit 0] → rule (3) BC existence on disk → rule (7) story ownership"; TC2 fixture instructions clarified to require correct path with matching story_id (rule (6) passes before rule (2) short-circuits; wrong-path empty-bcs artifact still FAILS). |
 | 1.9 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-L02 (LOW) — rule (2) gains explicit short-circuit note (exits before rule (7)'s parent-story lookup; parent-story existence NOT required for empty-bcs artifacts); rule (7) opening updated to "After rules (1), (2), and (6) pass (reached only when bcs: is non-empty)"; unreachable bcs: [] sub-bullet removed from rule (7); Task 3 TC2 gains note that fixture does NOT need a parent story file. F-W72-P8-L03 (LOW) — rule (6) rewritten to specify upward-search behavior: tool searches upward from artifact path for nearest STORY-[0-9]+ ancestor directory component under .factory/cycles/ (e.g., .factory/cycles/wave-72/STORY-158/subdir/finding.md resolves to STORY-158); no such ancestor → existing HARD FAIL applies. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P7 fixes: F-W72-P7-003 (MEDIUM) — ACR "modifies ONLY" list extended with CHANGELOG.md (AC-158-007) and .factory/templates/cycle-artifact.md + .factory/templates/wave-gate-checklist.md (factory-artifacts branch); FSR gains corresponding rows for CHANGELOG.md (Modify) and both template files (Create; factory-artifacts branch noted). F-W72-P7-004 (MEDIUM) — Task 4 gains cross-branch implementer note: .factory/templates/ files committed to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR. F-W72-P7-005 (MEDIUM) — Task 3 gains hermetic fixture-construction note: TCs MUST use tempfile.TemporaryDirectory() + WIRERUST_REPO_ROOT, mirroring bin/test_compute_input_hash.py; no live .factory/ references permitted (CI-safe on develop). F-W72-P7-007 (LOW) — Background bash block: two-line backslash continuation replaced with the one-line verbatim mirror of ci.yml:196. |

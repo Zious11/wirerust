@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -11,7 +11,7 @@ level: feature
 cycle: maint-2026-07-08
 points: 3
 priority: P3
-depends_on: []
+depends_on: [STORY-158]
 blocks: []
 # BC status: none — E-11 convention (no BCs authored; status: draft, pending PO authorship)
 behavioral_contracts: []
@@ -150,7 +150,10 @@ done
 echo "All ten decisions present"
 ```
 
-must exit 0.
+must exit 0. This loop certifies presence of the canonical `### Decision N: <title>` heading
+form (colon boundary fully covered by `:` in the existing character class); prose-form
+continuation references (apostrophe, em-dash, or hyphen following "Decision N") are explicitly
+NOT certified by this guard.
 
 ### AC-159-003 (all 38 inline source citations resolvable)
 
@@ -177,6 +180,11 @@ REMAINING=$(grep -roh -E "ADR-012 Dec [0-9]+" src/ tests/ | wc -l | tr -d ' ')
 [ "$REMAINING" -eq 0 ] || { echo "FAIL: $REMAINING abbreviated ADR-012 Dec form(s) remain"; exit 1; }
 echo "Abbreviated Dec form count: 0 (normalized)"
 ```
+
+This loop certifies that each source-cited decision number has a corresponding canonical
+`### Decision N: <title>` heading in the public doc; prose-form continuation references
+(apostrophe, em-dash, or hyphen following "Decision N") are explicitly NOT certified by this
+guard.
 
 ### AC-159-004 (CLAUDE.md Project References row added)
 
@@ -318,11 +326,18 @@ Well within context window. No story split required.
 - **PR title example:** `docs: add ADR-012 protocols catalog and coverage-gaps system`
 - Source: finding NEW-001 (HIGH, MANUAL) from `.factory/maintenance/doc-drift-findings.md`,
   maint-2026-07-08 Sweep 3.
+- **FILE-SEQUENCING edge STORY-158 → STORY-159 (F-W72-P10-M01):** `depends_on: [STORY-158]`
+  is a file-ordering constraint only — both stories modify `CLAUDE.md` (STORY-158 via
+  AC-158-006 gate-close code-review protocol; STORY-159 via AC-159-004 Project References
+  row). The edge is NOT semantic: STORY-159 does not consume any runtime artifact from
+  STORY-158. Precedent: F-F3P2-005 (STORY-152→STORY-154, shared src/cli.rs + main.rs +
+  tests/integration_tests.rs).
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.8 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-158]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. F-W72-P10-L03 (LOW) — normative-target sentence added after each verification loop: AC-159-002 loop note states it certifies the canonical `### Decision N: <title>` heading form (colon boundary covered by `:` in class); AC-159-003 loop note states it certifies each source-cited decision number has a corresponding canonical heading; prose-form continuation references explicitly NOT certified by either guard. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L03 (LOW) — boundary-guard character class widened in BOTH verification loops (AC-159-002 and AC-159-003): `(\.|:|,| |\)|$)` → `(\.|:|,| |\)|\*|\`|$)` to cover markdown emphasis chars; canonical heading form sentence added before AC-159-002 grep block: public ADR MUST use `### Decision N: <title>` as the canonical section heading form (so the guard's primary target is deterministic). |
 | 1.6 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-001 (MEDIUM) [process-gap] — substring-boundary false positive fixed in both verification loops: AC-159-002 and AC-159-003 grep commands changed from `grep -q "Decision $n"` to `grep -qE "Decision $n(\.|:|,| |\)|$)"` (POSIX-portable right-boundary guard; `\b` not portable to BSD grep); one-line comment added to each loop explaining the guard's purpose. "Decision 1" can no longer match "Decision 10" as a substring. |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-003 (MEDIUM) — occurrence arithmetic corrected throughout: grep counts 38 LINES but src/main.rs:1100 is a double-mention line contributing 2 canonical citations, giving 39 total citations. Narrative updated: "38 lines totaling 39 ADR-012 citations". Background intro updated with double-mention note. NEW-001 table: column renamed "Lines"; src/main.rs row updated to "6 lines / 7 citations" with double-mention annotation. Sweep paragraph: "38 matched lines / 39 citations" with src/main.rs:1100 note. AC-159-003: "37 occurrences" → "38 occurrences (including 2 from src/main.rs:1100)"; "Of these 39, 38 use..." updated throughout. |
