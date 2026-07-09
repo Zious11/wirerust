@@ -100,8 +100,7 @@ def _find_repo_root(artifact_path: Path) -> Path:
         if parent == candidate:
             break
         candidate = parent
-    print("ERROR: could not locate repo root (no .factory/ found)", file=sys.stderr)
-    sys.exit(2)
+    raise RuntimeError("could not locate repo root (no .factory/ found)")
 
 
 # ---------------------------------------------------------------------------
@@ -387,7 +386,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # --- Rules (3) and (7) need the repo root ---
-    repo_root = _find_repo_root(artifact_path)
+    try:
+        repo_root = _find_repo_root(artifact_path)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
 
     # --- Rule (3): BC existence on disk ---
     unresolvable = [bc_id for bc_id in bcs if not _bc_on_disk(bc_id, repo_root)]

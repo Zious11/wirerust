@@ -88,5 +88,6 @@ Final line: `PASS: 0012 clause present in docs/adr/ Project References row`
 Gate command: `grep -rE '<host-path-pattern>' docs/demo-evidence/STORY-159/`
 
 Result: **zero matches — PASS**. No absolute host paths in any committed evidence artifact.
-Tape files use `~/Documents/...` (tilde expansion, not the absolute form) for the setup
-`cd` command in the hidden block; VHS output files are named with relative paths only.
+Tape files use `<REPO-ROOT>/.worktrees/STORY-159` (scrub-marker form per SEC-W72-001;
+tilde-expansion paths were scrubbed to this form in the wave-72 gate fix);
+VHS output files are named with relative paths only.

@@ -7,14 +7,15 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
+### Changed (BREAKING)
 
-- **JSON enum-value casing aligned to lowercase/snake_case + `schema_version` envelope
-  field (STORY-160, wave-72, BC-2.11.036, BC-2.11.037, issue #255).**
+- **`verdict`, `confidence`, and `category` JSON field values aligned to lowercase/snake_case
+  (STORY-160, wave-72, BC-2.11.036, issue #255).**
 
   > **BREAKING CHANGE (JSON surface only — v0.12.0).**
   > JSON schema changes are outside `cargo-semver-checks` scope; this entry and the
-  > `schema_version` field are the authoritative change notices.
+  > `schema_version` envelope field (see `### Added` below) are the authoritative change
+  > notices.
 
   1. **`verdict`, `confidence`, and `category` JSON field values are now lowercase /
      snake_case** (Suricata EVE / ECS / OCSF convention).
@@ -40,22 +41,24 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
      | `ThreatCategory` | `Suspicious` | `"Suspicious"` | `"suspicious"` |
      | `ThreatCategory` | `Impact` | `"Impact"` | `"impact"` |
 
-  2. **A new `"schema_version": "2"` field** appears in every JSON report envelope
-     (BC-2.11.037). Absence of this field signals the pre-v0.12.0 format (implicit
-     schema v1, PascalCase enum values). The value is a JSON **string** (not an integer)
-     to remain forward-compatible with minor revision suffixes.
-
-  3. **Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.**
+  2. **Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.**
      The `fmt::Display` implementations for `Verdict`, `Confidence`, and `ThreatCategory`
      are not modified; `serde::Serialize` and `fmt::Display` are independent surfaces.
 
-  4. **JSON schema changes are outside `cargo-semver-checks` scope.** Consumers that
+  3. **JSON schema changes are outside `cargo-semver-checks` scope.** Consumers that
      pattern-match exact enum string values in JSON output (e.g., `verdict == "Likely"`,
      `category == "LateralMovement"`) must update to the new lowercase/snake_case forms.
 
-  5. **Known heterogeneity:** The `Direction` enum (`ClientToServer` / `ServerToClient`)
+  4. **Known heterogeneity:** The `Direction` enum (`ClientToServer` / `ServerToClient`)
      retains PascalCase JSON serialization in v0.12.0. Casing alignment is scoped to
      `verdict`, `confidence`, and `category` only (BC-2.11.036 scope carve-out).
+
+### Added
+
+- **`"schema_version": "2"` envelope field in every JSON report (STORY-160, BC-2.11.037).**
+  Absence of this field signals the pre-v0.12.0 format (implicit schema v1, PascalCase enum
+  values). The value is a JSON **string** (not an integer) to remain forward-compatible with
+  minor revision suffixes.
 
 - **CHANGELOG CI gate, `bin/lint-cycle-artifact`, and `bin/check-green-doc-tense`
   zero-file-guard hardening (STORY-158, wave-72) [process-gap].** Four wave-71 process
@@ -139,6 +142,22 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `CLAUDE.md` Project References table updated to include the new entry. Inline comment at
   `tests/integration_tests.rs:1166` normalized from `ADR-012 Dec 10` to the canonical
   `ADR-012 Decision 10` form, closing the one abbreviated citation in the codebase.
+
+- **Wave-72 integration-gate hardening: `action-pin-gate` existence guard + positive
+  coverage assertion; STORY-159 tape path scrub (F-W72G-P1-001, SEC-W72-001, wave-72).**
+  (1) `action-pin-gate` CI job gains a scan-target existence guard
+  (`test -d .github/workflows/` + zero-file check) that mirrors the SEC-001 pattern from
+  `trust-boundary` and `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS): a renamed or emptied
+  scan target now fails loudly instead of trivially PASSing. A positive-coverage assertion
+  (`VALIDATED` counter) ensures the gate processed at least one remote action ref; the PASS
+  line now reports the validated count (e.g., "PASS: N remote action ref(s) validated, 0
+  mutable"). (2) Five STORY-159 VHS tape scripts in `docs/demo-evidence/STORY-159/` had
+  `~/Documents/GITHUB/wirerust` absolute host paths in their `Type "cd …"` lines; scrubbed
+  to `<REPO-ROOT>` matching the STORY-160 tape convention (SEC-W72-001, CWE-200). Binary
+  `.gif`/`.webm` artifacts are historical evidence and not re-rendered. Note: the
+  demo-evidence scrub-gate doc (`.factory/maintenance/demo-evidence-scrub-gate.md`) needs a
+  `~/` tilde-expansion pattern extension — that file lives on factory-artifacts and is
+  routed to the orchestrator separately.
 
 ## [0.11.5] - 2026-07-06
 
