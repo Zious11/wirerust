@@ -42,6 +42,14 @@ _ERR_INVALID_PATH = (
 
 _STORY_ID_RE = re.compile(r"^STORY-[0-9]+$")
 _WAVE_RE = re.compile(r"^wave-[0-9]+$")
+# F-S158-P1-002: strip trailing inline-comment suffixes (space + # + rest),
+# matching bin/compute-input-hash's documented convention (CLAUDE.md §Inline comment suffixes).
+_INLINE_COMMENT_RE = re.compile(r"\s+#.*$")
+
+
+def _strip_inline_comment(s: str) -> str:
+    """Strip a trailing ' # ...' inline-comment suffix from a YAML scalar value."""
+    return _INLINE_COMMENT_RE.sub("", s).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +131,7 @@ def _parse_frontmatter(text: str) -> dict | None:
                 item_stripped = item_line.strip()
                 item_m = re.match(r"^\s+-\s+(.*)", item_line)
                 if item_m:
-                    items.append(item_m.group(1).strip())
+                    items.append(_strip_inline_comment(item_m.group(1)))
                     i += 1
                 elif item_stripped.startswith("#"):
                     # F-S158-P1-005: YAML comment inside block list — skip and CONTINUE
@@ -138,7 +146,7 @@ def _parse_frontmatter(text: str) -> dict | None:
                     break
             result[key] = items
         else:
-            result[key] = val_str
+            result[key] = _strip_inline_comment(val_str)
             i += 1
     return result
 
