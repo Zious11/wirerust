@@ -133,16 +133,16 @@ def _parse_frontmatter(text: str) -> dict | None:
                 if item_m:
                     items.append(_strip_inline_comment(item_m.group(1)))
                     i += 1
-                elif item_stripped.startswith("#"):
-                    # F-S158-P1-005: YAML comment inside block list — skip and CONTINUE
-                    # collecting; breaking here would silently drop all subsequent items.
+                elif not item_stripped or item_stripped.startswith("#"):
+                    # F-S158-P2-001 structural fix (subsumes F-S158-P1-005):
+                    # Blank lines AND YAML comments within a block sequence are
+                    # both insignificant — skip and CONTINUE collecting items.
+                    # Terminating on either class silently drops subsequent items,
+                    # allowing fabricated/borrowed IDs to escape rules 3+7.
                     i += 1
-                elif not item_stripped:
-                    # Blank line — end of block
-                    i += 1
-                    break
                 else:
-                    # Next key or end of frontmatter
+                    # Non-blank, non-comment, non-item line: genuine next-key or
+                    # end-of-frontmatter — terminate item collection.
                     break
             result[key] = items
         else:

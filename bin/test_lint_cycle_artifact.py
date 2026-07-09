@@ -175,7 +175,17 @@ def test_tc2_empty_bcs_correct_path() -> None:
             f"TC2: expected exit 0, got returncode={result.returncode}\n"
             f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
         )
-        print(f"  [PASS] TC2: empty bcs: at correct path → exit 0")
+        # F-S158-P2-004: rule (2) must emit a PASS message (not silent exit 0)
+        assert "PASS:" in result.stdout, (
+            f"TC2: expected PASS message on stdout (F-S158-P2-004 — rule 2 empty-bcs "
+            f"short-circuit must not exit silently).\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        assert "empty bcs" in result.stdout, (
+            f"TC2: PASS message must reference 'empty bcs' to be self-documenting.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(f"  [PASS] TC2: empty bcs: at correct path → exit 0, PASS message emitted")
 
 
 def test_tc3_unresolvable_bc_id() -> None:
@@ -552,6 +562,139 @@ def test_tc11_no_factory_cycles_ancestor() -> None:
         )
 
 
+def test_tc12_blank_line_interleaved_bcs() -> None:
+    """
+    TC12 (F-S158-P2-001): A16b fixture — bcs: block list with an interleaved blank line.
+
+    YAML treats blank lines within a block sequence as insignificant (they do not
+    terminate the sequence). Before the structural fix, the blank line caused a break,
+    silently dropping BC-99.99.999 — a false-PASS vector identical to the comment-line
+    vector fixed in F-S158-P1-005. The structural fix kills both by unifying blank and
+    comment lines into a single skip-and-continue case.
+
+    Fixture (A16b): BC-2.11.036 (exists), blank line, BC-99.99.999 (unresolvable).
+    Expected: exit 1, BC-99.99.999 listed (proves post-blank item was not dropped).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs:\n"
+                "  - BC-2.11.036\n"
+                "\n"
+                "  - BC-99.99.999\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.036")
+        # BC-99.99.999 deliberately NOT created → unresolvable
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC12: expected exit non-zero, got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "BC-99.99.999" in combined, (
+            f"TC12: BC-99.99.999 (post-blank item) must appear in error output — "
+            f"parser must not drop items after blank lines.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC12: blank-line-interleaved bcs: → exit {result.returncode}, "
+            "post-blank BC-99.99.999 listed (not dropped)"
+        )
+
+
+def test_tc13_non_utf8_artifact() -> None:
+    """
+    TC13 (F-S158-P2-002): artifact file contains non-UTF-8 bytes.
+
+    UnicodeDecodeError inherits ValueError, not OSError — it escaped the original
+    `except OSError` guard and produced a raw Python traceback on stderr.
+    Expected: exit non-zero with a controlled ERROR message; no raw traceback.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact_path = (
+            tmp_dir / ".factory" / "cycles" / "wave-72" / "STORY-158" / "FINDINGS.md"
+        )
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        # Write bytes that are invalid UTF-8 (0xFF 0xFE are not valid UTF-8 sequences)
+        artifact_path.write_bytes(
+            b"---\nstory_id: STORY-158\nbcs: []\n---\n\xff\xfe invalid utf-8 here"
+        )
+        result = run_tool(artifact_path, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC13: expected exit non-zero, got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "ERROR:" in combined, (
+            f"TC13: expected controlled ERROR message in output.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        assert "Traceback" not in combined, (
+            f"TC13: raw Python traceback must not appear in output.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC13: non-UTF-8 artifact → exit {result.returncode}, "
+            "controlled ERROR message (no traceback)"
+        )
+
+
+def test_tc14_duplicate_story_id_key() -> None:
+    """
+    TC14 (F-S158-P2-003): frontmatter contains duplicate story_id: keys.
+
+    YAML processors last-win on duplicate keys. An identity tool must reject
+    ambiguous identity declarations rather than silently picking one value.
+
+    Expected: exit non-zero with exact
+    "ERROR: duplicate story_id: key in frontmatter -- ambiguous identity declaration".
+    """
+    _ERR_DUPLICATE = (
+        "ERROR: duplicate story_id: key in frontmatter "
+        "-- ambiguous identity declaration"
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "story_id: STORY-999\n"
+                "bcs: []\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC14: expected exit non-zero, got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert _ERR_DUPLICATE in combined, (
+            f"TC14: expected exact duplicate-key error message not found.\n"
+            f"Expected: {_ERR_DUPLICATE!r}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC14: duplicate story_id: key → exit {result.returncode}, "
+            "exact duplicate-key error"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -570,6 +713,9 @@ def main() -> None:
         test_tc9_comment_interleaved_bcs,
         test_tc10_inline_comment_suffix_stripped,
         test_tc11_no_factory_cycles_ancestor,
+        test_tc12_blank_line_interleaved_bcs,
+        test_tc13_non_utf8_artifact,
+        test_tc14_duplicate_story_id_key,
     ]
     passed = 0
     failed = 0
