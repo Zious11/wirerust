@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -137,12 +137,14 @@ the public ADR format established by `docs/adr/0009-pcapng-reader-design.md`:
 
 The public doc contains a labelled section (or subsection) for every decision in the
 factory ADR-012: Decision 1 through Decision 10, including the Decision 6
-Clarification on increment-site semantics. The grep command:
+Clarification on increment-site semantics. The public ADR MUST use
+`### Decision N: <title>` as the canonical section heading form for each decision (so the
+boundary guard's primary target is deterministic). The grep command:
 
 ```bash
 for n in 1 2 3 4 5 6 7 8 9 10; do
   # right-boundary guard: prevents "Decision 1" matching "Decision 10" as a substring
-  grep -qE "Decision $n(\.|:|,| |\)|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
+  grep -qE "Decision $n(\.|:|,| |\)|\*|\`|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
     || { echo "MISSING: Decision $n"; exit 1; }
 done
 echo "All ten decisions present"
@@ -165,7 +167,7 @@ CITED=$(grep -roh -E "ADR-012 (Decision|Dec) [0-9]+" src/ tests/ \
 # Verify each is in the public doc
 for n in $CITED; do
   # right-boundary guard: prevents "Decision 1" matching "Decision 10" as a substring
-  grep -qE "Decision $n(\.|:|,| |\)|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
+  grep -qE "Decision $n(\.|:|,| |\)|\*|\`|$)" docs/adr/0012-protocols-catalog-and-coverage-gaps.md \
     || { echo "UNRESOLVED: Decision $n"; exit 1; }
 done
 echo "All cited decisions resolvable"
@@ -321,6 +323,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.7 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L03 (LOW) — boundary-guard character class widened in BOTH verification loops (AC-159-002 and AC-159-003): `(\.|:|,| |\)|$)` → `(\.|:|,| |\)|\*|\`|$)` to cover markdown emphasis chars; canonical heading form sentence added before AC-159-002 grep block: public ADR MUST use `### Decision N: <title>` as the canonical section heading form (so the guard's primary target is deterministic). |
 | 1.6 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-001 (MEDIUM) [process-gap] — substring-boundary false positive fixed in both verification loops: AC-159-002 and AC-159-003 grep commands changed from `grep -q "Decision $n"` to `grep -qE "Decision $n(\.|:|,| |\)|$)"` (POSIX-portable right-boundary guard; `\b` not portable to BSD grep); one-line comment added to each loop explaining the guard's purpose. "Decision 1" can no longer match "Decision 10" as a substring. |
 | 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-003 (MEDIUM) — occurrence arithmetic corrected throughout: grep counts 38 LINES but src/main.rs:1100 is a double-mention line contributing 2 canonical citations, giving 39 total citations. Narrative updated: "38 lines totaling 39 ADR-012 citations". Background intro updated with double-mention note. NEW-001 table: column renamed "Lines"; src/main.rs row updated to "6 lines / 7 citations" with double-mention annotation. Sweep paragraph: "38 matched lines / 39 citations" with src/main.rs:1100 note. AC-159-003: "37 occurrences" → "38 occurrences (including 2 from src/main.rs:1100)"; "Of these 39, 38 use..." updated throughout. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-005 (LOW) — EC-004 Description reworded: "docs/adr/0008-*.md gap in sequence" → "docs/adr/0008-<slug>.md (no such file — ADR-008 intentionally skipped)" (wildcard implied a file existed). F-W72-P4-007 (LOW) — AC-159-005 extended with one-line note: docs: remains correct semantic type despite one-line test-comment normalization in tests/integration_tests.rs (majority surface is documentation; test change is comment-only with no behavioral effect). |

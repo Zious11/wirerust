@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -317,8 +317,9 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
 3. **Write BC-driven tests.** Author the fourteen unit tests named in the BC-2.11.036 and
    BC-2.11.037 VP tables (nine from BC-2.11.036 + five from BC-2.11.037). Place them in the
    appropriate module (likely `tests/reporter_json_tests.rs` or the
-   `src/reporter/json.rs` tests block). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention
-   if applicable.
+   `src/reporter/json.rs` tests block). `tests/reporter_json_tests.rs` is a REPORTER test
+   file, not an analyzer test file — DF-TEST-NAMESPACE-001 does NOT apply; the 14 new tests
+   go at flat file root, matching the file's existing convention.
 
 4. **Update existing JSON-asserting tests.** Run the scan grep from AC-160-007:
    - Enum-literal scan: update any hit in a JSON value assertion context to the new
@@ -440,6 +441,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.9 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L02 (LOW) — Task 3 DF-TEST-NAMESPACE-001 "if applicable" hedge replaced with definitive ruling: `tests/reporter_json_tests.rs` is a REPORTER test file, not an analyzer test file — DF-TEST-NAMESPACE-001 does NOT apply; the 14 new tests go at flat file root, matching the file's existing convention. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P8 fixes: F-W72-P8-L01 (LOW) — docstring line-number precision corrected: AC-160-010 and Task 2 now read "lines 3-5 (docstring continues through line 11)" instead of "lines 3-4 (continues through line 6)". |
 | 1.7 | 2026-07-08 | story-writer | Adversary P7 fixes: F-W72-P7-001 (HIGH) — AC-160-007 second scan clause deleted (envelope-key grep over-counted ~37 legitimate contains_key hits; "zero after" was unreachable without destroying valid coverage; non-vacuity guaranteed by Task 4's explicit test_BC_2_11_001_top_level_keys enumeration). Task 4 updated to reference single scan grep and remove Envelope-key sub-bullet (replaced by explicit known-site list). F-W72-P7-002 (HIGH) — enum-literal grep widened from two named files to src/ tests/; Task 4 gains explicit src/analyzer/arp.rs:3439 stale comment update (serializes "Likely" → serializes "likely"; only serializes "..." prose site in the tree). F-W72-P7-006 (LOW) — AC-160-010 and Task 2 docstring citation reworded: "envelope-shape prose spanning lines 3-4 (docstring continues through line 6)". F-W72-P7-008 (LOW) — Direction carve-out note updated: enum declared in src/reassembly/handler.rs (primary anchor; imported at src/findings.rs:22); src/findings.rs:161 is the field-usage site. |
 | 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-003 (MEDIUM) — AC-160-010 gains module-docstring bullet (src/reporter/json.rs lines 3-4 must be updated to show six-key envelope including schema_version; DF-SIBLING-SWEEP-001 source-docstring propagation W11.L4); Task 2 gains matching bullet. F-W72-P6-006 (LOW) — Task 4 gains sibling note: also update doc comment above test_BC_2_11_001_top_level_keys (tests/reporter_json_tests.rs:62-63) and the assert_eq! failure-message key list at line 86 — both publish the five-key claim. F-W72-P6-007 (LOW) — Notes: Direction enum scope carve-out documented (Direction/ClientToServer/ServerToClient keeps PascalCase in v0.12.0; BC-2.11.036 scopes only Verdict/Confidence/ThreatCategory; extending to Direction requires own BC amendment). |
