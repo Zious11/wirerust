@@ -68,7 +68,15 @@ def make_story(
     story_id: str,
     behavioral_contracts: list[str],
 ) -> Path:
-    """Write a minimal parent story file under .factory/stories/."""
+    """Write a realistic parent story file under .factory/stories/.
+
+    The stub mirrors the shape of real factory stories: it includes the
+    hyphen-keyed `input-hash:` field and other common scalar/list fields
+    (inputs, version, wave) so that tests exercise the parser against the
+    same YAML shapes that would appear in production.  P4-001 (key regex
+    must accept hyphens) was hidden for 3 passes because old stubs lacked
+    `input-hash:`.
+    """
     if behavioral_contracts:
         bcs_block = "behavioral_contracts:\n" + "".join(
             f"  - {bc}\n" for bc in behavioral_contracts
@@ -78,6 +86,10 @@ def make_story(
     content = (
         "---\n"
         f"story_id: {story_id}\n"
+        'input-hash: "d41d8cd"\n'
+        "inputs: []\n"
+        'version: "1.0"\n'
+        'wave: "72"\n'
         f"{bcs_block}"
         "---\n"
         "\n"
