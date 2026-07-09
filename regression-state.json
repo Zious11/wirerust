@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-08T19:18:47Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/maint-threshold-docs && cargo test --all-targets 2>&1 | grep -E \"^test result|FAILED|^error\\[\" | head -30"}
+{"status":"pass","timestamp":"2026-07-09T15:44:40Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-158 && cargo test --all-targets 2>&1 | tail -15"}

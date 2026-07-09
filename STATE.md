@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: in-progress
-current_step: "Wave 72 DELIVERY STARTED (D-408, 2026-07-09) — story set CONVERGED (15 adversarial passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied); consistency audit 0-blocking/7-advisory; human approved. Delivering STORY-158 first (sequencing 158→{159,160}→161). develop=c4eb1f4. trajectory-tail →2→0→0→0"
+current_step: "Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09) — PR #387 OPEN (ci: CHANGELOG gate + cycle-artifact identity lint; branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE (2 LOW CWE-22 advisories deferred). Per-story convergence: 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. trajectory-tail →0→0→0→0"
 current_cycle: "wave-72"
 pipeline: RUNNING
-timestamp: 2026-07-09T01:00:00Z
+timestamp: 2026-07-09T16:30:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -63,7 +63,7 @@ maintenance_prior_run: maint-2026-07-06
 
 ## EXACT RESUME POINT
 
-**Wave 72 delivery IN PROGRESS (D-408). Story set converged and approved. STORY-158 delivery starting (per-story-delivery flow). Sequencing: 158 → {159, 160} → 161. Punch list (11 LOW + 7 advisory) resolves in-burst; process-gap ledger (6 items incl. PG-W72-CODIFICATION-FIDELITY) owed codification/deferral at wave close per S-7.02.**
+**Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09). PR #387 OPEN on branch feature/STORY-158-changelog-gate-cycle-lint (HEAD c4831bc). CI 12/12 green; pr-reviewer APPROVE; security-reviewer APPROVE (2 LOW CWE-22 advisories deferred as SEC-001-S158/SEC-002-S158). Per-story convergence 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001 satisfied). Human HELD merge. STORY-159/160 blocked on #387 merge; STORY-161 blocked on 159.**
 
 ---
 
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-72-delivery — story set CONVERGED + human approved (D-408, 2026-07-09); delivery started; pipeline RUNNING |
+| Mode | wave-72-delivery — STORY-158 at merge-hold (D-409, 2026-07-09); PR #387 open, CI green, reviews APPROVE, human HELD; pipeline RUNNING |
 | Version | 0.11.5 (released 2026-07-07; develop=c4eb1f4, Cargo.toml 0.11.5; 8 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
 | Develop HEAD | `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08 (ground-truth) |
@@ -81,7 +81,7 @@ maintenance_prior_run: maint-2026-07-06
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.21 / VP-INDEX v2.38 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 102 delivered / 114 total (STORY-INDEX v3.28) |
-| **Last Updated** | 2026-07-09 — Wave 72 delivery STARTED (D-408). Story set CONVERGED (15 passes, P13/P14/P15 clean 3/3); human approved; STORY-158 delivery starting. VP-INDEX v2.38 / STORY-INDEX v3.28 / dep-graph v3.8 (128 edges). develop=c4eb1f4. trajectory-tail →2→0→0→0 |
+| **Last Updated** | 2026-07-09 — STORY-158 AT MERGE-HOLD (D-409). PR #387 OPEN, CI 12/12 green, reviews APPROVE, human HELD merge. Per-story convergence 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). SEC-001-S158/SEC-002-S158 advisory deferred. STORY-159/160 blocked on #387. develop=c4eb1f4. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -120,7 +120,7 @@ maintenance_prior_run: maint-2026-07-06
 | Wave 71 (v0.12.0): STORY-150/156/157 | **CLOSED (D-404, 2026-07-08)** | PRs #378/379/380/381; develop=b642c0f. 7-pass adversary CONVERGED streak 3/3; trajectory →1→0→0→0. S-7.02 SATISFIED (STORY-158). Pipeline PAUSED (human-approved). |
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
-| Wave 72 (v0.12.0): STORY-158/159/160/161 | **STARTED (D-408, 2026-07-09)** | Story convergence: 15 passes, ~100 findings fixed, 12 fix bursts, LMR-001/002/003 codified (VP-INDEX v2.38), BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8; trajectory ...→2M→CLEAN→CLEAN→CLEAN. Consistency audit 0-blocking. Human approved. |
+| Wave 72 (v0.12.0): STORY-158/159/160/161 | **IN PROGRESS (D-408→D-409, 2026-07-09)** | Story convergence: 15 passes, ~100 findings fixed, 12 fix bursts, LMR-001/002/003 codified (VP-INDEX v2.38), BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8; trajectory ...→2M→CLEAN→CLEAN→CLEAN. Consistency audit 0-blocking. Human approved. STORY-158: RED 7f227a0 → GREEN (5 commits) → 4 hardening bursts (fail-closed parser, 21 TCs) → convergence P5/P6/P7 clean → demos cf8b1bf (scrub PASS) → PR #387 OPEN, CI 12/12, reviews APPROVE, merge HELD by human. |
 
 ---
 
@@ -134,6 +134,7 @@ maintenance_prior_run: maint-2026-07-06
 | **WAVE 72 ADVERSARY P15 CLEAN (2026-07-09). BC-5.39.001 SATISFIED (P13/P14/P15 streak 3/3). CONVERGED. trajectory-tail →2→0→0→0.** | **CONVERGED** | BC-5.39.001 SATISFIED. |
 | **WAVE 72 GATE AUDIT COMPLETE (2026-07-09). Consistency audit: 0-blocking / 7-advisory. STORY-INDEX v3.28 / VP-INDEX v2.38 / dep-graph v3.8 (128 edges). Gate dims all PASS.** | **PASS** | 0 blocking; 7 advisory carried in-burst. |
 | **WAVE 72 D-408 HUMAN APPROVED (2026-07-09). Story set CONVERGED + approved. Delivery started: STORY-158 first (sequencing 158→{159,160}→161). Pipeline RUNNING.** | **APPROVED (D-408)** | Pipeline RUNNING. Delivery in progress. |
+| **STORY-158 DELIVERY CHAIN (D-409, 2026-07-09). Worktree 5e4264f; Red Gate 7f227a0; GREEN 5 commits 413d0da..481f900; 4 hardening bursts a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d + clippy drift fix c4831bc; 21 TCs fail-closed parser; convergence P5/P6/P7 clean 3/3 (BC-5.39.001); demos evidence cf8b1bf scrub PASS; PR #387 OPEN CI 12/12; pr-reviewer APPROVE; security-reviewer APPROVE (SEC-001-S158/SEC-002-S158 deferred LOW). Human HELD merge.** | **MERGE-HOLD (D-409)** | PR #387 open. STORY-159/160 blocked; STORY-161 blocked on 159. |
 
 ## Decisions Log
 
@@ -247,6 +248,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-406 | maint-2026-07-08 COMPLETE (2026-07-08). All sweeps + DF-VALIDATION-001 triage complete. PRs #382 (624bae3, docs Known Limitations + TD-MAINT-THRESHOLD-CALIB-001 RESOLVED-ACCEPTED), #383 (3ebd801, SEC-010+SEC-011 Gap B RESOLVED), #384 (c4eb1f4, PF-001 109 sites + REBIND-COUNT-SATURATING-001 RESOLVED) — all squash-merged, strict 3/3 adversarial convergence each. STORY-158 v1.1 amended (AC-158-006 wave gate code-review artifact protocol). STORY-159 drafted (ADR-012 doc authoring). SEC-W71-001 CONFIRMED CWE-22, human deferred issue filing. HS-INDEX-ENIP-WAVE-DRIFT-001 + EPICS-TOTAL-BCS-DRIFT-001 confirmed and deferred Route C. INPUT-HASH-ERROR-STORIES-001 REFUTED and closed. develop=c4eb1f4 (8 unreleased commits ahead of v0.11.5). tech-debt-register v1.7. | 2026-07-08 |
 | D-407 | Issue-backlog triage triage-2026-07-08 COMPLETE (2026-07-08). 10/10 issues validated (DF-VALIDATION-001, all CONFIRMED): #101 closed (superseded by #362), #4 closed (CSV shipped), #385 filed (SQLite reporter, validated backlog item #255), #67 annotated (GOOSE detection scope), #6 annotated (crates.io D-300). 6 validated-backlog items: #255/#252/#63/#361/#103/#3. SEC-W71-001 retained VALIDATED-PENDING-FILING. HS-INDEX-ENIP-WAVE-DRIFT-001 + EPICS-TOTAL-BCS-DRIFT-001 deferred Route C. develop=c4eb1f4. triage trajectory-tail →0→0→0→0. | 2026-07-08 |
 | D-408 | Wave 72 story decomposition CONVERGED + HUMAN APPROVED (2026-07-09). 15 adversarial passes (P1-P12 fix bursts through commits 0dffd01/1d7db30/b6ba4b3; P13/P14/P15 clean 3/3); ~100 findings fixed; BC-5.39.001 SATISFIED. LMR-001/002/003 codified (VP-INDEX v2.38); BC-2.11.036 v1.2 + BC-2.11.037 + BC-2.11.001 v1.8 amended; dep-graph v3.8 (128 edges); STORY-INDEX v3.28. Consistency audit 0-blocking/7-advisory. Human approved. Delivery started: STORY-158 first (sequencing 158→{159,160}→161). Pipeline RUNNING. trajectory-tail →2→0→0→0. | 2026-07-09 |
+| D-409 | STORY-158 delivery COMPLETE through PR-open; merge HELD by human. Worktree branched from develop c4eb1f4; Red Gate 7f227a0; GREEN gate 413d0da..481f900 (5 commits); 4 hardening bursts (fail-closed parser, 21 TCs, commits a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d) + clippy drift fix c4831bc; per-story convergence 7 passes P5/P6/P7 clean 3/3 (BC-5.39.001 satisfied); demo evidence cf8b1bf (PG-W70-DEMO-SCRUB PASS); PR #387 opened (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc); CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE with 2 LOW CWE-22 advisories (SEC-001-S158/SEC-002-S158) deferred pending bin/lint-cycle-artifact mandatory CI wiring (DF-VALIDATION-001 applies before issue filing). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. | 2026-07-09 |
 
 ---
 
@@ -342,6 +344,8 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 | pr-reviewer cosmetic (PR #365): ARP bindings-evicted pre-check condition is duplicated — optional refactor only. | LOW (cosmetic) | **RESOLVED (D-386, PR #366, 2026-07-06)** — insert_binding_lru now returns bool; 2 call sites deduped. |
 | REBIND-COUNT-SATURATING-001 | PR #366 security review informational note: `rebind_count` in `src/analyzer/arp.rs` uses plain `+=` (not `saturating_add`) — pre-existing, non-introduced (u32 at arp.rs:856). Folded into PF-001 sweep. DF-VALIDATION-001-gated confirmed. | LOW (informational) | **RESOLVED — folded into PR #384 PF-001 sweep (c4eb1f4 2026-07-08). 109 sites converted total; arp.rs:856 `entry.rebind_count += 1` included.** |
 | SEC-W71-001 | CWE-22 path traversal in `bin/compute-input-hash`: comment-strip + `PurePath.__truediv__` absolute-path swallow. Validated by DF-VALIDATION-001 research-agent triage (maint-2026-07-08). Human deferred GitHub issue filing 2026-07-08. | LOW | **VALIDATED-PENDING-FILING — CWE-22 CONFIRMED. Human elected not to file immediately. Retained in register SEC-W71-001 VALIDATED-PENDING-FILING.** |
+| SEC-001-S158 | CWE-22 LOW: `_bc_on_disk` in `bin/lint-cycle-artifact` uses `fullmatch` guard but could be tightened further (security-reviewer advisory, D-409, 2026-07-09). Deferred until `bin/lint-cycle-artifact` is wired into mandatory CI. DF-VALIDATION-001 applies before any GitHub issue is filed. | LOW (advisory) | **OPEN — deferred; DF-VALIDATION-001-gated; bin/lint-cycle-artifact mandatory CI wiring required first.** |
+| SEC-002-S158 | CWE-22 LOW: repo-root boundary check on `--story` arg in `bin/lint-cycle-artifact` (security-reviewer advisory, D-409, 2026-07-09). Deferred until `bin/lint-cycle-artifact` is wired into mandatory CI. DF-VALIDATION-001 applies before any GitHub issue is filed. | LOW (advisory) | **OPEN — deferred; DF-VALIDATION-001-gated; bin/lint-cycle-artifact mandatory CI wiring required first.** |
 | SEC-W71-002 + SEC-W71-003 | Wave-71 security pass LOW observations; accepted as no-action design constraints at gate review (2026-07-08). | LOW | **ACCEPTED — no issue to file** |
 | CR-W71-001 | Code review MINOR finding + 3 NITs from wave-71 code review (renamed from CR-001 to avoid collision with closed CR-001 PR #177). Finding detail unverifiable — no dedicated code-review.md was written at gate close (PG-W71-CODEREVIEW-ARTIFACT). Non-blocking. | LOW | **CLOSED-UNVERIFIABLE (maint-2026-07-08 DF-VALIDATION-001 triage). PG-W71-CODEREVIEW-ARTIFACT codified to STORY-158 v1.1 AC-158-006.** |
 | STALE-INPUT-HASH-076-101 | STORY-076 + STORY-101 have stale input-hashes (out-of-perimeter; predate current prd.md version). DF-VALIDATION-001 maintenance route — research-agent validation required before any issue is filed. Target: next maintenance sweep. | LOW | **OPEN — DF-VALIDATION-001-gated; route to next maint sweep** |
@@ -357,21 +361,23 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Wave 72 delivery IN PROGRESS (D-408, 2026-07-09). Story set CONVERGED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied); human approved. STORY-158 delivery starting. Sequencing: 158 → {159, 160} → 161. develop=c4eb1f4. trajectory-tail →2→0→0→0.**
+**Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09). PR #387 OPEN (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green; reviews APPROVE. Human HELD merge. STORY-159/160 blocked on #387; STORY-161 blocked on 159. trajectory-tail →0→0→0→0.**
 
-- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-158 delivery starting. Pipeline RUNNING.
+- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-158 merge-hold. Pipeline RUNNING.
 - **develop HEAD:** `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — 8 unreleased commits ahead of v0.11.5.
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
-- **Open PRs:** none. **Open story worktrees:** none. **Convergence loop active:** wave-72-delivery (STORY-158 next).
-- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
-- **In-flight:** STORY-158 delivery (per-story-delivery flow). Sequencing: 158 → {159, 160} → 161.
+- **Open PRs:** #387 (STORY-158, feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc — CI 12/12 green, reviews APPROVE, merge HELD by human). **Open story worktrees:** `.worktrees/STORY-158` (c4831bc, branch feature/STORY-158-changelog-gate-cycle-lint).
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] + .worktrees/STORY-158 [feature/STORY-158-changelog-gate-cycle-lint].
+- **In-flight:** STORY-158 at merge-hold (PR #387). After human approves merge: STORY-159 + STORY-160 (parallel, file-sequencing unblocked), then STORY-161.
 - **Pending human decisions / next options:**
-  - (a) STORY-158 delivery — per-story-delivery flow; sequencing 158 → {159,160} → 161.
-  - (b) Punch list (11 LOW + 7 advisory) resolves in-burst per delivery flow.
-  - (c) Process-gap ledger (6 items) requires codification/deferral at wave close per S-7.02 — see `.factory/cycles/wave-72/process-gap-ledger.md`.
-  - (d) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
-  - (e) v0.12.0 release cut — after all 4 wave-72 stories delivered.
-- **Unresolved blockers:** none.
+  - (a) **Merge PR #387** (STORY-158) — unblocks STORY-159/160 parallel delivery.
+  - (b) STORY-159 + STORY-160 delivery (parallel after #387 merge; file-sequencing edges satisfied).
+  - (c) STORY-161 delivery (blocked on STORY-159 merge).
+  - (d) Process-gap ledger (6 items) requires codification/deferral at wave close per S-7.02 — see `.factory/cycles/wave-72/process-gap-ledger.md`.
+  - (e) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
+  - (f) SEC-001-S158 / SEC-002-S158 — CWE-22 LOW advisories from STORY-158 security review; deferred until bin/lint-cycle-artifact wired into mandatory CI; DF-VALIDATION-001-gated.
+  - (g) v0.12.0 release cut — after all 4 wave-72 stories delivered.
+- **Unresolved blockers:** none (merge-hold is human decision, not a CI/review blocker).
 - **Spec versions:** BC-INDEX v2.21 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.28 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
