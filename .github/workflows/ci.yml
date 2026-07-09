@@ -443,11 +443,13 @@ jobs:
   #   Cargo.lock — excluded: transitive-dep bumps route through maintenance-sweep
   #                CHANGELOG discipline, not through this per-PR gate
   #
-  # Runs on pull_request events only (push-to-develop is inherently no-op:
-  # origin/develop == HEAD, so the diff is always empty on direct pushes).
+  # Runs on pull_request events targeting develop only (AC-158-001(a) literal scope:
+  # release/hotfix PRs to main are outside the gate; push-to-develop is inherently
+  # no-op — origin/develop == HEAD, so the diff is always empty on direct pushes).
+  # F-S158-P1-003: github.base_ref == 'develop' added to restrict to develop PRs.
   changelog-gate:
     name: CHANGELOG gate (AC-158-001, PG-W71-CHANGELOG)
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
