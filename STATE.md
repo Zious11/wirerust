@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: in-progress
-current_step: "Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09) — PR #387 OPEN (ci: CHANGELOG gate + cycle-artifact identity lint; branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE (2 LOW CWE-22 advisories deferred). Per-story convergence: 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. trajectory-tail →0→0→0→0"
+current_step: "PAUSED (session wrap 2026-07-09). Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09) — PR #387 OPEN (ci: CHANGELOG gate + cycle-artifact identity lint; branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE (2 LOW CWE-22 advisories deferred). Per-story convergence: 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. trajectory-tail →0→0→0→0"
 current_cycle: "wave-72"
-pipeline: RUNNING
-timestamp: 2026-07-09T16:30:00Z
+pipeline: PAUSED
+timestamp: 2026-07-09T16:45:00Z
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -72,7 +72,7 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-72-delivery — STORY-158 at merge-hold (D-409, 2026-07-09); PR #387 open, CI green, reviews APPROVE, human HELD; pipeline RUNNING |
+| Mode | wave-72-delivery — STORY-158 at merge-hold (D-409, 2026-07-09); PR #387 open, CI green, reviews APPROVE, human HELD; pipeline PAUSED (session wrap) |
 | Version | 0.11.5 (released 2026-07-07; develop=c4eb1f4, Cargo.toml 0.11.5; 8 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
 | Develop HEAD | `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — PR #384 PF-001 merged 2026-07-08 (ground-truth) |
@@ -81,7 +81,7 @@ maintenance_prior_run: maint-2026-07-06
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.21 / VP-INDEX v2.38 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 102 delivered / 114 total (STORY-INDEX v3.28) |
-| **Last Updated** | 2026-07-09 — STORY-158 AT MERGE-HOLD (D-409). PR #387 OPEN, CI 12/12 green, reviews APPROVE, human HELD merge. Per-story convergence 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). SEC-001-S158/SEC-002-S158 advisory deferred. STORY-159/160 blocked on #387. develop=c4eb1f4. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-09 — PAUSED (session wrap). STORY-158 AT MERGE-HOLD (D-409). PR #387 OPEN, CI 12/12 green, reviews APPROVE, human HELD merge. Per-story convergence 7 passes, P5/P6/P7 clean 3/3 (BC-5.39.001). SEC-001-S158/SEC-002-S158 advisory deferred. STORY-159/160 blocked on #387. develop=c4eb1f4. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -135,6 +135,7 @@ maintenance_prior_run: maint-2026-07-06
 | **WAVE 72 GATE AUDIT COMPLETE (2026-07-09). Consistency audit: 0-blocking / 7-advisory. STORY-INDEX v3.28 / VP-INDEX v2.38 / dep-graph v3.8 (128 edges). Gate dims all PASS.** | **PASS** | 0 blocking; 7 advisory carried in-burst. |
 | **WAVE 72 D-408 HUMAN APPROVED (2026-07-09). Story set CONVERGED + approved. Delivery started: STORY-158 first (sequencing 158→{159,160}→161). Pipeline RUNNING.** | **APPROVED (D-408)** | Pipeline RUNNING. Delivery in progress. |
 | **STORY-158 DELIVERY CHAIN (D-409, 2026-07-09). Worktree 5e4264f; Red Gate 7f227a0; GREEN 5 commits 413d0da..481f900; 4 hardening bursts a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d + clippy drift fix c4831bc; 21 TCs fail-closed parser; convergence P5/P6/P7 clean 3/3 (BC-5.39.001); demos evidence cf8b1bf scrub PASS; PR #387 OPEN CI 12/12; pr-reviewer APPROVE; security-reviewer APPROVE (SEC-001-S158/SEC-002-S158 deferred LOW). Human HELD merge.** | **MERGE-HOLD (D-409)** | PR #387 open. STORY-159/160 blocked; STORY-161 blocked on 159. |
+| **Session wrap (human-requested, 2026-07-09). STORY-158 at merge-hold (PR #387); no sub-agents abandoned mid-step.** | **PAUSED** | STORY-158 at merge-hold (PR #387); no sub-agents abandoned mid-step. |
 
 ## Decisions Log
 
@@ -361,25 +362,32 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09). PR #387 OPEN (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green; reviews APPROVE. Human HELD merge. STORY-159/160 blocked on #387; STORY-161 blocked on 159. trajectory-tail →0→0→0→0.**
+**PAUSED (session wrap 2026-07-09). Wave 72 delivery: STORY-158 complete through PR-open, merge HELD by human. PR #387 (https://github.com/Zious11/wirerust/pull/387, branch feature/STORY-158-changelog-gate-cycle-lint @ c4831bc, CI 12/12 green incl. self-passing changelog-gate, pr-reviewer + security-reviewer APPROVE, MERGEABLE/CLEAN). SINGLE pending human decision: merge PR #387. trajectory-tail →0→0→0→0.**
 
-- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-158 merge-hold. Pipeline RUNNING.
+Prior checkpoints archived to `cycles/wave-72/session-checkpoints.md`.
+
+- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-158 complete through PR-open, pipeline PAUSED (session wrap).
 - **develop HEAD:** `c4eb1f4` (full: `c4eb1f43af78b2588be4bfa4a629542f6de15d7b`) — 8 unreleased commits ahead of v0.11.5.
 - **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
-- **Open PRs:** #387 (STORY-158, feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc — CI 12/12 green, reviews APPROVE, merge HELD by human). **Open story worktrees:** `.worktrees/STORY-158` (c4831bc, branch feature/STORY-158-changelog-gate-cycle-lint).
-- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] + .worktrees/STORY-158 [feature/STORY-158-changelog-gate-cycle-lint].
-- **In-flight:** STORY-158 at merge-hold (PR #387). After human approves merge: STORY-159 + STORY-160 (parallel, file-sequencing unblocked), then STORY-161.
-- **Pending human decisions / next options:**
-  - (a) **Merge PR #387** (STORY-158) — unblocks STORY-159/160 parallel delivery.
-  - (b) STORY-159 + STORY-160 delivery (parallel after #387 merge; file-sequencing edges satisfied).
-  - (c) STORY-161 delivery (blocked on STORY-159 merge).
-  - (d) Process-gap ledger (6 items) requires codification/deferral at wave close per S-7.02 — see `.factory/cycles/wave-72/process-gap-ledger.md`.
-  - (e) SEC-W71-001 GitHub issue filing — CWE-22 in bin/compute-input-hash (human deferred 2026-07-08; VALIDATED-PENDING-FILING).
-  - (f) SEC-001-S158 / SEC-002-S158 — CWE-22 LOW advisories from STORY-158 security review; deferred until bin/lint-cycle-artifact wired into mandatory CI; DF-VALIDATION-001-gated.
-  - (g) v0.12.0 release cut — after all 4 wave-72 stories delivered.
-- **Unresolved blockers:** none (merge-hold is human decision, not a CI/review blocker).
+- **Open PRs:** #387 (https://github.com/Zious11/wirerust/pull/387 — feature/STORY-158-changelog-gate-cycle-lint @ c4831bc; CI 12/12 green incl. new changelog-gate self-passes; pr-reviewer APPROVE; security-reviewer APPROVE; MERGEABLE/CLEAN). **Open story worktrees:** `.worktrees/STORY-158` (c4831bc, branch feature/STORY-158-changelog-gate-cycle-lint).
+- **current_cycle:** wave-72 (PAUSED). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] + .worktrees/STORY-158 [feature/STORY-158-changelog-gate-cycle-lint].
+- **Wave-72 story set:** CONVERGED + APPROVED (D-408). Stories at: STORY-158 v1.13 / STORY-159 v1.9 / STORY-160 v1.11 / STORY-161 v1.9. Sequencing: 158 → {159, 160}, 159 → 161.
+- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied). STORY-158 per-story convergence CLOSED (7 passes, P5/P6/P7 clean 3/3, BC-5.39.001 satisfied).
+- **Pending human decision (ONLY BLOCKER):**
+  - **Merge PR #387** (STORY-158, https://github.com/Zious11/wirerust/pull/387) — CI green, reviews APPROVE, MERGEABLE/CLEAN. This is the sole gate.
+- **On-merge continuation (in order):**
+  1. devops-engineer: cleanup `.worktrees/STORY-158` (untracked `bin/__pycache__/` is regenerable bytecode, safe to delete; remove worktree after confirming clean).
+  2. state-manager: record STORY-158 merge SHA in STATE.md (next D-NNN).
+  3. Dispatch **STORY-159 + STORY-160 delivery in PARALLEL worktrees** (both depend_on STORY-158 only; file-sequencing edges satisfied after #387 merge). Per-story flow: `per-story-delivery.md` all steps (worktree → test-writer RED → implementer GREEN → 3/3 adversarial convergence → demo-recorder w/ scrub gate → pr-manager 9-step).
+  4. **STORY-161** after STORY-159 merges (depends_on STORY-159; same per-story flow).
+- **Advisory debt (non-blocking):**
+  - SEC-001-S158 + SEC-002-S158 (CWE-22 LOW, deferred until `bin/lint-cycle-artifact` is wired into mandatory CI; DF-VALIDATION-001-gated before issue filing).
+  - Wave-72 punch list: 11 LOW spec nits + 7 gate advisories incl. dep-graph totals (F-W72-P15-L01), release-mapping (CD-03-RC-01), BC-INDEX bump asymmetry (II-02-BC-INDEX-BUMP-ASYMMETRY), tdd_mode (CC-01-STORY-161-TDD-MODE) — all owed codification-or-deferral at wave close per S-7.02.
+  - Process-gap ledger at `cycles/wave-72/process-gap-ledger.md` (6 items + 2 delivery lessons to append at wave close: (1) fail-closed-by-spec for gate tooling; (2) hermetic-fixture realism — stubs must mirror real artifact shape).
+  - SEC-W71-001 GitHub issue filing — CWE-22 in `bin/compute-input-hash` (VALIDATED-PENDING-FILING; human deferred 2026-07-08).
+  - Out-of-perimeter: STORY-076/101 stale input-hashes → DF-VALIDATION-001 maintenance route (next maint sweep).
 - **Spec versions:** BC-INDEX v2.21 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.28 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
-- **Resume command:** `/vsdd-factory:next-step`
+- **Resume command:** `/vsdd-factory:next-step` (reads STATE.md; if PR #387 is merged, proceed with on-merge continuation above).
 
 ---
 
