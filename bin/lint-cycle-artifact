@@ -245,6 +245,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         text = artifact_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        # F-S158-P2-002: UnicodeDecodeError inherits ValueError, not OSError —
+        # it escaped the original guard and produced a raw traceback.
+        print(
+            f"ERROR: cannot decode artifact {artifact_path} as UTF-8 -- {exc}",
+            file=sys.stderr,
+        )
+        return 2
     except OSError as exc:
         print(f"ERROR: cannot read artifact {artifact_path}: {exc}", file=sys.stderr)
         return 2
