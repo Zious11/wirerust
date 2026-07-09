@@ -44,6 +44,18 @@ class _DuplicateKeyError(ValueError):
     """Raised by _parse_frontmatter when a YAML key appears more than once."""
 
 
+class _UnterminatedInlineListError(ValueError):
+    """Raised by _parse_frontmatter when an inline list has no closing ]."""
+
+
+class _UnsupportedSyntaxError(ValueError):
+    """Raised by _parse_frontmatter on any unrecognized/unhandled YAML shape."""
+
+
+class _ScalarBcsError(ValueError):
+    """Raised when bcs: is given a scalar value instead of a list."""
+
+
 _STORY_ID_RE = re.compile(r"^STORY-[0-9]+$")
 _WAVE_RE = re.compile(r"^wave-[0-9]+$")
 # F-S158-P1-002: strip trailing inline-comment suffixes (space + # + rest),
@@ -54,6 +66,17 @@ _INLINE_COMMENT_RE = re.compile(r"\s+#.*$")
 def _strip_inline_comment(s: str) -> str:
     """Strip a trailing ' # ...' inline-comment suffix from a YAML scalar value."""
     return _INLINE_COMMENT_RE.sub("", s).strip()
+
+
+def _strip_quotes(s: str) -> str:
+    """Strip one layer of matching single/double quotes from a YAML scalar value.
+
+    "STORY-158" → STORY-158   'BC-2.11.036' → BC-2.11.036
+    Prevents false-FAILs when artifact authors quote story_id: or bcs: entries.
+    """
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in ('"', "'"):
+        return s[1:-1]
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -92,8 +115,18 @@ def _parse_frontmatter(text: str) -> dict | None:
     Returns a dict of top-level keys (scalars as str, lists as list[str]),
     or None if no frontmatter block is present.
 
-    Handles: scalar values, inline lists (bcs: []), block lists (- item),
-    and YAML comment lines (#).  Does not handle nested mappings.
+    Handles: scalar values (including quoted), inline lists (single-line and
+    wrapped multi-line), block lists, YAML comment lines, and blank lines.
+
+    Fail-closed (F-S158-P3-001): any frontmatter line that is not a recognized
+    top-level construct raises _UnsupportedSyntaxError rather than being silently
+    skipped — the gate cannot be bypassed by any parser blind spot.
+
+    Raises:
+        _DuplicateKeyError: if a key appears more than once.
+        _UnterminatedInlineListError: if an inline list has no closing ].
+        _UnsupportedSyntaxError: if an unrecognized/unhandled line is found.
+        _ScalarBcsError: if bcs: is given a scalar value instead of a list.
     """
     if not text.startswith("---"):
         return None
@@ -108,16 +141,24 @@ def _parse_frontmatter(text: str) -> dict | None:
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
-        # Skip blank lines and YAML comment lines
+        # Blank lines and YAML comment lines at the top level are insignificant.
         if not stripped or stripped.startswith("#"):
             i += 1
             continue
         m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)", line)
         if not m:
-            i += 1
-            continue
+            # F-S158-P3-001 fail-closed: any unconsumed non-blank/non-comment line
+            # that is not a recognized top-level key is an unsupported YAML shape.
+            # Raise loudly rather than silently skip — every parser blind spot would
+            # otherwise become a silent-drop door into the gate.
+            raise _UnsupportedSyntaxError(
+                f"ERROR: unsupported frontmatter syntax at line {i + 1}: "
+                f"{stripped!r} -- the lint accepts only the canonical "
+                f"cycle-artifact template forms "
+                f"(see .factory/templates/cycle-artifact.md)"
+            )
         key = m.group(1)
-        # F-S158-P2-003: reject duplicate keys — identity tool must not accept ambiguous input
+        # F-S158-P2-003: reject duplicate keys — identity tool must not accept ambiguous input.
         if key in seen_keys:
             raise _DuplicateKeyError(
                 f"ERROR: duplicate {key}: key in frontmatter "
@@ -126,31 +167,56 @@ def _parse_frontmatter(text: str) -> dict | None:
         seen_keys.add(key)
         val_str = m.group(2).strip()
         if val_str.startswith("["):
-            # Inline list: bcs: [] or bcs: [BC-1.01.001, BC-1.01.002]
-            inner = val_str[1:]
-            close = inner.find("]")
-            if close != -1:
-                inner = inner[:close]
-            items = [s.strip() for s in inner.split(",") if s.strip()]
+            # Inline list: bcs: [] or bcs: [A, B], possibly wrapped across lines.
+            raw = val_str[1:]
+            close = raw.find("]")
+            if close == -1:
+                # F-S158-P3-001: no closing ] on this line — gather continuation lines.
+                found_close = False
+                raw_parts = [raw]
+                while i + 1 < len(lines):
+                    i += 1
+                    cont = lines[i].strip()
+                    if not cont or cont.startswith("#"):
+                        continue
+                    close_idx = cont.find("]")
+                    if close_idx != -1:
+                        raw_parts.append(cont[:close_idx])
+                        found_close = True
+                        break
+                    else:
+                        raw_parts.append(cont)
+                if not found_close:
+                    raise _UnterminatedInlineListError(
+                        "ERROR: unterminated inline list in frontmatter -- "
+                        "the lint accepts only the canonical cycle-artifact "
+                        "template forms (see .factory/templates/cycle-artifact.md)"
+                    )
+                inner = " ".join(raw_parts)
+            else:
+                inner = raw[:close]
+            items = [
+                _strip_quotes(_strip_inline_comment(s.strip()))
+                for s in inner.split(",")
+                if s.strip()
+            ]
             result[key] = items
             i += 1
         elif val_str == "":
-            # Block list or empty block
-            items: list[str] = []
+            # Block list or empty block (items on following lines).
+            items = []
             i += 1
             while i < len(lines):
                 item_line = lines[i]
                 item_stripped = item_line.strip()
                 item_m = re.match(r"^\s*-\s+(.*)", item_line)
                 if item_m:
-                    items.append(_strip_inline_comment(item_m.group(1)))
+                    items.append(_strip_quotes(_strip_inline_comment(item_m.group(1))))
                     i += 1
                 elif not item_stripped or item_stripped.startswith("#"):
-                    # F-S158-P2-001 structural fix (subsumes F-S158-P1-005):
+                    # F-S158-P2-001 structural fix (subsumes F-S158-P1-005 + A17):
                     # Blank lines AND YAML comments within a block sequence are
                     # both insignificant — skip and CONTINUE collecting items.
-                    # Terminating on either class silently drops subsequent items,
-                    # allowing fabricated/borrowed IDs to escape rules 3+7.
                     i += 1
                 else:
                     # Non-blank, non-comment, non-item line: genuine next-key or
@@ -158,7 +224,15 @@ def _parse_frontmatter(text: str) -> dict | None:
                     break
             result[key] = items
         else:
-            result[key] = _strip_inline_comment(val_str)
+            # Scalar value — strip inline comment and outer quotes.
+            val = _strip_quotes(_strip_inline_comment(val_str))
+            if key == "bcs":
+                # P3 LOW: bcs: must be a list, not a scalar — a scalar bcs would
+                # iterate per-character, silently treating each char as a BC ID.
+                raise _ScalarBcsError(
+                    "ERROR: bcs: must be a list ([] or block list) -- got scalar"
+                )
+            result[key] = val
             i += 1
     return result
 
@@ -270,9 +344,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     # --- Rule (1): frontmatter presence and required keys ---
+    _PARSE_ERRORS = (
+        _DuplicateKeyError,
+        _UnterminatedInlineListError,
+        _UnsupportedSyntaxError,
+        _ScalarBcsError,
+    )
     try:
         fm = _parse_frontmatter(text)
-    except _DuplicateKeyError as exc:
+    except _PARSE_ERRORS as exc:
         print(str(exc), file=sys.stderr)
         return 1
     if fm is None or "story_id" not in fm or "bcs" not in fm:
@@ -335,7 +415,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: cannot read story file {story_path}: {exc}", file=sys.stderr)
         return 1
 
-    story_fm = _parse_frontmatter(story_text)
+    try:
+        story_fm = _parse_frontmatter(story_text)
+    except _PARSE_ERRORS as exc:
+        print(
+            f"ERROR: failed to parse parent story {story_path.name}: {exc}",
+            file=sys.stderr,
+        )
+        return 1
     if story_fm is None or "behavioral_contracts" not in story_fm:
         print(
             f"ERROR: parent story {story_path.name} lacks behavioral_contracts: key",

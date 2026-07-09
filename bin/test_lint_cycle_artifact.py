@@ -695,6 +695,106 @@ def test_tc14_duplicate_story_id_key() -> None:
         )
 
 
+def test_tc16_wrapped_inline_list_bcs() -> None:
+    """
+    TC16 (F-S158-P3-001): bcs: inline list wrapped across two lines.
+
+    Adversary attack-5 fixture: `bcs: [BC-2.11.001,\\n  BC-9.99.999]`.
+    The old parser found no `]` on the key line, left inner = "BC-2.11.001,",
+    and returned items = ["BC-2.11.001"] — silently dropping BC-9.99.999
+    (a fabricated ID) and allowing it to escape rules 3+7.
+
+    Fixture:
+      - bcs: [BC-2.11.001,\n  BC-9.99.999]  (no closing ] on first line)
+      - BC-2.11.001 exists on disk (rule 3 passes for it)
+      - BC-9.99.999 NOT on disk → unresolvable after full parse
+    Expected: exit non-zero, BC-9.99.999 listed in output.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs: [BC-2.11.001,\n"
+                "  BC-9.99.999]\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.001")
+        # BC-9.99.999 deliberately NOT created → unresolvable
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC16: expected exit non-zero (wrapped continuation must not be dropped), "
+            f"got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "BC-9.99.999" in combined, (
+            f"TC16: BC-9.99.999 (wrapped continuation item) must appear in error output — "
+            f"parser must not silently drop inline list continuations.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC16: wrapped inline bcs: list → exit {result.returncode}, "
+            "wrapped BC-9.99.999 listed (not dropped)"
+        )
+
+
+def test_tc17_exotic_frontmatter_construct() -> None:
+    """
+    TC17 (fail-closed guard): frontmatter contains an unsupported YAML shape.
+
+    A nested mapping `meta:\\n  foo: bar` produces an indented sub-key line
+    (`  foo: bar`) that is not a recognized top-level construct.  Before the
+    fail-closed guard, the outer loop silently skipped it with `i += 1;
+    continue` — the same class of silent-drop vulnerability as P1-005/P2-001.
+    The guard converts ALL unknown shapes into loud failures so the gate cannot
+    be bypassed by any parser blind spot.
+
+    NOTE: unknown EXTRA top-level keys with scalar values (e.g. `wave: 72`)
+    ARE accepted — fail-closed targets unparseable SHAPES, not extra metadata.
+
+    Fixture: story_id + bcs: [] + `meta:\\n  foo: bar` (nested mapping).
+    Expected: exit non-zero, "ERROR: unsupported frontmatter syntax" in output.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/EXOTIC.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs: []\n"
+                "meta:\n"
+                "  foo: bar\n"
+                "---\n"
+                "\n"
+                "# Exotic construct\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC17: expected exit non-zero (unsupported YAML shape must fail-closed), "
+            f"got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert "ERROR: unsupported frontmatter syntax" in combined, (
+            f"TC17: expected 'ERROR: unsupported frontmatter syntax' message not found.\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC17: exotic construct (nested map) → exit {result.returncode}, "
+            "unsupported-syntax error (fail-closed)"
+        )
+
+
 def test_tc15_zero_indent_bcs_item() -> None:
     """
     TC15 (A17 zero-indent variant — F-S158-P2-001 class closure):
@@ -769,6 +869,8 @@ def main() -> None:
         test_tc13_non_utf8_artifact,
         test_tc14_duplicate_story_id_key,
         test_tc15_zero_indent_bcs_item,
+        test_tc16_wrapped_inline_list_bcs,
+        test_tc17_exotic_frontmatter_construct,
     ]
     passed = 0
     failed = 0
