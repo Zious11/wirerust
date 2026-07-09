@@ -430,7 +430,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    story_bcs: list[str] = story_fm["behavioral_contracts"]
+    story_bcs = story_fm["behavioral_contracts"]
+    # F-S158-P4-002: ensure behavioral_contracts is a list, not a scalar.
+    # A scalar story_bcs causes `bc_id not in story_bcs` to become a Python
+    # string-substring check rather than list membership — a silent false-PASS.
+    if not isinstance(story_bcs, list):
+        print(
+            f"ERROR: parent story {story_path.name} has malformed "
+            f"behavioral_contracts: (expected list, got scalar) "
+            f"-- ambiguous ownership declaration",
+            file=sys.stderr,
+        )
+        return 1
     unowned = [bc_id for bc_id in bcs if bc_id not in story_bcs]
     if unowned:
         print(
