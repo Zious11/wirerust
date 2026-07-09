@@ -297,6 +297,13 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- Rule (2): empty bcs short-circuit ---
     if not bcs:
+        # F-S158-P2-004: emit a PASS message so callers can distinguish a verified
+        # empty-bcs artifact from a silent exit (no BC claims to validate is valid,
+        # but it should be explicitly acknowledged rather than silently passing).
+        print(
+            f"PASS: {artifact_path.name} identity valid "
+            f"(empty bcs -- no BC claims to validate)"
+        )
         return 0
 
     # --- Rules (3) and (7) need the repo root ---
