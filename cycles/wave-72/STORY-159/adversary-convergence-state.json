@@ -1,0 +1,22 @@
+{
+  "story": "STORY-159",
+  "title": "Author Public ADR-012 — Protocols Catalog and Coverage-Gaps System",
+  "wave": 72,
+  "date": "2026-07-09",
+  "passes": [
+    { "pass": 1, "classification": "CLEAN" },
+    { "pass": 2, "classification": "NITPICK_ONLY" },
+    { "pass": 3, "classification": "CLEAN" }
+  ],
+  "consecutive_clean": 3,
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "head_reviewed": "cd99a58",
+  "carried_observations": [
+    "LOW: illustrative sketch cites parsed.is_udp() — real seam is dispatcher::udp_gap_key",
+    "LOW: sketch += 1 vs shipping saturating_add (PF-001 post-dates ADR)",
+    "LOW: Decision 6 lower-numbered port parenthetical conflates min-of-ports with lower_port()",
+    "LOW: approximately 30 vs exactly 30"
+  ],
+  "carried_obs_routing": "factory-ADR wording debt — route to future maintenance doc-refresh of factory ADR-012; non-blocking"
+}

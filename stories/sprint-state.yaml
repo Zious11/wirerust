@@ -747,3 +747,63 @@ stories:
     pr: 380
     merge_commit: 11c37b6
     merged_date: "2026-07-08"
+
+  # ---------------------------------------------------------------------------
+  # Wave 72 — STORY-158 (E-11 wave-71 process-gap codifications)
+  # STORY-158 DELIVERED 2026-07-09: PR #387 squash-merged → develop
+  # 75c5ba5f7713b9eb03f6c2cbb7c0bea3fd575a50 (D-410).
+  # Per-story adversarial convergence CONVERGED (7 passes, streak 3/3, P5/P6/P7 clean).
+  # Branch feature/STORY-158-changelog-gate-cycle-lint deleted post-merge.
+  # ---------------------------------------------------------------------------
+
+  STORY-158:
+    status: done
+    wave: 72
+    branch: null  # squash-merged; worktree cleaned
+    worktree: null
+    blocked_by: []
+    pr: 387
+    merge_commit: 75c5ba5
+    merged_date: "2026-07-09"
+
+  # ---------------------------------------------------------------------------
+  # Wave 72 — STORY-159 (E-11 ADR-012 public doc authoring)
+  # STORY-159 DELIVERED 2026-07-09: PR #388 squash-merged → develop
+  # d410b8d64b5fa8835bcd3db5234fad48ebd46bd4 (D-411).
+  # Per-story adversarial convergence CONVERGED (3 passes: P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN;
+  # BC-5.39.001 satisfied). Branch docs/adr-012-protocols-catalog deleted post-merge.
+  # ---------------------------------------------------------------------------
+
+  STORY-159:
+    status: done
+    wave: 72
+    branch: null  # squash-merged; worktree cleaned
+    worktree: null
+    blocked_by: [STORY-158]  # static file-seq dep-edge; resolved (STORY-158 delivered 75c5ba5)
+    pr: 388
+    merge_commit: d410b8d
+    merged_date: "2026-07-09"
+
+  # ---------------------------------------------------------------------------
+  # Wave 72 — STORY-160 (E-8 JSON enum casing + schema_version)
+  # Pending delivery. UNBLOCKED: dep STORY-158 satisfied (delivered 2026-07-09).
+  # ---------------------------------------------------------------------------
+
+  STORY-160:
+    status: pending
+    wave: 72
+    branch: null
+    worktree: null
+    blocked_by: [STORY-158]  # static file-seq dep-edge; resolved (STORY-158 delivered 75c5ba5)
+
+  # ---------------------------------------------------------------------------
+  # Wave 72 — STORY-161 (E-11 VP-024 proof_file_hash algorithm + re-lock)
+  # Pending delivery. UNBLOCKED: dep STORY-159 satisfied (delivered 2026-07-09).
+  # ---------------------------------------------------------------------------
+
+  STORY-161:
+    status: pending
+    wave: 72
+    branch: null
+    worktree: null
+    blocked_by: [STORY-159]  # static file-seq dep-edge; resolved (STORY-159 delivered d410b8d)

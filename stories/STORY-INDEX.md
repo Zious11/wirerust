@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.28"
+version: "3.29"
 status: draft
 producer: story-writer
-timestamp: 2026-07-08T13:30:49Z
+timestamp: 2026-07-09T20:15:00Z
 phase: f7
 total_stories: 114
 total_waves: 72
 total_points: 714  # = 708 pre-v3.26 +3 STORY-160 (wave-72 draft, E-8, 3 pts) +3 STORY-161 (wave-72 draft, E-11, 3 pts); wave-table scheduled: 692 (STORY-158 +3, STORY-159 +3, STORY-160 +3, STORY-161 +3 all wave-72); epic-table grand total: 714; stories: 114; waves: 72
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.29 (2026-07-09): STORY-158 + STORY-159 DELIVERED — PR #387 squash 75c5ba5 (D-410) + PR #388 squash d410b8d (D-411); status draft→delivered; stories_delivered=104. STORY-159 per-story convergence 3-pass CONVERGED (P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN; BC-5.39.001 satisfied). STORY-160+161 now both unblocked. No numeric totals changed.
 # v3.28 (2026-07-08): F-W72-P10-M01 file-sequencing edges (F-F3P2-005 precedent) — 3 new edges added: STORY-158→STORY-159 (CLAUDE.md ordering), STORY-158→STORY-160 (CHANGELOG.md ordering), STORY-159→STORY-161 (CLAUDE.md ordering; 158→159→161 chain). All edges are FILE-SEQUENCING only (not semantic). Acyclicity confirmed: 158→{159,160} and 159→161 are forward-only; no back-edges. Wave-72 dep notes updated. Acyclicity arithmetic corrected: 115→114 (the prior count over-counted by 1; correct tally is 114 = total_stories). dep-graph companion updated v3.7→v3.8. total_stories/total_points unchanged.
 # v3.27 (2026-07-08): STORY-158 + STORY-159 scheduled into wave 72 — wave-table TOTAL: 686→692 (+3 STORY-158, +3 STORY-159); wave-72 row: 2 stories→4, 6 pts→12; exclusion list: STORY-158 wave-TBD + STORY-159 wave-TBD removed (now scheduled); no new dependency edges (158=process/gate artifacts, 159=docs/adr/0012, 160=src/findings.rs+json, 161=VP governance — mutually independent); total_stories/total_points/E-11 counts unchanged (already counted).
 # v3.26 (2026-07-08): triage-2026-07-08 wave-72 story drafts — STORY-160 added (wave-72, E-8, 3 pts; #255 JSON enum casing BC-2.11.036/037 — Verdict/Confidence rename_all=lowercase, ThreatCategory rename_all=snake_case, schema_version envelope) + STORY-161 added (wave-72, E-11, 3 pts; #252 VP-024 proof_file_hash mini-Merkle algorithm codification + re-lock). total_stories: 112→114; total_waves: 71→72; total_points: 708→714; wave-table scheduled: 680→686 (+3 STORY-160, +3 STORY-161); E-8: 7→8 stories, 37→40 pts; E-11: 10→11 stories, 38→41 pts.
@@ -163,8 +164,8 @@ traces_to:
 | STORY-150 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run | E-11 | 71 | 5 | merged | — |
 | STORY-155 | Auto-update STORY-INDEX status draft→merged on story PR merge | E-11 | ~ | 3 | draft | — |
 | STORY-157 | Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure | E-11 | 71 | 5 | merged | — |
-| STORY-158 | Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening | E-11 | 72 | 3 | draft | — |
-| STORY-159 | Author Public ADR-012: Protocols Catalog and Coverage-Gaps System | E-11 | 72 | 3 | draft | STORY-158 (file-seq) |
+| STORY-158 | Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening | E-11 | 72 | 3 | delivered | — |
+| STORY-159 | Author Public ADR-012: Protocols Catalog and Coverage-Gaps System | E-11 | 72 | 3 | delivered | STORY-158 (file-seq) |
 | STORY-161 | Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024 | E-11 | 72 | 3 | draft | STORY-159 (file-seq) |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
@@ -408,7 +409,7 @@ traces_to:
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
 | 71 | STORY-150, STORY-156, STORY-157 | **DELIVERED & CLOSED (D-404, 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
-| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | draft | — | — | — |
+| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | IN PROGRESS (STORY-158+159 DELIVERED; 160+161 pending) | #387, #388 | 75c5ba5, d410b8d | 2026-07-09 |
 
 ## Coverage Verification
 
