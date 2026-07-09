@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.022.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.021.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.020.md
-input-hash: "ba4dbfd"
+input-hash: "9f85ed7"
 traces_to: .factory/stories/STORY-017.md
 id: "HS-050"
 category: "edge-case-combinations"
@@ -23,6 +23,8 @@ behavioral_contracts:
   - BC-2.04.021
   - BC-2.04.020
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectations repaired — confidence literals lowercased (\"Medium\"→\"medium\", \"Low\"→\"low\") per BC-2.11.036 v1.2 spec-sanctioned JSON shape; DF-SIBLING-SWEEP-001 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -78,9 +80,9 @@ wirerust analyze <bidirectional-anomaly-pcap> --output-format json
 ```
 
 Inspect findings:
-- Count findings with confidence "Medium" whose evidence/summary mentions
+- Count findings with confidence "medium" whose evidence/summary mentions
   "small segment" or segment run: should be exactly 1.
-- Count findings with confidence "Low" whose evidence mentions "max_receive_window"
+- Count findings with confidence "low" whose evidence mentions "max_receive_window"
   or out-of-window: should be exactly 1.
 - No additional alerts from these two anomaly types after the first fires.
 

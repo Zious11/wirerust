@@ -9,6 +9,7 @@ total_stories: 114
 total_waves: 72
 total_points: 714  # = 708 pre-v3.26 +3 STORY-160 (wave-72 draft, E-8, 3 pts) +3 STORY-161 (wave-72 draft, E-11, 3 pts); wave-table scheduled: 692 (STORY-158 +3, STORY-159 +3, STORY-160 +3, STORY-161 +3 all wave-72); epic-table grand total: 714; stories: 114; waves: 72
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.31 (2026-07-09): STORY-161 DELIVERED (D-413, PR #390, 80fbb64; issue #252 closed; stories_delivered=106). BLOCKING-01 fix: STORY-161 catalog row status draft→delivered (wave-72 integration gate consistency audit). Wave-72 Wave Delivery Progress row updated: DELIVERED & CLOSED → DELIVERY COMPLETE (D-413) — integration gate IN PROGRESS (ADVISORY-01). No numeric totals changed.
 # v3.30 (2026-07-09): STORY-160 DELIVERED — PR #389 squash 704fd2e (D-412); status draft→delivered; stories_delivered=105; issue #255 closed; BC-INDEX v2.22 (BC-2.11.001 v1.9 AC-160-010). STORY-160 per-story convergence 3-pass CONVERGED (P1/P2/P3 CLEAN; BC-5.39.001 satisfied). STORY-076/101 input-hashes re-baselined (BC-2.11.001 v1.9 input cascade; MATCH=112 STALE=0). STORY-161 unblocked (final wave-72 story). No numeric totals changed.
 # v3.29 (2026-07-09): STORY-158 + STORY-159 DELIVERED — PR #387 squash 75c5ba5 (D-410) + PR #388 squash d410b8d (D-411); status draft→delivered; stories_delivered=104. STORY-159 per-story convergence 3-pass CONVERGED (P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN; BC-5.39.001 satisfied). STORY-160+161 now both unblocked. No numeric totals changed.
 # v3.28 (2026-07-08): F-W72-P10-M01 file-sequencing edges (F-F3P2-005 precedent) — 3 new edges added: STORY-158→STORY-159 (CLAUDE.md ordering), STORY-158→STORY-160 (CHANGELOG.md ordering), STORY-159→STORY-161 (CLAUDE.md ordering; 158→159→161 chain). All edges are FILE-SEQUENCING only (not semantic). Acyclicity confirmed: 158→{159,160} and 159→161 are forward-only; no back-edges. Wave-72 dep notes updated. Acyclicity arithmetic corrected: 115→114 (the prior count over-counted by 1; correct tally is 114 = total_stories). dep-graph companion updated v3.7→v3.8. total_stories/total_points unchanged.
@@ -167,7 +168,7 @@ traces_to:
 | STORY-157 | Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure | E-11 | 71 | 5 | merged | — |
 | STORY-158 | Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening | E-11 | 72 | 3 | delivered | — |
 | STORY-159 | Author Public ADR-012: Protocols Catalog and Coverage-Gaps System | E-11 | 72 | 3 | delivered | STORY-158 (file-seq) |
-| STORY-161 | Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024 | E-11 | 72 | 3 | draft | STORY-159 (file-seq) |
+| STORY-161 | Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024 | E-11 | 72 | 3 | delivered | STORY-159 (file-seq) |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
@@ -410,7 +411,7 @@ traces_to:
 | 69 | STORY-154 | **DELIVERED & CLOSED** | #355 | cad7024 | 2026-07-04 |
 | 70 | STORY-149 | **DELIVERED & CLOSED** | #374 | 116100d | 2026-07-07 |
 | 71 | STORY-150, STORY-156, STORY-157 | **DELIVERED & CLOSED (D-404, 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
-| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERED & CLOSED (D-413, 2026-07-09)** | #387, #388, #389, #390 | 75c5ba5, d410b8d, 704fd2e, 80fbb64 | 2026-07-09 |
+| 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERY COMPLETE (D-413) — integration gate IN PROGRESS** | #387, #388, #389, #390 | 75c5ba5, d410b8d, 704fd2e, 80fbb64 | 2026-07-09 |
 
 ## Coverage Verification
 

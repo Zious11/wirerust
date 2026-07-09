@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -16,7 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.014.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.016.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "d270d81"
+input-hash: "2ae8922"
 traces_to: .factory/stories/STORY-041.md
 id: "HS-065"
 category: "security-probes"
@@ -28,6 +28,8 @@ behavioral_contracts:
   - BC-2.06.016
   - BC-2.06.020
 lifecycle_status: active
+modified:
+  - "v1.2 (wave-72-repair-2026-07-09): stale expectations repaired — category/verdict/confidence literals lowercased per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -64,7 +66,7 @@ risk_source: null
 Craft a pcap with an HTTP flow where the request direction sends three back-to-back 97-header requests. Run wirerust.
 
 1. Assert `findings` contains exactly 3 entries whose `mitre_techniques` array contains "T1499.002" (i.e., `select(.mitre_techniques | index("T1499.002"))`).
-2. Assert each finding has `category == "Anomaly"`, `verdict == "Inconclusive"`, `confidence == "Medium"`.
+2. Assert each finding has `category == "anomaly"`, `verdict == "inconclusive"`, `confidence == "medium"`.
 3. Assert each finding's `evidence` contains `"Direction: request"` as a plain string.
 4. Assert `analyzers[HTTP].detail.parse_errors >= 3`.
 5. Assert `analyzers[HTTP].detail.non_http_flows == "1"` (flow counted once after third error triggers poisoning).

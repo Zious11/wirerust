@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -9,7 +9,7 @@ phase: 2
 inputs:
   - .factory/stories/STORY-017.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.020.md
-input-hash: "ba4dbfd"
+input-hash: "d960ba2"
 traces_to: .factory/stories/STORY-017.md
 id: "HS-033"
 category: "behavioral-subtleties"
@@ -19,6 +19,8 @@ epic_id: "E-2"
 behavioral_contracts:
   - BC-2.04.020
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectation repaired — category literal lowercased (\"Anomaly\"→\"anomaly\") per BC-2.11.036 v1.2 spec-sanctioned JSON shape; DF-SIBLING-SWEEP-001 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -69,7 +71,7 @@ For the Telnet pcap: scan the JSON findings for any finding whose summary
 mentions "small segment" or "segment" and verify there are none.
 
 For the port 8080 pcap: verify at least one finding exists with category
-"Anomaly" and whose summary or evidence references small segments or
+"anomaly" and whose summary or evidence references small segments or
 segment counts.
 
 ## Evaluation Rubric

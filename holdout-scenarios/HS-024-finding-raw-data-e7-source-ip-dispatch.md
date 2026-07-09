@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/stories/STORY-013.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.018.md
-input-hash: "5cabe5c"
+input-hash: "fa0ea63"
 traces_to: .factory/specs/prd.md
 id: "HS-024"
 category: "behavioral-subtleties"
@@ -22,6 +22,8 @@ behavioral_contracts:
   - BC-2.09.001
   - BC-2.04.018
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectations repaired — category literals lowercased (\"Anomaly\"→\"anomaly\", \"Reconnaissance\"→\"reconnaissance\") per BC-2.11.036 v1.2 spec-sanctioned JSON shape; DF-SIBLING-SWEEP-001 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -65,8 +67,8 @@ wirerust analyze --output-format json combined_anomalies.pcap | jq '
   })'
 ```
 
-Check that findings from TCP reassembly (category "Anomaly" with MITRE T1036) have
-`has_source_ip: true`, while HTTP findings (e.g., path traversal, category "Reconnaissance")
+Check that findings from TCP reassembly (category "anomaly" with MITRE T1036) have
+`has_source_ip: true`, while HTTP findings (e.g., path traversal, category "reconnaissance")
 have `has_source_ip: false`.
 
 Verify the source_ip value is a valid IP address string:

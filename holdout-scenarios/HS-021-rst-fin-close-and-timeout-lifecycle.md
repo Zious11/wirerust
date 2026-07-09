@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.011.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.013.md
-input-hash: "af54ab6"
+input-hash: "8aa88f2"
 traces_to: .factory/specs/prd.md
 id: "HS-021"
 category: "edge-case-combinations"
@@ -26,6 +26,8 @@ behavioral_contracts:
   - BC-2.04.012
   - BC-2.04.013
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectation repaired — .category jq literal lowercased to \"anomaly\" per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -68,7 +70,7 @@ risk_source: null
 wirerust analyze --output-format json three_close_types.pcap | jq '{
   bytes_reassembled: .analyzers.reassembly.bytes_reassembled,
   flows_total: .analyzers.reassembly.flows_total,
-  findings: (.findings | map(select(.category == "Anomaly")))
+  findings: (.findings | map(select(.category == "anomaly")))
 }'
 ```
 

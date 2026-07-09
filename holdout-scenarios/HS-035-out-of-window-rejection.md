@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -10,7 +10,7 @@ inputs:
   - .factory/stories/STORY-018.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.042.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.021.md
-input-hash: "fdd6410"
+input-hash: "cd3c24c"
 traces_to: .factory/stories/STORY-018.md
 id: "HS-035"
 category: "security-probes"
@@ -21,6 +21,8 @@ behavioral_contracts:
   - BC-2.04.042
   - BC-2.04.021
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectation repaired — confidence literal lowercased (\"Low\"→\"low\") per BC-2.11.036 v1.2 spec-sanctioned JSON shape; DF-SIBLING-SWEEP-001 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -71,7 +73,7 @@ wirerust analyze <oow-pcap> --output-format json
 Inspect JSON findings:
 - At least one finding whose summary or evidence references the receive window
   or out-of-window behavior.
-- The finding's confidence is "Low" (it signals possible misconfiguration or
+- The finding's confidence is "low" (it signals possible misconfiguration or
   evasion, not a confirmed attack).
 - Only one such finding per direction (the latch prevents flooding).
 - Segments exactly at the window boundary: their bytes appear in the reassembled

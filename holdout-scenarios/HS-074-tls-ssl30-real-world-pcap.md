@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -19,7 +19,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.010.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.011.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.012.md
-input-hash: "6e52bc5"
+input-hash: "1ec5ff4"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-074"
 category: "real-world-corpus"
@@ -32,6 +32,8 @@ behavioral_contracts:
   - BC-2.07.009
   - BC-2.07.010
 lifecycle_status: active
+modified:
+  - "v1.2 (wave-72-repair-2026-07-09): stale expectations repaired — confidence/verdict literals lowercased per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -75,7 +77,7 @@ Run wirerust on the SSL 3.0 pcap with JSON output.
 2. Assert at least 2 findings have `summary` containing "RFC 7568".
 3. Assert one of those findings has `direction == "ClientToServer"` (client-side deprecated protocol).
 4. Assert one of those findings has `direction == "ServerToClient"` (server-side deprecated protocol).
-5. Assert all deprecated-protocol findings have `confidence == "High"` and `verdict == "Likely"`.
+5. Assert all deprecated-protocol findings have `confidence == "high"` and `verdict == "likely"`.
 6. Assert `mitre_techniques` key is absent for all cipher/protocol weakness findings (empty Vec omitted via skip_serializing_if = "Vec::is_empty").
 7. Assert wirerust exits with status 0 (no crash on old SSL pcap).
 

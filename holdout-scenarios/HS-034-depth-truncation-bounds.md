@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.041.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.023.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.027.md
-input-hash: "fdd6410"
+input-hash: "8c78826"
 traces_to: .factory/stories/STORY-018.md
 id: "HS-034"
 category: "security-probes"
@@ -23,6 +23,8 @@ behavioral_contracts:
   - BC-2.04.023
   - BC-2.04.027
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectations repaired — category/confidence literals lowercased per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -52,7 +54,7 @@ flows without memory exhaustion.
 2. The user runs: `wirerust analyze <deep-flow-pcap> --output-format json`
 3. The tool completes with exit code 0. It does NOT run out of memory or
    slow to a crawl.
-4. The JSON output contains a finding with category "Anomaly" and evidence
+4. The JSON output contains a finding with category "anomaly" and evidence
    mentioning "Stream depth exceeded" or similar.
 5. The finding's evidence references the configured max depth value.
 6. After the first truncation, subsequent segments for that direction are
@@ -79,9 +81,9 @@ wirerust analyze <large-flow-pcap> --output-format json
 
 Verify:
 - Exit code is 0 (no OOM, no panic).
-- At least one finding exists with `category == "Anomaly"` whose evidence
+- At least one finding exists with `category == "anomaly"` whose evidence
   mentions stream depth or max depth.
-- The finding confidence is "Low" (it is a resource-limit signal, not a
+- The finding confidence is "low" (it is a resource-limit signal, not a
   confirmed attack).
 - The tool's memory usage does not grow without bound during processing.
 

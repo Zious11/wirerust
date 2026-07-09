@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.018.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.019.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.022.md
-input-hash: "ba4dbfd"
+input-hash: "75462a4"
 traces_to: .factory/stories/STORY-017.md
 id: "HS-032"
 category: "security-probes"
@@ -23,6 +23,8 @@ behavioral_contracts:
   - BC-2.04.019
   - BC-2.04.022
 lifecycle_status: active
+modified:
+  - "v1.2 (wave-72-repair-2026-07-09): stale expectations repaired — category/verdict/confidence literals lowercased per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -50,8 +52,8 @@ same offsets, hoping one IDS sees the first and another sees the second.
    range, same direction) carries different bytes spelling "BBBB...". Both
    segments appear in the capture.
 2. The user runs: `wirerust analyze <spliced-pcap> --output-format json`
-3. The tool emits at least one finding with category "Anomaly", verdict "Likely",
-   confidence "High", and a MITRE technique reference to T1036.
+3. The tool emits at least one finding with category "anomaly", verdict "likely",
+   confidence "high", and a MITRE technique reference to T1036.
 4. The summary of the finding contains the flow key (source/destination IP and
    port identifiers).
 5. The original bytes ("AAAA...") are preserved — the first-seen bytes win.
@@ -80,14 +82,14 @@ wirerust analyze <evasion-pcap> --output-format json
 ```
 
 In the JSON findings array, verify:
-- At least one finding where `category == "Anomaly"` and `verdict == "Likely"`
-  and `confidence == "High"`.
+- At least one finding where `category == "anomaly"` and `verdict == "likely"`
+  and `confidence == "high"`.
 - The finding's `mitre_techniques` array contains "T1036" (i.e., `select(.mitre_techniques | index("T1036"))`).
 - The finding's `summary` contains the IP-port pair of the flow.
 
 Verify the cumulative overlap alert (if more than the threshold number of
 overlapping segments exist): one additional finding per direction with
-confidence "Medium" and technique "T1036".
+confidence "medium" and technique "T1036".
 
 ## Evaluation Rubric
 

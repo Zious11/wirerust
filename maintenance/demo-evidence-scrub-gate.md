@@ -30,11 +30,11 @@ creation that includes files under `docs/demo-evidence/`.
 Run the following command from the repo root and verify it returns **zero results**:
 
 ```bash
-grep -rE '/Users/|/home/' docs/demo-evidence/
+grep -rE '/Users/|/home/|~/' docs/demo-evidence/
 ```
 
 If any results are returned, the push is blocked. Scrub all absolute host paths
-from the offending files before proceeding.
+and tilde-form home references from the offending files before proceeding.
 
 ### Common Patterns to Scrub
 
@@ -45,6 +45,8 @@ Replace absolute host paths with repo-relative paths or anonymized placeholders:
 | `/Users/zious/Documents/GITHUB/wirerust/` | `<repo>/` |
 | `/Users/zious/` | `<home>/` |
 | `/home/username/` | `<home>/` |
+| `~/Documents/GITHUB/wirerust` | `<repo>/` |
+| `~/` | `<home>/` |
 
 Use `sed -i '' 's|/Users/[^/]*/[^/]*/[^/]*/wirerust/||g'` (macOS) or equivalent
 to scrub bulk occurrences, then verify the grep returns zero results.
@@ -70,8 +72,17 @@ To enforce this gate in CI, add the following step to `.github/workflows/ci.yml`
     fi
 ```
 
-This step fails if any absolute `/Users/` or `/home/` paths are present in committed
-demo evidence, preventing reintroduction at CI time.
+This step fails if any absolute `/Users/`, `/home/`, or tilde-form (`~/`) paths are
+present in committed demo evidence, preventing reintroduction at CI time.
+
+---
+
+## Changelog
+
+| Date | Change | Reference |
+|------|--------|-----------|
+| 2026-07-09 | Extended scrub pattern to also reject tilde-form home paths (`~/`) in tape/evidence text files. Root cause: SEC-W72-001 LOW — STORY-159 demo tapes contained `~/Documents/GITHUB/wirerust` which bypassed the original `/Users/` + `/home/` gate. Fixed via PR #391. | SEC-W72-001 / PR #391 |
+| 2026-07-08 | Initial gate document authored (STORY-157 AC-157-002, PG-W70-DEMO-SCRUB). | STORY-157 |
 
 ---
 

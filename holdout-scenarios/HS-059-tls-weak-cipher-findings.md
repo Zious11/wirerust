@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -21,7 +21,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.012.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.030.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.036.md
-input-hash: "6e52bc5"
+input-hash: "427a76e"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-059"
 category: "security-probes"
@@ -36,6 +36,8 @@ behavioral_contracts:
   - BC-2.07.030
   - BC-2.07.036
 lifecycle_status: active
+modified:
+  - "v1.2 (wave-72-repair-2026-07-09): stale expectations repaired — verdict/confidence literals lowercased per BC-2.11.036 v1.2 spec-sanctioned JSON shape; wave-72 BC-2.11.036/037 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -76,8 +78,8 @@ risk_source: null
 Craft a pcap (or use crafted byte arrays in integration tests) with the three sessions. Run wirerust with JSON output.
 
 1. Assert exactly 4 findings in the `findings` array.
-2. For the weak-client-cipher finding: assert `verdict == "Likely"`, `confidence == "High"`, `direction == "ClientToServer"`, `mitre_techniques` key absent (empty vec omitted).
-3. For the weak-server-cipher finding: assert `verdict == "Likely"`, `confidence == "Medium"`, `direction == "ServerToClient"`.
+2. For the weak-client-cipher finding: assert `verdict == "likely"`, `confidence == "high"`, `direction == "ClientToServer"`, `mitre_techniques` key absent (empty vec omitted).
+3. For the weak-server-cipher finding: assert `verdict == "likely"`, `confidence == "medium"`, `direction == "ServerToClient"`.
 4. For each deprecated-protocol finding: assert `summary` contains "RFC 7568"; assert one has `direction == "ClientToServer"`, one has `direction == "ServerToClient"`.
 5. Assert zero findings from sessions 1 and 3.
 6. Assert `analyzers[TLS].detail.tls_versions` contains entries for version 768 (SSL 3.0 = 0x0300), 769 (TLS 1.0 = 0x0301), and 771 (TLS 1.3 ClientHello legacy = 0x0303).

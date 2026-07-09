@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -19,7 +19,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.017.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.018.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "d270d81"
+input-hash: "8929397"
 traces_to: .factory/stories/STORY-041.md
 id: "HS-054"
 category: "edge-case-combinations"
@@ -34,6 +34,8 @@ behavioral_contracts:
   - BC-2.06.018
   - BC-2.06.020
 lifecycle_status: active
+modified:
+  - "v1.1 (wave-72-repair-2026-07-09): stale expectation repaired — category literal lowercased (\"Anomaly\"→\"anomaly\") per BC-2.11.036 v1.2 spec-sanctioned JSON shape; DF-SIBLING-SWEEP-001 (FIX-C precedent from maint-2026-07-06 HOLDOUT-001)"
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -74,7 +76,7 @@ Craft a pcap with flow A (binary data followed by a valid HTTP response) and flo
 1. Assert `analyzers[HTTP].detail.non_http_flows == "1"` (flow A, not 2).
 2. Assert `analyzers[HTTP].detail.parse_errors` is at least 3 (from flow A request direction).
 3. Assert flow B contributes `transactions >= 1` (response from flow B counted).
-4. Assert `findings` array contains NO finding with category="Anomaly" from plain binary parse errors (only TooManyHeaders would emit a finding, and that is not present here).
+4. Assert `findings` array contains NO finding with category="anomaly" from plain binary parse errors (only TooManyHeaders would emit a finding, and that is not present here).
 5. Assert `analyzers[HTTP].detail.poisoned_bytes_skipped` is greater than 0 if additional binary bytes were sent after poisoning.
 
 ## Evaluation Rubric
