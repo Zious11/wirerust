@@ -364,7 +364,12 @@ def main() -> int:
 
     rust_files = _collect_rust_files(repo_root)
     if not rust_files:
-        print("WARNING: no tracked Rust files found; scan target may be wrong.", file=sys.stderr)
+        print(
+            "ERROR: no tracked Rust files found; scan target may be wrong. "
+            "Verify the scan target in bin/check-green-doc-tense.",
+            file=sys.stderr,
+        )
+        return 1
 
     total_violations = 0
     for path in sorted(rust_files):

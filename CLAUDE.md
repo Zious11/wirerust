@@ -45,6 +45,11 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
   - `hotfix/<slug>` for urgent production fixes branched from `main`
 - **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional. Release PRs into `main` use an allowed type, e.g. `chore: release v0.2.0`.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
+- **CHANGELOG obligation (AC-158-001, PG-W71-CHANGELOG):** PRs that modify files under
+  `src/`, `Cargo.toml`, or `bin/` MUST include an `[Unreleased]` CHANGELOG entry
+  (enforced by CI via the `changelog-gate` job in `.github/workflows/ci.yml`; see
+  AC-158-001 and PG-W71-CHANGELOG). `tests/`, `.github/`, `docs/`, and `Cargo.lock` are
+  excluded from the trigger set (process-internal or self-documenting surfaces).
 
 ## CI / Supply Chain
 
@@ -76,6 +81,16 @@ The **"Action pin gate"** CI job (`action-pin-gate` in `.github/workflows/ci.yml
 **Keeping branches in sync:**
 
 - After a release or hotfix PR merges into `main`, ensure `develop` contains those commits. Merge `main` back into `develop` if needed so the two branches do not diverge.
+
+### Wave Gate Code-Review Artifact Protocol (AC-158-006, PG-W71-CODEREVIEW-ARTIFACT)
+
+Before a wave gate is declared closed, a `cycles/wave-NNN/wave-gate/code-review.md`
+artifact MUST be written enumerating every MINOR and NIT finding from the gate-level
+code review together with its disposition (accepted / deferred / fixed). A gate with
+zero findings MUST still create the file with a "No findings" note. This ensures gate-
+level review output is permanently recoverable — the wave-71 gap (PG-W71-CODEREVIEW-
+ARTIFACT) showed that a one-line summary in `gate-summary.md` leaves individual finding
+text unrecoverable after the review session ends.
 
 ## Public API Surface (W7.1 — deferred)
 

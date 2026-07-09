@@ -499,7 +499,7 @@ impl TerminalReporter {
         }
 
         // verdict_rank / confidence_rank: module-level single-source (BC-014).
-        for (_, items) in buckets.iter_mut() {
+        for items in buckets.values_mut() {
             items.sort_by_key(|(idx, f)| {
                 (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
             });
@@ -547,7 +547,7 @@ impl TerminalReporter {
 
         // Sort each bucket ascending by (verdict_rank, confidence_rank, emission-index).
         // verdict_rank / confidence_rank: module-level single-source (BC-014).
-        for (_, items) in buckets.iter_mut() {
+        for items in buckets.values_mut() {
             items.sort_by_key(|(idx, f)| {
                 (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
             });
