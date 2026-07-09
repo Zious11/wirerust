@@ -432,6 +432,42 @@ def run_tests() -> int:
                 print(f"  FAIL  [{label}] — gate incorrectly flagged: {detail}")
                 failures += 1
 
+    # ------------------------------------------------------------------
+    # AC-158-005: zero-file guard — must exit non-zero when
+    # _collect_rust_files returns [].
+    #
+    # Current behavior (pre-fix): prints WARNING and exits 0.
+    # Required behavior (post-fix, AC-158-005): exits non-zero.
+    #
+    # These tests assert the TO-BE behavior and MUST FAIL against the
+    # current tool (line ~367: prints WARNING, exits 0).
+    # ------------------------------------------------------------------
+    print()
+    print("=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===")
+
+    _orig_collect = mod._collect_rust_files  # type: ignore[attr-defined]
+    try:
+        # Patch _collect_rust_files to return [] — simulates a repo with no
+        # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
+        mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
+        exit_code = mod.main()  # type: ignore[attr-defined]
+        if exit_code != 0:
+            print(
+                "  PASS  [zero-file guard: exits non-zero when _collect_rust_files "
+                "returns [] (AC-158-005)]"
+            )
+            passed += 1
+        else:
+            print(
+                "  FAIL  [zero-file guard: expected exit non-zero when "
+                "_collect_rust_files returns [], got 0 — "
+                "AC-158-005 not yet implemented (current line ~367 prints WARNING "
+                "and continues to exit 0)]"
+            )
+            failures += 1
+    finally:
+        mod._collect_rust_files = _orig_collect  # type: ignore[attr-defined]
+
     print()
     print(f"Results: {passed} passed, {failures} failed.")
     return 0 if failures == 0 else 1
