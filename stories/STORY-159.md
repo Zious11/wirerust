@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.9"
+version: "1.10"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -12,7 +12,7 @@ cycle: maint-2026-07-08
 points: 3
 priority: P3
 depends_on: [STORY-158]
-blocks: []
+blocks: [STORY-161]
 # BC status: none — E-11 convention (no BCs authored; status: draft, pending PO authorship)
 behavioral_contracts: []
 verification_properties: []
@@ -346,6 +346,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.10 | 2026-07-08 | story-writer | Adversary P12 fixes + class-level sweep: F-W72-P12-003 (LOW) — frontmatter `blocks:` updated `[]` → `[STORY-161]` (sequencing chain: STORY-159 blocks STORY-161 which depends on it). Class-level sweep: Sweep 1 — no em-dashes in exact-match strings; all em-dashes are prose punctuation; PASS. Sweep 2 — no BRE alternation; PASS. Sweep 3 — no GNU-only grep flags; PASS. Sweep 4 — both Decision $n loops retain `(\.|:|,| |\)|\*|\`|$)` right-boundary class; PASS. Sweep 5 — no stale version self-refs in live content; PASS. Sweep 7 — all file:line citations verified against ground truth: `tests/integration_tests.rs:1166` (ADR-012 Dec 10 confirmed at line 1166), `src/main.rs:1100` (double-mention Decision 9 confirmed); PASS. Sweep 8 — canonical heading form `### Decision N: <title>` and BY DESIGN note wording consistent across both AC-159-002 and AC-159-003. |
 | 1.9 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-L04 (LOW) — BY DESIGN note added after each verification loop: both AC-159-002 and AC-159-003 gain "Non-canonical heading forms (e.g. 'Decision 1;' 'Decision 1?') will fail the guard BY DESIGN — the ADR must use the canonical '### Decision N: <title>' form." F-W72-P11-L09 (LOW) — Task 4 split into (a) pre-normalization coverage check (may run anytime after Task 2) and (b) post-normalization Dec-zero check (MUST run after Task 3); ordering and dependency labeled explicitly. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-158]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. F-W72-P10-L03 (LOW) — normative-target sentence added after each verification loop: AC-159-002 loop note states it certifies the canonical `### Decision N: <title>` heading form (colon boundary covered by `:` in class); AC-159-003 loop note states it certifies each source-cited decision number has a corresponding canonical heading; prose-form continuation references explicitly NOT certified by either guard. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L03 (LOW) — boundary-guard character class widened in BOTH verification loops (AC-159-002 and AC-159-003): `(\.|:|,| |\)|$)` → `(\.|:|,| |\)|\*|\`|$)` to cover markdown emphasis chars; canonical heading form sentence added before AC-159-002 grep block: public ADR MUST use `### Decision N: <title>` as the canonical section heading form (so the guard's primary target is deterministic). |

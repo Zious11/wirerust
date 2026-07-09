@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.11"
+version: "1.12"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -453,6 +453,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.12 | 2026-07-08 | story-writer | Adversary P12 fixes + class-level sweep: F-W72-P12-003 (LOW) — `blocks: []` unchanged (STORY-160 blocks nothing; correct). Class-level sweep: Sweep 1 — no em-dashes in exact-match strings; all em-dashes are prose punctuation; PASS. Sweep 2 — no BRE alternation; PASS. Sweep 3 — all grep -oP/-P hits are in historical changelog rows; exempt; PASS. Sweep 6 — BC-2.11.036 v1.2 referenced correctly; BC-2.11.001 v1.8→v1.9 bump math confirmed. Sweep 7 — all file:line citations verified: `tests/reporter_json_tests.rs:66-111` (function confirmed at 66-111), `src/analyzer/arp.rs:3439` (serializes comment confirmed), `src/findings.rs:22` (Direction import confirmed), `src/findings.rs:161` (direction field confirmed); PASS. Sweep 8 — advisory-scan wording in AC-160-007 consistent with intent. |
 | 1.11 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-M03 (MEDIUM) — BC-2.11.036 v1.2 upstream amendment (commit 8371855): AC-160-005 test block updated: `test_BC_2_11_036_terminal_display_unchanged` now also asserts `ThreatCategory::LateralMovement.to_string() == "LateralMovement"` (PascalCase Debug repr invariance); same test name; VP row 8 scope now covers all three enums. F-W72-P11-L07 (LOW) — AC-160-007 reworded from zero-hit gate to advisory scan: scan is human-triage aid; reviewer confirms every hit is out-of-scope (Display/Debug/match-arm contexts); mechanical gate is `cargo test`, not grep count; 32 legitimate out-of-scope hits noted. F-W72-P11-L08 (LOW) — AC-160-008 gains "Known heterogeneity" item 5: `Direction` enum retains PascalCase JSON serialization in v0.12.0; casing alignment scoped to `verdict`, `confidence`, and `category` only. |
 | 1.10 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-158]` (FILE-SEQUENCING edge only: both stories modify CHANGELOG.md; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. F-W72-P10-L06 (LOW) — AC-160-007 grep command switched from BRE (`grep -rn` with `\|` alternation) to ERE (`grep -rEn` with `|` alternation) — BRE `\|` is GNU-only; BSD grep treats it as literal, producing false-PASS on macOS. F-W72-P10-L07 (LOW) — Task 4 doc-comment citation corrected lines 62-63 → 61-63 (enumeration begins at line 61). |
 | 1.9 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-L02 (LOW) — Task 3 DF-TEST-NAMESPACE-001 "if applicable" hedge replaced with definitive ruling: `tests/reporter_json_tests.rs` is a REPORTER test file, not an analyzer test file — DF-TEST-NAMESPACE-001 does NOT apply; the 14 new tests go at flat file root, matching the file's existing convention. |

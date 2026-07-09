@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.12"
+version: "1.13"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -12,7 +12,7 @@ cycle: wave-71
 points: 3
 priority: P3
 depends_on: []
-blocks: []
+blocks: [STORY-159, STORY-160]
 # BC status: pending PO authorship
 behavioral_contracts: []
 verification_properties: []
@@ -338,7 +338,7 @@ serves as the Red Gate.
 | EC-004 | PR modifies only docs/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting) |
 | EC-005 | Artifact has valid `story_id:` and `bcs: []` (explicit empty) | lint-cycle-artifact: PASS |
 | EC-006 | Artifact `bcs:` contains an unresolvable ID (fabricated — no on-disk BC file) | lint-cycle-artifact: HARD FAIL listing ALL unresolvable IDs |
-| EC-007 | Artifact lacks YAML frontmatter entirely, OR frontmatter present but missing `story_id:` or `bcs:` key | lint-cycle-artifact: HARD FAIL with exact message `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) — see current cycle-artifact template (STORY-158)` |
+| EC-007 | Artifact lacks YAML frontmatter entirely, OR frontmatter present but missing `story_id:` or `bcs:` key | lint-cycle-artifact: HARD FAIL with exact message `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) -- see current cycle-artifact template (STORY-158)` |
 | EC-008 | `src/` directory renamed or removed | trust-boundary: FAIL loudly (existence guard fires, exit 1) |
 | EC-009 | `_collect_rust_files` returns empty list | check-green-doc-tense: FAIL, exit non-zero, message directs to scan target |
 | EC-010 | `_collect_rust_files` returns non-empty list (normal operation) | check-green-doc-tense: behavior unchanged from pre-fix |
@@ -556,6 +556,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.13 | 2026-07-08 | story-writer | Adversary P12 fixes + class-level sweep: F-W72-P12-001 (MEDIUM) — EC-007 row exact error message changed from U+2014 em-dash to ASCII `--` (consistent with rule (1), rule (6), and TC1). F-W72-P12-003 (LOW) — frontmatter `blocks:` updated `[]` → `[STORY-159, STORY-160]` (sequencing chain: STORY-158 blocks both downstream stories that depend on it). Class-level sweep: Sweep 1 (non-ASCII in exact-match strings) — EC-007 was the only actionable hit; all other em-dashes in live content are prose punctuation; historical changelog entries exempt. Sweep 2 (BRE alternation) — clean. Sweep 3 (GNU-only grep flags) — all hits in historical changelog rows, exempt. Sweep 4 (boundary guard) — both Decision $n loops retain `(\.|:|,| |\)|\*|\`|$)` class; PASS. Sweep 5 (stale version self-refs) — single hit in historical changelog entry; exempt. Sweep 6 (VP/BC version arithmetic) — N/A for STORY-158; PASS. Sweep 7 (line-number anchors) — no file:line citations in STORY-158 live content; PASS. Sweep 8 (cross-story consistency) — error-string ASCII `--` form now consistent across EC-007, rule (1), rule (6), and TC1. |
 | 1.12 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-M01 (MEDIUM) — Rule (6) fallback "(or the documented wave-directory form)" deleted; constraint is `wave-[0-9]+` ONLY; added out-of-scope sentence: "Cycle directories with other naming (maint-*, triage-*, feature-*) are outside lint scope by design — the lint targets wave-cycle artifacts only." F-W72-P11-M02 (MEDIUM) — TC count bumped seven→eight; TC8 added: artifact at `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) → HARD FAIL with branch-(a) invalid-path error message (tests rule (6) branch (a); TC6 covers branch (b)). F-W72-P11-L01 (LOW) — Rule (1) and rule (6) error strings changed from U+2014 em-dash to ASCII `--` in all error strings; TC1 em-dash disjunction collapsed: tool emits ASCII `--`; TC1 asserts the ASCII form. F-W72-P11-L02 (LOW) — AC-158-001 gains explicit Cargo.lock exclusion note: excluded from trigger set by design (transitive-dep bumps route through maintenance-sweep CHANGELOG discipline, not the per-PR gate). F-W72-P11-L03 (LOW) — AC-158-007 reworded to "nine files (see FSR table)"; three-file undercounting sentence replaced with enumeration of all four `bin/` tools as trigger-set members. |
 | 1.11 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-L04 (LOW) — rule (6) extended with wave-NNN intermediate requirement: matched `STORY-[0-9]+` component MUST have an immediate parent matching wave-directory naming (`wave-[0-9]+`); path like `.factory/cycles/STORY-158/x.md` (no wave-NNN intermediate) → invalid-path HARD FAIL; error message unchanged. F-W72-P10-L05 (LOW) — TC1 em-dash note added: error string contains U+2014 em-dash; TC1 must copy byte-for-byte from AC, OR tool uses ASCII `--` consistently in both tool and TC — implementer picks ONE form. F-W72-P10-L02 (LOW) — Notes input-hash note stale wording fixed: "v1.1 declares three real spec inputs" → "declares three real spec inputs (fourth PG added in the v1.1 amendment)". |
 | 1.10 | 2026-07-08 | story-writer | Adversary P9 fixes: F-W72-P9-M01 (MEDIUM) — AC-158-007 trigger-set claim corrected: sentence previously implied `.github/workflows/ci.yml` was in the CHANGELOG-gate trigger set (`src/`, `Cargo.toml`, `bin/`), contradicting AC-158-001; replaced with explicit wording distinguishing the two `bin/` tools (in trigger set; alone fire the gate) from `.github/` (excluded by AC-158-001). F-W72-P9-L01 (LOW) — rule-ordering DAG added at top of AC-158-003 contract: "Evaluation order: rule (1) frontmatter presence → rule (6) path/story_id identity → rule (2) empty-bcs short-circuit [exit 0] → rule (3) BC existence on disk → rule (7) story ownership"; TC2 fixture instructions clarified to require correct path with matching story_id (rule (6) passes before rule (2) short-circuits; wrong-path empty-bcs artifact still FAILS). |

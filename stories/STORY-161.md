@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -148,7 +148,7 @@ must be confirmed explicitly.
 Verification:
 
 ```bash
-grep -A3 "Section-Scoping Rule\|section.scoping\|closing brace" \
+grep -A3 -E "Section-Scoping Rule|section.scoping|closing brace" \
   .factory/specs/verification-properties/VP-INDEX.md | head -20
 ```
 
@@ -452,6 +452,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.9 | 2026-07-08 | story-writer | Adversary P12 fixes + class-level sweep: F-W72-P12-002 (MEDIUM) — AC-161-002 verification grep switched from BRE `\|` alternation to ERE (`grep -A3 -E "Section-Scoping Rule|section.scoping|closing brace"`); mirrors STORY-160 P10-L06 fix. F-W72-P12-003 (LOW) — `blocks: []` unchanged (STORY-161 blocks nothing; correct). Class-level sweep: Sweep 1 — no em-dashes in exact-match strings; all em-dashes are prose punctuation; PASS. Sweep 2 — no remaining BRE alternation in live commands (AC-161-002 was the only instance; fixed). Sweep 6 — VP-INDEX 2.38→2.39 and VP-024 2.4→2.5 bump math confirmed correct throughout. Sweep 7 — no file:line citations in STORY-161 live content; PASS. Sweep 8 — Section-Scoping Rule grep now ERE-consistent with the STORY-160 ERE pattern. |
 | 1.8 | 2026-07-08 | story-writer | Adversary P11 fixes: F-W72-P11-L05 (LOW) — AC-161-002 byte-boundary tightened: hashed section is byte-inclusive from `#` of `#[cfg(kani)]` through matching closing `}` of `mod kani_proofs` (balanced-brace pairing from `{` following `mod kani_proofs`); NO trailing bytes (whitespace or newline after `}`) are captured. F-W72-P11-L06 (LOW) — AC-161-004 gains exact LMR-002 sentence: "A re-run is always the preferred population path when feasible"; feasibility explicitly excludes this story's charter (no Rust toolchain changes); carve-out is story-scoped, not a doctrine change. F-W72-P11-L10 (LOW) — AC-161-003 gains dual-tool recompute mandate: `proof_file_hash` MUST be independently recomputed with bash `sha256sum` pipeline AND Python `hashlib`; both command lines archived in VP-024 v2.5 modified-log entry; values must agree before writing; LMR-001 forbids later correction — first write is permanent. |
 | 1.7 | 2026-07-08 | story-writer | Adversary P10 fixes: F-W72-P10-M01 (MEDIUM) — frontmatter `depends_on` updated `[]` → `[STORY-159]` (FILE-SEQUENCING edge only: both stories modify CLAUDE.md; part of 158→159→161 chain; not a semantic dependency); body Notes section gains FILE-SEQUENCING edge explanation citing F-W72-P10-M01 + F-F3P2-005 precedent. |
 | 1.6 | 2026-07-08 | story-writer | Adversary P6 fixes: F-W72-P6-002+005 (HIGH+MEDIUM) — re-run de-scoped throughout: Background kani_version bullet, AC-161-004, Task 2, and Notes all replace "always-preferred alternative" framing with explicit out-of-scope statement (requires cargo-kani toolchain; contradicts "No Rust toolchain changes" constraint; implementer choosing to re-run must do so under a separate story); historical recovery via CI logs/Cargo.lock/toolchain records is the only in-scope method. F-W72-P6-010 (LOW) — AC-161-002: Section-Scoping Rule uniqueness requirement added (algorithm anchors on module NAMED kani_proofs; if a source file contains multiple kani_proofs-named modules the algorithm is undefined; implementation MUST fail loudly, exit non-zero, rather than guess which block to hash). |
