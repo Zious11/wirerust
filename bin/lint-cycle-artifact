@@ -160,18 +160,30 @@ def _derive_story_id_from_path(artifact_path: Path) -> str | None:
     """Derive the expected story_id from the artifact's path.
 
     Searches upward through path components for the nearest STORY-[0-9]+
-    component whose immediate parent matches wave-[0-9]+.
+    component that satisfies the full .factory/cycles/<wave>/<story>/ pattern:
+      parts[i]   = STORY-[0-9]+
+      parts[i-1] = wave-[0-9]+
+      parts[i-2] = "cycles"
+      parts[i-3] = ".factory"
 
-    Returns the story_id string, or None if the pattern is not found or the
-    wave-NNN intermediate is absent (both trigger the invalid-path error).
+    F-S158-P1-001: the .factory/cycles/ ancestor check closes the gap where a
+    path like /tmp/wave-72/STORY-158/x.md (no .factory/cycles/ above) would have
+    passed the old wave-NNN-only check and falsely derived a story_id.
+
+    Returns the story_id string, or None if the full pattern is not matched
+    (triggers the invalid-path error in the caller).
     """
     parts = artifact_path.resolve().parts
     # Walk from right to left (nearest ancestor first)
     for i in range(len(parts) - 1, 0, -1):
         if _STORY_ID_RE.match(parts[i]):
-            if _WAVE_RE.match(parts[i - 1]):
+            # Require the full .factory/cycles/wave-NNN/STORY-NNN structure.
+            if (i >= 3
+                    and _WAVE_RE.match(parts[i - 1])
+                    and parts[i - 2] == "cycles"
+                    and parts[i - 3] == ".factory"):
                 return parts[i]
-            # STORY-NNN found but parent is not wave-NNN → invalid path
+            # STORY-NNN found but full pattern absent → invalid path
             return None
     return None
 
