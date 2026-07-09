@@ -104,3 +104,30 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
 - **Convergence counters:** wave-72 story convergence CLOSED (15 passes, P13/P14/P15 clean 3/3). STORY-158 per-story CLOSED (7 passes, P5/P6/P7 clean 3/3). STORY-159 per-story CLOSED (3 passes). STORY-160 per-story CLOSED (3 passes, P1/P2/P3 CLEAN, BC-5.39.001 satisfied).
 - **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.30 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step` (reads STATE.md; STORY-161 unblocked — dispatch delivery).
+
+---
+
+## Checkpoint — 2026-07-09 (wave-72 CLOSED, IDLE, D-416)
+
+**Wave-72 CLOSED (D-416, 2026-07-09, human-approved). All 4 stories + gate-fix PR #391 delivered. Issues #252/#255 closed. S-7.02 satisfied (STORY-162 drafted). Pipeline IDLE.**
+
+- **Date:** 2026-07-09. Position: wave-72 CLOSED (D-416). Pipeline IDLE.
+- **develop HEAD:** `44f8c9c` (full: `44f8c9ce57b1ebe7ea1d166628a2518ebf981997`) — 13 unreleased commits ahead of v0.11.5; v0.12.0 staged, release NOT yet cut.
+- **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
+- **Open PRs:** #386 (dependabot indicatif — untouched, still open). No open story PRs.
+- **current_cycle:** wave-72 (CLOSED). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
+- **Wave-72 story set:** ALL DELIVERED & CLOSED (D-416). STORY-158 D-410 PR #387 / STORY-159 D-411 PR #388 / STORY-160 D-412 PR #389 / STORY-161 D-413 PR #390 / gate-fix PR #391 D-414. Wave CLOSED D-416 (human-approved).
+- **Gate verdict:** PASS — all 8 dimensions green (suite, adversary CONVERGED, code-review, security, consistency, holdout, demos, runtime-probes).
+- **Convergence:** wave-72 adversarial trajectory →1→0→0→0; streak 3/3 (P2/P3/P4 CLEAN). BC-5.39.001 satisfied.
+- **S-7.02:** SATISFIED — STORY-162 drafted (wave-TBD, E-11, 3 pts; STORY-INDEX v3.33).
+- **Next steps (candidates — no active gate; next action is human-initiated):**
+  1. **v0.12.0 release run** — cut release/0.12.0 from develop (13 unreleased commits), PR to main, tag, back-merge.
+  2. **STORY-162 dispatch** (wave-TBD) — PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS codifications.
+  3. **Maintenance sweep** — deferred-items ledger (SEC-W72-002/003 LOW; CR-004/006-009; F-W72-P15-L01; CD-03-RC-01; EPICS-TOTAL-BCS-DRIFT-001; HS-INDEX-ENIP-WAVE-DRIFT-001).
+- **Advisory debt (non-blocking):**
+  - SEC-W72-002/003 LOW carried (DF-VALIDATION-001 pipeline). CR-004/006-009 DEFERRED maintenance.
+  - F-S161P1-001 (process-gap, STORY-162). SEC-001-S158 + SEC-002-S158 (CWE-22 LOW, DF-VALIDATION-001-gated).
+  - F-W72-P15-L01 (dep-graph totals stale) + CD-03-RC-01 (release-mapping note — fix before v0.12.0 PR).
+  - SEC-W71-001 CWE-22 in bin/compute-input-hash — VALIDATED-PENDING-FILING.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.13 / STORY-INDEX v3.33 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** Human-initiated — `/vsdd-factory:release` (v0.12.0) or `/vsdd-factory:deliver-story` (STORY-162) or `/vsdd-factory:maintenance-sweep`.

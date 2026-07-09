@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-09T15:44:40Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-158 && cargo test --all-targets 2>&1 | tail -15"}
+{"status":"pass","timestamp":"2026-07-09T21:30:27Z","command":"time cargo test --all-targets 2>&1"}
