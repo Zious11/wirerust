@@ -145,7 +145,7 @@ def _parse_frontmatter(text: str) -> dict | None:
         if not stripped or stripped.startswith("#"):
             i += 1
             continue
-        m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)", line)
+        m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_-]*):\s*(.*)", line)
         if not m:
             # F-S158-P3-001 fail-closed: any unconsumed non-blank/non-comment line
             # that is not a recognized top-level key is an unsupported YAML shape.

@@ -695,6 +695,133 @@ def test_tc14_duplicate_story_id_key() -> None:
         )
 
 
+def test_tc20_parent_story_with_hyphen_key() -> None:
+    """
+    TC20 (F-S158-P4-001): parent story contains `input-hash:` — a hyphen in the key name.
+
+    Every real factory story carries `input-hash: "..."`.  The old key regex
+    `[a-zA-Z0-9_]*` excludes hyphens, so `input-hash:` triggered the fail-closed
+    guard with "ERROR: unsupported frontmatter syntax" — making rule (7) unreachable
+    against all 114 live stories (every ownership check was a false-FAIL).
+
+    Fixture:
+      - Artifact at correct path, story_id: STORY-158, bcs: [BC-2.11.036]
+      - BC-2.11.036 on disk, owned by STORY-158
+      - Parent story includes realistic hyphen-key fields:
+          input-hash: "abc1234", inputs: [], version: "1.0", wave: "72"
+    Expected: exit 0 (story parsed without fail-closed; all rules pass).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs:\n"
+                "  - BC-2.11.036\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.036")
+        # Story stub with hyphen-key fields mirroring real factory stories
+        make_artifact(
+            tmp_dir,
+            ".factory/stories/STORY-158.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                'input-hash: "abc1234"\n'
+                "inputs: []\n"
+                'version: "1.0"\n'
+                'wave: "72"\n'
+                "behavioral_contracts:\n"
+                "  - BC-2.11.036\n"
+                "---\n"
+                "\n"
+                "# STORY-158 stub with realistic hyphen-key fields\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode == 0, (
+            f"TC20: expected exit 0 (hyphen-key input-hash: must not trigger "
+            f"fail-closed guard), got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(f"  [PASS] TC20: parent story with input-hash: → exit 0 (rule 7 reached)")
+
+
+def test_tc21_scalar_behavioral_contracts_hard_fails() -> None:
+    """
+    TC21 (F-S158-P4-002): parent story has scalar behavioral_contracts: value.
+
+    `behavioral_contracts: BC-2.11.999` (scalar, not list) silently passes rule (7):
+    `bc_id not in story_bcs` becomes a Python string-substring check rather than
+    list membership, so 'BC-2.11.999' in 'BC-2.11.999' → True → false-PASS.
+
+    Fix: isinstance(story_bcs, list) guard → HARD FAIL with clear error.
+
+    Fixture:
+      - Artifact at correct path, story_id: STORY-158, bcs: [BC-2.11.999]
+      - BC-2.11.999 on disk (rule 3 passes)
+      - Parent story has: behavioral_contracts: BC-2.11.999  (scalar, not list)
+    Expected: exit non-zero, "ERROR: parent story STORY-158.md has malformed
+    behavioral_contracts:" in output.
+    """
+    _ERR_MALFORMED = (
+        "ERROR: parent story STORY-158.md has malformed behavioral_contracts: "
+        "(expected list, got scalar) -- ambiguous ownership declaration"
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs:\n"
+                "  - BC-2.11.999\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.999")
+        # Story with SCALAR behavioral_contracts (not a list) — the P4-002 bug
+        make_artifact(
+            tmp_dir,
+            ".factory/stories/STORY-158.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "behavioral_contracts: BC-2.11.999\n"
+                "---\n"
+                "\n"
+                "# STORY-158 stub with scalar behavioral_contracts\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC21: expected exit non-zero (scalar behavioral_contracts must be "
+            f"rejected), got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert _ERR_MALFORMED in combined, (
+            f"TC21: expected malformed behavioral_contracts error not found.\n"
+            f"Expected: {_ERR_MALFORMED!r}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC21: scalar behavioral_contracts → exit {result.returncode}, "
+            "malformed-list error (not substring false-PASS)"
+        )
+
+
 def test_tc16_wrapped_inline_list_bcs() -> None:
     """
     TC16 (F-S158-P3-001): bcs: inline list wrapped across two lines.
@@ -959,6 +1086,8 @@ def main() -> None:
         test_tc17_exotic_frontmatter_construct,
         test_tc18_quoted_scalars_accepted,
         test_tc19_scalar_bcs_hard_fails,
+        test_tc20_parent_story_with_hyphen_key,
+        test_tc21_scalar_behavioral_contracts_hard_fails,
     ]
     passed = 0
     failed = 0
