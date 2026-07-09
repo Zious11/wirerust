@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -183,6 +183,10 @@ the `docs/adr/` row in the Project References table. After the fix the row reads
 The pull request title uses the `docs:` semantic prefix (e.g.,
 `docs: add ADR-012 protocols catalog and coverage-gaps`), consistent with the
 finding's suggested action and the `docs:` type used for prior ADR authoring work.
+Although the PR includes a one-line test-comment normalization in
+`tests/integration_tests.rs` (Task 3), `docs:` remains the correct semantic type —
+the majority surface is documentation (new ADR file + CLAUDE.md amendment) and the
+test change is a comment-only cleanup with no behavioral effect.
 
 ## Architecture Mapping
 
@@ -207,7 +211,7 @@ No production Rust source files are modified. No tests are added or changed.
 | EC-001 | Factory ADR-012 cites `VP-042(d)` precondition — an internal VP reference | Omit; document the architectural consequence (dual-gate co-increment) in plain language, no `VP-*` ID |
 | EC-002 | Factory ADR-012 references `BC-2.05.010 Architecture Anchor wording` | Omit; document the architectural decision (analyzer-present guard, increment semantics) without BC IDs |
 | EC-003 | Factory ADR Decision 6 Clarification has a detailed code block | Include the implementation sketch (code block) as-is — it is architecture-level content, not a BC or test reference |
-| EC-004 | `docs/adr/0008-*.md` gap in sequence | Do not fill in ADR-008; the sequence jumps from 0007 to 0009 intentionally; 0012 is simply the next authored file after 0011 |
+| EC-004 | `docs/adr/0008-<slug>.md` (no such file — ADR-008 intentionally skipped) | Do not fill in ADR-008; the sequence jumps from 0007 to 0009 intentionally; 0012 is simply the next authored file after 0011 |
 
 ## Tasks
 
@@ -310,6 +314,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-005 (LOW) — EC-004 Description reworded: "docs/adr/0008-*.md gap in sequence" → "docs/adr/0008-<slug>.md (no such file — ADR-008 intentionally skipped)" (wildcard implied a file existed). F-W72-P4-007 (LOW) — AC-159-005 extended with one-line note: docs: remains correct semantic type despite one-line test-comment normalization in tests/integration_tests.rs (majority surface is documentation; test change is comment-only with no behavioral effect). |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-001 (MEDIUM) — 37+1 citation precision: Narrative, Background intro, NEW-001 table row (integration_tests.rs: 3 Decision-N + 1 Dec-10 = 4), and sweep paragraph updated to reflect 37 canonical + 1 abbreviated form. New Task 3: normalize tests/integration_tests.rs:1166 comment (ADR-012 Dec 10 → ADR-012 Decision 10). Architecture Compliance Rules and File Structure Requirements updated to include tests/integration_tests.rs. F-W72-P3-008 (LOW) — AC-159-003 portability: grep broadened to -E "ADR-012 (Decision\|Dec) [0-9]+" with POSIX extraction (grep -oE + awk); post-normalization Dec-form zero-check added. |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-002 (HIGH) — lines 92-93 corrected: nine of ten ADR-012 decisions referenced in source (not all ten); Decision 8 has no source citation; list updated to 1,2,3,4,5,6,7,9,10 with explanatory note. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fix: F-W72-P1-003 (HIGH) — ground-truth file inventory corrected from five to six files: added tests/integration_tests.rs (4 citations). Narrative updated ("six source and test files"); Background intro updated ("six source and test files"); NEW-001 table row added for tests/integration_tests.rs; full per-file count breakdown added (src/protocols.rs(2)+src/main.rs(6)+src/dispatcher.rs(8)+tests/protocols_tests.rs(10)+tests/dispatcher_tests.rs(8)+tests/integration_tests.rs(4)=38). AC-159-003 repo-wide grep left unchanged (already correct). |

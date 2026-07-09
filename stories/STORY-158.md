@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -230,6 +230,17 @@ its disposition (accepted/deferred/fixed). A gate with zero findings MUST still 
 the file with a 'No findings' note." The requirement MUST reference
 PG-W71-CODEREVIEW-ARTIFACT and AC-158-006.
 
+### AC-158-007 (bootstrap self-consistency — this PR's own CHANGELOG entry)
+
+This story's own PR modifies `bin/lint-cycle-artifact`, `bin/check-green-doc-tense`, and
+`.github/workflows/ci.yml` — all files in the CHANGELOG-gate trigger set (`src/`,
+`Cargo.toml`, `bin/`). The same PR introduces the gate that enforces this requirement.
+Therefore the PR MUST include a `CHANGELOG.md` `[Unreleased]` entry covering: the new
+changelog-gate CI step, the new `bin/lint-cycle-artifact` tool, and the
+`bin/check-green-doc-tense` zero-file-guard hardening — satisfying the gate this PR
+introduces (bootstrap self-consistency). The CHANGELOG entry MUST include a
+`[process-gap]` provenance note per VSDD convention.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -283,6 +294,10 @@ serves as the Red Gate.
    not also in the diff. Add a comment in the job body documenting the exclusion
    rationale for `tests/`, `.github/`, and `docs/` (process-internal or self-documenting).
    SHA-pin any new action refs per the Action pin gate policy.
+   Add a `CHANGELOG.md` `[Unreleased]` entry (with `[process-gap]` provenance note) for
+   this PR covering the new changelog-gate CI step, `bin/lint-cycle-artifact`, and
+   `bin/check-green-doc-tense` zero-file guard — satisfying the bootstrap self-consistency
+   requirement of AC-158-007.
 
 2. **CHANGELOG pr-manager guidance (AC-158-002):** Add a sentence to `CLAUDE.md` under
    the delivery or pr-manager section: "PRs that modify files under `src/`, `Cargo.toml`,
@@ -415,6 +430,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-001 (HIGH) — add AC-158-007 (bootstrap self-consistency): this PR modifies bin/ and .github/ (CHANGELOG-gate trigger set), so it MUST include a CHANGELOG.md [Unreleased] entry with [process-gap] provenance note; AC documents the requirement and names the three items covered. Task 1 extended with explicit self-CHANGELOG bullet. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-002 (MEDIUM) — EC-011 narrowed: no automation detects empty code-review.md; caught by adversarial reviewer per CLAUDE.md rule only (documentation-only control). F-W72-P3-004 (LOW) — AC-158-001(a) restricted to pull_request trigger only; push-to-develop events are inherently no-op (origin/develop == HEAD) and must not be included. F-W72-P3-006 (LOW) — AC-158-003 and Task 3: scope-asserted BC IDs are ONLY those in artifact bcs: frontmatter field; open-ended scope-assertion header path dropped throughout. F-W72-P3-009 (LOW) — EC-004 Expected Behavior parenthetical trimmed to match the three described surfaces; .factory/ mention removed entirely. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-005 (MEDIUM) — AC-158-002 and Task 2 updated to three-path trigger set (src/, Cargo.toml, bin/) matching AC-158-001. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. F-W72-P2-008 (LOW) — ci.yml line-range citation corrected 290–296 → 290–295. F-W72-P2-009 (LOW) — EC-011 rewritten from tautological gate-violation restatement to discriminating edge case: code-review.md written but EMPTY → lint fails. F-W72-P2-010 (LOW) — EC-004 drops .factory/ from excluded surfaces (lives on orphan branch, never appears in develop PR diff). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-005 (MEDIUM) — AC-158-003 BC-citation lint tightened: lint flags only BC IDs asserted as scope (artifact bcs: frontmatter or scope-assertion headers), NOT BC IDs in body prose; explicit "narrative context permitted" note added; Tasks item 3 updated with scoped-assertion semantics and third test case (prose-only BC does not trigger). F-W72-P1-007 (MEDIUM) — CHANGELOG-gate trigger broadened from src/-only to src/, Cargo.toml, bin/; explicit exclusion rationale for tests/, .github/, docs/ added to AC-158-001 and CI job comment requirement; EC-004 updated; Tasks item 1 updated. F-W72-P1-008 (LOW) — bash block in Background fixed: || true moved outside $() substitution to mirror .github/workflows/ci.yml:196 verbatim. |

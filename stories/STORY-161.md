@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -286,7 +286,7 @@ No Rust source files, no tests, no CI configuration.
 | EC-002 | kani_proofs block in decoder.rs has additional harnesses added since `6e9f2cc` | Compute from the `6e9f2cc` snapshot, not from current HEAD. Document the commit used in the v2.5 modified log |
 | EC-003 | Trailing whitespace or CRLF in extracted kani_proofs block on Windows checkout | LF-normalize before hashing; OS-independent result required |
 | EC-004 | Order of files in mini-Merkle construction | arp.rs is fileA, decoder.rs is fileB — the `module:` field order is normative (`src/analyzer/arp.rs + src/decoder.rs`, arp.rs listed first). No implementer decision required; this order is fully determined by the VP-024 frontmatter |
-| EC-005 | VP-INDEX section placement | The algorithm section should appear before the catalog table (near the Summary) so it is readable without scrolling to the end of the file |
+| EC-005 | VP-INDEX section placement and cross-reference | The algorithm section should appear before the catalog table (near the Summary) so it is readable without scrolling to the end of the file. Additionally, the new "Multi-File Proof Anchor Algorithm" section and the "## VP Lock Mutation Rules" section (which codifies LMR-003) MUST cross-link each other with one sentence each — the algorithm section notes that adding `kani_version:` is governed by LMR-003 (see VP Lock Mutation Rules); the VP Lock Mutation Rules section notes that `kani_version:` is the only currently-allowlisted field for the multi-file proof anchor pattern (see Multi-File Proof Anchor Algorithm). |
 
 ## Tasks
 
@@ -415,6 +415,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-006 (LOW) — EC-005 extended with cross-reference requirement: the new "Multi-File Proof Anchor Algorithm" section and the "## VP Lock Mutation Rules" section (LMR-003) MUST cross-link each other with one sentence each — algorithm section notes kani_version: is governed by LMR-003; VP Lock Mutation Rules section notes kani_version: is the only currently-allowlisted field for the multi-file proof anchor pattern. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-003 (HIGH) — LMR-003 alignment: AC-161-001 bump math corrected 2.37→2.38 to 2.38→2.39 (VP-INDEX now v2.38 per commit 8a4977f). AC-161-004 header updated to cite LMR-003 + LMR-002; LMR-003 governance paragraph added (field absent at lock time; on Locked-Doc-Appendable Provenance Field Allowlist; sibling placement; lock not cleared). AC-161-005 modified-log template updated: VP-INDEX v2.38→v2.39; kani_version entry now cites LMR-003 with required conditions; kani_version value sourced via LMR-002. Architecture Compliance Rules: LMR-003 bullet added alongside LMR-001. Tasks item 3: bump target 2.38→2.39. File Structure Requirements: bump notation 2.37→2.38 corrected to 2.38→2.39. |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-007 (HIGH) — LMR-002 alignment throughout: AC-161-004 rewritten (kani_version records HISTORICAL version at 6e9f2cc; historical recovery required; honest-unknown fallback if unrecoverable; current release FORBIDDEN; re-run always-preferred); Background kani_version bullet updated; Tasks item 2 updated for historical recovery; Notes kani_version note updated. VP-INDEX bump math updated throughout from 2.36→2.37 to 2.37→2.38 (AC-161-001, Tasks item 3, File Structure Requirements, AC-161-005 modified-log template). |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-001 (CRITICAL) — file-order canonicalized: arp.rs=fileA, decoder.rs=fileB per VP-024 module: field; AC-161-001 explicit statement added, AC-161-003 steps 1–6 reordered, EC-004 carve-out removed, EC-004 Notes updated. F-W72-P1-004 — LMR-001 adoption: AC-161-005 cites LMR-001 explicitly, no unlock ceremony language, lock stays true throughout; VP-INDEX required bump updated 2.35→2.36 → 2.36→2.37 (spec-steward commit b0248ba took v2.36); Tasks item 3 + File Structure Requirements updated. F-W72-P1-006 — kani_version comment wording: "re-lock 2026-07-08" → "population <implementation-date>"; Background + Notes "re-lock time" → "population time". Architecture Compliance Rules updated with LMR-001 citation. |

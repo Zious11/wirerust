@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -235,11 +235,20 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
   and (2) includes corrective note: "v1.8 misidentified Invariant 1 as key-enumerating;
   Invariant 1 governs `unwrap()` infallibility; correct amendment scope: Description +
   Postcondition 2 + Canonical Test Vectors."
+- The **BC-INDEX row** for BC-2.11.001 (row ~555) is updated in the same factory-artifacts
+  delivery burst: the row title is amended to include `schema_version` (six keys, up from
+  five), and the `v1.9` annotation is appended to the row's version-annotation trail.
+  BC-INDEX version is bumped with a corresponding changelog line. This is a
+  **DF-SIBLING-SWEEP-001** requirement — omitting the BC-INDEX update leaves the index
+  inconsistent with the BC content.
 
-> **Note for implementer:** STORY-160's `input-hash:` field in story frontmatter is computed
-> from the BC-2.11.001 content at story-draft time (v1.8). After amending BC-2.11.001 to v1.9
-> in the implementation PR, the canonical input hash will drift. Recompute with
-> `bin/compute-input-hash --write .factory/stories/STORY-160.md` before merging.
+> **Note for implementer:** `.factory/` lives on the orphan `factory-artifacts` branch and
+> cannot be included in a `develop`-targeted PR. Commit BC-2.11.001 v1.9 and the BC-INDEX
+> row update to `factory-artifacts` in the same delivery burst as the develop PR.
+> STORY-160's `input-hash:` is computed from BC-2.11.001 at story-draft time (v1.8) and
+> will drift after the v1.9 amendment — recompute with
+> `bin/compute-input-hash --write .factory/stories/STORY-160.md` on `factory-artifacts`
+> before closing the delivery burst.
 
 ## Architecture Mapping
 
@@ -293,9 +302,9 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
 
 3. **Write BC-driven tests.** Author the fourteen unit tests named in the BC-2.11.036 and
    BC-2.11.037 VP tables (nine from BC-2.11.036 + five from BC-2.11.037). Place them in the
-   appropriate module (likely `src/reporter/json.rs` tests block or
-   `tests/json_reporter_tests.rs`). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention if
-   applicable.
+   appropriate module (likely `tests/reporter_json_tests.rs` or the
+   `src/reporter/json.rs` tests block). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention
+   if applicable.
 
 4. **Update existing JSON-asserting tests.** Run the scan grep from AC-160-007 and update any
    hit in a JSON value assertion context. Confirm `cargo test --all-targets` is green.
@@ -307,16 +316,21 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
 
 7. **Open a `feat:` pull request** targeting `develop` with all file changes.
 
-8. **Amend BC-2.11.001 to v1.9 (AC-160-010):** In
-   `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md`, update the Description block,
-   Postcondition 2, and Canonical Test Vector rows to enumerate six top-level JSON keys
-   (adding `schema_version`). Do NOT amend Invariant 1 — it governs `unwrap()` infallibility
-   of `JsonReporter::render`, not key enumeration, and is explicitly out of scope. Append a
-   v1.9 modified-log entry that: (1) resolves the v1.8 advisory pointer and (2) includes
-   corrective note: "v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs
-   `unwrap()` infallibility; correct amendment scope: Description + Postcondition 2 +
-   Canonical Test Vectors." Include this file in the same PR. After amending, recompute this story's input-hash with
-   `bin/compute-input-hash --write .factory/stories/STORY-160.md`.
+8. **Amend BC-2.11.001 to v1.9 and update BC-INDEX (AC-160-010) — factory-artifacts branch:**
+   In `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md`, update the Description
+   block, Postcondition 2, and Canonical Test Vector rows to enumerate six top-level JSON
+   keys (adding `schema_version`). Do NOT amend Invariant 1 — it governs `unwrap()`
+   infallibility of `JsonReporter::render`, not key enumeration, and is explicitly out of
+   scope. Append a v1.9 modified-log entry that: (1) resolves the v1.8 advisory pointer and
+   (2) includes corrective note: "v1.8 misidentified Invariant 1 as key-enumerating; Invariant
+   1 governs `unwrap()` infallibility; correct amendment scope: Description + Postcondition 2
+   + Canonical Test Vectors." Also update the BC-INDEX row for BC-2.11.001 (row ~555): amend
+   the row title to include `schema_version` (six keys) and append the `v1.9` annotation to
+   the row's version-annotation trail; bump BC-INDEX version with a changelog line.
+   **Commit BC-2.11.001 v1.9 and the BC-INDEX row update to the `factory-artifacts` branch in
+   the same delivery burst as the develop PR — do NOT attempt to include `.factory/` paths in
+   the develop PR.** Recompute STORY-160's input-hash on `factory-artifacts` after the BC
+   amendment (`bin/compute-input-hash --write .factory/stories/STORY-160.md`).
 
 ## Previous Story Intelligence
 
@@ -354,7 +368,7 @@ Lessons from closest analogues:
 |------|--------|-------|
 | `src/findings.rs` | Modify | Add `#[serde(rename_all = ...)]` to three enum derive blocks |
 | `src/reporter/json.rs` | Modify | Add `SCHEMA_VERSION` constant; add `schema_version` to envelope |
-| Test file (new or existing) | Modify/Create | Fourteen BC-driven tests from AC-160-001 through AC-160-006 (nine from BC-2.11.036 VP table + five from BC-2.11.037 VP table) |
+| `tests/reporter_json_tests.rs` | Modify/Create | Fourteen BC-driven tests from AC-160-001 through AC-160-006 (nine from BC-2.11.036 VP table + five from BC-2.11.037 VP table) |
 | `CHANGELOG.md` | Modify | v0.12.0 BREAKING CHANGE entry |
 
 ## Token Budget Estimate
@@ -390,6 +404,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-002 (HIGH) — AC-160-010 extended: BC-INDEX row for BC-2.11.001 (row ~555) MUST be updated in same factory-artifacts burst (six-key title; v1.9 annotation appended; BC-INDEX version bumped); DF-SIBLING-SWEEP-001 requirement. Task 8 extended with BC-INDEX update step. F-W72-P4-003 (MEDIUM) — Task 8 "Include this file in the same PR" rewritten to cross-branch wording: commit BC-2.11.001 v1.9 and BC-INDEX update to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR; recompute input-hash on factory-artifacts. AC-160-010 implementer note updated to match. F-W72-P4-004 (MEDIUM) — Task 3 test-file name corrected (tests/json_reporter_tests.rs → tests/reporter_json_tests.rs); File Structure Requirements row de-vaguified (named tests/reporter_json_tests.rs explicitly). |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-010 (LOW) — Task 1: added note that #[non_exhaustive] on all three enums is orthogonal to serde(rename_all); attribute affects match exhaustiveness, not Serialize output. F-W72-P3-005 (MEDIUM) — AC-160-007: grep scope restricted from tests/ src/ to two named files (tests/reporter_json_tests.rs src/reporter/json.rs); surrounding prose updated to match. F-W72-P3-007 (MEDIUM) — AC-160-010 modified-log bullet and Task 8: added corrective note ("v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs unwrap() infallibility; correct amendment scope: Description + Postcondition 2 + Canonical Test Vectors"). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-001 (HIGH) — AC-160-010 rewritten: v1.9 amendment targets Description block + Postcondition 2 + Canonical Test Vector rows (not Invariant 1); Invariant 1 governs unwrap() infallibility and is explicitly OUT OF SCOPE; Task 8 updated to match. F-W72-P2-003 (MEDIUM) — "nine unit tests" corrected to "fourteen" in Task 3, Token Budget, and File Structure Requirements (BC-2.11.036 VP table has 9 rows + BC-2.11.037 has 5 = 14). F-W72-P2-011 (LOW) — AC-160-007 grep assertion tightened to assert_eq!/.contains() argument slots rather than vague "JSON-assertion contexts". |
 | 1.1 | 2026-07-08 | story-writer | Adversary P1 fixes: F-W72-P1-002 (HIGH) — add AC-160-010 (BC-2.11.001 amended to v1.9 in same PR: Postcondition 2 + Invariant 1 updated from five to six top-level keys, modified-log entry resolves v1.8 advisory pointer; implementer note to recompute input-hash after BC amendment); Task 8 added. F-W72-P1-009 (LOW) — rename test `terminal_display_unchanged_uppercase` → `terminal_display_unchanged` in AC-160-005 (ThreatCategory Display is PascalCase-derived, not "uppercase"). |
