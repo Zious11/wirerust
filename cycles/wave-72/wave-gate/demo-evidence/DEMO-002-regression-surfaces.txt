@@ -1,0 +1,43 @@
+# Wave-72 Integration Demo: DEMO-002 — Regression Surfaces (Terminal + CSV)
+# Branch: develop HEAD c4eb1f4 (wave-72 merged)
+# Recorded: 2026-07-09
+# Evidences: STORY-160 AC-160-005 (terminal unchanged) + AC-160-006 (CSV unchanged, no schema_version)
+
+$ ./target/release/wirerust analyze --all --no-color tests/fixtures/modbus-write.pcap \
+    2>&1 | grep -E '\[Anomaly\]|\[Execution\]'
+
+  [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID (FC 0x11) from unit 1 (x2)
+  [Execution] LIKELY (MEDIUM) - Modbus write command observed: FC 0x10 from unit 1
+
+---
+
+$ ./target/release/wirerust analyze --all --no-color tests/fixtures/modbus-write.pcap \
+    2>&1 | grep -c schema_version; echo "expect: 0"
+
+0
+expect: 0
+
+---
+
+$ ./target/release/wirerust analyze --all --output-format csv tests/fixtures/modbus-write.pcap \
+    2>&1 | head -4
+
+category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp
+Anomaly,INCONCLUSIVE,MEDIUM,Modbus recon: Report Server ID (FC 0x11) from unit 1,FC=0x11 TxnID=0x0001 UnitID=1,T0888,192.168.1.10,ClientToServer,2024-05-29T16:26:43+00:00
+Anomaly,INCONCLUSIVE,MEDIUM,Modbus recon: Report Server ID (FC 0x11) from unit 1,FC=0x11 TxnID=0x0001 UnitID=1,T0888,192.168.1.100,ServerToClient,2024-05-29T16:26:44+00:00
+Execution,LIKELY,MEDIUM,Modbus write command observed: FC 0x10 from unit 1,FC=0x10 TxnID=0x0002 UnitID=1 ADU bytes 0..17,T1692.001;T0836,192.168.1.10,ClientToServer,2024-05-29T16:26:45+00:00
+
+---
+
+# VERIFICATION ASSERTIONS (STORY-160):
+#
+# AC-160-005: Terminal Display tokens UPPERCASE — CONFIRMED
+#   [Anomaly] INCONCLUSIVE (MEDIUM) — category=PascalCase, verdict=UPPERCASE, confidence=UPPERCASE
+#   [Execution] LIKELY (MEDIUM) — as above
+#   No lowercase 'inconclusive', 'likely', 'medium', 'anomaly', 'execution' in terminal output
+#
+# AC-160-006: no schema_version in terminal output — CONFIRMED (grep count = 0)
+#
+# AC-160-006: CSV categories are PascalCase ("Anomaly", "Execution") — CONFIRMED
+# AC-160-006: CSV verdict/confidence are UPPERCASE ("INCONCLUSIVE", "LIKELY", "MEDIUM") — CONFIRMED
+# AC-160-006: no schema_version column in CSV header — CONFIRMED

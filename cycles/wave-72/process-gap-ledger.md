@@ -104,3 +104,112 @@ adversary axis requiring that every E-11 codification story's ACs explicitly cit
 motivating defect ID and that at least one AC directly closes the diagnosed root cause.
 This is the highest-priority item in this ledger and must not be carried as an open
 deferral without an explicit justification reviewed at wave close.
+
+---
+
+## F-W72G-CR-004 — ADR-012 Decision 3a/3c Duplication
+
+**Class:** code-review deferred (NIT→MINOR)
+**Surfaced:** integration-gate code review
+**Description:** `docs/adr/0012.md` Decisions 3a and 3c duplicate each other in
+intent — both address the same "unclassified port" scenario with near-identical
+wording, creating reader confusion about which decision is authoritative. One should
+be primary; the other should reference it.
+**Route:** Next maintenance sweep (documentation cleanup batch).
+
+---
+
+## F-W72G-CR-006 — TC2 Fixture Duplicate Assertion
+
+**Class:** code-review deferred (NIT)
+**Surfaced:** integration-gate code review
+**Description:** `bin/test_lint_cycle_artifact.py` TC2 contains a duplicate assertion
+(`assert result.returncode == 0` appears twice consecutively) and a comment that
+describes the wrong test case (copy-paste from TC1). Cosmetic but reduces
+test-suite readability.
+**Route:** Next maintenance sweep.
+
+---
+
+## F-W72G-CR-007 — _PARSE_ERRORS Tuple Inside main()
+
+**Class:** code-review deferred (NIT)
+**Surfaced:** integration-gate code review
+**Description:** `bin/lint-cycle-artifact` defines `_PARSE_ERRORS` tuple inside
+`main()` rather than at module level. Tuple literals defined inside function bodies
+are re-constructed on each call; at module level they are constructed once and reused.
+**Route:** Next maintenance sweep.
+
+---
+
+## F-W72G-CR-008 — SEC-001 Guard Idiom Duplication
+
+**Class:** code-review deferred (NIT)
+**Surfaced:** integration-gate code review
+**Description:** `bin/lint-cycle-artifact` SEC-001 path-guard idiom
+(`if not path.resolve().is_relative_to(root)`) appears at two sites without a shared
+helper or cross-reference comment. Future maintainers may update one site without the
+other.
+**Route:** Next maintenance sweep.
+
+---
+
+## F-W72G-CR-009 — Redundant contains-key Asserts in TC7
+
+**Class:** code-review deferred (NIT)
+**Surfaced:** integration-gate code review
+**Description:** `bin/test_lint_cycle_artifact.py` TC7 asserts
+`expected_key in story_bcs_set` after the set-equality check that already implies this.
+The redundant contains-key asserts add verbosity without additional coverage.
+**Route:** Next maintenance sweep.
+
+---
+
+## F-W72G-P3-OBS-001 — HS-082 Terminal-Case Example Specificity
+
+**Class:** advisory observation
+**Surfaced:** integration-gate adversary Pass 3
+**Description:** HS-082 terminal-case example scenario description could benefit from
+additional specificity to distinguish the terminal-case condition from the adjacent
+non-terminal variant.
+**Route:** Next maintenance sweep (holdout-scenario quality batch).
+
+---
+
+## F-W72G-P3-OBS-002 — STORY-INDEX BC-Tally 337 vs BC-INDEX v2.22 Count 347
+
+**Class:** count-drift (MEDIUM, pre-existing)
+**Surfaced:** integration-gate adversary Pass 3 (same class as EPICS-TOTAL-BCS-DRIFT-001)
+**Description:** STORY-INDEX epics.md v2.1 `total_bcs: 337` disagrees with BC-INDEX
+v2.22 active-BC count of 347. This is the same pre-existing drift as
+EPICS-TOTAL-BCS-DRIFT-001 (pending intent, confirmed deferred Route C 2026-07-08).
+The counts have diverged by a further 10 since the last confirmed batch
+(wave-72 BCs add BC-2.11.001 v1.9 amendment).
+**Route:** Next spec-coherence sweep (batch with EPICS-TOTAL-BCS-DRIFT-001).
+
+---
+
+## F-W72G-P3-OBS-003 — CHANGELOG Routing Note Strip-Before-Release
+
+**Class:** advisory observation (LOW)
+**Surfaced:** integration-gate adversary Pass 3
+**Description:** The CHANGELOG contains a routing note about BREAKING change placement
+that is advisory for developers but should be stripped before release publication.
+No automation strips these routing notes when preparing the release section.
+**Route:** Next maintenance sweep (CHANGELOG hygiene batch).
+
+---
+
+## F-W72G-P3-OBS-004 — Sentinel-Asymmetry Docstring
+
+**Class:** advisory observation (LOW)
+**Surfaced:** integration-gate adversary Pass 3
+**Description:** The dispatcher sentinel value has a doc-comment that does not name
+its paired invariant, creating asymmetric documentation coverage relative to adjacent
+sentinel values that do name their invariants.
+**Route:** Next maintenance sweep (documentation cleanup batch).
+
+---
+
+*Wave-72 gate deferred items appended 2026-07-09 (D-415 burst). Resolves F-W72G-P3-004
+(adversary P3 finding: deferred-items ledger missing code-review and P3/P4 observations).*

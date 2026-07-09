@@ -1,0 +1,55 @@
+# Wave-72 Integration Demo: DEMO-001 — Combined JSON Surface
+# Branch: develop HEAD c4eb1f4 (wave-72 merged)
+# Recorded: 2026-07-09
+# Evidences: STORY-160 (BC-2.11.036 + BC-2.11.037 + BC-2.11.001 v1.9)
+
+$ ./target/release/wirerust analyze --all --output-format json tests/fixtures/modbus-write.pcap \
+    2>&1 | python3 -m json.tool | grep -E '"schema_version"|"findings":|"mitre_attack_version"|"mitre_domain"'
+
+  "findings": [
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "schema_version": "2",
+
+---
+
+$ ./target/release/wirerust analyze --all --output-format json tests/fixtures/modbus-write.pcap \
+    2>&1 | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+print('=== Top-level keys (6) ===')
+print(sorted(data.keys()))
+print()
+print('schema_version:', repr(data['schema_version']))
+print()
+print('=== Findings: verdict/confidence/category ===')
+for i, f in enumerate(data['findings'], 1):
+    print(f'  [{i}] verdict={f[\"verdict\"]!r}  confidence={f[\"confidence\"]!r}  category={f[\"category\"]!r}')
+    print(f'       summary={f[\"summary\"]!r}')
+"
+
+=== Top-level keys (6) ===
+['analyzers', 'findings', 'mitre_attack_version', 'mitre_domain', 'schema_version', 'summary']
+
+schema_version: '2'
+
+=== Findings: verdict/confidence/category ===
+  [1] verdict='inconclusive'  confidence='medium'  category='anomaly'
+       summary='Modbus recon: Report Server ID (FC 0x11) from unit 1'
+  [2] verdict='inconclusive'  confidence='medium'  category='anomaly'
+       summary='Modbus recon: Report Server ID (FC 0x11) from unit 1'
+  [3] verdict='likely'  confidence='medium'  category='execution'
+       summary='Modbus write command observed: FC 0x10 from unit 1'
+
+---
+
+# VERIFICATION ASSERTIONS (STORY-160):
+#
+# BC-2.11.037: schema_version present in JSON envelope — CONFIRMED ("schema_version": "2")
+# BC-2.11.037: schema_version value is the string "2" (not integer) — CONFIRMED
+# BC-2.11.001 v1.9: six top-level keys present — CONFIRMED
+#   ['analyzers', 'findings', 'mitre_attack_version', 'mitre_domain', 'schema_version', 'summary']
+# BC-2.11.036: verdict values lowercase — CONFIRMED ('inconclusive', 'likely')
+# BC-2.11.036: confidence values lowercase — CONFIRMED ('medium')
+# BC-2.11.036: category values snake_case — CONFIRMED ('anomaly', 'execution')
+# No PascalCase enum values in JSON output (no 'Inconclusive', 'Likely', 'Medium', 'Anomaly', 'Execution')

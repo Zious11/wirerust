@@ -5,6 +5,21 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
 
 ---
 
+## Checkpoint — 2026-07-09 (wave-72 integration gate IN PROGRESS, D-414)
+
+**Wave-72 integration gate IN PROGRESS (D-414, 2026-07-09). Suite PASS (2,392/0). Security PASS-W-ADV. Holdout PASS (16/16, 13 HS repaired by product-owner). Consistency BLOCKING-01 FIXED (STORY-INDEX v3.31 body complete). Adversary P1 FINDINGS_BLOCKING → FIXED via PR #391 (develop=44f8c9c). NEXT: wave adversary Pass 2+ on fixed tree — need 3 consecutive clean passes. trajectory-tail →1→0→0→0.**
+
+- **Date:** 2026-07-09. Position: wave-72 integration gate IN PROGRESS (D-414). Pipeline RUNNING.
+- **develop HEAD:** `44f8c9c` (full: `44f8c9ce57b1ebe7ea1d166628a2518ebf981997`) — 13 unreleased commits ahead of v0.11.5.
+- **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
+- **Wave-72 story set:** ALL DELIVERED (D-408→D-413). STORY-158 D-410 PR #387 / STORY-159 D-411 PR #388 / STORY-160 D-412 PR #389 / STORY-161 D-413 PR #390.
+- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, BC-5.39.001 satisfied). Wave-level adversarial: P1 FINDINGS_BLOCKING → FIXED PR #391. Clean streak restarted at 0. Need 3 consecutive clean.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.13 / STORY-INDEX v3.31 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:wave-gate` (wave-72 integration gate — adversary Pass 2 on develop=44f8c9c).
+
+---
+
 ## Checkpoint — 2026-07-09 (wave-72 delivery started, D-408)
 
 **Wave 72 delivery IN PROGRESS (D-408, 2026-07-09). Story set CONVERGED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied); human approved. STORY-158 delivery starting. Sequencing: 158 → {159, 160} → 161. develop=c4eb1f4. trajectory-tail →2→0→0→0.**

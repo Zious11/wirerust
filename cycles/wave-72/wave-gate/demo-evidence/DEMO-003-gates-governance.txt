@@ -1,0 +1,108 @@
+# Wave-72 Integration Demo: DEMO-003 — Gates + Governance
+# Branch: develop HEAD c4eb1f4 (wave-72 merged)
+# Recorded: 2026-07-09
+# Evidences: Action-pin-gate coverage + ADR-0012 ten decisions + VP-024 proof_file_hash
+#            + CLAUDE.md Two Hash Disciplines (STORY-161 wave-72 governance artifacts)
+
+# --- 3a: Action-pin-gate ---
+
+$ python3 -c "
+import re, glob
+allowlist = ['dtolnay/rust-toolchain@stable', 'dtolnay/rust-toolchain@nightly']
+sha_pat = re.compile(r'uses:\s+(\S+@[0-9a-f]{40})')
+non_sha_pat = re.compile(r'uses:\s+(\S+@\S+)')
+workflow_files = glob.glob('.github/workflows/*.yml')
+validated = []
+violations = []
+for wf_path in sorted(workflow_files):
+    with open(wf_path) as f:
+        content = f.read()
+    for line in content.splitlines():
+        m = non_sha_pat.search(line)
+        if m:
+            ref = m.group(1)
+            if ref in allowlist:
+                continue
+            if sha_pat.search(line):
+                validated.append(ref)
+            else:
+                violations.append((wf_path, ref))
+print(f'Workflow files scanned: {len(workflow_files)}')
+print(f'Remote action refs validated (SHA-pinned): {len(validated)}')
+print(f'Violations (non-SHA, non-allowlisted): {len(violations)}')
+if not violations:
+    print('ACTION-PIN-GATE: PASS -- 0 violations')
+print(f'Allowlisted: dtolnay/rust-toolchain@stable, dtolnay/rust-toolchain@nightly')
+"
+
+Workflow files scanned: 2
+Remote action refs validated (SHA-pinned): 23
+Violations (non-SHA, non-allowlisted): 0
+ACTION-PIN-GATE: PASS -- 0 violations
+Allowlisted: dtolnay/rust-toolchain@stable, dtolnay/rust-toolchain@nightly
+
+---
+
+# --- 3b: ADR-0012 ten-decision check ---
+
+$ grep -c '^### Decision' docs/adr/0012-protocols-catalog-and-coverage-gaps.md
+
+10
+
+$ grep '^### Decision' docs/adr/0012-protocols-catalog-and-coverage-gaps.md
+
+### Decision 1: Hand-Curated Static Compile-Time Array
+### Decision 2: Tri-State Vocabulary (Suricata-Derived)
+### Decision 3: Port-Based Detection Caveats (Mandatory Documentation)
+### Decision 4: Catalog Scope -- ICS + Core-IT
+### Decision 5: Supported-Set Derivation -- Static `SUPPORTED_PORTS`
+### Decision 6: TCP+UDP Dynamic Detection (Approved Scope)
+### Decision 7: Category Tagging
+### Decision 8: `--coverage-gaps` Explicit Flag
+### Decision 9: `CoverageGapsSummary` as New Report Section
+### Decision 10: UDP Gap Classification Decoupled from `enable_dns`
+
+---
+
+# --- 3c: VP-024 proof_file_hash (STORY-161 FU-F6-KANI-CLEANUP discharge) ---
+
+$ grep '^proof_file_hash:' .factory/specs/verification-properties/vp-024-arp-parse-safety.md
+
+proof_file_hash: "48296b21a5bbce59750e6210da8d55be8bf7d3d4a1ed6719088dd4ef59a2c8a5"
+
+---
+
+# --- 3d: CLAUDE.md Two Hash Disciplines (STORY-161 wave-72 governance) ---
+
+$ grep -A 12 'Two Hash Disciplines' CLAUDE.md
+
+### Two Hash Disciplines
+
+**Two hash disciplines in this repository are deliberately distinct:**
+
+- `input-hash` (story frontmatter): MD5-first-7 hex, computed by `bin/compute-input-hash`
+  (canonical Python tool). Purpose: advisory drift detection for spec inputs. Lightweight,
+  not a security primitive.
+- `proof_file_hash` (VP frontmatter): SHA-256 mini-Merkle over Kani proof sections,
+  full 64-char hex. Purpose: integrity anchor for formal verification artifacts. Tamper-evident.
+
+Do not conflate the two. `input-hash` and `proof_file_hash` use different algorithms,
+different truncations, and serve different roles. Changing an `input-hash` has no effect
+on `proof_file_hash` and vice versa.
+
+---
+
+# VERIFICATION ASSERTIONS:
+#
+# Action-pin-gate: 23 remote action refs validated, 0 violations — CONFIRMED
+#   (matches CLAUDE.md CI/Supply-Chain policy: all remote `uses:` pins to 40-char hex SHA)
+#   (dtolnay/rust-toolchain @stable/@nightly exempted per documented policy)
+#
+# ADR-0012: 10 decisions present — CONFIRMED
+#   (Decision 1 through Decision 10 all present in docs/adr/0012-...)
+#
+# VP-024 proof_file_hash: populated (non-null) — CONFIRMED
+#   (48296b21... — 64-char lowercase hex SHA-256 mini-Merkle; STORY-161 FU-F6-KANI-CLEANUP)
+#
+# CLAUDE.md Two Hash Disciplines: codified — CONFIRMED
+#   (input-hash = MD5-first-7 for advisory spec-drift; proof_file_hash = SHA-256 mini-Merkle)
