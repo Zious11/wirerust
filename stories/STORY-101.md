@@ -40,7 +40,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored at v1.5/v1.6 as of 2026-06-09
-input-hash: "5ce9b0d"
+input-hash: "80d2d91"
 ---
 
 # STORY-101: Multi-Tag Reporter Serialization + JSON Envelope Add-Ons

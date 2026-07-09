@@ -1,0 +1,31 @@
+{
+  "story": "STORY-160",
+  "wave": 72,
+  "date": "2026-07-09",
+  "head_reviewed": "73f30cc",
+  "passes": [
+    { "pass": 1, "result": "CLEAN", "findings_high_critical": 0, "findings_total": 0 },
+    { "pass": 2, "result": "CLEAN", "findings_high_critical": 0, "findings_total": 0 },
+    { "pass": 3, "result": "CLEAN", "findings_high_critical": 0, "findings_total": 0 }
+  ],
+  "consecutive_clean": 3,
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "carried_low_observations": [
+    {
+      "id": "LO-S160-01",
+      "summary": "Casing tests use direct enum serialization per story spec; a belt-and-braces JsonReporter::render envelope-level enum assertion would harden coverage",
+      "severity": "LOW",
+      "blocking": false,
+      "disposition": "wave-gate follow-up triage"
+    },
+    {
+      "id": "LO-S160-02",
+      "summary": "No regression test pins Direction's disclosed PascalCase retention across serialization round-trips",
+      "severity": "LOW",
+      "blocking": false,
+      "disposition": "wave-gate follow-up triage"
+    }
+  ],
+  "process_gap_findings": []
+}

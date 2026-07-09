@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.21"
+version: "2.22"
 status: draft
 producer: product-owner
 timestamp: 2026-07-08T00:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 348 entries (346 prior + 2 new BCs for issue #255 snake_case JSON enums: BC-2.11.036..037; BC-2.01.004 retired). Active count: 347.
+>
+> **v2.22 2026-07-09 (BC-2.11.001 v1.8→v1.9 — schema_version envelope amendment; STORY-160 wave-72):**
+> BC-2.11.001 v1.8→v1.9: schema_version envelope amendment (DF-SIBLING-SWEEP-001 BC-INDEX row propagation, STORY-160 / AC-160-010). Description updated to list six top-level keys (adding schema_version); Postcondition 2 updated from five to six keys; Canonical Test Vectors updated to include schema_version="2" in expected envelope output; v1.8 advisory pointer resolved. Corrective note: v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs `unwrap()` infallibility; correct amendment scope: Description + Postcondition 2 + Canonical Test Vectors. BC-INDEX row title for BC-2.11.001 updated to include schema_version (six keys). No BC count change (348 on disk; 347 active).
 >
 > **v2.21 2026-07-08 (issue #255 snake_case JSON enums — 2 new BCs BC-2.11.036..037, BC-2.11.001 v1.7→v1.8 advisory + TD-031 fix; SS-11 count 35→37):**
 > Issue #255 snake_case JSON enum behavioral contracts (research-validated 2026-07-08, issue-backlog-triage-2026-07-08.md). NEW BC-2.11.036 v1.0 (P0, greenfield, breaking): JSON enum-value casing — `Verdict` and `Confidence` enums gain `#[serde(rename_all = "lowercase")]`; `ThreatCategory` gains `#[serde(rename_all = "snake_case")]`; full variant mapping documented (e.g. `LateralMovement` → `"lateral_movement"`, `C2` → `"c2"`); terminal Display tokens (UPPERCASE) UNCHANGED — governed independently by BC-2.09.003/BC-2.09.004; CSV unaffected; BREAKING for JSON consumers at v0.12.0; JSON schema is a governed surface outside cargo-semver-checks scope. NEW BC-2.11.037 v1.0 (P1, greenfield): schema_version envelope field — top-level `"schema_version": "2"` added to JSON report; value `"2"` because pre-v0.12.0 implicit format is schema v1 (no field present); co-ships with BC-2.11.036 breaking change so consumers can gate on `schema_version == "2"` to confirm v0.12.0+ format; emitted unconditionally; string type (not integer); JSON-only (CSV/terminal unaffected). BC-2.11.001 v1.7→v1.8: advisory pointer for both new BCs + TD-031 stable-anchor fix (volatile `json.rs:NN` line citations in Invariant 1, Architecture Anchors, and Source Evidence Evidence Types replaced with stable symbol anchors: `JsonReporter::render` infallible unwrap). SS-11: 35→37 BCs. Total on disk: 346→348. Active: 345→347. No PRD change. No new VPs (enum rename is pure annotation; schema_version is a constant field; test-writer authors unit tests per BC VP tables).
@@ -552,7 +555,7 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin; v1.8: v0.12.0 advisory — enum casing (BC-2.11.036) + schema_version (BC-2.11.037); TD-031 stable-anchor fix -->
+| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version/schema_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin; v1.8: v0.12.0 advisory — enum casing (BC-2.11.036) + schema_version (BC-2.11.037); TD-031 stable-anchor fix; v1.9: Description + Postcondition 2 + Canonical Test Vectors updated to six keys (adding schema_version="2"); v1.8 advisory pointer resolved; corrective note: Invariant 1 governs unwrap() infallibility, not key enumeration -->
 | BC-2.11.002 | JsonReporter Includes skipped_packets in Summary | P1 | [WRITTEN] | BC-RPT-002 |
 | BC-2.11.003 | JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde | P0 | [WRITTEN] | BC-RPT-003 |
 | BC-2.11.004 | JsonReporter Preserves Non-ASCII Unicode in Readable Form | P1 | [WRITTEN] | BC-RPT-004 |

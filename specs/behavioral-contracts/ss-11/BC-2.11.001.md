@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. F4 FLAG updated: T0855 replaced by T1692.001 in the list of ICS technique IDs to pin the catalog version against. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.7: Advisory pointer — BC-2.11.035 (F2 issue #64) defines the per-finding `mitre_attack` array that extends each `findings[*]` object with resolved technique objects. This BC (BC-2.11.001) governs the JSON envelope shape and `mitre_attack_version` field; BC-2.11.035 governs the per-finding enrichment. The two contracts compose: BC-2.11.001 PC-3 (`findings` is an array; one element per Finding) is the entry point; BC-2.11.035 specifies the additive `mitre_attack` field within each element. No normative change to this BC. — 2026-06-22"
   - "v1.8: v0.12.0 JSON schema transition advisory (issue #255) — Two breaking JSON surface changes target v0.12.0: (1) BREAKING enum-value casing change (BC-2.11.036): Verdict/Confidence/ThreatCategory enum values in `findings[*]` switch from PascalCase to lowercase/snake_case serde rendering — consumers matching exact enum strings must update; (2) schema_version envelope field (BC-2.11.037): a new top-level `schema_version: '2'` key is added to the JSON envelope, enabling consumers to machine-detect the v0.12.0+ schema. After BC-2.11.037 ships, Postcondition 2 and Invariant 1 of this BC will be updated to reflect six top-level keys. JSON schema is a governed surface outside cargo-semver-checks scope (CHANGELOG + BC enforcement). No normative change to this BC's current five-key description. — 2026-07-08"
+  - "v1.9: schema_version envelope amendment (issue #255, STORY-160, wave-72) — Resolves v1.8 advisory pointer: BC-2.11.037 shipped; Description updated to list six top-level keys (adding schema_version); Postcondition 2 updated from five to six top-level keys; Canonical Test Vectors updated to include schema_version='2' in expected envelope output. Corrective note: v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs `unwrap()` infallibility; correct amendment scope: Description + Postcondition 2 + Canonical Test Vectors. — 2026-07-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,12 +32,12 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.11.001: JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys
+# BC-2.11.001: JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version/schema_version Keys
 
 ## Description
 
-`JsonReporter::render` produces a single JSON object with exactly five top-level keys:
-`summary`, `findings`, `analyzers`, `mitre_domain`, and `mitre_attack_version`. The output
+`JsonReporter::render` produces a single JSON object with exactly six top-level keys:
+`summary`, `findings`, `analyzers`, `mitre_domain`, `mitre_attack_version`, and `schema_version`. The output
 is valid, pretty-printed JSON produced by `serde_json::to_string_pretty`. The `unwrap()`
 call is infallible by construction because `serde_json::Value` serialization cannot fail.
 
@@ -59,7 +60,7 @@ fields; these are JSON-only.
 
 1. The returned `String` is valid JSON (parseable by any RFC 8259 compliant parser).
 2. The top-level object contains exactly the keys `"summary"`, `"findings"`, `"analyzers"`,
-   `"mitre_domain"`, and `"mitre_attack_version"`.
+   `"mitre_domain"`, `"mitre_attack_version"`, and `"schema_version"`.
 3. `"findings"` is a JSON array; one element per `Finding` in the input slice.
 4. `"analyzers"` is a JSON array; one element per `AnalysisSummary` in the input slice.
 5. `"summary"` contains `total_packets`, `total_bytes`, `skipped_packets`,
@@ -114,11 +115,11 @@ fields; these are JSON-only.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Summary with 1 packet, 0 findings, 0 analyzers | JSON with summary.total_packets=1, findings=[], analyzers=[], mitre_domain="ics-attack", mitre_attack_version present | happy-path |
+| Summary with 1 packet, 0 findings, 0 analyzers | JSON with summary.total_packets=1, findings=[], analyzers=[], mitre_domain="ics-attack", mitre_attack_version present, schema_version="2" | happy-path |
 | Summary with skipped_packets=3 | "skipped_packets": 3 appears in summary | happy-path |
-| findings=[one Finding] | "findings" array has length 1; mitre_domain and mitre_attack_version always present | happy-path |
-| Empty everything | All five top-level keys present: summary, findings=[], analyzers=[], mitre_domain, mitre_attack_version | edge-case |
-| JSON report with only HTTP findings (no ICS techniques) | mitre_domain="ics-attack" and mitre_attack_version still present (envelope fields are unconditional) | edge-case |
+| findings=[one Finding] | "findings" array has length 1; mitre_domain, mitre_attack_version, and schema_version always present | happy-path |
+| Empty everything | All six top-level keys present: summary, findings=[], analyzers=[], mitre_domain, mitre_attack_version, schema_version="2" | edge-case |
+| JSON report with only HTTP findings (no ICS techniques) | mitre_domain="ics-attack", mitre_attack_version, and schema_version="2" still present (envelope fields are unconditional) | edge-case |
 
 ## Verification Properties
 

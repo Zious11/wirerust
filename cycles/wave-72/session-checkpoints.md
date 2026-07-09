@@ -27,6 +27,22 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
 
 ---
 
+## Checkpoint — 2026-07-09 (STORY-159 DELIVERED, D-411)
+
+**Wave 72 delivery: STORY-159 DELIVERED (D-411, 2026-07-09). PR #388 squash-merged to develop d410b8d at 2026-07-09. stories_delivered=104. STORY-160 unblocked; STORY-161 now unblocked — dispatch in parallel. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-09. Position: wave-72-delivery, STORY-159 DELIVERED (D-411), pipeline RUNNING.
+- **develop HEAD:** `d410b8d` (full: `d410b8d64b5fa8835bcd3db5234fad48ebd46bd4`) — 10 unreleased commits ahead of v0.11.5. PR #388 "docs: add ADR-012 protocols catalog and coverage-gaps system" squash-merged 2026-07-09.
+- **main HEAD:** `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`, v0.11.5 released 2026-07-07).
+- **Open PRs:** #386 (dependabot indicatif — untouched, still open). No open story PRs.
+- **current_cycle:** wave-72 (RUNNING). **Worktrees:** main checkout [develop] + .factory [factory-artifacts]. No open story worktrees.
+- **Wave-72 story set:** CONVERGED + APPROVED (D-408). Stories at: STORY-158 DELIVERED (D-410) / STORY-159 DELIVERED (D-411) / STORY-160 v1.11 / STORY-161 v1.9. Sequencing: 158 → {159, 160}, 159 → 161. Both 160+161 now unblocked.
+- **Convergence counters:** wave-72 story convergence CLOSED (15 passes, P13/P14/P15 clean 3/3, BC-5.39.001 satisfied). STORY-158 per-story CLOSED (7 passes, P5/P6/P7 clean 3/3). STORY-159 per-story CLOSED (3 passes, P1 CLEAN/P2 NITPICK_ONLY/P3 CLEAN, BC-5.39.001 satisfied).
+- **Spec versions:** BC-INDEX v2.21 / VP-INDEX v2.38 / HS-INDEX v2.12 / STORY-INDEX v3.29 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step` (STORY-160+161 both unblocked — dispatch in parallel)
+
+---
+
 ## Checkpoint — 2026-07-09 (STORY-158 merge-hold, pre-wrap, D-409)
 
 **Wave 72 delivery: STORY-158 AT MERGE-HOLD (D-409, 2026-07-09). PR #387 OPEN (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc). CI 12/12 green; reviews APPROVE. Human HELD merge. STORY-159/160 blocked on #387; STORY-161 blocked on 159. trajectory-tail →0→0→0→0.**
