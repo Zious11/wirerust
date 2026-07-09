@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-159
 epic_id: E-11
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -45,12 +45,13 @@ inputs:
 - **As a** contributor or maintainer reading wirerust source code
 - **I want** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` to exist with a full
   account of the ten design decisions it documents
-- **So that** any of the 38 ADR-012 citations found across `src/protocols.rs`,
+- **So that** any of the 38 lines totaling 39 ADR-012 citations found across `src/protocols.rs`,
   `src/dispatcher.rs`, `src/main.rs`, `tests/protocols_tests.rs`,
   `tests/dispatcher_tests.rs`, and `tests/integration_tests.rs` can be resolved by a
-  reader without access to the factory specification layer (37 use the canonical
+  reader without access to the factory specification layer (38 use the canonical
   `ADR-012 Decision N` form; one uses the abbreviated `ADR-012 Dec 10` form at
-  `tests/integration_tests.rs:1166`)
+  `tests/integration_tests.rs:1166`; `src/main.rs:1100` is a double-mention line
+  contributing 2 canonical citations in one grep line)
 
 ## Behavioral Contracts
 
@@ -59,8 +60,10 @@ _(none — E-11 convention: no BCs authored yet; status: draft, pending PO autho
 ## Background
 
 Maintenance sweep `maint-2026-07-08` (finding NEW-001, HIGH) identified that ADR-012 is
-cited 38 times across six source and test files (37 using the `ADR-012 Decision N` form;
-one using the abbreviated `ADR-012 Dec 10` form at `tests/integration_tests.rs:1166`)
+cited across 38 lines totaling 39 citations in six source and test files (38 using the
+`ADR-012 Decision N` form; one using the abbreviated `ADR-012 Dec 10` form at
+`tests/integration_tests.rs:1166`; `src/main.rs:1100` is a double-mention line contributing
+2 canonical citations in one grep line)
 but no corresponding public document exists in `docs/adr/`. The `docs/adr/` directory contains `0001`–`0007`, `0009`–`0011`;
 ADR-012 is the current missing entry (ADR-008 was intentionally skipped in sequence).
 
@@ -79,20 +82,21 @@ add the CLAUDE.md Project References row.
 
 Representative inline citations from the six affected files:
 
-| File | Line | Citation |
-|------|------|---------|
+| File | Lines | Citation |
+|------|-------|---------|
 | `src/protocols.rs` | ~13 | `(ADR-012 Decision 7)` |
 | `src/protocols.rs` | ~69 | `(ADR-012 Decision 5)` |
 | `src/dispatcher.rs` | ~44 | `(ADR-012 Decision 6)` |
 | `src/dispatcher.rs` | ~98 | `(ADR-012 Decision 6 Clarification)` |
-| `src/main.rs` | ~195 | `(ADR-012 Decision 9)` |
+| `src/main.rs` | 6 lines / 7 citations | `(ADR-012 Decision 9)` — line 1100 is a double-mention (`ADR-012 Decision 9` appears twice on one grep line) |
 | `tests/integration_tests.rs` | various | 3 `ADR-012 Decision N` + 1 `ADR-012 Dec 10` (line ~1166) = 4 occurrences |
 
-Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 occurrences total across six files:
-`src/protocols.rs` (2) + `src/main.rs` (6) + `src/dispatcher.rs` (8) +
-`tests/protocols_tests.rs` (10) + `tests/dispatcher_tests.rs` (8) +
-`tests/integration_tests.rs` (4) = 38.
-Of these 38, 37 use the exact form `ADR-012 Decision N` and one uses the abbreviated
+Full sweep: `grep -rn "ADR-012" src/ tests/` — 38 matched lines / 39 citations across six files:
+`src/protocols.rs` (2 lines) + `src/main.rs` (6 lines / 7 citations) + `src/dispatcher.rs` (8 lines) +
+`tests/protocols_tests.rs` (10 lines) + `tests/dispatcher_tests.rs` (8 lines) +
+`tests/integration_tests.rs` (4 lines) = 38 matched lines; `src/main.rs:1100` is a double-mention
+line contributing one extra canonical citation beyond its 6-line grep count, giving 39 citations total.
+Of these 39, 38 use the exact form `ADR-012 Decision N` and one uses the abbreviated
 form `ADR-012 Dec 10` at `tests/integration_tests.rs:1166`.
 Decision numbers cited in source: 1, 2, 3, 4, 5, 6, 7, 9, 10 (nine of ten ADR-012
 decisions are referenced in the codebase; Decision 8 has no source citation yet —
@@ -149,8 +153,9 @@ must exit 0.
 
 Every decision number referenced in the source files resolves to a section in the
 authored public doc. The grep covers both citation forms: the canonical
-`ADR-012 Decision N` form (37 occurrences) and the abbreviated `ADR-012 Dec 10` form
-at `tests/integration_tests.rs:1166` (1 occurrence). Verification:
+`ADR-012 Decision N` form (38 occurrences, including 2 from `src/main.rs:1100`) and the
+abbreviated `ADR-012 Dec 10` form at `tests/integration_tests.rs:1166` (1 occurrence).
+Verification:
 
 ```bash
 # Extract unique decision numbers cited in source (both Decision and Dec forms)
@@ -314,6 +319,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-003 (MEDIUM) — occurrence arithmetic corrected throughout: grep counts 38 LINES but src/main.rs:1100 is a double-mention line contributing 2 canonical citations, giving 39 total citations. Narrative updated: "38 lines totaling 39 ADR-012 citations". Background intro updated with double-mention note. NEW-001 table: column renamed "Lines"; src/main.rs row updated to "6 lines / 7 citations" with double-mention annotation. Sweep paragraph: "38 matched lines / 39 citations" with src/main.rs:1100 note. AC-159-003: "37 occurrences" → "38 occurrences (including 2 from src/main.rs:1100)"; "Of these 39, 38 use..." updated throughout. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-005 (LOW) — EC-004 Description reworded: "docs/adr/0008-*.md gap in sequence" → "docs/adr/0008-<slug>.md (no such file — ADR-008 intentionally skipped)" (wildcard implied a file existed). F-W72-P4-007 (LOW) — AC-159-005 extended with one-line note: docs: remains correct semantic type despite one-line test-comment normalization in tests/integration_tests.rs (majority surface is documentation; test change is comment-only with no behavioral effect). |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-001 (MEDIUM) — 37+1 citation precision: Narrative, Background intro, NEW-001 table row (integration_tests.rs: 3 Decision-N + 1 Dec-10 = 4), and sweep paragraph updated to reflect 37 canonical + 1 abbreviated form. New Task 3: normalize tests/integration_tests.rs:1166 comment (ADR-012 Dec 10 → ADR-012 Decision 10). Architecture Compliance Rules and File Structure Requirements updated to include tests/integration_tests.rs. F-W72-P3-008 (LOW) — AC-159-003 portability: grep broadened to -E "ADR-012 (Decision\|Dec) [0-9]+" with POSIX extraction (grep -oE + awk); post-normalization Dec-form zero-check added. |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-002 (HIGH) — lines 92-93 corrected: nine of ten ADR-012 decisions referenced in source (not all ten); Decision 8 has no source citation; list updated to 1,2,3,4,5,6,7,9,10 with explanatory note. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. |

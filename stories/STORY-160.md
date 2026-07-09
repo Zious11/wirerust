@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-160
 epic_id: E-8
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -200,6 +200,16 @@ must return zero results in `assert_eq!` or `.contains()` argument slots after t
 name or inline comment). Note: these strings remain valid Rust variant names — only JSON
 value assertions are targeted.
 
+A second scan clause targets the five legacy envelope key literals in `tests/reporter_json_tests.rs`:
+
+```bash
+grep -n '"summary"\|"findings"\|"analyzers"\|"mitre_domain"\|"mitre_attack_version"' tests/reporter_json_tests.rs
+```
+
+Before the change this returns exactly one hit (the `test_BC_2_11_001_top_level_keys` vec
+assertion); after the update it returns zero. The enum-literal clause above returns zero
+both before and after (belt-and-braces check). The envelope-key clause is the active check.
+
 ### AC-160-008 (CHANGELOG.md BREAKING CHANGE entry)
 
 `CHANGELOG.md` contains an unreleased section entry for v0.12.0 with a BREAKING CHANGE note
@@ -241,6 +251,13 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
   BC-INDEX version is bumped with a corresponding changelog line. This is a
   **DF-SIBLING-SWEEP-001** requirement — omitting the BC-INDEX update leaves the index
   inconsistent with the BC content.
+- The **pre-existing `test_BC_2_11_001_top_level_keys` assertion** at
+  `tests/reporter_json_tests.rs:66-111` is updated from the five-key vec to the six-key
+  vec in the same develop PR:
+  `assert_eq!(keys, vec!["analyzers", "findings", "mitre_attack_version", "mitre_domain", "schema_version", "summary"])`
+  (`schema_version` inserts alphabetically between `mitre_domain` and `summary`). This is a
+  **DF-SIBLING-SWEEP-001** requirement — this test WILL fail when `schema_version` lands
+  and is the primary consuming-test surface for BC-2.11.001 v1.9.
 
 > **Note for implementer:** `.factory/` lives on the orphan `factory-artifacts` branch and
 > cannot be included in a `develop`-targeted PR. Commit BC-2.11.001 v1.9 and the BC-INDEX
@@ -306,8 +323,15 @@ explicitly **OUT OF SCOPE** for this amendment (it does not enumerate key count 
    `src/reporter/json.rs` tests block). Follow DF-TEST-NAMESPACE-001 mod-wrapper convention
    if applicable.
 
-4. **Update existing JSON-asserting tests.** Run the scan grep from AC-160-007 and update any
-   hit in a JSON value assertion context. Confirm `cargo test --all-targets` is green.
+4. **Update existing JSON-asserting tests.** Run both scan greps from AC-160-007:
+   - Enum-literal scan: update any hit in a JSON value assertion context to the new
+     lowercase/snake_case forms.
+   - Envelope-key scan: the one pre-change hit is `test_BC_2_11_001_top_level_keys` at
+     `tests/reporter_json_tests.rs:66-111`. Update its vec from the five-key form to the
+     six-key form:
+     `assert_eq!(keys, vec!["analyzers", "findings", "mitre_attack_version", "mitre_domain", "schema_version", "summary"])`
+     (`schema_version` inserts alphabetically between `mitre_domain` and `summary`.)
+   Confirm `cargo test --all-targets` is green after all updates.
 
 5. **Verify clippy.** Run `cargo clippy --all-targets -- -D warnings`. No new warnings.
 
@@ -404,6 +428,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-001 (HIGH) — consuming-test sibling gap closed: AC-160-010 gains new bullet explicitly enumerating test_BC_2_11_001_top_level_keys at tests/reporter_json_tests.rs:66-111 as DF-SIBLING-SWEEP-001 consuming-test surface; vec update documented (five-key → six-key; schema_version inserts alphabetically between mitre_domain and summary). Task 4 updated to enumerate this test explicitly with the required six-key assert_eq! form. F-W72-P5-004 (LOW) — AC-160-007 expanded with second scan clause targeting vec! with five legacy envelope key literals in tests/reporter_json_tests.rs; enum-literal clause returns zero before and after (belt-and-braces); envelope-key clause is active check (exactly one pre-change hit: test_BC_2_11_001_top_level_keys). |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-002 (HIGH) — AC-160-010 extended: BC-INDEX row for BC-2.11.001 (row ~555) MUST be updated in same factory-artifacts burst (six-key title; v1.9 annotation appended; BC-INDEX version bumped); DF-SIBLING-SWEEP-001 requirement. Task 8 extended with BC-INDEX update step. F-W72-P4-003 (MEDIUM) — Task 8 "Include this file in the same PR" rewritten to cross-branch wording: commit BC-2.11.001 v1.9 and BC-INDEX update to factory-artifacts in same delivery burst; do NOT include .factory/ paths in develop PR; recompute input-hash on factory-artifacts. AC-160-010 implementer note updated to match. F-W72-P4-004 (MEDIUM) — Task 3 test-file name corrected (tests/json_reporter_tests.rs → tests/reporter_json_tests.rs); File Structure Requirements row de-vaguified (named tests/reporter_json_tests.rs explicitly). |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-010 (LOW) — Task 1: added note that #[non_exhaustive] on all three enums is orthogonal to serde(rename_all); attribute affects match exhaustiveness, not Serialize output. F-W72-P3-005 (MEDIUM) — AC-160-007: grep scope restricted from tests/ src/ to two named files (tests/reporter_json_tests.rs src/reporter/json.rs); surrounding prose updated to match. F-W72-P3-007 (MEDIUM) — AC-160-010 modified-log bullet and Task 8: added corrective note ("v1.8 misidentified Invariant 1 as key-enumerating; Invariant 1 governs unwrap() infallibility; correct amendment scope: Description + Postcondition 2 + Canonical Test Vectors"). |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-001 (HIGH) — AC-160-010 rewritten: v1.9 amendment targets Description block + Postcondition 2 + Canonical Test Vector rows (not Invariant 1); Invariant 1 governs unwrap() infallibility and is explicitly OUT OF SCOPE; Task 8 updated to match. F-W72-P2-003 (MEDIUM) — "nine unit tests" corrected to "fourteen" in Task 3, Token Budget, and File Structure Requirements (BC-2.11.036 VP table has 9 rows + BC-2.11.037 has 5 = 14). F-W72-P2-011 (LOW) — AC-160-007 grep assertion tightened to assert_eq!/.contains() argument slots rather than vague "JSON-assertion contexts". |

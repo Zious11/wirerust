@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-158
 epic_id: E-11
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -185,20 +185,33 @@ an `[Unreleased]` CHANGELOG entry (enforced by CI; AC-158-001)." The note must
 reference PG-W71-CHANGELOG and the AC-158-001 CI gate.
 
 ### AC-158-003 (traces to PG-W71-CYCLE-ARTIFACT-IDENTITY — identity lint)
-A new `bin/lint-cycle-artifact` script (Python 3, stdlib only) or a validated
-extension to `validate-template-compliance` exists that accepts `--story <path>`
-and `--artifact <path>` and verifies:
-(a) the artifact's story ID reference matches the story's `story_id` frontmatter
-    field,
-(b) any BC IDs in the artifact's own `bcs:` frontmatter field appear in the story's
-    `behavioral_contracts` frontmatter list. References to BC IDs in artifact body
-    prose or section headers as narrative context (e.g., "this fixes a gap identified
-    in BC-2.11.036") are **NOT flagged** — only the `bcs:` frontmatter field is
-    checked. For stories with `behavioral_contracts: []` the check passes only if the
-    artifact's `bcs:` field is empty or absent.
-The tool MUST exit non-zero with a human-readable diff on any mismatch, and exit 0
-on a clean identity match. A self-test (`bin/test_lint_cycle_artifact.py`) MUST
-cover the mismatch case and the clean case.
+A new `bin/lint-cycle-artifact` script (Python 3, stdlib only) exists that accepts
+`--story <path>` and `--artifact <path>` and enforces the following HARD FAIL contract:
+(1) If the artifact is missing a YAML frontmatter block entirely, OR if the frontmatter
+    block is present but missing either the `story_id:` or `bcs:` key, the tool MUST exit
+    non-zero immediately with the exact message:
+    `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) — see current cycle-artifact template (STORY-158)`
+    No legacy mode. No SKIP-with-warning. No fallback to body-prose or H1 heading.
+(2) If `bcs:` is present and explicitly empty (`bcs: []` or an empty list block), the tool
+    MUST exit 0 — this is a valid well-formed artifact with no BC citations.
+(3) If `bcs:` lists one or more BC IDs, every ID MUST resolve on disk at
+    `.factory/specs/behavioral-contracts/ss-NN/BC-S.SS.NNN.md` (where `ss-NN` is derived
+    from the subsection digits in the ID). Any ID that does not resolve is fabricated. The
+    tool MUST exit non-zero and list ALL unresolvable IDs in the error output.
+(4) BC IDs in the artifact's body prose or section headers are **NOT checked** — only the
+    `bcs:` frontmatter field is linted (prose false-positive protection preserved).
+(5) Legacy artifacts (wave-71 and earlier) are outside lint scope **procedurally** — they
+    will fail rule (1) if run through the tool, but the tool is not required to have a
+    `--skip-legacy` flag or special-case these artifacts. The procedural boundary is
+    documented in Task 4.
+
+### AC-158-003(a) (story_id extraction convention)
+Under the frontmatter contract above, the `story_id:` value in the artifact's frontmatter
+MUST match the `STORY-NNN` directory the artifact lives in (e.g., an artifact at
+`.factory/cycles/<wave>/STORY-158/impl-evidence.md` must carry `story_id: STORY-158`).
+The tool MUST parse `story_id:` from YAML frontmatter ONLY — no fallback to H1 headings
+or bolded header text. Frontmatter-only parsing is consistent with the HARD FAIL contract
+in rule (1) above.
 
 ### AC-158-004 (traces to PG-W71-CI-SCAN-GUARDS (a) — trust-boundary src/ guard)
 The `trust-boundary` CI job in `.github/workflows/ci.yml` includes an explicit
@@ -277,9 +290,9 @@ serves as the Red Gate.
 | EC-002 | PR modifies only `CHANGELOG.md` (no src/ change) | CHANGELOG gate: PASS (no src/ delta) |
 | EC-003 | PR modifies `src/` without `CHANGELOG.md` | CHANGELOG gate: FAIL with clear message |
 | EC-004 | PR modifies only docs/, tests/, or .github/ (no src/, Cargo.toml, or bin/ change) | CHANGELOG gate: PASS (excluded surfaces: tests/ and .github/ are process-internal; docs/ is self-documenting) |
-| EC-005 | Cycle artifact matches story ID + zero BC IDs cited (empty behavioral_contracts) | lint-cycle-artifact: PASS |
-| EC-006 | Cycle artifact cites BC ID not in story's behavioral_contracts | lint-cycle-artifact: FAIL with unmatched BC ID listed |
-| EC-007 | Cycle artifact references wrong story ID | lint-cycle-artifact: FAIL with expected vs. actual |
+| EC-005 | Artifact has valid `story_id:` and `bcs: []` (explicit empty) | lint-cycle-artifact: PASS |
+| EC-006 | Artifact `bcs:` contains an unresolvable ID (fabricated — no on-disk BC file) | lint-cycle-artifact: HARD FAIL listing ALL unresolvable IDs |
+| EC-007 | Artifact lacks YAML frontmatter entirely, OR frontmatter present but missing `story_id:` or `bcs:` key | lint-cycle-artifact: HARD FAIL with exact message `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) — see current cycle-artifact template (STORY-158)` |
 | EC-008 | `src/` directory renamed or removed | trust-boundary: FAIL loudly (existence guard fires, exit 1) |
 | EC-009 | `_collect_rust_files` returns empty list | check-green-doc-tense: FAIL, exit non-zero, message directs to scan target |
 | EC-010 | `_collect_rust_files` returns non-empty list (normal operation) | check-green-doc-tense: behavior unchanged from pre-fix |
@@ -305,28 +318,46 @@ serves as the Red Gate.
    PG-W71-CHANGELOG)."
 
 3. **Cycle-artifact identity lint (AC-158-003):** Create `bin/lint-cycle-artifact`
-   (Python 3, stdlib only). Accepts `--story <path>` and `--artifact <path>`. Reads
-   `story_id` and `behavioral_contracts` from story YAML frontmatter. Checks artifact
-   for: (a) story ID reference match; (b) BC IDs in the artifact's `bcs:` frontmatter
-   field ONLY — NOT BC IDs in body prose or section headers, which are permitted as
-   narrative context. Exits 1 on any mismatch with a human-readable diff. Create
-   `bin/test_lint_cycle_artifact.py` with at least two test cases: clean identity
-   (exit 0) and fabricated `bcs:` frontmatter BC ID (exit 1). Include a third case
-   confirming that a BC ID appearing only in body prose or a section header does NOT
-   trigger a failure.
+   (Python 3, stdlib only). Accepts `--story <path>` and `--artifact <path>`. Implements
+   the HARD FAIL contract in AC-158-003: (1) missing frontmatter or missing `story_id:`/`bcs:`
+   keys → exit non-zero with the exact error message; (2) `bcs: []` → exit 0; (3) any
+   unresolvable ID in `bcs:` → exit non-zero listing ALL unresolvable IDs; (4) body prose
+   BC IDs not checked. `story_id:` is parsed from frontmatter only — no H1 or
+   bolded-header fallback (AC-158-003(a)).
+   Create `bin/test_lint_cycle_artifact.py` with five test cases:
+   - **TC1 (missing frontmatter):** artifact with no YAML frontmatter block → expect exit 1
+     with the exact `ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) —
+     see current cycle-artifact template (STORY-158)` message.
+   - **TC2 (`bcs: []`):** artifact with valid `story_id:` and `bcs: []` → expect exit 0.
+   - **TC3 (unresolvable ID):** artifact with a fabricated ID in `bcs:` (no on-disk BC file)
+     → expect exit 1 listing ALL unresolvable IDs.
+   - **TC4 (prose BC ID only):** artifact with a BC ID referenced only in body prose (not
+     in `bcs:` frontmatter) → expect exit 0 (prose not checked).
+   - **TC5 (missing `bcs:` key):** artifact with YAML frontmatter that has `story_id:` but
+     is missing the `bcs:` key entirely → expect exit 1 with the exact error message
+     (rule 1 applies to missing keys as well as missing block).
 
-4. **Trust-boundary src/ guard (AC-158-004):** In `.github/workflows/ci.yml` under the
+4. **Cycle-artifact template and wave-gate checklist update (AC-158-003 legacy scope):**
+   Update the cycle-artifact template (the canonical template STORY-158 defines as the
+   reference) to include `story_id:` and `bcs:` YAML frontmatter fields with placeholder
+   values. Update the wave-gate checklist to require that all cycle artifacts for **this
+   wave and forward** carry these frontmatter fields before the gate closes. Document
+   explicitly that wave-71-and-earlier artifacts are outside lint scope — running
+   `bin/lint-cycle-artifact` against them will fail rule (1) by design, but they are not
+   required to be retroactively updated.
+
+5. **Trust-boundary src/ guard (AC-158-004):** In `.github/workflows/ci.yml` under the
    `trust-boundary` job's `run:` block, prepend the SEC-001-style existence guard:
    `if ! test -d src/; then echo "FAIL: trust-boundary: src/ directory not found...";
    exit 1; fi`. The guard must appear before the `grep` invocation.
 
-5. **check-green-doc-tense zero-file guard (AC-158-005):** In `bin/check-green-doc-tense`
+6. **check-green-doc-tense zero-file guard (AC-158-005):** In `bin/check-green-doc-tense`
    at line ~367, change the `print("WARNING: no tracked Rust files found...")` branch to
    print an `ERROR:` message and call `sys.exit(1)` (or equivalent). Update
    `bin/test_check_green_doc_tense.py` to add a test asserting exit non-zero when
    `_collect_rust_files` returns `[]`.
 
-6. **Gate code-review artifact protocol (AC-158-006):** Add a standing requirement to
+7. **Gate code-review artifact protocol (AC-158-006):** Add a standing requirement to
    `CLAUDE.md` (in the wave-gate or delivery guidance section) that before a wave gate is
    declared closed, a `cycles/wave-NNN/wave-gate/code-review.md` artifact MUST be written
    enumerating every MINOR and NIT finding from the gate-level code review together with
@@ -430,6 +461,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-002 (MEDIUM) — AC-158-003 rewritten to HARD FAIL contract: (1) missing frontmatter or missing story_id:/bcs: keys → exit non-zero with exact error message; no legacy mode, no SKIP-with-warning; (2) bcs: [] → PASS; (3) unresolvable IDs in bcs: → HARD FAIL listing ALL; (4) body prose not checked; (5) legacy scope procedural (Task 4). AC-158-003(a) added: story_id: extracted from frontmatter only, must match STORY-NNN directory, no H1/bolded-header fallback. EC-005/006/007 updated to match new contract. Task 3 rewritten with five TCs. New Task 4 added (cycle-artifact template + wave-gate checklist update; wave-71-and-earlier outside lint scope); old Tasks 4-6 shifted to 5-7. F-W72-P5-005 (LOW) — AC-158-003(a) story_id extraction convention added (same commit). |
 | 1.5 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-001 (HIGH) — add AC-158-007 (bootstrap self-consistency): this PR modifies bin/ and .github/ (CHANGELOG-gate trigger set), so it MUST include a CHANGELOG.md [Unreleased] entry with [process-gap] provenance note; AC documents the requirement and names the three items covered. Task 1 extended with explicit self-CHANGELOG bullet. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-002 (MEDIUM) — EC-011 narrowed: no automation detects empty code-review.md; caught by adversarial reviewer per CLAUDE.md rule only (documentation-only control). F-W72-P3-004 (LOW) — AC-158-001(a) restricted to pull_request trigger only; push-to-develop events are inherently no-op (origin/develop == HEAD) and must not be included. F-W72-P3-006 (LOW) — AC-158-003 and Task 3: scope-asserted BC IDs are ONLY those in artifact bcs: frontmatter field; open-ended scope-assertion header path dropped throughout. F-W72-P3-009 (LOW) — EC-004 Expected Behavior parenthetical trimmed to match the three described surfaces; .factory/ mention removed entirely. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-005 (MEDIUM) — AC-158-002 and Task 2 updated to three-path trigger set (src/, Cargo.toml, bin/) matching AC-158-001. F-W72-P2-006 (MEDIUM) — body header Wave: TBD → Wave: 72. F-W72-P2-008 (LOW) — ci.yml line-range citation corrected 290–296 → 290–295. F-W72-P2-009 (LOW) — EC-011 rewritten from tautological gate-violation restatement to discriminating edge case: code-review.md written but EMPTY → lint fails. F-W72-P2-010 (LOW) — EC-004 drops .factory/ from excluded surfaces (lives on orphan branch, never appears in develop PR diff). |

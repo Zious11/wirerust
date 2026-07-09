@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-161
 epic_id: E-11
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
@@ -257,6 +257,14 @@ heading). The note states:
 
 The exact wording may vary; the note must be present and clearly distinguish the two hash uses.
 
+### AC-161-007 (PR type)
+
+The pull request title uses the `docs:` semantic prefix (e.g.,
+`docs: codify multi-file proof_file_hash algorithm + VP-024 re-lock`), consistent with
+the develop-side diff being `CLAUDE.md`-only (the "Two hash disciplines" note). `VP-INDEX`
+and `VP-024` amendments land on the `factory-artifacts` branch and never appear in the
+develop PR diff, so `docs:` is the correct and only applicable semantic type.
+
 ## Architecture Mapping
 
 | Component | File | Pure/Effectful |
@@ -415,6 +423,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-07-08 | story-writer | Adversary P5 fixes: F-W72-P5-006 (LOW) — AC-161-007 added: PR title uses the docs: semantic prefix (develop-side diff is CLAUDE.md-only; VP-INDEX and VP-024 amendments land on factory-artifacts branch and never appear in the develop PR diff); mirrors STORY-159's AC-159-005 phrasing style. |
 | 1.4 | 2026-07-08 | story-writer | Adversary P4 fixes: F-W72-P4-006 (LOW) — EC-005 extended with cross-reference requirement: the new "Multi-File Proof Anchor Algorithm" section and the "## VP Lock Mutation Rules" section (LMR-003) MUST cross-link each other with one sentence each — algorithm section notes kani_version: is governed by LMR-003; VP Lock Mutation Rules section notes kani_version: is the only currently-allowlisted field for the multi-file proof anchor pattern. |
 | 1.3 | 2026-07-08 | story-writer | Adversary P3 fixes: F-W72-P3-003 (HIGH) — LMR-003 alignment: AC-161-001 bump math corrected 2.37→2.38 to 2.38→2.39 (VP-INDEX now v2.38 per commit 8a4977f). AC-161-004 header updated to cite LMR-003 + LMR-002; LMR-003 governance paragraph added (field absent at lock time; on Locked-Doc-Appendable Provenance Field Allowlist; sibling placement; lock not cleared). AC-161-005 modified-log template updated: VP-INDEX v2.38→v2.39; kani_version entry now cites LMR-003 with required conditions; kani_version value sourced via LMR-002. Architecture Compliance Rules: LMR-003 bullet added alongside LMR-001. Tasks item 3: bump target 2.38→2.39. File Structure Requirements: bump notation 2.37→2.38 corrected to 2.38→2.39. |
 | 1.2 | 2026-07-08 | story-writer | Adversary P2 fixes: F-W72-P2-007 (HIGH) — LMR-002 alignment throughout: AC-161-004 rewritten (kani_version records HISTORICAL version at 6e9f2cc; historical recovery required; honest-unknown fallback if unrecoverable; current release FORBIDDEN; re-run always-preferred); Background kani_version bullet updated; Tasks item 2 updated for historical recovery; Notes kani_version note updated. VP-INDEX bump math updated throughout from 2.36→2.37 to 2.37→2.38 (AC-161-001, Tasks item 3, File Structure Requirements, AC-161-005 modified-log template). |
