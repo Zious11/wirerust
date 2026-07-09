@@ -795,6 +795,92 @@ def test_tc17_exotic_frontmatter_construct() -> None:
         )
 
 
+def test_tc18_quoted_scalars_accepted() -> None:
+    """
+    TC18 (P3 LOW — quoted-scalar normalization): story_id and bcs entries quoted.
+
+    YAML permits quoting scalars: `story_id: "STORY-158"` and `- 'BC-2.11.036'`
+    are semantically identical to their unquoted counterparts. Without stripping
+    quotes, story_id = '"STORY-158"' (7 chars + quotes) fails rule-6 mismatch
+    (derived = "STORY-158", declared = '"STORY-158"'), causing a false-FAIL on
+    a legitimately authored artifact.
+
+    Fixture:
+      - story_id: "STORY-158"  (double-quoted)
+      - bcs:\n  - 'BC-2.11.036'  (single-quoted block-list item)
+      - BC-2.11.036 on disk, owned by STORY-158
+    Expected: exit 0 (quotes stripped, all rules pass).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                'story_id: "STORY-158"\n'
+                "bcs:\n"
+                "  - 'BC-2.11.036'\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        make_bc_file(tmp_dir, "BC-2.11.036")
+        make_story(tmp_dir, "STORY-158", behavioral_contracts=["BC-2.11.036"])
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode == 0, (
+            f"TC18: expected exit 0 (quoted scalars stripped → valid), "
+            f"got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(f"  [PASS] TC18: quoted story_id + bcs entry → exit 0 (quotes stripped)")
+
+
+def test_tc19_scalar_bcs_hard_fails() -> None:
+    """
+    TC19 (P3 LOW — scalar-bcs type guard): bcs: given a scalar value, not a list.
+
+    `bcs: BC-2.11.036` (scalar) is invalid.  Without the guard, the scalar string
+    is stored and then iterated per-character by rule-3, silently treating each
+    character ('B', 'C', '-', ...) as a BC ID — wrong error, confusing output.
+    With the guard, the parse step itself rejects the scalar with a clear message.
+
+    Expected: exit non-zero, "ERROR: bcs: must be a list" in output.
+    """
+    _ERR_SCALAR_BCS = "ERROR: bcs: must be a list ([] or block list) -- got scalar"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        artifact = make_artifact(
+            tmp_dir,
+            ".factory/cycles/wave-72/STORY-158/FINDINGS.md",
+            (
+                "---\n"
+                "story_id: STORY-158\n"
+                "bcs: BC-2.11.036\n"
+                "---\n"
+                "\n"
+                "# Findings\n"
+            ),
+        )
+        result = run_tool(artifact, tmp_dir)
+        assert result.returncode != 0, (
+            f"TC19: expected exit non-zero (scalar bcs must be rejected), "
+            f"got returncode={result.returncode}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        combined = result.stdout + result.stderr
+        assert _ERR_SCALAR_BCS in combined, (
+            f"TC19: expected scalar-bcs error message not found.\n"
+            f"Expected: {_ERR_SCALAR_BCS!r}\n"
+            f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+        )
+        print(
+            f"  [PASS] TC19: scalar bcs: → exit {result.returncode}, "
+            "scalar-bcs error (not per-character iteration)"
+        )
+
+
 def test_tc15_zero_indent_bcs_item() -> None:
     """
     TC15 (A17 zero-indent variant — F-S158-P2-001 class closure):
@@ -871,6 +957,8 @@ def main() -> None:
         test_tc15_zero_indent_bcs_item,
         test_tc16_wrapped_inline_list_bcs,
         test_tc17_exotic_frontmatter_construct,
+        test_tc18_quoted_scalars_accepted,
+        test_tc19_scalar_bcs_hard_fails,
     ]
     passed = 0
     failed = 0
