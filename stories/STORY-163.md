@@ -2,13 +2,13 @@
 document_type: story
 story_id: STORY-163
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-10T00:30:00Z
 phase: f7
 level: feature
-cycle: wave-TBD
+cycle: wave-73
 points: 2
 priority: P3
 depends_on: []
@@ -22,12 +22,12 @@ tdd_mode: strict
 target_module: .factory/maintenance/
 subsystems: []
 estimated_days: 1
-wave: "~"
+wave: "73"
 traces_to:
   - .factory/code-delivery/maint-2026-07-09/pr-review.md
   - .factory/maintenance/sweep-report-2026-07-09.md
   - .factory/maintenance/pr-manager-merge-auth-guidance.md
-input-hash: "1cd3179"
+input-hash: "e1ad659"
 inputs:
   - .factory/code-delivery/maint-2026-07-09/pr-review.md
   - .factory/maintenance/sweep-report-2026-07-09.md
@@ -38,7 +38,7 @@ inputs:
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
-**Wave:** ~
+**Wave:** 73
 **Points:** 2
 **Priority:** P3
 
@@ -347,4 +347,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-10 | story-writer | Input-hash refresh after D-420 run-close updates to input files; citations re-validated, no semantic drift. Wave and cycle assigned: wave-73 (wave-73 opening). |
 | 1.0 | 2026-07-10 | story-writer | Initial authorship -- maint-2026-07-09 process-gap codifications: PG-RA-P3-ARP-REC006-INVERSION-001 (F-RA-P3-001, docs-dispatch citation mandate) + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (PR #393, subagent merge-halt resolution path). S-7.02 maint-2026-07-09 cycle-close. |
