@@ -307,3 +307,73 @@ Delivered (excl. superseded): 82 + 15 + 4 = 101
 - SC-PERSIST-002 carry-forward status: **RESOLVED** (adjudicated to 101; counter and STATE.md now consistent with row evidence).
 
 **Note:** Historical D-NNN entries that cite `stories_delivered=102..106` are accurate records of what the counter showed at those timestamps; they are not updated (historical records). The adjudicated value of 101 is the corrected ground-truth effective from STORY-INDEX v3.34 / STATE.md maint-2026-07-09 Route B.
+
+---
+
+## Fix Routes — Delivered
+
+### Route A — PR #393 (docs/maint-2026-07-09-doc-sweep)
+
+**Status:** MERGED
+
+**Commit:** e3ca2bc (squash-merged to develop)
+
+**Adversarial convergence:** 6 adversary passes total: 3 finding rounds (each with HIGH findings fixed) then 3 consecutive clean passes (3/3 CONVERGED, BC-5.39.001 satisfied).
+
+**Findings resolved:**
+- F-RA-P1-001 HIGH: invented tri-state vocabulary `HIGH/MEDIUM/LOW` for ARP scan-interval rating — fabricated behavioral language not in any BC or spec; corrected to neutral factual description.
+- F-RA-P2-001 HIGH: fabricated ADR-0008 history — claimed a specific design decision was recorded in ADR-0008 which does not exist; removed invented citation.
+- F-RA-P3-001 HIGH: inverted VLAN/QinQ/MACsec claim — docs-writer paraphrased REC-006 one-liner and produced text stating VLAN/QinQ/MACsec-tagged ARP frames produce _no_ findings; ground-truth check at `src/decoder.rs` D-078/D-078b confirmed lax path handles those frames and does produce findings; text corrected. (Codified as PG-RA-P3-ARP-REC006-INVERSION-001 → STORY-163 AC-163-001.)
+
+**CI:** 10/10 (all checks green on e3ca2bc)
+
+**pr-reviewer:** APPROVE_WITH_SUGGESTIONS — 0 blocking suggestions
+
+**Merge authorization:** Orchestrator executed `gh pr merge` in the main conversation thread under direct user authorization given in that thread. The pr-manager subagent's prior merge attempt was correctly denied by the harness classifier (authorization was relayed via teammate-message only, not visible in the main thread). This is the new failure mode codified as PG-MERGE-AUTH-SUBAGENT-CLASSIFIER → STORY-163 AC-163-002.
+
+---
+
+### Route B — commit 27a4002 (factory-artifacts: factory-only fixes)
+
+**Status:** DELIVERED
+
+**Commit:** 27a4002 (factory-artifacts branch)
+
+**Contents:**
+- SC-001 fix: STORY-INDEX v3.34 registry header description extended to include STORY-158..162; `stories_delivered` adjudicated 106→101 (D-419).
+- D-419 factory fixes committed.
+
+---
+
+### SEC-W71-001
+
+**Status:** FILED — GitHub issue #392 (2026-07-09)
+
+**Finding:** CWE-22 Path Traversal in `bin/compute-input-hash` (DF-VALIDATION-001 confirmed; factory-artifacts write access required; output 7-char hex only; LOW severity).
+
+---
+
+### TD-MAINT-RISK-REGISTRY-BACKFILL
+
+**Status:** RESOLVED — commit f41f517 (factory-artifacts branch, 2026-07-09/10)
+
+**Contents:** `specs/domain-spec/risk-register.md` R-001..R-012 authored; `specs/domain-spec/assumptions.md` ASM-001..ASM-011 authored. All 12 risk rows + 11 assumption rows self-registered via `traces_to` frontmatter.
+
+---
+
+### STORY-163 — S-7.02 Cycle-Close
+
+**Status:** DRAFTED (wave-TBD, E-11, 2 pts)
+
+**Two process-gap codifications committed to cycle-close obligation S-7.02:**
+1. PG-RA-P3-ARP-REC006-INVERSION-001 → AC-163-001 (docs-dispatch citation mandate)
+2. PG-MERGE-AUTH-SUBAGENT-CLASSIFIER → AC-163-002 (pr-manager guidance: harness-classifier halt resolution path)
+
+**Registered tech-debt:** PG-W-README-JSON-SCHEMA → tech-debt-register row P3 OPEN (content defect; no codification needed).
+
+---
+
+### Cleanup
+
+- Docs worktree removed
+- Feature branches deleted (docs/maint-2026-07-09-doc-sweep, factory-only branches)
