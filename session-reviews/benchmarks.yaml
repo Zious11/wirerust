@@ -174,3 +174,107 @@ runs:
       story_149_perf_regression_pct: 14.0   # tls.pcap +14.0%; escalated to wave 70
       asm_cand_003_past_escalation_threshold: true
       asm_cand_009_past_escalation_threshold: true
+
+  - cycle: v0.12.0-release-chain
+    released_version: v0.12.0
+    prior_released_version: v0.11.5
+    released_at: "2026-07-10"
+    run_type: composite  # wave-70 + wave-71 + maint-2026-07-08 + triage + wave-72 + maint-2026-07-09 + release
+    duration: "~4 calendar days (2026-07-07..2026-07-10)"
+    stories_delivered: 9  # STORY-149 (w70) + STORY-150/156/157 (w71) + STORY-158/159/160/161 (w72)
+    story_points: 58  # approx; w70:7, w71:13+, w72:29, other:~9
+    prs_merged: [374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 386, 387, 388, 389, 390, 391, 393, 394]
+    waves_closed: [70, 71, 72]
+
+    quality:
+      holdout_mean_wave70: 0.920
+      holdout_scenarios_wave70: 15
+      holdout_mean_wave71: 0.970
+      holdout_scenarios_wave71: 7
+      holdout_mean_wave72: 1.000
+      holdout_scenarios_wave72: 16
+      holdout_stale_repaired_wave72: 13  # STORY-160 BREAKING JSON change; unplanned gate work
+      spec_coherence_pass_maint08: "33/33"
+      spec_coherence_pass_maint09: "33/33"
+      test_count_at_release: 2392
+      test_failures: 0
+      security_findings_exploitable: 0
+      security_findings_filed: 1  # SEC-W71-001 → issue #392 (CWE-22, LOW)
+      mutation_kill_rate_pct: null  # not measured (codification/maintenance scope)
+      kani_spot_check_wave71: "12/12"  # existing proofs confirmed
+
+    convergence:
+      wave70_adversary_passes: 5
+      wave70_not_clean: 2
+      wave70_trajectory: "0→1→1→0→0"
+      wave71_adversary_passes: 7
+      wave71_not_clean: 2
+      wave71_trajectory: "1→0→0→1→0→0→0"
+      wave72_adversary_passes: 4
+      wave72_not_clean: 1
+      wave72_trajectory: "1→0→0→0"
+      maint08_maintenance_pr_passes: 9  # 3 PRs × 3/3 strict convergence each
+      maint09_route_a_passes: 6  # 3 finding rounds + 3 clean streak
+      maint09_route_a_high_findings: 3  # fabricated content — docs-agent
+
+    efficiency:
+      gate_fix_prs: 2  # PR #381 (wave-71 CHANGELOG), PR #391 (wave-72 CI guard + security + CR)
+      holdout_stale_repairs_at_gate: 13  # STORY-160 BREAKING change; all unplanned
+      background_adversary_relay_failures: 2  # maint-07-08 L-005; required sync re-dispatch
+      subagent_merge_auth_blocks: 1  # maint-07-09 PG-MERGE-AUTH-SUBAGENT-CLASSIFIER
+      stories_delivered_counter_correction: 5  # 106→101 (D-419); 5-unit drift corrected
+      docs_agent_high_fabrications: 3  # maint-07-09 Route A: invented vocab, fake ADR, inverted claim
+      vhs_recording_failures: 4  # wave-71: all 4 VHS recordings failed Wait+Screen timeout
+
+    gate_first_try:
+      total_gates_counted: 11
+      passed_first_try: 5
+      rate_pct: 45.5
+      notes: "Wave gates intentionally NOT first-try (wave-level adversary expected to find things)"
+
+    sweep_health_maint08:
+      sweeps_applicable: 7
+      sweeps_completed: 7
+      sweep_8_attempt_count: 1  # baseline was 3; PROP-MAINT-01/02/03 effective
+      register_id_corrections: 0  # baseline was 1; PROP-MAINT-02 effective
+      cross_report_inconsistencies: 0  # baseline was 1; PROP-MAINT-03 effective
+      df_validation_001_items: 11
+      df_validation_001_confirmed: 6  # 4 CONFIRMED + 2 CONFIRMED-RESIDUAL
+
+    sweep_health_maint09:
+      sweeps_applicable: 8
+      sweeps_completed: 8
+      new_findings: 5  # DD-001 MED, DD-002 LOW, DD-003/004 INFO, SC-001 LOW
+      carry_forwards: 9
+      code_prs_this_sweep: 0  # factory-artifacts only (code delta already shipped)
+
+    prop_proposals_maint06_target_actuals:
+      sweep_8_attempt_count_target: 1
+      sweep_8_attempt_count_actual: 1  # TARGET MET
+      register_id_corrections_target: 0
+      register_id_corrections_actual: 0  # TARGET MET
+      cross_report_inconsistencies_target: 0
+      cross_report_inconsistencies_actual: 0  # TARGET MET
+
+    process_improvements:
+      proposals_generated: 7  # PROP-V0.12.0-01..07
+      proposals_p1: 2  # PROP-V0.12.0-01, PROP-V0.12.0-02
+      proposals_p2: 3  # PROP-V0.12.0-03, PROP-V0.12.0-04, PROP-V0.12.0-07
+      proposals_p3: 2  # PROP-V0.12.0-05, PROP-V0.12.0-06
+
+    targets_for_next_run:
+      holdout_stale_repairs_at_gate: 0   # target: move to pre-PR delivery step
+      docs_pr_finding_rounds: 1          # target ≤ 1 (baseline: 3)
+      wave_adversary_passes_to_streak: 4  # target: ≤ 4 (w72=4; improving)
+      wave_adversary_not_clean_count: 1   # target: ≤ 1 (w72=1; improving)
+      spec_coherence_pass_criteria: "33/33"  # target: third consecutive
+      test_count_minimum: 2392
+      holdout_scenarios_active: 132
+
+    ongoing_metrics:
+      pattern_consistency_carry_forward: 3  # PF-002/003/004 LOW only; PF-001 resolved
+      ac_149_003_status: "INDETERMINATE"  # noise-suspect environment; quiescent re-run needed
+      asm_cand_003_resolved: true  # PR #382 README Known Limitations
+      asm_cand_009_resolved: true  # PR #382
+      td_maint_risk_registry_backfill_resolved: true  # D-420 risk-register.md + assumptions.md
+      sec_w71_001_filed: true  # GitHub issue #392 (CWE-22)

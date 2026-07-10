@@ -198,9 +198,142 @@ patterns:
       Orchestrator supplies `git rev-parse HEAD` at dispatch time; adversary preamble
       states "treat <SHA> as ground truth if your tooling differs."
     mitigation_applied_in: "F7-R5 (zero SHA discrepancy reported; R5 CLEAN)"
+    additional_confirmation: >
+      v0.12.0-release-chain: ZERO stale-SHA false alarms across wave-71 (7 passes) and
+      wave-72 (4 passes) — 11 consecutive adversary passes with no recurrence.
+      Mitigation confirmed durable. Status advanced to RESOLVED-EFFECTIVE 2026-07-10.
     severity: MEDIUM
     proposal: PROP-E18-02
+    status: RESOLVED-EFFECTIVE  # updated 2026-07-10; zero recurrences across 11 passes
+
+  - id: PAT-010
+    name: wave-gate-fix-pr-recurring
+    description: >
+      Wave integration gate adversary (Pass 1) finds something that per-story
+      adversary passes missed due to scope restriction. Requires a gate-fix PR
+      to address the finding before the gate can declare CONVERGED. Not a design
+      failure — wave-level adversary is supposed to find these. Pattern documents
+      the expected frequency and class of findings.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        wave: "wave-71"
+        finding: "F-W71-P1-001 MEDIUM: unreleased changelog entries missing"
+        gate_fix_pr: 381
+      - cycle: "v0.12.0-release-chain"
+        wave: "wave-72"
+        finding: "F-W72G-P1-001 HIGH: action-pin-gate CI job scanned 0 files (missing existence guard)"
+        gate_fix_pr: 391
+    total_occurrences: 2
+    recurrence_rate: "2/3 wave gates in this period"
+    notes: >
+      Gate-fix PRs are expected. The wave-level adversary provides integration coverage
+      that per-story scope cannot. Two consecutive occurrences suggest this is a normal
+      operating rhythm, not a process failure. Bundle gate-fix PRs where possible
+      (PR #391 bundled CI guard + security + code-review fixes efficiently).
+    severity: MEDIUM
+    proposal: null
+    status: DOCUMENTED-POSITIVE
+
+  - id: PAT-011
+    name: breaking-change-holdout-staleness
+    description: >
+      A story that introduces a BREAKING observable output change (enum casing,
+      schema structure, JSON field names) produces stale holdout scenario expectations
+      that are not caught during per-story delivery. All stale expectations land as
+      unplanned gate work at the wave integration gate, requiring product-owner repair.
+      Root cause: per-story TDD does not exercise holdout-scenario files
+      (.factory/holdout-scenarios/), and no delivery checklist item requires a
+      pre-PR holdout expectation sweep.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        story: "STORY-160"
+        breaking_change: "JSON enum casing PascalCase → lowercase/snake_case + schema_version envelope"
+        stale_scenarios: 13
+        repair_effort: "product-owner at wave gate (unplanned); HS-INDEX v2.13"
+    total_occurrences: 1
+    severity: HIGH
+    proposal: PROP-V0.12.0-01
     status: OPEN
+
+  - id: PAT-012
+    name: docs-agent-content-fabrication
+    description: >
+      A docs-writer or technical-writer agent produces documentation that contains
+      fabricated content: invented vocabulary not in any BC/spec, non-existent
+      citations (e.g., ADR that does not exist), or inverted technical claims
+      (e.g., "condition X produces no findings" when ground-truth code produces
+      findings under condition X). All three classes are HIGH-severity user-facing
+      defects. Root cause: docs agents under heavy context load paraphrase incorrectly,
+      fill gaps with invented content, and adopt incorrect vocabulary from ambient
+      context. Strict 3/3 adversarial convergence catches the defects before merge.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        run: "maint-2026-07-09 Route A PR #393"
+        findings:
+          - "F-RA-P1-001 HIGH: invented tri-state vocabulary (HIGH/MEDIUM/LOW ARP scan-interval rating)"
+          - "F-RA-P2-001 HIGH: fabricated ADR-0008 citation (ADR-0008 does not exist)"
+          - "F-RA-P3-001 HIGH: inverted VLAN/QinQ/MACsec claim (stated 'no findings'; code produces findings)"
+        all_caught_before_merge: true
+        passes_to_convergence: 6  # 3 finding rounds + 3 clean streak
+    total_occurrences: 1
+    mitigation: "Strict 3/3 adversarial convergence for all docs PRs; adversary code-traces claims against src/"
+    severity: HIGH
+    proposal: PROP-V0.12.0-02
+    status: OPEN
+
+  - id: PAT-013
+    name: background-adversary-relay-unreliable
+    description: >
+      Background-dispatched adversary agents with large output complete their analysis
+      internally but fail to relay the final report back to the orchestrator session.
+      The completed report is buffered but not emitted. Requires synchronous re-dispatch
+      to recover. Specific to adversary agents; other background agent types not observed
+      to have this issue.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        run: "maint-2026-07-08"
+        incidents: 2
+        affected_prs: ["#382 Pass 2", "#383 convergence pass"]
+        workaround: "synchronous re-dispatch (run_in_background: false)"
+    total_occurrences: 2
+    confirmed_mitigation: >
+      Dispatch adversary agents with run_in_background: false for maintenance PRs.
+      Background dispatch acceptable only for clearly bounded, short-output tasks.
+    severity: MEDIUM
+    proposal: PROP-V0.12.0-03
+    status: OPEN
+
+  - id: PAT-014
+    name: subagent-merge-auth-relay-blocked
+    description: >
+      pr-manager sub-agent dispatched with merge authorization relayed via
+      teammate-message cannot execute gh pr merge. The harness permission classifier
+      blocks the merge because the authorization signal must originate in the main
+      conversation thread to be visible to the classifier. The sub-agent receives the
+      authorization message but the classifier rejects the action. Orchestrator
+      executing in the main thread under direct user authorization succeeds.
+      This is CORRECT harness behavior, not a bug; the factory dispatch protocol
+      must account for it.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        run: "maint-2026-07-09"
+        pr: 393
+        finding: "PG-MERGE-AUTH-SUBAGENT-CLASSIFIER"
+        workaround: "orchestrator merged in main thread under direct user auth"
+        codified_in: "STORY-163 AC-163-002"
+    total_occurrences: 1
+    confirmed_mitigation: >
+      Do not dispatch pr-manager expecting autonomous merge completion when the
+      merge authorization was given to the main thread. Plan one main-thread merge
+      step per PR for maintenance runs. See .factory/maintenance/pr-manager-merge-auth-guidance.md.
+    severity: MEDIUM
+    proposal: PROP-V0.12.0-05  # STORY-163 AC-163-002 covers codification
+    status: CODIFIED  # STORY-163 AC-163-002
 
 ---
 

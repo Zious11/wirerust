@@ -66,6 +66,28 @@ Evidence pointer: `.factory/session-reviews/session-review-maint-2026-07-06.md` 
 
 ---
 
+---
+
+## From: v0.12.0 Release Chain Session Review (2026-07-10)
+
+See full proposals in: `.factory/session-reviews/session-review-2026-07-10-v0.12.0.md`
+
+Human decisions: PENDING (within 72h of 2026-07-10)
+
+| ID | Category | Priority | Summary | Status | Revisit Trigger |
+|---|---|---|---|---|---|
+| PROP-V0.12.0-01 | workflow / delivery-protocol | P1 HIGH | BREAKING-change story delivery: add mandatory holdout-expectation sweep before PR creation; any story changing observable output format must include `holdout-expectations-sweep: COMPLETE` in the PR body. | PENDING HUMAN REVIEW | Before next BREAKING-change story |
+| PROP-V0.12.0-02 | convergence / policy | P1 HIGH | Strict 3/3 adversarial convergence for operator-guidance documentation PRs (README, --help, guidance text). Formalize as policy DOCS-ADVERSARY-3-PASS-001 in policies.yaml + maintenance-config.yaml. | PENDING HUMAN REVIEW | Before next maintenance docs PR |
+| PROP-V0.12.0-03 | agent / dispatch-template | P2 MEDIUM | Synchronous adversary dispatch as default for maintenance PRs. Add to maintenance-config.yaml: dispatch adversary with run_in_background: false for all maintenance-PR review passes. | PENDING HUMAN REVIEW | Next maintenance run |
+| PROP-V0.12.0-04 | tooling / demo-evidence | P2 MEDIUM | VHS tape templates: add viewport-safe output patterns for wirerust commands; new vhs-recording-guidance.md explaining Wait+Screen viewport limitation. | PENDING HUMAN REVIEW | Before next wave demo recordings |
+| PROP-V0.12.0-05 | template / tooling | P3 LOW | E-11 story template: add hook-divergence false-positive advisory note for inputs:[] hash d41d8cd. | PENDING HUMAN REVIEW | Next E-11 story authoring |
+| PROP-V0.12.0-06 | pattern | P3 LOW | Advance PAT-009 (adversary-stale-git-ref-false-alarm) to RESOLVED-EFFECTIVE status in pattern-database.yaml. Zero recurrences across 11 consecutive passes. | PENDING HUMAN REVIEW | At next pattern-database review |
+| PROP-V0.12.0-07 | story decomposition / tech-debt | P2 MEDIUM — DEFER | PC-001/013/007/015 batch refactor story (carry from PROP-MAINT-07, now 2 reviews old). Draft at wave-73+. | DEFERRED | Wave-73 planning |
+
+Evidence pointer: `.factory/session-reviews/session-review-2026-07-10-v0.12.0.md` § Improvement Proposals.
+
+---
+
 ## Auto-Deferral Note
 
 If no human response within 72h of session review completion (2026-06-16), all
