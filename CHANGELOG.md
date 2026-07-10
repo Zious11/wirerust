@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-10
+
 ### Changed (BREAKING)
 
 - **`verdict`, `confidence`, and `category` JSON field values aligned to lowercase/snake_case
@@ -1104,7 +1106,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.5...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
 [0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/Zious11/wirerust/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/Zious11/wirerust/compare/v0.11.2...v0.11.3
