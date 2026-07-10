@@ -83,6 +83,17 @@ implementation, while providing no benefit for the threat detections wirerust cu
 CRC is already detectable as a parse-invalid frame (D11-equivalent for DNP3) if the frame fails
 the 3-point validity gate (`is_valid_dnp3_frame_header`).
 
+**Crain/Sistrunk caveat (ASM-CAND-008):** Some DNP3-capable devices and software gateways
+transmit DNP3 frames over TCP with CRC bytes omitted from the encapsulated stream — a class
+of interoperability non-conformances catalogued by Crain and Sistrunk (2014). wirerust's
+`compute_dnp3_frame_len` formula assumes CRC bytes are present per IEEE Std 1815-2012, so
+replaying PCAP captures from such equipment produces incorrect frame-boundary accounting: the
+parser reads into the payload bytes of one frame when computing the start of the next, resulting
+in missed or misclassified frames. This limitation cannot be resolved without an explicit
+CRC-presence signal that is absent from the on-wire format. Operators who observe anomalously
+low DNP3 detection rates on captures from known-malicious or testbed sessions should check
+whether the capture source strips CRCs before TCP encapsulation.
+
 **`on_data` signature (RULING-DNP3-SIBLING-001 §1.5):**
 
 ```rust
