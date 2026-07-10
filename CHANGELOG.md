@@ -97,6 +97,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   (defense-in-depth refactor). Behavior-preserving: Kani VP-039 3/3 proofs re-verified,
   zero new mutation survivors.
 
+- **Bumped `indicatif` 0.18.5 → 0.18.6** (Windows dumb-terminal detection fix, indicatif#818, dependabot #386).
+
 ### Fixed
 
 - **Absolute host paths scrubbed from 193 committed demo-evidence files (PR #376,
