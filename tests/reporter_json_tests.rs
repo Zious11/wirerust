@@ -58,10 +58,12 @@ fn parse(json_str: &str) -> serde_json::Value {
 // BC-2.11.001: top-level structure
 // ---------------------------------------------------------------------------
 
-/// AC-001 (BC-2.11.001 pc2): The parsed top-level object contains exactly the
-/// keys "summary", "findings", "analyzers", "mitre_domain", and
-/// "mitre_attack_version" — no other top-level keys exist.
-/// STORY-101 / BC-2.11.001: two ATT&CK envelope fields added in v0.3.0.
+/// AC-001 (BC-2.11.001 pc2 v1.9): The parsed top-level object contains exactly
+/// the six keys "analyzers", "findings", "mitre_attack_version", "mitre_domain",
+/// "schema_version", and "summary" — no other top-level keys exist.
+/// STORY-101 / BC-2.11.001: ATT&CK envelope fields added in v0.3.0.
+/// STORY-160 / BC-2.11.001 v1.9 / BC-2.11.037: schema_version added in v0.12.0.
+/// (DF-SIBLING-SWEEP-001: vec updated from five-key to six-key form.)
 #[test]
 fn test_BC_2_11_001_top_level_keys() {
     let json_str = render(&[]);
@@ -80,10 +82,12 @@ fn test_BC_2_11_001_top_level_keys() {
             "findings",
             "mitre_attack_version",
             "mitre_domain",
+            "schema_version",
             "summary"
         ],
-        "BC-2.11.001 pc2: top-level keys must be exactly \
-         {{summary, findings, analyzers, mitre_domain, mitre_attack_version}}, got: {keys:?}"
+        "BC-2.11.001 pc2 v1.9: top-level keys must be exactly \
+         {{analyzers, findings, mitre_attack_version, mitre_domain, schema_version, summary}}, \
+         got: {keys:?}"
     );
 
     // Positive: each expected key is present.
@@ -107,6 +111,11 @@ fn test_BC_2_11_001_top_level_keys() {
     assert!(
         obj.contains_key("mitre_attack_version"),
         "\"mitre_attack_version\" key must be present (STORY-101)"
+    );
+    // STORY-160 / BC-2.11.037: schema_version envelope field.
+    assert!(
+        obj.contains_key("schema_version"),
+        "\"schema_version\" key must be present (STORY-160 / BC-2.11.037)"
     );
 }
 
@@ -1223,4 +1232,358 @@ fn f1_obj(findings: &[serde_json::Value]) -> &serde_json::Map<String, serde_json
     findings[1]
         .as_object()
         .expect("BC-2.11.035 EC-008: findings[1] must be a JSON object")
+}
+
+// ---------------------------------------------------------------------------
+// BC-2.11.036: JSON enum-value casing + surface-independence (STORY-160)
+// ---------------------------------------------------------------------------
+
+/// BC-2.11.036 pc1 + ec001: Verdict::Likely serializes to "likely" (lowercase)
+/// in JSON output. The pre-v0.12.0 form "Likely" must not appear.
+#[test]
+fn test_BC_2_11_036_verdict_likely_serializes_lowercase() {
+    let json = serde_json::to_value(Verdict::Likely)
+        .expect("Verdict::Likely must serialize without error");
+    assert_eq!(
+        json,
+        serde_json::Value::String("likely".to_string()),
+        "BC-2.11.036 pc1: Verdict::Likely must serialize to JSON string \"likely\" \
+         (not \"Likely\"); got: {json}"
+    );
+}
+
+/// BC-2.11.036 pc1 + ec011: All four Verdict variants serialize to their
+/// lowercase form; zero PascalCase occurrences in the serialized JSON.
+#[test]
+fn test_BC_2_11_036_verdict_all_variants_lowercase() {
+    // Per-variant assertion for clear failure messages.
+    let cases: &[(Verdict, &str)] = &[
+        (Verdict::Likely, "likely"),
+        (Verdict::Unlikely, "unlikely"),
+        (Verdict::Inconclusive, "inconclusive"),
+        (Verdict::Possible, "possible"),
+    ];
+    for (variant, expected) in cases {
+        let json =
+            serde_json::to_value(variant).expect("Verdict variant must serialize without error");
+        assert_eq!(
+            json,
+            serde_json::Value::String(expected.to_string()),
+            "BC-2.11.036 pc1: Verdict::{variant:?} must serialize to \
+             \"{expected}\"; got: {json}"
+        );
+    }
+    // Exhaustive PascalCase-absence guard (bc pc4).
+    let arr_json = serde_json::to_string(&[
+        Verdict::Likely,
+        Verdict::Unlikely,
+        Verdict::Inconclusive,
+        Verdict::Possible,
+    ])
+    .expect("serializing Verdict array must not fail");
+    for pascal in &[
+        "\"Likely\"",
+        "\"Unlikely\"",
+        "\"Inconclusive\"",
+        "\"Possible\"",
+    ] {
+        assert!(
+            !arr_json.contains(pascal),
+            "BC-2.11.036 pc4: PascalCase form {pascal} must not appear in \
+             serialized Verdict array; got: {arr_json}"
+        );
+    }
+}
+
+/// BC-2.11.036 pc2 + ec003: Confidence::High serializes to "high" (lowercase).
+#[test]
+fn test_BC_2_11_036_confidence_high_serializes_lowercase() {
+    let json = serde_json::to_value(Confidence::High)
+        .expect("Confidence::High must serialize without error");
+    assert_eq!(
+        json,
+        serde_json::Value::String("high".to_string()),
+        "BC-2.11.036 pc2: Confidence::High must serialize to JSON string \"high\" \
+         (not \"High\"); got: {json}"
+    );
+}
+
+/// BC-2.11.036 pc2 + ec012: All three Confidence variants serialize to their
+/// lowercase form; zero PascalCase occurrences in the serialized JSON.
+#[test]
+fn test_BC_2_11_036_confidence_all_variants_lowercase() {
+    let cases: &[(Confidence, &str)] = &[
+        (Confidence::High, "high"),
+        (Confidence::Medium, "medium"),
+        (Confidence::Low, "low"),
+    ];
+    for (variant, expected) in cases {
+        let json =
+            serde_json::to_value(variant).expect("Confidence variant must serialize without error");
+        assert_eq!(
+            json,
+            serde_json::Value::String(expected.to_string()),
+            "BC-2.11.036 pc2: Confidence::{variant:?} must serialize to \
+             \"{expected}\"; got: {json}"
+        );
+    }
+    // PascalCase-absence guard.
+    let arr_json = serde_json::to_string(&[Confidence::High, Confidence::Medium, Confidence::Low])
+        .expect("serializing Confidence array must not fail");
+    for pascal in &["\"High\"", "\"Medium\"", "\"Low\""] {
+        assert!(
+            !arr_json.contains(pascal),
+            "BC-2.11.036 pc4: PascalCase form {pascal} must not appear in \
+             serialized Confidence array; got: {arr_json}"
+        );
+    }
+}
+
+/// BC-2.11.036 pc3 + ec005: ThreatCategory::LateralMovement serializes to
+/// "lateral_movement" (snake_case with underscore at word boundary).
+#[test]
+fn test_BC_2_11_036_threat_category_lateral_movement_snake_case() {
+    let json = serde_json::to_value(ThreatCategory::LateralMovement)
+        .expect("ThreatCategory::LateralMovement must serialize without error");
+    assert_eq!(
+        json,
+        serde_json::Value::String("lateral_movement".to_string()),
+        "BC-2.11.036 pc3: ThreatCategory::LateralMovement must serialize to \
+         \"lateral_movement\"; got: {json}"
+    );
+}
+
+/// BC-2.11.036 pc3 + ec007 (EC-001 story): ThreatCategory::C2 serializes to
+/// "c2" — single uppercase letter lowercased; digit '2' is treated as a
+/// non-alphabetic continuation by serde's snake_case algorithm (no underscore).
+#[test]
+fn test_BC_2_11_036_threat_category_c2_snake_case() {
+    let json = serde_json::to_value(ThreatCategory::C2)
+        .expect("ThreatCategory::C2 must serialize without error");
+    assert_eq!(
+        json,
+        serde_json::Value::String("c2".to_string()),
+        "BC-2.11.036 pc3 + EC-001: ThreatCategory::C2 must serialize to \"c2\" \
+         (no underscore; serde snake_case lowercases 'C' and treats '2' as \
+         non-alpha continuation); got: {json}"
+    );
+}
+
+/// BC-2.11.036 pc3 + ec013: All ten ThreatCategory variants serialize to their
+/// snake_case form; zero PascalCase occurrences.
+#[test]
+fn test_BC_2_11_036_threat_category_all_variants_snake_case() {
+    let cases: &[(ThreatCategory, &str)] = &[
+        (ThreatCategory::Reconnaissance, "reconnaissance"),
+        (ThreatCategory::LateralMovement, "lateral_movement"),
+        (ThreatCategory::C2, "c2"),
+        (ThreatCategory::Exfiltration, "exfiltration"),
+        (ThreatCategory::CredentialAccess, "credential_access"),
+        (ThreatCategory::Persistence, "persistence"),
+        (ThreatCategory::Execution, "execution"),
+        (ThreatCategory::Anomaly, "anomaly"),
+        (ThreatCategory::Suspicious, "suspicious"),
+        (ThreatCategory::Impact, "impact"),
+    ];
+    for (variant, expected) in cases {
+        let json = serde_json::to_value(variant)
+            .expect("ThreatCategory variant must serialize without error");
+        assert_eq!(
+            json,
+            serde_json::Value::String(expected.to_string()),
+            "BC-2.11.036 pc3: ThreatCategory::{variant:?} must serialize to \
+             \"{expected}\"; got: {json}"
+        );
+    }
+    // PascalCase-absence guard over all variants (bc pc4).
+    let arr_json = serde_json::to_string(&[
+        ThreatCategory::Reconnaissance,
+        ThreatCategory::LateralMovement,
+        ThreatCategory::C2,
+        ThreatCategory::Exfiltration,
+        ThreatCategory::CredentialAccess,
+        ThreatCategory::Persistence,
+        ThreatCategory::Execution,
+        ThreatCategory::Anomaly,
+        ThreatCategory::Suspicious,
+        ThreatCategory::Impact,
+    ])
+    .expect("serializing ThreatCategory array must not fail");
+    for pascal in &[
+        "\"Reconnaissance\"",
+        "\"LateralMovement\"",
+        "\"C2\"",
+        "\"Exfiltration\"",
+        "\"CredentialAccess\"",
+        "\"Persistence\"",
+        "\"Execution\"",
+        "\"Anomaly\"",
+        "\"Suspicious\"",
+        "\"Impact\"",
+    ] {
+        assert!(
+            !arr_json.contains(pascal),
+            "BC-2.11.036 pc4: PascalCase form {pascal} must not appear in \
+             serialized ThreatCategory array; got: {arr_json}"
+        );
+    }
+}
+
+/// BC-2.11.036 pc5 / inv2: Terminal Display for all three enums is UNCHANGED.
+/// Verdict/Confidence produce UPPERCASE tokens; ThreatCategory uses Debug repr
+/// (PascalCase). Regression guard — remains green before and after the serde
+/// rename_all annotations are applied (serde and Display are independent surfaces).
+#[test]
+fn test_BC_2_11_036_terminal_display_unchanged() {
+    // Verdict: fmt::Display produces UPPERCASE tokens per BC-2.09.003.
+    assert_eq!(
+        Verdict::Likely.to_string(),
+        "LIKELY",
+        "BC-2.11.036 pc5: Verdict::Likely.to_string() must be \"LIKELY\"; \
+         serde rename_all must not affect fmt::Display"
+    );
+    assert_eq!(
+        Verdict::Inconclusive.to_string(),
+        "INCONCLUSIVE",
+        "BC-2.11.036 pc5: Verdict::Inconclusive.to_string() must be \"INCONCLUSIVE\""
+    );
+    // Confidence: fmt::Display produces UPPERCASE tokens per BC-2.09.004.
+    assert_eq!(
+        Confidence::High.to_string(),
+        "HIGH",
+        "BC-2.11.036 pc5: Confidence::High.to_string() must be \"HIGH\"; \
+         serde rename_all must not affect fmt::Display"
+    );
+    // ThreatCategory: fmt::Display delegates to Debug repr via write!(f, "{self:?}").
+    // Produces PascalCase (e.g. "LateralMovement"), NOT snake_case.
+    assert_eq!(
+        ThreatCategory::LateralMovement.to_string(),
+        "LateralMovement",
+        "BC-2.11.036 pc5 + v1.2: ThreatCategory::LateralMovement.to_string() must be \
+         \"LateralMovement\" (PascalCase Debug repr); serde rename_all must not affect \
+         fmt::Display (which uses write!(f, \"{{self:?}}\"))"
+    );
+}
+
+/// BC-2.11.036 pc6 + ec010: CSV output for ThreatCategory is UNCHANGED.
+/// The CSV reporter uses f.category.to_string() (Display → Debug repr),
+/// so the PascalCase form "LateralMovement" is preserved in the CSV cell.
+/// Regression guard — remains green before and after the serde annotation.
+#[test]
+fn test_BC_2_11_036_csv_category_unchanged() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let mut finding = make_finding("csv regression for ThreatCategory casing");
+    finding.category = ThreatCategory::LateralMovement;
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+
+    assert!(
+        csv_output.contains("LateralMovement"),
+        "BC-2.11.036 pc6 + EC-010: CSV output must contain \"LateralMovement\" \
+         (Debug repr / PascalCase); the serde rename_all annotation must not affect \
+         CSV output (which uses Display/Debug, not Serialize); got:\n{csv_output}"
+    );
+    // Confirm the snake_case form does NOT bleed into CSV.
+    assert!(
+        !csv_output.contains("lateral_movement"),
+        "BC-2.11.036 pc6: CSV output must NOT contain snake_case \"lateral_movement\"; \
+         CSV path uses Display/Debug — not Serialize; got:\n{csv_output}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BC-2.11.037: schema_version envelope field (STORY-160)
+// ---------------------------------------------------------------------------
+
+/// BC-2.11.037 pc1: The JSON report output contains a "schema_version" key
+/// at the top level of the envelope.
+#[test]
+fn test_BC_2_11_037_schema_version_present_in_json() {
+    let json_str = render(&[make_finding("test finding for schema_version check")]);
+    let value = parse(&json_str);
+    let obj = value.as_object().expect("top-level JSON must be an object");
+    assert!(
+        obj.contains_key("schema_version"),
+        "BC-2.11.037 pc1: JSON envelope must contain \"schema_version\" key; \
+         top-level keys found: {:?}",
+        obj.keys().collect::<Vec<_>>()
+    );
+}
+
+/// BC-2.11.037 pc2: The value of "schema_version" is the JSON string "2"
+/// (not integer 2, not null, not absent).
+#[test]
+fn test_BC_2_11_037_schema_version_value_is_two() {
+    let json_str = render(&[make_finding("test finding for schema_version value")]);
+    let value = parse(&json_str);
+    assert_eq!(
+        value["schema_version"],
+        serde_json::Value::String("2".to_string()),
+        "BC-2.11.037 pc2: schema_version must be the JSON string \"2\" \
+         (not integer 2, not null, not absent); got: {}",
+        value["schema_version"]
+    );
+}
+
+/// BC-2.11.037 pc3: "schema_version" is present even when findings slice is
+/// empty — the field is unconditional (a constant, not derived from input).
+#[test]
+fn test_BC_2_11_037_schema_version_unconditional_empty_findings() {
+    let json_str = render(&[]);
+    let value = parse(&json_str);
+    let obj = value.as_object().expect("top-level JSON must be an object");
+    assert!(
+        obj.contains_key("schema_version"),
+        "BC-2.11.037 pc3: schema_version must be present even with empty findings slice; \
+         top-level keys: {:?}",
+        obj.keys().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        value["schema_version"],
+        serde_json::Value::String("2".to_string()),
+        "BC-2.11.037 pc3: schema_version value must be \"2\" even when findings is empty"
+    );
+    // Belt-and-braces: confirm the findings array really is empty.
+    assert_eq!(
+        value["findings"].as_array().map(|a| a.len()),
+        Some(0),
+        "BC-2.11.037 pc3: findings must be an empty array in this test path"
+    );
+}
+
+/// BC-2.11.037 pc4: "schema_version" is absent from CSV output.
+/// CsvReporter has no envelope concept and is unaffected by BC-2.11.037.
+/// Regression guard — remains green before and after implementation.
+#[test]
+fn test_BC_2_11_037_schema_version_absent_from_csv() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let finding = make_finding("csv surface-independence check");
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+    assert!(
+        !csv_output.contains("schema_version"),
+        "BC-2.11.037 pc4: schema_version must NOT appear in CSV output; \
+         the CsvReporter emits no envelope fields; got:\n{csv_output}"
+    );
+}
+
+/// BC-2.11.037 pc5: "schema_version" is absent from terminal output.
+/// TerminalReporter has no envelope concept and is unaffected by BC-2.11.037.
+/// Regression guard — remains green before and after implementation.
+#[test]
+fn test_BC_2_11_037_schema_version_absent_from_terminal() {
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+
+    let finding = make_finding("terminal surface-independence check");
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_hosts_breakdown: false,
+        render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+    };
+    let terminal_output = reporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+    assert!(
+        !terminal_output.contains("schema_version"),
+        "BC-2.11.037 pc5: schema_version must NOT appear in terminal output; \
+         the TerminalReporter emits no envelope fields; got:\n{terminal_output}"
+    );
 }

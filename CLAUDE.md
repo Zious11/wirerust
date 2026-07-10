@@ -45,6 +45,11 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
   - `hotfix/<slug>` for urgent production fixes branched from `main`
 - **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional. Release PRs into `main` use an allowed type, e.g. `chore: release v0.2.0`.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
+- **CHANGELOG obligation (AC-158-001, PG-W71-CHANGELOG):** PRs that modify files under
+  `src/`, `Cargo.toml`, or `bin/` MUST include an `[Unreleased]` CHANGELOG entry
+  (enforced by CI via the `changelog-gate` job in `.github/workflows/ci.yml`; see
+  AC-158-001 and PG-W71-CHANGELOG). `tests/`, `.github/`, `docs/`, and `Cargo.lock` are
+  excluded from the trigger set (process-internal or self-documenting surfaces).
 
 ## CI / Supply Chain
 
@@ -76,6 +81,16 @@ The **"Action pin gate"** CI job (`action-pin-gate` in `.github/workflows/ci.yml
 **Keeping branches in sync:**
 
 - After a release or hotfix PR merges into `main`, ensure `develop` contains those commits. Merge `main` back into `develop` if needed so the two branches do not diverge.
+
+### Wave Gate Code-Review Artifact Protocol (AC-158-006, PG-W71-CODEREVIEW-ARTIFACT)
+
+Before a wave gate is declared closed, a `cycles/wave-NNN/wave-gate/code-review.md`
+artifact MUST be written enumerating every MINOR and NIT finding from the gate-level
+code review together with its disposition (accepted / deferred / fixed). A gate with
+zero findings MUST still create the file with a "No findings" note. This ensures gate-
+level review output is permanently recoverable — the wave-71 gap (PG-W71-CODEREVIEW-
+ARTIFACT) showed that a one-line summary in `gate-summary.md` leaves individual finding
+text unrecoverable after the review session ends.
 
 ## Public API Surface (W7.1 — deferred)
 
@@ -201,6 +216,20 @@ Concrete evidence (wave-71 input-hash drift resolution, 2026-07-07):
 Root cause: `CONCAT="${CONCAT}$(cat "$RESOLVED")"` in the plugin hook strips trailing
 newlines. The canonical Python tool reads raw bytes with no stripping. (PG-HASH-HOOK-DIVERGENCE)
 
+### Two Hash Disciplines
+
+**Two hash disciplines in this repository are deliberately distinct:**
+
+- `input-hash` (story frontmatter): MD5-first-7 hex, computed by `bin/compute-input-hash`
+  (canonical Python tool). Purpose: advisory drift detection for spec inputs. Lightweight,
+  not a security primitive.
+- `proof_file_hash` (VP frontmatter): SHA-256 mini-Merkle over Kani proof sections,
+  full 64-char hex. Purpose: integrity anchor for formal verification artifacts. Tamper-evident.
+
+Do not conflate the two. `input-hash` and `proof_file_hash` use different algorithms,
+different truncations, and serve different roles. Changing an `input-hash` has no effect
+on `proof_file_hash` and vice versa.
+
 ## Deferred Findings
 
 Deferred or open findings — STATE.md Drift Items, spec contradictions, and review/adversarial backlog items — MUST be validated by the research agent (`vsdd-factory:research-agent`) before being filed as GitHub issues. No issue is created from an unvalidated finding. The canonical, machine-enforced version of this rule is policy `DF-VALIDATION-001` in `.factory/policies.yaml`.
@@ -210,7 +239,7 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | Path | Purpose |
 |------|---------|
 | `README.md` | Project overview |
-| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly) |
+| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly, 0012 protocols catalog and coverage-gaps system) |
 | `docs/superpowers/plans/` | Implementation plans (from the superpowers skill) |
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |

@@ -299,13 +299,17 @@ def _collect_rust_files(repo_root: Path) -> list[Path]:
     excluded so newly-added test files do not cause false failures before
     their first commit.
     """
-    result = subprocess.run(
-        ["git", "ls-files", "--", "tests/*.rs", "src/**/*.rs"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--", "tests/*.rs", "src/**/*.rs"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(f"ERROR: git ls-files failed: {exc}", file=sys.stderr)
+        sys.exit(1)
     paths = []
     resolved_root = repo_root.resolve()
     for line in result.stdout.splitlines():
@@ -354,17 +358,22 @@ def main() -> int:
     candidate = script_path.parent
     repo_root: Path | None = None
     for _ in range(6):  # at most 6 levels up
-        if (candidate / ".git").exists() or (candidate / "Cargo.toml").exists():
+        if (candidate / ".git").exists() or (candidate / ".factory").is_dir():
             repo_root = candidate
             break
         candidate = candidate.parent
     if repo_root is None:
-        print("ERROR: could not locate repo root (no .git or Cargo.toml found)", file=sys.stderr)
+        print("ERROR: could not locate repo root (no .git or .factory/ found)", file=sys.stderr)
         return 2
 
     rust_files = _collect_rust_files(repo_root)
     if not rust_files:
-        print("WARNING: no tracked Rust files found; scan target may be wrong.", file=sys.stderr)
+        print(
+            "ERROR: no tracked Rust files found; scan target may be wrong. "
+            "Verify the scan target in bin/check-green-doc-tense.",
+            file=sys.stderr,
+        )
+        return 1
 
     total_violations = 0
     for path in sorted(rust_files):

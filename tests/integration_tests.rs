@@ -1163,7 +1163,7 @@ mod story_152 {
 //   gap-tcp9600.pcap, gap-tcp53.pcap) were generated during the Green phase and
 //   reside in tests/fixtures/. TCP gap tests pass --http to build the reassembler
 //   (analyzer-present guard, BC-2.05.010); UDP gap tests need no analyzer flag
-//   (decode-loop path, ADR-012 Dec 10).
+//   (decode-loop path, ADR-012 Decision 10).
 // ---------------------------------------------------------------------------
 mod story_154 {
     #![allow(non_snake_case)]

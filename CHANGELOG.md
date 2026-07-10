@@ -7,7 +7,72 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed (BREAKING)
+
+- **`verdict`, `confidence`, and `category` JSON field values aligned to lowercase/snake_case
+  (STORY-160, wave-72, BC-2.11.036, issue #255).**
+
+  > **BREAKING CHANGE (JSON surface only — v0.12.0).**
+  > JSON schema changes are outside `cargo-semver-checks` scope; this entry and the
+  > `schema_version` envelope field (see `### Added` below) are the authoritative change
+  > notices.
+
+  1. **`verdict`, `confidence`, and `category` JSON field values are now lowercase /
+     snake_case** (Suricata EVE / ECS / OCSF convention).
+     Full mapping (BC-2.11.036):
+
+     | Enum | Variant | Pre-v0.12.0 JSON | v0.12.0+ JSON |
+     |---|---|---|---|
+     | `Verdict` | `Likely` | `"Likely"` | `"likely"` |
+     | `Verdict` | `Unlikely` | `"Unlikely"` | `"unlikely"` |
+     | `Verdict` | `Inconclusive` | `"Inconclusive"` | `"inconclusive"` |
+     | `Verdict` | `Possible` | `"Possible"` | `"possible"` |
+     | `Confidence` | `High` | `"High"` | `"high"` |
+     | `Confidence` | `Medium` | `"Medium"` | `"medium"` |
+     | `Confidence` | `Low` | `"Low"` | `"low"` |
+     | `ThreatCategory` | `LateralMovement` | `"LateralMovement"` | `"lateral_movement"` |
+     | `ThreatCategory` | `CredentialAccess` | `"CredentialAccess"` | `"credential_access"` |
+     | `ThreatCategory` | `C2` | `"C2"` | `"c2"` |
+     | `ThreatCategory` | `Reconnaissance` | `"Reconnaissance"` | `"reconnaissance"` |
+     | `ThreatCategory` | `Exfiltration` | `"Exfiltration"` | `"exfiltration"` |
+     | `ThreatCategory` | `Persistence` | `"Persistence"` | `"persistence"` |
+     | `ThreatCategory` | `Execution` | `"Execution"` | `"execution"` |
+     | `ThreatCategory` | `Anomaly` | `"Anomaly"` | `"anomaly"` |
+     | `ThreatCategory` | `Suspicious` | `"Suspicious"` | `"suspicious"` |
+     | `ThreatCategory` | `Impact` | `"Impact"` | `"impact"` |
+
+  2. **Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.**
+     The `fmt::Display` implementations for `Verdict`, `Confidence`, and `ThreatCategory`
+     are not modified; `serde::Serialize` and `fmt::Display` are independent surfaces.
+
+  3. **JSON schema changes are outside `cargo-semver-checks` scope.** Consumers that
+     pattern-match exact enum string values in JSON output (e.g., `verdict == "Likely"`,
+     `category == "LateralMovement"`) must update to the new lowercase/snake_case forms.
+
+  4. **Known heterogeneity:** The `Direction` enum (`ClientToServer` / `ServerToClient`)
+     retains PascalCase JSON serialization in v0.12.0. Casing alignment is scoped to
+     `verdict`, `confidence`, and `category` only (BC-2.11.036 scope carve-out).
+
 ### Added
+
+- **`"schema_version": "2"` envelope field in every JSON report (STORY-160, BC-2.11.037).**
+  Absence of this field signals the pre-v0.12.0 format (implicit schema v1, PascalCase enum
+  values). The value is a JSON **string** (not an integer) to remain forward-compatible with
+  minor revision suffixes.
+
+- **CHANGELOG CI gate, `bin/lint-cycle-artifact`, and `bin/check-green-doc-tense`
+  zero-file-guard hardening (STORY-158, wave-72) [process-gap].** Four wave-71 process
+  gaps codified as durable project artifacts: (1) `changelog-gate` CI job (pull_request
+  only) fails when `src/`, `Cargo.toml`, or `bin/` are modified without a corresponding
+  `CHANGELOG.md` update, enforcing the CHANGELOG obligation that wave-71 PRs missed
+  (PG-W71-CHANGELOG). (2) `bin/lint-cycle-artifact` (Python 3, stdlib-only) validates
+  cycle artifact identity fields (`story_id:` and `bcs:` frontmatter) against the parent
+  story and on-disk BC files, catching fabricated or borrowed BC IDs before adversarial
+  review (PG-W71-CYCLE-ARTIFACT-IDENTITY). (3) `bin/check-green-doc-tense` now exits
+  non-zero when no tracked Rust files are found, preventing a silent false-CI-PASS if the
+  scan target moves (PG-W71-CI-SCAN-GUARDS). (4) `trust-boundary` CI job gains a
+  `test -d src/` guard before the grep scan, mirroring the SEC-001 pattern in
+  `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS).
 
 - **Fragmented-handshake Criterion benchmark `tls_fragmented/3-record-carry-drain` +
   `[[bench]]` target (STORY-149, PR #374, closes #360).** A new Criterion benchmark
@@ -53,6 +118,46 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `summarize()` no-`dropped_findings` regression pin closes the coverage gap for
   BC-2.16.016 unbounded-findings behavior; docstring anchor corrected. CLI `--arp`
   `long_help` unbounded-findings documentation coverage pinned.
+
+### Docs / Internal
+
+- **Governance codification: multi-file `proof_file_hash` mini-Merkle algorithm (STORY-161,
+  wave-72) [governance].** Multi-file `proof_file_hash` mini-Merkle algorithm codified in
+  VP-INDEX v2.39; VP-024 v2.5 proof anchor populated and `kani_version` recorded
+  (factory-artifacts branch). `CLAUDE.md` gains "Two Hash Disciplines" note distinguishing
+  `input-hash` (MD5-first-7, advisory) from `proof_file_hash` (SHA-256 mini-Merkle,
+  integrity anchor).
+
+- **Public ADR-012 authored for protocols catalog and coverage-gaps system (STORY-159,
+  wave-72) [doc-drift].** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` created,
+  resolving a maintenance-sweep finding (NEW-001, HIGH) that identified 38 lines across
+  six source and test files citing ADR-012 with no corresponding public document. The new
+  ADR covers all ten design decisions from the `feature-protocol-coverage` cycle (v0.11.2,
+  PRs #351–#357): hand-curated static array, tri-state Suricata-derived vocabulary,
+  port-detection caveats, catalog scope, supported-set derivation, TCP+UDP dynamic
+  detection (including Decision 6 Clarification on increment-site semantics), category
+  tagging, `--coverage-gaps` explicit flag, `CoverageGapsSummary` report section, and UDP
+  gap classification decoupled from `enable_dns`. Format follows the ADR-0009 precedent:
+  markdown headings, no YAML frontmatter, all internal factory IDs stripped.
+  `CLAUDE.md` Project References table updated to include the new entry. Inline comment at
+  `tests/integration_tests.rs:1166` normalized from `ADR-012 Dec 10` to the canonical
+  `ADR-012 Decision 10` form, closing the one abbreviated citation in the codebase.
+
+- **Wave-72 integration-gate hardening: `action-pin-gate` existence guard + positive
+  coverage assertion; STORY-159 tape path scrub (F-W72G-P1-001, SEC-W72-001, wave-72).**
+  (1) `action-pin-gate` CI job gains a scan-target existence guard
+  (`test -d .github/workflows/` + zero-file check) that mirrors the SEC-001 pattern from
+  `trust-boundary` and `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS): a renamed or emptied
+  scan target now fails loudly instead of trivially PASSing. A positive-coverage assertion
+  (`VALIDATED` counter) ensures the gate processed at least one remote action ref; the PASS
+  line now reports the validated count (e.g., "PASS: N remote action ref(s) validated, 0
+  mutable"). (2) Five STORY-159 VHS tape scripts in `docs/demo-evidence/STORY-159/` had
+  `~/Documents/GITHUB/wirerust` absolute host paths in their `Type "cd …"` lines; scrubbed
+  to `<REPO-ROOT>` matching the STORY-160 tape convention (SEC-W72-001, CWE-200). Binary
+  `.gif`/`.webm` artifacts are historical evidence and not re-rendered. Note: the
+  demo-evidence scrub-gate doc (`.factory/maintenance/demo-evidence-scrub-gate.md`) needs a
+  `~/` tilde-expansion pattern extension — that file lives on factory-artifacts and is
+  routed to the orchestrator separately.
 
 ## [0.11.5] - 2026-07-06
 
