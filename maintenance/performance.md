@@ -1,49 +1,70 @@
 ---
 document_type: maintenance-performance-report
-sweep: 5
-run_id: maint-2026-07-06
+sweep: 7
+run_id: maint-2026-07-09
 producer: performance-engineer
-created: 2026-07-06
+created: 2026-07-09
 branch: develop
-commit: f7460b4
-version: v0.11.4
+commit: 716054a
+version: v0.11.5
 baseline_source: .factory/maintenance/performance-baseline.md (maint-2026-06-22 controlled re-run values)
-current_run_date: 2026-07-06
+current_run_date: 2026-07-09
 hardware_note: >
   Apple Silicon Mac, darwin 25.5.0. All measurements are wall-clock on the
   benchmark machine. Absolute µs values are not portable across hardware;
   only relative deltas (same machine, same branch) are meaningful for
   regression tracking.
-benchmark_command: cargo bench --bench pipeline
+benchmark_command: cargo bench --bench pipeline && cargo bench --bench tls_fragmented
 criterion_version: "0.8"
 samples: 100 per benchmark
 ---
 
-# Maintenance Sweep 5 — Performance Report (run maint-2026-07-06)
+# Performance Regression Scan — maint-2026-07-09
 
 ## Executive Summary
 
-Criterion benchmarks were run on 2026-07-06 against the June-22 controlled re-run
-baseline documented in `performance-baseline.md`. Six of seven benchmarks are within
-the 10% WARNING threshold vs the June-22 anchor. One benchmark — `reassembly/tls.pcap`
-— registers **+14.0% vs the June-22 baseline** (REGRESSION), up from the +4.9%
-confirmed-noise reading in that baseline. Criterion independently flags it as
-"Performance has regressed" (p < 0.05, +7.56% vs its stored criterion base).
+Two passes of both benchmark suites (`pipeline` and `tls_fragmented`) were run at develop
+HEAD (716054a, v0.11.5). The machine exhibited high severe-outlier counts across all
+benchmarks (9–21 severe outliers per 100 samples) and extreme run-to-run point-estimate
+swings (up to 74% between consecutive runs). This is the same noise signature observed in
+the maint-2026-07-08 run (Sweep 6). The machine was not quiescent during either run.
 
-The two confirmed REGRESSION-MINOR findings from the June-22 baseline
-(`decode/tls.pcap` +12.2%, `reassembly/segmented.pcap` +19.4% vs original May-19)
-remain present but have not worsened beyond the June-22 band. The `reassembly/tls.pcap`
-regression is a new development: it was noise in June-22 but is now a real, statistically
-confirmed regression.
+**Overall verdict: NOISE-SUSPECT — no actionable regressions from the wave-72 delta.**
 
-**Known open item PERF-001/002 (TLS carry-path perf, STORY-149 draft):** The
-`reassembly/tls.pcap` benchmark is the primary proxy for TLS carry-path performance.
-At +14.0% vs June-22 and +19.6% vs May-19, this benchmark has worsened since the
-last controlled run and now crosses the 10% threshold that June-22 classified as noise.
-The new regression is consistent with overhead added in the v0.9.3–v0.11.4 interval,
-which includes observability counter increments on every eviction/drop event (PR #365)
-and per-flow state purge on flow close (PR #362). Both touch paths exercised by the
-full reassembly pipeline.
+The wave-72 delta (c4eb1f4..716054a) is **provably cold-path** for all benchmarks in scope
+(see Wave-72 Cold-Path Assessment below). No hot-path code changed between the maint-2026-07-08
+baseline commit (b642c0f) and HEAD (716054a). All apparent regressions and improvements in
+this run reflect machine scheduling/thermal noise, not code changes.
+
+The primary AC-149-003 metric (`reassembly/tls.pcap`) measured 25.698 µs in run 1 and
+24.075 µs in run 2 — a 6.3% spread between consecutive runs. Run 2 is just below the
+AC-149-003 ceiling (24.445 µs); run 1 is 5.1% above it. The ambiguity cannot be resolved
+under current machine conditions. A quiescent controlled re-run remains the prerequisite for
+any definitive AC-149-003 assessment.
+
+---
+
+## Wave-72 Cold-Path Assessment
+
+**Commits in wave-72 delta (c4eb1f4..716054a):**
+
+| Commit | Type | Files changed |
+|--------|------|--------------|
+| 716054a | chore(deps) | indicatif version bump (Cargo.toml/Cargo.lock) |
+| 44f8c9c | ci | .github/workflows only |
+| 80fbb64 | docs | docs/ only |
+| 704fd2e | feat(reporter) | `src/reporter/json.rs` (+SCHEMA_VERSION const, envelope wiring), `src/findings.rs` (+3 serde annotations), `src/analyzer/arp.rs` (comment-only, 2 lines) |
+| d410b8d | docs | docs/ only |
+| 75c5ba5 | ci | .github/workflows only |
+
+**Assessment:** None of the wave-72 commits touch the decode, reassembly, or summary
+hot paths exercised by the pipeline benchmark groups. The reporter JSON path (`src/reporter/json.rs`)
+is a cold serialization path invoked only at output time, not inside the per-packet benchmark
+loop. The `src/findings.rs` serde annotations affect only JSON serialization. The `src/analyzer/arp.rs`
+change is a code comment update with zero runtime impact.
+
+**Conclusion: The wave-72 delta is cold-path only. Any regression or improvement signal in
+this run is attributable entirely to machine noise, not to code changes in this delta.**
 
 ---
 
@@ -52,120 +73,126 @@ full reassembly pipeline.
 | Item | Value |
 |------|-------|
 | Harness | criterion 0.8 |
-| Config | `[[bench]] name = "pipeline" harness = false` (Cargo.toml) |
+| Config | `[[bench]] name = "pipeline" harness = false` and `[[bench]] name = "tls_fragmented" harness = false` (Cargo.toml) |
 | Fixture files | `tests/fixtures/{segmented.pcap, tls.pcap, dns-remoteshell.pcap}` |
-| Benchmark groups | decode, summary, reassembly |
+| Benchmark groups | decode, summary, reassembly (pipeline); tls_fragmented (tls_fragmented) |
 | Samples per benchmark | 100 |
 | Baseline source | performance-baseline.md (2026-06-22 controlled re-run) |
+| AC-149-003 anchor | 23.281 µs (May-19); target ceiling 24.445 µs |
 
 ---
 
-## Results Table
+## Results Table — pipeline bench (both runs)
 
-All times are mean per-iteration (µs). Primary delta column compares against the
-June-22 controlled re-run baseline (the current authoritative anchor). May-19 column
-is carried for historical continuity.
+All times are Criterion point estimates (median of CI) in µs.
+Baselines: May-19 original (23.281 / 1.440 / 3.002 / 4.472 / 0.600 / 2.535 / 4.907 for rea/tls, dec/seg, dec/tls, dec/dns, sum/seg, sum/dns, rea/seg respectively) and Jun-22 controlled re-run (authoritative anchor).
 
-| Benchmark | Fixture | May-19 baseline (µs) | Jun-22 baseline (µs) | Today 2026-07-06 (µs) | vs May-19 | vs Jun-22 | Verdict |
-|-----------|---------|---------------------|----------------------|----------------------|-----------|-----------|---------|
-| decode | segmented.pcap | 1.440 | 1.459 | 1.4394 | −0.0% | −1.3% | PASS |
-| decode | tls.pcap | 3.002 | 3.369 | 3.5178 | +17.2% | +4.4% | PASS |
-| decode | dns-remoteshell.pcap | 4.472 | 4.840 | 5.1773 | +15.8% | +7.0% | PASS |
-| summary | segmented.pcap | 0.600 | 0.639 | 0.6815 | +13.6% | +6.6% | PASS |
-| summary | dns-remoteshell.pcap | 2.535 | 2.589 | 2.7889 | +10.0% | +7.7% | PASS |
-| reassembly | segmented.pcap | 4.907 | 5.858 | 6.3000 | +28.4% | +7.5% | PASS |
-| reassembly | tls.pcap | 23.281 | 24.429 | 27.842 | +19.6% | **+14.0%** | **REGRESSION** |
+| Benchmark | Fixture | Jun-22 anchor (µs) | Run 1 2026-07-09 (µs) | Run 2 2026-07-09 (µs) | vs Jun-22 R1 | vs Jun-22 R2 | R1 Outliers | R2 Outliers | Verdict |
+|-----------|---------|-------------------|----------------------|----------------------|-------------|-------------|-------------|-------------|---------|
+| decode | segmented.pcap | 1.459 | 1.6286 | 1.5773 | +11.6% | +8.1% | 13 (9 sev) | 13 (9 sev) | NOISE-SUSPECT |
+| decode | tls.pcap | 3.369 | 3.9916 | 5.9107 | +18.5% | +75.5% | 14 (12 sev) | 10 (5 sev) | NOISE-SUSPECT |
+| decode | dns-remoteshell.pcap | 4.840 | 5.0631 | 6.7779 | +4.6% | +40.0% | 16 (12 sev) | 19 (14 sev) | NOISE-SUSPECT |
+| summary | segmented.pcap | 0.639 | 0.9114 | 1.5860 | +42.6% | +148.2% | 21 (17 sev) | 17 (12 sev) | NOISE-SUSPECT |
+| summary | dns-remoteshell.pcap | 2.589 | 3.4875 | 4.3876 | +34.7% | +69.4% | 18 (16 sev) | 12 (4 sev) | NOISE-SUSPECT |
+| reassembly | segmented.pcap | 5.858 | 7.1911 | 6.9739 | +22.8% | +19.0% | 19 (17 sev) | 16 (11 sev) | NOISE-SUSPECT |
+| reassembly | tls.pcap | 24.429 | 25.698 | 24.075 | +5.2% | −1.4% | 13 (11 sev) | 9 (5 sev) | NOISE-SUSPECT |
 
-Criterion verdicts from this run (vs criterion's stored base, which reflects the last
-criterion run on this machine — date unknown but post June-22):
+**Criterion verdicts (run 1 vs run 2 stored base):**
 
-- `decode/segmented.pcap`: No change in performance detected (p = 0.52)
-- `decode/tls.pcap`: Change within noise threshold (p = 0.01, −1.6% vs stored base)
-- `decode/dns-remoteshell.pcap`: No change in performance detected (p = 0.18)
-- `summary/segmented.pcap`: Performance has regressed (+12.4%, p < 0.05)
-- `summary/dns-remoteshell.pcap`: Performance has regressed (+5.4%, p < 0.05)
-- `reassembly/segmented.pcap`: Performance has regressed (+6.4%, p < 0.05)
-- `reassembly/tls.pcap`: Performance has regressed (+7.6%, p < 0.05)
+The run-2 criterion comparisons are against the run-1 Criterion stored base, producing
+nonsensical results that confirm machine noise:
+- `decode/tls.pcap`: +40.4% regressed (run-2 vs run-1)
+- `summary/segmented.pcap`: +146% regressed (run-2 vs run-1)
+- `decode/segmented.pcap`: no change (p=0.26)
+- `reassembly/tls.pcap`: −11.3% improved (run-2 vs run-1)
 
-Note: criterion's stored base for `summary/segmented.pcap` appears to be an
-intermediate value lower than the June-22 documented baseline (criterion reports
-+12.4% while vs-Jun-22 is +6.6%). This discrepancy indicates criterion's stored
-base was updated by an intermediate run between June-22 and today. The documented
-June-22 values in `performance-baseline.md` are the authoritative anchor; criterion
-verdicts are supplementary signals.
+Opposite sign signals on consecutive runs with no code change are the definitive
+noise fingerprint. No criterion verdict from this sweep is actionable.
 
 ---
 
-## Regression Analysis
+## Results Table — tls_fragmented bench (both runs)
 
-### REGRESSION: reassembly/tls.pcap — +14.0% vs Jun-22 baseline
+| Benchmark | Fixture | Jul-08 initial baseline (µs) | Run 1 2026-07-09 (µs) | Run 2 2026-07-09 (µs) | vs Jul-08 R1 | vs Jul-08 R2 | R1 Outliers | R2 Outliers | Verdict |
+|-----------|---------|------------------------------|----------------------|----------------------|-------------|-------------|-------------|-------------|---------|
+| tls_fragmented | 3-record-carry-drain | 2.0662 | 1.7004 | 1.8823 | −17.7% | −8.9% | 16 (9 sev) | 13 (13 sev) | NOISE-SUSPECT |
 
-- Jun-22 baseline: 24.429 µs mean
-- Today: 27.842 µs mean
-- Delta vs Jun-22: +14.0% (above 10% WARNING threshold)
-- Delta vs May-19: +19.6%
-- Criterion: "Performance has regressed" (p < 0.05, +7.6% vs stored criterion base)
-- Outliers: 13 of 100 measurements (2 high mild, 11 high severe)
-
-This benchmark exercises the full TLS reassembly pipeline: decode + IP-filter +
-reassembly + dispatcher + TLS analyzer. The June-22 controlled re-run classified its
-+4.9% vs May-19 as noise (it recovered from the June-17 spike of +54.5%). The current
-run's +14.0% vs the June-22 anchor is a new real regression, confirmed by criterion
-with p < 0.05.
-
-Plausible causes in the v0.9.3–v0.11.4 commit interval:
-
-1. **Observability counters (PR #365, STORY-149-adjacent):** Silently-dropped and
-   evicted state now increments atomic counters on every event. The reassembly/tls.pcap
-   fixture exercises the full TLS session lifecycle including state eviction; these
-   counter increments occur on the hot path.
-
-2. **Per-flow state purge on flow close (PR #362):** DNP3/ENIP state is now
-   explicitly purged in the dispatcher's flow-close path. The dispatcher is called
-   in the reassembly benchmark loop; extra cleanup work on each flow-close adds
-   overhead even for flows that do not use DNP3/ENIP.
-
-Neither cause is a correctness concern — both are intentional feature additions. The
-combined overhead is approximately 3.4 µs per tls.pcap iteration above the June-22
-baseline.
-
-### Previously confirmed REGRESSION-MINOR findings (Jun-22 baseline, vs May-19)
-
-These remain present but have not worsened relative to the June-22 values:
-
-**decode/tls.pcap — +4.4% vs Jun-22, +17.2% vs May-19**
-- June-22 baseline was already +12.2% above May-19 (REGRESSION-MINOR).
-- Current reading (+4.4% vs Jun-22) shows no further deterioration.
-
-**reassembly/segmented.pcap — +7.5% vs Jun-22, +28.4% vs May-19**
-- June-22 baseline was already +19.4% above May-19 (REGRESSION-MINOR).
-- Current reading (+7.5% vs Jun-22) shows no further deterioration. This
-  benchmark does not include TLS traffic and was not further impacted by PR #365/#362.
-
-### PASS benchmarks
-
-`decode/segmented.pcap` (−1.3% vs Jun-22), `decode/dns-remoteshell.pcap` (+7.0%),
-`summary/segmented.pcap` (+6.6%), `summary/dns-remoteshell.pcap` (+7.7%) all remain
-below the 10% threshold vs the June-22 baseline. Criterion flags `summary/*` as
-regressed vs its own stored base, but vs the authoritative June-22 anchor these are
-within budget.
+The Jul-08 initial baseline (2.0662 µs) was itself recorded under the same high-noise
+conditions (18/100 severe outliers) and was flagged as unreliable for use as a regression
+comparator. Both today's runs fall below it, but the 10.7% run-to-run spread makes the
+absolute values unreliable. A quiescent re-run is needed to establish a clean tls_fragmented
+anchor.
 
 ---
 
-## PERF-001/002 (TLS Carry-Path Perf, STORY-149 Draft)
+## AC-149-003 Status (reassembly/tls.pcap target: ≤ 24.445 µs)
 
-The baseline documents record this as an open item covering TLS carry-path performance.
-The primary covering benchmark is `reassembly/tls.pcap`.
+| Measurement | Value (µs) | vs May-19 | vs Target | AC-149-003 |
+|-------------|-----------|-----------|-----------|------------|
+| May-19 anchor | 23.281 | 0.0% | −5.0% (below) | PASS |
+| AC-149-003 ceiling | 24.445 | +5.0% | — | — |
+| story149-pre (2026-07-07) | 25.880 | +11.2% | +5.9% (above) | FAIL |
+| Jul-08 run (b642c0f) | 26.353 | +13.2% | +7.8% (above) | FAIL |
+| Today Run 1 (716054a) | 25.698 | +10.4% | +5.1% (above) | FAIL |
+| Today Run 2 (716054a) | 24.075 | +3.4% | −1.5% (below) | PASS |
 
-| Metric | May-19 | Jun-22 | Jul-06 | vs Jun-22 |
-|--------|--------|--------|--------|-----------|
-| reassembly/tls.pcap mean (µs) | 23.281 | 24.429 | 27.842 | +14.0% |
+The ambiguity (run 1 FAIL at 25.698 µs, run 2 PASS at 24.075 µs) cannot be resolved
+under current machine conditions. The 6.3% run-to-run spread on the most stable benchmark
+in this suite confirms the machine is not suitable for AC-149-003 adjudication today.
 
-The TLS carry-path regression has worsened since June-22. The June-22 baseline
-concluded the CRITICAL June-17 spike was noise and that +4.9% vs May-19 was within
-acceptable range. The current measurement now shows a genuine +14.0% vs June-22
-(+19.6% vs May-19). STORY-149 (if drafted as a performance improvement story for
-the TLS carry-path) has gained additional motivation from this result.
+---
+
+## Noise Diagnosis
+
+The key diagnostics that confirm this is machine noise rather than a real regression:
+
+1. **Run-to-run spread exceeds the regression threshold.** `decode/tls.pcap` swung from
+   3.99 µs (run 1) to 5.91 µs (run 2) — a 48% difference with no code change between runs.
+   `summary/segmented.pcap` swung from 0.91 µs to 1.59 µs (+74%). Genuine regressions do
+   not produce 48–74% swings between back-to-back runs.
+
+2. **All benchmark groups affected simultaneously.** The decode, summary, and reassembly
+   groups are independent code paths. Simultaneous elevation across all three, combined with
+   high severe-outlier counts in every group, is the canonical OS scheduling or thermal
+   interference fingerprint — identical to the maint-2026-07-08 run.
+
+3. **Wave-72 delta is cold-path only.** No hot-path code changed since b642c0f (the
+   maint-2026-07-08 baseline commit). Any regression must be noise.
+
+4. **Reassembly/tls.pcap is the most stable across both runs** (−6.3% spread), consistent
+   with prior observations that TLS bench outlier counts are lower when the machine is
+   less degraded.
+
+---
+
+## Non-TLS Path Controlled Re-run Assessment
+
+The maint-2026-07-08 report (Sweep 6) recommended a "controlled re-run for non-TLS paths."
+This sweep executed that re-run under the same noisy-machine conditions. The non-TLS
+paths (`decode/segmented.pcap`, `decode/dns-remoteshell.pcap`, `summary/segmented.pcap`,
+`summary/dns-remoteshell.pcap`) all showed extreme run-to-run variance (26–74% swings)
+that cannot be attributed to code changes. The controlled re-run recommendation stands:
+the machine must be quiescent (background processes minimized, thermal state stable)
+before non-TLS path results can be trusted.
+
+---
+
+## Long-Run Trend Table (reassembly/tls.pcap — primary regression-tracking metric)
+
+| Date | Commit | µs (slope/mean) | vs May-19 | Notes |
+|------|--------|-----------------|-----------|-------|
+| 2026-05-19 | (anchor) | 23.281 | 0.0% | Original baseline |
+| 2026-06-17 | (maint) | 35.960 | +54.5% | NOISE — confirmed thermal spike |
+| 2026-06-22 | (maint) | 24.429 | +4.9% | Controlled re-run; noise resolved |
+| 2026-07-06 | f7460b4 | 27.842 | +19.6% | v0.11.4 (maint-2026-07-06) |
+| 2026-07-07 | 19569ae | 25.880 | +11.2% | STORY-149 pre-story anchor (v0.11.5) |
+| 2026-07-08 | b642c0f | 26.353 | +13.2% | maint-2026-07-08; high outliers — NOISE-SUSPECT |
+| 2026-07-09 run 1 | 716054a | 25.698 | +10.4% | This sweep; high outliers — NOISE-SUSPECT |
+| 2026-07-09 run 2 | 716054a | 24.075 | +3.4% | This sweep; moderate outliers — NOISE-SUSPECT |
+
+The long-run trend for `reassembly/tls.pcap` remains in the 24–26 µs band, with no step-change
+attributable to any specific commit in the b642c0f–716054a range. The ARP-cycle overhead
+(+~11% over May-19) persists as the baseline elevation identified in prior sweeps.
 
 ---
 
@@ -174,36 +201,33 @@ the TLS carry-path) has gained additional motivation from this result.
 | NFR ID | Requirement | Status |
 |--------|-------------|--------|
 | NFR-PERF-001 | Zero-copy slice path; one allocation per packet | DEFERRED — not measured by microbenchmarks |
-| NFR-PERF-002 | Eager full-pcap load; RAM <= pcap_size * 1.5 | DEFERRED — no 1 GB fixture; reference: v0.11.3 smoke test RSS 303 MB on 2.25M-packet capture (not directly comparable, fixture size unknown) |
+| NFR-PERF-002 | Eager full-pcap load; RAM <= pcap_size * 1.5 | DEFERRED — no 1 GB fixture |
 | NFR-PERF-003 | O(1) dispatch; 100% cache hit rate after first classification | DEFERRED — no 10,000-flow fixture |
 | NFR-PERF-004 | SIMD autovectorization in overlap detection | OPEN-DEBT — LLVM IR not inspected this sweep |
-
-The v0.11.3 smoke test value (RSS 303 MB on a 2.25M-packet capture) is noted as a
-reference point but cannot be directly validated against NFR-PERF-002 without knowing
-the pcap file size. The NFR requires RSS <= pcap_size * 1.5; without both values a
-PASS/FAIL determination is not possible.
 
 ---
 
 ## Recommendations
 
-1. **Investigate reassembly/tls.pcap regression (+14.0%).** Profile the TLS reassembly
-   path to determine whether the observability counter increments (PR #365) or the
-   per-flow purge (PR #362) are the dominant contributors. This feeds STORY-149 scoping.
+1. **No fix PRs warranted from this sweep.** Wave-72 delta is provably cold-path; all
+   apparent regressions are machine noise. Do not open performance fix tickets based on
+   this data.
 
-2. **Re-measure under controlled conditions.** The 11 high-severe outliers in
-   `reassembly/tls.pcap` suggest some thermal or scheduling noise. A quiescent-machine
-   re-run will tighten the interval, but the mean shift (+3.4 µs, +14%) is large enough
-   that noise alone is unlikely to explain it.
+2. **A quiescent controlled re-run is the prerequisite for AC-149-003 adjudication.**
+   The 6.3% run-to-run spread on `reassembly/tls.pcap` straddles the AC-149-003 ceiling
+   (24.445 µs). Until a clean run is available, AC-149-003 status is INDETERMINATE.
 
-3. **No action required for PASS benchmarks.** `summary/segmented.pcap` and
-   `summary/dns-remoteshell.pcap` are within the June-22 anchor despite criterion's
-   regression flags (criterion's stored base appears to be from an intermediate run
-   with lower values).
+3. **tls_fragmented baseline remains unreliable.** Both the Jul-08 initial recording
+   and today's runs were noisy. A quiescent run is needed to establish a clean anchor
+   before this bench can function as a regression gate.
 
-4. **Update the baseline once STORY-149 lands.** If a performance improvement story
-   is delivered for the TLS path, regenerate `performance-baseline.md` with the
-   post-fix values as the new anchor.
+4. **Do not update performance-baseline.md.** Noisy data must not become the new anchor.
+   The Jun-22 controlled re-run values remain the authoritative baseline until a clean
+   quiescent run produces stable measurements.
+
+5. **Prior REGRESSION-MINOR findings (decode/tls.pcap +12.2%, reassembly/segmented.pcap
+   +19.4% vs May-19) remain unchanged.** Both were confirmed real and attributable to the
+   ARP feature cycle. Nothing in the wave-72 delta affects these paths.
 
 ---
 
@@ -211,10 +235,11 @@ PASS/FAIL determination is not possible.
 
 | Field | Value |
 |-------|-------|
-| Run date | 2026-07-06 |
-| Platform | darwin 25.5.0 (Apple Silicon, macOS Sequoia 15.5) |
-| Rust toolchain | stable (v0.11.4, cargo build --release succeeded in 3.05 s) |
-| Benchmark command | `cargo bench --bench pipeline` |
-| Commits since Jun-22 baseline | ~f7460b4 (v0.11.4, includes PRs #362, #365, #366, #368) |
-| Outliers this run | tls.pcap reassembly: 13 (2 high mild, 11 high severe); dns-remoteshell summary: 14 (3 high mild, 11 high severe) |
-| Baseline anchor | performance-baseline.md (2026-06-22 controlled re-run) |
+| Run date | 2026-07-09 |
+| Platform | darwin 25.5.0 (Apple Silicon, macOS) |
+| Rust toolchain | stable (v0.11.5) |
+| Benchmark command | `cargo bench --bench pipeline` (×2), `cargo bench --bench tls_fragmented` (×2) |
+| Commits since Jun-22 baseline | 716054a (v0.11.5, wave-72 delta over b642c0f) |
+| Outlier profile | 9–21 severe outliers per 100 samples across all groups; highest in summary/* |
+| Thermal state | Machine not quiescent; high noise — all verdicts NOISE-SUSPECT |
+| Wave-72 hot-path impact | None — delta is cold-path only (reporter/json.rs, findings.rs serde, arp.rs comment) |

@@ -1,83 +1,74 @@
+# Tech Debt Check — maint-2026-07-09
+
+**Run:** maint-2026-07-09, Sweep 8 (tech-debt-register), DF-030
+**Date:** 2026-07-09
+**Register version:** 1.7 → last_updated 2026-07-09
+**develop HEAD at check:** 716054a (14 unreleased commits ahead of v0.11.5)
+
+Sources scanned:
+
+- `.factory/tech-debt-register.md` (primary target)
+- `.factory/STATE.md` Open Items / Backlog section
+- `.factory/maintenance/sweep-report-2026-07-08.md` (prior sweep verdicts + DF-VALIDATION-001 triage table)
+- `.factory/maintenance/backlog-triage-maint-2026-07-08.md` (11-item DF-VALIDATION-001 triage)
+- `.factory/maintenance/issue-backlog-triage-2026-07-08.md` (10 GitHub issues)
+- `CLAUDE.md` (deferred infrastructure items)
+
 ---
-document_type: maintenance-sweep-summary
-sweep: tech-debt-register
-run_id: maint-2026-07-06
-date: 2026-07-06
-register_version: "1.3"
-producer: maintenance-orchestrator
-branch: develop
-commit: f7460b4
-version: v0.11.4
----
 
-# Tech Debt Register — Maintenance Sweep 8 Summary (maint-2026-07-06)
+## Rows Added (4)
 
-## Register Version Bump
+| ID | Description | Priority | Status |
+|----|-------------|----------|--------|
+| DNP3-CLOSEDFLOW-REOPEN-REUSE-001 | DNP3 `closed_flow_direct_operates` Vec double-lists same FlowKey under NAT port reuse. Spec-conformant per BC-2.15.021 PC-4. Optional docstring rename only. Source: backlog-triage-maint-2026-07-08 §6. | P3 | DEFERRED |
+| TD-W7.1-PUBLIC-API-BASELINE | `cargo public-api` two-step setup (CLAUDE.md drift item W7.1). Deferred from W11/W16 per no-flaky-stub policy. Companion to TD-E18-SEMVER-CHECKS-001. | P3 | DEFERRED |
+| TD-INPUT-HASH-CI-GATE | `bin/compute-input-hash --scan` not wired into develop CI (factory-artifacts branch). Manual gate in place at Phase-4 entry. CLAUDE.md "CI Gate Decision (deferred)". | P3 | DEFERRED |
+| TD-DTOLNAY-PIN-EXEMPTION | `dtolnay/rust-toolchain@stable`/`@nightly` allowlisted in action-pin-gate. CLAUDE.md states "tracked for separate resolution." Resolution approach (formal accept vs alternative) undecided. | P3 | OPEN |
 
-| Field | Before | After |
-|-------|--------|-------|
-| version | 1.2 | 1.3 |
-| timestamp | 2026-06-29 | 2026-07-06 |
-
-## Item Counts
-
-| Category | Count |
-|----------|-------|
-| New items added | 13 |
-| Existing items updated | 3 |
-| Overdue items flagged for human triage | 1 |
-| Resolved/closed this sweep | 0 |
-
-## New Items Added
-
-| ID | Source Sweep | Priority | Severity |
-|----|-------------|----------|----------|
-| TD-MAINT-THRESHOLD-CALIB-001 | risk-assumption-monitoring | P1 | HIGH — 3 unvalidated thresholds past escalation threshold |
-| PC-016 | pattern-consistency | P3 | MEDIUM — DNP3 master_addrs_seen cap, no counter; T1692.001 masking REFUTED, reframed as observability parity; IN-PROGRESS FIX-B |
-| PC-017 | pattern-consistency | P2 | MEDIUM — DNP3 pending_requests LRU eviction, no counter; T1691.001 degradation CONFIRMED; IN-PROGRESS FIX-B |
-| PC-018 | pattern-consistency | P3 | LOW — ENIP+Modbus HashMap non-deterministic distribution keys (canonical PC-018/019) |
-| PC-020 | pattern-consistency | P2 | MEDIUM — ENIP missing StreamHandler/StreamAnalyzer trait (canonical PC-020) |
-| PC-022 | pattern-consistency | P3 | MEDIUM — ENIP import-style drift batch (canonical PC-013/014/015) |
-| DOC-009 | doc-drift | P2 | HIGH — README `protocols` subcommand entirely absent |
-| DOC-010 | doc-drift | P3 | MEDIUM — observability counters undocumented + 6 minor doc items |
-| HOLDOUT-001 | holdout-freshness | P2 | MEDIUM — 4 stale scenarios (HS-061/064/066/075) |
-| HOLDOUT-002 | holdout-freshness | P3 | LOW — HS-018 missing lifecycle_status frontmatter |
-| PERF-002 | performance | P3 | REGRESSION — reassembly/tls.pcap +14.0% vs Jun-22 baseline confirmed |
-| DEP-006 | dependency-audit | P3 | LOW — deny.toml 8 unused license allowlist entries |
-| DEP-007 | dependency-audit | P3 | LOW/INFO — syn v1/v2 build-time duplicate (upstream resolution) |
-
-## Existing Items Updated
+## Rows Updated (3)
 
 | ID | Change |
 |----|--------|
-| TD-MAINT-RISK-REGISTRY-BACKFILL | Priority P2 → P1; 11 ASM-CAND + 12 R-CAND still untracked; 2 new assumptions (ASM-010/011) since last sweep |
-| TD-MAINT-PERF-ARP-HOTPATH | Added note: tls.pcap +14.0% confirmed regression (maint-2026-07-06); cross-ref PERF-002 + STORY-149 |
-| ADV-4 | Marked OVERDUE — target was "next maintenance sweep" (maint-2026-07-06); still unaddressed. HUMAN TRIAGE REQUIRED. |
+| Debt Items section | Added maint-2026-07-09 Sweep 8 summary note. |
+| Tech Debt as Feature Mode Cycles | Removed RESOLVED TD-MAINT-THRESHOLD-CALIB-001 from P1 candidate list (resolved PR #382, 2026-07-08). |
+| `last_updated` frontmatter | 2026-07-08T00:00:00Z → 2026-07-09T00:00:00Z |
 
-## Overdue Items (Past Target Release) — Human Triage Required
+## Rows Resolved This Sweep
 
-| ID | Original Target | Disposition Needed |
-|----|----------------|--------------------|
-| ADV-4 | "next maintenance sweep" after maint-2026-06-22 | Address ci.yml build-dep-chain comment or explicitly re-defer with new target |
+None — Sweep 8 is register-reconciliation only; no new PRs in this sweep.
 
-## GitHub Issue Candidates (DF-VALIDATION-001 gated — NOT filed)
+---
 
-| ID | Rationale |
-|----|-----------|
-| PC-016 | Detection correctness: DNP3 master_addrs_seen overflow may silence T1692.001 |
-| PC-017 | Detection correctness: DNP3 pending_requests eviction may degrade T1691.001 |
-| DOC-009 | HIGH severity user-facing doc gap: `protocols` subcommand undiscoverable |
-| HOLDOUT-001 | Product-owner BC-shape validation needed for 4 stale scenarios |
+## Items Reconciled (No New Row Needed)
 
-All four require research-agent validation per DF-VALIDATION-001 before filing as GitHub issues.
+| Item | Reason |
+|------|--------|
+| HS-INDEX-ENIP-WAVE-DRIFT-001 | Already subsumed in existing ROUTE-C-DEFERRED row (human deferred 2026-07-08). |
+| EPICS-TOTAL-BCS-DRIFT-001 | Already subsumed in existing ROUTE-C-DEFERRED row (human deferred 2026-07-08). |
+| DEP-006 / DEP-007 | Pre-existing rows in register; status DEFERRED unchanged; no update needed. |
+| wave-72 S-7.02 PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS | STORY-162 draft confirmed (STATE.md STORY-INDEX v3.32); story covers both items; no register row needed. |
 
-## Source Sweep Coverage
+---
 
-| Sweep | Report | New Register Items |
-|-------|--------|--------------------|
-| Sweep 1 (dependency-audit) | dependency-audit.md — CLEAN, 2 LOW | DEP-006, DEP-007 |
-| Sweep 3 (pattern-consistency) | pattern-consistency.md — 20 findings (8 new) | PC-016, PC-019, PC-020, PC-021, PC-023 |
-| Sweep 4 (holdout-freshness) | holdout-freshness.md — 4 stale, 1 gap | HOLDOUT-001, HOLDOUT-002 |
-| Sweep 5 (performance) | performance.md — 1 confirmed REGRESSION | PERF-002 |
-| Sweep 8 (doc-drift) | doc-drift.md — 8 findings (1 HIGH, 4 MED, 3 LOW) | DOC-009, DOC-010 |
-| Sweep 11 (risk-assumption-monitoring) | risk-assumption-monitoring.md — 2 ESCALATE-CRITICAL | TD-MAINT-THRESHOLD-CALIB-001; TD-MAINT-RISK-REGISTRY-BACKFILL P1 |
+## Overdue / At-Risk Items — Human Triage
+
+| ID | Priority | Status | Concern |
+|----|----------|--------|---------|
+| TD-MAINT-RISK-REGISTRY-BACKFILL | P1 | DEFERRED (promoted P1 maint-2026-07-06) | No target date set; must complete before next ICS protocol feature cycle. Not yet overdue (no next cycle announced) but should surface to human before next wave planning. |
+| SEC-W71-001 | P3 | VALIDATED-PENDING-FILING (CWE-22) | Human deferred GitHub issue filing 2026-07-08 (1 day ago). No target date set. Not overdue. Recommend: file before any feature cycle that touches `bin/compute-input-hash`. |
+| TD-DTOLNAY-PIN-EXEMPTION | P3 | OPEN | Resolution approach undecided; no target date. Mention at next CI/supply-chain review. |
+
+No items are currently overdue (past a stated target release/date). No SURFACE-FOR-HUMAN-TRIAGE or WARNING flags raised.
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Rows added | 4 (all P3) |
+| Rows updated | 3 |
+| Rows resolved | 0 |
+| P1 open items | 1 (TD-MAINT-RISK-REGISTRY-BACKFILL) |
+| Overdue items | 0 |
+| Items needing immediate human decision | 0 |
