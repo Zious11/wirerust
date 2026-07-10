@@ -2,9 +2,8 @@
 
 **Status:** Withdrawn
 **Date:** N/A (number reserved; document never published)
-**Context:** ADR numbers 0007 and 0009 are both in use. ADR-0008 was reserved during
-the v0.6.0–v0.9.x development period but the corresponding design record was never
-authored or published. The gap was first noted informally in maint-2026-07-08
+**Context:** ADR numbers 0007 and 0009 are both in use. ADR-0008 was reserved at some
+point prior to ADR-0009 (v0.9.3 pcapng reader design) but never authored or published. The gap was first noted informally in maint-2026-07-08
 (doc-drift-findings.md, as an aside while documenting ADR-012's absence) and formally
 recorded as finding DD-004 in maint-2026-07-09 (doc-drift.md). No operational impact.
 

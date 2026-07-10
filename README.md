@@ -411,12 +411,16 @@ detection window (`--dnp3-direct-operate-threshold`, default 10). This value was
 tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
 need a lower value (3–5).
 
-### VLAN/QinQ/MACsec ARP limitations
+### MACsec-Modified ARP limitation
 
-The ARP analyzer inspects ARP frames at the standard Ethernet offset. Captures containing
-VLAN-tagged (802.1Q), double-tagged QinQ (802.1ad), or MACsec-encrypted (802.1AE) frames will
-produce no ARP findings for those frames because the ARP payload offset is shifted and is not
-decoded by the current parser. This is a known boundary by design (STORY-117, E-17, CWE-693).
+The ARP analyzer correctly decodes VLAN-tagged (802.1Q), double-tagged QinQ (802.1ad), and
+MACsec-Unmodified (unencrypted, 802.1AE) ARP frames by computing `arp_offset = 14 + Σ
+header_len()` over all link-extension headers without hardcoding (D-078, BC-2.16.015 /
+BC-2.16.009, STORY-116 / STORY-117). Two residual boundaries remain: (1) MACsec-Modified
+(encrypted) frames carry opaque ciphertext — the ARP parse path is unreachable by construction,
+so no ARP findings are produced for those frames; (2) real-world MACsec-over-ARP capture
+behavior is documented-unverified because no public MACsec-over-ARP PCAP fixture exists
+(EC-007 / EC-009(c), STORY-117, E-17, CWE-693).
 
 ## Roadmap
 
