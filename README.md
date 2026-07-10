@@ -11,7 +11,7 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 - **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies; `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection; multi-record handshake-message reassembly (SNI/JA3/JA3S fragmentation-evasion closed; per-direction carry buffer with `buffer_saturation_drops` overflow telemetry); `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; `dropped_transactions` JSON counter surfaces silently-dropped transactions when the per-flow transaction map reaches its cap; enabled via `--modbus`
-- **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; enabled via `--dnp3`
+- **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; `dropped_findings`, `master_addrs_dropped`, and `pending_requests_evicted` JSON counters surface cap-related telemetry; enabled via `--dnp3`
 - **ARP security forensics** — link-layer and OT network threat detection; detects ARP spoofing / cache poisoning, gratuitous ARP anomalies, ARP storms, malformed ARP frames, and L2/L3 sender-MAC mismatch; MITRE attribution to T0830 and T1557.002; enabled via `--arp`
 - **EtherNet/IP CIP forensics** — ICS/OT threat detection on port 44818; parses ODVA EtherNet/IP encapsulation header (24-byte, little-endian) and Common Packet Format item walk with CIP service extraction; detects 6 MITRE ATT&CK for ICS techniques (T0836 write-burst, T0846 remote system discovery, T0814 malformed-frame/crash-probe, T0888 error-burst/identity-read, T0858 controller stop, T0816 device reset); configurable write-burst and error-burst thresholds; emits `enip_summary` JSON key; references ADR-010; enabled via `--enip`
 - **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
@@ -121,6 +121,7 @@ Options:
 --no-collapse                          Disable collapsing of repeated findings in both flat and grouped (--mitre) terminal output. By default, collapse is enabled in both modes. When --mitre is used, collapse groups identical findings within each MITRE tactic bucket with a (xN) count suffix. Pass --no-collapse to restore one-line-per-finding output in both modes. Has no effect on --json, --csv, or --output-format json|csv output.
 --mitre                                Group findings by MITRE ATT&CK tactic and show technique names; collapses identical findings within each tactic bucket with a (xN) count suffix by default (pass --no-collapse to disable)
 -a, --all                              Run all analyzers
+--coverage-gaps                        Enable per-port unclassified traffic gap detection (opt-in; excluded from --all)
 ```
 
 ### List protocol coverage
@@ -147,6 +148,18 @@ coverage status. Filter flags:
 - `--unsupported` — show only protocols that wirerust does not yet dissect
 
 Combine with the global `--json` flag for machine-readable output.
+
+### Coverage gap detection
+
+Pass `--coverage-gaps` to `wirerust analyze` to include a `CoverageGapsSummary` in the JSON
+output. The summary classifies each observed protocol port as `covered` (a supported analyzer
+handles it), `gap` (a known-unsupported protocol entry exists in the catalog), or
+`unclassified` (no catalog entry matched the port). This flag is deliberately excluded from
+`--all` to avoid silent behavioral drift for downstream JSON consumers (ADR-012, Decision 8).
+
+```bash
+wirerust analyze capture.pcap --all --coverage-gaps
+```
 
 ## Architecture
 
@@ -213,6 +226,15 @@ Detections emitted:
 CLI flags:
 - `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off)
 - `--dnp3-direct-operate-threshold N` — direct-operate burst threshold per flow, default 10
+
+JSON output counters (present in `dnp3_summary` when using `--json` / `--output-format json`):
+- `dropped_findings` — count of findings silently dropped after the `MAX_FINDINGS = 10 000`
+  per-analyzer cap was reached; a non-zero value means some detection events were not emitted
+- `master_addrs_dropped` — count of new master addresses silently ignored after the
+  `MAX_MASTER_ADDRS = 64` per-flow cap was full
+- `pending_requests_evicted` — count of pending control-request entries evicted by LRU when
+  the `MAX_PENDING_REQUESTS = 256` per-flow table was full; an evicted entry cannot match a
+  RESPONSE, so a T1691.001 block-command finding may be suppressed
 
 ### ARP Security Analyzer
 
@@ -385,6 +407,13 @@ burst finding when more than 10 Control-class function codes arrive within the 6
 detection window (`--dnp3-direct-operate-threshold`, default 10). This value was chosen to
 tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
 need a lower value (3–5).
+
+### VLAN/QinQ/MACsec ARP limitations
+
+The ARP analyzer inspects ARP frames at the standard Ethernet offset. Captures containing
+VLAN-tagged (802.1Q), double-tagged QinQ (802.1ad), or MACsec-encrypted (802.1AE) frames will
+produce no ARP findings for those frames because the ARP payload offset is shifted and is not
+decoded by the current parser. This is a known boundary by design (STORY-117, E-17, CWE-693).
 
 ## Roadmap
 
