@@ -151,11 +151,13 @@ Combine with the global `--json` flag for machine-readable output.
 
 ### Coverage gap detection
 
-Pass `--coverage-gaps` to `wirerust analyze` to include a `CoverageGapsSummary` in the JSON
-output. The summary classifies each observed protocol port as `covered` (a supported analyzer
-handles it), `gap` (a known-unsupported protocol entry exists in the catalog), or
-`unclassified` (no catalog entry matched the port). This flag is deliberately excluded from
-`--all` to avoid silent behavioral drift for downstream JSON consumers (ADR-012, Decision 8).
+Pass `--coverage-gaps` to `wirerust analyze` to include a `coverage_gaps` object in JSON
+output (rendered as the `CoverageGapsSummary` section in terminal output). Each observed
+protocol port is classified with one of three states: `known-supported` (an active analyzer
+handles that port), `known-unsupported` (the catalog has an entry for the protocol but no
+dissector exists), or `unknown` (no catalog entry matched the port). This flag is deliberately
+excluded from `--all` to avoid silent behavioral drift for downstream JSON consumers
+(ADR-012, Decision 8).
 
 ```bash
 wirerust analyze capture.pcap --all --coverage-gaps
