@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: complete
-current_step: "PAUSED (session wrap 2026-07-09). Wave-72 CLOSED (D-416, human-approved). All 4 stories + gate fix delivered (PRs #387-#391); issues #252/#255 closed; develop=716054a (14 unreleased commits, v0.12.0 staged — release NOT yet cut, human-deferred). Pipeline IDLE. + D-417 out-of-cycle: dependabot #386 merged (716054a, 14 unreleased commits now staged for v0.12.0). Next candidates: v0.12.0 release run, STORY-162 (wave-TBD draft), maintenance sweep (deferred-items ledger). trajectory-tail →1→0→0→0"
+current_step: "Maintenance sweep maint-2026-07-09 STARTED (D-418, human-requested resume 2026-07-09, deferred-items ledger focus). Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-assumption-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y + design-drift (CLI, no UI). trajectory-tail →1→0→0→0"
 current_cycle: "wave-72"
-pipeline: PAUSED
-timestamp: 2026-07-10T02:22:31Z
-# Updated by session wrap re-confirm (2026-07-09 human-requested; sidecar flush; pipeline PAUSED)
+pipeline: RUNNING
+timestamp: 2026-07-09T12:00:00Z
+# Updated by MAINTENANCE_RUN_INIT maint-2026-07-09 (2026-07-09 human-requested resume)
 
 # Release chain (latest)
 released_version: v0.11.5
@@ -53,11 +53,10 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 # Maintenance
-maintenance_run: COMPLETE
-maintenance_run_id: maint-2026-07-08
-maintenance_started_at: "2026-07-08"
-maintenance_completed_at: "2026-07-08"
-maintenance_prior_run: maint-2026-07-06
+maintenance_run: STARTED
+maintenance_run_id: maint-2026-07-09
+maintenance_started_at: "2026-07-09"
+maintenance_prior_run: maint-2026-07-08
 ---
 
 # VSDD Pipeline State — wirerust
@@ -73,7 +72,7 @@ maintenance_prior_run: maint-2026-07-06
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-72 CLOSED (D-416, 2026-07-09); D-417 out-of-cycle dependabot #386 merged (716054a); 14 unreleased; factory PAUSED |
+| Mode | wave-72 CLOSED; maintenance sweep maint-2026-07-09 STARTED (D-418, 2026-07-09); factory RUNNING |
 | Version | 0.11.5 (released 2026-07-07; develop=716054a, Cargo.toml 0.11.5; 14 unreleased commits) |
 | Main HEAD | `3c0ad3a` (full: `3c0ad3acfd3737df2a5221a8fb716d5fe7fc38a3`) |
 | Develop HEAD | `716054a` (full: `716054a6e9caa9e36450f1ca63a85d28e6e4e124`) — dependabot #386 indicatif 0.18.6 squash-merged 2026-07-09 (D-417); 14 unreleased commits staged for v0.12.0 |
@@ -82,7 +81,7 @@ maintenance_prior_run: maint-2026-07-06
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.39 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 106 delivered / 115 total (STORY-INDEX v3.32) |
-| **Last Updated** | 2026-07-09 — D-417 out-of-cycle: dependabot #386 (indicatif 0.18.6) squash-merged 716054a; 14 unreleased commits staged for v0.12.0. Factory PAUSED. trajectory-tail →1→0→0→0 |
+| **Last Updated** | 2026-07-09 — Maintenance sweep maint-2026-07-09 STARTED (D-418, human-requested resume; deferred-items ledger focus). Factory RUNNING. trajectory-tail →1→0→0→0 |
 
 ---
 
@@ -122,6 +121,7 @@ maintenance_prior_run: maint-2026-07-06
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
 | Wave 72 (v0.12.0): STORY-158/159/160/161 | **CLOSED (D-416, 2026-07-09)** | 4 stories + gate-fix PR #391; gate all-green; S-7.02 satisfied (STORY-162). |
+| Maintenance maint-2026-07-09 | **STARTED 2026-07-09 (D-418)** | Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y/design-drift (CLI). |
 
 ---
 
@@ -129,7 +129,7 @@ maintenance_prior_run: maint-2026-07-06
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **Wave-72 integration gate IN PROGRESS (D-414, 2026-07-09). Suite PASS (2,392/0). Security PASS-W-ADV (SEC-W72-001 FIXED PR #391; SEC-W72-002/003 carried LOW). Consistency BLOCKING-01 FIXED (STORY-INDEX v3.31 body: STORY-161 draft→delivered; v3.31 header added; wave-72 row updated). Holdout PASS 1.00 (16/16 must-pass); 13 HS repairs by product-owner (HS-021/024/032/033/034/035/050/054/059/064/065/074/075 + HS-INDEX v2.13). Adversary P1 FINDINGS_BLOCKING (F-W72G-P1-001 HIGH) → FIXED PR #391 squash-merged 44f8c9ce57b1ebe7ea1d166628a2518ebf981997 (also SEC-W72-001 + CR-001/002/003/005). Gate code review APPROVE-WITH-COMMENTS (5 MINOR/4 NIT): CR-001/002/003/005 FIXED PR #391; CR-004/006/007/008/009 DEFERRED. code-review.md written per AC-158-006. demo-evidence-scrub-gate.md extended (~/  paths). STORY-158 input-hash re-baselined (ci.yml drift, MATCH=114 STALE=0). develop=44f8c9c.** | **D-414 IN PROGRESS** | NEXT: adversary Pass 2+ on fixed tree — need 3 consecutive clean. |
+| **Maintenance sweep maint-2026-07-09 STARTED (D-418, human-requested resume 2026-07-09, deferred-items ledger focus). Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-assumption-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y + design-drift (CLI, no UI). trajectory-tail →1→0→0→0** | **D-418 STARTED** | In progress. |
 | **Wave-72 integration gate PASSED (D-415, 2026-07-09). All 8 dimensions green: suite PASS (2,392/0/95 suites), adversary CONVERGED 3/3 (P2/P3/P4 CLEAN, trajectory →1→0→0→0), code-review APPROVE-WITH-COMMENTS (CR-004/006-009 DEFERRED), security PASS-WITH-ADVISORIES (SEC-W72-002/003 LOW carried), consistency PASS, holdout PASS 1.00 (16/16 must-pass), demos PASS (7 artifacts, scrub PASS), runtime-probes PASS (6-key envelope, action-pin VALIDATED=23). gate-summary.md + lessons.md written. process-gap-ledger deferred items appended (F-W72G-P3-004 RESOLVED). STORY-162 drafted (S-7.02). STORY-INDEX v3.32 (115 stories/717 pts). input-hash MATCH=115 STALE=0.** | **D-415 PASSED** | Awaiting human wave-close approval. Next: wave-72 close → S-7.02 punch list (F-W72-P15-L01, CD-03-RC-01) → v0.12.0 release. |
 | **Wave-72 CLOSED (D-416, 2026-07-09, human-approved). All 4 stories + gate-fix PR #391 delivered (PRs #387-#391); issues #252/#255 closed; S-7.02 satisfied (STORY-162 drafted, wave-TBD); STORY-INDEX v3.33. develop=44f8c9c (13 unreleased, v0.12.0 staged — release deferred to human-initiated run). Pipeline IDLE.** | **CLOSED (D-416)** | Next candidates: v0.12.0 release run, STORY-162 (wave-TBD draft), maintenance sweep (deferred-items ledger). |
 | **Session wrap (human-requested, 2026-07-09). Wave-72 CLOSED (D-416); pipeline at rest; no sub-agents abandoned mid-step.** | **PAUSED** | Pipeline at rest between cycles. Next: human-initiated v0.12.0 release / STORY-162 / maintenance sweep. |
@@ -250,6 +250,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | D-409 | STORY-158 delivery COMPLETE through PR-open; merge HELD by human. Worktree branched from develop c4eb1f4; Red Gate 7f227a0; GREEN gate 413d0da..481f900 (5 commits); 4 hardening bursts (fail-closed parser, 21 TCs, commits a83b02f/c27d3c3/44fbaca/403ab9c/ba3567f/5ead224/61a2e5d) + clippy drift fix c4831bc; per-story convergence 7 passes P5/P6/P7 clean 3/3 (BC-5.39.001 satisfied); demo evidence cf8b1bf (PG-W70-DEMO-SCRUB PASS); PR #387 opened (branch feature/STORY-158-changelog-gate-cycle-lint, HEAD c4831bc); CI 12/12 green (new changelog-gate self-passes); pr-reviewer APPROVE; security-reviewer APPROVE with 2 LOW CWE-22 advisories (SEC-001-S158/SEC-002-S158) deferred pending bin/lint-cycle-artifact mandatory CI wiring (DF-VALIDATION-001 applies before issue filing). Human HELD merge. STORY-159/160 blocked on #387 merge (file-sequencing edges); STORY-161 blocked on 159. | 2026-07-09 |
 | D-410 | Merge hold D-409 RELEASED by human. PR #387 squash-merged to develop at merge commit 75c5ba5f7713b9eb03f6c2cbb7c0bea3fd575a50 (mergedAt 2026-07-09T16:41:36Z, "ci: CHANGELOG gate + cycle-artifact identity lint + scan-guard hardening"). STORY-158 DELIVERED. stories_delivered=103. Remote branch feature/STORY-158-changelog-gate-cycle-lint deleted; worktree .worktrees/STORY-158 removed; local branch deleted. STORY-159/160 UNBLOCKED (both depend_on STORY-158 only; dispatch in parallel worktrees). STORY-161 remains blocked on STORY-159. PR #386 (dependabot indicatif) untouched, still open. | 2026-07-09 |
 | D-411 | STORY-159 DELIVERED (2026-07-09). PR #388 "docs: add ADR-012 protocols catalog and coverage-gaps system" squash-merged d410b8d64b5fa8835bcd3db5234fad48ebd46bd4. Per-story adversarial convergence CONVERGED: Pass 1 CLEAN / Pass 2 NITPICK_ONLY / Pass 3 CLEAN; zero HIGH/CRITICAL; BC-5.39.001 satisfied; diff byte-stable on cd99a58. Demo evidence 4a8cc37 (21 artifacts; scrub PASS). CI 12/12 green. security-review CLEAN. pr-reviewer APPROVE (1 cycle). Merge auth: wave-level D-408, DF-MERGE-AUTH-CLASSIFIER-001 clause (b). Worktree .worktrees/STORY-159 + local branch docs/adr-012-protocols-catalog deleted. stories_delivered=104. STORY-161 now UNBLOCKED (dep STORY-159 satisfied). 4 carried LOW observations (factory-ADR wording debt, non-blocking): sketch parsed.is_udp() vs dispatcher::udp_gap_key; sketch +=1 vs saturating_add; Decision-6 lower-port parenthetical; "approximately 30" vs exactly 30 — route to future maint doc-refresh. | 2026-07-09 |
+| D-418 | Maintenance run maint-2026-07-09 STARTED (2026-07-09, human-requested resume). Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-assumption-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y + design-drift (CLI, no UI). develop=716054a (14 unreleased commits). Factory RUNNING. | 2026-07-09 |
 | D-417 | Dependabot PR #386 (indicatif 0.18.5→0.18.6) squash-merged to develop at 716054a6e9caa9e36450f1ca63a85d28e6e4e124 (2026-07-09, out-of-cycle, per-PR explicit human instruction). Soak: 8 days (published 2026-07-01, not yanked, 486k downloads); upstream fix: Windows dumb-terminal detection (indicatif#818); Audit+Deny clean. Branch updated to develop via gh pr update-branch; CHANGELOG [Unreleased] entry added (be0b2fd) to satisfy wave-72 changelog-gate. CI 12/12 green (first dependabot PR through wave-72 changelog-gate — gate works as designed). Post-merge develop CI green at 716054a. Remote branch auto-deleted. Merge auth: DF-MERGE-AUTH-CLASSIFIER-001 per-PR explicit human instruction. develop=716054a (14 unreleased commits, v0.12.0 staged). Factory remains PAUSED. | 2026-07-09 |
 | D-416 | Wave-72 CLOSED (2026-07-09, human-approved). Human approved wave close at orchestrator gate (all dimensions green per D-415 gate-summary). 4 stories + gate-fix delivered: STORY-158 PR #387 75c5ba5 / STORY-159 PR #388 d410b8d / STORY-160 PR #389 704fd2e / STORY-161 PR #390 80fbb64 / gate-fix PR #391 44f8c9c. Issues #252/#255 closed. S-7.02 satisfied: STORY-162 drafted (wave-TBD, E-11, 3 pts; STORY-INDEX v3.33). develop=44f8c9c (13 unreleased commits, v0.12.0 staged). Release NOT yet cut — v0.12.0 deferred to future human-initiated release run. Pipeline IDLE. | 2026-07-09 |
 | D-415 | Wave-72 integration gate PASSED (2026-07-09). All 8 dimensions green: (a) suite PASS 2,392/0 / 95 suites / clippy+fmt+release clean; (b) wave adversarial CONVERGED 3/3 (P2/P3/P4 CLEAN, trajectory →1→0→0→0) — P1 NOT-CLEAN (F-W72G-P1-001 HIGH action-pin-gate false-green FIXED PR #391); (c) code-review APPROVE-WITH-COMMENTS (9 findings total: CR-001/002/003/005 FIXED PR #391, CR-004/006/007/008/009 DEFERRED maintenance); (d) security PASS-WITH-ADVISORIES (SEC-W72-001 FIXED PR #391; SEC-W72-002/003 LOW carried DF-VALIDATION-001-gated); (e) consistency PASS (BLOCKING-01 FIXED D-414 burst; ADVISORY-02 ACCEPTED); (f) holdout PASS mean 1.00 (16/16 must-pass; 13 HS repaired HS-INDEX v2.13); (g) demos PASS (7 artifacts, scrub PASS including tilde-path guard); (h) runtime-probes PASS (6-key JSON envelope verified, schema_version string "2", lowercase/snake_case enums on 3 fixtures, lint-cycle-artifact parse correct, action-pin VALIDATED=23 FAILURES=0). Gate artifacts written: gate-summary.md, lessons.md, process-gap-ledger deferred items (F-W72G-CR-004/006-009 + F-W72G-P3-OBS-001/002/003/004 — resolves F-W72G-P3-004). STORY-162 drafted (S-7.02, wave-TBD, E-11, 3 pts: PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS). STORY-INDEX v3.32 (115 stories / 717 pts). input-hash MATCH=115 STALE=0. develop=44f8c9c (13 unreleased commits). Awaiting human wave-close approval. | 2026-07-09 |
