@@ -10,7 +10,7 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: complete
-current_step: "maint-2026-07-09 FIX-ROUTE IN PROGRESS (D-419, human-approved 2026-07-09). Route A: docs worktree docs/maint-2026-07-09-doc-sweep in progress. SEC-W71-001 filing in progress (github-ops dispatched). TD-MAINT-RISK-REGISTRY-BACKFILL backfill drafting in progress (business-analyst drafting specs/domain-spec/risk-register.md + assumptions.md). AC-149-003 quiescent re-run: STANDING item, no immediate action. Route B factory fixes: STORY-INDEX v3.34 (SC-001 fixed, stories_delivered adjudicated 106→101, D-419). All sweeps complete (1,2,3,4,5,7,8,risk-asm done; 6+9 skipped). trajectory-tail →1→0→0→0"
+current_step: "maint-2026-07-09 FIX-ROUTE IN PROGRESS (D-419, human-approved 2026-07-09). Route A: docs worktree docs/maint-2026-07-09-doc-sweep in adversarial convergence pass 1. SEC-W71-001 FILED #392 (2026-07-09). TD-MAINT-RISK-REGISTRY-BACKFILL backfill REGISTERED: risk-register.md R-001..012 + assumptions.md ASM-001..011 (validation PASS after input-hash fix, D-419 this commit). New triage item ISSUE-102-PREMATURE-CLOSE-001 (P2, SURFACE-FOR-HUMAN-TRIAGE). AC-149-003 quiescent re-run: STANDING item, no immediate action. Route B factory fixes: STORY-INDEX v3.34 (SC-001 fixed, stories_delivered adjudicated 106→101, D-419). All sweeps complete (1,2,3,4,5,7,8,risk-asm done; 6+9 skipped). trajectory-tail →1→0→0→0"
 current_cycle: "wave-72"
 pipeline: RUNNING
 timestamp: 2026-07-09T12:00:00Z
@@ -81,7 +81,7 @@ maintenance_prior_run: maint-2026-07-08
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.39 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 101 delivered / 115 total (STORY-INDEX v3.34) |
-| **Last Updated** | 2026-07-09 — maint-2026-07-09 FIX-ROUTE IN PROGRESS (D-419, human-approved). Route B factory fixes: STORY-INDEX v3.34 (SC-001 fixed, stories_delivered adjudicated 106→101). Route A docs PR + SEC filing + backfill drafting in progress. trajectory-tail →1→0→0→0 |
+| **Last Updated** | 2026-07-09 — maint-2026-07-09 FIX-ROUTE IN PROGRESS (D-419). TD-MAINT-RISK-REGISTRY-BACKFILL RESOLVED: risk-register.md R-001..012 + assumptions.md ASM-001..011 registered. SEC-W71-001 FILED #392. ISSUE-102-PREMATURE-CLOSE-001 added P2 SURFACE-FOR-HUMAN-TRIAGE. Route A docs PR in adversarial convergence pass 1. trajectory-tail →1→0→0→0 |
 
 ---
 
@@ -121,7 +121,7 @@ maintenance_prior_run: maint-2026-07-08
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
 | Wave 72 (v0.12.0): STORY-158/159/160/161 | **CLOSED (D-416, 2026-07-09)** | 4 stories + gate-fix PR #391; gate all-green; S-7.02 satisfied (STORY-162). |
-| Maintenance maint-2026-07-09 | **FIX-ROUTE IN PROGRESS (D-419, 2026-07-09)** | All sweeps complete. Route A docs PR in progress; SEC-W71-001 filing dispatched; TD-MAINT-RISK-REGISTRY-BACKFILL backfill drafting in progress. Route B factory fixes committed: STORY-INDEX v3.34 (SC-001 fixed, stories_delivered adjudicated 106→101). AC-149-003 quiescent re-run: STANDING item. |
+| Maintenance maint-2026-07-09 | **FIX-ROUTE IN PROGRESS (D-419, 2026-07-09)** | All sweeps complete. Route A docs PR in adversarial convergence pass 1; SEC-W71-001 FILED #392; TD-MAINT-RISK-REGISTRY-BACKFILL RESOLVED (risk-register.md R-001..012 + assumptions.md ASM-001..011 registered, D-419). ISSUE-102-PREMATURE-CLOSE-001 added P2. Route B factory fixes committed: STORY-INDEX v3.34. AC-149-003 quiescent re-run: STANDING item. |
 
 ---
 
@@ -353,7 +353,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | EVICTION-NO-FINDING-NEG-TEST-001 | pr-reviewer non-blocking (PR #365): add regression test asserting eviction/drop events emit no Finding (invariant guard). | LOW | **RESOLVED (D-386, PR #366, 2026-07-06)** — Modbus pending-drop (live) + ARP eviction (#[ignore]) emit-no-Finding tests delivered. |
 | ARP-BINDINGS-EVICT-PRECHECK-COSMETIC-001 | pr-reviewer cosmetic (PR #365): ARP bindings-evicted pre-check condition is duplicated — optional refactor only. | LOW (cosmetic) | **RESOLVED (D-386, PR #366, 2026-07-06)** — insert_binding_lru now returns bool; 2 call sites deduped. |
 | REBIND-COUNT-SATURATING-001 | PR #366 security review informational note: `rebind_count` in `src/analyzer/arp.rs` uses plain `+=` (not `saturating_add`) — pre-existing, non-introduced (u32 at arp.rs:856). Folded into PF-001 sweep. DF-VALIDATION-001-gated confirmed. | LOW (informational) | **RESOLVED — folded into PR #384 PF-001 sweep (c4eb1f4 2026-07-08). 109 sites converted total; arp.rs:856 `entry.rebind_count += 1` included.** |
-| SEC-W71-001 | CWE-22 path traversal in `bin/compute-input-hash`: comment-strip + `PurePath.__truediv__` absolute-path swallow. Validated by DF-VALIDATION-001 research-agent triage (maint-2026-07-08). Human deferred GitHub issue filing 2026-07-08. | LOW | **VALIDATED-PENDING-FILING — CWE-22 CONFIRMED. Human elected not to file immediately. Retained in register SEC-W71-001 VALIDATED-PENDING-FILING.** |
+| SEC-W71-001 | CWE-22 path traversal in `bin/compute-input-hash`: comment-strip + `PurePath.__truediv__` absolute-path swallow. Validated by DF-VALIDATION-001 research-agent triage (maint-2026-07-08). Human approved filing 2026-07-09. | LOW | **FILED — GitHub issue #392 (2026-07-09). CWE-22 CONFIRMED. Covers both path-hardening sites (comment-strip + `PurePath.__truediv__` absolute-path swallow). Suggested fix: `Path.resolve(strict=True) + is_relative_to(repo_root)`.** |
 | SEC-001-S158 | CWE-22 LOW: `_bc_on_disk` in `bin/lint-cycle-artifact` uses `fullmatch` guard but could be tightened further (security-reviewer advisory, D-409, 2026-07-09). Deferred until `bin/lint-cycle-artifact` is wired into mandatory CI. DF-VALIDATION-001 applies before any GitHub issue is filed. | LOW (advisory) | **OPEN — deferred; DF-VALIDATION-001-gated; bin/lint-cycle-artifact mandatory CI wiring required first.** |
 | SEC-002-S158 | CWE-22 LOW: repo-root boundary check on `--story` arg in `bin/lint-cycle-artifact` (security-reviewer advisory, D-409, 2026-07-09). Deferred until `bin/lint-cycle-artifact` is wired into mandatory CI. DF-VALIDATION-001 applies before any GitHub issue is filed. | LOW (advisory) | **OPEN — deferred; DF-VALIDATION-001-gated; bin/lint-cycle-artifact mandatory CI wiring required first.** |
 | SEC-W71-002 + SEC-W71-003 | Wave-71 security pass LOW observations; accepted as no-action design constraints at gate review (2026-07-08). | LOW | **ACCEPTED — no issue to file** |
