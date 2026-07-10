@@ -254,3 +254,56 @@ SEC-W71-001 retains its VALIDATED-PENDING-FILING status from maint-2026-07-08 (n
 | Spec coherence criteria passing | 33/33 (PASS; 0 FAIL) |
 | Holdout scenarios active / stale | 132 / 0 |
 | Input-hash scan | MATCH=115 STALE=0 |
+
+---
+
+## Route B Adjudications
+
+**Decision:** D-419, human-approved 2026-07-09. Executed as part of maint-2026-07-09 FIX-ROUTE phase.
+
+### SC-001 — STORY-INDEX Registry Header Description Fix
+
+**Action taken:** STORY-INDEX version bumped v3.33 → v3.34. Registry header blockquote (line 99) extended to enumerate STORY-158..162.
+
+**Stories added to narrative:**
+- STORY-158 (E-11, wave-72, delivered): wave-71 S-7.02 cycle-close process gaps — changelog gate, cycle-artifact identity lint, CI scan-guard hardening, code-review artifact protocol.
+- STORY-159 (E-11, wave-72, delivered): ADR-012 public doc authoring + CLAUDE.md Project References row.
+- STORY-160 (E-8, wave-72, delivered): JSON enum casing alignment + schema_version envelope (BC-2.11.036/037).
+- STORY-161 (E-11, wave-72, delivered): VP-024 proof_file_hash mini-Merkle algorithm codification + re-lock.
+- STORY-162 (E-11, wave-TBD, draft): wave-72 S-7.02 cycle-close process gaps — LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests.
+
+**Disposition:** SC-001 RESOLVED. STORY-INDEX v3.34 is the authoritative version.
+
+---
+
+### SC-PERSIST-002 — stories_delivered Counter Adjudication
+
+**Finding (from spec-coherence sweep-7):** STORY-INDEX frontmatter `stories_delivered: 106`; STATE.md `stories_delivered: 106`. Spec-coherence claimed actual delivered count = 101, discrepancy = 5.
+
+**Evidence (direct row count from STORY-INDEX Index Table):**
+
+```
+Status         Count   Method
+completed        82    grep "| completed |" STORY-INDEX rows
+merged           15    grep "| merged |" STORY-INDEX rows
+delivered         4    grep "| delivered |" STORY-INDEX rows (STORY-158/159/160/161, wave-72)
+superseded        1    STORY-148 (scope delivered via PR #362; story itself not dispatched)
+draft            13    undelivered stories
+                ---
+Total            115   = total_stories ✓
+
+Delivered (excl. superseded): 82 + 15 + 4 = 101
+```
+
+**Cross-check (wave-72 close records):** STORY-158 (D-410), STORY-159 (D-411), STORY-160 (D-412), STORY-161 (D-413) — 4 stories delivered in wave-72. These are the 4 rows with status `delivered` in the Index Table. The 4 are correctly accounted for in the row count (101 = 97 pre-wave-72 + 4 wave-72).
+
+**Discrepancy explanation:** The counter was incremented to 106 via changelog tracking (D-403 → 102, then +4 wave-72 = 106), but the pre-wave-72 counter baseline of 102 exceeded the actual delivered row count of 97 by 5. The over-count originated prior to the current tracking window (before v3.8 / stories_delivered=94 baseline). The Index Table row statuses are the ground truth; the increment-tracked counter accumulated an unrecoverable 5-unit drift.
+
+**Adjudicated value: 101** (direct row count: 82 completed + 15 merged + 4 delivered).
+
+**Actions taken:**
+- `STATE.md` frontmatter `stories_delivered: 106` → `stories_delivered: 101`.
+- `STORY-INDEX.md` frontmatter `stories_delivered` note updated in v3.34 changelog entry.
+- SC-PERSIST-002 carry-forward status: **RESOLVED** (adjudicated to 101; counter and STATE.md now consistent with row evidence).
+
+**Note:** Historical D-NNN entries that cite `stories_delivered=102..106` are accurate records of what the counter showed at those timestamps; they are not updated (historical records). The adjudicated value of 101 is the corrected ground-truth effective from STORY-INDEX v3.34 / STATE.md maint-2026-07-09 Route B.
