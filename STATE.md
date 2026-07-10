@@ -10,7 +10,7 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: complete
-current_step: "Maintenance sweep maint-2026-07-09 IN PROGRESS (D-418). sweep_progress: sweep-1 DONE (dependency audit CLEAN — cargo audit 0 vulns/193 deps/DB-1159; cargo deny ok; 2 pre-existing LOW deferred DEP-006/DEP-007 re-confirmed; indicatif 0.18.6 only delta; no fix PR required); sweeps 2,3,4,5,7,8,risk-asm IN FLIGHT; 6+9 SKIPPED (DTU n/a, CLI no UI). trajectory-tail →1→0→0→0"
+current_step: "Maintenance sweep maint-2026-07-09 IN PROGRESS (D-418). sweep_progress: sweeps 1,4 DONE; 2,3,5,7,8,risk-asm IN FLIGHT; 6+9 SKIPPED (DTU n/a, CLI no UI). Sweep-1: dependency audit CLEAN — cargo audit 0 vulns/193 deps/DB-1159; cargo deny ok; 2 pre-existing LOW deferred DEP-006/DEP-007 re-confirmed; indicatif 0.18.6 only delta; no fix PR required. Sweep-4: holdout freshness CLEAN — 132/132 scenarios active, 0 stale, 0 retired; 13 PR-#389 JSON-shape scenarios confirmed repaired (HS-INDEX v2.13) and verified against binary at 716054a; HS-INDEX-ENIP-WAVE-DRIFT-001 unchanged (human-deferred Route C 2026-07-08); 1 advisory: HS-082 optional-check wording vs all-caps terminal Display (cleanup candidate, not stale). trajectory-tail →1→0→0→0"
 current_cycle: "wave-72"
 pipeline: RUNNING
 timestamp: 2026-07-09T12:00:00Z
