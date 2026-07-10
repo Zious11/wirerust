@@ -229,7 +229,8 @@ CLI flags:
 - `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off)
 - `--dnp3-direct-operate-threshold N` — direct-operate burst threshold per flow, default 10
 
-JSON output counters (present in `dnp3_summary` when using `--json` / `--output-format json`):
+JSON output counters (present in the DNP3 analyzer's `detail` object in JSON output, at
+`analyzers[i].detail`, when using `--json` / `--output-format json`):
 - `dropped_findings` — count of findings silently dropped after the `MAX_FINDINGS = 10 000`
   per-analyzer cap was reached; a non-zero value means some detection events were not emitted
 - `master_addrs_dropped` — count of new master addresses silently ignored after the
