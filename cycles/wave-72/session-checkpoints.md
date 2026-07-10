@@ -131,3 +131,19 @@ Latest active checkpoint is in `STATE.md ## Session Resume Checkpoint`.
   - SEC-W71-001 CWE-22 in bin/compute-input-hash — VALIDATED-PENDING-FILING.
 - **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.13 / STORY-INDEX v3.33 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** Human-initiated — `/vsdd-factory:release` (v0.12.0) or `/vsdd-factory:deliver-story` (STORY-162) or `/vsdd-factory:maintenance-sweep`.
+
+---
+
+## Checkpoint — 2026-07-10 (v0.12.0 RELEASED + CHAIN COMPLETE, D-422)
+
+**v0.12.0 RELEASED + CHAIN COMPLETE (D-422, 2026-07-10). Pipeline PAUSED. main==develop==f1e0c36, Cargo 0.12.0, zero unreleased commits, histories reunified. Session wrap in progress.**
+
+- **Date:** 2026-07-10. Position: v0.12.0 RELEASED (D-422); maint-2026-07-09 CLOSED (D-420). Pipeline PAUSED at rest.
+- **develop HEAD:** `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`) — fast-forwarded to main; zero unreleased commits.
+- **main HEAD:** `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`, v0.12.0 released 2026-07-10).
+- **Open PRs:** None. **Open story worktrees:** None. **Open release/* or chore/backmerge-* branches:** None (cleaned post-D-422).
+- **current_cycle:** wave-72 (CLOSED). **Worktrees:** main checkout [develop] + .factory [factory-artifacts] only.
+- **Release chain:** PR #394 (release/0.12.0 → main, merge f1e0c36); CI 11/11; tag v0.12.0; release.yml SUCCESS 3m5s; GitHub Release Latest 4 binaries. BREAKING JSON BC-2.11.036/037 shipped. Back-merge: develop FAST-FORWARDED to f1e0c36 (no squash; PG-GITFLOW-SQUASH-BACKMERGE mitigated).
+- **Convergence:** No active convergence loops. BC-5.39.001 satisfied (wave-72).
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.39 / HS-INDEX v2.13 / STORY-INDEX v3.35 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step` (will propose STORY-162/163 / triage / session review as options).
