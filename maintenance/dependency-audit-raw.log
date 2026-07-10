@@ -1,16 +1,16 @@
-# maint-2026-07-08 dependency audit raw log
-# Run timestamp: 2026-07-08T17:23:34Z
-# Tools: cargo-audit 0.22.1, cargo-deny 0.19.6, cargo-outdated NOT INSTALLED
+# maint-2026-07-09 raw scan — develop 716054a
 
 ## cargo audit
----
+
     Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
       Loaded 1159 security advisories (from /Users/zious/.cargo/advisory-db)
     Updating crates.io index
     Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
 
+EXIT: 0
+
 ## cargo deny check
----
+
 warning[license-not-encountered]: license was not encountered
    ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:34:6
    │
@@ -61,11 +61,11 @@ warning[license-not-encountered]: license was not encountered
 
 warning[duplicate]: found 2 duplicate entries for crate 'syn'
     ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
-    │  
+    │
 135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
 136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
     │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
-    │  
+    │
     ├ syn v1.0.109
       ├── derive-into-owned v0.2.0
       │   └── pcap-file v2.0.0
@@ -111,7 +111,7 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │           │   │   └── plotters v0.3.7
       │           │   │       └── criterion v0.8.2 (*)
       │           │   └── web-time v1.1.0
-      │           │       └── indicatif v0.18.5
+      │           │       └── indicatif v0.18.6
       │           │           └── wirerust v0.11.5 (*)
       │           ├── plotters v0.3.7 (*)
       │           ├── web-sys v0.3.94 (*)
@@ -133,6 +133,8 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
 
 advisories ok, bans ok, licenses ok, sources ok
 
+EXIT: 0
+
 ## cargo outdated
----
+
 SKIPPED: cargo-outdated not installed

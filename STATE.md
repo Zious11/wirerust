@@ -10,7 +10,7 @@ project: wirerust
 mode: steady-state
 phase: "wave-72-delivery"
 status: complete
-current_step: "Maintenance sweep maint-2026-07-09 STARTED (D-418, human-requested resume 2026-07-09, deferred-items ledger focus). Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-assumption-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y + design-drift (CLI, no UI). trajectory-tail →1→0→0→0"
+current_step: "Maintenance sweep maint-2026-07-09 IN PROGRESS (D-418). sweep_progress: sweep-1 DONE (dependency audit CLEAN — cargo audit 0 vulns/193 deps/DB-1159; cargo deny ok; 2 pre-existing LOW deferred DEP-006/DEP-007 re-confirmed; indicatif 0.18.6 only delta; no fix PR required); sweeps 2,3,4,5,7,8,risk-asm IN FLIGHT; 6+9 SKIPPED (DTU n/a, CLI no UI). trajectory-tail →1→0→0→0"
 current_cycle: "wave-72"
 pipeline: RUNNING
 timestamp: 2026-07-09T12:00:00Z
@@ -121,7 +121,7 @@ maintenance_prior_run: maint-2026-07-08
 | Maintenance maint-2026-07-08 | **COMPLETE 2026-07-08 (D-406)** | 3 PRs merged (#382 624bae3 / #383 3ebd801 / #384 c4eb1f4, strict 3/3); STORY-158 v1.1 amended (AC-158-006) + STORY-159 drafted; develop=c4eb1f4 (8 unreleased) |
 | Issue-backlog triage triage-2026-07-08 | **COMPLETE 2026-07-08 (D-407)** | 10 issues validated (3 codebase-analyzer + 10 research-agent passes, all CONFIRMED); #101 closed (superseded), #4 closed (CSV shipped), #385 filed (SQLite), #67/#6 annotated; validated backlog: #255/#252/#63/#361/#103/#3 — see maintenance/issue-backlog-triage-2026-07-08.md |
 | Wave 72 (v0.12.0): STORY-158/159/160/161 | **CLOSED (D-416, 2026-07-09)** | 4 stories + gate-fix PR #391; gate all-green; S-7.02 satisfied (STORY-162). |
-| Maintenance maint-2026-07-09 | **STARTED 2026-07-09 (D-418)** | Sweeps: 1 deps, 2 doc-drift, 3 patterns, 4 holdouts, 5 perf, 7 spec-coherence, 8 tech-debt-register, risk-monitoring, + DF-VALIDATION-001 deferred-items triage. Skips: 6 DTU (dtu_required false), 9 a11y/design-drift (CLI). |
+| Maintenance maint-2026-07-09 | **IN PROGRESS 2026-07-09 (D-418)** | sweep_progress: sweep-1 DONE (deps CLEAN — 0 vulns, DB-1159, cargo deny ok; 2 LOW DEP-006/DEP-007 re-confirmed; no fix PR required); sweeps 2,3,4,5,7,8,risk-asm in flight; 6+9 skipped (DTU n/a, CLI no UI). |
 
 ---
 
