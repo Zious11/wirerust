@@ -1,0 +1,465 @@
+#!/usr/bin/env python3
+"""
+lint-cycle-artifact — Cycle-artifact identity validator (AC-158-003, STORY-158).
+
+Validates cycle artifact identity fields (story_id: and bcs:) against the
+parent story and on-disk BC files.
+
+Usage:
+    bin/lint-cycle-artifact <artifact-path>
+    bin/lint-cycle-artifact --artifact <path> [--story <path>]
+
+Evaluation order per AC-158-003:
+  (1) frontmatter presence + required keys
+  (6) path/story_id identity (wave-NNN/STORY-NNN pattern)
+  (2) empty-bcs short-circuit → exit 0
+  (3) BC existence on disk (HARD FAIL listing ALL unresolvable)
+  (7) story ownership (HARD FAIL listing ALL unowned IDs)
+
+Environment:
+    WIRERUST_REPO_ROOT  Override repo root (dir containing .factory/).
+                        If not set, searches upward from the artifact path.
+"""
+
+import os
+import re
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Exact error messages per AC-158-003 v1.13 (ASCII -- per F-W72-P11-L01/P12-001)
+# ---------------------------------------------------------------------------
+
+_ERR_MISSING_FRONTMATTER = (
+    "ERROR: artifact lacks required frontmatter (story_id: and bcs: fields) "
+    "-- see current cycle-artifact template (STORY-158)"
+)
+_ERR_INVALID_PATH = (
+    "ERROR: artifact path does not match expected "
+    ".factory/cycles/<wave>/STORY-NNN/<artifact> pattern "
+    "-- cannot derive expected story_id"
+)
+
+class _DuplicateKeyError(ValueError):
+    """Raised by _parse_frontmatter when a YAML key appears more than once."""
+
+
+class _UnterminatedInlineListError(ValueError):
+    """Raised by _parse_frontmatter when an inline list has no closing ]."""
+
+
+class _UnsupportedSyntaxError(ValueError):
+    """Raised by _parse_frontmatter on any unrecognized/unhandled YAML shape."""
+
+
+class _ScalarBcsError(ValueError):
+    """Raised when bcs: is given a scalar value instead of a list."""
+
+
+_STORY_ID_RE = re.compile(r"^STORY-[0-9]+$")
+_WAVE_RE = re.compile(r"^wave-[0-9]+$")
+# F-S158-P1-002: strip trailing inline-comment suffixes (space + # + rest),
+# matching bin/compute-input-hash's documented convention (CLAUDE.md §Inline comment suffixes).
+_INLINE_COMMENT_RE = re.compile(r"\s+#.*$")
+
+
+def _strip_inline_comment(s: str) -> str:
+    """Strip a trailing ' # ...' inline-comment suffix from a YAML scalar value."""
+    return _INLINE_COMMENT_RE.sub("", s).strip()
+
+
+def _strip_quotes(s: str) -> str:
+    """Strip one layer of matching single/double quotes from a YAML scalar value.
+
+    "STORY-158" → STORY-158   'BC-2.11.036' → BC-2.11.036
+    Prevents false-FAILs when artifact authors quote story_id: or bcs: entries.
+    """
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in ('"', "'"):
+        return s[1:-1]
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Repo-root resolution (mirrors bin/compute-input-hash)
+# ---------------------------------------------------------------------------
+
+
+def _find_repo_root(artifact_path: Path) -> Path:
+    """Return the repo root (directory that contains .factory/).
+
+    Checks WIRERUST_REPO_ROOT first, then walks upward from the artifact.
+    """
+    override = os.environ.get("WIRERUST_REPO_ROOT")
+    if override:
+        return Path(override)
+    candidate = artifact_path.resolve().parent
+    for _ in range(20):
+        if (candidate / ".factory").is_dir():
+            return candidate
+        parent = candidate.parent
+        if parent == candidate:
+            break
+        candidate = parent
+    raise RuntimeError("could not locate repo root (no .factory/ found)")
+
+
+# ---------------------------------------------------------------------------
+# Minimal YAML frontmatter parser (stdlib only)
+# ---------------------------------------------------------------------------
+
+
+def _parse_frontmatter(text: str) -> dict | None:
+    """Parse the YAML frontmatter block from a markdown file.
+
+    Returns a dict of top-level keys (scalars as str, lists as list[str]),
+    or None if no frontmatter block is present.
+
+    Handles: scalar values (including quoted), inline lists (single-line and
+    wrapped multi-line), block lists, YAML comment lines, and blank lines.
+
+    Fail-closed (F-S158-P3-001): any frontmatter line that is not a recognized
+    top-level construct raises _UnsupportedSyntaxError rather than being silently
+    skipped — the gate cannot be bypassed by any parser blind spot.
+
+    Raises:
+        _DuplicateKeyError: if a key appears more than once.
+        _UnterminatedInlineListError: if an inline list has no closing ].
+        _UnsupportedSyntaxError: if an unrecognized/unhandled line is found.
+        _ScalarBcsError: if bcs: is given a scalar value instead of a list.
+    """
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    if end == -1:
+        return None
+    fm_text = text[3:end]
+    result: dict = {}
+    seen_keys: set[str] = set()
+    lines = fm_text.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        # Blank lines and YAML comment lines at the top level are insignificant.
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+        m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_-]*):\s*(.*)", line)
+        if not m:
+            # F-S158-P3-001 fail-closed: any unconsumed non-blank/non-comment line
+            # that is not a recognized top-level key is an unsupported YAML shape.
+            # Raise loudly rather than silently skip — every parser blind spot would
+            # otherwise become a silent-drop door into the gate.
+            raise _UnsupportedSyntaxError(
+                f"ERROR: unsupported frontmatter syntax at line {i + 1}: "
+                f"{stripped!r} -- the lint accepts only the canonical "
+                f"cycle-artifact template forms "
+                f"(see .factory/templates/cycle-artifact.md)"
+            )
+        key = m.group(1)
+        # F-S158-P2-003: reject duplicate keys — identity tool must not accept ambiguous input.
+        if key in seen_keys:
+            raise _DuplicateKeyError(
+                f"ERROR: duplicate {key}: key in frontmatter "
+                f"-- ambiguous identity declaration"
+            )
+        seen_keys.add(key)
+        val_str = m.group(2).strip()
+        if val_str.startswith("["):
+            # Inline list: bcs: [] or bcs: [A, B], possibly wrapped across lines.
+            raw = val_str[1:]
+            close = raw.find("]")
+            if close == -1:
+                # F-S158-P3-001: no closing ] on this line — gather continuation lines.
+                found_close = False
+                raw_parts = [raw]
+                while i + 1 < len(lines):
+                    i += 1
+                    cont = lines[i].strip()
+                    if not cont or cont.startswith("#"):
+                        continue
+                    close_idx = cont.find("]")
+                    if close_idx != -1:
+                        raw_parts.append(cont[:close_idx])
+                        found_close = True
+                        break
+                    else:
+                        raw_parts.append(cont)
+                if not found_close:
+                    raise _UnterminatedInlineListError(
+                        "ERROR: unterminated inline list in frontmatter -- "
+                        "the lint accepts only the canonical cycle-artifact "
+                        "template forms (see .factory/templates/cycle-artifact.md)"
+                    )
+                inner = " ".join(raw_parts)
+            else:
+                inner = raw[:close]
+            items = [
+                _strip_quotes(_strip_inline_comment(s.strip()))
+                for s in inner.split(",")
+                if s.strip()
+            ]
+            result[key] = items
+            i += 1
+        elif val_str == "":
+            # Block list or empty block (items on following lines).
+            items = []
+            i += 1
+            while i < len(lines):
+                item_line = lines[i]
+                item_stripped = item_line.strip()
+                item_m = re.match(r"^\s*-\s+(.*)", item_line)
+                if item_m:
+                    items.append(_strip_quotes(_strip_inline_comment(item_m.group(1))))
+                    i += 1
+                elif not item_stripped or item_stripped.startswith("#"):
+                    # F-S158-P2-001 structural fix (subsumes F-S158-P1-005 + A17):
+                    # Blank lines AND YAML comments within a block sequence are
+                    # both insignificant — skip and CONTINUE collecting items.
+                    i += 1
+                else:
+                    # Non-blank, non-comment, non-item line: genuine next-key or
+                    # end-of-frontmatter — terminate item collection.
+                    break
+            result[key] = items
+        else:
+            # Scalar value — strip inline comment and outer quotes.
+            val = _strip_quotes(_strip_inline_comment(val_str))
+            if key == "bcs":
+                # P3 LOW: bcs: must be a list, not a scalar — a scalar bcs would
+                # iterate per-character, silently treating each char as a BC ID.
+                raise _ScalarBcsError(
+                    "ERROR: bcs: must be a list ([] or block list) -- got scalar"
+                )
+            result[key] = val
+            i += 1
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Rule (6): path-based story_id derivation
+# ---------------------------------------------------------------------------
+
+
+def _derive_story_id_from_path(artifact_path: Path) -> str | None:
+    """Derive the expected story_id from the artifact's path.
+
+    Searches upward through path components for the nearest STORY-[0-9]+
+    component that satisfies the full .factory/cycles/<wave>/<story>/ pattern:
+      parts[i]   = STORY-[0-9]+
+      parts[i-1] = wave-[0-9]+
+      parts[i-2] = "cycles"
+      parts[i-3] = ".factory"
+
+    F-S158-P1-001: the .factory/cycles/ ancestor check closes the gap where a
+    path like /tmp/wave-72/STORY-158/x.md (no .factory/cycles/ above) would have
+    passed the old wave-NNN-only check and falsely derived a story_id.
+
+    Returns the story_id string, or None if the full pattern is not matched
+    (triggers the invalid-path error in the caller).
+    """
+    parts = artifact_path.resolve().parts
+    # Walk from right to left (nearest ancestor first)
+    for i in range(len(parts) - 1, 0, -1):
+        if _STORY_ID_RE.match(parts[i]):
+            # Require the full .factory/cycles/wave-NNN/STORY-NNN structure.
+            if (i >= 3
+                    and _WAVE_RE.match(parts[i - 1])
+                    and parts[i - 2] == "cycles"
+                    and parts[i - 3] == ".factory"):
+                return parts[i]
+            # STORY-NNN found but full pattern absent → invalid path
+            return None
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Rule (3): BC on-disk existence
+# ---------------------------------------------------------------------------
+
+
+def _bc_on_disk(bc_id: str, repo_root: Path) -> bool:
+    """Return True if bc_id resolves to its canonical on-disk path.
+
+    BC-S.SS.NNN → .factory/specs/behavioral-contracts/ss-SS/BC-S.SS.NNN.md
+    """
+    try:
+        body = bc_id.split("-", 1)[1]
+        parts = body.split(".")
+        ss = parts[1]
+    except (IndexError, ValueError):
+        return False
+    bc_path = (
+        repo_root / ".factory" / "specs" / "behavioral-contracts"
+        / f"ss-{ss}" / f"{bc_id}.md"
+    )
+    return bc_path.is_file()
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    artifact_path: Path | None = None
+    story_path_override: Path | None = None
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--artifact",) and i + 1 < len(argv):
+            artifact_path = Path(argv[i + 1])
+            i += 2
+        elif arg in ("--story",) and i + 1 < len(argv):
+            story_path_override = Path(argv[i + 1])
+            i += 2
+        elif not arg.startswith("-"):
+            artifact_path = Path(arg)
+            i += 1
+        else:
+            i += 1
+
+    if artifact_path is None:
+        print("ERROR: artifact path required (pass as positional arg or --artifact)", file=sys.stderr)
+        return 2
+
+    artifact_path = artifact_path.resolve()
+
+    try:
+        text = artifact_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        # F-S158-P2-002: UnicodeDecodeError inherits ValueError, not OSError —
+        # it escaped the original guard and produced a raw traceback.
+        print(
+            f"ERROR: cannot decode artifact {artifact_path} as UTF-8 -- {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    except OSError as exc:
+        print(f"ERROR: cannot read artifact {artifact_path}: {exc}", file=sys.stderr)
+        return 2
+
+    # --- Rule (1): frontmatter presence and required keys ---
+    _PARSE_ERRORS = (
+        _DuplicateKeyError,
+        _UnterminatedInlineListError,
+        _UnsupportedSyntaxError,
+        _ScalarBcsError,
+    )
+    try:
+        fm = _parse_frontmatter(text)
+    except _PARSE_ERRORS as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if fm is None or "story_id" not in fm or "bcs" not in fm:
+        print(_ERR_MISSING_FRONTMATTER, file=sys.stderr)
+        return 1
+
+    declared_story_id: str = fm["story_id"]
+    bcs: list[str] = fm["bcs"]
+
+    # --- Rule (6): path/story_id identity ---
+    derived_story_id = _derive_story_id_from_path(artifact_path)
+    if derived_story_id is None:
+        print(_ERR_INVALID_PATH, file=sys.stderr)
+        return 1
+    if declared_story_id != derived_story_id:
+        print(
+            f"ERROR: story_id: {declared_story_id} does not match "
+            f"directory-derived {derived_story_id}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # --- Rule (2): empty bcs short-circuit ---
+    if not bcs:
+        # F-S158-P2-004: emit a PASS message so callers can distinguish a verified
+        # empty-bcs artifact from a silent exit (no BC claims to validate is valid,
+        # but it should be explicitly acknowledged rather than silently passing).
+        print(
+            f"PASS: {artifact_path.name} identity valid "
+            f"(empty bcs -- no BC claims to validate)"
+        )
+        return 0
+
+    # --- Rules (3) and (7) need the repo root ---
+    try:
+        repo_root = _find_repo_root(artifact_path)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    # --- Rule (3): BC existence on disk ---
+    unresolvable = [bc_id for bc_id in bcs if not _bc_on_disk(bc_id, repo_root)]
+    if unresolvable:
+        print(
+            f"ERROR: unresolvable BC IDs (no on-disk file found): "
+            f"{', '.join(unresolvable)}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # --- Rule (7): story ownership ---
+    if story_path_override:
+        story_path = story_path_override.resolve()
+    else:
+        story_path = repo_root / ".factory" / "stories" / f"{declared_story_id}.md"
+
+    if not story_path.is_file():
+        print(f"ERROR: parent story file not found: {story_path}", file=sys.stderr)
+        return 1
+
+    try:
+        story_text = story_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"ERROR: cannot read story file {story_path}: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        story_fm = _parse_frontmatter(story_text)
+    except _PARSE_ERRORS as exc:
+        print(
+            f"ERROR: failed to parse parent story {story_path.name}: {exc}",
+            file=sys.stderr,
+        )
+        return 1
+    if story_fm is None or "behavioral_contracts" not in story_fm:
+        print(
+            f"ERROR: parent story {story_path.name} lacks behavioral_contracts: key",
+            file=sys.stderr,
+        )
+        return 1
+
+    story_bcs = story_fm["behavioral_contracts"]
+    # F-S158-P4-002: ensure behavioral_contracts is a list, not a scalar.
+    # A scalar story_bcs causes `bc_id not in story_bcs` to become a Python
+    # string-substring check rather than list membership — a silent false-PASS.
+    if not isinstance(story_bcs, list):
+        print(
+            f"ERROR: parent story {story_path.name} has malformed "
+            f"behavioral_contracts: (expected list, got scalar) "
+            f"-- ambiguous ownership declaration",
+            file=sys.stderr,
+        )
+        return 1
+    unowned = [bc_id for bc_id in bcs if bc_id not in story_bcs]
+    if unowned:
+        print(
+            f"ERROR: BC IDs not owned by {declared_story_id} "
+            f"(not in behavioral_contracts:): {', '.join(unowned)}",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(
+        f"PASS: {artifact_path.name} identity valid "
+        f"(story_id: {declared_story_id}, {len(bcs)} BC(s) verified)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

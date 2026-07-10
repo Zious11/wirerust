@@ -1158,12 +1158,12 @@ mod story_152 {
 //      BC-2.12.024 v1.1 (L2 caveat, port-102 collision note, tri-state classification)
 //
 // GREEN STATUS:
-//   All 20 tests pass. `--coverage-gaps` is fully implemented and wired.
+//   All 22 tests pass. `--coverage-gaps` is fully implemented and wired.
 //   Crafted gap fixtures (gap-tcp102.pcap, gap-udp47808.pcap, gap-tcp47808.pcap,
 //   gap-tcp9600.pcap, gap-tcp53.pcap) were generated during the Green phase and
 //   reside in tests/fixtures/. TCP gap tests pass --http to build the reassembler
 //   (analyzer-present guard, BC-2.05.010); UDP gap tests need no analyzer flag
-//   (decode-loop path, ADR-012 Dec 10).
+//   (decode-loop path, ADR-012 Decision 10).
 // ---------------------------------------------------------------------------
 mod story_154 {
     #![allow(non_snake_case)]

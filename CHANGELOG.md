@@ -7,6 +7,162 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-10
+
+### Changed (BREAKING)
+
+- **`verdict`, `confidence`, and `category` JSON field values aligned to lowercase/snake_case
+  (STORY-160, wave-72, BC-2.11.036, issue #255).**
+
+  > **BREAKING CHANGE (JSON surface only — v0.12.0).**
+  > JSON schema changes are outside `cargo-semver-checks` scope; this entry and the
+  > `schema_version` envelope field (see `### Added` below) are the authoritative change
+  > notices.
+
+  1. **`verdict`, `confidence`, and `category` JSON field values are now lowercase /
+     snake_case** (Suricata EVE / ECS / OCSF convention).
+     Full mapping (BC-2.11.036):
+
+     | Enum | Variant | Pre-v0.12.0 JSON | v0.12.0+ JSON |
+     |---|---|---|---|
+     | `Verdict` | `Likely` | `"Likely"` | `"likely"` |
+     | `Verdict` | `Unlikely` | `"Unlikely"` | `"unlikely"` |
+     | `Verdict` | `Inconclusive` | `"Inconclusive"` | `"inconclusive"` |
+     | `Verdict` | `Possible` | `"Possible"` | `"possible"` |
+     | `Confidence` | `High` | `"High"` | `"high"` |
+     | `Confidence` | `Medium` | `"Medium"` | `"medium"` |
+     | `Confidence` | `Low` | `"Low"` | `"low"` |
+     | `ThreatCategory` | `LateralMovement` | `"LateralMovement"` | `"lateral_movement"` |
+     | `ThreatCategory` | `CredentialAccess` | `"CredentialAccess"` | `"credential_access"` |
+     | `ThreatCategory` | `C2` | `"C2"` | `"c2"` |
+     | `ThreatCategory` | `Reconnaissance` | `"Reconnaissance"` | `"reconnaissance"` |
+     | `ThreatCategory` | `Exfiltration` | `"Exfiltration"` | `"exfiltration"` |
+     | `ThreatCategory` | `Persistence` | `"Persistence"` | `"persistence"` |
+     | `ThreatCategory` | `Execution` | `"Execution"` | `"execution"` |
+     | `ThreatCategory` | `Anomaly` | `"Anomaly"` | `"anomaly"` |
+     | `ThreatCategory` | `Suspicious` | `"Suspicious"` | `"suspicious"` |
+     | `ThreatCategory` | `Impact` | `"Impact"` | `"impact"` |
+
+  2. **Terminal Display tokens (`"LIKELY"`, `"HIGH"`) and CSV output are UNCHANGED.**
+     The `fmt::Display` implementations for `Verdict`, `Confidence`, and `ThreatCategory`
+     are not modified; `serde::Serialize` and `fmt::Display` are independent surfaces.
+
+  3. **JSON schema changes are outside `cargo-semver-checks` scope.** Consumers that
+     pattern-match exact enum string values in JSON output (e.g., `verdict == "Likely"`,
+     `category == "LateralMovement"`) must update to the new lowercase/snake_case forms.
+
+  4. **Known heterogeneity:** The `Direction` enum (`ClientToServer` / `ServerToClient`)
+     retains PascalCase JSON serialization in v0.12.0. Casing alignment is scoped to
+     `verdict`, `confidence`, and `category` only (BC-2.11.036 scope carve-out).
+
+### Added
+
+- **`"schema_version": "2"` envelope field in every JSON report (STORY-160, BC-2.11.037).**
+  Absence of this field signals the pre-v0.12.0 format (implicit schema v1, PascalCase enum
+  values). The value is a JSON **string** (not an integer) to remain forward-compatible with
+  minor revision suffixes.
+
+- **CHANGELOG CI gate, `bin/lint-cycle-artifact`, and `bin/check-green-doc-tense`
+  zero-file-guard hardening (STORY-158, wave-72) [process-gap].** Four wave-71 process
+  gaps codified as durable project artifacts: (1) `changelog-gate` CI job (pull_request
+  only) fails when `src/`, `Cargo.toml`, or `bin/` are modified without a corresponding
+  `CHANGELOG.md` update, enforcing the CHANGELOG obligation that wave-71 PRs missed
+  (PG-W71-CHANGELOG). (2) `bin/lint-cycle-artifact` (Python 3, stdlib-only) validates
+  cycle artifact identity fields (`story_id:` and `bcs:` frontmatter) against the parent
+  story and on-disk BC files, catching fabricated or borrowed BC IDs before adversarial
+  review (PG-W71-CYCLE-ARTIFACT-IDENTITY). (3) `bin/check-green-doc-tense` now exits
+  non-zero when no tracked Rust files are found, preventing a silent false-CI-PASS if the
+  scan target moves (PG-W71-CI-SCAN-GUARDS). (4) `trust-boundary` CI job gains a
+  `test -d src/` guard before the grep scan, mirroring the SEC-001 pattern in
+  `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS).
+
+- **Fragmented-handshake Criterion benchmark `tls_fragmented/3-record-carry-drain` +
+  `[[bench]]` target (STORY-149, PR #374, closes #360).** A new Criterion benchmark
+  exercises the TLS carry-path under realistic 3-record fragmented-handshake conditions,
+  providing a regression fixture for the restructured carry path. CI-gated
+  bounded-borrow source-inspection tests (`tests/bc_149_single_borrow_invariant_tests.rs`)
+  verify the single-borrow invariant holds across the restructured code paths.
+
+### Changed
+
+- **TLS carry-path restructured for single-borrow HashMap access (STORY-149, PR #374).**
+  `try_parse_records` refactored into three cooperating functions (`prepare_record_step`,
+  `RecordStep`, `process_handshake_carry`) to eliminate a double-borrow on the per-flow
+  carry buffer. The `reassembly/tls.pcap` Criterion benchmark recovered −7.88% regression
+  (23.841 µs measured, +2.41% vs May-19 anchor — within the ±5 % recovery target). Zero
+  behavior change: 8-pass adversarial convergence and holdout re-evaluation score 0.920
+  unchanged.
+
+- **TLS handshake drain-loop DRY unification in `process_handshake_carry` (STORY-150,
+  PR #379).** Single `msg_bytes` extraction and single `parse_tls_message_handshake` call
+  site with direction-guarded dispatch arms replace two duplicated extraction+parse sequences
+  (defense-in-depth refactor). Behavior-preserving: Kani VP-039 3/3 proofs re-verified,
+  zero new mutation survivors.
+
+- **Bumped `indicatif` 0.18.5 → 0.18.6** (Windows dumb-terminal detection fix, indicatif#818, dependabot #386).
+
+### Fixed
+
+- **Absolute host paths scrubbed from 193 committed demo-evidence files (PR #376,
+  F-W70P2-002).** All absolute host filesystem paths in `docs/demo-evidence/` have been
+  replaced with `<REPO-ROOT>` and `<HOME>` placeholder tokens. These are scrub markers —
+  not environment variables — indicating where former machine-specific paths appeared.
+  See `docs/DEMO-EVIDENCE.md` for the placeholder convention.
+
+- **Factory input-hash tool edge cases: empty inputs and inline comment stripping
+  (STORY-157, PR #380).** `bin/compute-input-hash`: `inputs: []` (empty inputs list) now
+  derives hash `d41d8cd` (MD5 of empty bytes) instead of raising an error; inline
+  ` # comment` suffixes are stripped from input path entries before file resolution.
+  `CLAUDE.md` documents the canonical-tool/hook divergence (PG-HASH-HOOK-DIVERGENCE),
+  edge cases, and Python 3.10+ floor.
+
+### Tests / Internal
+
+- **BC-2.16.016 ARP unbounded-findings coverage (STORY-156, PR #378).** Standalone
+  `summarize()` no-`dropped_findings` regression pin closes the coverage gap for
+  BC-2.16.016 unbounded-findings behavior; docstring anchor corrected. CLI `--arp`
+  `long_help` unbounded-findings documentation coverage pinned.
+
+### Docs / Internal
+
+- **Governance codification: multi-file `proof_file_hash` mini-Merkle algorithm (STORY-161,
+  wave-72) [governance].** Multi-file `proof_file_hash` mini-Merkle algorithm codified in
+  VP-INDEX v2.39; VP-024 v2.5 proof anchor populated and `kani_version` recorded
+  (factory-artifacts branch). `CLAUDE.md` gains "Two Hash Disciplines" note distinguishing
+  `input-hash` (MD5-first-7, advisory) from `proof_file_hash` (SHA-256 mini-Merkle,
+  integrity anchor).
+
+- **Public ADR-012 authored for protocols catalog and coverage-gaps system (STORY-159,
+  wave-72) [doc-drift].** `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` created,
+  resolving a maintenance-sweep finding (NEW-001, HIGH) that identified 38 lines across
+  six source and test files citing ADR-012 with no corresponding public document. The new
+  ADR covers all ten design decisions from the `feature-protocol-coverage` cycle (v0.11.2,
+  PRs #351–#357): hand-curated static array, tri-state Suricata-derived vocabulary,
+  port-detection caveats, catalog scope, supported-set derivation, TCP+UDP dynamic
+  detection (including Decision 6 Clarification on increment-site semantics), category
+  tagging, `--coverage-gaps` explicit flag, `CoverageGapsSummary` report section, and UDP
+  gap classification decoupled from `enable_dns`. Format follows the ADR-0009 precedent:
+  markdown headings, no YAML frontmatter, all internal factory IDs stripped.
+  `CLAUDE.md` Project References table updated to include the new entry. Inline comment at
+  `tests/integration_tests.rs:1166` normalized from `ADR-012 Dec 10` to the canonical
+  `ADR-012 Decision 10` form, closing the one abbreviated citation in the codebase.
+
+- **Wave-72 integration-gate hardening: `action-pin-gate` existence guard + positive
+  coverage assertion; STORY-159 tape path scrub (F-W72G-P1-001, SEC-W72-001, wave-72).**
+  (1) `action-pin-gate` CI job gains a scan-target existence guard
+  (`test -d .github/workflows/` + zero-file check) that mirrors the SEC-001 pattern from
+  `trust-boundary` and `help-provenance-gate` (PG-W71-CI-SCAN-GUARDS): a renamed or emptied
+  scan target now fails loudly instead of trivially PASSing. A positive-coverage assertion
+  (`VALIDATED` counter) ensures the gate processed at least one remote action ref; the PASS
+  line now reports the validated count (e.g., "PASS: N remote action ref(s) validated, 0
+  mutable"). (2) Five STORY-159 VHS tape scripts in `docs/demo-evidence/STORY-159/` had
+  `~/Documents/GITHUB/wirerust` absolute host paths in their `Type "cd …"` lines; scrubbed
+  to `<REPO-ROOT>` matching the STORY-160 tape convention (SEC-W72-001, CWE-200). Binary
+  `.gif`/`.webm` artifacts are historical evidence and not re-rendered. Note: the
+  demo-evidence scrub-gate doc (`.factory/maintenance/demo-evidence-scrub-gate.md`) needs a
+  `~/` tilde-expansion pattern extension — that file lives on factory-artifacts and is
+  routed to the orchestrator separately.
+
 ## [0.11.5] - 2026-07-06
 
 ### Added
@@ -950,7 +1106,9 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.11.4...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
+[0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/Zious11/wirerust/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/Zious11/wirerust/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/Zious11/wirerust/compare/v0.11.1...v0.11.2

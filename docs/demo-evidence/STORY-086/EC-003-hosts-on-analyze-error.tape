@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # EC-003: --hosts passed to analyze subcommand → clap unexpected-argument error
 # --hosts is summary-only; clap rejects it on analyze
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

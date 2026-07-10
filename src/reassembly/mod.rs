@@ -156,7 +156,7 @@ impl TcpReassembler {
         timestamp: u32,
         handler: &mut dyn StreamHandler,
     ) {
-        self.stats.packets_processed += 1;
+        self.stats.packets_processed = self.stats.packets_processed.saturating_add(1);
         self.packet_index += 1;
 
         // BC-2.04.013 v1.5 PC0 — idle-flow expiry wiring.
@@ -201,7 +201,7 @@ impl TcpReassembler {
         let Some((key, tcp)) = self.extract_tcp_context(packet) else {
             return;
         };
-        self.stats.packets_tcp += 1;
+        self.stats.packets_tcp = self.stats.packets_tcp.saturating_add(1);
 
         // Get-or-create the flow, evicting under capacity pressure.
         if !self.get_or_create_flow(&key, timestamp, handler) {
@@ -227,7 +227,7 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
-            self.stats.flows_fin += 1;
+            self.stats.flows_fin = self.stats.flows_fin.saturating_add(1);
             self.close_flow(&key, CloseReason::Fin, handler);
         }
 
@@ -243,7 +243,8 @@ impl TcpReassembler {
     /// processed as a TCP segment.
     fn extract_tcp_context(&mut self, packet: &ParsedPacket) -> Option<(FlowKey, TcpFields)> {
         if packet.protocol != Protocol::Tcp {
-            self.stats.packets_skipped_non_tcp += 1;
+            self.stats.packets_skipped_non_tcp =
+                self.stats.packets_skipped_non_tcp.saturating_add(1);
             return None;
         }
         let tcp = match &packet.transport {
@@ -292,7 +293,7 @@ impl TcpReassembler {
             }
             let flow = TcpFlow::new(key.clone(), timestamp);
             self.flows.insert(key.clone(), flow);
-            self.stats.flows_total += 1;
+            self.stats.flows_total = self.stats.flows_total.saturating_add(1);
         }
 
         let flow = self.flows.get_mut(key).unwrap();
@@ -335,7 +336,7 @@ impl TcpReassembler {
         // RST — flush salvageable data, close, and remove.
         if tcp.rst {
             flow.on_rst();
-            self.stats.flows_rst += 1;
+            self.stats.flows_rst = self.stats.flows_rst.saturating_add(1);
             self.close_flow(key, CloseReason::Rst, handler);
             return PostHandshake::FlowClosed;
         }
@@ -376,7 +377,7 @@ impl TcpReassembler {
             flow.set_initiator(packet.src_ip, tcp.src_port);
             let dir = flow.direction(packet.src_ip, tcp.src_port);
             flow.get_direction_mut(dir).infer_isn(tcp.seq);
-            self.stats.flows_partial += 1;
+            self.stats.flows_partial = self.stats.flows_partial.saturating_add(1);
         }
 
         let dir = flow.direction(packet.src_ip, tcp.src_port);
@@ -438,33 +439,40 @@ impl TcpReassembler {
         }
 
         match result {
-            InsertResult::Inserted => self.stats.segments_inserted += 1,
-            InsertResult::Duplicate => self.stats.segments_duplicates += 1,
+            InsertResult::Inserted => {
+                self.stats.segments_inserted = self.stats.segments_inserted.saturating_add(1)
+            }
+            InsertResult::Duplicate => {
+                self.stats.segments_duplicates = self.stats.segments_duplicates.saturating_add(1)
+            }
             InsertResult::PartialOverlap => {
-                self.stats.segments_overlaps += 1;
-                self.stats.segments_inserted += 1;
+                self.stats.segments_overlaps = self.stats.segments_overlaps.saturating_add(1);
+                self.stats.segments_inserted = self.stats.segments_inserted.saturating_add(1);
             }
             InsertResult::ConflictingOverlap => {
-                self.stats.segments_overlaps += 1;
+                self.stats.segments_overlaps = self.stats.segments_overlaps.saturating_add(1);
                 self.generate_conflicting_overlap_finding(key, packet.src_ip, timestamp);
             }
             InsertResult::Truncated => {
-                self.stats.segments_inserted += 1;
+                self.stats.segments_inserted = self.stats.segments_inserted.saturating_add(1);
                 self.generate_truncated_finding(key, packet.src_ip, timestamp);
             }
             InsertResult::DepthExceeded => {
-                self.stats.segments_depth_exceeded += 1;
+                self.stats.segments_depth_exceeded =
+                    self.stats.segments_depth_exceeded.saturating_add(1);
             }
             InsertResult::SegmentLimitReached => {
-                self.stats.segments_segment_limit += 1;
+                self.stats.segments_segment_limit =
+                    self.stats.segments_segment_limit.saturating_add(1);
                 // Partial insertion: some gap bytes were inserted before the limit
                 if bytes_added > 0 {
-                    self.stats.segments_overlaps += 1;
-                    self.stats.segments_inserted += 1;
+                    self.stats.segments_overlaps = self.stats.segments_overlaps.saturating_add(1);
+                    self.stats.segments_inserted = self.stats.segments_inserted.saturating_add(1);
                 }
             }
             InsertResult::OutOfWindow => {
-                self.stats.segments_out_of_window += 1;
+                self.stats.segments_out_of_window =
+                    self.stats.segments_out_of_window.saturating_add(1);
             }
             InsertResult::IsnMissing => {
                 // Programming error — ISN should always be set before insert.
@@ -525,7 +533,7 @@ impl TcpReassembler {
                     direction: Some(dir),
                 });
             } else {
-                self.stats.dropped_findings += 1;
+                self.stats.dropped_findings = self.stats.dropped_findings.saturating_add(1);
             }
         }
         // LESSON-P2.05 follow-up: a flow is exempt from small-segment
@@ -565,7 +573,7 @@ impl TcpReassembler {
                     direction: Some(dir),
                 });
             } else {
-                self.stats.dropped_findings += 1;
+                self.stats.dropped_findings = self.stats.dropped_findings.saturating_add(1);
             }
         }
         if flow_dir.out_of_window_count > out_of_window_threshold
@@ -591,7 +599,7 @@ impl TcpReassembler {
                     direction: Some(dir),
                 });
             } else {
-                self.stats.dropped_findings += 1;
+                self.stats.dropped_findings = self.stats.dropped_findings.saturating_add(1);
             }
         }
     }
@@ -644,7 +652,7 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
-            self.stats.flows_expired += 1;
+            self.stats.flows_expired = self.stats.flows_expired.saturating_add(1);
             self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }
@@ -674,7 +682,7 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
-            self.stats.flows_expired += 1;
+            self.stats.flows_expired = self.stats.flows_expired.saturating_add(1);
             self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }
@@ -693,7 +701,7 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
-            self.stats.flows_expired += 1;
+            self.stats.flows_expired = self.stats.flows_expired.saturating_add(1);
             self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }

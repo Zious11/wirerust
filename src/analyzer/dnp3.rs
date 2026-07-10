@@ -493,8 +493,8 @@ impl Dnp3Analyzer {
         if data.len() > remaining_capacity {
             active_carry!(flow, direction).extend_from_slice(&data[..remaining_capacity]);
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
-            flow.parse_errors += 1;
-            flow.malformed_in_window += 1;
+            flow.parse_errors = flow.parse_errors.saturating_add(1);
+            flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
             // Inline resync: reposition carry to next [0x05,0x64] or clear if none found.
             // Structurally identical to Change 2 (LENGTH-gate arm inline resync).
             // Prevents the frame-walk sync-check arm from firing for this same overflow event.
@@ -559,8 +559,8 @@ impl Dnp3Analyzer {
                         // Non-sync bytes at carry head: unambiguously junk.
                         // Count parse_error regardless of did_process (BC-2.15.024
                         // Principle 1 / F-F5-003 REVISION 2 Change 1 Path B).
-                        flow.parse_errors += 1;
-                        flow.malformed_in_window += 1;
+                        flow.parse_errors = flow.parse_errors.saturating_add(1);
+                        flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                         // Byte-walk resync: find next [0x05,0x64] or clear.
                         let next_sync = active_carry!(flow, direction)
                             .windows(2)
@@ -592,8 +592,8 @@ impl Dnp3Analyzer {
                         // (BC-2.15.024 Principle 1: one error per structural event.)
                         let length_byte = active_carry!(flow, direction)[2];
                         if compute_dnp3_frame_len(length_byte).is_none() {
-                            flow.parse_errors += 1;
-                            flow.malformed_in_window += 1;
+                            flow.parse_errors = flow.parse_errors.saturating_add(1);
+                            flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                             // Byte-walk resync: drain past head byte, find next sync or clear.
                             active_carry!(flow, direction).drain(..1);
                             let next_sync = active_carry!(flow, direction)
@@ -658,8 +658,8 @@ impl Dnp3Analyzer {
                 // double-count: the overflow arm's inline resync leaves carry starting at a
                 // valid sync head or empty — the resync arm is NOT entered for overflow
                 // residue until AFTER a full valid frame has been consumed first.
-                flow.parse_errors += 1;
-                flow.malformed_in_window += 1;
+                flow.parse_errors = flow.parse_errors.saturating_add(1);
+                flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                 Self::check_malformed_anomaly(
                     flow,
                     &mut self.all_findings,
@@ -700,8 +700,8 @@ impl Dnp3Analyzer {
                     // Invalid LENGTH (< 5): structural parse error. Advance one byte.
                     // STORY-109: increment BOTH parse_errors (lifetime) AND
                     // malformed_in_window (windowed) — BC-2.15.024 two-counter model.
-                    flow.parse_errors += 1;
-                    flow.malformed_in_window += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
+                    flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                     active_carry!(flow, direction).drain(..1);
                     // F-F5-003 REVISION 2 Change 2: inline byte-walk-forward resync.
                     // After drain(..1), immediately reposition carry to the next
@@ -747,8 +747,8 @@ impl Dnp3Analyzer {
                 _ => {
                     // Frame-length mismatch: structural reject.
                     // STORY-109: increment BOTH parse_errors AND malformed_in_window.
-                    flow.parse_errors += 1;
-                    flow.malformed_in_window += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
+                    flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                     active_carry!(flow, direction).drain(..frame_len);
                     Self::check_malformed_anomaly(
                         flow,
@@ -763,7 +763,7 @@ impl Dnp3Analyzer {
             };
 
             // --- Valid, gate-passed frame: now genuinely count it (BC-2.15.016 PC7). ---
-            flow.frame_count += 1;
+            flow.frame_count = flow.frame_count.saturating_add(1);
 
             // --- Snapshot for unexpected-source check (BC-2.15.010 Invariant 5) ---
             // F-F5-001 REVISION 2 §R2-3: capture PRE-PUSH state of master_addrs_seen
@@ -783,7 +783,7 @@ impl Dnp3Analyzer {
                 if flow.master_addrs_seen.len() < MAX_MASTER_ADDRS {
                     flow.master_addrs_seen.push(header.source);
                 } else {
-                    self.master_addrs_dropped += 1;
+                    self.master_addrs_dropped = self.master_addrs_dropped.saturating_add(1);
                 }
             }
 
@@ -873,7 +873,8 @@ impl Dnp3Analyzer {
                             if app_fc != 0x06 {
                                 let app_seq = active_carry!(flow, direction)[11] & 0x0F;
                                 if Self::insert_pending_request(flow, (dest, app_seq), ts) {
-                                    self.pending_requests_evicted += 1;
+                                    self.pending_requests_evicted =
+                                        self.pending_requests_evicted.saturating_add(1);
                                 }
                             }
 
@@ -1017,7 +1018,7 @@ impl Dnp3Analyzer {
         }
 
         // BC-2.15.010 postcondition 1: increment counter.
-        flow.direct_operate_count += 1;
+        flow.direct_operate_count = flow.direct_operate_count.saturating_add(1);
 
         // BC-2.15.010 postcondition 2: seed window_start_ts on first FC in window.
         if flow.direct_operate_count == 1 {
@@ -1060,7 +1061,7 @@ impl Dnp3Analyzer {
                 });
                 flow.direct_operate_emitted = true;
             } else {
-                *dropped_findings += 1;
+                *dropped_findings = dropped_findings.saturating_add(1);
                 // Prevent re-counting on the next on_data call: the logical finding was
                 // seen once, the cap blocked it once.  Guard mirrors the emit path.
                 flow.direct_operate_emitted = true;
@@ -1119,12 +1120,12 @@ impl Dnp3Analyzer {
                 direction: None,
             });
         } else {
-            *dropped_findings += 1;
+            *dropped_findings = dropped_findings.saturating_add(1);
         }
 
         // BC-2.15.011 postcondition 2 / Architecture Compliance Rule 3:
         // restart_event_count is incremented UNCONDITIONALLY (even when capped).
-        flow.restart_event_count += 1;
+        flow.restart_event_count = flow.restart_event_count.saturating_add(1);
 
         // T0827 co-emission placeholder: STORY-109 inserts derived T0827 push HERE,
         // after the T0814 push, ensuring most-specific-first ordering (BC-2.15.013).
@@ -1170,7 +1171,7 @@ impl Dnp3Analyzer {
                 direction: None,
             });
         } else {
-            *dropped_findings += 1;
+            *dropped_findings = dropped_findings.saturating_add(1);
         }
     }
 
@@ -1220,7 +1221,7 @@ impl Dnp3Analyzer {
             }
             flow.pending_requests.remove(&key);
             // BC-2.15.014 PC1: increment UNCONDITIONALLY (even when cap or guard active).
-            flow.block_event_count += 1;
+            flow.block_event_count = flow.block_event_count.saturating_add(1);
         }
         // BC-2.15.014 PC3: emit T1691.001 when threshold reached, guard clear, in-window.
         if flow.block_event_count >= BLOCK_CMD_THRESHOLD && !flow.block_finding_emitted_this_window
@@ -1255,7 +1256,7 @@ impl Dnp3Analyzer {
                 });
                 flow.block_finding_emitted_this_window = true;
             } else {
-                *dropped_findings += 1;
+                *dropped_findings = dropped_findings.saturating_add(1);
                 // Prevent re-counting: block-finding was observed once; cap blocked it once.
                 flow.block_finding_emitted_this_window = true;
             }
@@ -1387,7 +1388,7 @@ impl Dnp3Analyzer {
                 });
                 flow.loss_of_control_emitted = true;
             } else {
-                *dropped_findings += 1;
+                *dropped_findings = dropped_findings.saturating_add(1);
                 // Prevent re-counting: T0827 was observed once; cap blocked it once.
                 flow.loss_of_control_emitted = true;
             }
@@ -1449,7 +1450,7 @@ impl Dnp3Analyzer {
                 direction: None,
             });
         } else {
-            *dropped_findings += 1;
+            *dropped_findings = dropped_findings.saturating_add(1);
         }
         // BC-2.15.018 PC2: direct_operate_count incremented so burst threshold can fire.
         // The burst detection (detect_control_class_burst_split) runs after this in on_data
@@ -1487,7 +1488,7 @@ impl Dnp3Analyzer {
             return;
         }
         if findings.len() >= MAX_FINDINGS {
-            *dropped_findings += 1;
+            *dropped_findings = dropped_findings.saturating_add(1);
             // Prevent re-counting: unexpected-source was observed once; cap blocked it once.
             flow.unexpected_source_emitted = true;
             return;
@@ -1613,7 +1614,7 @@ impl Dnp3Analyzer {
                     });
                     flow.unsolicited_anomaly_emitted = true;
                 } else {
-                    *dropped_findings += 1;
+                    *dropped_findings = dropped_findings.saturating_add(1);
                     // Prevent re-counting: unsolicited anomaly was observed once; cap blocked it.
                     flow.unsolicited_anomaly_emitted = true;
                 }
@@ -1678,7 +1679,7 @@ impl Dnp3Analyzer {
                         direction: None,
                     });
                 } else {
-                    *dropped_findings += 1;
+                    *dropped_findings = dropped_findings.saturating_add(1);
                 }
             }
             0x14 => {
@@ -1717,7 +1718,7 @@ impl Dnp3Analyzer {
                         direction: None,
                     });
                 } else {
-                    *dropped_findings += 1;
+                    *dropped_findings = dropped_findings.saturating_add(1);
                 }
             }
             _ => {}
@@ -1789,7 +1790,7 @@ impl Dnp3Analyzer {
                 });
                 flow.malformed_anomaly_emitted = true;
             } else {
-                *dropped_findings += 1;
+                *dropped_findings = dropped_findings.saturating_add(1);
                 // Prevent re-counting: malformed anomaly was observed once; cap blocked it.
                 flow.malformed_anomaly_emitted = true;
             }

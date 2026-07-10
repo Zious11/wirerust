@@ -193,6 +193,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # AC-158-004: SEC-001-style src/ existence guard (mirrors help-provenance-gate).
+          # If src/ is renamed or deleted, grep exits 2 and || true would suppress it,
+          # yielding a false PASS. The guard fires first so misconfiguration is loud.
+          if ! test -d src/; then
+            echo "FAIL: trust-boundary: src/ directory not found — seam scan target moved?"
+            echo "Update the scan target in .github/workflows/ci.yml before merging."
+            exit 1
+          fi
           VIOLATIONS=$(grep -rn "_for_testing(" src/ | grep -v "fn [a-zA-Z_]*_for_testing(") || true
           if [ -n "${VIOLATIONS}" ]; then
             echo "FAIL: Production call-sites of _for_testing seam functions found in src/:"
@@ -344,7 +352,25 @@ jobs:
           # pinning to SHA would defeat its purpose of tracking rolling toolchain channels.
           ALLOWLIST="dtolnay/rust-toolchain@stable dtolnay/rust-toolchain@nightly"
 
+          # PG-W71-CI-SCAN-GUARDS / SEC-001: scan-target existence guard.
+          # Mirrors the trust-boundary and help-provenance-gate patterns.
+          # If .github/workflows/ is renamed or emptied, the grep loop processes zero
+          # files and trivially PASSes — an explicit guard ensures structural changes
+          # fail loudly so the scope can be updated intentionally before merging.
+          if ! test -d .github/workflows/; then
+            echo "FAIL: action-pin-gate: .github/workflows/ directory not found — scan target moved?"
+            echo "Update the scan target in .github/workflows/ci.yml before merging."
+            exit 1
+          fi
+          yml_count=$(find .github/workflows/ -maxdepth 1 -name "*.yml" | wc -l)
+          if [ "${yml_count}" -eq 0 ]; then
+            echo "FAIL: action-pin-gate: no *.yml files found in .github/workflows/ — scan target empty?"
+            echo "Update the scan target in .github/workflows/ci.yml before merging."
+            exit 1
+          fi
+
           FAILURES=0
+          VALIDATED=0
           SHA_RE='^[0-9a-f]{40}$'
 
           while IFS= read -r line; do
@@ -373,6 +399,11 @@ jobs:
             done
             [ "${skip}" -eq 1 ] && continue
 
+            # PG-W71-CI-SCAN-GUARDS: count each non-local, non-allowlisted ref toward the
+            # positive-coverage assertion below. A zero count means the scan found no remote
+            # action refs to validate — suspicious even if FAILURES is also zero.
+            VALIDATED=$((VALIDATED + 1))
+
             # Extract the ref token (after the @)
             ref_token="${ref_full##*@}"
 
@@ -390,7 +421,15 @@ jobs:
             echo "To exempt an action, add it to the ALLOWLIST in this script with a justification comment."
             exit 1
           fi
-          echo "PASS: All remote actions in .github/workflows/ are SHA-pinned (${FAILURES} violations)."
+          # Positive-coverage assertion (PG-W71-CI-SCAN-GUARDS): zero validated refs means
+          # no 'uses:' lines survived the filter — the gate produced no signal. A stripped
+          # workflow tree cannot bypass the check by containing no remote action refs at all.
+          if [ "${VALIDATED}" -eq 0 ]; then
+            echo "FAIL: action-pin-gate: zero remote action refs validated — 'uses:' lines missing from scan target?"
+            echo "If all workflows were intentionally removed, update or disable this gate explicitly."
+            exit 1
+          fi
+          echo "PASS: ${VALIDATED} remote action ref(s) validated, 0 mutable."
 
   # DF-GREEN-DOC-TENSE-SWEEP gate: detect stale RED-phase comment headers in test files.
   #
@@ -421,3 +460,60 @@ jobs:
         run: python3 bin/test_check_green_doc_tense.py
       - name: Scan for stale RED-phase comment headers in test files
         run: python3 bin/check-green-doc-tense
+
+  # AC-158-001 / PG-W71-CHANGELOG: enforce CHANGELOG entry for production-code PRs.
+  #
+  # Trigger set: src/ (production Rust), Cargo.toml (dependency/version changes),
+  # bin/ (factory tooling shipped with the repo). All three are user-visible surfaces
+  # that warrant a CHANGELOG entry on change.
+  #
+  # Excluded surfaces (by design, documented here per AC-158-001):
+  #   tests/    — process-internal; test-only changes do not alter user-visible behavior
+  #   .github/  — process-internal; CI config changes are not product behavior changes
+  #   docs/     — self-documenting; ADR/README authoring does not describe product changes
+  #   Cargo.lock — excluded: transitive-dep bumps route through maintenance-sweep
+  #                CHANGELOG discipline, not through this per-PR gate
+  #
+  # Runs on pull_request events targeting develop only (AC-158-001(a) literal scope:
+  # release/hotfix PRs to main are outside the gate; push-to-develop is inherently
+  # no-op — origin/develop == HEAD, so the diff is always empty on direct pushes).
+  # F-S158-P1-003: github.base_ref == 'develop' added to restrict to develop PRs.
+  changelog-gate:
+    name: CHANGELOG gate (AC-158-001, PG-W71-CHANGELOG)
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - name: Check CHANGELOG.md is updated when src/, Cargo.toml, or bin/ changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          # fetch-depth: 0 in the checkout step already provides origin/develop.
+          CHANGED=$(git diff --name-only origin/develop...HEAD)
+          # Check whether this PR touches the CHANGELOG-gate trigger set
+          # F-S158-P1-004: Cargo\.toml$ anchored to prevent Cargo.toml.bak spurious match.
+          TRIGGERS=$(echo "${CHANGED}" | grep -E '^(src/|Cargo\.toml$|bin/)' || true)
+          if [ -z "${TRIGGERS}" ]; then
+            echo "PASS: no files in CHANGELOG-gate trigger set changed (src/, Cargo.toml, bin/)."
+            exit 0
+          fi
+          # Trigger set was hit — CHANGELOG.md must also be in the diff
+          if echo "${CHANGED}" | grep -q '^CHANGELOG\.md$'; then
+            echo "PASS: CHANGELOG.md updated alongside trigger-set changes."
+            exit 0
+          fi
+          echo "FAIL: AC-158-001 / PG-W71-CHANGELOG — this PR modifies files in the"
+          echo "CHANGELOG-gate trigger set (src/, Cargo.toml, or bin/) but does not"
+          echo "include a CHANGELOG.md update."
+          echo ""
+          echo "Trigger-set files changed:"
+          echo "${TRIGGERS}"
+          echo ""
+          echo "Add an [Unreleased] entry to CHANGELOG.md describing the change."
+          echo "(Reference: AC-158-001 in STORY-158; CI gate introduced in wave-72.)"
+          exit 1

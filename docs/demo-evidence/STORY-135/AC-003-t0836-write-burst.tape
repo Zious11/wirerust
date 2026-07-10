@@ -34,7 +34,7 @@ Set Shell "zsh"
 Set TypingSpeed 60ms
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-135-enip-command-detections"
+Type "cd <REPO-ROOT>/.worktrees/STORY-135-enip-command-detections"
 Enter
 Wait
 Show

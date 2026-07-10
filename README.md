@@ -11,7 +11,7 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 - **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies; `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection; multi-record handshake-message reassembly (SNI/JA3/JA3S fragmentation-evasion closed; per-direction carry buffer with `buffer_saturation_drops` overflow telemetry); `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; `dropped_transactions` JSON counter surfaces silently-dropped transactions when the per-flow transaction map reaches its cap; enabled via `--modbus`
-- **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; enabled via `--dnp3`
+- **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; `dropped_findings`, `master_addrs_dropped`, and `pending_requests_evicted` JSON counters surface cap-related telemetry; enabled via `--dnp3`
 - **ARP security forensics** — link-layer and OT network threat detection; detects ARP spoofing / cache poisoning, gratuitous ARP anomalies, ARP storms, malformed ARP frames, and L2/L3 sender-MAC mismatch; MITRE attribution to T0830 and T1557.002; enabled via `--arp`
 - **EtherNet/IP CIP forensics** — ICS/OT threat detection on port 44818; parses ODVA EtherNet/IP encapsulation header (24-byte, little-endian) and Common Packet Format item walk with CIP service extraction; detects 6 MITRE ATT&CK for ICS techniques (T0836 write-burst, T0846 remote system discovery, T0814 malformed-frame/crash-probe, T0888 error-burst/identity-read, T0858 controller stop, T0816 device reset); configurable write-burst and error-burst thresholds; emits `enip_summary` JSON key; references ADR-010; enabled via `--enip`
 - **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
@@ -121,6 +121,7 @@ Options:
 --no-collapse                          Disable collapsing of repeated findings in both flat and grouped (--mitre) terminal output. By default, collapse is enabled in both modes. When --mitre is used, collapse groups identical findings within each MITRE tactic bucket with a (xN) count suffix. Pass --no-collapse to restore one-line-per-finding output in both modes. Has no effect on --json, --csv, or --output-format json|csv output.
 --mitre                                Group findings by MITRE ATT&CK tactic and show technique names; collapses identical findings within each tactic bucket with a (xN) count suffix by default (pass --no-collapse to disable)
 -a, --all                              Run all analyzers
+--coverage-gaps                        Enable per-port unclassified traffic gap detection (opt-in; excluded from --all)
 ```
 
 ### List protocol coverage
@@ -147,6 +148,20 @@ coverage status. Filter flags:
 - `--unsupported` — show only protocols that wirerust does not yet dissect
 
 Combine with the global `--json` flag for machine-readable output.
+
+### Coverage gap detection
+
+Pass `--coverage-gaps` to `wirerust analyze` to include a `coverage_gaps` object in JSON
+output (rendered as the `CoverageGapsSummary` section in terminal output). Each observed
+protocol port is classified with one of three states: `known-supported` (an active analyzer
+handles that port), `known-unsupported` (the catalog has an entry for the protocol but no
+dissector exists), or `unknown` (no catalog entry matched the port). This flag is deliberately
+excluded from `--all` to avoid silent behavioral drift for downstream JSON consumers
+(ADR-012, Decision 8).
+
+```bash
+wirerust analyze capture.pcap --all --coverage-gaps
+```
 
 ## Architecture
 
@@ -214,6 +229,16 @@ CLI flags:
 - `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off)
 - `--dnp3-direct-operate-threshold N` — direct-operate burst threshold per flow, default 10
 
+JSON output counters (present in the DNP3 analyzer's `detail` object in JSON output, at
+`analyzers[i].detail`, when using `--json` / `--output-format json`):
+- `dropped_findings` — count of findings silently dropped after the `MAX_FINDINGS = 10 000`
+  per-analyzer cap was reached; a non-zero value means some detection events were not emitted
+- `master_addrs_dropped` — count of new master addresses silently ignored after the
+  `MAX_MASTER_ADDRS = 64` per-flow cap was full
+- `pending_requests_evicted` — count of pending control-request entries evicted by LRU when
+  the `MAX_PENDING_REQUESTS = 256` per-flow table was full; an evicted entry cannot match a
+  RESPONSE, so a T1691.001 block-command finding may be suppressed
+
 ### ARP Security Analyzer
 
 The ARP analyzer (`--arp`) processes ARP frames at the packet level (no TCP reassembly
@@ -226,14 +251,14 @@ Detections emitted:
 |-----------|-----------|--------|---------|
 | ARP spoofing (D1) | T0830, T1557.002 | Collection (ICS), Credential Access | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
 | Gratuitous ARP (D2) | — | Anomaly | Unsolicited GARP frame observed; escalates to MEDIUM and co-emits a D1 finding when the announced MAC conflicts with an established binding |
-| ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
+| ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate reaches `--arp-storm-rate` frames/second or more |
 | Malformed ARP frame (D11) | — | Anomaly | Frame fails both strict and lax/snaplen-truncated ARP parse |
 | L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Collection (ICS), Credential Access | Ethernet source MAC differs from ARP sender hardware address |
 
 CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
-- `--arp-storm-rate N` — frames/second per source MAC above which a storm finding is emitted (default: 50)
+- `--arp-storm-rate N` — frames/second per source MAC at or above which a storm finding is emitted (default: 50)
 
 JSON output counters (present in `arp_summary` when using `--json` / `--output-format json`):
 - `bindings_evicted` — count of IP→MAC binding-table LRU evictions (table cap: 65 536 entries); a
@@ -354,6 +379,48 @@ Guidelines:
 
 This is a documentation of existing practice — the test suite already
 follows it; new tests should match.
+
+## Known Limitations
+
+### Uncalibrated detection-threshold defaults
+
+Three families of detection thresholds ship with engineering defaults that have not been validated against
+a labelled ICS/OT traffic corpus. They were accepted as reasonable starting points on
+2026-07-08 and may produce false positives or false negatives on unusual networks.
+Other detector thresholds (e.g. Modbus and EtherNet/IP write-burst limits, the ARP spoof rebind
+threshold) are likewise engineering defaults; the three families below are those with the least
+external calibration evidence.
+
+**Reassembly anomaly thresholds** — the TCP reassembly engine emits anomaly findings when
+overlapping-segment counts exceed 50 per flow direction (`--overlap-threshold`, default 50),
+when consecutive runs of small segments (under 16 bytes) exceed 100 (`--small-segment-threshold`,
+default 100; `--small-segment-max-bytes`, default 16), or when out-of-window segments exceed
+100 per flow direction (`--out-of-window-threshold`, default 100). No NIDS ships enabled,
+directly-comparable count-based defaults for these detectors; these values are conservative
+engineering estimates.
+
+**ARP storm rate** — the ARP storm detector (`--arp`) fires when a source MAC sends 50 or more
+ARP frames per second (at or above `--arp-storm-rate`, default 50). This value is not derived from any
+external standard. Typical OT/ICS segments are quiet, so operators may lower this to 5–20 to
+catch low-rate storms; conversely, environments with chatty PLCs or RTUs that legitimately probe
+at high rates should raise it above their baseline to avoid false positives.
+
+**DNP3 direct-operate burst threshold** — the DNP3 analyzer (`--dnp3`) fires a control-command
+burst finding when more than 10 Control-class function codes arrive within the 60-second
+detection window (`--dnp3-direct-operate-threshold`, default 10). This value was chosen to
+tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
+need a lower value (3–5).
+
+### MACsec-Modified ARP limitation
+
+The ARP analyzer correctly decodes VLAN-tagged (802.1Q), double-tagged QinQ (802.1ad), and
+MACsec-Unmodified (unencrypted, 802.1AE) ARP frames by computing `arp_offset = 14 + Σ
+header_len()` over all link-extension headers without hardcoding (D-078, BC-2.16.015 /
+BC-2.16.009, STORY-116 / STORY-117). Two residual boundaries remain: (1) MACsec-Modified
+(encrypted) frames carry opaque ciphertext — the ARP parse path is unreachable by construction,
+so no ARP findings are produced for those frames; (2) real-world MACsec-over-ARP capture
+behavior is documented-unverified because no public MACsec-over-ARP PCAP fixture exists
+(EC-007 / EC-009(c), STORY-117, E-17, CWE-693).
 
 ## Roadmap
 

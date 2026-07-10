@@ -1,9 +1,10 @@
 //! JSON reporter — machine-readable rendering for downstream tooling.
 //!
 //! Emits a `{ "summary": {...}, "findings": [...], "analyzers": [...],
-//! "mitre_domain": "ics-attack", "mitre_attack_version": "ics-attack-19.1" }`
-//! object (BC-2.11.001). Per STORY-100 / BC-2.09.006, `mitre_techniques`
-//! is a JSON array (empty vec → key absent via `Vec::is_empty` skip).
+//! "mitre_domain": "ics-attack", "mitre_attack_version": "ics-attack-19.1",
+//! "schema_version": "2" }` object (BC-2.11.001 v1.9, BC-2.11.037).
+//! Per STORY-100 / BC-2.09.006, `mitre_techniques` is a JSON array (empty
+//! vec → key absent via `Vec::is_empty` skip).
 //!
 //! No escaping is performed here — per ADR 0003, raw bytes flow through
 //! the `Finding` summary/evidence fields and are escaped only at the
@@ -26,6 +27,12 @@ const MITRE_DOMAIN: &str = "ics-attack";
 // (T0888, T1692.001, T0836, T0835, T0831, T0814, T0806) confirmed valid and active
 // in v19.1. See .factory/research/attack-ics-version-pin.md for full validation.
 const MITRE_ATTACK_VERSION: &str = "ics-attack-19.1";
+
+// BC-2.11.037: schema_version signals the JSON schema generation to consumers.
+// "2" is the first explicitly versioned format (v0.12.0), co-shipping with the
+// breaking enum-casing change (BC-2.11.036). Absence of this field signals the
+// pre-v0.12.0 format (implicit schema v1, PascalCase enum values).
+const SCHEMA_VERSION: &str = "2";
 
 pub struct JsonReporter;
 
@@ -69,6 +76,7 @@ impl Reporter for JsonReporter {
             "analyzers": analyzer_summaries,
             "mitre_domain": MITRE_DOMAIN,
             "mitre_attack_version": MITRE_ATTACK_VERSION,
+            "schema_version": SCHEMA_VERSION,
         });
         serde_json::to_string_pretty(&output).unwrap()
     }

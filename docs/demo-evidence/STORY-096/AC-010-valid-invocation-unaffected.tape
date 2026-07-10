@@ -14,7 +14,7 @@ Set PlaybackSpeed 1.0
 # IO/file error ("Target not found") proves clap parse succeeded; NOT a usage error.
 # Also shows: --http flag accepted (EC-004)
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-096/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-096/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

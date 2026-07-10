@@ -654,17 +654,18 @@ fn test_BC_2_10_008_vp007_new_ics_ids_resolve_positive_coverage() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.11.001 postcondition 2 + 7 + 8, AC-001 (STORY-101):
-/// Top-level JSON object has exactly 5 keys including `mitre_domain` and
-/// `mitre_attack_version`. `mitre_domain` == `"ics-attack"`.
+/// Top-level JSON object has exactly 6 keys including `mitre_domain`,
+/// `mitre_attack_version`, and `schema_version`. `mitre_domain` == `"ics-attack"`.
 ///
 /// # F4: RESOLVED — `mitre_attack_version = "ics-attack-19.1"` (ATT&CK for ICS v19.1,
 /// released 2026-04-28). All emitted ICS technique IDs verified valid in v19.1.
+/// STORY-160 / BC-2.11.037: `schema_version` added in v0.12.0 (sixth key).
 #[test]
 fn test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version() {
     let json = render_json(&[]);
     let obj = json.as_object().expect("top-level must be a JSON object");
 
-    // Must have exactly 5 keys post-v0.3.0.
+    // Must have exactly 6 keys post-v0.12.0 (schema_version added by BC-2.11.037).
     let mut keys: Vec<&str> = obj.keys().map(|s| s.as_str()).collect();
     keys.sort_unstable();
     assert_eq!(
@@ -674,10 +675,11 @@ fn test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version() {
             "findings",
             "mitre_attack_version",
             "mitre_domain",
+            "schema_version",
             "summary"
         ],
-        "BC-2.11.001 pc2: top-level keys must be exactly \
-         {{summary, findings, analyzers, mitre_domain, mitre_attack_version}}"
+        "BC-2.11.001 pc2 v1.9: top-level keys must be exactly \
+         {{analyzers, findings, mitre_attack_version, mitre_domain, schema_version, summary}}"
     );
 
     // mitre_domain = "ics-attack" (constant, no dynamic value).

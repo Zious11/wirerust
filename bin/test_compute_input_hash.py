@@ -6,10 +6,7 @@ NOTE: This is the NEW canonical algorithm (re-baseline). There is no legacy
 hash to reproduce — the old algorithm was never written down and its
 implementation is lost. These tests pin the NEW algorithm's output.
 
-Tests:
-  (a) Determinism: same inputs → same hash on repeated calls.
-  (b) Known-fixture: two temp files with known content → pinned 7-char hash.
-  (c) CRLF/LF normalization: CRLF and LF inputs produce the SAME hash.
+See main() for the authoritative test list.
 """
 
 import hashlib
@@ -201,6 +198,118 @@ def test_missing_input_raises() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Regression-guard tests for AC-157-003, AC-157-004, AC-157-010.
+# These guard against reintroduction of the pre-fix SystemExit behavior: they
+# FAIL if a future refactor removes the empty-inputs short-circuit or the
+# inline-comment stripping in parse_inputs. The SystemExit-catch branch is a
+# defensive path that triggers only under regression, converting it into a
+# clean [FAIL] with AC attribution.
+# ---------------------------------------------------------------------------
+
+def test_empty_inputs_inline_compact() -> None:
+    """AC-157-003: inputs: [] (inline compact YAML) must return d41d8cd, not SystemExit."""
+    EMPTY_HASH = hashlib.md5(b"").hexdigest()[:7]  # d41d8cd
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        content = (
+            "---\n"
+            "document_type: story\n"
+            "story_id: \"STORY-EMPTY-INLINE\"\n"
+            "inputs: []\n"
+            "input-hash: \"0000000\"\n"
+            "---\n"
+            "\n"
+            "# Test story body\n"
+        )
+        story_path = tmp_dir / "STORY-EMPTY-INLINE.md"
+        story_path.write_text(content, encoding="utf-8")
+        try:
+            h = compute_hash(story_path, tmp_dir)
+        except SystemExit as exc:
+            raise AssertionError(
+                f"AC-157-003: compute_hash raised SystemExit({exc!r}) for inputs: [] "
+                f"— expected hash {EMPTY_HASH!r}. "
+                "parse_inputs must short-circuit on inline compact empty inputs."
+            ) from None
+        assert h == EMPTY_HASH, (
+            f"AC-157-003: got {h!r}, expected {EMPTY_HASH!r} for inline compact inputs: []"
+        )
+        print(f"  [PASS] empty inputs inline compact: hash={h!r} == {EMPTY_HASH!r}")
+
+
+def test_empty_inputs_multiline_block() -> None:
+    """AC-157-004: empty multiline inputs block must return d41d8cd, not SystemExit."""
+    EMPTY_HASH = hashlib.md5(b"").hexdigest()[:7]  # d41d8cd
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        content = (
+            "---\n"
+            "document_type: story\n"
+            "story_id: \"STORY-EMPTY-BLOCK\"\n"
+            "inputs:\n"
+            "input-hash: \"0000000\"\n"
+            "---\n"
+            "\n"
+            "# Test story body\n"
+        )
+        story_path = tmp_dir / "STORY-EMPTY-BLOCK.md"
+        story_path.write_text(content, encoding="utf-8")
+        try:
+            h = compute_hash(story_path, tmp_dir)
+        except SystemExit as exc:
+            raise AssertionError(
+                f"AC-157-004: compute_hash raised SystemExit({exc!r}) for empty "
+                f"multiline inputs block — expected hash {EMPTY_HASH!r}. "
+                "parse_inputs must short-circuit on empty multiline block."
+            ) from None
+        assert h == EMPTY_HASH, (
+            f"AC-157-004: got {h!r}, expected {EMPTY_HASH!r} for empty multiline "
+            "inputs block"
+        )
+        print(f"  [PASS] empty inputs multiline block: hash={h!r} == {EMPTY_HASH!r}")
+
+
+def test_inline_comment_stripped_from_path() -> None:
+    """AC-157-010: '  - path  # comment' must strip the comment before file resolution."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        (tmp_dir / "spec.md").write_bytes(b"spec content\n")
+
+        # Reference: same file, no comment in the inputs entry
+        story_clean = make_story_md(tmp_dir, ["spec.md"], name="STORY-NO-COMMENT")
+        h_ref = compute_hash(story_clean, tmp_dir)
+
+        # Story with inline comment suffix on the input path
+        content_with_comment = (
+            "---\n"
+            "document_type: story\n"
+            "story_id: \"STORY-WITH-COMMENT\"\n"
+            "inputs:\n"
+            "  - spec.md  # RETIRED 2026-06-19: superseded\n"
+            "input-hash: \"0000000\"\n"
+            "---\n"
+            "\n"
+            "# Test story body\n"
+        )
+        story_commented = tmp_dir / "STORY-WITH-COMMENT.md"
+        story_commented.write_text(content_with_comment, encoding="utf-8")
+
+        try:
+            h_comment = compute_hash(story_commented, tmp_dir)
+        except SystemExit as exc:
+            raise AssertionError(
+                f"AC-157-010: compute_hash raised SystemExit({exc!r}) for path with "
+                "inline comment — expected comment stripped and base path resolved. "
+                "parse_inputs must strip ' # ...' suffixes from each path entry."
+            ) from None
+        assert h_comment == h_ref, (
+            f"AC-157-010: got {h_comment!r}, expected {h_ref!r} "
+            "(comment-stripped path must hash identically to path without comment)"
+        )
+        print(f"  [PASS] inline comment stripped: {h_comment!r} == ref {h_ref!r}")
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -212,6 +321,9 @@ def main() -> None:
         test_lone_cr_normalization,
         test_declaration_order_matters,
         test_missing_input_raises,
+        test_empty_inputs_inline_compact,
+        test_empty_inputs_multiline_block,
+        test_inline_comment_stripped_from_path,
     ]
     passed = 0
     failed = 0

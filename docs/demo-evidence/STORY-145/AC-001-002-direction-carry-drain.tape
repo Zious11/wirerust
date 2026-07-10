@@ -20,7 +20,7 @@ Set PlaybackSpeed 1.0
 # end true; parse_errors == 0; both carry buffers drain to zero.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-145-tls-serverhello-symmetry"
+Type "cd <REPO-ROOT>/.worktrees/story-145-tls-serverhello-symmetry"
 Enter
 Show
 

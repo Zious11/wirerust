@@ -865,7 +865,7 @@ impl EnipAnalyzer {
                     // frames as required by BC-2.17.004 Invariant 3.
                     *flow.command_counts.entry(header.command).or_insert(0) += 1;
                     flow.parse_errors = flow.parse_errors.saturating_add(1);
-                    flow.malformed_in_window += 1;
+                    flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                     check_t0814(
                         flow,
                         &mut self.all_findings,
@@ -891,7 +891,7 @@ impl EnipAnalyzer {
                     // The frame is definitively skipped (oversized); this is a committed outcome.
                     *flow.command_counts.entry(header.command).or_insert(0) += 1;
                     flow.parse_errors = flow.parse_errors.saturating_add(1);
-                    flow.malformed_in_window += 1;
+                    flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                     check_t0814(
                         flow,
                         &mut self.all_findings,
@@ -954,7 +954,7 @@ impl EnipAnalyzer {
             };
             if active_carry_len > MAX_ENIP_CARRY_BYTES {
                 flow.parse_errors = flow.parse_errors.saturating_add(1);
-                flow.malformed_in_window += 1;
+                flow.malformed_in_window = flow.malformed_in_window.saturating_add(1);
                 // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
                 check_t0814(
                     flow,
@@ -1343,7 +1343,7 @@ impl EnipAnalyzer {
                         flow.write_burst_emitted = false;
                     } else {
                         // BC-2.17.012 postcondition 1: increment per-flow window counter.
-                        flow.write_count_in_window += 1;
+                        flow.write_count_in_window = flow.write_count_in_window.saturating_add(1);
                         // BC-2.17.012 postcondition 3: seed window timestamp on first write.
                         if flow.write_count_in_window == 1 {
                             flow.write_window_start_ts = timestamp;

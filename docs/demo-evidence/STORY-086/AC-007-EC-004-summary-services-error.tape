@@ -12,7 +12,7 @@ Set PlaybackSpeed 1.0
 # AC-007/EC-004 (BC-2.12.002 invariant 4): --services removed flag → clap UnknownArgument
 # clap prints "unexpected argument '--services' found"
 Hide
-Type 'export WIRERUST=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-086/target/debug/wirerust'
+Type 'export WIRERUST=<REPO-ROOT>/.worktrees/STORY-086/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

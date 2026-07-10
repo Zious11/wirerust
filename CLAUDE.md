@@ -45,6 +45,11 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
   - `hotfix/<slug>` for urgent production fixes branched from `main`
 - **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional. Release PRs into `main` use an allowed type, e.g. `chore: release v0.2.0`.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
+- **CHANGELOG obligation (AC-158-001, PG-W71-CHANGELOG):** PRs that modify files under
+  `src/`, `Cargo.toml`, or `bin/` MUST include an `[Unreleased]` CHANGELOG entry
+  (enforced by CI via the `changelog-gate` job in `.github/workflows/ci.yml`; see
+  AC-158-001 and PG-W71-CHANGELOG). `tests/`, `.github/`, `docs/`, and `Cargo.lock` are
+  excluded from the trigger set (process-internal or self-documenting surfaces).
 
 ## CI / Supply Chain
 
@@ -77,6 +82,16 @@ The **"Action pin gate"** CI job (`action-pin-gate` in `.github/workflows/ci.yml
 
 - After a release or hotfix PR merges into `main`, ensure `develop` contains those commits. Merge `main` back into `develop` if needed so the two branches do not diverge.
 
+### Wave Gate Code-Review Artifact Protocol (AC-158-006, PG-W71-CODEREVIEW-ARTIFACT)
+
+Before a wave gate is declared closed, a `cycles/wave-NNN/wave-gate/code-review.md`
+artifact MUST be written enumerating every MINOR and NIT finding from the gate-level
+code review together with its disposition (accepted / deferred / fixed). A gate with
+zero findings MUST still create the file with a "No findings" note. This ensures gate-
+level review output is permanently recoverable — the wave-71 gap (PG-W71-CODEREVIEW-
+ARTIFACT) showed that a one-line summary in `gate-summary.md` leaves individual finding
+text unrecoverable after the review session ends.
+
 ## Public API Surface (W7.1 — deferred)
 
 `cargo public-api` is the intended tool for tracking public API surface changes
@@ -97,7 +112,8 @@ have changed without the story being regenerated — i.e., spec drift.
 
 ### Canonical Algorithm
 
-The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps).
+The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps;
+requires Python 3.10+ — the tool uses modern type syntax).
 This tool defines the algorithm; there is no separate spec document.
 
 1. Parse the story's YAML frontmatter and extract the `inputs:` list **in declaration order**.
@@ -160,7 +176,59 @@ python3 bin/test_compute_input_hash.py
 ```
 
 Verifies: determinism, pinned known-fixture hash, CRLF/LF normalization equivalence,
-lone-CR normalization, declaration-order sensitivity, and clear error on missing input.
+lone-CR normalization, declaration-order sensitivity, clear error on missing input,
+empty `inputs: []` inline compact form (→ `d41d8cd`), empty multiline inputs block
+(→ `d41d8cd`), and inline comment stripping from path entries.
+
+### Edge Cases
+
+- **Empty inputs (`inputs: []` or empty multiline block):** Produces hash `d41d8cd`
+  (MD5 of empty bytes). E-11 stories use `inputs: []` because they have no spec inputs;
+  the scanner correctly reports MATCH for these stories.
+- **Inline comment suffixes:** Path entries like `path/to/file.md  # RETIRED 2026-06-19`
+  have the ` # ...` suffix stripped before file resolution; only the base path is hashed.
+
+### Known Tool Divergences (PG-HASH-HOOK-DIVERGENCE)
+
+`bin/compute-input-hash` (Python, this repo's `bin/` directory) is the **canonical
+algorithm** for all `input-hash:` values stored in story frontmatter.
+
+The plugin's `validate-input-hash` hook uses a bash implementation that computes MD5
+via `$(cat file)` concatenation. The bash `$()` subshell strips all trailing newlines
+from each file's content before concatenation, producing a **different hash** than the
+canonical Python tool (which reads raw bytes including trailing newlines).
+
+Consequence: the hook will report false-positive drift warnings against canonical Python
+hashes on every story edit.
+
+**Rule:** `input-hash:` values MUST be set using the canonical Python tool only:
+```bash
+bin/compute-input-hash --write .factory/stories/STORY-NNN.md
+```
+Hook validation errors citing a divergent hash MUST be treated as advisory-only
+until the plugin is reconciled to the canonical algorithm.
+
+Concrete evidence (wave-71 input-hash drift resolution, 2026-07-07):
+- STORY-156: Python=`ce96d86`, hook=`7b7dc6b`
+- STORY-150: Python=`c5acbe4`, hook=`26416e1`
+- STORY-157: Python=`357bca5`, hook=`4a47ab6`
+
+Root cause: `CONCAT="${CONCAT}$(cat "$RESOLVED")"` in the plugin hook strips trailing
+newlines. The canonical Python tool reads raw bytes with no stripping. (PG-HASH-HOOK-DIVERGENCE)
+
+### Two Hash Disciplines
+
+**Two hash disciplines in this repository are deliberately distinct:**
+
+- `input-hash` (story frontmatter): MD5-first-7 hex, computed by `bin/compute-input-hash`
+  (canonical Python tool). Purpose: advisory drift detection for spec inputs. Lightweight,
+  not a security primitive.
+- `proof_file_hash` (VP frontmatter): SHA-256 mini-Merkle over Kani proof sections,
+  full 64-char hex. Purpose: integrity anchor for formal verification artifacts. Tamper-evident.
+
+Do not conflate the two. `input-hash` and `proof_file_hash` use different algorithms,
+different truncations, and serve different roles. Changing an `input-hash` has no effect
+on `proof_file_hash` and vice versa.
 
 ## Deferred Findings
 
@@ -171,8 +239,10 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | Path | Purpose |
 |------|---------|
 | `README.md` | Project overview |
-| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly) |
+| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly, 0012 protocols catalog and coverage-gaps system) |
 | `docs/superpowers/plans/` | Implementation plans (from the superpowers skill) |
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |
 | `.factory/` | VSDD factory artifacts (STATE.md, stories, specs, research, maintenance logs) |
+| `.factory/maintenance/demo-evidence-scrub-gate.md` | Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB; run before committing demo evidence) |
+| `.factory/maintenance/pr-manager-merge-auth-guidance.md` | PR merge-authorization classifier guidance (DF-MERGE-AUTH-CLASSIFIER-001) |

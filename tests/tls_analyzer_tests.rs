@@ -9488,7 +9488,8 @@ mod story_144 {
     /// records. This generic wrapper is new; no `wrap_as_tls_record` or generic
     /// `make_tls_record` exists at the flat root.
     fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
-        let len = payload.len();
+        let len =
+            u16::try_from(payload.len()).expect("fixture payload exceeds u16 TLS record length");
         let len_hi = (len >> 8) as u8;
         let len_lo = (len & 0xff) as u8;
         let mut record = vec![content_type, 0x03, 0x03, len_hi, len_lo];
@@ -10511,7 +10512,8 @@ mod story_145 {
     /// Reconciliation: `wrap_as_tls_record` does NOT exist at flat root; re-declared
     /// locally here (identical to mod story_144 copy).
     fn wrap_as_tls_record(content_type: u8, payload: &[u8]) -> Vec<u8> {
-        let len = payload.len();
+        let len =
+            u16::try_from(payload.len()).expect("fixture payload exceeds u16 TLS record length");
         let len_hi = (len >> 8) as u8;
         let len_lo = (len & 0xff) as u8;
         let mut record = vec![content_type, 0x03, 0x03, len_hi, len_lo];
@@ -11440,7 +11442,8 @@ mod f6_hardening {
 
     /// Wrap `payload` bytes in a minimal TLS 0x16 (Handshake) record header.
     fn wrap_handshake_record(payload: &[u8]) -> Vec<u8> {
-        let len = payload.len();
+        let len =
+            u16::try_from(payload.len()).expect("fixture payload exceeds u16 TLS record length");
         let mut rec = vec![0x16u8, 0x03, 0x03, (len >> 8) as u8, (len & 0xff) as u8];
         rec.extend_from_slice(payload);
         rec

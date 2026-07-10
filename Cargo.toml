@@ -1,6 +1,6 @@
 [package]
 name = "wirerust"
-version = "0.11.5"
+version = "0.12.0"
 edition = "2024"
 rust-version = "1.91"
 description = "Fast PCAP forensics and network triage CLI tool"
@@ -50,4 +50,9 @@ criterion = "0.8"
 # runner instead of libtest. Run with `cargo bench`.
 [[bench]]
 name = "pipeline"
+harness = false
+
+# STORY-149: fragmented-handshake carry-drain regression fixture (AC-149-002; closes #360).
+[[bench]]
+name = "tls_fragmented"
 harness = false

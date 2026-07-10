@@ -1,0 +1,167 @@
+Kani Rust Verifier 0.67.0 (cargo plugin)
+warning: variable does not need to be mutable
+   --> src/decoder.rs:708:13
+    |
+708 |         let mut buf: [u8; 28] = kani::any();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `SEEDED_TECHNIQUE_ID_COUNT` is never used
+   --> src/mitre.rs:474:7
+    |
+474 | const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+warning: variable does not need to be mutable
+   --> src/decoder.rs:708:13
+    |
+708 |         let mut buf: [u8; 28] = kani::any();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `SEEDED_TECHNIQUE_ID_COUNT` is never used
+   --> src/mitre.rs:474:7
+    |
+474 | const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
+Checking harness analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance...
+CBMC 6.8.0 (cbmc-6.8.0)
+CBMC version 6.8.0 (cbmc-6.8.0) 64-bit arm64 macos
+Reading GOTO program from file $REPO/target/kani/aarch64-apple-darwin/debug/deps/wirerust-658d14a9887f1005__RNvNtNtNtCs7F8dOjD28Xd_8wirerust8analyzer3tls17kani_proofs_vp03935verify_no_usize_overflow_on_advance.out
+Generating GOTO Program
+Adding CPROVER library (arm64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 1014 column 15 function std::option::Option::<usize>::unwrap thread 0
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 2175 column 5 function std::option::unwrap_failed thread 0
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 1016 column 21 function std::option::Option::<usize>::unwrap thread 0
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 1014 column 15 function std::option::Option::<usize>::unwrap thread 0
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 2175 column 5 function std::option::unwrap_failed thread 0
+aborting path on assume(false) at file $STDLIB/core/src/option.rs line 1016 column 21 function std::option::Option::<usize>::unwrap thread 0
+Runtime Symex: 0.0105075s
+size of program expression: 837 steps
+slicing removed 409 assignments
+Generated 28 VCC(s), 16 remaining after simplification
+Runtime Postprocess Equation: 0.00010275s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.00150071s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 5.25e-06s
+Solving with CaDiCaL 2.0.0
+1740 variables, 4021 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.00015925s
+Runtime decision procedure: 0.00172413s
+Running propositional reduction
+Solving with CaDiCaL 2.0.0
+1741 variables, 4022 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.000110416s
+Runtime decision procedure: 0.00013525s
+Running propositional reduction
+Solving with CaDiCaL 2.0.0
+1742 variables, 4023 clauses
+SAT checker: instance is UNSATISFIABLE
+Runtime Solver: 2.4e-05s
+Runtime decision procedure: 3.9542e-05s
+
+RESULTS:
+Check 1: analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance.assertion.1
+	 - Status: SUCCESS
+	 - Description: "assertion failed: (4usize).checked_add(body_len).is_some()"
+	 - Location: src/analyzer/tls.rs:1943:9 in function analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance
+
+Check 2: analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance.assertion.2
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: src/analyzer/tls.rs:1944:41 in function analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance
+
+Check 3: analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance.assertion.3
+	 - Status: SUCCESS
+	 - Description: "assertion failed: next.is_some()"
+	 - Location: src/analyzer/tls.rs:1945:9 in function analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance
+
+Check 4: analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance.cover.1
+	 - Status: SATISFIED
+	 - Description: "cover condition: next.unwrap() <= MAX_BUF"
+	 - Location: src/analyzer/tls.rs:1949:9 in function analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance
+
+Check 5: analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance.cover.2
+	 - Status: SATISFIED
+	 - Description: "cover condition: next.unwrap() > MAX_BUF"
+	 - Location: src/analyzer/tls.rs:1950:9 in function analyzer::tls::kani_proofs_vp039::verify_no_usize_overflow_on_advance
+
+Check 6: core::num::<impl usize>::checked_add.arithmetic_overflow.1
+	 - Status: SUCCESS
+	 - Description: "attempt to compute `unchecked_add` which would overflow"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs:658:31 in function core::num::<impl usize>::checked_add
+
+Check 7: std::option::unwrap_failed.assertion.1
+	 - Status: SUCCESS
+	 - Description: "called `Option::unwrap()` on a `None` value"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:2175:5 in function std::option::unwrap_failed
+
+Check 8: std::option::Option::<usize>::unwrap.unreachable.1
+	 - Status: SUCCESS
+	 - Description: "unreachable code"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:1014:15 in function std::option::Option::<usize>::unwrap
+
+Check 9: std::option::Option::<usize>::is_some.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+Check 10: std::option::Option::<usize>::is_some.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+Check 11: std::option::Option::<usize>::is_some.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+Check 12: std::option::Option::<usize>::is_some.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+Check 13: std::option::Option::<usize>::is_some.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+Check 14: std::option::Option::<usize>::is_some.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: ../../../../../../runner/.rustup/toolchains/nightly-2025-11-21-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/option.rs:636:18 in function std::option::Option::<usize>::is_some
+
+
+SUMMARY:
+ ** 0 of 12 failed
+
+ ** 2 of 2 cover properties satisfied
+
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.05963096s
+
+Manual Harness Summary:
+Complete - 1 successfully verified harnesses, 0 failures, 1 total.

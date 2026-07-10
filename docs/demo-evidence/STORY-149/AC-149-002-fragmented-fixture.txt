@@ -1,0 +1,70 @@
+AC-149-002 Evidence: Fragmented-Handshake Benchmark Fixture (closes issue #360)
+=================================================================================
+Story: STORY-149
+Branch: feature/STORY-149-tls-carry-perf
+Commit: 2418048
+Date: 2026-07-07
+
+--- SUCCESS PATH: 3 fixture tests pass ---
+
+Command:
+  cargo test --test bc_149_fragmented_fixture_tests -- --nocapture
+
+Output:
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/bc_149_fragmented_fixture_tests.rs (target/debug/deps/bc_149_fragmented_fixture_tests-334353a055e9824f)
+
+running 3 tests
+test bc_149_fragmented_fixture::test_BC_149_002_fixture_spans_at_least_3_records ... ok
+test bc_149_fragmented_fixture::test_BC_149_002_fixture_is_deterministic ... ok
+test bc_149_fragmented_fixture::test_BC_149_002_carry_drain_loop_exercised_across_records ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Tests verify:
+  - Fixture spans >= 3 TLS records (carry-drain loop executes >= twice per handshake)
+  - Fixture is deterministic and repeatable
+  - Carry-drain loop is exercised across records (at least 2 carry-drain iterations)
+
+--- SUCCESS PATH: Criterion benchmark executes ---
+
+Command:
+  cargo bench --bench tls_fragmented
+
+Output:
+   Compiling wirerust v0.11.5 (<REPO-ROOT>/.worktrees/STORY-149)
+    Finished `bench` profile [optimized] target(s) in 3.00s
+     Running benches/tls_fragmented.rs (target/release/deps/tls_fragmented-0b5ab18b16991783)
+Gnuplot not found, using plotters backend
+Benchmarking tls_fragmented/3-record-carry-drain
+Benchmarking tls_fragmented/3-record-carry-drain: Warming up for 3.0000 s
+Benchmarking tls_fragmented/3-record-carry-drain: Collecting 100 samples in estimated 5.0006 s (3.1M iterations)
+Benchmarking tls_fragmented/3-record-carry-drain: Analyzing
+tls_fragmented/3-record-carry-drain
+                        time:   [1.6198 us 1.6374 us 1.6647 us]
+Found 13 outliers among 100 measurements (13.00%)
+  1 (1.00%) low severe
+  5 (5.00%) low mild
+  1 (1.00%) high mild
+  6 (6.00%) high severe
+
+Fixture file: benches/tls_fragmented.rs
+Criterion group: tls_fragmented/3-record-carry-drain
+Benchmark time: ~1.64 us mean (100 samples, 3.1M iters in ~5s warm-up)
+Carry-drain baseline: story149-post (established at commit 923fac0, ~1.594 us slope)
+This fresh run: ~1.637 us (within expected thermal variance of ~2.7% above baseline)
+
+--- ERROR PATH: What a fixture violation would look like ---
+
+If the fixture delivered < 3 records, test_BC_149_002_fixture_spans_at_least_3_records
+would fail with:
+  "AC-149-002: fixture must span at least 3 TLS records to exercise the carry-drain
+   loop at least twice. Found {n} record(s)."
+
+If the carry-drain loop were not exercised, test_BC_149_002_carry_drain_loop_exercised_across_records
+would fail with an assertion on the internal carry-drain iteration count.
+
+--- VERDICT: PASS ---
+3 fixture tests green. Criterion benchmark executes and produces stable timing.
+Carry-drain loop confirmed exercised >= 2 times per synthetic handshake.
+Issue #360 closed.

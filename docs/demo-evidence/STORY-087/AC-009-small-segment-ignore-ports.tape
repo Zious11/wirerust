@@ -13,7 +13,7 @@ Set PlaybackSpeed 1.0
 # AC-009 (BC-2.12.005 invariant 3): --small-segment-ignore-ports 23,513 → accepted (comma-delimited Vec<u16>)
 # "Error: Target not found" proves clap accepted the comma-delimited value; a clap error would show "error: ..."
 Hide
-Type 'export BIN=/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-087/target/debug/wirerust'
+Type 'export BIN=<REPO-ROOT>/.worktrees/STORY-087/target/debug/wirerust'
 Enter
 Sleep 300ms
 Show

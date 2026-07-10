@@ -15,7 +15,7 @@ Set Framerate 24
 # Minimum is 1; 0 produces "0 is not in 1.." error message.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/hs043-flow-expiry"
+Type "cd <REPO-ROOT>/.worktrees/hs043-flow-expiry"
 Enter
 Type "clear"
 Enter

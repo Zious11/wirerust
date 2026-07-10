@@ -13,7 +13,7 @@
 //! D12 L2/L3 mismatch findings carry `mitre_techniques: ["T0830", "T1557.002"]`
 //! (BC-2.16.007 PC1). `src/mitre.rs` was updated atomically (VP-007): SEEDED=25, EMITTED=17.
 //! D3 storm detection (BC-2.16.008) emits MEDIUM/Anomaly findings with `mitre_techniques: []`
-//! (T0814 withheld per DF-VALIDATION-001) when source MAC rate exceeds `storm_rate` threshold.
+//! (T0814 withheld per DF-VALIDATION-001) when source MAC rate reaches `storm_rate` or more.
 //!
 //! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
 //! `verify_binding_table_cap`) were filled and formally proven at the F6
@@ -464,11 +464,11 @@ impl ArpAnalyzer {
         let mut findings = Vec::new();
 
         // (b) Count frame + opcode — all frames (including zero/broadcast sender_ip).
-        self.frames_analyzed += 1;
+        self.frames_analyzed = self.frames_analyzed.saturating_add(1);
         match frame.operation {
-            1 => self.request_count += 1,
-            2 => self.reply_count += 1,
-            _ => self.other_opcode_count += 1,
+            1 => self.request_count = self.request_count.saturating_add(1),
+            2 => self.reply_count = self.reply_count.saturating_add(1),
+            _ => self.other_opcode_count = self.other_opcode_count.saturating_add(1),
         }
 
         // (a) Filter zero/broadcast sender_ip — BC-2.16.005 Invariant 5.
@@ -483,7 +483,7 @@ impl ArpAnalyzer {
         if let Some(eth_mac) = frame.outer_src_mac
             && eth_mac != frame.sender_mac
         {
-            self.mismatch_findings += 1;
+            self.mismatch_findings = self.mismatch_findings.saturating_add(1);
             findings.push(Finding {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Possible,
@@ -529,7 +529,7 @@ impl ArpAnalyzer {
         // keyed on sender_mac. Executed before the GARP/D1 branching so GARP floods
         // are detected uniformly with all other ARP frame types (BC-2.16.008 PC1).
         if let Some(storm_finding) = self.detect_storm(sender_mac, timestamp_secs) {
-            self.storm_findings += 1;
+            self.storm_findings = self.storm_findings.saturating_add(1);
             findings.push(storm_finding);
         }
 
@@ -582,8 +582,8 @@ impl ArpAnalyzer {
                     self.spoof_threshold,
                 );
 
-                self.garp_findings += 1;
-                self.spoof_findings += 1;
+                self.garp_findings = self.garp_findings.saturating_add(1);
+                self.spoof_findings = self.spoof_findings.saturating_add(1);
                 findings.push(upgraded_garp);
                 findings.push(d1);
 
@@ -598,7 +598,7 @@ impl ArpAnalyzer {
                 entry.mac = sender_mac;
             } else {
                 // BC-2.16.014 PC6 / EC-009: benign GARP (no conflict) → LOW only, no D1, no MITRE.
-                self.garp_findings += 1;
+                self.garp_findings = self.garp_findings.saturating_add(1);
                 findings.push(Finding {
                     category: ThreatCategory::Anomaly,
                     verdict: Verdict::Possible,
@@ -658,7 +658,7 @@ impl ArpAnalyzer {
                     timestamp_secs,
                     self.spoof_threshold,
                 );
-                self.spoof_findings += 1;
+                self.spoof_findings = self.spoof_findings.saturating_add(1);
                 findings.push(d1);
 
                 // Step 4 (Architecture Compliance Rule 1): MAC update AFTER emission.
@@ -699,11 +699,11 @@ impl ArpAnalyzer {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
         // Always increment malformed_frames (BC-2.16.009 PC4; AC-012).
-        self.malformed_frames += 1;
+        self.malformed_frames = self.malformed_frames.saturating_add(1);
 
         // Increment malformed_findings — this method is only called from the
         // --arp-gated path in main.rs (BC-2.16.009 PC3/PC4; AC-012).
-        self.malformed_findings += 1;
+        self.malformed_findings = self.malformed_findings.saturating_add(1);
 
         // Construct and return the D11 LOW/Anomaly Finding (BC-2.16.009 PC3).
         // mitre_techniques: [] — T0814 withheld per DF-VALIDATION-001 / BC-2.16.009 Invariant 3.
@@ -853,7 +853,7 @@ impl ArpAnalyzer {
         }
 
         // Step 1: increment rebind_count (BC-2.16.004 PC1.a).
-        entry.rebind_count += 1;
+        entry.rebind_count = entry.rebind_count.saturating_add(1);
 
         // Step 2: set first_rebind_ts if currently None (BC-2.16.004 PC1.b).
         if entry.first_rebind_ts.is_none() {
@@ -1029,7 +1029,7 @@ impl ArpAnalyzer {
         } else {
             // Step 2 — in-window increment.
             if let Some(entry) = self.storm_counters.get_mut(&source_mac) {
-                entry.count_in_window += 1;
+                entry.count_in_window = entry.count_in_window.saturating_add(1);
             }
         }
 
@@ -3436,7 +3436,7 @@ mod story_114 {
         );
 
         // Regression guard (BC-2.16.004 lines 74/118):
-        // A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "Likely").
+        // A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "likely").
         // D-075 introduced the conditional in emit_d1_spoof_finding_impl that routes
         // HIGH confidence to Verdict::Likely. This FAILS if that conditional is removed
         // or a refactor reverts HIGH-confidence D1 findings to Verdict::Possible.
@@ -4507,6 +4507,67 @@ mod bc_2_16_016 {
             !summary.detail.contains_key("dropped_findings"),
             "BC-2.16.016 PC3 / BC-2.16.010 Invariant 1: summarize() must NOT emit a \
              'dropped_findings' key. Found unexpected key. Keys present: {:?}",
+            summary.detail.keys().collect::<Vec<_>>()
+        );
+    }
+
+    /// BC-2.16.016 PC-2/PC-3 standalone pin: `summarize()` NEVER emits a
+    /// `"dropped_findings"` key.
+    ///
+    /// This test is standalone — it does NOT rely on `test_BC_2_16_016_arp_findings_vec_has_no_cap`.
+    /// Checks two cases:
+    ///
+    /// 1. **EC-001 (zero frames):** A fresh `ArpAnalyzer` with no frames processed must
+    ///    not include `"dropped_findings"` in `summarize()` output.
+    /// 2. **EC-003 (>10,000 events):** After processing N = 10,001 D1-producing frames,
+    ///    `summarize()` must still not include `"dropped_findings"`. Adding that key would
+    ///    be a BC-2.16.010 breaking change (requires its own BC version bump + delivery story).
+    ///
+    /// Assertions use `!contains_key` (clippy `unnecessary_get_then_check` lint compliance).
+    ///
+    /// Postconditions covered:
+    /// - BC-2.16.016 PC-2: no `dropped_findings` counter is maintained by `ArpAnalyzer`.
+    /// - BC-2.16.016 PC-3: `summarize()` NEVER emits a `dropped_findings` key.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_016_summarize_has_no_dropped_findings_key() {
+        // --- EC-001: zero-frame edge case — fresh analyzer with no traffic ---
+        let zero_analyzer = ArpAnalyzer::new(1, u32::MAX);
+        let zero_summary = zero_analyzer.summarize();
+        assert!(
+            !zero_summary.detail.contains_key("dropped_findings"),
+            "BC-2.16.016 PC-2/3 (zero-frame): summarize() must NOT emit \
+             'dropped_findings' on a fresh analyzer. Keys present: {:?}",
+            zero_summary.detail.keys().collect::<Vec<_>>()
+        );
+
+        // --- EC-003: >10,000-event sequence (10,001 D1 spoof findings) ---
+        // storm_rate=u32::MAX suppresses all D3 findings so all findings are D1.
+        let mut analyzer = ArpAnalyzer::new(1, u32::MAX);
+        const MAC_A: [u8; 6] = [0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA];
+        const MAC_B: [u8; 6] = [0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB];
+        const N: usize = 10_001;
+
+        for i in 0..N {
+            let hi = (i / 256) as u8;
+            let lo = (i % 256) as u8;
+            let sender_ip: [u8; 4] = [10, 0, hi, lo];
+            let ts = i as u32;
+            // Frame 1: first observation — inserts binding, no D1 finding.
+            let _ = analyzer.process_arp(&make_reply_frame(sender_ip, MAC_A), ts);
+            // Frame 2: rebind (MAC_A → MAC_B). spoof_threshold=1 → D1 emitted.
+            let _ = analyzer.process_arp(&make_reply_frame(sender_ip, MAC_B), ts);
+        }
+
+        let summary = analyzer.summarize();
+        // BC-2.16.016 PC-2/3: no dropped_findings key — ArpAnalyzer has no such
+        // counter. Adding it would be a BC-2.16.010 breaking change (13-key contract).
+        assert!(
+            !summary.detail.contains_key("dropped_findings"),
+            "BC-2.16.016 PC-2/3 (>10k events): summarize() must NOT emit \
+             'dropped_findings' after processing {N} D1 spoof findings. \
+             Adding this key would break the BC-2.16.010 13-key summarize contract. \
+             Keys present: {:?}",
             summary.detail.keys().collect::<Vec<_>>()
         );
     }
