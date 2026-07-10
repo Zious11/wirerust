@@ -13,8 +13,8 @@ status: complete
 current_step: "PAUSED (session wrap 2026-07-09). Wave-72 CLOSED (D-416, human-approved). All 4 stories + gate fix delivered (PRs #387-#391); issues #252/#255 closed; develop=716054a (14 unreleased commits, v0.12.0 staged — release NOT yet cut, human-deferred). Pipeline IDLE. + D-417 out-of-cycle: dependabot #386 merged (716054a, 14 unreleased commits now staged for v0.12.0). Next candidates: v0.12.0 release run, STORY-162 (wave-TBD draft), maintenance sweep (deferred-items ledger). trajectory-tail →1→0→0→0"
 current_cycle: "wave-72"
 pipeline: PAUSED
-timestamp: 2026-07-09T23:59:59Z
-# Updated by D-417 burst (dependabot #386 merged, factory remains PAUSED)
+timestamp: 2026-07-10T02:22:31Z
+# Updated by session wrap re-confirm (2026-07-09 human-requested; sidecar flush; pipeline PAUSED)
 
 # Release chain (latest)
 released_version: v0.11.5
