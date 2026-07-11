@@ -831,9 +831,11 @@ stories:
     merged_date: "2026-07-11"
 
   STORY-163:
-    status: pending
+    status: done
     wave: 73
     branch: null
     worktree: null
     blocked_by: []
-    pr: null
+    pr: null  # factory-artifacts-only; no develop PR (E-11 convention, Task 3)
+    merged_date: "2026-07-11"
+    note: "delivered via factory-artifacts commit (D-427 burst)"

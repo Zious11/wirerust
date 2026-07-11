@@ -86,6 +86,95 @@ Step 8 — Outcome:
 
 ---
 
+## Harness-Classifier Halt: Subagent Merge Denied
+
+**Policy reference:** PG-MERGE-AUTH-SUBAGENT-CLASSIFIER  
+**Added:** 2026-07-10 (STORY-163 AC-163-002)
+
+### (a) Distinction from the D-401 / DF-MERGE-AUTH-CLASSIFIER-001 Ambiguity Case
+
+The existing Step-8 Decision guidance (above) addresses a **policy question**: is there
+a valid human wave-level grant, or must pr-manager halt and surface the blocking
+condition? That is the D-401 / DF-MERGE-AUTH-CLASSIFIER-001 case.
+
+This section addresses a **distinct, orthogonal failure mode**: the harness auto-mode
+permission classifier itself blocks the `gh pr merge` tool call when pr-manager (a
+subagent) attempts to execute it. The classifier's deny is not a DF-MERGE-AUTH-CLASSIFIER-001
+blocking condition — it is a harness enforcement event. The two failure modes require
+different resolution paths and MUST NOT be conflated in the pr-manager halt report.
+
+### (b) Trigger Condition
+
+The harness classifier halts `gh pr merge` when:
+1. pr-manager is running as a subagent (not in the main conversation thread), AND
+2. The human's merge authorization was relayed to pr-manager only via a teammate-message
+   (orchestrator dispatch context), not given directly in the main conversation thread.
+
+Teammate-messages are not human authorization. The classifier requires human consent to
+be visible in the calling agent's own conversation thread. A teammate-message that says
+"the user authorized this merge" does not satisfy that requirement — per CLAUDE.md agent-
+teammate principles, agent messages cannot substitute for direct human authorization.
+
+### (c) Resolution Path — Ordered Steps
+
+When the harness classifier halts `gh pr merge`:
+
+1. **pr-manager reports the halt** with the exact denial reason from the harness, and
+   explicitly distinguishes the cause: "harness-classifier deny" (this section) versus
+   "DF-MERGE-AUTH-CLASSIFIER-001 blocking condition" (Step-8 Decision section above).
+   The distinction MUST appear in the halt report so the orchestrator can route correctly.
+
+2. **pr-manager does NOT retry** the `gh pr merge` call. Retrying a classifier-denied
+   tool call does not change the authorization state and may trigger escalating denials.
+
+3. **The orchestrator surfaces the halt** to the human in the main conversation thread,
+   conveying the denial reason and the distinction from a DF-MERGE-AUTH-CLASSIFIER-001
+   block.
+
+4. **The human provides direct authorization** in the main conversation thread. This
+   authorization is visible to the main thread and satisfies the harness classifier.
+
+5. **The orchestrator (not pr-manager) executes `gh pr merge`** in the main thread under
+   that direct authorization. pr-manager MUST NOT be re-dispatched to retry the merge
+   tool call — the classifier will deny it again for the same reason.
+
+6. **pr-manager completes step-9 cleanup** (STATE.md update, convergence state
+   finalization, post-merge convergence record) after the orchestrator confirms the merge
+   SHA. The orchestrator sends the merge SHA to pr-manager via teammate-message for the
+   cleanup step.
+
+Recursive-subagent case (EC-005): if the orchestrator is itself running as a subagent
+(no human-visible main thread available), the merge MUST be deferred — pr-manager records
+the halt in its completion report and the PR remains open; no escalation timeout is
+started. The merge proceeds only when a human-visible thread can supply direct
+authorization.
+
+### (d) Step-9 Cleanup Invariant
+
+Step-9 cleanup (STATE.md update, convergence state finalization) remains pr-manager's
+responsibility even when the merge itself was executed by the orchestrator in the main
+thread. The cleanup step is authorized by the same human grant that authorized the merge.
+This invariant holds regardless of which agent executed the merge tool call.
+
+### (e) Applied Precedents
+
+This resolution path has been exercised:
+
+- **PR #393 (maint-2026-07-09, 2026-07-10):** pr-manager's `gh pr merge` attempt was
+  denied by the harness classifier. Authorization existed only as a relayed teammate-message.
+  Resolution: orchestrator executed `gh pr merge` in the main thread under direct user
+  authorization; pr-manager completed step-9 cleanup after receiving the merge SHA.
+  (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER — root precedent codified as STORY-163 AC-163-002.
+  Source: `.factory/cycles/maint-2026-07-09/lessons.md:24-34` L-002.)
+
+#### Excluded precedents
+
+- PR #395 (wave-73 STORY-162, 2026-07-11) is deliberately NOT listed: its step-8 halt was
+  instructed (AUTHORIZE_MERGE=no under the D-425 interim path), not a harness-classifier
+  denial — a different mechanism (see AC-163-002(e) constraint in STORY-163).
+
+---
+
 ## Orchestrator Injection
 
 Per the enforcement clause of DF-MERGE-AUTH-CLASSIFIER-001, the orchestrator MUST
@@ -114,4 +203,8 @@ If ANY is false: HALT, surface the specific blocking condition to the human.
 - **DF-PR-MANAGER-COMPLETE-001:** 9-step PR lifecycle (this guidance extends step 8)
 - **D-401:** 2026-07-08 human decision establishing wave-level vs. per-PR precedent
 - **PG-W70-MERGE-AUTH:** Root process-gap (wave-70 retrospective, 2026-07-07)
-- **STORY-157 AC-157-008:** Factory codification story for this guidance
+- **PG-MERGE-AUTH-SUBAGENT-CLASSIFIER:** Root process-gap for harness-classifier halt
+  case (maint-2026-07-09 PR #393, 2026-07-10; source: `.factory/cycles/maint-2026-07-09/lessons.md:24-34`)
+- **STORY-157 AC-157-008:** Factory codification story for the original guidance
+- **STORY-163 AC-163-002:** Factory codification story for the harness-classifier halt
+  section

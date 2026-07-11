@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.38"
+version: "3.39"
 status: draft
 producer: story-writer
 timestamp: 2026-07-09T23:59:00Z
@@ -9,6 +9,7 @@ total_stories: 116
 total_waves: 73
 total_points: 719  # = 717 pre-v3.35 +2 STORY-163 (wave-TBD draft, E-11, 2 pts); wave-table scheduled: 692 (unchanged; STORY-163 excluded wave-TBD); epic-table grand total: 719; stories: 116; waves: 72
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.39 (2026-07-11): STORY-163 delivered (factory-artifacts-only, D-427); stories_delivered 102→103.
 # v3.38 (2026-07-11): STORY-162 delivered (PR #395, b5e1e15); stories_delivered 101→102.
 # v3.37 (2026-07-10): STORY-162/163 draft→ready (wave-73 plan gate D-425).
 # v3.36 (2026-07-10): wave-73 OPENED — STORY-162 + STORY-163 assigned (5 pts, E-11 governance); STORY-163 input-hash refreshed post-D-420 (drift resolution). total_waves: 72→73; wave-table scheduled: 692→697 (+3 STORY-162, +2 STORY-163). total_stories/total_points unchanged (116/719).
@@ -177,7 +178,7 @@ traces_to:
 | STORY-159 | Author Public ADR-012: Protocols Catalog and Coverage-Gaps System | E-11 | 72 | 3 | delivered | STORY-158 (file-seq) |
 | STORY-161 | Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024 | E-11 | 72 | 3 | delivered | STORY-159 (file-seq) |
 | STORY-162 | Wave-72 cycle-closing: LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests | E-11 | 73 | 3 | completed | PR #395 (b5e1e15, 2026-07-11) |
-| STORY-163 | maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path | E-11 | 73 | 2 | ready | — |
+| STORY-163 | maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path | E-11 | 73 | 2 | completed | factory-artifacts-only (D-427, 2026-07-11) |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |

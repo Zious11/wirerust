@@ -1,0 +1,62 @@
+{
+  "story": "STORY-163",
+  "wave": 73,
+  "head_reviewed": "4005bdd",
+  "worktree_base": null,
+  "delivery_mode": "factory-artifacts-only",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 3,
+      "finding_ids": ["F-S163P1-001", "F-S163P1-002", "F-S163P1-003", "F-S163P1-004"],
+      "notes": "F-S163P1-001 CRITICAL: fabricated citations — authoring-evidence.md anchor table cited non-existent line numbers in pr-manager-merge-auth-guidance.md; all anchor refs corrected to actual file:line values. F-S163P1-002 HIGH + F-S163P1-003 HIGH: additional false anchor precision findings corrected. F-S163P1-004 MEDIUM: scope wording in docs-writer-dispatch-guidance.md EC-001 tightened. All 4 confirmed fixed. Process-gap obs: citation-mandate story's own evidence had fabricated anchors — meta-validation of mandate; mechanical preflight validator (bin/validate-citations) recommended for S-7.02."
+    },
+    {
+      "pass": 2,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S163P2-001"],
+      "notes": "F-S163P2-001 MEDIUM: anchor precision — 15-anchor sweep of pr-manager-merge-auth-guidance.md + docs-writer-dispatch-guidance.md; 3 anchors imprecise (off-by-N line numbers); all corrected. Full 15-anchor sweep documented in authoring-evidence.md anchor-precision sweep section."
+    },
+    {
+      "pass": 3,
+      "verdict": "PASS_CLEAN",
+      "high_critical": 0,
+      "notes": "0 findings. Streak begins (pass 1 of 3). No HIGH/CRITICAL. Anchor precision sweep from P2 confirmed."
+    },
+    {
+      "pass": 4,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "3 LOW polish findings (wording / formatting nits in docs-writer-dispatch-guidance.md); all 3 fixed. Streak continues (pass 2 of 3). No HIGH/CRITICAL."
+    },
+    {
+      "pass": 5,
+      "verdict": "PASS_CLEAN",
+      "high_critical": 0,
+      "notes": "0 findings. Streak closes at 3/3 (P3/P4/P5 = CLEAN/NITPICK_ONLY/CLEAN). BC-5.39.001 SATISFIED. Convergence declared."
+    }
+  ],
+  "carried_findings": [
+    {
+      "id": "PG-W73-CITATION-VALIDATOR",
+      "severity": "LOW",
+      "category": "process-gap",
+      "summary": "Citation-mandate story's own evidence had fabricated anchors caught at P1 CRITICAL. A mechanical preflight validator (bin/validate-citations) would have caught this before dispatch. Recommended for S-7.02 wave-close process-gap candidate.",
+      "source": "F-S163P1-001 adversary P1 process-gap observation"
+    }
+  ],
+  "process_notes": [
+    "Factory-artifacts-only delivery: no develop PR, no worktree (E-11 convention, Task 3).",
+    "Both deliverables committed to factory-artifacts branch: docs-writer-dispatch-guidance.md (NEW, AC-163-001) + pr-manager-merge-auth-guidance.md (AMENDED, AC-163-002).",
+    "P1 CRITICAL finding (F-S163P1-001) caught fabricated citations in authoring-evidence.md — meta-validation that the citation mandate is self-referentially correct.",
+    "Input-hash STORY-163 confirmed stable at e1ad659 (self-aliasing staleness; pr-manager-merge-auth-guidance.md amended as own input; hash unchanged post-amendment).",
+    "STORY-161 re-baselined (VP-INDEX v2.40 cascade, 1d63da9→c56290b) in same burst; scan MATCH=116 STALE=0.",
+    "Wave-73 ALL STORIES DELIVERED with this burst. Integration gate NEXT."
+  ],
+  "convergence_date": "2026-07-11"
+}
