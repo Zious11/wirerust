@@ -18,6 +18,9 @@ ALGORITHM:
      - Path must resolve inside the repo root (no absolute refs or ../ escapes).
                                          FAIL → "OUTSIDE REPO: path"
      - The cited file MUST exist.        FAIL → "FILE NOT FOUND: path"
+     - The cited path MUST be a regular file (not a directory, symlink-to-dir,
+       etc.).                            FAIL → "NOT A FILE: path"
+     - The cited file MUST be readable.  FAIL → "UNREADABLE: path"
      - Line numbers must be ≥ 1.         FAIL → "INVALID LINE: path:N (line numbers start at 1)"
      - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
      - The cited line number (or both range endpoints) MUST be ≤ the file's actual
@@ -174,6 +177,12 @@ def validate(text: str, repo_root: Path) -> int:
             failures.append(f"FILE NOT FOUND: {path_str}")
             continue
 
+        # F-S164P8-001: a directory passes exists() but raises IsADirectoryError in
+        # count_lines(). Check is_file() explicitly for a clean diagnostic.
+        if not abs_path.is_file():
+            failures.append(f"NOT A FILE: {path_str}")
+            continue
+
         # F-S164P1-004: line numbers must be ≥ 1 (0-based addressing is invalid).
         if start < 1:
             failures.append(f"INVALID LINE: {path_str}:{start} (line numbers start at 1)")
@@ -182,7 +191,13 @@ def validate(text: str, repo_root: Path) -> int:
             failures.append(f"INVALID LINE: {path_str}:{end} (line numbers start at 1)")
             continue
 
-        line_count = count_lines(abs_path)
+        # F-S164P8-001: wrap count_lines() to catch PermissionError and other
+        # OSErrors on the target file (chmod 000, etc.).
+        try:
+            line_count = count_lines(abs_path)
+        except OSError:
+            failures.append(f"UNREADABLE: {path_str}")
+            continue
 
         if end is not None:
             if start > end:

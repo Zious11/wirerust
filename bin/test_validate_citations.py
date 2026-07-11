@@ -30,6 +30,9 @@ Test coverage (AC-164-002(d) + edge cases):
   T19  F-S164P3-003: unreadable citations file (chmod 000) → exit 2, no traceback
         (skipped with note when os.access reports readable, e.g. running as root)
   T20  F-S164P6-001: non-UTF-8 bytes on stdin → exit 2, no traceback
+  T21  F-S164P8-001: citation to an existing directory → NOT A FILE, exit 1, no traceback
+  T22  F-S164P8-001: unreadable cited target (chmod 000) → UNREADABLE, exit 1, no traceback
+        (skipped with note when os.access reports readable, e.g. running as root)
 """
 
 import subprocess
@@ -508,6 +511,99 @@ def test_T20_non_utf8_stdin_exits_2() -> None:
     print(f"  [PASS] T20 non-UTF-8 stdin → exit 2: exit={result.returncode}")
 
 
+def test_T21_directory_target_not_a_file() -> None:
+    """T21 (F-S164P8-001): A citation to an existing directory → NOT A FILE, exit 1.
+
+    A directory passes abs_path.exists() but is_file() returns False; the
+    unguarded count_lines() call would raise IsADirectoryError. The fix adds
+    an is_file() check that produces a clean NOT A FILE diagnostic instead.
+    """
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Create a subdirectory inside the repo root to cite.
+        subdir = Path(tmp) / "docs"
+        subdir.mkdir()
+        # Write citations file citing the directory as if it were a file.
+        citations = f"docs:1\n"
+        env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+        result = subprocess.run(
+            [sys.executable, str(TOOL), "-"],
+            input=citations,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    assert result.returncode == 1, (
+        f"T21: expected exit 1 for directory target, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    combined = result.stdout + result.stderr
+    assert "NOT A FILE" in combined, (
+        f"T21: expected 'NOT A FILE' in output, got: {combined!r}"
+    )
+    assert "Traceback" not in combined, (
+        f"T21: expected no raw traceback, but got: {combined!r}"
+    )
+    print(f"  [PASS] T21 directory target → NOT A FILE, exit 1: exit={result.returncode}")
+
+
+def test_T22_unreadable_target_file() -> None:
+    """T22 (F-S164P8-001): Unreadable cited target file (chmod 000) → UNREADABLE, exit 1.
+
+    If the process runs as root (where chmod 000 is still readable), the test
+    skips with a printed note rather than giving a false pass or false fail.
+    """
+    import os
+    import stat
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Create a real file in the temp root, then lock it down.
+        target = Path(tmp) / "locked.txt"
+        target.write_text("line one\n", encoding="utf-8")
+        target.chmod(0o000)
+
+        if os.access(str(target), os.R_OK):
+            target.chmod(stat.S_IRUSR | stat.S_IWUSR)
+            print(
+                "  [SKIP] T22 skipped: process can read chmod-000 file "
+                "(running as root or equivalent); test not applicable."
+            )
+            return
+
+        try:
+            citations = "locked.txt:1\n"
+            env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+            result = subprocess.run(
+                [sys.executable, str(TOOL), "-"],
+                input=citations,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+        finally:
+            try:
+                target.chmod(stat.S_IRUSR | stat.S_IWUSR)
+            except OSError:
+                pass
+
+    assert result.returncode == 1, (
+        f"T22: expected exit 1 for unreadable target, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    combined = result.stdout + result.stderr
+    assert "UNREADABLE" in combined, (
+        f"T22: expected 'UNREADABLE' in output, got: {combined!r}"
+    )
+    assert "Traceback" not in combined, (
+        f"T22: expected no raw traceback, but got: {combined!r}"
+    )
+    print(f"  [PASS] T22 unreadable target → UNREADABLE, exit 1: exit={result.returncode}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -534,6 +630,8 @@ def main() -> None:
         test_T18_non_utf8_citations_file_exits_2,
         test_T19_unreadable_citations_file_exits_2,
         test_T20_non_utf8_stdin_exits_2,
+        test_T21_directory_target_not_a_file,
+        test_T22_unreadable_target_file,
     ]
     passed = 0
     failed = 0

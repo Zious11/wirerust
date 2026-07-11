@@ -16,10 +16,10 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   New Python 3.10+ stdlib tool that reads a citations table (file argument or
   stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
   filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
-  FOUND / INVALID LINE / INVALID RANGE / LINE OUT OF RANGE / MALFORMED / OUTSIDE
-  REPO), 2 on
-  usage error. Paths are resolved relative to the repo root (WIRERUST_REPO_ROOT
-  or upward walk). Self-tested by `bin/test_validate_citations.py` (20 tests).
+  FOUND / INVALID LINE / INVALID RANGE / LINE OUT OF RANGE / MALFORMED / NOT A
+  FILE / OUTSIDE REPO / UNREADABLE), 2 on usage error. Paths are resolved
+  relative to the repo root (WIRERUST_REPO_ROOT or upward walk). Self-tested by
+  `bin/test_validate_citations.py` (22 tests).
 
   F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
   are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
@@ -52,6 +52,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `sys.stdin.buffer` (raw bytes) and decoding explicitly; the same
   `UnicodeDecodeError` catch now applies, emitting a `Error: stdin is not
   valid UTF-8:` message and exiting 2. Test T20 covers this path.
+
+  F-S164P8-001: cited target files were validated for existence but not for
+  being a regular file or being readable. A citation to a directory (e.g.
+  `docs:5`) passed `exists()` then crashed with `IsADirectoryError` traceback
+  in `count_lines()`. A citation to a chmod-000 file produced a
+  `PermissionError` traceback. Fixed by adding an `is_file()` check (→ `NOT A
+  FILE: <path>`, exit 1) between `exists()` and the INVALID LINE guards, and
+  wrapping the `count_lines()` call in `try/except OSError` (→ `UNREADABLE:
+  <path>`, exit 1). Tests T21 (directory) and T22 (chmod 000, root-skipped)
+  cover both paths.
 
   Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
   CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
