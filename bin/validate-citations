@@ -130,8 +130,13 @@ def validate(text: str, repo_root: Path) -> int:
     Returns 0 if all citations are valid (including the zero-citation case),
     or 1 if one or more citations fail validation.
     """
+    # F-S164P2-002: track every non-blank, non-comment line as the denominator
+    # so MALFORMED lines are counted in "FAIL: K of N" rather than inflating K
+    # above N when no valid citations are present.
+    total: int = 0
     citations: list[tuple[str, int, int | None]] = []
     failures: list[str] = []
+    resolved_root = repo_root.resolve()
 
     for raw_line in text.splitlines():
         stripped = raw_line.strip()
@@ -140,11 +145,25 @@ def validate(text: str, repo_root: Path) -> int:
             # F-S164P1-002: non-blank, non-comment lines that fail regex parse are
             # MALFORMED citations, not silently-skipped noise. Report and count them.
             if stripped and not stripped.startswith("#"):
+                total += 1
                 failures.append(f"MALFORMED: {stripped}")
             continue
+        total += 1
         path_str, start, end = parsed
         citations.append((path_str, start, end))
-        abs_path = repo_root / path_str
+
+        # F-S164P2-003: reject paths that escape the repo root via absolute references
+        # or parent-directory traversal (CWE-22). pathlib's / operator discards the
+        # left side for absolute right-hand paths, so repo_root / '/etc/passwd'
+        # silently becomes /etc/passwd; resolve() + is_relative_to() catches both
+        # that case and '../../'-style traversals.
+        # (Parity with the same class fixed in bin/compute-input-hash re: GitHub #392.)
+        resolved_path = (repo_root / path_str).resolve()
+        if not resolved_path.is_relative_to(resolved_root):
+            failures.append(f"OUTSIDE REPO: {path_str}")
+            continue
+
+        abs_path = resolved_path
 
         if not abs_path.exists():
             failures.append(f"FILE NOT FOUND: {path_str}")
@@ -179,16 +198,16 @@ def validate(text: str, repo_root: Path) -> int:
                 )
                 continue
 
-    n = len(citations)
+    n_valid = len(citations)
     k = len(failures)
 
     if k == 0:
-        print(f"PASS: {n} citations verified")
+        print(f"PASS: {n_valid} citations verified")
         return 0
 
     for failure in failures:
         print(failure)
-    print(f"FAIL: {k} of {n} citations invalid")
+    print(f"FAIL: {k} of {total} citations invalid")
     return 1
 
 
@@ -233,7 +252,16 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(2)
-        text = citations_path.read_text(encoding="utf-8")
+        # F-S164P2-004: a non-UTF-8 citations file must produce a documented exit-2
+        # usage error, not an uncaught UnicodeDecodeError traceback.
+        try:
+            text = citations_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            print(
+                f"Error: citations file is not valid UTF-8: {args.citations_file}: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     sys.exit(validate(text, repo_root))
 

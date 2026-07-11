@@ -208,6 +208,37 @@ def test_B04_deletions_only_fail() -> None:
     print(f"  [PASS] B04 deletions-only → exit 1 FAIL: exit={rc}")
 
 
+def test_B05_exec_bit_direct_invocation() -> None:
+    """B05 (F-S164P2-001): Script is invocable via direct path without 'bash' prefix.
+
+    ci.yml invokes bin/changelog-gate-check as a bare path; if the exec bit is
+    missing, CI fails with exit 126 while bash-prefixed tests stay green. This
+    test detects that gap by calling the script directly (requires 100755 mode
+    and a valid shebang).
+    """
+    gate = find_changelog_gate_check()
+    diff = textwrap.dedent("""\
+        --- a/CHANGELOG.md
+        +++ b/CHANGELOG.md
+        @@ -1,3 +1,4 @@
+        +- Real content addition.
+    """)
+    result = subprocess.run(
+        [str(gate)],  # direct path — no "bash" prefix; requires exec bit + shebang
+        input=diff,
+        capture_output=True,
+        text=True,
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode == 0, (
+        f"B05: direct invocation failed (exit {result.returncode}) — "
+        f"exec bit may be missing (run: git ls-files -s bin/changelog-gate-check, "
+        f"should show 100755) or shebang is invalid.\nout={combined!r}"
+    )
+    assert "PASS" in combined, f"B05: expected PASS in output, got {combined!r}"
+    print(f"  [PASS] B05 direct invocation (no bash prefix): exit={result.returncode}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -223,6 +254,7 @@ def main() -> None:
         test_B02_blank_only_touch_fail,
         test_B03_section_header_only_add_fail,
         test_B04_deletions_only_fail,
+        test_B05_exec_bit_direct_invocation,
     ]
     passed = 0
     failed = 0

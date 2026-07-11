@@ -23,6 +23,10 @@ Test coverage (AC-164-002(d) + edge cases):
   T12  F-S164P1-002: non-blank, non-comment, unparseable line → MALFORMED, exit 1
   T13  F-S164P1-004: line number 0 → INVALID LINE, exit 1
   T14  F-S164P1-004: range start 0 → INVALID LINE, exit 1
+  T15  F-S164P2-002: malformed-only input → FAIL: 1 of 1 (denominator includes MALFORMED)
+  T16  F-S164P2-003: absolute path → OUTSIDE REPO, exit 1 (CWE-22)
+  T17  F-S164P2-003: parent-escape path → OUTSIDE REPO, exit 1 (CWE-22)
+  T18  F-S164P2-004: non-UTF-8 citations file → exit 2, no traceback
 """
 
 import subprocess
@@ -318,6 +322,101 @@ def test_T14_zero_range_start_rejected() -> None:
     print(f"  [PASS] T14 zero range start rejected: exit={rc}")
 
 
+def test_T15_malformed_counts_in_fail_denominator() -> None:
+    """T15 (F-S164P2-002): MALFORMED lines count toward the FAIL message denominator.
+
+    A malformed-only input must give 'FAIL: 1 of 1 citations invalid', not
+    'FAIL: 1 of 0' (which occurs when MALFORMED lines increment failures but
+    not the total line count used as N).
+    """
+    # Space instead of colon — unparseable by the citation regex
+    citations = "src/decoder.rs 196-210\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 1, f"T15: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "1 of 1" in combined, (
+        f"T15: expected 'FAIL: 1 of 1' (malformed counted in denominator), "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T15 malformed counted in FAIL denominator: exit={rc}")
+
+
+def test_T16_absolute_path_rejected() -> None:
+    """T16 (F-S164P2-003): Absolute path citations exit 1 with OUTSIDE REPO (CWE-22).
+
+    pathlib's / operator discards the left side when the right side is absolute,
+    so repo_root / '/etc/passwd' resolves to /etc/passwd — outside the repo root.
+    The tool must detect and reject this rather than silently reading the file.
+    """
+    citations = "/etc/passwd:1\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 1, (
+        f"T16: expected exit 1 for absolute path, got {rc}\n"
+        f"stdout={out!r}\nstderr={err!r}"
+    )
+    combined = out + err
+    assert "OUTSIDE REPO" in combined, (
+        f"T16: expected OUTSIDE REPO for absolute path citation, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T16 absolute path rejected as OUTSIDE REPO: exit={rc}")
+
+
+def test_T17_parent_escape_rejected() -> None:
+    """T17 (F-S164P2-003): Parent-directory escape citations exit 1 with OUTSIDE REPO (CWE-22).
+
+    A path like '../../etc/passwd' resolves to a location above the repo root,
+    which must be rejected regardless of whether that file exists.
+    """
+    citations = "../../etc/passwd:1\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 1, (
+        f"T17: expected exit 1 for parent-escape path, got {rc}\n"
+        f"stdout={out!r}\nstderr={err!r}"
+    )
+    combined = out + err
+    assert "OUTSIDE REPO" in combined, (
+        f"T17: expected OUTSIDE REPO for parent-escape citation, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T17 parent-escape path rejected as OUTSIDE REPO: exit={rc}")
+
+
+def test_T18_non_utf8_citations_file_exits_2() -> None:
+    """T18 (F-S164P2-004): Non-UTF-8 citations file exits 2 with error message, not traceback."""
+    import os
+    import tempfile
+
+    # Write bytes that are not valid UTF-8
+    invalid_bytes = b"\xff\xfeThis is not valid UTF-8\n"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
+        f.write(invalid_bytes)
+        citations_path = f.name
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+            result = subprocess.run(
+                [sys.executable, str(TOOL), citations_path],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+    finally:
+        Path(citations_path).unlink(missing_ok=True)
+
+    assert result.returncode == 2, (
+        f"T18: expected exit 2 for non-UTF-8 citations file, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    combined = result.stdout + result.stderr
+    assert "UnicodeDecodeError" not in combined, (
+        f"T18: expected no raw traceback, but UnicodeDecodeError appears in output: "
+        f"{combined!r}"
+    )
+    print(f"  [PASS] T18 non-UTF-8 citations file → exit 2: exit={result.returncode}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -338,6 +437,10 @@ def main() -> None:
         test_T12_malformed_line_reported,
         test_T13_zero_line_number_rejected,
         test_T14_zero_range_start_rejected,
+        test_T15_malformed_counts_in_fail_denominator,
+        test_T16_absolute_path_rejected,
+        test_T17_parent_escape_rejected,
+        test_T18_non_utf8_citations_file_exits_2,
     ]
     passed = 0
     failed = 0

@@ -10,20 +10,37 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ### Added
 
 - **`bin/validate-citations`: mechanical citation preflight validator (STORY-164,
-  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR; F-S164P1-002/004 remediation).**
+  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR; F-S164P1-002/004 +
+  F-S164P2-002/003/004 remediation).**
 
   New Python 3.10+ stdlib tool that reads a citations table (file argument or
   stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
   filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
-  FOUND / LINE OUT OF RANGE / INVALID RANGE / MALFORMED), 2 on usage error. Paths
-  are resolved relative to the repo root (WIRERUST_REPO_ROOT or upward walk).
-  Self-tested by `bin/test_validate_citations.py` (14 tests).
+  FOUND / LINE OUT OF RANGE / INVALID RANGE / MALFORMED / OUTSIDE REPO), 2 on
+  usage error. Paths are resolved relative to the repo root (WIRERUST_REPO_ROOT
+  or upward walk). Self-tested by `bin/test_validate_citations.py` (18 tests).
 
   F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
   are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
   silently skipped (false PASS). F-S164P1-004: line numbers less than 1 (e.g.
   `file.md:0`, `file.md:0-5`) are now rejected as `INVALID LINE` rather than being
   silently accepted as in-bounds.
+
+  F-S164P2-002: the `FAIL: K of N` denominator N now counts every non-blank,
+  non-comment line (valid citations and MALFORMED lines alike), so a malformed-
+  only input correctly reports `FAIL: 1 of 1` rather than `FAIL: 1 of 0`.
+
+  F-S164P2-003 (CWE-22): absolute paths and parent-directory escapes are now
+  rejected with `OUTSIDE REPO: <path>`. Python's pathlib `/` operator discards
+  the left side for absolute right-hand values, so `repo_root / '/etc/passwd'`
+  silently became `/etc/passwd`; `.resolve()` + `.is_relative_to()` containment
+  catches both absolute and `../` traversal forms. Parity with the same class
+  identified for `bin/compute-input-hash` in GitHub #392 (not fixed here;
+  deferred to the #392 issue).
+
+  F-S164P2-004: a non-UTF-8 citations file now produces a documented exit-2 usage
+  error (`Error: citations file is not valid UTF-8: ...`) rather than an uncaught
+  `UnicodeDecodeError` traceback with exit 1.
 
   Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
   CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
@@ -32,7 +49,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 - **`bin/changelog-gate-check`: extracted changelog-gate content assertion
   (STORY-164, AC-164-003, wave-74, PG-W73-CHANGELOG-GATE-CONTENT; F-S164P1-001
-  remediation).**
+  + F-S164P2-001 remediation).**
 
   The changelog-gate content-assertion logic is extracted from `.github/workflows/
   ci.yml` into `bin/changelog-gate-check` (a standalone bash script invoked by
@@ -47,6 +64,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   tests (B01–B04) that execute the gate script against crafted diff fixtures
   (real content, blank-only, header-only, deletions-only) and were confirmed
   FAIL against the broken logic, PASS after the fix.
+
+  F-S164P2-001: test B05 added to invoke the script via its direct path (no
+  `bash` prefix), verifying the committed git file mode is 100755 and the
+  shebang is valid. ci.yml uses the bare path `bin/changelog-gate-check`; a
+  missing exec bit would fail CI with exit 126 while all bash-prefixed tests
+  stayed green. The script was already committed at 100755; B05 is the guard.
 
 ### Changed
 
