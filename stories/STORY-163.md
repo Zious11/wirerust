@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-163
 epic_id: E-11
-version: "1.1"
-status: draft
+version: "1.2"
+status: ready
 producer: story-writer
 timestamp: 2026-07-10T00:30:00Z
 phase: f7
@@ -37,7 +37,7 @@ inputs:
 # STORY-163: maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** ready
 **Wave:** 73
 **Points:** 2
 **Priority:** P3
@@ -347,5 +347,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-10 | story-writer | Status draft→ready — wave-73 plan gate approved (D-425). |
 | 1.1 | 2026-07-10 | story-writer | Input-hash refresh after D-420 run-close updates to input files; citations re-validated, no semantic drift. Wave and cycle assigned: wave-73 (wave-73 opening). |
 | 1.0 | 2026-07-10 | story-writer | Initial authorship -- maint-2026-07-09 process-gap codifications: PG-RA-P3-ARP-REC006-INVERSION-001 (F-RA-P3-001, docs-dispatch citation mandate) + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (PR #393, subagent merge-halt resolution path). S-7.02 maint-2026-07-09 cycle-close. |

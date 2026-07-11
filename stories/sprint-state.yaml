@@ -813,3 +813,25 @@ stories:
     pr: 390
     merge_sha: 80fbb64a43e742b3cf46e7d06c6fe3c7b3c3b461
     merged_date: "2026-07-09"
+
+  # ---------------------------------------------------------------------------
+  # Wave 73 — STORY-162 + STORY-163 (E-11 governance-only)
+  # Delivery order: STORY-162 → STORY-163 (sequential, D-425).
+  # Both promoted draft→ready 2026-07-10 (wave-73 plan gate D-425 consequence).
+  # ---------------------------------------------------------------------------
+
+  STORY-162:
+    status: pending
+    wave: 73
+    branch: null
+    worktree: null
+    blocked_by: []
+    pr: null
+
+  STORY-163:
+    status: pending
+    wave: 73
+    branch: null
+    worktree: null
+    blocked_by: []
+    pr: null

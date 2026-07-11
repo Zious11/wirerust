@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-162
 epic_id: E-11
-version: "1.1"
-status: draft
+version: "1.2"
+status: ready
 producer: story-writer
 timestamp: 2026-07-09T22:45:00Z
 phase: f7
@@ -37,7 +37,7 @@ inputs:
 # STORY-162: Wave-72 cycle-closing: LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** ready
 **Wave:** 73
 **Points:** 3
 **Priority:** P3
@@ -389,5 +389,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-10 | story-writer | Status draft→ready — wave-73 plan gate approved (D-425). |
 | 1.1 | 2026-07-10 | story-writer | Wave assigned: wave-73 (wave-73 opening; cycle updated wave-72→wave-73). |
 | 1.0 | 2026-07-09 | story-writer | Initial authorship -- wave-72 process-gap codifications: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001, VP-INDEX LMR-003 amendment) + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001, check-green-doc-tense main() guard tests). S-7.02 wave-72 cycle-close. |
