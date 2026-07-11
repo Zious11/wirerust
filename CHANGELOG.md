@@ -59,8 +59,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - `src/analyzer/arp.rs` `detect_storm` doc-comment: note integer truncation in rate
     formula (ARP-RATE-INTDIV-DOC-001).
   - `src/analyzer/dnp3.rs`: remove 9 spurious `#[allow(unused)]` attributes from
-    actively-used `pub const` items (PC-NEW-001); add rationale comments to the 3
-    `#[allow(clippy::too_many_arguments)]` suppressions that lacked them (PC-NEW-002).
+    actively-used `pub const` items (PC-NEW-001); add rationale comments to 3 of the
+    6 `#[allow(clippy::too_many_arguments)]` suppressions — the 3 that lacked them;
+    the remaining 3 carried pre-existing `// N args: …` rationale (PC-NEW-002).
   - `src/analyzer/dnp3.rs` `Dnp3FlowState` doc-comment: reword stale present-tense
     "are stubs … contain no logic yet" to past-tense provenance "were stubs through
     STORY-107 and are fully implemented as of STORY-108/109" (F-P1-001).
