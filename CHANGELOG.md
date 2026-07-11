@@ -7,7 +7,36 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`bin/validate-citations`: mechanical citation preflight validator (STORY-164,
+  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR).**
+
+  New Python 3.10+ stdlib tool that reads a citations table (file argument or
+  stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
+  filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
+  FOUND / LINE OUT OF RANGE / INVALID RANGE), 2 on usage error. Paths are
+  resolved relative to the repo root (WIRERUST_REPO_ROOT or upward walk). Self-
+  tested by `bin/test_validate_citations.py` (11 tests).
+
+  Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
+  CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
+  This tool provides a mechanical preflight gate so such errors are caught before
+  dispatch rather than by the adversary.
+
+- **`changelog-gate` content assertion in `.github/workflows/ci.yml`
+  (STORY-164, AC-164-003, wave-74, PG-W73-CHANGELOG-GATE-CONTENT).**
+
+  The changelog-gate CI job previously performed only a presence check (did
+  CHANGELOG.md appear in the diff?). A whitespace-only touch could silently
+  satisfy the gate. The new content assertion counts non-blank, non-section-header
+  added lines via `CHANGELOG_DIFF` / `CONTENT_LINES` bash variables; if
+  `CONTENT_LINES` is 0 the gate now exits 1 with an explicit failure message
+  rather than passing.
+
 ### Changed
+
+
 
 - **`bin/check-green-doc-tense`: extract `_find_repo_root` helper + add hermetic
   main()-guard self-tests (STORY-162, wave-73, F-W72G-P2-OBS-001).**
