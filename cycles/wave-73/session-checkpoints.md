@@ -26,3 +26,27 @@ Oldest first; each was replaced by the subsequent checkpoint.
   5. PG-W73-CITATION-VALIDATOR — S-7.02 candidate.
 - **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.39.
 - **Resume command:** `/vsdd-factory:next-step`
+
+---
+
+## D-428 Checkpoint — Wave-73 CLOSED (archived 2026-07-11 at session-wrap)
+
+**Wave-73 CLOSED (D-428, 2026-07-11, human-approved). Gate all-green. S-7.02 SATISFIED (STORY-164 drafted). STORY-INDEX v3.43 (117 stories/722 pts). Pipeline PAUSED/IDLE.**
+
+- **Date:** 2026-07-11. Position: wave-73 CLOSED (D-428). STORY-162 + STORY-163 delivered; STORY-164 drafted (wave-TBD). Pipeline IDLE.
+- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `b5e1e155e37704296a8cb5951743cd5817a3f11d` (1 unreleased commit — STORY-162 PR #395 squash). Cargo 0.12.0 on both branches. Tag v0.12.0 + GitHub Release with 4 binaries live. (No new source code changes in wave-73 beyond STORY-162 tooling.)
+- **In-flight / abandoned:** No mid-TDD stories; no stale worktrees; no convergence loop active.
+- **Open PRs:** None. **Open worktrees:** main checkout [develop] + .factory [factory-artifacts] only. **Open release/* or chore/backmerge-* branches:** None.
+- **Completed this burst (D-428):** Wave-73 CLOSED; gate-summary.md written; lessons.md written (5 lessons); process-gap-ledger.md written (4 PGs + 3 CR deferred); code-review.md ratified (CR-001/002/003 DEFERRED human 2026-07-11); STORY-INDEX v3.43 wave-73 Delivery Progress row + v3.43 comment appended; STATE.md updated (D-428 allocated); factory-artifacts committed and pushed.
+- **Pending human decisions:**
+  - **ISSUE-102-PREMATURE-CLOSE-001 triage** (P2) — DF-VALIDATION-001-gated; research-agent validation required before filing.
+  - **AC-149-003 quiescent perf re-run** (standing advisory — no immediate action required).
+  - **ADV-4 disposition** (ci.yml build-dep-chain comment) — OVERDUE 3+ cycles; needs human decision at next maintenance run.
+- **Next-work candidates:**
+  1. **STORY-164 delivery** (wave-TBD, E-11, 3 pts) — status-vocabulary legend + bin/validate-citations + changelog-gate content + CLAUDE.md row.
+  2. **ISSUE-102-PREMATURE-CLOSE-001 triage** (P2) — DF-VALIDATION-001-gated.
+  3. **AC-149-003 quiescent perf re-run** — standing advisory.
+  4. **ADV-4 disposition** — next maintenance run; OVERDUE 3+ cycles.
+  5. **Next maintenance sweep** — CR-001/002/003 (wave-73 deferred) + wave-72 L-2 (BREAKING holdout sweep, candidate-codification) + wave-72 process-gap-ledger open items.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.43 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step`
