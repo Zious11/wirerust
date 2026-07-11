@@ -363,23 +363,19 @@ def _find_repo_root(start: Path) -> Path | None:
     - Invariant: when the return value is not None it is an ancestor-or-equal
       of *start* and satisfies `(p / ".git").exists() or (p / ".factory").is_dir()`.
 
-    This is a Red Gate stub — returns None unconditionally.
-    The real implementation walks upward up to 6 levels.
+    Walk upward up to 6 levels from *start*.
     """
-    return None  # Red Gate stub
+    candidate = start
+    for _ in range(6):  # at most 6 levels up
+        if (candidate / ".git").exists() or (candidate / ".factory").is_dir():
+            return candidate
+        candidate = candidate.parent
+    return None
 
 
 def main() -> int:
-    # Resolve repo root: walk up from this script's location until we find
-    # a directory containing a .git entry (file or directory).
     script_path = Path(__file__).resolve()
-    candidate = script_path.parent
-    repo_root: Path | None = None
-    for _ in range(6):  # at most 6 levels up
-        if (candidate / ".git").exists() or (candidate / ".factory").is_dir():
-            repo_root = candidate
-            break
-        candidate = candidate.parent
+    repo_root = _find_repo_root(script_path.parent)
     if repo_root is None:
         print("ERROR: could not locate repo root (no .git or .factory/ found)", file=sys.stderr)
         return 2
