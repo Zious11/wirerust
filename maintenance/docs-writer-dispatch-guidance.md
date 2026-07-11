@@ -124,6 +124,27 @@ Before drafting any behavioral claim in the documentation:
 5. Submit the claims-citation table alongside the draft output.
 ```
 
+### Citation Preflight Validation (PG-W73-CITATION-VALIDATOR — STORY-164 AC-164-002)
+
+Before submitting the claims-citation table for review, run `bin/validate-citations` on
+the anchor list. Any FAIL result means a cited file or line range does not exist — the
+anchor MUST be corrected before proceeding.
+
+```bash
+# Validate each file:line anchor in your claims-citation table
+bin/validate-citations path/to/citations-file.txt
+
+# Example inline usage (one anchor per line):
+# src/decoder.rs:196-210
+# docs/adr/0007-dnp3-stream-dispatch-and-parser-design.md:45
+```
+
+A FAIL result indicates a phantom anchor — the cited file does not exist or the cited
+line numbers exceed the file's actual line count. This is the mechanical equivalent of
+the fabrication caught in F-S163P1-001 (STORY-163 adversarial Pass 1, CRITICAL severity).
+Do not proceed with a FAIL result; correct the anchor to an existing file:line reference
+before dispatching the evidence artifact.
+
 ---
 
 ## Section 5 — Concrete Application Example: REC-006 / F-RA-P3-001

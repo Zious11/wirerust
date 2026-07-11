@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-164
 epic_id: E-11
-version: "1.3"
+version: "1.10"
 status: ready
 producer: story-writer
 timestamp: 2026-07-11T00:00:00Z
@@ -37,11 +37,10 @@ inputs:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/docs-writer-dispatch-guidance.md
-input-hash: "8bfa01d"
+input-hash: "b256f9e"
 ---
 
-# STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator,
-changelog-gate content assertion, guidance-doc reference row
+# STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** ready
@@ -52,15 +51,17 @@ changelog-gate content assertion, guidance-doc reference row
 ## Narrative
 
 - **As a** spec-steward, orchestrator operator, and future contributor on the wirerust project
-- **I want** four wave-73 process gaps codified into durable project artifacts: a canonical
+- **I want** five process improvements codified into durable project artifacts: a canonical
   status-vocabulary legend in STORY-INDEX, a mechanical citation preflight validator in
-  `bin/`, a content assertion added to the changelog-gate CI job, and a CLAUDE.md Project
-  References row for the docs-writer dispatch guidance
+  `bin/`, a content assertion added to the changelog-gate CI job, a CLAUDE.md Project
+  References row for the docs-writer dispatch guidance, and a BREAKING-change holdout-sweep
+  obligation protocol in `.factory/maintenance/`
 - **So that** future contributors have an authoritative definition of story-status vocabulary,
   citation fabrication is caught mechanically before dispatch rather than by the adversary
   at CRITICAL severity, the changelog-gate cannot be silently satisfied by a whitespace-
-  only touch to CHANGELOG.md, and the docs-writer dispatch guidance is discoverable from
-  CLAUDE.md alongside the existing pr-manager guidance peer
+  only touch to CHANGELOG.md, the docs-writer dispatch guidance is discoverable from
+  CLAUDE.md alongside the existing pr-manager guidance peer, and BREAKING-change stories
+  are required to sweep and repair stale holdout expectations before opening a PR
 
 ## Behavioral Contracts
 
@@ -204,25 +205,62 @@ cited file exists and the cited line numbers are within the file's actual line c
     ```
     Lines beginning with `#` are comments and are ignored. Blank lines are ignored.
     Paths are relative to the repo root (resolved the same way as `compute-input-hash`).
+    Non-blank, non-comment lines that do not match the citation regex are MALFORMED
+    citations — reported as `MALFORMED: {line}` and counted in the failure denominator
+    so that `FAIL: K of N` always reflects the true total input size (F-S164P2-002).
 
 (b) **Validation:** For each entry:
+    - The path must not escape the repo root via absolute reference or parent-directory
+      traversal (`../`); checked via `resolve()+is_relative_to()` (FAIL otherwise with
+      "OUTSIDE REPO: path" — CWE-22 containment, parity with issue #392, F-S164P2-003).
     - The cited file must exist (FAIL otherwise with "FILE NOT FOUND: path").
+    - The cited path must be a regular file, not a directory or symlink-to-dir
+      (FAIL otherwise with "NOT A FILE: path" — F-S164P8-001).
+    - The cited file must be readable by the process (FAIL otherwise with
+      "UNREADABLE: path" — catches PermissionError/OSError on the target; F-S164P8-001).
+    - The cited line number (or both endpoints of a range) must be ≥ 1 (FAIL otherwise
+      with "INVALID LINE: path:N (line numbers start at 1)").
     - The cited line number (or both endpoints of a range) must be ≤ the file's actual
       line count (FAIL otherwise with "LINE OUT OF RANGE: path:N (file has M lines)").
+    - Non-parseable lines are reported as "MALFORMED: {line}" (see (a)).
 
 (c) **Output:** On success (all citations valid), print `PASS: N citations verified` and
     exit 0. On failure, print each failing entry with its failure reason, a summary
-    `FAIL: K of N citations invalid`, and exit 1.
+    `FAIL: K of N citations invalid`, and exit 1. MALFORMED lines count toward both K
+    (failures) and N (total), so a malformed-only input produces `FAIL: 1 of 1` not
+    `FAIL: 1 of 0` (F-S164P2-002). A non-UTF-8 or unreadable citations file, or non-UTF-8
+    bytes on stdin, prints an error message to stderr and exits 2 (usage error — exit 2 is
+    reserved for input/argument errors; citation validation failures use exit 1)
+    (F-S164P2-004, F-S164P6-001).
 
-(d) **Self-test:** A corresponding `bin/test_validate_citations.py` (Python 3 stdlib
-    unittest) is created covering:
-    - Valid file:line citation passes
-    - Valid file:line-range citation passes
-    - Nonexistent file is rejected with FILE NOT FOUND
-    - Out-of-range single line is rejected with LINE OUT OF RANGE
-    - Out-of-range range endpoint is rejected
-    - Comment lines and blank lines are ignored
-    - Empty input (no citations) produces PASS: 0 citations verified
+(d) **Self-test:** A corresponding `bin/test_validate_citations.py` (Python 3 stdlib,
+    `subprocess`+`tempfile`) is created covering 22 test cases (T01–T22):
+    - T01: Valid file:line citation passes
+    - T02: Valid file:line-range citation passes
+    - T03: Nonexistent file is rejected with FILE NOT FOUND
+    - T04: Out-of-range single line is rejected with LINE OUT OF RANGE
+    - T05: Out-of-range range endpoint is rejected
+    - T06: Comment lines and blank lines are ignored
+    - T07: Empty input (no citations) produces PASS: 0 citations verified
+    - T08 (EC-002): start > end range → INVALID RANGE, exit 1
+    - T09: Citations file not found → exit 2 (usage error)
+    - T10: Multiple valid citations pass with correct count
+    - T11: Mixed valid + invalid → correct failure count, exit 1
+    - T12: Non-parseable line (space instead of colon) → MALFORMED, exit 1
+    - T13: Line number 0 → INVALID LINE, exit 1
+    - T14: Range start 0 → INVALID LINE, exit 1
+    - T15 (F-S164P2-002): Malformed-only input → FAIL: 1 of 1 (denominator includes MALFORMED)
+    - T16 (F-S164P2-003): Absolute path → OUTSIDE REPO, exit 1 (CWE-22)
+    - T17 (F-S164P2-003): Parent-escape path (`../../`) → OUTSIDE REPO, exit 1 (CWE-22)
+    - T18 (F-S164P2-004): Non-UTF-8 citations file → exit 2, no UnicodeDecodeError traceback
+    - T19 (F-S164P3-003): Unreadable citations file (chmod 000) → exit 2, no PermissionError
+      traceback; root-environment skip guard prevents false pass/fail when running as root
+    - T20 (F-S164P6-001): Non-UTF-8 bytes on stdin → exit 2, no UnicodeDecodeError traceback
+      (stdin parity with file-argument exit-2 path)
+    - T21 (F-S164P8-001): Citation to an existing directory → NOT A FILE, exit 1, no
+      IsADirectoryError traceback
+    - T22 (F-S164P8-001): Unreadable cited target (chmod 000) → UNREADABLE, exit 1, no
+      PermissionError traceback; root-environment skip guard (same pattern as T19)
 
 (e) **Wired into docs-writer-dispatch-guidance.md §4:** Section 4 of
     `.factory/maintenance/docs-writer-dispatch-guidance.md` ("Verification Template for
@@ -247,16 +285,25 @@ step that verifies the `[Unreleased]` section gained at least one non-blank, non
 content line between `origin/develop` and `HEAD`, not merely that `CHANGELOG.md` appears
 in the diff.
 
-(a) The content assertion is added immediately after the existing presence check (line 506)
-    within the same `run:` block: when `CHANGELOG.md` is in the diff and the trigger set was
-    hit, the gate also runs:
+(a) The content assertion is implemented in a new `bin/changelog-gate-check` bash script
+    that reads the CHANGELOG diff from stdin and exits 0 (PASS) or 1 (FAIL). The
+    `changelog-gate` ci.yml job delegates to it immediately after the presence check:
     ```bash
-    CHANGELOG_DIFF=$(git diff origin/develop...HEAD -- CHANGELOG.md)
+    git diff origin/develop...HEAD -- CHANGELOG.md | bin/changelog-gate-check
+    ```
+    `bin/changelog-gate-check` captures the diff via `$(cat)`, then counts non-blank,
+    non-section-header added lines. A `{ ... || true; }` brace group prevents
+    `set -euo pipefail` from aborting on empty selection (whitespace-only / header-only /
+    deletions-only diffs):
+    ```bash
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CHANGELOG_DIFF=$(cat)
     CONTENT_LINES=$(echo "${CHANGELOG_DIFF}" | \
-      grep '^+' | \
-      grep -v '^+++' | \
-      grep -v '^+[[:space:]]*$' | \
-      grep -v '^+##' | \
+      { grep '^+' | \
+        grep -v '^+++' | \
+        grep -v '^+[[:space:]]*$' | \
+        grep -v '^+##' || true; } | \
       wc -l | tr -d ' ')
     if [ "${CONTENT_LINES}" -eq 0 ]; then
       echo "FAIL: CHANGELOG.md touched but no content added to [Unreleased] section."
@@ -264,22 +311,31 @@ in the diff.
       exit 1
     fi
     echo "PASS: CHANGELOG.md updated with ${CONTENT_LINES} content line(s)."
+    exit 0
     ```
 
 (b) The check MUST be **reliably green** per the no-flaky-stub policy: it passes if and
     only if at least one non-blank, non-section-header (`##`) added line exists in the
-    CHANGELOG.md diff. A real entry (bullet point, prose sentence, or version line) will
-    always satisfy this; a whitespace-only touch will always fail. No external state is
-    required; the check is deterministic given the diff content.
+    CHANGELOG.md diff. A real entry (bullet point or prose sentence) will always satisfy
+    this; a whitespace-only touch, or a `##`-prefixed section or version heading alone (e.g.,
+    `## [x.y.z]`), will always fail — `##`-prefixed lines are filtered by `grep -v '^+##'`
+    in `bin/changelog-gate-check`. No external state is required; the check is deterministic
+    given the diff content.
 
-(c) The existing CHANGELOG obligation comment and `echo` messages are preserved. The only
-    change is the addition of the content assertion block after the presence check.
+(c) The existing CHANGELOG obligation comment and `echo` messages in ci.yml are preserved.
+    The ci.yml change replaces the inline content-counting bash block with a single pipe
+    delegation to `bin/changelog-gate-check`. The extracted script carries `set -euo pipefail`
+    independently and is exercised in isolation by `bin/test_changelog_gate_content.py`
+    behavioral tests B01–B05.
 
 Verification:
 ```bash
-grep -n "CONTENT_LINES\|CHANGELOG_DIFF\|whitespace-only\|content line" .github/workflows/ci.yml
+test -f bin/changelog-gate-check
+grep -n "changelog-gate-check" .github/workflows/ci.yml
+python3 bin/test_changelog_gate_content.py
 ```
-must emit non-empty output containing the content assertion.
+All three must succeed: script exists, ci.yml has the delegation line, and behavioral tests
+(B01–B05) pass against crafted diffs.
 
 ### AC-164-004 (CLAUDE.md reference row — docs-writer dispatch guidance discoverability)
 
@@ -357,7 +413,8 @@ document, and the CLAUDE.md row is present.
 | Citation preflight validator | `bin/validate-citations` (new) | Effectful (filesystem reads, stdout) |
 | Citation preflight validator self-test | `bin/test_validate_citations.py` (new) | Pure (test harness) |
 | Docs-writer dispatch guidance §4 step | `.factory/maintenance/docs-writer-dispatch-guidance.md` (amend) | Documentation |
-| Changelog-gate content assertion | `.github/workflows/ci.yml` (amend) | CI configuration |
+| Changelog-gate content assertion script | `bin/changelog-gate-check` (new) | Effectful (stdin reads, stdout, exit codes) |
+| Changelog-gate content assertion CI wiring | `.github/workflows/ci.yml` (amend) | CI configuration |
 | CLAUDE.md Project References rows (AC-164-004 + AC-164-005) | `CLAUDE.md` (amend) | Documentation |
 | BREAKING-change holdout-sweep protocol | `.factory/maintenance/breaking-change-delivery-protocol.md` (new) | Documentation |
 
@@ -371,7 +428,8 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
 | `bin/test_validate_citations.py` | Pure test harness | Uses stdlib `unittest`, `tempfile`; no external I/O |
 | `STORY-INDEX.md` | Documentation artifact | Governance prose + index table |
 | `docs-writer-dispatch-guidance.md` | Documentation artifact | Governance prose |
-| `ci.yml` | CI configuration | Runs in CI sandbox; deterministic bash logic |
+| `bin/changelog-gate-check` | Effectful bash script | Reads stdin (CHANGELOG diff); writes stdout; exits 0/1 |
+| `ci.yml` | CI configuration | Runs in CI sandbox; delegates to `bin/changelog-gate-check` via pipe |
 | `CLAUDE.md` | Documentation artifact | Navigation index |
 
 ## Edge Cases
@@ -380,9 +438,17 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
 |----|-------------|-------------------|
 | EC-001 | validate-citations input has zero citations (empty file or all comments) | PASS: 0 citations verified; exit 0 |
 | EC-002 | Citation with a range where start > end (e.g., `file.md:20-10`) | FAIL with "INVALID RANGE: path:20-10 (start > end)"; exit 1 |
-| EC-003 | Changelog-gate: PR adds only `## [Unreleased]` header to CHANGELOG.md (no bullet/content) | Content assertion fires: CONTENT_LINES=0; gate FAILS as intended |
-| EC-004 | Changelog-gate: PR removes lines from CHANGELOG.md with net zero additions | `grep '^+'` only captures added lines; CONTENT_LINES counts only additions; gate correctly checks additions only |
+| EC-003 | Changelog-gate: PR adds only `## [Unreleased]` header to CHANGELOG.md (no bullet/content) | `grep -v '^+##'` filters the header line; `{ ... \|\| true; }` brace group in `bin/changelog-gate-check` prevents pipefail abort on empty selection; `wc -l` returns 0; `CONTENT_LINES=0`; gate reaches the explicit FAIL branch with diagnostic message |
+| EC-004 | Changelog-gate: PR removes lines from CHANGELOG.md with net zero additions | `grep '^+'` finds no added lines; `{ ... \|\| true; }` brace group in `bin/changelog-gate-check` prevents pipefail abort on empty selection; `CONTENT_LINES=0`; gate correctly reaches the explicit FAIL branch with diagnostic message |
 | EC-005 | validate-citations run from directory that is not the repo root | Repo-root resolution follows `compute-input-hash` pattern (walk upward for `.factory/`; `WIRERUST_REPO_ROOT` env override) |
+| EC-008 | validate-citations: MALFORMED citation (e.g., space instead of colon: `src/file.rs 10-20`) | Counted in both K (failures) and N (total); single MALFORMED input → `FAIL: 1 of 1` not `FAIL: 1 of 0` (F-S164P2-002) |
+| EC-009 | validate-citations: absolute path citation (e.g., `/etc/passwd:1`) | Rejected before file-existence check via `resolve()+is_relative_to()`; `OUTSIDE REPO` failure, exit 1 (F-S164P2-003, CWE-22) |
+| EC-010 | validate-citations: parent-directory escape path (`../../etc/passwd:1`) | Rejected via `resolve()+is_relative_to()`; `OUTSIDE REPO` failure, exit 1 regardless of whether target file exists (F-S164P2-003, CWE-22) |
+| EC-011 | validate-citations: non-UTF-8 bytes in citations file passed as argument | Exit 2 with `"Error: citations file is not valid UTF-8: ..."` on stderr; no UnicodeDecodeError traceback; exit 1 reserved for citation validation failures (F-S164P2-004) |
+| EC-012 | validate-citations: unreadable citations file (e.g., chmod 000 / PermissionError) | Exit 2 with `"Error: cannot read citations file: ..."` on stderr via `except OSError` branch; no PermissionError traceback; root-environment skip guard in T19 prevents false pass/fail when process runs as root (F-S164P3-003) |
+| EC-013 | validate-citations: non-UTF-8 bytes on stdin (no file-argument path) | Exit 2 with `"Error: stdin is not valid UTF-8: ..."` on stderr; reads `sys.stdin.buffer` and decodes explicitly; parity with file-argument exit-2 path (F-S164P6-001) |
+| EC-014 | validate-citations: citation to an existing directory (e.g., `docs:5`) | Passes `exists()` but fails `is_file()`; reported as `NOT A FILE: path`, exit 1, no IsADirectoryError traceback (F-S164P8-001) |
+| EC-015 | validate-citations: citation to an unreadable target file (chmod 000 / PermissionError) | `count_lines()` wrapped in `try/except OSError`; reported as `UNREADABLE: path`, exit 1, no PermissionError traceback; root-environment skip guard in T22 (same pattern as T19) (F-S164P8-001) |
 | EC-006 | STORY-INDEX legend update: existing stories with `status: completed` vs. `status: delivered` | Legend clarifies these are delivery-class synonyms; no mass rename required |
 | EC-007 | docs-writer-dispatch-guidance.md §4 already has a manual preflight step | The new step is added alongside (not replacing) the existing verification template; both steps remain in the dispatch workflow |
 
@@ -393,12 +459,22 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
    pattern (shebang, module-level docstring with ALGORITHM section, repo-root resolution,
    argparse). Input: filename argument (or stdin). Parse each non-blank non-comment line
    as `path:LINE` or `path:LINE-LINE`. Validate file existence and line-range bounds.
-   Exit 0 on success, exit 1 on any failure.
+   Additional failure classes per Pass-2/8 findings: MALFORMED (non-parseable citations
+   counted in failure denominator — F-S164P2-002); OUTSIDE REPO (absolute paths and
+   `../` escapes rejected via `resolve()+is_relative_to()` — F-S164P2-003, CWE-22);
+   non-UTF-8 citations file → exit 2 usage error (F-S164P2-004); NOT A FILE (cited path
+   is a directory or non-regular-file — F-S164P8-001); UNREADABLE (cited target is
+   unreadable/PermissionError — F-S164P8-001). Exit 0 on success, exit 1 on citation
+   failures, exit 2 on usage error.
 
-2. **Create bin/test_validate_citations.py (AC-164-002):** Write the self-test using
-   `unittest` + `tempfile`. Create temporary files with known line counts. Test all seven
-   cases listed in AC-164-002(d). Verify: `python3 bin/test_validate_citations.py` runs
-   green.
+2. **Create bin/test_validate_citations.py (AC-164-002):** Write the self-test (Python 3
+   stdlib, `subprocess`+`tempfile`; T01–T22). Create temporary files with known line
+   counts. Cover all 22 cases listed in AC-164-002(d) including Pass-2 additions
+   (T15 MALFORMED denominator, T16/T17 OUTSIDE REPO, T18 non-UTF-8 exit 2), Pass-3
+   addition (T19 unreadable/OSError exit 2, root-skip guard), Pass-6 addition
+   (T20 stdin non-UTF-8 exit 2), and Pass-8 additions (T21 directory target NOT A FILE,
+   T22 unreadable target UNREADABLE exit 1, root-skip guard). Verify:
+   `python3 bin/test_validate_citations.py` runs green.
 
 3. **Amend docs-writer-dispatch-guidance.md §4 (AC-164-002):** Append the
    `bin/validate-citations` preflight step to Section 4 of
@@ -406,10 +482,13 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
    verification template block and before the section end. Cite PG-W73-CITATION-VALIDATOR
    and STORY-164 AC-164-002.
 
-4. **Amend .github/workflows/ci.yml (AC-164-003):** Add the content-assertion bash block
-   immediately after the existing `grep -q '^CHANGELOG\.md$'` presence check in the
-   `changelog-gate` job. Preserve the `set -euo pipefail` header and all existing
-   comments. Verify the action-pin-gate exemption list is unchanged.
+4. **Create bin/changelog-gate-check and amend .github/workflows/ci.yml (AC-164-003):**
+   Create `bin/changelog-gate-check` (bash, `set -euo pipefail`, reads CHANGELOG diff
+   from stdin via `$(cat)`, uses `{ grep ... || true; }` brace group to prevent pipefail
+   abort on empty selection, exits 0/1 with diagnostic `echo` messages). Wire ci.yml to
+   delegate via `git diff origin/develop...HEAD -- CHANGELOG.md | bin/changelog-gate-check`
+   immediately after the presence check. Preserve `set -euo pipefail` in ci.yml and all
+   existing comments. Verify the action-pin-gate exemption list is unchanged.
 
 5. **Amend CLAUDE.md (AC-164-004):** Add the `docs-writer-dispatch-guidance.md` row to
    the Project References table, immediately after the `pr-manager-merge-auth-guidance.md`
@@ -420,8 +499,8 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
    agreement rule per AC-164-001. No row-level status changes are required for this story.
 
 7. **Open develop PR:** Create a PR targeting `develop` for the develop-tree changes
-   (bin/validate-citations, bin/test_validate_citations.py, .github/workflows/ci.yml,
-   CLAUDE.md). Add a CHANGELOG.md `[Unreleased]` entry (required by AC-158-001 /
+   (bin/validate-citations, bin/test_validate_citations.py, bin/changelog-gate-check,
+   .github/workflows/ci.yml, CLAUDE.md). Add a CHANGELOG.md `[Unreleased]` entry (required by AC-158-001 /
    PG-W71-CHANGELOG, since bin/ is in the trigger set). The STORY-INDEX amendment and
    docs-writer-dispatch-guidance.md §4 update are factory-artifacts branch commits only.
 
@@ -465,8 +544,10 @@ STORY-163, which immediately precede this story in wave-73:
 
 - **STORY-158 (wave-72, E-11, 3 pts):** Introduced the changelog-gate itself
   (AC-158-001, PG-W71-CHANGELOG). AC-164-003 extends that gate. Follow the same style:
-  inline `bash` in the `run:` block, `set -euo pipefail`, explicit `echo` messages for
-  both PASS and FAIL paths, exit codes 0/1.
+  `set -euo pipefail`, explicit `echo` messages for both PASS and FAIL paths, exit codes
+  0/1. The delivered AC-164-003 implementation extracts the content-counting logic to
+  `bin/changelog-gate-check` rather than inlining it in ci.yml, making the script
+  independently testable via `bin/test_changelog_gate_content.py` (behavioral tests B01–B05).
 
 - **STORY-157 (wave-71, E-11, 5 pts):** Created `pr-manager-merge-auth-guidance.md` and
   registered it in CLAUDE.md Project References. AC-164-004 adds the peer entry for
@@ -482,7 +563,7 @@ STORY-163, which immediately precede this story in wave-73:
 - All SHA-pinned action refs in `.github/workflows/ci.yml` MUST remain SHA-pinned after
   the amendment. The action-pin-gate (`action-pin-gate` CI job) must continue to pass.
   The `dtolnay/rust-toolchain@stable` exemption must not be disturbed.
-- The `set -euo pipefail` header in the changelog-gate `run:` block MUST be preserved.
+- The `set -euo pipefail` header in the changelog-gate `run:` block MUST be preserved in ci.yml; the extracted `bin/changelog-gate-check` script carries its own `set -euo pipefail` header.
 - No production Rust source (`src/`), no test files (`tests/`), no `Cargo.toml`, no
   story files other than STORY-164.md itself and STORY-INDEX.md.
 - STORY-INDEX.md is a factory-artifacts file; the develop PR must NOT include it.
@@ -502,7 +583,8 @@ STORY-163, which immediately precede this story in wave-73:
 |------|--------|--------|-------|
 | `bin/validate-citations` | Create | develop | Python 3.10+ stdlib citation preflight validator |
 | `bin/test_validate_citations.py` | Create | develop | Stdlib unittest self-test suite |
-| `.github/workflows/ci.yml` | Modify | develop | Add content assertion to changelog-gate |
+| `bin/changelog-gate-check` | Create | develop | Bash content assertion script for changelog-gate (AC-164-003); reads CHANGELOG diff from stdin |
+| `.github/workflows/ci.yml` | Modify | develop | Wire changelog-gate to delegate to `bin/changelog-gate-check` via pipe (AC-164-003) |
 | `CLAUDE.md` | Modify | develop | Add docs-writer-dispatch-guidance.md row (AC-164-004) + breaking-change-delivery-protocol.md row (AC-164-005) |
 | `CHANGELOG.md` | Modify | develop | Add [Unreleased] entry (AC-158-001 obligation for bin/) |
 | `.factory/stories/STORY-INDEX.md` | Modify | factory-artifacts | Status-vocabulary legend after `## Index Table` |
@@ -538,7 +620,8 @@ Well within context window. No story split required.
   STORY-159 Notes, STORY-158 Notes).
 - **S-7.02 disposition:** Creating this story at draft status codifies four wave-73
   process-gap findings (PG-W73-STATUS-VOCAB, PG-W73-CITATION-VALIDATOR, PG-W73-CHANGELOG-
-  GATE-CONTENT, wave-73 consistency audit advisory for CLAUDE.md) for the S-7.02 wave-73
+  GATE-CONTENT, wave-73 consistency audit advisory for CLAUDE.md) plus one wave-72
+  lesson (PG-W72-BREAKING-HOLDOUT-SWEEP, AC-164-005, added v1.1) for the S-7.02
   cycle-close obligation.
 - **No behavioral contract required:** E-11 convention (epics.md E-11: "BCs: none
   authored yet -- status: draft; pending PO authorship").
@@ -550,6 +633,13 @@ Well within context window. No story split required.
   to `bin/` (changelog-gate trigger set); a CHANGELOG.md `[Unreleased]` entry is required
   before the PR can pass the gate. The content assertion added by AC-164-003 will itself
   validate this entry when the story is delivered — a self-referential correctness check.
+- **F-S164P6-002 disposition (accepted-by-design, 2026-07-11):** Pass-6 adversary raised
+  that AC-164-003 title says "changelog-gate content assertion" but the gate operates on the
+  whole diff (not just the `[Unreleased]` section). Dispositioned accepted-by-design: the
+  gate intentionally uses `git diff origin/develop...HEAD -- CHANGELOG.md` (whole-file diff)
+  so that any content addition to CHANGELOG.md — not just the `[Unreleased]` section —
+  satisfies the obligation; the title refers to the assertion's purpose (ensuring content is
+  present), not its implementation scope.
 - **Precedent:** STORY-164 follows the same E-11 pattern: cycle process-gap follow-up
   encoding lessons into project governance and tooling (STORY-157 → wave-70; STORY-158 →
   wave-71; STORY-162 → wave-72; STORY-163 → maint-2026-07-09; STORY-164 → wave-73).
@@ -558,6 +648,13 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.10 | 2026-07-11 | spec-amend | F-S164P8-001: AC-164-002(b) extended with NOT A FILE (directory cited, F-S164P8-001) and UNREADABLE (PermissionError on target, F-S164P8-001) — now eight validation checks; AC-164-002(d) T01–T20 → T01–T22 (T21: directory → NOT A FILE exit 1; T22: unreadable target → UNREADABLE exit 1, root-skip guard); EC-014/EC-015 added; Task 1 failure-class list updated; Task 2 count synced to 22 cases. Delivered code verified at 59a70ea. |
+| 1.9 | 2026-07-11 | spec-amend | F-S164P7-002: AC-164-003(b) wording precision — removed "version line" from always-satisfy list; added clarification that `##`-prefixed section/version headings are filtered by `grep -v '^+##'` and do not count as content (a version-header-only addition FAILS). Sibling sweep: no other "version line" content claims found. |
+| 1.8 | 2026-07-11 | spec-amend | F-S164P6-001 T20 sync: AC-164-002(c) extended to cover non-UTF-8 stdin (F-S164P6-001); AC-164-002(d) T01–T19 → T01–T20 (T20: non-UTF-8 stdin → exit 2, no traceback, parity with file-argument path); EC-013 added (stdin non-UTF-8 edge case); Task 2 count synced to 20 cases; F-S164P6-002 accepted-by-design disposition recorded in Notes. Delivered code verified at f66dd12. |
+| 1.7 | 2026-07-11 | spec-amend | F-S164P3-003: AC-164-002(d) test enumeration T01–T18 → T01–T19 (T19: unreadable citations file/chmod 000 → exit 2 via `except OSError` branch, no PermissionError traceback, root-skip guard); EC-012 added for OSError/PermissionError edge case; Task 2 count synced to 19 cases. AC-164-002(c) verified unchanged ("non-UTF-8 or unreadable" already covers OSError broadening). |
+| 1.6 | 2026-07-11 | spec-amend | F-S164P2-001..004: AC-164-002(a)/(b)/(c)/(d) extended with MALFORMED denominator (F-S164P2-002), OUTSIDE REPO containment (F-S164P2-003, CWE-22), exit-2 on non-UTF-8 citations file (F-S164P2-004); self-test expanded T01-T18; B05 exec-bit test noted (F-S164P2-001, in test_changelog_gate_content.py); sibling sweep on Tasks and EC rows. AC-164-003(c) B-test range updated B01–B04 → B01–B05 (10-test suite at ed5c90d). Delivered files verified at worktree HEAD ed5c90d. |
+| 1.5 | 2026-07-11 | spec-amend | F-S164P1-001(spec) mechanism reconciliation: AC-164-003 amended to describe the delivered extraction mechanism — logic extracted to `bin/changelog-gate-check` (bash, `{ ... \|\| true; }` brace group); ci.yml delegates via pipe; EC-003/EC-004 updated; FSR row added for `bin/changelog-gate-check`; sibling sweep applied to Tasks, Architecture Mapping, Purity Classification, Architecture Compliance Rules, and Previous Story Intelligence. |
+| 1.4 | 2026-07-11 | spec-amend | F-S164P1-003: H1 rewritten as single line listing all five deliverables (matches STORY-INDEX:208). F-S164P1-001(spec): AC-164-003 code block amended with terminal `\|\| true` guard so CONTENT_LINES resolves to 0 under `set -euo pipefail` on empty selection; EC-003/EC-004 corrected to reflect explicit FAIL branch reachability. Sibling sweep: Narrative "I want" updated four to five deliverables; S-7.02 disposition note extended with wave-72 fifth finding. |
 | 1.3 | 2026-07-11 | story-writer | Assigned to wave-74; promoted to ready (plan gate approved, human, 2026-07-11). |
 | 1.2 | 2026-07-11 | story-writer | Citation-precision fix (source: story-164-citation-validation-2026-07-11.md) — both loci citing the fabricated STORY-163 anchor corrected from `pr-manager-merge-auth-guidance.md:332-333` to `.factory/code-delivery/maint-2026-07-09/pr-review.md:332-333`; "the file is only 111 lines" now correctly describes pr-review.md (pr-manager-merge-auth-guidance.md is 210 lines). Verified via authoring-evidence.md:113-114 and wc -l pr-review.md. |
 | 1.1 | 2026-07-11 | story-writer | maint-2026-07-11 amendment — AC-164-005 added: BREAKING-change holdout-expectation sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP); wave-72 Lesson-2 evidence cited (13 stale holdout scenarios at wave-72 gate after STORY-160 casing change); creates `.factory/maintenance/breaking-change-delivery-protocol.md` (factory-artifacts) + CLAUDE.md reference row; delivery checklist gate item `holdout-expectations-sweep: COMPLETE` codified. Points 3→4: AC-164-005 adds a new maintenance protocol document + CLAUDE.md row; 5 ACs total justifies +1 pt over original 3-AC estimate. |

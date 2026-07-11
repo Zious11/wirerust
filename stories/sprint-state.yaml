@@ -848,8 +848,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-164:
-    status: ready
+    status: done
     wave: 74
     branch: null
     worktree: null
     blocked_by: []
+    pr: 397
+    merge_sha: d6e3be83e19c76113a115f8fcb8a01b618c571df
+    merged_date: "2026-07-11"

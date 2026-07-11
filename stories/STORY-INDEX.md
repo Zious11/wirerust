@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.45"
+version: "3.47"
 status: draft
 producer: story-writer
 timestamp: 2026-07-11T00:00:00Z
@@ -9,6 +9,8 @@ total_stories: 117
 total_waves: 74
 total_points: 723  # = 723 (unchanged); wave-table scheduled: 697→701 (STORY-164 wave-TBD→wave-74, +4 pts); epic-table grand total: 723; stories: 117; waves: 74
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.47 (2026-07-11): STORY-164 DELIVERED (D-431, PR #397 d6e3be8, human-merged 2026-07-11T23:04:56Z); status ready→delivered; wave-74 Delivery Progress row IN PROGRESS→DELIVERED (D-431, PR #397 d6e3be8, 2026-07-11); stories_delivered 103→104. Per-story adversarial convergence 8 passes streak 3/3 (P6/P7/P8), trajectory 6→4→3→2n→2→1n→2n→1n, zero open findings. Wave-74 all stories delivered — wave gate next.
+# v3.46 (2026-07-11): AC-164-001 — status-vocabulary legend added after ## Index Table heading (canonical six-status table + synonym note + loci agreement rule; PG-W73-STATUS-VOCAB adjudication per STORY-164).
 # v3.45 (2026-07-11): wave-74 OPENED — STORY-164 assigned (4 pts, E-11 governance); STORY-164 wave-TBD→74, draft→ready (plan gate approved, human, 2026-07-11). total_waves: 73→74; wave-table scheduled: 697→701 (+4 STORY-164). total_stories/total_points unchanged (117/723).
 # v3.44 (2026-07-11): STORY-164 amended (maint-2026-07-11) — AC-164-005 added (PG-W72-BREAKING-HOLDOUT-SWEEP: BREAKING-change holdout-expectation sweep obligation; wave-72 Lesson-2 human-approved 2026-07-11); points 3→4; E-11: 49→50 pts; total_points: 722→723. Wave-table scheduled unchanged at 697 (STORY-164 wave-TBD excluded). Epic-table TOTAL 722→723.
 # v3.43 (2026-07-11): STORY-164 added (wave-TBD draft, E-11, 3 pts; wave-73 S-7.02 cycle-close codifications: PG-W73-STATUS-VOCAB AC-164-001 STORY-INDEX status-vocabulary legend + PG-W73-CITATION-VALIDATOR AC-164-002 bin/validate-citations + PG-W73-CHANGELOG-GATE-CONTENT AC-164-003 CI content assertion + wave-73 consistency audit CLAUDE.md row AC-164-004). total_stories: 116→117; total_points: 719→722; E-11: 13→14 stories, 46→49 pts. Wave-table scheduled unchanged at 697 (STORY-164 excluded wave-TBD). Epic-table TOTAL corrected from stale 115/717 (STORY-163 omission) to 117/722; wave-73 Delivery Progress row added at close (D-428).
@@ -122,6 +124,25 @@ traces_to:
 
 ## Index Table
 
+### Status Vocabulary
+
+The table below defines the canonical status values used in story files and this index.
+
+| Status | Definition | Loci |
+|--------|------------|------|
+| `draft` | Story created; not yet dispatched for implementation | Frontmatter `status:`, body header, index cell |
+| `ready` | Spec-first gate (S-7.01) passed; story may be dispatched | Frontmatter `status:`, body header, index cell |
+| `pending` | Story dispatched; implementation in progress or blocked on predecessor | Frontmatter `status:`, body header, index cell |
+| `delivered` | PR merged to develop; story on develop but wave not yet closed | Frontmatter `status:`, body header, index cell |
+| `merged` | Story squash-merged to develop via tagged PR; semantically equivalent to `delivered` | Frontmatter `status:`, body header, index cell |
+| `completed` | Equivalent to `delivered`/`merged`; used in early-wave entries for delivery + closed wave | Index cell only (legacy phrasing); frontmatter prefers `delivered` or `merged` |
+
+**Synonym note:** `delivered`, `merged`, and `completed` are delivery-class synonyms — they all mean "PR merged to develop." The canonical term for new stories is `delivered` (frontmatter) or `completed` (index cell for early waves pre-v3.00); stories already using `merged` need not be updated. Tooling that reads story status MUST treat all three as equivalent delivery-class values.
+
+**Loci agreement rule:** Frontmatter `status:`, the body status line (e.g., `**Status:** delivered`), and the STORY-INDEX index cell MUST agree on the delivery-class category (draft/ready/pending/delivered-class/superseded). Wave-gate adversarial passes are authorized to correct loci mismatches as administrative fixes.
+
+---
+
 | Story ID | Title | Epic | Wave | Points | Status | Dependencies |
 |----------|-------|------|------|--------|--------|--------------|
 | STORY-001 | PCAP File Ingestion — Link-Type Gating, Eager Packet Load, and Error Surfaces | E-1 | 1 | 5 | completed | — |
@@ -185,7 +206,7 @@ traces_to:
 | STORY-161 | Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024 | E-11 | 72 | 3 | delivered | STORY-159 (file-seq) |
 | STORY-162 | Wave-72 cycle-closing: LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests | E-11 | 73 | 3 | completed | — |
 | STORY-163 | maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path | E-11 | 73 | 2 | delivered | — |
-| STORY-164 | Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation | E-11 | 74 | 4 | ready | — |
+| STORY-164 | Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation | E-11 | 74 | 4 | delivered | — |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
@@ -432,7 +453,7 @@ traces_to:
 | 71 | STORY-150, STORY-156, STORY-157 | **DELIVERED & CLOSED (D-404, 2026-07-08)** | #378, #379, #380 | e2c2b33, 9d0d175, 11c37b6 | 2026-07-08 |
 | 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERED & CLOSED (D-416, 2026-07-09)** | #387, #388, #389, #390, #391 | 75c5ba5, d410b8d, 704fd2e, 80fbb64, 44f8c9c | 2026-07-09 |
 | 73 | STORY-162, STORY-163 | **DELIVERED & CLOSED (D-428, 2026-07-11)** | #395 (STORY-162); STORY-163 factory-only (D-427) | b5e1e15; n/a | 2026-07-11 |
-| 74 | STORY-164 | **IN PROGRESS** | — | — | — |
+| 74 | STORY-164 | **DELIVERED (D-431, 2026-07-11)** | #397 | d6e3be8 | 2026-07-11 |
 
 ## Coverage Verification
 
