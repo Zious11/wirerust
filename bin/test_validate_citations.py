@@ -27,6 +27,8 @@ Test coverage (AC-164-002(d) + edge cases):
   T16  F-S164P2-003: absolute path → OUTSIDE REPO, exit 1 (CWE-22)
   T17  F-S164P2-003: parent-escape path → OUTSIDE REPO, exit 1 (CWE-22)
   T18  F-S164P2-004: non-UTF-8 citations file → exit 2, no traceback
+  T19  F-S164P3-003: unreadable citations file (chmod 000) → exit 2, no traceback
+        (skipped with note when os.access reports readable, e.g. running as root)
 """
 
 import subprocess
@@ -417,6 +419,61 @@ def test_T18_non_utf8_citations_file_exits_2() -> None:
     print(f"  [PASS] T18 non-UTF-8 citations file → exit 2: exit={result.returncode}")
 
 
+def test_T19_unreadable_citations_file_exits_2() -> None:
+    """T19 (F-S164P3-003): Unreadable citations file (chmod 000) exits 2, not traceback.
+
+    If the process runs as root (where chmod 000 is still readable), the test
+    skips with a printed note rather than giving a false pass or false fail.
+    """
+    import os
+    import stat
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
+    ) as f:
+        f.write("doc/file.md:1\n")
+        citations_path = f.name
+
+    try:
+        os.chmod(citations_path, 0o000)
+
+        if os.access(citations_path, os.R_OK):
+            # Running as root — chmod 000 does not prevent reads; skip to avoid
+            # a false pass (tool would succeed) or false fail (wrong assertion).
+            print(
+                f"  [SKIP] T19 skipped: process can read chmod-000 file "
+                f"(running as root or equivalent); test not applicable."
+            )
+            return
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+            result = subprocess.run(
+                [sys.executable, str(TOOL), citations_path],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+    finally:
+        # Restore read permission so the temp file cleanup can proceed.
+        try:
+            os.chmod(citations_path, stat.S_IRUSR | stat.S_IWUSR)
+        except OSError:
+            pass
+        Path(citations_path).unlink(missing_ok=True)
+
+    assert result.returncode == 2, (
+        f"T19: expected exit 2 for unreadable citations file, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    combined = result.stdout + result.stderr
+    assert "PermissionError" not in combined and "Traceback" not in combined, (
+        f"T19: expected no raw traceback, but got: {combined!r}"
+    )
+    print(f"  [PASS] T19 unreadable file → exit 2: exit={result.returncode}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -441,6 +498,7 @@ def main() -> None:
         test_T16_absolute_path_rejected,
         test_T17_parent_escape_rejected,
         test_T18_non_utf8_citations_file_exits_2,
+        test_T19_unreadable_citations_file_exits_2,
     ]
     passed = 0
     failed = 0

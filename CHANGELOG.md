@@ -18,7 +18,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
   FOUND / LINE OUT OF RANGE / INVALID RANGE / MALFORMED / OUTSIDE REPO), 2 on
   usage error. Paths are resolved relative to the repo root (WIRERUST_REPO_ROOT
-  or upward walk). Self-tested by `bin/test_validate_citations.py` (18 tests).
+  or upward walk). Self-tested by `bin/test_validate_citations.py` (19 tests).
 
   F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
   are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
@@ -38,9 +38,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   identified for `bin/compute-input-hash` in GitHub #392 (not fixed here;
   deferred to the #392 issue).
 
-  F-S164P2-004: a non-UTF-8 citations file now produces a documented exit-2 usage
-  error (`Error: citations file is not valid UTF-8: ...`) rather than an uncaught
-  `UnicodeDecodeError` traceback with exit 1.
+  F-S164P2-004 / F-S164P3-003: unreadable or non-UTF-8 citations files now
+  produce a documented exit-2 usage error rather than an uncaught traceback.
+  `UnicodeDecodeError` (non-UTF-8 bytes) and `OSError` (PermissionError,
+  IsADirectoryError, etc.) are both caught; each emits a descriptive `Error:`
+  message to stderr and exits 2. Test T19 covers the `chmod 000` path, with a
+  skip guard when the process can read mode-0 files (root environments).
 
   Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
   CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
@@ -60,10 +63,10 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   before the `-eq 0` diagnostic branch could run — making the blank-only-touch
   FAIL path dead code. The fix wraps the grep chain in `{ ... || true; }` so
   an empty selection reliably resolves to `CONTENT_LINES=0` and the diagnostic
-  message prints. `bin/test_changelog_gate_content.py` gains four behavioral
-  tests (B01–B04) that execute the gate script against crafted diff fixtures
-  (real content, blank-only, header-only, deletions-only) and were confirmed
-  FAIL against the broken logic, PASS after the fix.
+  message prints. `bin/test_changelog_gate_content.py` gains five behavioral
+  tests (B01–B05) that execute the gate script against crafted diff fixtures
+  (real content, blank-only, header-only, deletions-only, direct-path exec-bit
+  guard) and were confirmed FAIL against the broken logic, PASS after the fix.
 
   F-S164P2-001: test B05 added to invoke the script via its direct path (no
   `bash` prefix), verifying the committed git file mode is 100755 and the

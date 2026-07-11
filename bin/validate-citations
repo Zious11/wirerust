@@ -13,7 +13,12 @@ ALGORITHM:
      detection as compute-input-hash: WIRERUST_REPO_ROOT env, walk up from script,
      walk up from cwd — looking for .factory/ or .git/).
   4. For each entry validate:
+     - Unparseable non-blank, non-comment lines.
+                                         FAIL → "MALFORMED: <raw line>"
+     - Path must resolve inside the repo root (no absolute refs or ../ escapes).
+                                         FAIL → "OUTSIDE REPO: path"
      - The cited file MUST exist.        FAIL → "FILE NOT FOUND: path"
+     - Line numbers must be ≥ 1.         FAIL → "INVALID LINE: path:N (line numbers start at 1)"
      - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
      - The cited line number (or both range endpoints) MUST be ≤ the file's actual
        line count.                       FAIL → "LINE OUT OF RANGE: path:N (file has M lines)"
@@ -252,13 +257,21 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(2)
-        # F-S164P2-004: a non-UTF-8 citations file must produce a documented exit-2
-        # usage error, not an uncaught UnicodeDecodeError traceback.
+        # F-S164P2-004 / F-S164P3-003: non-UTF-8 or unreadable citations files must
+        # produce a documented exit-2 usage error, not an uncaught traceback.
+        # UnicodeDecodeError is a subclass of ValueError, not OSError, so both
+        # branches are needed. OSError covers PermissionError, IsADirectoryError, etc.
         try:
             text = citations_path.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             print(
                 f"Error: citations file is not valid UTF-8: {args.citations_file}: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        except OSError as exc:
+            print(
+                f"Error: cannot read citations file: {args.citations_file}: {exc}",
                 file=sys.stderr,
             )
             sys.exit(2)

@@ -8,9 +8,9 @@ bin/changelog-gate-check. The script counts non-blank, non-section-header
 added lines in the diff; a whitespace-only touch does not satisfy the gate.
 
 String-presence tests (T01–T05) verify that the key bash constructs are
-present in bin/changelog-gate-check. Behavioral tests (B01–B04) execute the
-gate logic against crafted diff fixtures and verify correct exit codes and
-output messages.
+present in bin/changelog-gate-check. Behavioral tests (B01–B05) execute the
+gate logic against crafted diff fixtures, verify correct exit codes and
+output messages, and guard the exec bit.
 
 Run: python3 bin/test_changelog_gate_content.py
 """
@@ -112,8 +112,9 @@ def test_grep_filter_chain_present() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Behavioral tests (B01–B04): execute the gate logic against crafted diff
-# fixtures and verify exit codes / output messages (F-S164P1-001 companion).
+# Behavioral tests (B01–B05): execute the gate logic against crafted diff
+# fixtures, verify exit codes / output messages, and guard the exec bit
+# (F-S164P1-001 companion; B05 added for F-S164P2-001).
 # ---------------------------------------------------------------------------
 
 def _run_gate(diff_text: str) -> tuple[int, str]:
