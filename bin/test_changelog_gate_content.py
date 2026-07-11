@@ -7,7 +7,7 @@ The changelog-gate CI job validates CHANGELOG.md additions via
 bin/changelog-gate-check. The script counts non-blank, non-section-header
 added lines in the diff; a whitespace-only touch does not satisfy the gate.
 
-String-presence tests (T01–T05) verify that the key bash constructs are
+String-presence tests (5) verify that the key bash constructs are
 present in bin/changelog-gate-check. Behavioral tests (B01–B05) execute the
 gate logic against crafted diff fixtures, verify correct exit codes and
 output messages, and guard the exec bit.
@@ -38,7 +38,7 @@ def find_changelog_gate_check() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# String-presence tests (T01–T05): verify key bash constructs exist in
+# String-presence tests (5): verify key bash constructs exist in
 # bin/changelog-gate-check (AC-164-003).
 # ---------------------------------------------------------------------------
 
