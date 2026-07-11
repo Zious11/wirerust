@@ -821,12 +821,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-162:
-    status: pending
+    status: done
     wave: 73
     branch: null
     worktree: null
     blocked_by: []
-    pr: null
+    pr: 395
+    merge_sha: b5e1e155e37704296a8cb5951743cd5817a3f11d
+    merged_date: "2026-07-11"
 
   STORY-163:
     status: pending

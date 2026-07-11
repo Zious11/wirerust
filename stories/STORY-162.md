@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-162
 epic_id: E-11
-version: "1.2"
-status: ready
+version: "1.5"
+status: delivered
 producer: story-writer
 timestamp: 2026-07-09T22:45:00Z
 phase: f7
@@ -66,6 +66,7 @@ Wave-72 (STORY-158/159/160/161, delivered 2026-07-09) surfaced two process gaps 
 the per-story adversary pass for STORY-161 (F-S161P1-001) and the wave-72 integration
 gate adversary Pass 2 (F-W72G-P2-OBS-001). S-7.02 (cycle-close requirement) mandates
 codification of recurring process gaps as follow-up stories.
+Line anchors in this Background section reference the pre-STORY-162 layout (STORY-158 PR #387); post-refactor, the sentinel logic lives in `_find_repo_root` and the zero-file guard is the `if not rust_files:` block in `main()`.
 
 ### PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001) -- LMR-003 silent on hook-mandated template fields
 
@@ -192,13 +193,12 @@ must produce `version: "2.40"`.
 `bin/test_check_green_doc_tense.py` gains a new test that exercises `main()` with
 `_collect_rust_files` patched to return `[]` in a hermetic environment where the
 repo root IS reliably found, and asserts `exit_code == 1` (not merely `!= 0`). This
-distinguishes the zero-file guard (exit 1, lines 370-376) from the repo-root-not-found
-guard (exit 2, lines 365-367).
+distinguishes the zero-file guard (exit 1, lines 370-376 (pre-refactor anchor; post-STORY-162 the logic lives in `_find_repo_root` / the `if not rust_files:` guard)) from the repo-root-not-found
+guard (exit 2, lines 365-367 (pre-refactor anchor; post-STORY-162 the logic lives in `_find_repo_root` / the `if not rust_files:` guard)).
 
 The hermetic fixture MUST use `tempfile.TemporaryDirectory()` to create a directory
 tree where the tool can find a repo root, following the pattern established in
-`bin/test_compute_input_hash.py` (use `WIRERUST_REPO_ROOT` override or equivalent
-technique to make the tool's repo-root detection deterministic). Tests MUST NOT rely
+`bin/test_compute_input_hash.py` (monkey-patch `_find_repo_root` on the importlib-loaded module (the tool does not honor any environment-variable override; `WIRERUST_REPO_ROOT` is a `bin/compute-input-hash` feature only) or equivalent technique to make the tool's repo-root detection deterministic). Tests MUST NOT rely
 on the live `.factory/` or `.git` of the develop checkout (these may be absent in CI).
 
 The test label MUST reference F-W72G-P2-OBS-001 in its description string.
@@ -212,7 +212,7 @@ must pass, with the new test present in the output and labeled with F-W72G-P2-OB
 ### AC-162-004 (traces to PG-W72-CGDT-MAIN-GUARDS -- .factory/ OR-sentinel hermetic test)
 
 `bin/test_check_green_doc_tense.py` gains a test that specifically exercises the
-`.factory/` OR-sentinel arm at `bin/check-green-doc-tense` line 361. The test MUST:
+`.factory/` OR-sentinel arm at `bin/check-green-doc-tense` line 361 (pre-refactor anchor; post-STORY-162 the logic lives in `_find_repo_root` / the `if not rust_files:` guard). The test MUST:
 
 (a) Use `tempfile.TemporaryDirectory()` to create a temporary tree containing a
     `.factory/` subdirectory but NO `.git` directory at the same level.
@@ -228,7 +228,9 @@ must pass, with the new test present in the output and labeled with F-W72G-P2-OB
       temp tree; or
     - Test the guard by calling `main()` with `WIRERUST_REPO_ROOT` set to a
       temporary directory, and verify that `.factory/` is accepted while a path with
-      no sentinel returns exit 2.
+      no sentinel returns exit 2. (The tool does not honor any environment-variable
+      override; `WIRERUST_REPO_ROOT` is a `bin/compute-input-hash` feature only —
+      use monkey-patching of `_find_repo_root` instead.)
 
 The test label MUST reference F-W72G-P2-OBS-001.
 
@@ -272,7 +274,7 @@ No Rust source files, no tests in `tests/`, no CI configuration.
 | EC-003 | `input-hash:` on locked VP is NOT `d41d8cd` (i.e., hashes a non-empty input list) | NOT covered by AC-162-001 exemption -- same rationale as EC-002 |
 | EC-004 | VP-INDEX amended while VP-024 is locked (`verification_lock: true`) | No VP-024 change needed -- VP-024 v2.5 already records the precedent; VP-INDEX amendment is an addition to the governance rules, not a change to VP-024 |
 | EC-005 | `.factory/` sentinel test run in CI where `.factory/` is absent | Test MUST be hermetic -- uses `tempfile.TemporaryDirectory()` with controlled tree; must not rely on live `.factory/` directory; CI-safe on develop checkouts |
-| EC-006 | Future locked VP receives `inputs:` with a non-empty list | This is an expansion of the exemption's scope, which AC-162-001 option B(2) explicitly forbids. Any non-empty `inputs:` on a locked VP requires a new governance ruling beyond this story |
+| EC-006 | Future locked VP receives `inputs:` with a non-empty list | This is an expansion of the exemption's scope, which the implemented Option A allowlist rows explicitly forbid (`inputs:` MUST be `[]`). Any non-empty `inputs:` on a locked VP requires a new governance ruling beyond this story |
 
 ## Tasks
 
@@ -298,15 +300,17 @@ No Rust source files, no tests in `tests/`, no CI configuration.
    the test block with `F-W72G-P2-OBS-001`.
 
 4. **Verify no product code changes.** Confirm zero changes to `src/`, `tests/`,
-   `.github/`, or `Cargo.toml`. The diff must touch only
-   `.factory/specs/verification-properties/VP-INDEX.md` (factory-artifacts branch) and
-   `bin/test_check_green_doc_tense.py` (develop branch).
+   `.github/`, or `Cargo.toml`. The develop diff must touch only
+   `bin/test_check_green_doc_tense.py`, `bin/check-green-doc-tense` (if and only if
+   the AC-162-004(c) helper-extraction option is taken), and `CHANGELOG.md` (mandatory
+   — AC-158-001 changelog gate triggers on `bin/`). The factory-artifacts diff must
+   touch only `VP-INDEX.md`.
 
 > **Note for implementer:** VP-INDEX.md lives on the `factory-artifacts` branch and
 > cannot appear in the `develop`-targeted PR. Commit the VP-INDEX amendment to
-> `factory-artifacts` in the same delivery burst as the develop PR (which carries only
-> `bin/test_check_green_doc_tense.py`). Do NOT include `.factory/` paths in the develop
-> PR diff.
+> `factory-artifacts` in the same delivery burst as the develop PR (which carries
+> `bin/test_check_green_doc_tense.py`, conditionally `bin/check-green-doc-tense`, and
+> `CHANGELOG.md`). Do NOT include `.factory/` paths in the develop PR diff.
 
 ## Previous Story Intelligence
 
@@ -325,9 +329,12 @@ Lessons from analogous governance/tooling stories in E-11:
 
 ## Architecture Compliance Rules
 
-- This story modifies ONLY: `VP-INDEX.md` (factory-artifacts branch) and
-  `bin/test_check_green_doc_tense.py` (develop branch).
-  No production Rust, no CI YAML, no CLAUDE.md, no Cargo.toml.
+- On the develop branch, the permitted file set is: `bin/test_check_green_doc_tense.py`
+  (required); `bin/check-green-doc-tense` (conditionally permitted — if and only if
+  the AC-162-004(c) helper-extraction option 1 is taken, extracting `_find_repo_root`
+  into that file); and `CHANGELOG.md` (required — AC-158-001 changelog gate triggers
+  on `bin/`). On the factory-artifacts branch, the permitted file set is `VP-INDEX.md`
+  only. No production Rust, no CI YAML, no CLAUDE.md, no Cargo.toml.
 - The VP-INDEX amendment is an additive governance change to LMR-003. No existing LMR
   rules, no VP content, and no BC anchors are modified.
 - `bin/test_check_green_doc_tense.py` tests MUST be hermetic per AC-162-003/004 -- no
@@ -346,6 +353,8 @@ Lessons from analogous governance/tooling stories in E-11:
 |------|--------|-------|
 | `.factory/specs/verification-properties/VP-INDEX.md` | Modify | Add template-conformance exemption to LMR-003; bump version 2.39→2.40; factory-artifacts branch |
 | `bin/test_check_green_doc_tense.py` | Modify | Add AC-162-003 and AC-162-004 hermetic main()-guard tests; develop branch |
+| `bin/check-green-doc-tense` | Modify (conditional) | If and only if AC-162-004(c) helper-extraction option 1 is taken (extract `_find_repo_root`); develop branch |
+| `CHANGELOG.md` | Modify | Mandatory — AC-158-001 changelog gate triggers on `bin/`; develop branch |
 
 ## Token Budget Estimate
 
@@ -389,6 +398,9 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-07-10 | story-writer | EC-006 stale Option-B anchor corrected to implemented Option A (adversary P5 observation). |
+| 1.4 | 2026-07-10 | story-writer | Spec nit fixes F-S162P3-001 (stale line anchors: Background clarifying sentence + AC-162-003/004 parentheticals) and F-S162P3-002 (misleading env-var example: AC-162-003 corrected to `_find_repo_root` monkey-patch; AC-162-004(c) third bullet corrective parenthetical added). |
+| 1.3 | 2026-07-10 | story-writer | Spec remediation F-S162P2-001 (adversary Pass-2, LOW): reconcile Task 4, Architecture Compliance Rules, and File Structure Requirements to permit bin/check-green-doc-tense (conditional, AC-162-004(c) option 1) and require CHANGELOG.md (AC-158-001 bin/ gate); no AC text changed. |
 | 1.2 | 2026-07-10 | story-writer | Status draft→ready — wave-73 plan gate approved (D-425). |
 | 1.1 | 2026-07-10 | story-writer | Wave assigned: wave-73 (wave-73 opening; cycle updated wave-72→wave-73). |
 | 1.0 | 2026-07-09 | story-writer | Initial authorship -- wave-72 process-gap codifications: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001, VP-INDEX LMR-003 amendment) + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001, check-green-doc-tense main() guard tests). S-7.02 wave-72 cycle-close. |

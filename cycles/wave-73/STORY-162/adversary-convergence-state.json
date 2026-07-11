@@ -1,0 +1,60 @@
+{
+  "story": "STORY-162",
+  "wave": 73,
+  "head_reviewed": "86b51dc",
+  "worktree_base": "f1e0c36",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S162P1-001", "F-S162P1-002", "F-S162P1-003", "F-S162P1-004"],
+      "notes": "4 LOW findings: F-S162P1-001 stale line anchors in Background/AC parentheticals; F-S162P1-002 no-sentinel assertion vacuity (d519df8 fix); F-S162P1-003 stale CHANGELOG test enumeration (c094518 fix); F-S162P1-004 stale FAIL-branch diagnostic in test (86b51dc fix). All 4 confirmed fixed."
+    },
+    {
+      "pass": 2,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": ["F-S162P2-001"],
+      "notes": "1 LOW finding F-S162P2-001: FIX_INCOMPLETE — spec scope discrepancy (Task 4 / Architecture Compliance Rules / FSR wording). Fixed in STORY-162.md v1.3. No HIGH/CRITICAL."
+    },
+    {
+      "pass": 3,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "2 nits fixed; 3 nits dispositioned (accepted). Streak begins (pass 1 of 3). No HIGH/CRITICAL."
+    },
+    {
+      "pass": 4,
+      "verdict": "PASS_CLEAN",
+      "high_critical": 0,
+      "notes": "0 findings. Streak continues (pass 2 of 3). BC-5.39.001 consecutive-clean #2."
+    },
+    {
+      "pass": 5,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "notes": "EC-006 nit fixed; 2 accepted dispositions; 1 process-gap noted (PG-W73-CHANGELOG-GATE-CONTENT: changelog-gate is presence-only, no content assertion — pre-existing gate weakness, not introduced by this story). Streak closes at 3/3 (P3/P4/P5 = NITPICK_ONLY/CLEAN/NITPICK_ONLY). BC-5.39.001 SATISFIED. Convergence declared."
+    }
+  ],
+  "carried_findings": [
+    {
+      "id": "PG-W73-CHANGELOG-GATE-CONTENT",
+      "severity": "LOW",
+      "category": "process-gap",
+      "summary": "changelog-gate CI job (AC-158-001) is presence-only — verifies [Unreleased] header exists but asserts no content quality. Pre-existing gate weakness surfaced in adversary P5; noted for wave-close S-7.02. Not introduced by STORY-162."
+    }
+  ],
+  "process_notes": [
+    "PR #395 squash-merged to develop at b5e1e155e37704296a8cb5951743cd5817a3f11d (2026-07-11T03:16:04Z).",
+    "Merge executed by orchestrator in main thread under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path).",
+    "CI 12/12 green; security CLEAN; pr-reviewer APPROVE (1 review cycle).",
+    "VP-INDEX v2.40 LMR-003 Option A amendment shipped as factory-side companion (not in develop PR per E-11 convention).",
+    "Demo evidence 5 artifacts; demo-evidence scrub PASS (PG-W70-DEMO-SCRUB).",
+    "Final adversary pass reviewed HEAD at 86b51dc; worktree base f1e0c36."
+  ],
+  "convergence_date": "2026-07-11"
+}
