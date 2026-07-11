@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-11T04:30:41Z","command":"cargo test --all-targets 2>&1 | grep \"^test result:\" | grep -v \"^test result: ok. 0 \" | awk '{sum+=$4} END {print \"Total passed:\", sum}'"}
+{"status":"pass","timestamp":"2026-07-11T16:19:52Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/maint-2026-07-11-cleanup && cargo fmt --check && cargo clippy --all-targets -- -D warnings 2>&1 | tail -3 && cargo test --all-targets 2>&1 | grep -E \"^test result\" | tail -5"}

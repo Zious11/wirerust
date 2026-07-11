@@ -7,14 +7,14 @@ inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
-mode: maintenance
-phase: "wave-73"
-status: active
-current_step: "Maintenance run maint-2026-07-11 STARTED (resume-triggered, human-approved). Sweeps 1-5,7,8 dispatched (6=DTU N/A, 9=a11y N/A). Carry-forwards in scope: CR-001/002/003 (wave-73 D-428 deferred), wave-72 Lesson-2 codification candidate, ADV-4 ci.yml build-dep-chain comment (OVERDUE 3+ cycles, human disposition pending). trajectory-tail →0→0→0→0"
-current_cycle: "wave-73"
-pipeline: RUNNING
-timestamp: 2026-07-11T15:00:00Z
-# maint-2026-07-11 STARTED (resume-triggered, human-approved); sweeps 1-5,7,8 dispatched; carry-forwards: CR-001/002/003 + wave-72 L-2 + ADV-4
+mode: steady-state
+phase: "maint-2026-07-11"
+status: idle
+current_step: "maint-2026-07-11 COMPLETE. 8 sweeps 0 HIGH/CRIT; PR #396 merged 6779be6 (human-merged, 17 findings, adversary 3/3); STORY-164 v1.1 AC-164-005 (W72-L2 codified); Routes B/C deferred (ROUTE-BC-DEFERRED-2026-07-11); PERF-RERUN-001 OPEN; SEC-001 DEFERRED next feature wave. Pipeline PAUSED. Next: STORY-164 wave assignment, deferred spec-coherence batch, quiescent perf re-run. trajectory-tail →0→0→0→0"
+current_cycle: "maint-2026-07-11"
+pipeline: PAUSED
+timestamp: 2026-07-11T22:00:00Z
+# maint-2026-07-11 COMPLETE (2026-07-11); 8 sweeps 0 HIGH/CRIT; PR #396 merged 6779be6; STORY-164 v1.1 AC-164-005; Pipeline PAUSED
 
 # Release chain (latest)
 released_version: v0.12.0
@@ -25,10 +25,10 @@ release_commit: f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.0
 prior_released_version: v0.11.5
 prior_released_at: "2026-07-07"
-# Ground-truth HEADs (updated 2026-07-11 — D-426 STORY-162 delivered: PR #395 squash b5e1e15 merged to develop; main unchanged at f1e0c36; develop 1 unreleased commit ahead)
+# Ground-truth HEADs (updated 2026-07-11 — D-429 maint-2026-07-11 COMPLETE: PR #396 squash 6779be6 merged to develop; main unchanged at f1e0c36; develop 2 unreleased commits ahead)
 main_head: f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2
-develop_head: b5e1e155e37704296a8cb5951743cd5817a3f11d
-# Cargo.toml version: main=0.12.0; develop=0.12.0 (1 unreleased commit — STORY-162 PR #395 squash b5e1e15, 2026-07-11)
+develop_head: 6779be60c7d4e9fd2e2dabc0121f679a0b29f5e6
+# Cargo.toml version: main=0.12.0; develop=0.12.0 (2 unreleased commits — b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11)
 cargo_version_main: "0.12.0"
 cargo_version_develop: "0.12.0"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts]. No open release/* or chore/backmerge-* branches (release/0.12.0 + chore/backmerge-v0.12.0 deleted post-merge).
@@ -38,9 +38,9 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 103
-story_index_version: "v3.43"
+story_index_version: "v3.44"
 total_stories: 117
-story_index_note: "117 stories / 73 waves / 722 pts. v3.43: STORY-164 added (wave-TBD draft, E-11, 3 pts; wave-73 S-7.02 cycle-close: PG-W73-STATUS-VOCAB AC-164-001 + PG-W73-CITATION-VALIDATOR AC-164-002 + PG-W73-CHANGELOG-GATE-CONTENT AC-164-003 + CLAUDE.md row AC-164-004). total_stories 116→117; total_points 719→722; epic-table TOTAL corrected 115/717→117/722. 2026-07-11; wave-73 Delivery Progress row added at close (D-428). v3.39: STORY-163 delivered (factory-artifacts-only, D-427, 2026-07-11); stories_delivered 102→103. v3.38: STORY-162 delivered (PR #395, b5e1e15, 2026-07-11); stories_delivered 101→102. v3.37: STORY-162/163 promoted draft→ready (D-425 consequence, 2026-07-10); sprint-state.yaml wave-73 entries added; input-hash scan MATCH=116 STALE=0. v3.36: wave-73 row added (STORY-162 + STORY-163, 2 stories, 5 pts, both E-11 governance-only); STORY-163 input-hash drift resolved 1cd3179→e1ad659; total_waves 73; input-hash scan MATCH=116 STALE=0. 2026-07-10. v3.35: STORY-163 added (wave-TBD draft, E-11, 2 pts; maint-2026-07-09 S-7.02 cycle-close: PG-RA-P3-ARP-REC006-INVERSION-001 AC-163-001 docs-dispatch citation mandate + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER AC-163-002 subagent merge-halt resolution path). 2026-07-10. v3.34: SC-001 fixed (D-419, 2026-07-09); stories_delivered adjudicated 106→101 (direct row count 82 completed + 15 merged + 4 delivered = 101); registry header extended to STORY-158..162; SC-PERSIST-002 carry-forward updated. v3.33: wave-72 CLOSED (D-416, 2026-07-09); Wave Delivery Progress row updated DELIVERED & CLOSED. No numeric totals changed. v3.32: STORY-162 added (wave-TBD draft, E-11, 3 pts; wave-72 S-7.02 cycle-close: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001) + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001)). 2026-07-09."
+story_index_note: "117 stories / 73 waves / 723 pts. v3.44: STORY-164 amended v1.1 (maint-2026-07-11 S-7.02 carry: AC-164-005 added — PG-W72-BREAKING-HOLDOUT-SWEEP W72-L2 codified; breaking-change-delivery-protocol.md + CLAUDE.md reference row); points 3→4; total_points 722→723. v3.43: STORY-164 added (wave-TBD draft, E-11, 3 pts; wave-73 S-7.02 cycle-close: PG-W73-STATUS-VOCAB AC-164-001 + PG-W73-CITATION-VALIDATOR AC-164-002 + PG-W73-CHANGELOG-GATE-CONTENT AC-164-003 + CLAUDE.md row AC-164-004). total_stories 116→117; total_points 719→722; epic-table TOTAL corrected 115/717→117/722. 2026-07-11; wave-73 Delivery Progress row added at close (D-428). v3.39: STORY-163 delivered (factory-artifacts-only, D-427, 2026-07-11); stories_delivered 102→103. v3.38: STORY-162 delivered (PR #395, b5e1e15, 2026-07-11); stories_delivered 101→102. v3.37: STORY-162/163 promoted draft→ready (D-425 consequence, 2026-07-10); sprint-state.yaml wave-73 entries added; input-hash scan MATCH=116 STALE=0. v3.36: wave-73 row added (STORY-162 + STORY-163, 2 stories, 5 pts, both E-11 governance-only); STORY-163 input-hash drift resolved 1cd3179→e1ad659; total_waves 73; input-hash scan MATCH=116 STALE=0. 2026-07-10. v3.35: STORY-163 added (wave-TBD draft, E-11, 2 pts; maint-2026-07-09 S-7.02 cycle-close: PG-RA-P3-ARP-REC006-INVERSION-001 AC-163-001 docs-dispatch citation mandate + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER AC-163-002 subagent merge-halt resolution path). 2026-07-10. v3.34: SC-001 fixed (D-419, 2026-07-09); stories_delivered adjudicated 106→101 (direct row count 82 completed + 15 merged + 4 delivered = 101); registry header extended to STORY-158..162; SC-PERSIST-002 carry-forward updated. v3.33: wave-72 CLOSED (D-416, 2026-07-09); Wave Delivery Progress row updated DELIVERED & CLOSED. No numeric totals changed. v3.32: STORY-162 added (wave-TBD draft, E-11, 3 pts; wave-72 S-7.02 cycle-close: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001) + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001)). 2026-07-09."
 # Spec versions (current)
 bc_index_version: "v2.22"
 vp_index_version: "v2.40"
@@ -53,9 +53,10 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 # Maintenance
-maintenance_run: STARTED
+maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-07-11
 maintenance_started_at: "2026-07-11"
+maintenance_completed_at: "2026-07-11"
 maintenance_prior_run: maint-2026-07-09
 ---
 
@@ -63,7 +64,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**MAINTENANCE RUN maint-2026-07-11 IN PROGRESS (resume-triggered, human-approved). Wave-73 CLOSED (D-428); develop==origin/develop==b5e1e15; v0.12.0 latest release. Sweeps 1-5,7,8 dispatched. Carry-forwards: CR-001/002/003 (wave-73 D-428 deferred), wave-72 Lesson-2 codification candidate, ADV-4 ci.yml build-dep-chain comment (OVERDUE 3+ cycles, human disposition pending). Pipeline RUNNING.**
+**MAINTENANCE RUN maint-2026-07-11 COMPLETE (D-429). 8 sweeps, 0 CRITICAL/HIGH. PR #396 squash-merged 6779be6 (17 findings fixed, adversary 3/3 CONVERGED). STORY-164 v1.1 AC-164-005 (W72-L2 codified — PG-W72-BREAKING-HOLDOUT-SWEEP). Routes B/C deferred (ROUTE-BC-DEFERRED-2026-07-11). PERF-RERUN-001 OPEN. SEC-001 DEFERRED next feature wave. develop==origin/develop==6779be6; v0.12.0 latest release. Pipeline PAUSED. Next: STORY-164 wave assignment, deferred spec-coherence batch, quiescent perf re-run.**
 
 ---
 
@@ -72,16 +73,16 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-73 CLOSED (D-428); Maintenance run maint-2026-07-11 IN PROGRESS (resume-triggered, human-approved, 2026-07-11); pipeline RUNNING |
-| Version | 0.12.0 (released 2026-07-10; main=f1e0c36; develop=b5e1e15 — 1 unreleased commit STORY-162 PR #395) |
+| Mode | Maintenance run maint-2026-07-11 COMPLETE (D-429, 2026-07-11); Pipeline PAUSED (steady-state) |
+| Version | 0.12.0 (released 2026-07-10; main=f1e0c36; develop=6779be6 — 2 unreleased commits: b5e1e15 STORY-162 + 6779be6 PR #396) |
 | Main HEAD | `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`) |
-| Develop HEAD | `b5e1e15` (full: `b5e1e155e37704296a8cb5951743cd5817a3f11d`) — STORY-162 PR #395 squash-merged 2026-07-11T03:16:04Z; 1 unreleased commit ahead of v0.12.0 |
+| Develop HEAD | `6779be6` (full: `6779be60c7d4e9fd2e2dabc0121f679a0b29f5e6`) — PR #396 squash-merged 2026-07-11T16:45:25Z; 2 unreleased commits ahead of v0.12.0 |
 | Tag v0.12.0 | commit `f1e0c36`; tag object `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2` (lightweight-style annotated tag resolves to commit SHA) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.12.0 (Latest, with 4 binaries) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.40 / ARCH-INDEX v2.12 / PRD v1.51 |
-| Stories | 103 delivered / 117 total (STORY-INDEX v3.43) |
-| **Last Updated** | 2026-07-11 — Maintenance run maint-2026-07-11 STARTED. Sweeps 1-5,7,8 dispatched. Pipeline RUNNING. trajectory-tail →0→0→0→0 |
+| Stories | 103 delivered / 117 total (STORY-INDEX v3.44, 723 pts) |
+| **Last Updated** | 2026-07-11 — Maintenance run maint-2026-07-11 COMPLETE (D-429). 8 sweeps 0 HIGH/CRIT; PR #396 6779be6 merged (17 findings, adversary 3/3); STORY-164 v1.1 AC-164-005; Pipeline PAUSED. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -123,6 +124,7 @@ maintenance_prior_run: maint-2026-07-09
 | Wave 72 (v0.12.0): STORY-158/159/160/161 | **CLOSED (D-416, 2026-07-09)** | 4 stories + gate-fix PR #391; gate all-green; S-7.02 satisfied (STORY-162). |
 | Wave 73: STORY-162/163 | **CLOSED (D-428, 2026-07-11)** | 2 stories (STORY-162 PR #395 b5e1e15; STORY-163 factory-only D-427); gate all-green; adversary 6-pass CONVERGED streak 3/3; trajectory 4→2→1→0→1(nits)→0; S-7.02 satisfied (STORY-164 drafted, wave-TBD). Pipeline PAUSED/IDLE. |
 | Maintenance maint-2026-07-09 | **COMPLETE 2026-07-10 (D-420)** | 8 sweeps 0 HIGH/CRIT; Route A PR #393 merged e3ca2bc (6 adversary passes, 3 HIGH findings fixed, 3/3 clean); Route B 27a4002; SEC-W71-001 FILED #392; TD-MAINT-RISK-REGISTRY-BACKFILL RESOLVED f41f517; STORY-163 drafted (S-7.02); develop=e3ca2bc (15 unreleased commits). |
+| Maintenance maint-2026-07-11 | **COMPLETE 2026-07-11 (D-429)** | 8 sweeps (6=DTU N/A, 9=a11y N/A), 0 CRITICAL/HIGH. Route A PR #396 merged 6779be6 (17 findings fixed, adversary VOID→3/3 CONVERGED; human-merged). Routes B/C DEFERRED (ROUTE-BC-DEFERRED-2026-07-11). STORY-164 v1.1 AC-164-005 (W72-L2 codified). PERF-RERUN-001 OPEN. SEC-001 DEFERRED next feature wave. PC-014/ROUTE-B-DEFERRED RESOLVED. ISSUE-102 CLOSED-REFUTED. develop=6779be6 (2 unreleased commits ahead of v0.12.0). |
 | v0.12.0 release run | OPENED (D-421, 2026-07-10) | |
 | v0.12.0 RELEASED + CHAIN COMPLETE (D-422) | **RELEASED 2026-07-10** | PR #394 (release/0.12.0 → main, merge f1e0c36); tag v0.12.0 (resolves to commit f1e0c36); GitHub Release Latest 4 binaries. Back-merge: develop FAST-FORWARDED to f1e0c36 (no squash — histories reunified; PG-GITFLOW-SQUASH-BACKMERGE mitigated). Branches cleaned. main==develop==f1e0c36, Cargo 0.12.0. BREAKING JSON surface change BC-2.11.036/037 shipped. |
 | D-423 | Session review session-review-2026-07-10-v0.12.0 COMPLETE (2026-07-10). 4 artifacts written. Key outcomes: PROP-V0.12.0-01 (P1, BREAKING-change holdout-expectation pre-PR sweep — STORY-160 casing change left 13 stale holdouts to gate time), PROP-V0.12.0-02 (P1, strict 3/3 adversarial convergence mandatory for docs PRs — Route A caught 3 HIGH fabrications), PROP-V0.12.0-03 (P2, synchronous adversary dispatch run_in_background:false for maintenance PRs — 2 relay failures maint-2026-07-08), PAT-009 adversary stale git-ref false alarms RESOLVED-EFFECTIVE (0 recurrences in 11 passes), PG-MERGE-AUTH-SUBAGENT-CLASSIFIER already codified in STORY-163 AC-163-002, carry-forward ADV-4 (ci.yml build-dep-chain comment) OVERDUE 3+ cycles — needs human disposition at next maintenance run. | 2026-07-10 |
@@ -131,6 +133,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-426 | STORY-162 DELIVERED (2026-07-11): PR #395 squash-merged to develop at b5e1e155e37704296a8cb5951743cd5817a3f11d (2026-07-11T03:16:04Z). Merge by orchestrator in main thread under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path). CI 12/12; security CLEAN; pr-reviewer APPROVE (1 review cycle). Per-story adversarial convergence: 5 passes — P1 FAIL_FINDINGS (4 findings F-S162P1-001..004, all fixed+confirmed), P2 NITPICK_ONLY (1 FIX_INCOMPLETE F-S162P2-001, completed), P3 PASS_NITPICK_ONLY (2 nits fixed, 3 dispositioned), P4 PASS_CLEAN, P5 PASS_NITPICK_ONLY (EC-006 nit fixed; 2 accepted dispositions; 1 process-gap noted) — streak 3/3 = P3/P4/P5, trajectory 4→1→2→0→0. Demo evidence 5 artifacts, scrub PASS. VP-INDEX v2.39→v2.40 (LMR-003 Option A amendment, factory-side companion). STORY-INDEX v3.37→v3.38; stories_delivered 101→102. Worktree + local branch removed. Process-gap noted for wave-close S-7.02: PG-W73-CHANGELOG-GATE-CONTENT (changelog-gate is presence-only, no content assertion — adversary P5 process-gap, pre-existing gate weakness). | 2026-07-11 |
 | D-427 | STORY-163 DELIVERED (2026-07-11): factory-artifacts-only (no develop PR, E-11 convention). docs-writer-dispatch-guidance.md CREATED (AC-163-001) + pr-manager-merge-auth-guidance.md AMENDED (AC-163-002). Per-story adversarial convergence: 5 passes — P1 FAIL_FINDINGS (F-S163P1-001 CRITICAL fabricated citations + F-S163P1-002/003 HIGH + F-S163P1-004 MEDIUM, all fixed+confirmed), P2 FAIL_FINDINGS (F-S163P2-001 MEDIUM anchor precision, fixed + full 15-anchor sweep), P3 PASS_CLEAN, P4 PASS_NITPICK_ONLY (3 LOW polish fixed), P5 PASS_CLEAN — streak 3/3 = P3/P4/P5, trajectory 4→1→0→3→0. P1 meta-observation: citation-mandate story's own evidence had fabricated anchors — caught + fixed; mandate self-validates. Input-hash: STORY-163 e1ad659 confirmed stable (self-aliasing; bash-hook divergence PG-HASH-HOOK-DIVERGENCE noted — canonical Python authoritative per CLAUDE.md); STORY-161 re-baselined VP-INDEX v2.40 cascade (1d63da9→c56290b); scan MATCH=116 STALE=0. STORY-INDEX v3.38→v3.39; stories_delivered 102→103. Wave-73 ALL STORIES DELIVERED. Process-gap candidates S-7.02: PG-W73-CHANGELOG-GATE-CONTENT (STORY-162 P5) + citation-mandate mechanical preflight validator (STORY-163 P1). | 2026-07-11 |
 | D-428 | Wave-73 CLOSED (human-approved, 2026-07-11). Gate all-green (see cycles/wave-73/wave-gate/gate-summary.md): suite 2392/0 + python 60/60+9/9; adversary 6-pass CONVERGED streak 3/3 (P4/P5/P6) trajectory 4→2→1→0→1(nits-refuted)→0; code-review APPROVE-WITH-COMMENTS (CR-001 MINOR + CR-002/003 NITs — all DEFERRED human-ratified next maintenance); security PASS-WITH-ADVISORIES (SEC-001 LOW CWE-59 accepted); consistency PASS; holdout N/A (zero src/ changes); demos PASS (5 artifacts, scrub PASS); input-hash MATCH=117 STALE=0. S-7.02 SATISFIED: STORY-164 drafted (wave-TBD, E-11, 3 pts) codifying PG-W73-STATUS-VOCAB AC-164-001 + PG-W73-CITATION-VALIDATOR AC-164-002 + PG-W73-CHANGELOG-GATE-CONTENT AC-164-003 + CLAUDE.md row AC-164-004. Corpus status sweep 38 files fixed. CR-001/002/003 DEFERRED (human-ratified). STORY-INDEX v3.43 (117 stories/722 pts). wave-72 Lesson-2 remains deferred (candidate-codification—next-maintenance). | 2026-07-11 |
+| D-429 | Maintenance run maint-2026-07-11 COMPLETE (2026-07-11). 8 sweeps (6=DTU N/A, 9=a11y N/A), 0 CRITICAL/HIGH. Route A: PR #396 squash-merged 6779be6 (2026-07-11T16:45:25Z) by human (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER; admin-bypass declined in auto-mode); 17 findings fixed; adversary VOID→F-P1-001→F-P1r-002→1/3→F-P2-001→1/3→2/3→3/3 CONVERGED. Routes B/C DEFERRED (human, 2026-07-11) → ROUTE-BC-DEFERRED-2026-07-11. STORY-164 v1.1 AC-164-005 added (PG-W72-BREAKING-HOLDOUT-SWEEP; W72-L2 codified; breaking-change-delivery-protocol.md). Tech-debt: PC-013 line numbers updated; PC-014 RESOLVED; SEC-001 DEFERRED next feature wave; ISSUE-102-PREMATURE-CLOSE-001 CLOSED-REFUTED (WEAK_CIPHER_EVIDENCE_CAP exists at tls.rs:635; grep for wrong symbol); ARP-RATE-INTDIV-DOC-001/DNP3-TUNING-BIDIR-001/UNIT-FMT-5-20S-001/README-OPTIONS-L117-NEUTRAL-001/ROUTE-B-DEFERRED/PG-W-README-JSON-SCHEMA/CHANGELOG-D3-T0830-DRIFT-001 all RESOLVED PR #396. ADVERSARY-RELAY-UNRELIABLE-001 3rd recurrence (sweep-4 holdout). DRIFT-ENGINE-CHECKOUT-GUARD-001 2nd recurrence (PR #396 Pass 1 VOID). PERF-RERUN-001 OPEN (load avg 52.57 — human deferred quiescent re-run). STORY-INDEX v3.44 (117 stories/723 pts). develop=6779be6. Pipeline PAUSED. | 2026-07-11 |
 
 ---
 
@@ -138,11 +141,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **Maintenance run maint-2026-07-11 COMPLETE (D-429, 2026-07-11). 8 sweeps 0 HIGH/CRIT; PR #396 merged 6779be6 (17 findings, adversary VOID→3/3 CONVERGED; human-merged); STORY-164 v1.1 AC-164-005 (W72-L2 codified); Routes B/C DEFERRED (ROUTE-BC-DEFERRED-2026-07-11); PERF-RERUN-001 OPEN; SEC-001 DEFERRED next feature wave; develop=6779be6 (2 unreleased commits). STORY-INDEX v3.44 (117 stories/723 pts). Pipeline PAUSED. trajectory-tail →0→0→0→0** | **COMPLETE (D-429)** | maint-2026-07-11 COMPLETE. Pipeline PAUSED. |
 | **Maintenance run maint-2026-07-11 STARTED (resume-triggered, human-approved, 2026-07-11). Sweeps 1-5,7,8 dispatched (6=DTU N/A, 9=a11y N/A). Carry-forwards: CR-001/002/003 (wave-73 D-428 deferred), wave-72 Lesson-2 codification candidate, ADV-4 ci.yml build-dep-chain comment (OVERDUE 3+ cycles, human disposition pending). Pipeline RUNNING. trajectory-tail →0→0→0→0** | **STARTED** | Maintenance run started; sweeps dispatched. |
 | **Session wrap (human-requested, 2026-07-11). Wave-73 CLOSED (D-428); v0.12.0 remains latest release; no sub-agents abandoned mid-step; no story worktrees open; develop==origin==b5e1e15 clean. Pipeline PAUSED between cycles. trajectory-tail →0→0→0→0** | **PAUSED** | Session wrap. Pipeline PAUSED. |
 | **Wave-73 CLOSED (D-428, 2026-07-11, human-approved). Gate all-green: suite 2392/0, adversary 6-pass CONVERGED streak 3/3, code-review APPROVE-WITH-COMMENTS (CR-001/002/003 DEFERRED), security PASS-WITH-ADVISORIES, consistency PASS, holdout N/A, demos PASS (5 artifacts), input-hash MATCH=117 STALE=0. S-7.02 SATISFIED (STORY-164 drafted, wave-TBD, E-11, 3 pts: AC-164-001..004). Corpus status sweep 38 files. STORY-INDEX v3.43 (117 stories/722 pts). Pipeline PAUSED/IDLE. trajectory-tail →1→0→1→0** | **CLOSED (D-428)** | Wave-73 CLOSED. Pipeline IDLE. |
 | **STORY-163 DELIVERED (D-427, 2026-07-11): docs-writer-dispatch-guidance.md NEW (AC-163-001) + pr-manager-merge-auth-guidance.md AMENDED (AC-163-002); factory-artifacts-only (no develop PR). Adversary 5-pass CONVERGED streak 3/3 (P3/P4/P5), trajectory 4→1→0→3→0. P1 CRITICAL fabricated-citation catch (meta-validation of mandate). STORY-INDEX v3.39; stories_delivered 103. Wave-73 all delivered. trajectory-tail →1→0→3→0** | **DELIVERED (D-427)** | Wave-73 all stories done; integration gate NEXT. |
-| **STORY-162 DELIVERED (D-426, 2026-07-11): PR #395 squash b5e1e15; CI 12/12; security CLEAN; pr-reviewer APPROVE. Adversary 5-pass CONVERGED streak 3/3 (P3/P4/P5), trajectory 4→1→2→0→0. VP-INDEX v2.40 LMR-003 Option A shipped (factory-side). Demo evidence 5 artifacts scrub PASS. STORY-INDEX v3.38; stories_delivered 102. trajectory-tail →1→2→0→0** | **DELIVERED (D-426)** | STORY-162 done. |
 
 ## Decisions Log
 
@@ -383,23 +386,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**MAINTENANCE RUN maint-2026-07-11 IN PROGRESS (resume-triggered, human-approved, 2026-07-11). Wave-73 CLOSED (D-428). Sweeps 1-5,7,8 dispatched. Pipeline RUNNING.**
+**MAINTENANCE RUN maint-2026-07-11 COMPLETE (D-429, 2026-07-11). Pipeline PAUSED (steady-state). Next: STORY-164 wave assignment.**
 
-Prior checkpoint (session-wrap 2026-07-11) archived to `cycles/wave-73/session-checkpoints.md`.
+Prior checkpoint (maint-2026-07-11 IN PROGRESS) archived to `cycles/maint-2026-07-11/session-checkpoints.md`.
 
-- **Date:** 2026-07-11. Position: Maintenance run maint-2026-07-11 IN PROGRESS; wave-73 CLOSED (D-428); pipeline RUNNING. develop=b5e1e155e37704296a8cb5951743cd5817a3f11d (1 unreleased commit ahead of v0.12.0/main=f1e0c36), Cargo 0.12.0. develop==origin/develop (verified).
-- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `b5e1e155e37704296a8cb5951743cd5817a3f11d`. Tag v0.12.0 resolves to `f1e0c36`. GitHub Release Latest with 4 binaries live. Develop is 1 unreleased commit ahead of main (STORY-162 PR #395 squash b5e1e15).
-- **In-flight / abandoned:** Sweeps 1-5,7,8 dispatched (IN PROGRESS). No mid-TDD stories; no open worktrees beyond main checkout [develop] + .factory [factory-artifacts]; no open PRs; no open release/* or chore/backmerge-* branches.
-- **Completed this burst:** maint-2026-07-11 STARTED; sweeps dispatched; Current Phase Steps row added; session-wrap checkpoint archived to cycles/wave-73/session-checkpoints.md; factory-artifacts committed and pushed.
-- **Carry-forwards in scope:** CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified), wave-72 Lesson-2 codification candidate (PROP-V0.12.0-01 BREAKING-holdout pre-PR sweep), ADV-4 ci.yml build-dep-chain comment (OVERDUE 3+ cycles, human disposition pending).
-- **Pending human decisions:** ADV-4 ci.yml build-dep-chain comment disposition — OVERDUE 3+ cycles.
+- **Date:** 2026-07-11. Position: Maintenance run maint-2026-07-11 COMPLETE; pipeline PAUSED. develop=6779be60c7d4e9fd2e2dabc0121f679a0b29f5e6 (2 unreleased commits ahead of v0.12.0/main=f1e0c36), Cargo 0.12.0. develop==origin/develop (verified post-push).
+- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `6779be60c7d4e9fd2e2dabc0121f679a0b29f5e6`. Tag v0.12.0 resolves to `f1e0c36`. GitHub Release Latest with 4 binaries live. Develop is 2 unreleased commits ahead of main (b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11).
+- **In-flight / abandoned:** None. No mid-TDD stories; no open worktrees beyond main checkout [develop] + .factory [factory-artifacts]; no open PRs; no open release/* or chore/backmerge-* branches.
+- **Completed this burst (D-429):** 8 sweeps COMPLETE; PR #396 merged 6779be6 (17 findings, adversary 3/3); STORY-164 v1.1 AC-164-005 (W72-L2 codified); tech-debt register v1.8 (DEP-007 dep-cadence, PC-013 line#s, PC-014 RESOLVED, SEC-001 DEFERRED, HASHMAP-ENTRY exact count=14, ARP-RATE/DNP3-TUNING/UNIT-FMT/README-OPTIONS/ROUTE-B/PG-W-README-JSON-SCHEMA/CHANGELOG-D3-T0830 RESOLVED, ISSUE-102 CLOSED-REFUTED, 2 new P3 rows); lessons.md 4 lessons written; sweep-report-2026-07-11.md written; STATE.md COMPLETE update; factory-artifacts committed and pushed.
+- **Carry-forwards in scope:** CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified); PERF-RERUN-001 OPEN (quiescent conditions required); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); ADV-4 OVERDUE flag resolved (already fixed PR #369).
+- **Pending human decisions:** PERF-RERUN-001 quiescent re-run (require: load avg < 3.0, OrbStack stopped, node processes terminated, Chrome closed); ROUTE-BC-DEFERRED-2026-07-11 spec-coherence batch (deferred to next maintenance sweep).
 - **Next-work candidates (priority order):**
-  1. **Maintenance sweeps 1-5,7,8 complete + route decisions** — sweeps dispatched; await findings.
-  2. **STORY-164 delivery** (wave-TBD, E-11, 3 pts) — codifies PG-W73-STATUS-VOCAB (AC-164-001) + PG-W73-CITATION-VALIDATOR (AC-164-002) + PG-W73-CHANGELOG-GATE-CONTENT (AC-164-003) + CLAUDE.md row (AC-164-004); would open wave-74.
-  3. **ISSUE-102-PREMATURE-CLOSE-001 triage** (P2) — DF-VALIDATION-001-gated; research-agent validation required before filing.
-  4. **AC-149-003 quiescent perf re-run** — standing advisory.
-- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.43 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
-- **Resume command:** `/vsdd-factory:maintenance-sweep` or `/vsdd-factory:next-step`
+  1. **STORY-164 delivery** (wave-TBD, E-11, 4 pts, v1.1) — codifies PG-W73-STATUS-VOCAB (AC-164-001) + PG-W73-CITATION-VALIDATOR (AC-164-002) + PG-W73-CHANGELOG-GATE-CONTENT (AC-164-003) + CLAUDE.md row (AC-164-004) + PG-W72-BREAKING-HOLDOUT-SWEEP (AC-164-005); would open wave-74.
+  2. **ROUTE-BC-DEFERRED-2026-07-11 spec-coherence batch** — HS-INDEX/ARCH-INDEX/epics.md/STORY-INDEX corrections, HS-087/HS-129 repairs, BC-2.07.NNN authoring, R-001 correction, Modbus holdout scenarios.
+  3. **AC-149-003 quiescent perf re-run** (PERF-RERUN-001) — standing advisory; quiescent machine required.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.44 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step` or `/vsdd-factory:story-delivery STORY-164`
 
 ---
 

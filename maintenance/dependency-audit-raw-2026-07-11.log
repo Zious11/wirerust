@@ -1,0 +1,78 @@
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1159 security advisories (from /Users/zious/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
+warning[duplicate]: found 2 duplicate entries for crate 'syn'
+    ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
+    │  
+135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
+136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
+    │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
+    │  
+    ├ syn v1.0.109
+      ├── derive-into-owned v0.2.0
+      │   └── pcap-file v2.0.0
+      │       └── wirerust v0.12.0
+      └── nom-derive-impl v0.10.1
+          └── nom-derive v0.10.1
+              └── tls-parser v0.12.2
+                  └── wirerust v0.12.0 (*)
+    ├ syn v2.0.117
+      ├── clap_derive v4.6.1
+      │   └── clap v4.6.1
+      │       ├── criterion v0.8.2
+      │       │   └── (dev) wirerust v0.12.0
+      │       └── wirerust v0.12.0 (*)
+      ├── num_enum_derive v0.7.6
+      │   └── num_enum v0.7.6
+      │       └── tls-parser v0.12.2
+      │           └── wirerust v0.12.0 (*)
+      ├── serde_derive v1.0.228
+      │   └── serde v1.0.228
+      │       ├── chrono v0.4.45
+      │       │   └── wirerust v0.12.0 (*)
+      │       ├── ciborium v0.2.2
+      │       │   └── criterion v0.8.2 (*)
+      │       ├── criterion v0.8.2 (*)
+      │       ├── tinytemplate v1.2.1
+      │       │   └── criterion v0.8.2 (*)
+      │       └── wirerust v0.12.0 (*)
+      ├── thiserror-impl v1.0.69
+      │   └── thiserror v1.0.69
+      │       └── pcap-file v2.0.0
+      │           └── wirerust v0.12.0 (*)
+      ├── wasm-bindgen-macro-support v0.2.117
+      │   └── wasm-bindgen-macro v0.2.117
+      │       └── wasm-bindgen v0.2.117
+      │           ├── chrono v0.4.45 (*)
+      │           ├── iana-time-zone v0.1.65
+      │           │   └── chrono v0.4.45 (*)
+      │           ├── js-sys v0.3.94
+      │           │   ├── chrono v0.4.45 (*)
+      │           │   ├── iana-time-zone v0.1.65 (*)
+      │           │   ├── web-sys v0.3.94
+      │           │   │   └── plotters v0.3.7
+      │           │   │       └── criterion v0.8.2 (*)
+      │           │   └── web-time v1.1.0
+      │           │       └── indicatif v0.18.6
+      │           │           └── wirerust v0.12.0 (*)
+      │           ├── plotters v0.3.7 (*)
+      │           ├── web-sys v0.3.94 (*)
+      │           └── web-time v1.1.0 (*)
+      ├── windows-implement v0.60.2
+      │   └── windows-core v0.62.2
+      │       └── iana-time-zone v0.1.65 (*)
+      ├── windows-interface v0.59.3
+      │   └── windows-core v0.62.2 (*)
+      └── zerocopy-derive v0.8.52
+          └── zerocopy v0.8.52
+              ├── half v2.7.1
+              │   └── ciborium-ll v0.2.2
+              │       └── ciborium v0.2.2 (*)
+              └── ppv-lite86 v0.2.21
+                  └── rand_chacha v0.9.0
+                      └── proptest v1.11.0
+                          └── (dev) wirerust v0.12.0 (*)
+
+advisories ok, bans ok, licenses ok, sources ok
+cargo-outdated not installed; skipping. Install with: cargo install cargo-outdated

@@ -2,14 +2,14 @@
 document_type: story
 story_id: STORY-164
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-11T00:00:00Z
 phase: f7
 level: feature
 cycle: wave-73
-points: 3
+points: 4
 priority: P3
 depends_on: []
 blocks: []
@@ -37,7 +37,7 @@ inputs:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/docs-writer-dispatch-guidance.md
-input-hash: "1a3e4da"
+input-hash: "3922d6c"
 ---
 
 # STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator,
@@ -46,7 +46,7 @@ changelog-gate content assertion, guidance-doc reference row
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
 **Wave:** ~ (wave-TBD)
-**Points:** 3
+**Points:** 4
 **Priority:** P3
 
 ## Narrative
@@ -298,6 +298,57 @@ grep -n "docs-writer-dispatch-guidance" CLAUDE.md
 ```
 must emit non-empty output with the new row.
 
+### AC-164-005 (traces to PG-W72-BREAKING-HOLDOUT-SWEEP — holdout-expectation sweep obligation for BREAKING-change stories)
+
+A new maintenance artifact `.factory/maintenance/breaking-change-delivery-protocol.md`
+(factory-artifacts branch) is created that codifies the **holdout-expectation sweep
+obligation** as a mandatory delivery gate for any story that changes observable output
+format.
+
+(a) **Scope trigger:** The sweep obligation applies to any story satisfying at least one:
+    - Tagged `BREAKING` in its frontmatter, title, or CHANGELOG entry
+    - Changes observable JSON output schema (field names, types, enum values, or enum
+      casing — e.g., PascalCase → lowercase or snake_case)
+    - Changes observable text output layout (column ordering, header format, separator
+      characters, or field labels)
+
+(b) **Mandatory delivery gate:** Before the PR is opened, the implementer MUST:
+    1. Run the holdout evaluator against the story's output changes.
+    2. Identify all stale holdout-scenario expectations in `.factory/holdout-scenarios/`
+       (any scenario whose `expected_output` references the old enum names, JSON schema,
+       or text layout).
+    3. Repair all stale expectations to match the new output format.
+    4. Record `holdout-expectations-sweep: COMPLETE` in the story's delivery checklist
+       (Tasks section). A PR opened for an in-scope story without this item completed
+       is **non-conforming** per this protocol (PG-W72-BREAKING-HOLDOUT-SWEEP).
+
+(c) **Wave-72 evidence:** STORY-160 introduced a BREAKING JSON change (enum casing:
+    PascalCase → lowercase/snake_case + `schema_version` envelope). Thirteen holdout
+    scenarios were found stale at the wave-72 integration gate:
+    HS-021/024/032/033/034/035/050/054/059/064/065/074/075. These were repaired by the
+    product-owner at gate time rather than during story delivery — a significant
+    unplanned gate-time work item that this protocol prevents in future waves.
+    Source: `.factory/cycles/wave-72/lessons.md` Lesson 2
+    (tag PG-W72-BREAKING-HOLDOUT-SWEEP).
+
+(d) **CLAUDE.md reference row:** CLAUDE.md's Project References table gains a new row
+    for `.factory/maintenance/breaking-change-delivery-protocol.md`, placed after the
+    `docs-writer-dispatch-guidance.md` row added by AC-164-004:
+
+    ```
+    | `.factory/maintenance/breaking-change-delivery-protocol.md` | BREAKING-change holdout-sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP; `holdout-expectations-sweep: COMPLETE` required before PR for BREAKING or output-format-change stories) |
+    ```
+
+Verification:
+```bash
+test -f .factory/maintenance/breaking-change-delivery-protocol.md
+grep -n "holdout-expectations-sweep\|PG-W72-BREAKING-HOLDOUT-SWEEP" \
+  .factory/maintenance/breaking-change-delivery-protocol.md
+grep -n "breaking-change-delivery-protocol" CLAUDE.md
+```
+All three must succeed: file exists, grep emits non-empty output from the protocol
+document, and the CLAUDE.md row is present.
+
 ## Architecture Mapping
 
 | Component | File | Pure/Effectful |
@@ -307,7 +358,8 @@ must emit non-empty output with the new row.
 | Citation preflight validator self-test | `bin/test_validate_citations.py` (new) | Pure (test harness) |
 | Docs-writer dispatch guidance §4 step | `.factory/maintenance/docs-writer-dispatch-guidance.md` (amend) | Documentation |
 | Changelog-gate content assertion | `.github/workflows/ci.yml` (amend) | CI configuration |
-| CLAUDE.md Project References row | `CLAUDE.md` (amend) | Documentation |
+| CLAUDE.md Project References rows (AC-164-004 + AC-164-005) | `CLAUDE.md` (amend) | Documentation |
+| BREAKING-change holdout-sweep protocol | `.factory/maintenance/breaking-change-delivery-protocol.md` (new) | Documentation |
 
 No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` changes.
 
@@ -372,6 +424,16 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
    CLAUDE.md). Add a CHANGELOG.md `[Unreleased]` entry (required by AC-158-001 /
    PG-W71-CHANGELOG, since bin/ is in the trigger set). The STORY-INDEX amendment and
    docs-writer-dispatch-guidance.md §4 update are factory-artifacts branch commits only.
+
+8. **Create breaking-change-delivery-protocol.md (AC-164-005):** Write
+   `.factory/maintenance/breaking-change-delivery-protocol.md` on the factory-artifacts
+   branch. The document MUST cover: scope trigger conditions (BREAKING tag / JSON enum
+   casing / observable text layout), the mandatory delivery gate steps (run holdout
+   evaluator, identify stale scenarios, repair, record `holdout-expectations-sweep:
+   COMPLETE`), and the wave-72 evidence (13 stale scenarios HS-021/024/032/033/034/035/
+   050/054/059/064/065/074/075 repaired at gate after STORY-160; source:
+   `.factory/cycles/wave-72/lessons.md` Lesson 2, tag PG-W72-BREAKING-HOLDOUT-SWEEP).
+   The CLAUDE.md row for this file is added to the same develop PR as AC-164-004 (Task 5).
 
 > **Note for implementer:** The develop PR (Task 7) is required for AC-164-002 (bin/),
 > AC-164-003 (.github/), and AC-164-004 (CLAUDE.md). AC-164-001 (STORY-INDEX legend)
@@ -441,10 +503,11 @@ STORY-163, which immediately precede this story in wave-73:
 | `bin/validate-citations` | Create | develop | Python 3.10+ stdlib citation preflight validator |
 | `bin/test_validate_citations.py` | Create | develop | Stdlib unittest self-test suite |
 | `.github/workflows/ci.yml` | Modify | develop | Add content assertion to changelog-gate |
-| `CLAUDE.md` | Modify | develop | Add docs-writer-dispatch-guidance.md reference row |
+| `CLAUDE.md` | Modify | develop | Add docs-writer-dispatch-guidance.md row (AC-164-004) + breaking-change-delivery-protocol.md row (AC-164-005) |
 | `CHANGELOG.md` | Modify | develop | Add [Unreleased] entry (AC-158-001 obligation for bin/) |
 | `.factory/stories/STORY-INDEX.md` | Modify | factory-artifacts | Status-vocabulary legend after `## Index Table` |
 | `.factory/maintenance/docs-writer-dispatch-guidance.md` | Modify | factory-artifacts | Add §4 validate-citations preflight step |
+| `.factory/maintenance/breaking-change-delivery-protocol.md` | Create | factory-artifacts | BREAKING-change holdout-sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP) |
 
 ## Token Budget Estimate
 
@@ -462,13 +525,17 @@ Well within context window. No story split required.
 
 ## Notes
 
-- **DF-VALIDATION-001 gate:** All four process gaps originate from wave-73 in-process
-  execution findings: F-W73G-P3-001 from the wave-73 gate adversarial sweep (in-process),
-  F-S163P1-001 from STORY-163 per-story convergence Pass 1 (in-process), PG-W73-CHANGELOG-
-  GATE-CONTENT from STORY-162 per-story convergence Pass 5 (in-process), and the wave-73
-  consistency audit advisory (in-process). All four are in-process execution findings —
-  DF-VALIDATION-001-exempt per the in-process exemption (same pattern as STORY-162 Notes,
-  STORY-163 Notes, STORY-159 Notes, STORY-158 Notes).
+- **DF-VALIDATION-001 gate:** All five process gaps are DF-VALIDATION-001-exempt. The
+  original four (AC-164-001..004) originate from wave-73 in-process execution findings:
+  F-W73G-P3-001 from the wave-73 gate adversarial sweep (in-process), F-S163P1-001 from
+  STORY-163 per-story convergence Pass 1 (in-process), PG-W73-CHANGELOG-GATE-CONTENT from
+  STORY-162 per-story convergence Pass 5 (in-process), and the wave-73 consistency audit
+  advisory (in-process). AC-164-005 (PG-W72-BREAKING-HOLDOUT-SWEEP) originates from the
+  wave-72 gate lessons (cycles/wave-72/lessons.md Lesson 2, human-approved 2026-07-11),
+  codified via maint-2026-07-11 maintenance run — in-process execution finding carried
+  through S-7.02. All five are in-process execution findings — DF-VALIDATION-001-exempt
+  per the in-process exemption (same pattern as STORY-162 Notes, STORY-163 Notes,
+  STORY-159 Notes, STORY-158 Notes).
 - **S-7.02 disposition:** Creating this story at draft status codifies four wave-73
   process-gap findings (PG-W73-STATUS-VOCAB, PG-W73-CITATION-VALIDATOR, PG-W73-CHANGELOG-
   GATE-CONTENT, wave-73 consistency audit advisory for CLAUDE.md) for the S-7.02 wave-73
@@ -491,4 +558,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-11 | story-writer | maint-2026-07-11 amendment — AC-164-005 added: BREAKING-change holdout-expectation sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP); wave-72 Lesson-2 evidence cited (13 stale holdout scenarios at wave-72 gate after STORY-160 casing change); creates `.factory/maintenance/breaking-change-delivery-protocol.md` (factory-artifacts) + CLAUDE.md reference row; delivery checklist gate item `holdout-expectations-sweep: COMPLETE` codified. Points 3→4: AC-164-005 adds a new maintenance protocol document + CLAUDE.md row; 5 ACs total justifies +1 pt over original 3-AC estimate. |
 | 1.0 | 2026-07-11 | story-writer | Initial authorship — wave-73 process-gap codifications: PG-W73-STATUS-VOCAB (AC-164-001 STORY-INDEX legend), PG-W73-CITATION-VALIDATOR (AC-164-002 bin/validate-citations), PG-W73-CHANGELOG-GATE-CONTENT (AC-164-003 CI content assertion), wave-73 consistency audit CLAUDE.md row (AC-164-004). S-7.02 wave-73 cycle-close. |
