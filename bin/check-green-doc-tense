@@ -351,17 +351,31 @@ def scan_file(path: Path) -> list[tuple[int, str, str]]:
     return violations
 
 
-def main() -> int:
-    # Resolve repo root: walk up from this script's location until we find
-    # a directory containing a .git entry (file or directory).
-    script_path = Path(__file__).resolve()
-    candidate = script_path.parent
-    repo_root: Path | None = None
+def _find_repo_root(start: Path) -> Path | None:
+    """Walk upward from *start* looking for a repo-root sentinel.
+
+    Contract:
+    - Precondition: *start* is any Path (need not exist).
+    - Postcondition: returns the first directory in the ancestor chain
+      (inclusive of *start*) that contains either a `.git` entry (file or
+      directory) OR a `.factory/` subdirectory; returns None if neither
+      sentinel is found within the search depth.
+    - Invariant: when the return value is not None it is an ancestor-or-equal
+      of *start* and satisfies `(p / ".git").exists() or (p / ".factory").is_dir()`.
+
+    Walk upward up to 6 levels from *start*.
+    """
+    candidate = start
     for _ in range(6):  # at most 6 levels up
         if (candidate / ".git").exists() or (candidate / ".factory").is_dir():
-            repo_root = candidate
-            break
+            return candidate
         candidate = candidate.parent
+    return None
+
+
+def main() -> int:
+    script_path = Path(__file__).resolve()
+    repo_root = _find_repo_root(script_path.parent)
     if repo_root is None:
         print("ERROR: could not locate repo root (no .git or .factory/ found)", file=sys.stderr)
         return 2

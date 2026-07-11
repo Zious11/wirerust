@@ -7,6 +7,32 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **`bin/check-green-doc-tense`: extract `_find_repo_root` helper + add hermetic
+  main()-guard self-tests (STORY-162, wave-73, F-W72G-P2-OBS-001).**
+
+  The repo-root sentinel walk in `main()` is extracted into a standalone
+  `_find_repo_root(start: Path) -> Path | None` helper that walks upward up to
+  6 levels looking for a `.git` entry (file or directory) or a `.factory/`
+  subdirectory. `main()` now delegates to this helper, enabling hermetic monkey-
+  patching in tests without relying on the live `.git` or `.factory/` of the
+  develop checkout.
+
+  `bin/test_check_green_doc_tense.py` gains five new hermetic self-tests
+  (AC-162-003 / AC-162-004, F-W72G-P2-OBS-001):
+  - Three `_find_repo_root` unit tests verifying the `.factory/` OR-sentinel,
+    `.git` directory sentinel, and `.git` file (worktree) sentinel arms.
+  - One no-sentinel regression guard asserting `_find_repo_root` returns `None`
+    or an ancestor outside the temp tree when neither `.git` nor `.factory/`
+    is present.
+  - One precision exit-code test asserting `main()` returns exactly `1` (zero-file
+    guard) rather than `2` (root-not-found guard) when `_collect_rust_files` returns
+    `[]` and a repo root is reliably found via a hermetic temp fixture.
+
+  Codifies wave-72 process-gap F-W72G-P2-OBS-001 per S-7.02 cycle-close obligation
+  (F-S161P1-001 / VP-INDEX LMR-003 template-conformance exemption on factory side).
+
 ## [0.12.0] - 2026-07-10
 
 ### Changed (BREAKING)
