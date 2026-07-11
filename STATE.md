@@ -8,13 +8,13 @@ input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
 mode: steady-state
-phase: "wave-73-planning"
+phase: "wave-73-delivery"
 status: in-progress
-current_step: "Wave-73 OPENED (D-424, 2026-07-10): STORY-162 (3 pts) + STORY-163 (2 pts) assigned (both E-11 governance-only, sequential delivery 162→163). STORY-163 input-hash drift resolved (D-420 close commit appended registration notes to inputs; citations re-validated, no semantic drift). STORY-INDEX v3.36. input-hash scan MATCH=116 STALE=0. Awaiting human plan approval. Remaining standing candidates: ISSUE-102 triage (P2), AC-149-003 quiescent perf re-run (standing), ADV-4 disposition (OVERDUE 3+ cycles). trajectory-tail →0→0→0→0"
+current_step: "Wave-73 plan gate APPROVED (D-425, human, 2026-07-10). Delivery order STORY-162 → STORY-163 confirmed. Gate Q&A dispositions: PROP-V0.12.0-01/02/03 DEFERRED to improvement-backlog (no wave-73 scope change); AC-162-001 Option A/B left to implementer as story-written; E-11 no-BC convention confirmed acceptable; develop-PR merges via orchestrator under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path). STORY-162 delivery STARTED. trajectory-tail →0→0→0→0"
 current_cycle: "wave-73"
 pipeline: ACTIVE
-timestamp: 2026-07-10T23:19:19Z
-# Updated D-424 wave-73 OPENED (2026-07-10)
+timestamp: 2026-07-11T00:37:01Z
+# Updated D-425 wave-73 plan gate APPROVED (2026-07-10)
 
 # Release chain (latest)
 released_version: v0.12.0
@@ -64,7 +64,7 @@ maintenance_prior_run: maint-2026-07-08
 
 ## EXACT RESUME POINT
 
-**Wave-73 OPENED (D-424, 2026-07-10). STORY-162 (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS) + STORY-163 (E-11, 2 pts, PG-RA-P3-ARP-REC006-INVERSION-001 + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER) assigned to wave-73, sequential delivery 162→163. STORY-163 input-hash drift resolved (1cd3179→e1ad659). STORY-INDEX v3.36. Human wave-plan approval PENDING — on approval, begin per-story delivery STORY-162 then STORY-163. Standing candidates unchanged: ISSUE-102 triage (P2, DF-VALIDATION-001-gated), AC-149-003 quiescent perf re-run (standing), ADV-4 disposition (OVERDUE 3+ cycles). Pipeline ACTIVE. trajectory-tail →0→0→0→0**
+**Wave-73 plan gate APPROVED (D-425, human, 2026-07-10). Delivery order STORY-162 → STORY-163 confirmed. Gate Q&A dispositions: PROP-V0.12.0-01/02/03 DEFERRED to improvement-backlog (no wave-73 scope change); AC-162-001 Option A/B left to implementer as story-written; E-11 no-BC convention confirmed acceptable; develop-PR merges via orchestrator under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path). STORY-162 delivery STARTED (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS). STORY-163 queued (E-11, 2 pts). STORY-INDEX v3.36. Standing candidates unchanged: ISSUE-102 triage (P2), AC-149-003 quiescent perf re-run (standing), ADV-4 disposition (OVERDUE 3+ cycles). Pipeline ACTIVE. trajectory-tail →0→0→0→0**
 
 ---
 
@@ -73,7 +73,7 @@ maintenance_prior_run: maint-2026-07-08
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | wave-73 OPENED (D-424, 2026-07-10); STORY-162/163 assigned; awaiting human plan approval |
+| Mode | wave-73 delivery ACTIVE (D-425, 2026-07-10); STORY-162 in flight; STORY-163 queued |
 | Version | 0.12.0 (released 2026-07-10; main=develop=f1e0c36, Cargo.toml 0.12.0; zero unreleased commits; histories reunified) |
 | Main HEAD | `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`) |
 | Develop HEAD | `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`) — fast-forwarded to main merge commit (D-422, 2026-07-10); main==develop; zero unreleased commits |
@@ -82,7 +82,7 @@ maintenance_prior_run: maint-2026-07-08
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.39 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 101 delivered / 116 total (STORY-INDEX v3.36) |
-| **Last Updated** | 2026-07-10 — Wave-73 OPENED (D-424): STORY-162/163 assigned, STORY-163 drift resolved, STORY-INDEX v3.36, pipeline ACTIVE. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-10 — Wave-73 plan gate APPROVED (D-425): STORY-162 delivery STARTED, STORY-163 queued, trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -127,6 +127,7 @@ maintenance_prior_run: maint-2026-07-08
 | v0.12.0 RELEASED + CHAIN COMPLETE (D-422) | **RELEASED 2026-07-10** | PR #394 (release/0.12.0 → main, merge f1e0c36); tag v0.12.0 (resolves to commit f1e0c36); GitHub Release Latest 4 binaries. Back-merge: develop FAST-FORWARDED to f1e0c36 (no squash — histories reunified; PG-GITFLOW-SQUASH-BACKMERGE mitigated). Branches cleaned. main==develop==f1e0c36, Cargo 0.12.0. BREAKING JSON surface change BC-2.11.036/037 shipped. |
 | D-423 | Session review session-review-2026-07-10-v0.12.0 COMPLETE (2026-07-10). 4 artifacts written. Key outcomes: PROP-V0.12.0-01 (P1, BREAKING-change holdout-expectation pre-PR sweep — STORY-160 casing change left 13 stale holdouts to gate time), PROP-V0.12.0-02 (P1, strict 3/3 adversarial convergence mandatory for docs PRs — Route A caught 3 HIGH fabrications), PROP-V0.12.0-03 (P2, synchronous adversary dispatch run_in_background:false for maintenance PRs — 2 relay failures maint-2026-07-08), PAT-009 adversary stale git-ref false alarms RESOLVED-EFFECTIVE (0 recurrences in 11 passes), PG-MERGE-AUTH-SUBAGENT-CLASSIFIER already codified in STORY-163 AC-163-002, carry-forward ADV-4 (ci.yml build-dep-chain comment) OVERDUE 3+ cycles — needs human disposition at next maintenance run. | 2026-07-10 |
 | D-424 | Wave-73 OPENED. STORY-162 (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS) + STORY-163 (E-11, 2 pts, PG-RA-P3-ARP-REC006-INVERSION-001 + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER) assigned to wave-73, sequential delivery 162→163. STORY-163 input-hash drift resolved (1cd3179→e1ad659; D-420 close commit 2bbf3c2 appended registration notes to its input files; citations re-validated, zero semantic drift, no body changes). STORY-INDEX v3.36. input-hash scan MATCH=116 STALE=0. Human wave-plan approval PENDING. | 2026-07-10 |
+| D-425 | Wave-73 plan gate APPROVED (human, 2026-07-10). Delivery order STORY-162 → STORY-163 confirmed. Gate Q&A dispositions: session-review proposals PROP-V0.12.0-01/02/03 DEFERRED to improvement-backlog (no wave-73 scope change); AC-162-001 Option A/B left to implementer as story-written; E-11 no-BC convention confirmed acceptable; develop-PR merges to be executed by orchestrator in main thread under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path). STORY-162 delivery STARTED. | 2026-07-10 |
 
 ---
 
@@ -134,7 +135,7 @@ maintenance_prior_run: maint-2026-07-08
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **Wave-73 OPENED (D-424, 2026-07-10): STORY-162 (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS) + STORY-163 (E-11, 2 pts, PG-RA-P3-ARP-REC006-INVERSION-001 + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER) assigned, sequential delivery 162→163. STORY-163 input-hash drift resolved (1cd3179→e1ad659; citations re-validated, no semantic drift). STORY-INDEX v3.36. input-hash scan MATCH=116 STALE=0. Awaiting human plan approval before per-story delivery begins. trajectory-tail →0→0→0→0** | **AWAITING HUMAN GATE (D-424)** | Human approval gate. |
+| **Wave-73 plan gate APPROVED (D-425, human, 2026-07-10). STORY-162 (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS) + STORY-163 (E-11, 2 pts, PG-RA-P3-ARP-REC006-INVERSION-001 + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER) delivery order confirmed (162→163). Gate Q&A dispositions: PROP-V0.12.0-01/02/03 DEFERRED to improvement-backlog; AC-162-001 Option A/B left to implementer; E-11 no-BC convention confirmed; PR merges via orchestrator under direct human auth. STORY-162 delivery STARTED. trajectory-tail →0→0→0→0** | **APPROVED (D-425)** | Plan gate approved; delivery active. |
 | **Session review session-review-2026-07-10-v0.12.0 COMPLETE (D-423, 2026-07-10). 4 artifacts written: session-review-2026-07-10-v0.12.0.md (535 lines), improvement-backlog.md (+40 lines), benchmarks.yaml (+90 lines), pattern-database.yaml (+130 lines, PAT-010..014 added; PAT-009 RESOLVED-EFFECTIVE). PROP-V0.12.0-01/02/03 captured; ADV-4 disposition flagged OVERDUE 3+ cycles for next maintenance run. Pipeline remains PAUSED/IDLE. trajectory-tail →0→0→0→0** | **DONE (D-423)** | Complete. |
 | **Session wrap (human-requested, 2026-07-10). v0.12.0 release chain complete (D-422); pipeline PAUSED/IDLE; no sub-agents abandoned mid-step. trajectory-tail →0→0→0→0** | **PAUSED** | Pipeline at rest. |
 | **v0.12.0 RELEASED + CHAIN COMPLETE (D-422, 2026-07-10): PR #394 (release/0.12.0 → main) merge f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2; CI 11/11; merge-base join 72a2842; tag v0.12.0 pushed; release.yml SUCCESS 3m5s; GitHub Release Latest 4 binaries. BREAKING JSON surface BC-2.11.036/037 shipped. Back-merge: develop FAST-FORWARDED to f1e0c36. main==develop==f1e0c36, Cargo 0.12.0, histories REUNIFIED. trajectory-tail →0→0→0→0** | **D-422 RELEASED** | Complete. |
@@ -379,22 +380,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Wave-73 OPENED (D-424, 2026-07-10). STORY-162 (E-11, 3 pts) + STORY-163 (E-11, 2 pts) assigned, sequential delivery 162→163. STORY-163 input-hash drift resolved (1cd3179→e1ad659). STORY-INDEX v3.36. Human plan approval PENDING. Pipeline ACTIVE.**
+**Wave-73 plan gate APPROVED (D-425, human, 2026-07-10). Delivery order STORY-162 → STORY-163 confirmed. STORY-162 delivery ACTIVE (E-11, 3 pts, PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS). STORY-163 queued. Pipeline ACTIVE.**
 
-Prior checkpoint (D-423 session review complete) archived to `cycles/wave-72/session-checkpoints.md`.
+Prior checkpoint (D-424 wave-73 OPENED) archived to `cycles/wave-73/session-checkpoints.md`.
 
-- **Date:** 2026-07-10. Position: wave-73 OPENED (D-424); plan gate PENDING human approval; pipeline ACTIVE.
+- **Date:** 2026-07-10. Position: wave-73 delivery active (D-425); STORY-162 in flight; STORY-163 queued; pipeline ACTIVE.
 - **Ground truth:** main = develop = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2` (histories reunified). Cargo 0.12.0 on both branches. Tag v0.12.0 + GitHub Release with 4 binaries live.
-- **In-flight / abandoned:** None. No mid-TDD stories, no stale worktrees, no convergence loop active.
+- **In-flight / abandoned:** STORY-162 delivery STARTED (no worktree yet). No mid-TDD stories, no stale worktrees, no convergence loop active.
 - **Open PRs:** None. **Open worktrees:** main checkout [develop] + .factory [factory-artifacts] only. **Open release/* or chore/backmerge-* branches:** None.
+- **Gate Q&A dispositions (D-425):** PROP-V0.12.0-01/02/03 DEFERRED to improvement-backlog; AC-162-001 Option A/B left to implementer as story-written; E-11 no-BC convention confirmed acceptable; develop-PR merges executed by orchestrator in main thread under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path).
 - **Pending human decisions:**
-  - **Wave-73 plan approval** — STORY-162/163 assigned, both E-11 governance-only; gate PENDING. On approval: begin per-story delivery STORY-162 first, then STORY-163.
   - **ISSUE-102-PREMATURE-CLOSE-001 triage** (P2) — DF-VALIDATION-001-gated; research-agent validation required before filing.
   - **AC-149-003 quiescent perf re-run** (standing advisory — no immediate action required).
   - **ADV-4 disposition** (ci.yml build-dep-chain comment) — OVERDUE 3+ cycles; needs human decision at next maintenance run.
-- **Next-work candidates (on plan approval):**
-  1. **STORY-162** (wave-73, E-11, 3 pts) — PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS codifications. Deliver first.
-  2. **STORY-163** (wave-73, E-11, 2 pts) — PG-RA-P3-ARP-REC006-INVERSION-001 AC-163-001 docs-dispatch mandate + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER AC-163-002 merge-halt resolution path. Deliver second.
+- **Next-work candidates:**
+  1. **STORY-162** (wave-73, E-11, 3 pts) — IN FLIGHT. PG-W72-LMR003-TEMPLATE-CONFORMANCE + PG-W72-CGDT-MAIN-GUARDS codifications. Deliver first.
+  2. **STORY-163** (wave-73, E-11, 2 pts) — queued. PG-RA-P3-ARP-REC006-INVERSION-001 AC-163-001 docs-dispatch mandate + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER AC-163-002 merge-halt resolution path. Deliver second.
   3. **ISSUE-102-PREMATURE-CLOSE-001 triage** (P2) — DF-VALIDATION-001-gated.
   4. **ADV-4 disposition** — next maintenance run; OVERDUE 3+ cycles.
   5. **Maintenance sweep** — deferred-items ledger: `cycles/wave-72/process-gap-ledger.md` (12 LOW/NIT + 1 pre-existing MEDIUM BC-tally pending-intent).
