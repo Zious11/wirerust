@@ -37,6 +37,10 @@ pub struct StreamDispatcher {
     dnp3: Option<Dnp3Analyzer>,      // Rule 6: port-20000 flows (ADR-007)
     enip: Option<EnipAnalyzer>,      // Rule 7: port-44818 flows (ADR-010)
     unclassified_flows: u64,
+    /// Per-port unclassified-flow counter; populated when coverage_gaps_enabled=true.
+    unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
+    /// Feature flag: when true, unclassified_port_counts is populated on flow close.
+    coverage_gaps_enabled: bool,
 }
 
 enum DispatchTarget {

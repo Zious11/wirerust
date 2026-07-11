@@ -444,27 +444,34 @@ def run_tests() -> int:
     print()
     print("=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===")
 
+    _orig_find_005 = mod._find_repo_root  # type: ignore[attr-defined]
     _orig_collect = mod._collect_rust_files  # type: ignore[attr-defined]
     try:
-        # Patch _collect_rust_files to return [] — simulates a repo with no
-        # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
-        mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
-        exit_code = mod.main()  # type: ignore[attr-defined]
-        if exit_code != 0:
-            print(
-                "  PASS  [zero-file guard: exits non-zero when _collect_rust_files "
-                "returns [] (AC-158-005)]"
-            )
-            passed += 1
-        else:
-            print(
-                "  FAIL  [zero-file guard: expected exit non-zero when "
-                "_collect_rust_files returns [], got 0 — "
-                "REGRESSION: zero-file guard (AC-158-005) no longer exits non-zero — "
-                "check the `if not rust_files:` guard in main()]"
-            )
-            failures += 1
+        with tempfile.TemporaryDirectory() as _td_005:
+            _hermetic_005 = Path(_td_005)
+            (_hermetic_005 / ".factory").mkdir()
+            mod._find_repo_root = lambda _s: _hermetic_005  # type: ignore[attr-defined]
+            # Patch _collect_rust_files to return [] — simulates a repo with no
+            # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
+            mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
+            exit_code = mod.main()  # type: ignore[attr-defined]
+            if exit_code == 1:
+                print(
+                    "  PASS  [zero-file guard: exits 1 exactly when _collect_rust_files "
+                    "returns [] (AC-158-005)]"
+                )
+                passed += 1
+            else:
+                print(
+                    "  FAIL  [zero-file guard: expected exit 1 when "
+                    "_collect_rust_files returns [], got "
+                    + repr(exit_code)
+                    + " — REGRESSION: zero-file guard (AC-158-005) no longer exits 1 — "
+                    "check the `if not rust_files:` guard in main()]"
+                )
+                failures += 1
     finally:
+        mod._find_repo_root = _orig_find_005  # type: ignore[attr-defined]
         mod._collect_rust_files = _orig_collect  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
@@ -559,7 +566,7 @@ def run_tests() -> int:
         _deep_c = _root_c / "a" / "b" / "c" / "d"
         _deep_c.mkdir(parents=True)
         _result_c = _find_repo_root(_deep_c)
-        if _result_c is None or not str(_result_c).startswith(str(_root_c)):
+        if _result_c is None or not _result_c.is_relative_to(_root_c):
             print(
                 "  PASS  [_find_repo_root: no-sentinel temp tree returns None or "
                 "ancestor (F-W72G-P2-OBS-001)]"

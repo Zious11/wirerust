@@ -177,7 +177,7 @@ Their actual interfaces are:
   direction: Direction)` and `on_flow_close(flow_key: FlowKey)` as plain inherent methods.
   `src/dispatcher.rs` calls them directly (not via the `StreamHandler` trait). The deviation from
   the generic `StreamAnalyzer` trait is purely that `EnipAnalyzer` was not retrofitted to that
-  interface (see tech-debt item PC-023). The dispatcher arm calls
+  interface (see tech-debt item PC-020). The dispatcher arm calls
   `enip.on_data(flow_key.clone(), ...)` with a per-packet `FlowKey` clone. See ADR-010 for the
   full EtherNet/IP design rationale.
 

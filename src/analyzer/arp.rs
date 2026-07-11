@@ -1003,7 +1003,7 @@ impl ArpAnalyzer {
     /// Step 2 — increment: count_in_window += 1 (window active path only).
     ///
     /// Step 3 — rate evaluation:
-    ///   rate = count_in_window / max(1, ts - window_start_ts).
+    ///   rate = count_in_window / max(1, ts - window_start_ts)  [integer division; truncates fractional rates].
     ///   If rate >= self.storm_rate AND !storm_emitted: emit MEDIUM/Anomaly Finding
     ///   with mitre_techniques: [] (T0814 withheld per DF-VALIDATION-001).
     ///   Set storm_emitted = true (one-shot guard per BC-2.16.008 Invariant 1).

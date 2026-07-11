@@ -114,7 +114,7 @@ Options:
 --dnp3-direct-operate-threshold N      Direct-operate burst threshold per flow (default: 10)
 --arp                                  Analyze ARP traffic (spoofing, GARP, storms, malformed, MAC mismatch; default-off; included in --all)
 --arp-spoof-threshold N                MAC-rebind escalation threshold per IP within 60s window (default: 3)
---arp-storm-rate N                     ARP storm frames/second per source MAC threshold (default: 50)
+--arp-storm-rate N                     ARP storm rate (frames/second per source MAC at or above which a storm finding is emitted; default: 50; engineering default — not derived from any external standard; see Known Limitations)
 --enip                                 Analyze EtherNet/IP TCP traffic (port 44818, default-off; included in --all)
 --enip-write-burst-threshold N         CIP write-burst threshold in SetAttribute requests/1s window (default: 50)
 --enip-error-burst-threshold N         CIP error-burst threshold in error responses/10s window (default: 5)
@@ -260,7 +260,8 @@ CLI flags:
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
 - `--arp-storm-rate N` — frames/second per source MAC at or above which a storm finding is emitted (default: 50)
 
-JSON output counters (present in `arp_summary` when using `--json` / `--output-format json`):
+JSON output counters (present in the ARP analyzer's `detail` object in JSON output, at
+`analyzers[i].detail`, when using `--json` / `--output-format json`):
 - `bindings_evicted` — count of IP→MAC binding-table LRU evictions (table cap: 65 536 entries); a
   non-zero value means the oldest bindings were dropped to stay within the memory bound
 - `storm_counters_evicted` — count of per-MAC storm-counter-table LRU evictions (table cap:
@@ -409,7 +410,10 @@ at high rates should raise it above their baseline to avoid false positives.
 burst finding when more than 10 Control-class function codes arrive within the 60-second
 detection window (`--dnp3-direct-operate-threshold`, default 10). This value was chosen to
 tolerate routine maintenance while catching commissioning-speed attacks; quiet OT segments may
-need a lower value (3–5).
+need a lower value (3–5). Note: the threshold counts per-flow control events across both
+captured directions; a unidirectional mirror-tap deployment captures only one direction, which
+halves the observable FC rate — operators on mirror taps may need to halve the threshold to
+compensate.
 
 ### MACsec-Modified ARP limitation
 
