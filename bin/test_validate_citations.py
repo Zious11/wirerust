@@ -29,6 +29,7 @@ Test coverage (AC-164-002(d) + edge cases):
   T18  F-S164P2-004: non-UTF-8 citations file → exit 2, no traceback
   T19  F-S164P3-003: unreadable citations file (chmod 000) → exit 2, no traceback
         (skipped with note when os.access reports readable, e.g. running as root)
+  T20  F-S164P6-001: non-UTF-8 bytes on stdin → exit 2, no traceback
 """
 
 import subprocess
