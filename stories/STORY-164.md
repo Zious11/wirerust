@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-164
 epic_id: E-11
-version: "1.1"
-status: draft
+version: "1.3"
+status: ready
 producer: story-writer
 timestamp: 2026-07-11T00:00:00Z
 phase: f7
@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: bin/
 subsystems: []
 estimated_days: 1
-wave: "~"
+wave: "74"
 traces_to:
   - .factory/stories/STORY-INDEX.md
   - .factory/cycles/wave-73/STORY-163/adversary-convergence-state.json
@@ -37,15 +37,15 @@ inputs:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/docs-writer-dispatch-guidance.md
-input-hash: "3922d6c"
+input-hash: "8bfa01d"
 ---
 
 # STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator,
 changelog-gate content assertion, guidance-doc reference row
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** ~ (wave-TBD)
+**Status:** ready
+**Wave:** 74
 **Points:** 4
 **Priority:** P3
 
@@ -99,9 +99,9 @@ Evidence:
 
 During STORY-163 adversarial convergence Pass 1 (finding F-S163P1-001, severity CRITICAL),
 the adversary found that `authoring-evidence.md` — the evidence artifact for the citation-
-mandate story (AC-163-001 ground-truth citation mandate) — cited `pr-manager-merge-auth-
-guidance.md:332-333` as anchor locations, but the file is only 111 lines. The citations
-were fabricated. This is a meta-failure: the story whose purpose is to prevent citation
+mandate story (AC-163-001 ground-truth citation mandate) — cited `.factory/code-delivery/
+maint-2026-07-09/pr-review.md:332-333` as anchor locations, but the file is only 111 lines.
+The citations were fabricated. This is a meta-failure: the story whose purpose is to prevent citation
 fabrication itself contained fabricated citations.
 
 Root cause: there was no mechanical preflight tool to validate that cited file:line
@@ -450,8 +450,8 @@ STORY-163, which immediately precede this story in wave-73:
   codified the citation mandate (AC-163-001) requiring docs-writers to provide file:line
   anchors for every behavioral claim. The adversary's Pass 1 then found CRITICAL-severity
   fabricated citations in STORY-163's own evidence artifact. Specifically, three
-  `pr-manager-merge-auth-guidance.md:332-333` anchors were cited when the file is only
-  111 lines. This meta-failure is the direct evidence motivating AC-164-002: a mechanical
+  `.factory/code-delivery/maint-2026-07-09/pr-review.md:332-333` anchors were cited
+  when the file is only 111 lines. This meta-failure is the direct evidence motivating AC-164-002: a mechanical
   preflight tool would have caught the phantom anchors before the adversary saw them. When
   implementing `bin/validate-citations`, note that the validate-citations tool should
   itself be authored with precision — do not let the implement of the citation validator
@@ -558,5 +558,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-11 | story-writer | Assigned to wave-74; promoted to ready (plan gate approved, human, 2026-07-11). |
+| 1.2 | 2026-07-11 | story-writer | Citation-precision fix (source: story-164-citation-validation-2026-07-11.md) — both loci citing the fabricated STORY-163 anchor corrected from `pr-manager-merge-auth-guidance.md:332-333` to `.factory/code-delivery/maint-2026-07-09/pr-review.md:332-333`; "the file is only 111 lines" now correctly describes pr-review.md (pr-manager-merge-auth-guidance.md is 210 lines). Verified via authoring-evidence.md:113-114 and wc -l pr-review.md. |
 | 1.1 | 2026-07-11 | story-writer | maint-2026-07-11 amendment — AC-164-005 added: BREAKING-change holdout-expectation sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP); wave-72 Lesson-2 evidence cited (13 stale holdout scenarios at wave-72 gate after STORY-160 casing change); creates `.factory/maintenance/breaking-change-delivery-protocol.md` (factory-artifacts) + CLAUDE.md reference row; delivery checklist gate item `holdout-expectations-sweep: COMPLETE` codified. Points 3→4: AC-164-005 adds a new maintenance protocol document + CLAUDE.md row; 5 ACs total justifies +1 pt over original 3-AC estimate. |
 | 1.0 | 2026-07-11 | story-writer | Initial authorship — wave-73 process-gap codifications: PG-W73-STATUS-VOCAB (AC-164-001 STORY-INDEX legend), PG-W73-CITATION-VALIDATOR (AC-164-002 bin/validate-citations), PG-W73-CHANGELOG-GATE-CONTENT (AC-164-003 CI content assertion), wave-73 consistency audit CLAUDE.md row (AC-164-004). S-7.02 wave-73 cycle-close. |

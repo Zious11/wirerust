@@ -839,3 +839,17 @@ stories:
     pr: null  # factory-artifacts-only; no develop PR (E-11 convention, Task 3)
     merged_date: "2026-07-11"
     note: "delivered via factory-artifacts commit (D-427 burst)"
+
+  # ---------------------------------------------------------------------------
+  # Wave 74 — STORY-164 (E-11 wave-73 process-gap codifications)
+  # D-430 wave-74 OPENED 2026-07-11 (plan gate approved, human). STORY-164 v1.3 assigned+ready.
+  # Citation pre-validation GO: F-VAL-164-001 fabricated anchor fixed pre-gate (v1.2→v1.3).
+  # Delivery order: STORY-164 (4 pts, 5 ACs: AC-164-001..005).
+  # ---------------------------------------------------------------------------
+
+  STORY-164:
+    status: ready
+    wave: 74
+    branch: null
+    worktree: null
+    blocked_by: []
