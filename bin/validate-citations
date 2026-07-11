@@ -14,9 +14,9 @@ ALGORITHM:
      walk up from cwd — looking for .factory/ or .git/).
   4. For each entry validate:
      - The cited file MUST exist.        FAIL → "FILE NOT FOUND: path"
+     - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
      - The cited line number (or both range endpoints) MUST be ≤ the file's actual
        line count.                       FAIL → "LINE OUT OF RANGE: path:N (file has M lines)"
-     - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
   5. On full success:  print "PASS: N citations verified", exit 0.
      On any failure:   print each failing entry's reason, then
                        "FAIL: K of N citations invalid", exit 1.
@@ -24,12 +24,11 @@ ALGORITHM:
 EXIT CODES:
   0  — all citations valid (or zero citations)
   1  — one or more citation failures
-  2  — usage error (bad arguments)
-  3  — not yet implemented (stub — raise NotImplementedError)
+  2  — usage error (bad arguments or citations file not found)
 
 REPO ROOT RESOLUTION:
   Resolution order:
-    1. If WIRERUST_REPO_ROOT env var is set, use it.
+    1. If WIRERUST_REPO_ROOT env var is set, use it directly.
     2. Walk up from this script's real path until a dir containing '.factory/'
        or '.git' is found.
     3. Walk up from cwd until a dir containing '.factory/' or '.git' is found.
@@ -48,6 +47,7 @@ USAGE:
 
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -57,15 +57,15 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 def find_repo_root() -> Path:
-    """Locate the repo root (directory containing .factory/ or .git/) deterministically."""
+    """Locate the repo root deterministically.
+
+    When WIRERUST_REPO_ROOT is set, that value is used as-is (no sentinel
+    check) so the tool can be exercised against an arbitrary temp directory
+    in tests without needing a real .factory/ or .git/ entry.
+    """
     env_root = os.environ.get("WIRERUST_REPO_ROOT")
     if env_root:
-        p = Path(env_root).resolve()
-        if (p / ".factory").exists() or (p / ".git").exists():
-            return p
-        raise SystemExit(
-            f"WIRERUST_REPO_ROOT={env_root} does not contain a .factory/ or .git/ directory"
-        )
+        return Path(env_root).resolve()
 
     # Walk up from this script's real location
     script_dir = Path(__file__).resolve().parent
@@ -85,7 +85,102 @@ def find_repo_root() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Stub entry point — NOT YET IMPLEMENTED
+# Citation line parsing
+# ---------------------------------------------------------------------------
+
+# Matches: optional-leading-whitespace, path (no colon), colon,
+# start-line, optional -end-line, optional trailing whitespace + inline comment.
+_CITATION_RE = re.compile(r"^\s*([^:]+):(\d+)(?:-(\d+))?\s*(?:#.*)?$")
+
+
+def parse_line(raw: str) -> tuple[str, int, int | None] | None:
+    """Parse one line from a citations table.
+
+    Returns (path, start_line, end_line_or_None) for a valid citation line,
+    or None if the line should be skipped (blank or comment).
+    """
+    stripped = raw.strip()
+    if not stripped or stripped.startswith("#"):
+        return None
+    m = _CITATION_RE.match(raw)
+    if not m:
+        return None
+    path = m.group(1).strip()
+    start = int(m.group(2))
+    end = int(m.group(3)) if m.group(3) is not None else None
+    return path, start, end
+
+
+# ---------------------------------------------------------------------------
+# Line counting
+# ---------------------------------------------------------------------------
+
+def count_lines(file_path: Path) -> int:
+    """Return the number of lines in a file by iterating in binary mode."""
+    return sum(1 for _ in file_path.open("rb"))
+
+
+# ---------------------------------------------------------------------------
+# Core validation
+# ---------------------------------------------------------------------------
+
+def validate(text: str, repo_root: Path) -> int:
+    """Validate all citations in the given text against repo_root.
+
+    Returns 0 if all citations are valid (including the zero-citation case),
+    or 1 if one or more citations fail validation.
+    """
+    citations: list[tuple[str, int, int | None]] = []
+    failures: list[str] = []
+
+    for raw_line in text.splitlines():
+        parsed = parse_line(raw_line)
+        if parsed is None:
+            continue
+        path_str, start, end = parsed
+        citations.append((path_str, start, end))
+        abs_path = repo_root / path_str
+
+        if not abs_path.exists():
+            failures.append(f"FILE NOT FOUND: {path_str}")
+            continue
+
+        line_count = count_lines(abs_path)
+
+        if end is not None:
+            if start > end:
+                failures.append(
+                    f"INVALID RANGE: {path_str}:{start}-{end} (start > end)"
+                )
+                continue
+            if end > line_count:
+                failures.append(
+                    f"LINE OUT OF RANGE: {path_str}:{start}-{end} "
+                    f"(file has {line_count} lines)"
+                )
+                continue
+        else:
+            if start > line_count:
+                failures.append(
+                    f"LINE OUT OF RANGE: {path_str}:{start} (file has {line_count} lines)"
+                )
+                continue
+
+    n = len(citations)
+    k = len(failures)
+
+    if k == 0:
+        print(f"PASS: {n} citations verified")
+        return 0
+
+    for failure in failures:
+        print(failure)
+    print(f"FAIL: {k} of {n} citations invalid")
+    return 1
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
@@ -113,14 +208,21 @@ def main() -> None:
         print(__doc__)
         sys.exit(0)
 
-    if args.citations_file is None:
-        # Read from stdin by default
-        pass
+    repo_root = find_repo_root()
 
-    # Argument parsing shape verified — validation logic not yet implemented.
-    raise NotImplementedError(
-        "validate-citations: validation logic not yet implemented (stub — Red Gate)"
-    )
+    if args.citations_file is None or args.citations_file == "-":
+        text = sys.stdin.read()
+    else:
+        citations_path = Path(args.citations_file)
+        if not citations_path.exists():
+            print(
+                f"Error: citations file not found: {args.citations_file}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        text = citations_path.read_text(encoding="utf-8")
+
+    sys.exit(validate(text, repo_root))
 
 
 if __name__ == "__main__":
