@@ -16,7 +16,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   New Python 3.10+ stdlib tool that reads a citations table (file argument or
   stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
   filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
-  FOUND / LINE OUT OF RANGE / INVALID RANGE / MALFORMED / OUTSIDE REPO), 2 on
+  FOUND / INVALID LINE / INVALID RANGE / LINE OUT OF RANGE / MALFORMED / OUTSIDE
+  REPO), 2 on
   usage error. Paths are resolved relative to the repo root (WIRERUST_REPO_ROOT
   or upward walk). Self-tested by `bin/test_validate_citations.py` (19 tests).
 
