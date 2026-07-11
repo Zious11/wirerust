@@ -119,14 +119,12 @@ pub enum Dnp3FcClass {
 
 /// Maximum outstanding pending control requests per flow for T1691.001
 /// request/response correlation.  Oldest entry evicted on overflow.
-#[allow(unused)]
 pub const MAX_PENDING_REQUESTS: usize = 256;
 
 /// Maximum on-wire DNP3 link frame size; also the per-flow carry-buffer bound
 /// (ADR-007 Decision 2).  LENGTH=255 → frame_len = 292 (proven ≤292 by VP-023 Sub-D).
 /// This is the **canonical** name, matching BC-2.15.016 postconditions 1–2 and the
 /// AC-001..006 test suite.
-#[allow(unused)]
 pub const MAX_DNP3_FRAME_LEN: usize = 292;
 
 /// Deprecated alias of [`MAX_DNP3_FRAME_LEN`] (the canonical name).
@@ -136,18 +134,15 @@ pub const MAX_DNP3_FRAME_LEN: usize = 292;
 /// single source of truth — this alias is retained only to avoid breaking any external
 /// reference and is defined in terms of the canonical constant.
 #[deprecated(note = "use MAX_DNP3_FRAME_LEN (canonical name per BC-2.15.016)")]
-#[allow(unused)]
 pub const MAX_DNP3_CARRY_BYTES: usize = MAX_DNP3_FRAME_LEN;
 
 /// Maximum unique master-station source addresses tracked per flow
 /// (BC-2.15.016 postconditions 5–6; ADR-007 Decision 4).
 /// Once full, new master source addresses are silently ignored.
-#[allow(unused)]
 pub const MAX_MASTER_ADDRS: usize = 64;
 
 /// Number of malformed/structural frames within the 300s correlation window
 /// that triggers a T0814 low/med-confidence anomaly finding (BC-2.15.024).
-#[allow(unused)]
 pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 
 /// Shared correlation window length in seconds.  All six windowed correlation
@@ -155,7 +150,6 @@ pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 /// `correlation_window_start_ts` reaches this value (BC-2.15.015).
 /// `block_event_count` and T1691.001 threshold share this window
 /// per BC-2.15.014 (no separate BLOCK_CMD_WINDOW_SECS constant).
-#[allow(unused)]
 pub const CORRELATION_WINDOW_SECS: u32 = 300;
 
 /// Per-request timeout for block-command inference (BC-2.15.014).
@@ -164,20 +158,17 @@ pub const CORRELATION_WINDOW_SECS: u32 = 300;
 /// `saturating_sub` used for all comparisons (BC-2.15.014 Inv 2 / BC-2.15.016
 /// Inv 8 / RULING-DNP3-SIBLING-001 §2.2 — prevents panic under
 /// overflow-checks=true on out-of-order pcap replay).
-#[allow(unused)]
 pub const BLOCK_CMD_TIMEOUT_SECS: u32 = 10;
 
 /// Minimum number of block-command timeout events within `CORRELATION_WINDOW_SECS`
 /// before a T1691.001 finding is emitted (BC-2.15.014 Inv 4 / Precondition 5).
 /// 3-of-300s sustained pattern prevents single-packet-loss false positives.
-#[allow(unused)]
 pub const BLOCK_CMD_THRESHOLD: u64 = 3;
 
 /// Combined restart + block-command event threshold for T0827 "Loss of Control"
 /// emission (BC-2.15.015 Precondition 1).  Distinct events required; single
 /// incident can increment at most one of the two accumulators per occurrence
 /// (BC-2.15.015 Inv 7).
-#[allow(unused)]
 pub const T0827_THRESHOLD: u64 = 3;
 
 /// Default threshold for the Direct-Operate burst guard (BC-2.15.017 / STORY-110).
@@ -208,8 +199,8 @@ pub const MAX_FINDINGS: usize = 10_000;
 ///
 /// Carries the desync latch (`is_non_dnp3`) and the partial-frame accumulation
 /// buffer (`carry`) — both implemented in STORY-107 (carry-buffer frame-walk,
-/// AC-001..006).  Detection-emission and correlation-window fields are stubs for
-/// STORY-108/109; they compile but contain no logic yet.
+/// AC-001..006).  Detection-emission and correlation-window fields were stubs
+/// through STORY-107 and are fully implemented as of STORY-108/109.
 ///
 /// BC-2.15.009 (desync bail), ADR-007 Decision 4 (full field list).
 #[derive(Default)]
@@ -1406,6 +1397,8 @@ impl Dnp3Analyzer {
     // Note: direct_operate_count is already incremented by detect_control_class_burst_split
     // which is called after this function in on_data. The BC-2.15.018 anomaly finding
     // is emitted here as a separate Suspicious/Possible/Medium finding.
+    // 9 params: BC-2.15.018 wiring requires flow state, findings vec, dropped counter,
+    // app_fc, dest/src addrs, timestamp, flow_key (for IP attribution), and direction.
     #[allow(clippy::too_many_arguments)]
     fn detect_broadcast_anomaly(
         _flow: &mut Dnp3FlowState,
@@ -1550,6 +1543,8 @@ impl Dnp3Analyzer {
     ///
     /// `app_ctrl` is the application-control byte (carry[11]); its bit 0x10 is
     /// the UNS bit included in the BC-2.15.019 PC1 evidence field.
+    // 10 params: standard 9-param wiring (BC-2.15.019) plus app_ctrl (UNS-bit byte
+    // required for PC1 evidence; cannot be folded into app_fc without losing the bit).
     #[allow(clippy::too_many_arguments)]
     fn detect_unsolicited_anomaly(
         flow: &mut Dnp3FlowState,
@@ -1634,6 +1629,8 @@ impl Dnp3Analyzer {
     ///   Also sets `flow.enable_unsolicited_seen = true` (context flag).
     ///
     /// Both push `mitre_techniques: vec!["T0814"]`.
+    // 9 params: BC-2.15.023 wiring requires flow state, findings vec, dropped counter,
+    // app_fc, dest/src addrs, timestamp, flow_key (for IP attribution), and direction.
     #[allow(clippy::too_many_arguments)]
     fn detect_unsolicited_control(
         flow: &mut Dnp3FlowState,

@@ -33,6 +33,46 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   Codifies wave-72 process-gap F-W72G-P2-OBS-001 per S-7.02 cycle-close obligation
   (F-S161P1-001 / VP-INDEX LMR-003 template-conformance exemption on factory side).
 
+- **maint-2026-07-11 cleanup — CR-001/002/003 + doc drift + dnp3 lint hygiene.**
+
+  - `bin/test_check_green_doc_tense.py` AC-158-005 test: add hermetic `_find_repo_root`
+    patch (mirroring AC-162-003 pattern); tighten assertion from `exit_code != 0` to
+    `exit_code == 1`; restore both patched helpers in `finally` (CR-001).
+  - `bin/check-green-doc-tense` `_find_repo_root` docstring/comment: reword to
+    "at most 6 candidates (start inclusive)" to match `range(6)` behavior (CR-002).
+  - `bin/test_check_green_doc_tense.py` test (c): replace `str.startswith` with
+    `Path.is_relative_to()` for correct filesystem-hierarchy containment check (CR-003).
+  - README.md `--arp-storm-rate` option description: add `>=` directional semantics and
+    calibration note (README-OPTIONS-L117-NEUTRAL-001).
+  - README.md ARP JSON schema note: correct `arp_summary` key claim — ARP counters are
+    flat in `analyzers[i].detail`, not nested under `arp_summary` (PG-W-README-JSON-SCHEMA).
+  - README.md DNP3 threshold-tuning note: add bidirectional-flow assumption and mirror-tap
+    guidance (DNP3-TUNING-BIDIR-001).
+  - `docs/adr/0002-modular-protocol-analyzers.md`: correct tech-debt item ID `PC-023` →
+    `PC-020` for `EnipAnalyzer` `StreamHandler` deviation (DOC-NEW-001).
+  - `docs/adr/0001-content-first-stream-dispatch.md`: add `unclassified_port_counts` and
+    `coverage_gaps_enabled` fields to the `StreamDispatcher` struct snippet (NEW-003).
+  - `CHANGELOG.md` v0.7.0 D3 ARP-storm entry: add inline errata noting `mitre_techniques: []`
+    per DF-VALIDATION-001 / BC-2.16.008 Invariant 3 (CHANGELOG-D3-T0830-DRIFT-001).
+  - `src/cli.rs` Modbus arg doc-comments: harmonize "1-second window" → "1s window" for
+    consistency with adjacent arg format (UNIT-FMT-5-20S-001).
+  - `src/analyzer/arp.rs` `detect_storm` doc-comment: note integer truncation in rate
+    formula (ARP-RATE-INTDIV-DOC-001).
+  - `src/analyzer/dnp3.rs`: remove 9 spurious `#[allow(unused)]` attributes from
+    actively-used `pub const` items (PC-NEW-001); add rationale comments to 3 of the
+    6 `#[allow(clippy::too_many_arguments)]` suppressions — the 3 that lacked them;
+    the remaining 3 carried pre-existing `// N args: …` rationale (PC-NEW-002).
+  - `src/analyzer/dnp3.rs` `Dnp3FlowState` doc-comment: reword stale present-tense
+    "are stubs … contain no logic yet" to past-tense provenance "were stubs through
+    STORY-107 and are fully implemented as of STORY-108/109" (F-P1-001).
+  - `src/analyzer/arp.rs` two test doc-comments: remove stale "RED GATE: these two new
+    keys are absent from the current summarize() implementation" — both keys are fully
+    implemented and the tests are GREEN (F-P1-001 sibling sweep, DF-GREEN-DOC-TENSE-SWEEP).
+  - `src/analyzer/arp.rs` doc-comment count sweep: correct five remaining "eleven" →
+    "thirteen" occurrences (module doc, `summarize()` API doc, section comment); add
+    `bindings_evicted` and `storm_counters_evicted` to the `summarize()` key-contract
+    enumeration (F-P2-001, DF-SIBLING-SWEEP-001).
+
 ## [0.12.0] - 2026-07-10
 
 ### Changed (BREAKING)
@@ -803,7 +843,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - **D2 Gratuitous ARP (GARP)** — unsolicited GARP frames flagged as Possible; binding-conflict
     GARP (GARP where the announced MAC differs from the established binding) escalated to Likely.
   - **D3 ARP storms** — high-rate ARP flood detection (configurable `--arp-storm-rate`, default
-    50 frames/window). Attributed to **T0830**.
+    50 frames/window). ~~Attributed to **T0830**.~~ (Corrected: D3 findings emit
+    `mitre_techniques: []` — T0814 attribution withheld per DF-VALIDATION-001 / BC-2.16.008
+    Invariant 3. See v0.7.0 shipping state vs. current behavior.)
   - **D11 Malformed ARP frames** — strict + lax/snaplen-truncated ARP parsing; frames that fail
     both passes are flagged as malformed-protocol anomalies.
   - **D12 L2/L3 MAC mismatch** — Ethernet source MAC vs. ARP sender hardware address mismatch

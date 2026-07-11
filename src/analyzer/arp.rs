@@ -4,7 +4,7 @@
 //! maintains a bounded binding table (IP→MAC with LRU eviction), detects
 //! Gratuitous ARP (D2), D11 malformed ARP, D12 L2/L3 sender-MAC mismatch,
 //! D3 ARP storm rate detection, and exposes a `summarize()` method returning
-//! eleven canonical summary keys.
+//! thirteen canonical summary keys.
 //!
 //! STORY-113, STORY-114, and STORY-115 are all fully implemented and all tests pass (GREEN).
 //! `process_arp` emits D1 spoof findings (BC-2.16.004): MEDIUM on rebind, escalating
@@ -725,10 +725,10 @@ impl ArpAnalyzer {
         }]
     }
 
-    /// Produce the eleven-key `AnalysisSummary` for this capture.
+    /// Produce the thirteen-key `AnalysisSummary` for this capture.
     ///
     /// Returns an `AnalysisSummary` with `analyzer_name = "ARP"` and exactly
-    /// the following eleven keys in the `detail` BTreeMap (Architecture Compliance
+    /// the following thirteen keys in the `detail` BTreeMap (Architecture Compliance
     /// Rule 5 — exact string names are the contract per BC-2.16.010 PC1):
     ///
     /// - `"frames_analyzed"`
@@ -736,9 +736,11 @@ impl ArpAnalyzer {
     /// - `"reply_count"`
     /// - `"other_opcode_count"`
     /// - `"bindings_tracked"`
+    /// - `"bindings_evicted"`
     /// - `"spoof_findings"`
     /// - `"garp_findings"`
     /// - `"storm_findings"`
+    /// - `"storm_counters_evicted"`
     /// - `"mismatch_findings"`
     /// - `"malformed_findings"`
     /// - `"malformed_frames"`
@@ -1003,7 +1005,7 @@ impl ArpAnalyzer {
     /// Step 2 — increment: count_in_window += 1 (window active path only).
     ///
     /// Step 3 — rate evaluation:
-    ///   rate = count_in_window / max(1, ts - window_start_ts).
+    ///   rate = count_in_window / max(1, ts - window_start_ts)  [integer division; truncates fractional rates].
     ///   If rate >= self.storm_rate AND !storm_emitted: emit MEDIUM/Anomaly Finding
     ///   with mitre_techniques: [] (T0814 withheld per DF-VALIDATION-001).
     ///   Set storm_emitted = true (one-shot guard per BC-2.16.008 Invariant 1).
@@ -2051,10 +2053,10 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // AC-013 — BC-2.16.010 PC1/PC4: all eleven summary keys present, all 0 at zero frames
+    // AC-013 — BC-2.16.010 PC1/PC4: all thirteen summary keys present, all 0 at zero frames
     // -----------------------------------------------------------------------
 
-    /// AC-013a (BC-2.16.010 PC4): all eleven keys present with value 0 when no frames
+    /// AC-013a (BC-2.16.010 PC4): all thirteen keys present with value 0 when no frames
     /// have been processed.
     #[test]
     #[allow(non_snake_case)]
@@ -2065,7 +2067,7 @@ mod tests {
         // All thirteen canonical keys must be present and equal 0 (BC-2.16.010 v1.9 EC-001).
         // Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
         // and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
-        // RED GATE: these two new keys are absent from the current summarize() implementation.
+        // Both keys are implemented in summarize() and this test is GREEN.
         const EXPECTED_KEYS: &[&str] = &[
             "frames_analyzed",
             "request_count",
@@ -2102,7 +2104,7 @@ mod tests {
     ///
     /// Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
     /// and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
-    /// RED GATE: these two new keys are absent from the current summarize() implementation.
+    /// Both keys are implemented in summarize() — this test guards against regression.
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_010_summarize_key_names_exact() {

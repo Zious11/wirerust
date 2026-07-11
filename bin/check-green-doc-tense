@@ -363,10 +363,10 @@ def _find_repo_root(start: Path) -> Path | None:
     - Invariant: when the return value is not None it is an ancestor-or-equal
       of *start* and satisfies `(p / ".git").exists() or (p / ".factory").is_dir()`.
 
-    Walk upward up to 6 levels from *start*.
+    Walk upward through at most 6 candidates (start inclusive).
     """
     candidate = start
-    for _ in range(6):  # at most 6 levels up
+    for _ in range(6):  # at most 6 candidates (start inclusive)
         if (candidate / ".git").exists() or (candidate / ".factory").is_dir():
             return candidate
         candidate = candidate.parent

@@ -182,7 +182,7 @@ pub enum Commands {
         modbus: bool,
 
         /// Per-flow write-burst threshold: fires T0806+T1692.001 when more than N
-        /// write-class FCs are observed within any 1-second window.
+        /// write-class FCs are observed within any 1s window.
         /// Default: 20. Must be >= 1.
         // BC-2.14.024
         #[arg(long, default_value_t = 20)]
