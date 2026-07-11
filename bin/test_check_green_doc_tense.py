@@ -436,11 +436,10 @@ def run_tests() -> int:
     # AC-158-005: zero-file guard — must exit non-zero when
     # _collect_rust_files returns [].
     #
-    # Current behavior (pre-fix): prints WARNING and exits 0.
-    # Required behavior (post-fix, AC-158-005): exits non-zero.
-    #
-    # These tests assert the TO-BE behavior and MUST FAIL against the
-    # current tool (line ~367: prints WARNING, exits 0).
+    # Behavior shipped with AC-158-005: exits non-zero when no files found.
+    # Originally authored RED for AC-158-005 (pre-fix: printed WARNING,
+    # exited 0); now a GREEN regression guard — guards against any reversion
+    # to the silent-exit-0 behavior.
     # ------------------------------------------------------------------
     print()
     print("=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===")
@@ -551,15 +550,16 @@ def run_tests() -> int:
     # (c) NO sentinel — temp tree with neither .git nor .factory should return None or
     # an ancestor root outside the temp tree (if walk passes the boundary). This is a
     # regression guard: before fix, _find_repo_root would return None unconditionally.
-    # Post-fix, if _result_c is not None, it MUST NOT be within the temp tree (temp
-    # tree doesn't contain sentinels, so result must be an ancestor). Assertion: either
-    # _result_c is None, OR _result_c is not in _deep_c.parents (F-W72G-P2-OBS-001).
+    # Post-fix, if _result_c is not None, it MUST NOT be within the temp tree (the
+    # temp tree contains no sentinels, so a non-None result must be an ancestor that
+    # lives outside it). Assertion: _result_c is None, OR the result path does not
+    # start with the temp-tree root (F-W72G-P2-OBS-001).
     with tempfile.TemporaryDirectory() as _td_c:
         _root_c = Path(_td_c)
         _deep_c = _root_c / "a" / "b" / "c" / "d"
         _deep_c.mkdir(parents=True)
         _result_c = _find_repo_root(_deep_c)
-        if _result_c is None or _result_c not in _deep_c.parents:
+        if _result_c is None or not str(_result_c).startswith(str(_root_c)):
             print(
                 "  PASS  [_find_repo_root: no-sentinel temp tree returns None or "
                 "ancestor (F-W72G-P2-OBS-001)]"
@@ -581,15 +581,15 @@ def run_tests() -> int:
     # a spy on _collect_rust_files that records the repo_root argument and
     # returns [].
     #
-    # Primary assertion: spy confirms main() passed the hermetic root to
-    # _collect_rust_files — fails until main() delegates repo-root
-    # detection to _find_repo_root (currently main() uses inline logic).
+    # Primary assertion: spy confirms main() passes the hermetic root to
+    # _collect_rust_files, verifying that main() delegates repo-root
+    # detection to _find_repo_root.
     #
     # Secondary assertion: exit_code == 1 exactly (zero-file guard fires,
     # not exit 2 from repo-root-not-found guard).
     #
-    # The two assertions are combined: the overall test is FAIL until both
-    # hold simultaneously (i.e., until main() is wired to _find_repo_root).
+    # Both assertions hold now that main() delegates to _find_repo_root;
+    # the combined test guards against regression of either.
     # ------------------------------------------------------------------
     print()
     print(
