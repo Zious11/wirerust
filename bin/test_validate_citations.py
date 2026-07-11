@@ -474,6 +474,39 @@ def test_T19_unreadable_citations_file_exits_2() -> None:
     print(f"  [PASS] T19 unreadable file → exit 2: exit={result.returncode}")
 
 
+def test_T20_non_utf8_stdin_exits_2() -> None:
+    """T20 (F-S164P6-001): Non-UTF-8 bytes on stdin must produce exit 2, not traceback.
+
+    The stdin branch previously called sys.stdin.read() bare; a text-stream
+    decode error raised UnicodeDecodeError → traceback + exit 1. The fix
+    reads sys.stdin.buffer and decodes explicitly, so the same error path as
+    the file-argument branch applies (stderr message + exit 2).
+    """
+    import os
+    import tempfile
+
+    invalid_utf8 = b"\xff\xfe invalid bytes"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+        result = subprocess.run(
+            [sys.executable, str(TOOL)],
+            input=invalid_utf8,
+            capture_output=True,
+            env=env,
+        )
+
+    assert result.returncode == 2, (
+        f"T20: expected exit 2 for non-UTF-8 stdin, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    combined = result.stdout + result.stderr
+    assert b"Traceback" not in combined, (
+        f"T20: expected no raw traceback, but got: {combined!r}"
+    )
+    print(f"  [PASS] T20 non-UTF-8 stdin → exit 2: exit={result.returncode}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -499,6 +532,7 @@ def main() -> None:
         test_T17_parent_escape_rejected,
         test_T18_non_utf8_citations_file_exits_2,
         test_T19_unreadable_citations_file_exits_2,
+        test_T20_non_utf8_stdin_exits_2,
     ]
     passed = 0
     failed = 0

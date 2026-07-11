@@ -19,7 +19,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   FOUND / INVALID LINE / INVALID RANGE / LINE OUT OF RANGE / MALFORMED / OUTSIDE
   REPO), 2 on
   usage error. Paths are resolved relative to the repo root (WIRERUST_REPO_ROOT
-  or upward walk). Self-tested by `bin/test_validate_citations.py` (19 tests).
+  or upward walk). Self-tested by `bin/test_validate_citations.py` (20 tests).
 
   F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
   are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
@@ -45,6 +45,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   IsADirectoryError, etc.) are both caught; each emits a descriptive `Error:`
   message to stderr and exits 2. Test T19 covers the `chmod 000` path, with a
   skip guard when the process can read mode-0 files (root environments).
+
+  F-S164P6-001: the stdin branch (`sys.stdin.read()`) diverged from the
+  file-argument path — non-UTF-8 bytes on stdin raised an uncaught
+  `UnicodeDecodeError` traceback and exited 1. Fixed by reading
+  `sys.stdin.buffer` (raw bytes) and decoding explicitly; the same
+  `UnicodeDecodeError` catch now applies, emitting a `Error: stdin is not
+  valid UTF-8:` message and exiting 2. Test T20 covers this path.
 
   Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
   CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
