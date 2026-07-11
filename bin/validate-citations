@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""
+validate-citations — Mechanical citation preflight validator for wirerust.
+(requires Python 3.10+ — the tool uses modern type syntax)
+
+ALGORITHM:
+  1. Read citation entries from a file argument (or stdin if '-' or no positional arg).
+  2. Each non-blank, non-comment line has the form:
+       path/to/file.md:LINE            # optional inline comment (stripped)
+       path/to/file.md:LINE-LINE       # line range (both endpoints checked)
+     Lines beginning with '#' are comments and are ignored. Blank lines are ignored.
+  3. Paths are relative to the repo root (resolved using the same repo-root
+     detection as compute-input-hash: WIRERUST_REPO_ROOT env, walk up from script,
+     walk up from cwd — looking for .factory/ or .git/).
+  4. For each entry validate:
+     - The cited file MUST exist.        FAIL → "FILE NOT FOUND: path"
+     - The cited line number (or both range endpoints) MUST be ≤ the file's actual
+       line count.                       FAIL → "LINE OUT OF RANGE: path:N (file has M lines)"
+     - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
+  5. On full success:  print "PASS: N citations verified", exit 0.
+     On any failure:   print each failing entry's reason, then
+                       "FAIL: K of N citations invalid", exit 1.
+
+EXIT CODES:
+  0  — all citations valid (or zero citations)
+  1  — one or more citation failures
+  2  — usage error (bad arguments)
+  3  — not yet implemented (stub — raise NotImplementedError)
+
+REPO ROOT RESOLUTION:
+  Resolution order:
+    1. If WIRERUST_REPO_ROOT env var is set, use it.
+    2. Walk up from this script's real path until a dir containing '.factory/'
+       or '.git' is found.
+    3. Walk up from cwd until a dir containing '.factory/' or '.git' is found.
+  This handles running the script from any worktree subdirectory.
+
+USAGE:
+  validate-citations <citations-file>
+      Validate citations listed in <citations-file>.
+
+  validate-citations -
+      Read citations from stdin.
+
+  validate-citations --help
+      Print this message and exit 0.
+"""
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Repo root resolution
+# ---------------------------------------------------------------------------
+
+def find_repo_root() -> Path:
+    """Locate the repo root (directory containing .factory/ or .git/) deterministically."""
+    env_root = os.environ.get("WIRERUST_REPO_ROOT")
+    if env_root:
+        p = Path(env_root).resolve()
+        if (p / ".factory").exists() or (p / ".git").exists():
+            return p
+        raise SystemExit(
+            f"WIRERUST_REPO_ROOT={env_root} does not contain a .factory/ or .git/ directory"
+        )
+
+    # Walk up from this script's real location
+    script_dir = Path(__file__).resolve().parent
+    for candidate in [script_dir, *script_dir.parents]:
+        if (candidate / ".factory").exists() or (candidate / ".git").exists():
+            return candidate
+
+    # Walk up from cwd
+    for candidate in [Path.cwd(), *Path.cwd().parents]:
+        if (candidate / ".factory").exists() or (candidate / ".git").exists():
+            return candidate
+
+    raise SystemExit(
+        "Cannot locate repo root: no ancestor directory contains .factory/ or .git/.\n"
+        "Set WIRERUST_REPO_ROOT to the repo root explicitly."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Stub entry point — NOT YET IMPLEMENTED
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="validate-citations",
+        description="Mechanical citation preflight validator.",
+        add_help=False,
+    )
+    parser.add_argument(
+        "citations_file",
+        nargs="?",
+        default=None,
+        help="Path to citations file, or '-' to read from stdin.",
+    )
+    parser.add_argument(
+        "--help", "-h",
+        action="store_true",
+        default=False,
+        help="Print help and exit.",
+    )
+
+    args = parser.parse_args()
+
+    if args.help:
+        print(__doc__)
+        sys.exit(0)
+
+    if args.citations_file is None:
+        # Read from stdin by default
+        pass
+
+    # Argument parsing shape verified — validation logic not yet implemented.
+    raise NotImplementedError(
+        "validate-citations: validation logic not yet implemented (stub — Red Gate)"
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""
+Self-test for bin/validate-citations (AC-164-002).
+
+Tests are written against the SPECIFIED behavior; they FAIL against the stub
+(which raises NotImplementedError / exits non-zero for all paths) and will
+PASS once the full implementation is delivered.
+
+Run: python3 bin/test_validate_citations.py
+
+Test coverage (AC-164-002(d) + edge cases):
+  T01  Valid file:line citation passes (exit 0, stdout "PASS: 1 citations verified")
+  T02  Valid file:line-range citation passes (exit 0)
+  T03  Nonexistent file is rejected with FILE NOT FOUND (exit 1)
+  T04  Out-of-range single line is rejected with LINE OUT OF RANGE (exit 1)
+  T05  Out-of-range range endpoint (second endpoint) is rejected (exit 1)
+  T06  Comment lines and blank lines are ignored (exit 0)
+  T07  Empty input (no citations) → "PASS: 0 citations verified", exit 0
+  T08  EC-002: start > end range → "INVALID RANGE", exit 1
+  T09  Exit code 2 on bad argument (usage error)
+  T10  Multiple valid citations all pass (exit 0, count matches)
+  T11  Mixed valid + invalid → correct failure count and exit 1
+"""
+
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+TOOL = Path(__file__).resolve().parent / "validate-citations"
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _run(citations_content: str, extra_args: list[str] | None = None) -> tuple[int, str, str]:
+    """
+    Write citations_content to a temp file, invoke the tool with that file,
+    and return (returncode, stdout, stderr).
+    """
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
+    ) as f:
+        f.write(citations_content)
+        citations_path = f.name
+
+    with tempfile.TemporaryDirectory() as tmp:
+        env_override: dict[str, str] = {"WIRERUST_REPO_ROOT": tmp}
+        import os
+        env = {**os.environ, **env_override}
+
+        cmd = [sys.executable, str(TOOL), citations_path] + (extra_args or [])
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    # Clean up
+    Path(citations_path).unlink(missing_ok=True)
+
+    return result.returncode, result.stdout, result.stderr
+
+
+def _run_with_real_files(
+    citations_content: str,
+    real_files: dict[str, bytes],
+) -> tuple[int, str, str]:
+    """
+    Create real_files inside a temp directory (which is used as the repo root),
+    write citations_content pointing to those files, and invoke the tool.
+
+    real_files: {relative_path: file_contents_bytes}
+    """
+    import os
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        # Create the files inside the temp dir
+        for rel_path, content in real_files.items():
+            full_path = tmp_path / rel_path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            full_path.write_bytes(content)
+
+        # Write the citations file (paths are relative to repo root = tmp_path)
+        citations_file = tmp_path / "citations.txt"
+        citations_file.write_text(citations_content, encoding="utf-8")
+
+        env = {**os.environ, "WIRERUST_REPO_ROOT": str(tmp_path)}
+        cmd = [sys.executable, str(TOOL), str(citations_file)]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    return result.returncode, result.stdout, result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+def test_T01_valid_line_citation_passes() -> None:
+    """T01: A valid file:line citation (within bounds) exits 0 with PASS message."""
+    # File has 5 lines; cite line 3
+    file_content = b"line1\nline2\nline3\nline4\nline5\n"
+    citations = "doc/file.md:3\n"
+    rc, out, err = _run_with_real_files(citations, {"doc/file.md": file_content})
+    assert rc == 0, f"T01: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T01: expected 'PASS' in stdout, got {out!r}"
+    assert "1" in out, f"T01: expected count '1' in stdout, got {out!r}"
+    print(f"  [PASS] T01 valid single-line citation: exit={rc}, out={out.strip()!r}")
+
+
+def test_T02_valid_range_citation_passes() -> None:
+    """T02: A valid file:line-range citation (both endpoints in bounds) exits 0."""
+    file_content = b"a\nb\nc\nd\ne\nf\n"  # 6 lines
+    citations = "doc/spec.md:2-5\n"
+    rc, out, err = _run_with_real_files(citations, {"doc/spec.md": file_content})
+    assert rc == 0, f"T02: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T02: expected 'PASS' in stdout, got {out!r}"
+    print(f"  [PASS] T02 valid range citation: exit={rc}, out={out.strip()!r}")
+
+
+def test_T03_nonexistent_file_rejected() -> None:
+    """T03: Citing a file that does not exist exits 1 and prints FILE NOT FOUND."""
+    # The repo root has no files; we cite a nonexistent file
+    citations = "ghost/missing.md:1\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 1, f"T03: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "FILE NOT FOUND" in combined or "not found" in combined.lower(), (
+        f"T03: expected FILE NOT FOUND in output, got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T03 nonexistent file rejected: exit={rc}")
+
+
+def test_T04_out_of_range_single_line_rejected() -> None:
+    """T04: Citing a line number beyond the file's line count exits 1 with LINE OUT OF RANGE."""
+    file_content = b"only\nthree\nlines\n"  # 3 lines
+    citations = "notes.md:10\n"  # line 10 doesn't exist
+    rc, out, err = _run_with_real_files(citations, {"notes.md": file_content})
+    assert rc == 1, f"T04: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "LINE OUT OF RANGE" in combined or "out of range" in combined.lower(), (
+        f"T04: expected LINE OUT OF RANGE in output, got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T04 out-of-range single line rejected: exit={rc}")
+
+
+def test_T05_out_of_range_range_endpoint_rejected() -> None:
+    """T05: A range whose end endpoint exceeds file length exits 1 with LINE OUT OF RANGE."""
+    file_content = b"line1\nline2\nline3\n"  # 3 lines
+    citations = "doc.md:2-9\n"  # endpoint 9 > 3
+    rc, out, err = _run_with_real_files(citations, {"doc.md": file_content})
+    assert rc == 1, f"T05: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "LINE OUT OF RANGE" in combined or "out of range" in combined.lower(), (
+        f"T05: expected LINE OUT OF RANGE in output, got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T05 out-of-range range endpoint rejected: exit={rc}")
+
+
+def test_T06_comments_and_blanks_ignored() -> None:
+    """T06: Comment lines (#...) and blank lines are silently ignored; valid refs still pass."""
+    file_content = b"alpha\nbeta\ngamma\n"  # 3 lines
+    citations = (
+        "# This is a comment — ignored\n"
+        "\n"
+        "  \n"
+        "target.md:2\n"
+        "# another comment\n"
+    )
+    rc, out, err = _run_with_real_files(citations, {"target.md": file_content})
+    assert rc == 0, (
+        f"T06: expected exit 0 (only real citation is valid), got {rc}\n"
+        f"stdout={out!r}\nstderr={err!r}"
+    )
+    assert "PASS" in out, f"T06: expected PASS in stdout, got {out!r}"
+    print(f"  [PASS] T06 comments and blank lines ignored: exit={rc}, out={out.strip()!r}")
+
+
+def test_T07_empty_input_passes() -> None:
+    """T07: An input file with no citations (empty / all comments) exits 0 with count 0."""
+    citations = "# nothing here\n\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 0, f"T07: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T07: expected PASS in stdout, got {out!r}"
+    assert "0" in out, f"T07: expected '0 citations' in stdout, got {out!r}"
+    print(f"  [PASS] T07 empty input: exit={rc}, out={out.strip()!r}")
+
+
+def test_T08_invalid_range_start_gt_end() -> None:
+    """T08 (EC-002): A range where start > end exits 1 with INVALID RANGE."""
+    file_content = b"a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n"  # 20 lines
+    citations = "big.md:15-5\n"  # start (15) > end (5)
+    rc, out, err = _run_with_real_files(citations, {"big.md": file_content})
+    assert rc == 1, f"T08: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "INVALID RANGE" in combined or "start > end" in combined.lower(), (
+        f"T08: expected INVALID RANGE in output, got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T08 invalid range (start > end) rejected: exit={rc}")
+
+
+def test_T09_bad_argument_exits_2() -> None:
+    """T09: Passing a nonexistent citations file as argument exits 2 (usage error)."""
+    import os
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
+        nonexistent = "/absolutely/does/not/exist/citations.txt"
+        result = subprocess.run(
+            [sys.executable, str(TOOL), nonexistent],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+    assert result.returncode == 2, (
+        f"T09: expected exit 2 for nonexistent citations file, got {result.returncode}\n"
+        f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    )
+    print(f"  [PASS] T09 nonexistent citations file → exit 2: exit={result.returncode}")
+
+
+def test_T10_multiple_valid_citations_count() -> None:
+    """T10: Multiple valid citations all pass and the count in the PASS message is correct."""
+    file_a = b"line1\nline2\nline3\n"
+    file_b = b"alpha\nbeta\ngamma\ndelta\n"
+    citations = (
+        "# Three valid citations\n"
+        "a.md:1\n"
+        "a.md:1-3\n"
+        "b.md:4\n"
+    )
+    rc, out, err = _run_with_real_files(citations, {"a.md": file_a, "b.md": file_b})
+    assert rc == 0, f"T10: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "3" in out, f"T10: expected count 3 in stdout, got {out!r}"
+    assert "PASS" in out, f"T10: expected PASS in stdout, got {out!r}"
+    print(f"  [PASS] T10 multiple valid citations: exit={rc}, out={out.strip()!r}")
+
+
+def test_T11_mixed_valid_and_invalid() -> None:
+    """T11: Mixed valid + invalid citations exit 1 with correct failure count."""
+    file_content = b"only\ntwo\nlines\n"  # 3 lines
+    citations = (
+        "real.md:2\n"       # valid
+        "real.md:99\n"      # out of range
+        "ghost.md:1\n"      # file not found
+    )
+    rc, out, err = _run_with_real_files(citations, {"real.md": file_content})
+    assert rc == 1, f"T11: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "FAIL" in combined, f"T11: expected FAIL in output, got stdout={out!r} stderr={err!r}"
+    # Expect "2 of 3" invalid
+    assert "2" in combined, (
+        f"T11: expected failure count '2' in output, got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T11 mixed valid+invalid → FAIL with count: exit={rc}")
+
+
+# ---------------------------------------------------------------------------
+# Runner
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    tests = [
+        test_T01_valid_line_citation_passes,
+        test_T02_valid_range_citation_passes,
+        test_T03_nonexistent_file_rejected,
+        test_T04_out_of_range_single_line_rejected,
+        test_T05_out_of_range_range_endpoint_rejected,
+        test_T06_comments_and_blanks_ignored,
+        test_T07_empty_input_passes,
+        test_T08_invalid_range_start_gt_end,
+        test_T09_bad_argument_exits_2,
+        test_T10_multiple_valid_citations_count,
+        test_T11_mixed_valid_and_invalid,
+    ]
+    passed = 0
+    failed = 0
+    for t in tests:
+        print(f"\n{t.__name__}:")
+        try:
+            t()
+            passed += 1
+        except Exception as exc:
+            print(f"  [FAIL] {exc}")
+            failed += 1
+
+    print(f"\n{'='*60}")
+    print(f"Results: {passed} passed, {failed} failed")
+    if failed:
+        sys.exit(1)
+    print("All tests passed.")
+
+
+if __name__ == "__main__":
+    main()
