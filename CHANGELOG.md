@@ -67,6 +67,10 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - `src/analyzer/arp.rs` two test doc-comments: remove stale "RED GATE: these two new
     keys are absent from the current summarize() implementation" — both keys are fully
     implemented and the tests are GREEN (F-P1-001 sibling sweep, DF-GREEN-DOC-TENSE-SWEEP).
+  - `src/analyzer/arp.rs` doc-comment count sweep: correct five remaining "eleven" →
+    "thirteen" occurrences (module doc, `summarize()` API doc, section comment); add
+    `bindings_evicted` and `storm_counters_evicted` to the `summarize()` key-contract
+    enumeration (F-P2-001, DF-SIBLING-SWEEP-001).
 
 ## [0.12.0] - 2026-07-10
 
