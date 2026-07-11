@@ -472,15 +472,11 @@ def run_tests() -> int:
     # AC-162-004: _find_repo_root hermetic sentinel tests
     # (F-W72G-P2-OBS-001 — .factory/ OR-sentinel arm untested)
     #
-    # Calls mod._find_repo_root(start) directly.  The stub at line 366 of
-    # bin/check-green-doc-tense returns None unconditionally; every test
-    # below MUST FAIL against it.
-    #
-    # NOTE: The "no-sentinel returns None" case (AC-162-004 item c) is
-    # intentionally omitted here: the stub already returns None for every
-    # input, so that assertion would pass vacuously and cannot serve as a
-    # Red Gate test.  It will be added as a regression guard once the real
-    # implementation is wired in by the implementer.
+    # Calls mod._find_repo_root(start) directly and verifies the
+    # implementation correctly identifies repo roots by walking upward for
+    # .git or .factory sentinels. Includes cases: (a) .factory/ only,
+    # (b1) .git directory, (b2) .git file (worktree), (c) no sentinel
+    # (regression guard).
     # ------------------------------------------------------------------
     print()
     print(
@@ -549,6 +545,31 @@ def run_tests() -> int:
             print(
                 f"  FAIL  [_find_repo_root: .git file (worktree) sentinel resolves root "
                 f"(F-W72G-P2-OBS-001)] — expected {_root_b2}, got {_result_b2!r}"
+            )
+            failures += 1
+
+    # (c) NO sentinel — temp tree with neither .git nor .factory should return None or
+    # an ancestor root outside the temp tree (if walk passes the boundary). This is a
+    # regression guard: before fix, _find_repo_root would return None unconditionally.
+    # Post-fix, if _result_c is not None, it MUST NOT be within the temp tree (temp
+    # tree doesn't contain sentinels, so result must be an ancestor). Assertion: either
+    # _result_c is None, OR _result_c is not in _deep_c.parents (F-W72G-P2-OBS-001).
+    with tempfile.TemporaryDirectory() as _td_c:
+        _root_c = Path(_td_c)
+        _deep_c = _root_c / "a" / "b" / "c" / "d"
+        _deep_c.mkdir(parents=True)
+        _result_c = _find_repo_root(_deep_c)
+        if _result_c is None or _result_c not in _deep_c.parents:
+            print(
+                "  PASS  [_find_repo_root: no-sentinel temp tree returns None or "
+                "ancestor (F-W72G-P2-OBS-001)]"
+            )
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [_find_repo_root: no-sentinel temp tree must return None or "
+                f"ancestor outside tree (F-W72G-P2-OBS-001)] — result {_result_c} "
+                f"is within temp tree {_root_c}"
             )
             failures += 1
 
