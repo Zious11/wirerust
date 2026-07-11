@@ -199,8 +199,8 @@ pub const MAX_FINDINGS: usize = 10_000;
 ///
 /// Carries the desync latch (`is_non_dnp3`) and the partial-frame accumulation
 /// buffer (`carry`) — both implemented in STORY-107 (carry-buffer frame-walk,
-/// AC-001..006).  Detection-emission and correlation-window fields are stubs for
-/// STORY-108/109; they compile but contain no logic yet.
+/// AC-001..006).  Detection-emission and correlation-window fields were stubs
+/// through STORY-107 and are fully implemented as of STORY-108/109.
 ///
 /// BC-2.15.009 (desync bail), ADR-007 Decision 4 (full field list).
 #[derive(Default)]

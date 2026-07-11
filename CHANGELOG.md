@@ -61,6 +61,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - `src/analyzer/dnp3.rs`: remove 9 spurious `#[allow(unused)]` attributes from
     actively-used `pub const` items (PC-NEW-001); add rationale comments to the 3
     `#[allow(clippy::too_many_arguments)]` suppressions that lacked them (PC-NEW-002).
+  - `src/analyzer/dnp3.rs` `Dnp3FlowState` doc-comment: reword stale present-tense
+    "are stubs … contain no logic yet" to past-tense provenance "were stubs through
+    STORY-107 and are fully implemented as of STORY-108/109" (F-P1-001).
 
 ## [0.12.0] - 2026-07-10
 
