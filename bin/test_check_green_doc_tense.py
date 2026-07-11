@@ -460,8 +460,8 @@ def run_tests() -> int:
             print(
                 "  FAIL  [zero-file guard: expected exit non-zero when "
                 "_collect_rust_files returns [], got 0 — "
-                "AC-158-005 not yet implemented (current line ~367 prints WARNING "
-                "and continues to exit 0)]"
+                "REGRESSION: zero-file guard (AC-158-005) no longer exits non-zero — "
+                "check the `if not rust_files:` guard in main()]"
             )
             failures += 1
     finally:
