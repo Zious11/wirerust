@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# changelog-gate-check — Content assertion for CHANGELOG.md additions.
+#
+# Reads CHANGELOG diff text from stdin.
+# Exits 0 if at least one non-blank, non-section-header content line was added.
+# Exits 1 if CHANGELOG.md was touched but only blank/header/deletion changes exist.
+#
+# Invoked by .github/workflows/ci.yml changelog-gate after confirming CHANGELOG.md
+# appears in the diff.
+#
+# AC-164-003 / F-S164P1-001
+set -euo pipefail
+
+CHANGELOG_DIFF=$(cat)
+# F-S164P1-001: wrap the grep filter chain in a group so '|| true' prevents the
+# empty-selection exit-1 from killing this script under set -euo pipefail.
+# Without the group, a blank-only, header-only, or deletions-only diff causes
+# the terminal grep to exit 1, which pipefail propagates to the assignment,
+# which set -e turns into a silent script death before the -eq 0 branch runs.
+CONTENT_LINES=$(echo "${CHANGELOG_DIFF}" | \
+  { grep '^+' | \
+    grep -v '^+++' | \
+    grep -v '^+[[:space:]]*$' | \
+    grep -v '^+##' || true; } | \
+  wc -l | tr -d ' ')
+
+if [ "${CONTENT_LINES}" -eq 0 ]; then
+  echo "FAIL: CHANGELOG.md touched but no content added to [Unreleased] section."
+  echo "(A whitespace-only touch does not satisfy AC-158-001 / PG-W71-CHANGELOG.)"
+  exit 1
+fi
+echo "PASS: CHANGELOG.md updated with ${CONTENT_LINES} content line(s)."
+exit 0

@@ -504,7 +504,9 @@ jobs:
           fi
           # Trigger set was hit — CHANGELOG.md must also be in the diff
           if echo "${CHANGED}" | grep -q '^CHANGELOG\.md$'; then
-            echo "PASS: CHANGELOG.md updated alongside trigger-set changes."
+            # AC-164-003: content assertion via bin/changelog-gate-check.
+            # A whitespace-only touch must not satisfy the gate.
+            git diff origin/develop...HEAD -- CHANGELOG.md | bin/changelog-gate-check
             exit 0
           fi
           echo "FAIL: AC-158-001 / PG-W71-CHANGELOG — this PR modifies files in the"

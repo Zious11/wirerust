@@ -7,7 +7,94 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`bin/validate-citations`: mechanical citation preflight validator (STORY-164,
+  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR; F-S164P1-002/004 +
+  F-S164P2-002/003/004 remediation).**
+
+  New Python 3.10+ stdlib tool that reads a citations table (file argument or
+  stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
+  filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
+  FOUND / INVALID LINE / INVALID RANGE / LINE OUT OF RANGE / MALFORMED / NOT A
+  FILE / OUTSIDE REPO / UNREADABLE), 2 on usage error. Paths are resolved
+  relative to the repo root (WIRERUST_REPO_ROOT or upward walk). Self-tested by
+  `bin/test_validate_citations.py` (22 tests).
+
+  F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
+  are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
+  silently skipped (false PASS). F-S164P1-004: line numbers less than 1 (e.g.
+  `file.md:0`, `file.md:0-5`) are now rejected as `INVALID LINE` rather than being
+  silently accepted as in-bounds.
+
+  F-S164P2-002: the `FAIL: K of N` denominator N now counts every non-blank,
+  non-comment line (valid citations and MALFORMED lines alike), so a malformed-
+  only input correctly reports `FAIL: 1 of 1` rather than `FAIL: 1 of 0`.
+
+  F-S164P2-003 (CWE-22): absolute paths and parent-directory escapes are now
+  rejected with `OUTSIDE REPO: <path>`. Python's pathlib `/` operator discards
+  the left side for absolute right-hand values, so `repo_root / '/etc/passwd'`
+  silently became `/etc/passwd`; `.resolve()` + `.is_relative_to()` containment
+  catches both absolute and `../` traversal forms. Parity with the same class
+  identified for `bin/compute-input-hash` in GitHub #392 (not fixed here;
+  deferred to the #392 issue).
+
+  F-S164P2-004 / F-S164P3-003: unreadable or non-UTF-8 citations files now
+  produce a documented exit-2 usage error rather than an uncaught traceback.
+  `UnicodeDecodeError` (non-UTF-8 bytes) and `OSError` (PermissionError,
+  IsADirectoryError, etc.) are both caught; each emits a descriptive `Error:`
+  message to stderr and exits 2. Test T19 covers the `chmod 000` path, with a
+  skip guard when the process can read mode-0 files (root environments).
+
+  F-S164P6-001: the stdin branch (`sys.stdin.read()`) diverged from the
+  file-argument path — non-UTF-8 bytes on stdin raised an uncaught
+  `UnicodeDecodeError` traceback and exited 1. Fixed by reading
+  `sys.stdin.buffer` (raw bytes) and decoding explicitly; the same
+  `UnicodeDecodeError` catch now applies, emitting a `Error: stdin is not
+  valid UTF-8:` message and exiting 2. Test T20 covers this path.
+
+  F-S164P8-001: cited target files were validated for existence but not for
+  being a regular file or being readable. A citation to a directory (e.g.
+  `docs:5`) passed `exists()` then crashed with `IsADirectoryError` traceback
+  in `count_lines()`. A citation to a chmod-000 file produced a
+  `PermissionError` traceback. Fixed by adding an `is_file()` check (→ `NOT A
+  FILE: <path>`, exit 1) between `exists()` and the INVALID LINE guards, and
+  wrapping the `count_lines()` call in `try/except OSError` (→ `UNREADABLE:
+  <path>`, exit 1). Tests T21 (directory) and T22 (chmod 000, root-skipped)
+  cover both paths.
+
+  Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
+  CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
+  This tool provides a mechanical preflight gate so such errors are caught before
+  dispatch rather than by the adversary.
+
+- **`bin/changelog-gate-check`: extracted changelog-gate content assertion
+  (STORY-164, AC-164-003, wave-74, PG-W73-CHANGELOG-GATE-CONTENT; F-S164P1-001
+  + F-S164P2-001 remediation).**
+
+  The changelog-gate content-assertion logic is extracted from `.github/workflows/
+  ci.yml` into `bin/changelog-gate-check` (a standalone bash script invoked by
+  ci.yml). This enables the gate logic to be directly exercised by behavioral tests.
+
+  F-S164P1-001 (HIGH): the original inline CONTENT_LINES pipeline lacked `||
+  true` on its terminal grep, causing `set -euo pipefail` to kill the CI step
+  before the `-eq 0` diagnostic branch could run — making the blank-only-touch
+  FAIL path dead code. The fix wraps the grep chain in `{ ... || true; }` so
+  an empty selection reliably resolves to `CONTENT_LINES=0` and the diagnostic
+  message prints. `bin/test_changelog_gate_content.py` gains five behavioral
+  tests (B01–B05) that execute the gate script against crafted diff fixtures
+  (real content, blank-only, header-only, deletions-only, direct-path exec-bit
+  guard) and were confirmed FAIL against the broken logic, PASS after the fix.
+
+  F-S164P2-001: test B05 added to invoke the script via its direct path (no
+  `bash` prefix), verifying the committed git file mode is 100755 and the
+  shebang is valid. ci.yml uses the bare path `bin/changelog-gate-check`; a
+  missing exec bit would fail CI with exit 126 while all bash-prefixed tests
+  stayed green. The script was already committed at 100755; B05 is the guard.
+
 ### Changed
+
+
 
 - **`bin/check-green-doc-tense`: extract `_find_repo_root` helper + add hermetic
   main()-guard self-tests (STORY-162, wave-73, F-W72G-P2-OBS-001).**

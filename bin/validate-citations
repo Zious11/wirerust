@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""
+validate-citations — Mechanical citation preflight validator for wirerust.
+(requires Python 3.10+ — the tool uses modern type syntax)
+
+ALGORITHM:
+  1. Read citation entries from a file argument (or stdin if '-' or no positional arg).
+  2. Each non-blank, non-comment line has the form:
+       path/to/file.md:LINE            # optional inline comment (stripped)
+       path/to/file.md:LINE-LINE       # line range (both endpoints checked)
+     Lines beginning with '#' are comments and are ignored. Blank lines are ignored.
+  3. Paths are relative to the repo root (resolved using the same repo-root
+     detection as compute-input-hash: WIRERUST_REPO_ROOT env, walk up from script,
+     walk up from cwd — looking for .factory/ or .git/).
+  4. For each entry validate:
+     - Unparseable non-blank, non-comment lines.
+                                         FAIL → "MALFORMED: <raw line>"
+     - Path must resolve inside the repo root (no absolute refs or ../ escapes).
+                                         FAIL → "OUTSIDE REPO: path"
+     - The cited file MUST exist.        FAIL → "FILE NOT FOUND: path"
+     - The cited path MUST be a regular file (not a directory, symlink-to-dir,
+       etc.).                            FAIL → "NOT A FILE: path"
+     - The cited file MUST be readable.  FAIL → "UNREADABLE: path"
+     - Line numbers must be ≥ 1.         FAIL → "INVALID LINE: path:N (line numbers start at 1)"
+     - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
+     - The cited line number (or both range endpoints) MUST be ≤ the file's actual
+       line count.                       FAIL → "LINE OUT OF RANGE: path:N (file has M lines)"
+  5. On full success:  print "PASS: N citations verified", exit 0.
+     On any failure:   print each failing entry's reason, then
+                       "FAIL: K of N citations invalid", exit 1.
+
+EXIT CODES:
+  0  — all citations valid (or zero citations)
+  1  — one or more citation failures
+  2  — usage error (bad arguments or citations file not found)
+
+REPO ROOT RESOLUTION:
+  Resolution order:
+    1. If WIRERUST_REPO_ROOT env var is set, use it directly.
+    2. Walk up from this script's real path until a dir containing '.factory/'
+       or '.git' is found.
+    3. Walk up from cwd until a dir containing '.factory/' or '.git' is found.
+  This handles running the script from any worktree subdirectory.
+
+USAGE:
+  validate-citations <citations-file>
+      Validate citations listed in <citations-file>.
+
+  validate-citations -
+      Read citations from stdin.
+
+  validate-citations --help
+      Print this message and exit 0.
+"""
+
+import argparse
+import os
+import re
+import sys
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Repo root resolution
+# ---------------------------------------------------------------------------
+
+def find_repo_root() -> Path:
+    """Locate the repo root deterministically.
+
+    When WIRERUST_REPO_ROOT is set, that value is used as-is (no sentinel
+    check) so the tool can be exercised against an arbitrary temp directory
+    in tests without needing a real .factory/ or .git/ entry.
+    """
+    env_root = os.environ.get("WIRERUST_REPO_ROOT")
+    if env_root:
+        return Path(env_root).resolve()
+
+    # Walk up from this script's real location
+    script_dir = Path(__file__).resolve().parent
+    for candidate in [script_dir, *script_dir.parents]:
+        if (candidate / ".factory").exists() or (candidate / ".git").exists():
+            return candidate
+
+    # Walk up from cwd
+    for candidate in [Path.cwd(), *Path.cwd().parents]:
+        if (candidate / ".factory").exists() or (candidate / ".git").exists():
+            return candidate
+
+    raise SystemExit(
+        "Cannot locate repo root: no ancestor directory contains .factory/ or .git/.\n"
+        "Set WIRERUST_REPO_ROOT to the repo root explicitly."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Citation line parsing
+# ---------------------------------------------------------------------------
+
+# Matches: optional-leading-whitespace, path (no colon), colon,
+# start-line, optional -end-line, optional trailing whitespace + inline comment.
+_CITATION_RE = re.compile(r"^\s*([^:]+):(\d+)(?:-(\d+))?\s*(?:#.*)?$")
+
+
+def parse_line(raw: str) -> tuple[str, int, int | None] | None:
+    """Parse one line from a citations table.
+
+    Returns (path, start_line, end_line_or_None) for a valid citation line,
+    or None if the line should be skipped (blank or comment).
+    """
+    stripped = raw.strip()
+    if not stripped or stripped.startswith("#"):
+        return None
+    m = _CITATION_RE.match(raw)
+    if not m:
+        return None
+    path = m.group(1).strip()
+    start = int(m.group(2))
+    end = int(m.group(3)) if m.group(3) is not None else None
+    return path, start, end
+
+
+# ---------------------------------------------------------------------------
+# Line counting
+# ---------------------------------------------------------------------------
+
+def count_lines(file_path: Path) -> int:
+    """Return the number of lines in a file by iterating in binary mode."""
+    return sum(1 for _ in file_path.open("rb"))
+
+
+# ---------------------------------------------------------------------------
+# Core validation
+# ---------------------------------------------------------------------------
+
+def validate(text: str, repo_root: Path) -> int:
+    """Validate all citations in the given text against repo_root.
+
+    Returns 0 if all citations are valid (including the zero-citation case),
+    or 1 if one or more citations fail validation.
+    """
+    # F-S164P2-002: track every non-blank, non-comment line as the denominator
+    # so MALFORMED lines are counted in "FAIL: K of N" rather than inflating K
+    # above N when no valid citations are present.
+    total: int = 0
+    citations: list[tuple[str, int, int | None]] = []
+    failures: list[str] = []
+    resolved_root = repo_root.resolve()
+
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        parsed = parse_line(raw_line)
+        if parsed is None:
+            # F-S164P1-002: non-blank, non-comment lines that fail regex parse are
+            # MALFORMED citations, not silently-skipped noise. Report and count them.
+            if stripped and not stripped.startswith("#"):
+                total += 1
+                failures.append(f"MALFORMED: {stripped}")
+            continue
+        total += 1
+        path_str, start, end = parsed
+        citations.append((path_str, start, end))
+
+        # F-S164P2-003: reject paths that escape the repo root via absolute references
+        # or parent-directory traversal (CWE-22). pathlib's / operator discards the
+        # left side for absolute right-hand paths, so repo_root / '/etc/passwd'
+        # silently becomes /etc/passwd; resolve() + is_relative_to() catches both
+        # that case and '../../'-style traversals.
+        # (Parity with the same class fixed in bin/compute-input-hash re: GitHub #392.)
+        resolved_path = (repo_root / path_str).resolve()
+        if not resolved_path.is_relative_to(resolved_root):
+            failures.append(f"OUTSIDE REPO: {path_str}")
+            continue
+
+        abs_path = resolved_path
+
+        if not abs_path.exists():
+            failures.append(f"FILE NOT FOUND: {path_str}")
+            continue
+
+        # F-S164P8-001: a directory passes exists() but raises IsADirectoryError in
+        # count_lines(). Check is_file() explicitly for a clean diagnostic.
+        if not abs_path.is_file():
+            failures.append(f"NOT A FILE: {path_str}")
+            continue
+
+        # F-S164P1-004: line numbers must be ≥ 1 (0-based addressing is invalid).
+        if start < 1:
+            failures.append(f"INVALID LINE: {path_str}:{start} (line numbers start at 1)")
+            continue
+        if end is not None and end < 1:
+            failures.append(f"INVALID LINE: {path_str}:{end} (line numbers start at 1)")
+            continue
+
+        # F-S164P8-001: wrap count_lines() to catch PermissionError and other
+        # OSErrors on the target file (chmod 000, etc.).
+        try:
+            line_count = count_lines(abs_path)
+        except OSError:
+            failures.append(f"UNREADABLE: {path_str}")
+            continue
+
+        if end is not None:
+            if start > end:
+                failures.append(
+                    f"INVALID RANGE: {path_str}:{start}-{end} (start > end)"
+                )
+                continue
+            if end > line_count:
+                failures.append(
+                    f"LINE OUT OF RANGE: {path_str}:{start}-{end} "
+                    f"(file has {line_count} lines)"
+                )
+                continue
+        else:
+            if start > line_count:
+                failures.append(
+                    f"LINE OUT OF RANGE: {path_str}:{start} (file has {line_count} lines)"
+                )
+                continue
+
+    n_valid = len(citations)
+    k = len(failures)
+
+    if k == 0:
+        print(f"PASS: {n_valid} citations verified")
+        return 0
+
+    for failure in failures:
+        print(failure)
+    print(f"FAIL: {k} of {total} citations invalid")
+    return 1
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="validate-citations",
+        description="Mechanical citation preflight validator.",
+        add_help=False,
+    )
+    parser.add_argument(
+        "citations_file",
+        nargs="?",
+        default=None,
+        help="Path to citations file, or '-' to read from stdin.",
+    )
+    parser.add_argument(
+        "--help", "-h",
+        action="store_true",
+        default=False,
+        help="Print help and exit.",
+    )
+
+    args = parser.parse_args()
+
+    if args.help:
+        print(__doc__)
+        sys.exit(0)
+
+    repo_root = find_repo_root()
+
+    if args.citations_file is None or args.citations_file == "-":
+        # F-S164P6-001: read raw bytes via stdin.buffer and decode explicitly so
+        # non-UTF-8 input produces a documented exit-2 usage error rather than an
+        # uncaught UnicodeDecodeError traceback (parity with the file-argument path).
+        try:
+            text = sys.stdin.buffer.read().decode("utf-8")
+        except UnicodeDecodeError as exc:
+            print(
+                f"Error: stdin is not valid UTF-8: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+    else:
+        citations_path = Path(args.citations_file)
+        if not citations_path.exists():
+            print(
+                f"Error: citations file not found: {args.citations_file}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        # F-S164P2-004 / F-S164P3-003: non-UTF-8 or unreadable citations files must
+        # produce a documented exit-2 usage error, not an uncaught traceback.
+        # UnicodeDecodeError is a subclass of ValueError, not OSError, so both
+        # branches are needed. OSError covers PermissionError, IsADirectoryError, etc.
+        try:
+            text = citations_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            print(
+                f"Error: citations file is not valid UTF-8: {args.citations_file}: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        except OSError as exc:
+            print(
+                f"Error: cannot read citations file: {args.citations_file}: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+    sys.exit(validate(text, repo_root))
+
+
+if __name__ == "__main__":
+    main()
