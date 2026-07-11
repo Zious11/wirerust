@@ -10,29 +10,43 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ### Added
 
 - **`bin/validate-citations`: mechanical citation preflight validator (STORY-164,
-  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR).**
+  AC-164-002, wave-74, PG-W73-CITATION-VALIDATOR; F-S164P1-002/004 remediation).**
 
   New Python 3.10+ stdlib tool that reads a citations table (file argument or
   stdin) and verifies each `path:LINE` / `path:LINE-LINE` anchor against the
   filesystem. Exits 0 when all citations are valid, 1 on any failure (FILE NOT
-  FOUND / LINE OUT OF RANGE / INVALID RANGE), 2 on usage error. Paths are
-  resolved relative to the repo root (WIRERUST_REPO_ROOT or upward walk). Self-
-  tested by `bin/test_validate_citations.py` (11 tests).
+  FOUND / LINE OUT OF RANGE / INVALID RANGE / MALFORMED), 2 on usage error. Paths
+  are resolved relative to the repo root (WIRERUST_REPO_ROOT or upward walk).
+  Self-tested by `bin/test_validate_citations.py` (14 tests).
+
+  F-S164P1-002: non-blank, non-comment lines that do not match the citation regex
+  are now reported as `MALFORMED: <line>` and cause exit 1 rather than being
+  silently skipped (false PASS). F-S164P1-004: line numbers less than 1 (e.g.
+  `file.md:0`, `file.md:0-5`) are now rejected as `INVALID LINE` rather than being
+  silently accepted as in-bounds.
 
   Addresses PG-W73-CITATION-VALIDATOR: the wave-73 gate adversarial review found
   CRITICAL-severity fabricated citations in STORY-163's own evidence artifact.
   This tool provides a mechanical preflight gate so such errors are caught before
   dispatch rather than by the adversary.
 
-- **`changelog-gate` content assertion in `.github/workflows/ci.yml`
-  (STORY-164, AC-164-003, wave-74, PG-W73-CHANGELOG-GATE-CONTENT).**
+- **`bin/changelog-gate-check`: extracted changelog-gate content assertion
+  (STORY-164, AC-164-003, wave-74, PG-W73-CHANGELOG-GATE-CONTENT; F-S164P1-001
+  remediation).**
 
-  The changelog-gate CI job previously performed only a presence check (did
-  CHANGELOG.md appear in the diff?). A whitespace-only touch could silently
-  satisfy the gate. The new content assertion counts non-blank, non-section-header
-  added lines via `CHANGELOG_DIFF` / `CONTENT_LINES` bash variables; if
-  `CONTENT_LINES` is 0 the gate now exits 1 with an explicit failure message
-  rather than passing.
+  The changelog-gate content-assertion logic is extracted from `.github/workflows/
+  ci.yml` into `bin/changelog-gate-check` (a standalone bash script invoked by
+  ci.yml). This enables the gate logic to be directly exercised by behavioral tests.
+
+  F-S164P1-001 (HIGH): the original inline CONTENT_LINES pipeline lacked `||
+  true` on its terminal grep, causing `set -euo pipefail` to kill the CI step
+  before the `-eq 0` diagnostic branch could run — making the blank-only-touch
+  FAIL path dead code. The fix wraps the grep chain in `{ ... || true; }` so
+  an empty selection reliably resolves to `CONTENT_LINES=0` and the diagnostic
+  message prints. `bin/test_changelog_gate_content.py` gains four behavioral
+  tests (B01–B04) that execute the gate script against crafted diff fixtures
+  (real content, blank-only, header-only, deletions-only) and were confirmed
+  FAIL against the broken logic, PASS after the fix.
 
 ### Changed
 

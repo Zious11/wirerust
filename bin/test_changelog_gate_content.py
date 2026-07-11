@@ -1,125 +1,211 @@
 #!/usr/bin/env python3
 """
-Self-test for AC-164-003: changelog-gate content assertion in .github/workflows/ci.yml.
+Self-test for AC-164-003: changelog-gate content assertion
+(bin/changelog-gate-check, invoked from .github/workflows/ci.yml).
 
-The changelog-gate CI job currently performs only a presence check (CHANGELOG.md
-appears in the diff). AC-164-003 mandates adding a content assertion immediately
-after the presence check that verifies at least one non-blank, non-header content
-line was added to CHANGELOG.md, preventing a whitespace-only touch from satisfying
-the gate.
+The changelog-gate CI job validates CHANGELOG.md additions via
+bin/changelog-gate-check. The script counts non-blank, non-section-header
+added lines in the diff; a whitespace-only touch does not satisfy the gate.
 
-These tests verify that the mandated content assertion is present in ci.yml.
-They FAIL against the current (pre-implementation) ci.yml and will PASS once
-AC-164-003 is delivered.
+String-presence tests (T01–T05) verify that the key bash constructs are
+present in bin/changelog-gate-check. Behavioral tests (B01–B04) execute the
+gate logic against crafted diff fixtures and verify correct exit codes and
+output messages.
 
 Run: python3 bin/test_changelog_gate_content.py
 """
 
+import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
-# Locate ci.yml relative to this script (bin/ → repo root → .github/workflows/)
+# Locate bin/changelog-gate-check relative to this script
 # ---------------------------------------------------------------------------
 
-def find_ci_yml() -> Path:
-    """Walk up from bin/ to find .github/workflows/ci.yml."""
+def find_changelog_gate_check() -> Path:
+    """Walk up from bin/ to find bin/changelog-gate-check."""
     script_dir = Path(__file__).resolve().parent
-    for candidate in [script_dir, *script_dir.parents]:
-        ci = candidate / ".github" / "workflows" / "ci.yml"
-        if ci.exists():
-            return ci
+    check = script_dir / "changelog-gate-check"
+    if check.exists():
+        return check
     raise FileNotFoundError(
-        "Cannot find .github/workflows/ci.yml relative to bin/. "
+        "Cannot find bin/changelog-gate-check relative to bin/. "
         "Run from the repo root or a worktree branch."
     )
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# String-presence tests (T01–T05): verify key bash constructs exist in
+# bin/changelog-gate-check (AC-164-003).
 # ---------------------------------------------------------------------------
 
 def test_content_lines_variable_present() -> None:
     """
-    AC-164-003(a): The CONTENT_LINES variable must be defined in the changelog-gate
-    run: block (the bash variable that counts non-blank, non-header added lines).
-    FAILS against the current presence-only ci.yml.
+    AC-164-003(a): CONTENT_LINES must be defined in bin/changelog-gate-check
+    (the bash variable that counts non-blank, non-header added lines).
     """
-    ci_yml = find_ci_yml()
-    text = ci_yml.read_text(encoding="utf-8")
+    check = find_changelog_gate_check()
+    text = check.read_text(encoding="utf-8")
     assert "CONTENT_LINES" in text, (
-        "AC-164-003 FAIL: 'CONTENT_LINES' not found in .github/workflows/ci.yml.\n"
-        "The changelog-gate content assertion (AC-164-003) has not been implemented.\n"
+        "AC-164-003 FAIL: 'CONTENT_LINES' not found in bin/changelog-gate-check.\n"
         "Expected: a CONTENT_LINES bash variable counting non-blank, non-header added lines."
     )
-    print(f"  [PASS] CONTENT_LINES variable present in ci.yml")
+    print(f"  [PASS] CONTENT_LINES variable present in changelog-gate-check")
 
 
 def test_changelog_diff_variable_present() -> None:
     """
-    AC-164-003(a): CHANGELOG_DIFF=$(git diff origin/develop...HEAD -- CHANGELOG.md)
-    must be present in the changelog-gate run: block.
-    FAILS against the current presence-only ci.yml.
+    AC-164-003(a): CHANGELOG_DIFF must be present in bin/changelog-gate-check.
     """
-    ci_yml = find_ci_yml()
-    text = ci_yml.read_text(encoding="utf-8")
+    check = find_changelog_gate_check()
+    text = check.read_text(encoding="utf-8")
     assert "CHANGELOG_DIFF" in text, (
-        "AC-164-003 FAIL: 'CHANGELOG_DIFF' not found in .github/workflows/ci.yml.\n"
-        "The changelog-gate content assertion (AC-164-003) has not been implemented.\n"
-        "Expected: CHANGELOG_DIFF=$(git diff origin/develop...HEAD -- CHANGELOG.md)"
+        "AC-164-003 FAIL: 'CHANGELOG_DIFF' not found in bin/changelog-gate-check.\n"
+        "Expected: CHANGELOG_DIFF=$(cat) or equivalent."
     )
-    print(f"  [PASS] CHANGELOG_DIFF variable present in ci.yml")
+    print(f"  [PASS] CHANGELOG_DIFF variable present in changelog-gate-check")
 
 
 def test_whitespace_only_message_present() -> None:
     """
     AC-164-003(a): The FAIL message for a whitespace-only touch must be present,
-    per the exact wording specified in the AC:
-      "whitespace-only touch does not satisfy AC-158-001 / PG-W71-CHANGELOG"
-    FAILS against the current presence-only ci.yml.
+    per the exact wording: "whitespace-only touch does not satisfy AC-158-001 / PG-W71-CHANGELOG"
     """
-    ci_yml = find_ci_yml()
-    text = ci_yml.read_text(encoding="utf-8")
+    check = find_changelog_gate_check()
+    text = check.read_text(encoding="utf-8")
     assert "whitespace-only" in text, (
-        "AC-164-003 FAIL: 'whitespace-only' not found in .github/workflows/ci.yml.\n"
-        "The changelog-gate FAIL message (AC-164-003) has not been implemented.\n"
+        "AC-164-003 FAIL: 'whitespace-only' not found in bin/changelog-gate-check.\n"
         "Expected the message to include 'whitespace-only touch does not satisfy AC-158-001'."
     )
-    print(f"  [PASS] whitespace-only FAIL message present in ci.yml")
+    print(f"  [PASS] whitespace-only FAIL message present in changelog-gate-check")
 
 
 def test_content_line_pass_message_present() -> None:
     """
     AC-164-003(a): The PASS message reporting the number of content lines must be
     present: "PASS: CHANGELOG.md updated with ${CONTENT_LINES} content line(s)."
-    FAILS against the current presence-only ci.yml.
     """
-    ci_yml = find_ci_yml()
-    text = ci_yml.read_text(encoding="utf-8")
+    check = find_changelog_gate_check()
+    text = check.read_text(encoding="utf-8")
     assert "content line" in text, (
-        "AC-164-003 FAIL: 'content line' not found in .github/workflows/ci.yml.\n"
-        "The PASS echo message (AC-164-003) has not been implemented.\n"
+        "AC-164-003 FAIL: 'content line' not found in bin/changelog-gate-check.\n"
         "Expected: echo 'PASS: CHANGELOG.md updated with ${CONTENT_LINES} content line(s).'"
     )
-    print(f"  [PASS] content line PASS message present in ci.yml")
+    print(f"  [PASS] content line PASS message present in changelog-gate-check")
 
 
 def test_grep_filter_chain_present() -> None:
     """
     AC-164-003(a): The grep filter chain that strips blank lines and ## headers from
-    the diff must be present. Checks for the section-header filter 'grep -v '^+##''.
-    FAILS against the current presence-only ci.yml.
+    the diff must be present. Checks for the section-header filter '^+##'.
     """
-    ci_yml = find_ci_yml()
-    text = ci_yml.read_text(encoding="utf-8")
-    # The AC specifies: grep -v '^+##'  to exclude section headers
-    assert "'^+##'" in text or "'^+##'" in text or "^+##" in text, (
-        "AC-164-003 FAIL: section-header filter (^+##) not found in .github/workflows/ci.yml.\n"
-        "The grep filter chain (AC-164-003) has not been implemented.\n"
+    check = find_changelog_gate_check()
+    text = check.read_text(encoding="utf-8")
+    assert "^+##" in text, (
+        "AC-164-003 FAIL: section-header filter (^+##) not found in bin/changelog-gate-check.\n"
         "Expected: grep -v '^+##' to strip section headers from the content line count."
     )
-    print(f"  [PASS] grep section-header filter (^+##) present in ci.yml")
+    print(f"  [PASS] grep section-header filter (^+##) present in changelog-gate-check")
+
+
+# ---------------------------------------------------------------------------
+# Behavioral tests (B01–B04): execute the gate logic against crafted diff
+# fixtures and verify exit codes / output messages (F-S164P1-001 companion).
+# ---------------------------------------------------------------------------
+
+def _run_gate(diff_text: str) -> tuple[int, str]:
+    """Run bin/changelog-gate-check with diff_text piped to stdin.
+
+    Returns (returncode, combined stdout+stderr).
+    """
+    gate = find_changelog_gate_check()
+    result = subprocess.run(
+        ["bash", str(gate)],
+        input=diff_text,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode, result.stdout + result.stderr
+
+
+def test_B01_real_content_line_pass() -> None:
+    """B01: A diff with a real content line exits 0 (PASS path)."""
+    diff = textwrap.dedent("""\
+        --- a/CHANGELOG.md
+        +++ b/CHANGELOG.md
+        @@ -8,6 +8,7 @@
+         ## [Unreleased]
+
+        +- Added the new widget feature.
+
+         ### Added
+    """)
+    rc, out = _run_gate(diff)
+    assert rc == 0, f"B01: expected exit 0, got {rc}\nout={out!r}"
+    assert "PASS" in out, f"B01: expected PASS in output, got {out!r}"
+    print(f"  [PASS] B01 real content line → exit 0 PASS: exit={rc}, out={out.strip()!r}")
+
+
+def test_B02_blank_only_touch_fail() -> None:
+    """B02: A diff with only blank line additions exits 1 with whitespace-only message."""
+    diff = textwrap.dedent("""\
+        --- a/CHANGELOG.md
+        +++ b/CHANGELOG.md
+        @@ -8,6 +8,9 @@
+         ## [Unreleased]
+        +
+        +
+        +
+         ### Added
+    """)
+    rc, out = _run_gate(diff)
+    assert rc == 1, f"B02: expected exit 1, got {rc}\nout={out!r}"
+    assert "whitespace-only" in out, (
+        f"B02: expected 'whitespace-only' in output for blank-only diff, got {out!r}"
+    )
+    print(f"  [PASS] B02 blank-only touch → exit 1 with whitespace-only: exit={rc}")
+
+
+def test_B03_section_header_only_add_fail() -> None:
+    """B03: A diff with only section header additions exits 1 (headers do not count as content)."""
+    diff = textwrap.dedent("""\
+        --- a/CHANGELOG.md
+        +++ b/CHANGELOG.md
+        @@ -8,6 +8,9 @@
+         ## [Unreleased]
+        +## New Section
+        +### Subsection
+        +#### Sub-subsection
+         ### Added
+    """)
+    rc, out = _run_gate(diff)
+    assert rc == 1, f"B03: expected exit 1, got {rc}\nout={out!r}"
+    assert "FAIL" in out, (
+        f"B03: expected 'FAIL' in output for header-only diff, got {out!r}"
+    )
+    print(f"  [PASS] B03 section-header-only add → exit 1 FAIL: exit={rc}")
+
+
+def test_B04_deletions_only_fail() -> None:
+    """B04: A diff with only deletions (no content additions) exits 1."""
+    diff = textwrap.dedent("""\
+        --- a/CHANGELOG.md
+        +++ b/CHANGELOG.md
+        @@ -8,7 +8,6 @@
+         ## [Unreleased]
+        -old entry removed
+
+         ### Added
+    """)
+    rc, out = _run_gate(diff)
+    assert rc == 1, f"B04: expected exit 1, got {rc}\nout={out!r}"
+    assert "FAIL" in out, (
+        f"B04: expected 'FAIL' in output for deletions-only diff, got {out!r}"
+    )
+    print(f"  [PASS] B04 deletions-only → exit 1 FAIL: exit={rc}")
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +219,10 @@ def main() -> None:
         test_whitespace_only_message_present,
         test_content_line_pass_message_present,
         test_grep_filter_chain_present,
+        test_B01_real_content_line_pass,
+        test_B02_blank_only_touch_fail,
+        test_B03_section_header_only_add_fail,
+        test_B04_deletions_only_fail,
     ]
     passed = 0
     failed = 0

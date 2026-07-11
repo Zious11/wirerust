@@ -2,9 +2,9 @@
 """
 Self-test for bin/validate-citations (AC-164-002).
 
-Tests are written against the SPECIFIED behavior; they FAIL against the stub
-(which raises NotImplementedError / exits non-zero for all paths) and will
-PASS once the full implementation is delivered.
+Tests verify the delivered behavior of the tool against real file fixtures.
+Each test covers a distinct validation scenario as documented in the tool's
+ALGORITHM section (see bin/validate-citations).
 
 Run: python3 bin/test_validate_citations.py
 
@@ -20,6 +20,9 @@ Test coverage (AC-164-002(d) + edge cases):
   T09  Exit code 2 on bad argument (usage error)
   T10  Multiple valid citations all pass (exit 0, count matches)
   T11  Mixed valid + invalid → correct failure count and exit 1
+  T12  F-S164P1-002: non-blank, non-comment, unparseable line → MALFORMED, exit 1
+  T13  F-S164P1-004: line number 0 → INVALID LINE, exit 1
+  T14  F-S164P1-004: range start 0 → INVALID LINE, exit 1
 """
 
 import subprocess
@@ -262,6 +265,59 @@ def test_T11_mixed_valid_and_invalid() -> None:
     print(f"  [PASS] T11 mixed valid+invalid → FAIL with count: exit={rc}")
 
 
+def test_T12_malformed_line_reported() -> None:
+    """T12 (F-S164P1-002): A non-blank, non-comment, unparseable line exits 1 with MALFORMED."""
+    # 'src/decoder.rs 196-210' uses a space instead of colon — fails the citation regex
+    citations = "src/decoder.rs 196-210\n"
+    rc, out, err = _run_with_real_files(citations, {})
+    assert rc == 1, (
+        f"T12: expected exit 1 for malformed citation (space instead of colon), "
+        f"got {rc}\nstdout={out!r}\nstderr={err!r}"
+    )
+    combined = out + err
+    assert "MALFORMED" in combined, (
+        f"T12: expected MALFORMED in output for unparseable line, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T12 malformed citation reported: exit={rc}")
+
+
+def test_T13_zero_line_number_rejected() -> None:
+    """T13 (F-S164P1-004): A citation with line number 0 exits 1 with INVALID LINE."""
+    file_content = b"line1\nline2\nline3\n"
+    citations = "notes.md:0\n"
+    rc, out, err = _run_with_real_files(citations, {"notes.md": file_content})
+    assert rc == 1, (
+        f"T13: expected exit 1 for line number 0, "
+        f"got {rc}\nstdout={out!r}\nstderr={err!r}"
+    )
+    combined = out + err
+    assert "INVALID LINE" in combined, (
+        f"T13: expected INVALID LINE in output for line 0, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T13 zero line number rejected: exit={rc}")
+
+
+def test_T14_zero_range_start_rejected() -> None:
+    """T14 (F-S164P1-004): A range citation with start=0 exits 1 with INVALID LINE."""
+    # Use a 10-line file so the range 0-5 would pass bounds checks if line-number
+    # validation were absent — confirming the INVALID LINE check fires first.
+    file_content = b"".join(f"line{i}\n".encode() for i in range(1, 11))
+    citations = "notes.md:0-5\n"
+    rc, out, err = _run_with_real_files(citations, {"notes.md": file_content})
+    assert rc == 1, (
+        f"T14: expected exit 1 for range start=0, "
+        f"got {rc}\nstdout={out!r}\nstderr={err!r}"
+    )
+    combined = out + err
+    assert "INVALID LINE" in combined, (
+        f"T14: expected INVALID LINE in output for range start 0, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    print(f"  [PASS] T14 zero range start rejected: exit={rc}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -279,6 +335,9 @@ def main() -> None:
         test_T09_bad_argument_exits_2,
         test_T10_multiple_valid_citations_count,
         test_T11_mixed_valid_and_invalid,
+        test_T12_malformed_line_reported,
+        test_T13_zero_line_number_rejected,
+        test_T14_zero_range_start_rejected,
     ]
     passed = 0
     failed = 0

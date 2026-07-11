@@ -134,8 +134,13 @@ def validate(text: str, repo_root: Path) -> int:
     failures: list[str] = []
 
     for raw_line in text.splitlines():
+        stripped = raw_line.strip()
         parsed = parse_line(raw_line)
         if parsed is None:
+            # F-S164P1-002: non-blank, non-comment lines that fail regex parse are
+            # MALFORMED citations, not silently-skipped noise. Report and count them.
+            if stripped and not stripped.startswith("#"):
+                failures.append(f"MALFORMED: {stripped}")
             continue
         path_str, start, end = parsed
         citations.append((path_str, start, end))
@@ -143,6 +148,14 @@ def validate(text: str, repo_root: Path) -> int:
 
         if not abs_path.exists():
             failures.append(f"FILE NOT FOUND: {path_str}")
+            continue
+
+        # F-S164P1-004: line numbers must be ≥ 1 (0-based addressing is invalid).
+        if start < 1:
+            failures.append(f"INVALID LINE: {path_str}:{start} (line numbers start at 1)")
+            continue
+        if end is not None and end < 1:
+            failures.append(f"INVALID LINE: {path_str}:{end} (line numbers start at 1)")
             continue
 
         line_count = count_lines(abs_path)
