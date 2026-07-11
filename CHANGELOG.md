@@ -19,10 +19,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   patching in tests without relying on the live `.git` or `.factory/` of the
   develop checkout.
 
-  `bin/test_check_green_doc_tense.py` gains four new hermetic self-tests
+  `bin/test_check_green_doc_tense.py` gains five new hermetic self-tests
   (AC-162-003 / AC-162-004, F-W72G-P2-OBS-001):
   - Three `_find_repo_root` unit tests verifying the `.factory/` OR-sentinel,
     `.git` directory sentinel, and `.git` file (worktree) sentinel arms.
+  - One no-sentinel regression guard asserting `_find_repo_root` returns `None`
+    or an ancestor outside the temp tree when neither `.git` nor `.factory/`
+    is present.
   - One precision exit-code test asserting `main()` returns exactly `1` (zero-file
     guard) rather than `2` (root-not-found guard) when `_collect_rust_files` returns
     `[]` and a repo root is reliably found via a hermetic temp fixture.
