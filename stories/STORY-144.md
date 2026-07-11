@@ -7,7 +7,7 @@ wave: 65
 points: 8
 phase: f3
 tdd_mode: strict
-status: draft
+status: merged
 feature_id: fix-tls-clienthello-frag
 github_issue: fix-tls-clienthello-frag
 subsystems: [SS-07]

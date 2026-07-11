@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-159
 epic_id: E-11
 version: "1.10"
-status: draft
+status: delivered
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
 phase: f7
@@ -35,7 +35,7 @@ inputs:
 # STORY-159: Author Public ADR-012 — Protocols Catalog and Coverage-Gaps System
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** delivered
 **Wave:** 72
 **Points:** 3
 **Priority:** P3

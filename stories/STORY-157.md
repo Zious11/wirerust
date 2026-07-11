@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-157
 epic_id: E-11
 version: "1.7"
-status: draft
+status: merged
 producer: story-writer
 timestamp: 2026-07-07T00:00:00Z
 phase: f7
@@ -51,7 +51,7 @@ inputs:
 # STORY-157: Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** merged
 **Wave:** 71
 **Points:** 5
 **Priority:** P3

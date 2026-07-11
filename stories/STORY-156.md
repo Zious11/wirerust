@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-156
 epic_id: E-16
 version: "1.6"
-status: draft
+status: merged
 producer: story-writer
 timestamp: 2026-07-06T00:00:00Z
 phase: f3
@@ -51,7 +51,7 @@ input-hash: "8c9b0ba"
 # STORY-156: ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016)
 
 **Epic:** E-16 (ARP Security Analyzer)
-**Status:** draft
+**Status:** merged
 **Wave:** 71
 **Points:** 3
 

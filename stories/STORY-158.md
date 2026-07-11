@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-158
 epic_id: E-11
 version: "1.13"
-status: draft
+status: delivered
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
 phase: f7
@@ -38,7 +38,7 @@ inputs:
 # STORY-158: Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** delivered
 **Wave:** 72
 **Points:** 3
 **Priority:** P3

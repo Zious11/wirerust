@@ -50,7 +50,7 @@
   ],
   "process_notes": [
     "PR #395 squash-merged to develop at b5e1e155e37704296a8cb5951743cd5817a3f11d (2026-07-11T03:16:04Z).",
-    "Merge executed by orchestrator in main thread under direct human authorization (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER interim path).",
+    "Merge executed by orchestrator in main thread under direct human authorization (D-425 instructed-halt interim path; same execution mechanism as, but different trigger than, PG-MERGE-AUTH-SUBAGENT-CLASSIFIER — see pr-manager-merge-auth-guidance.md Excluded precedents).",
     "CI 12/12 green; security CLEAN; pr-reviewer APPROVE (1 review cycle).",
     "VP-INDEX v2.40 LMR-003 Option A amendment shipped as factory-side companion (not in develop PR per E-11 convention).",
     "Demo evidence 5 artifacts; demo-evidence scrub PASS (PG-W70-DEMO-SCRUB).",

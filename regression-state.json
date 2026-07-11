@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-10T14:47:49Z","command":"cargo test --all-targets 2>&1 | tail -10; echo \"EXIT: $?\""}
+{"status":"pass","timestamp":"2026-07-11T04:30:41Z","command":"cargo test --all-targets 2>&1 | grep \"^test result:\" | grep -v \"^test result: ok. 0 \" | awk '{sum+=$4} END {print \"Total passed:\", sum}'"}

@@ -5,7 +5,7 @@ id: STORY-150
 title: "TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run"
 epic_id: E-11
 version: "1.6"
-status: draft
+status: merged
 producer: story-writer
 timestamp: 2026-07-01T00:00:00Z
 phase: 3
@@ -47,7 +47,7 @@ inputs:
 # STORY-150 — TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** merged
 **Wave:** 71
 **Points:** 5
 

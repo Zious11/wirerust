@@ -7,7 +7,7 @@ wave: 68
 points: 8
 phase: f3
 tdd_mode: strict
-status: draft
+status: merged
 feature_id: feature-protocol-coverage
 github_issue: feature-protocol-coverage
 subsystems: [SS-12, SS-18]

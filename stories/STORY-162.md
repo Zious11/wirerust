@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-162
 epic_id: E-11
 version: "1.5"
-status: delivered
+status: completed
 producer: story-writer
 timestamp: 2026-07-09T22:45:00Z
 phase: f7
@@ -37,7 +37,7 @@ inputs:
 # STORY-162: Wave-72 cycle-closing: LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** completed
 **Wave:** 73
 **Points:** 3
 **Priority:** P3

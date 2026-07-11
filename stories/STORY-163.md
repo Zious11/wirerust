@@ -37,7 +37,7 @@ inputs:
 # STORY-163: maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 73
 **Points:** 2
 **Priority:** P3

@@ -8,7 +8,7 @@ wave: 63
 points: 8
 phase: f3
 tdd_mode: strict
-status: ready
+status: merged
 feature_id: issue-316-enip-v0.11.0
 github_issue: 316
 subsystems: [SS-15]

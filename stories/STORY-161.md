@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-161
 epic_id: E-11
 version: "1.9"
-status: draft
+status: delivered
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
 phase: f7
@@ -37,7 +37,7 @@ inputs:
 # STORY-161: Codify Multi-File proof_file_hash Algorithm and Re-lock VP-024
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** delivered
 **Wave:** 72
 **Points:** 3
 **Priority:** P3

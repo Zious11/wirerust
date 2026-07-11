@@ -81,7 +81,7 @@ Step 8 — Outcome:
   Authorization evidence (if merged): [human grant at wave gate on YYYY-MM-DD | per-PR grant at <timestamp>]
   Merge commit SHA (if merged): <sha>
   CI status post-merge (if merged): [green | pending]
-  Blocking condition (if halted): [specific unmet condition from DF-MERGE-AUTH-CLASSIFIER-001]
+  Halt cause (if halted): [DF-MERGE-AUTH-CLASSIFIER-001 blocking condition | harness-classifier-deny — see "Harness-Classifier Halt" section] — followed by the specific condition or denial reason
 ```
 
 ---

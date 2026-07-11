@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-160
 epic_id: E-8
 version: "1.12"
-status: draft
+status: delivered
 producer: story-writer
 timestamp: 2026-07-08T00:00:00Z
 phase: f7
@@ -40,7 +40,7 @@ inputs:
 # STORY-160: Align JSON Finding-Enum Serialization to Lowercase/snake_case + schema_version Envelope
 
 **Epic:** E-8 (Reporting and Output Formats)
-**Status:** draft
+**Status:** delivered
 **Wave:** 72
 **Points:** 3
 **Priority:** P2
