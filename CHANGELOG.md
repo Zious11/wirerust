@@ -64,6 +64,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - `src/analyzer/dnp3.rs` `Dnp3FlowState` doc-comment: reword stale present-tense
     "are stubs … contain no logic yet" to past-tense provenance "were stubs through
     STORY-107 and are fully implemented as of STORY-108/109" (F-P1-001).
+  - `src/analyzer/arp.rs` two test doc-comments: remove stale "RED GATE: these two new
+    keys are absent from the current summarize() implementation" — both keys are fully
+    implemented and the tests are GREEN (F-P1-001 sibling sweep, DF-GREEN-DOC-TENSE-SWEEP).
 
 ## [0.12.0] - 2026-07-10
 

@@ -2054,7 +2054,7 @@ mod tests {
     // AC-013 — BC-2.16.010 PC1/PC4: all eleven summary keys present, all 0 at zero frames
     // -----------------------------------------------------------------------
 
-    /// AC-013a (BC-2.16.010 PC4): all eleven keys present with value 0 when no frames
+    /// AC-013a (BC-2.16.010 PC4): all thirteen keys present with value 0 when no frames
     /// have been processed.
     #[test]
     #[allow(non_snake_case)]
@@ -2065,7 +2065,7 @@ mod tests {
         // All thirteen canonical keys must be present and equal 0 (BC-2.16.010 v1.9 EC-001).
         // Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
         // and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
-        // RED GATE: these two new keys are absent from the current summarize() implementation.
+        // Both keys are implemented in summarize() and this test is GREEN.
         const EXPECTED_KEYS: &[&str] = &[
             "frames_analyzed",
             "request_count",
@@ -2102,7 +2102,7 @@ mod tests {
     ///
     /// Updated 11→13 for BC-2.16.008 v2.0 / BC-2.16.010 v1.9: adds `bindings_evicted`
     /// and `storm_counters_evicted` (silent-limit audit, surface-silent-resource-caps).
-    /// RED GATE: these two new keys are absent from the current summarize() implementation.
+    /// Both keys are implemented in summarize() — this test guards against regression.
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_010_summarize_key_names_exact() {
