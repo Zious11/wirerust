@@ -49,7 +49,10 @@ PR is opened.
 
 Before opening the PR for an in-scope story, the implementer MUST complete all four steps:
 
-1. **Run the holdout evaluator** against the story's output changes.
+1. **Run the holdout evaluator** against the story's output changes: dispatch the
+   `vsdd-factory:holdout-evaluator` agent against `.factory/holdout-scenarios/` with the
+   story's output changes in scope; evaluations are recorded under the wave's gate
+   artifacts.
 2. **Identify all stale holdout-scenario expectations** in `.factory/holdout-scenarios/`
    — any scenario whose `expected_output` references old enum names, old JSON schema
    fields, or old text layout.

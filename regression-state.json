@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-11T21:22:06Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-164 && python3 -m pytest bin/test_validate_citations.py bin/test_changelog_gate_content.py --tb=no -q 2>&1 | tail -10"}
+{"status":"pass","timestamp":"2026-07-11T23:23:53Z","command":"cargo test --all-targets 2>&1 | grep -E \"^test result|FAILED|error\\[\" | tail -20"}

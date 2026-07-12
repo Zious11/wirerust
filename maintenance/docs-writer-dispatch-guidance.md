@@ -126,17 +126,19 @@ Before drafting any behavioral claim in the documentation:
 
 ### Citation Preflight Validation (PG-W73-CITATION-VALIDATOR — STORY-164 AC-164-002)
 
-Before submitting the claims-citation table for review, run `bin/validate-citations` on
-the anchor list. Any FAIL result means a cited file or line range does not exist — the
-anchor MUST be corrected before proceeding.
+Before submitting the claims-citation table for review, extract the `file:line` anchors
+from the table into a plain text file (one `path:LINE` or `path:LINE-LINE` entry per line,
+no pipe characters or markdown) and run `bin/validate-citations` on that file. Any FAIL
+result means a cited file or line range does not exist — the anchor MUST be corrected
+before proceeding.
 
 ```bash
-# Validate each file:line anchor in your claims-citation table
-bin/validate-citations path/to/citations-file.txt
+# Example plain-anchor file (one bare path:LINE per line — no # prefix, no table pipes):
+src/decoder.rs:196-210
+docs/adr/0007-dnp3-stream-dispatch-and-parser-design.md:45
 
-# Example inline usage (one anchor per line):
-# src/decoder.rs:196-210
-# docs/adr/0007-dnp3-stream-dispatch-and-parser-design.md:45
+# Run the validator:
+bin/validate-citations path/to/anchors.txt
 ```
 
 A FAIL result indicates a phantom anchor — the cited file does not exist or the cited

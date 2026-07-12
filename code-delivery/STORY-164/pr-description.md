@@ -30,10 +30,10 @@ graph TD
     CGC["bin/changelog-gate-check\n(new: extracted bash helper)"]
     VC["bin/validate-citations\n(new: Python 3 citation preflight)"]
     TESTS_VC["bin/test_validate_citations.py\n(22 self-tests, T01–T22)"]
-    TESTS_CGC["bin/test_changelog_gate_content.py\n(10 self-tests, B01–B10)"]
+    TESTS_CGC["bin/test_changelog_gate_content.py\n(5 string-presence + B01–B05 behavioral, 10 total)"]
     CLAUDE["CLAUDE.md\n(+2 Project References rows)"]
 
-    CITML -->|"delegates to"| CGC
+    CIyml -->|"delegates to"| CGC
     TESTS_CGC -->|"exercises"| CGC
     TESTS_VC -->|"exercises"| VC
 
@@ -60,7 +60,7 @@ severity only after dispatch.
 Python 3.10+ type syntax, self-test suite in the companion test file).
 
 **Rationale:** Extraction of `changelog-gate-check` mirrors the existing `bin/` tooling pattern
-and enables the 10-test suite (B01–B10) to exercise content vs. presence behavior hermetically.
+and enables the 10-test suite (5 string-presence tests + B01–B05 behavioral) to exercise content vs. presence behavior hermetically.
 A Python tool for citation validation allows structured output, 8 discrete failure classes, and
 three exit codes (0=PASS, 1=citation errors, 2=input/config errors) without external dependencies.
 
@@ -115,7 +115,7 @@ flowchart LR
     AC001["AC-164-001\nSTORY-INDEX legend"]
 
     T_VC["T01–T22: validate-citations\n22 self-tests"]
-    T_CGC["B01–B10: changelog-gate-check\n10 self-tests"]
+    T_CGC["5 string-presence + B01–B05 behavioral\nchangelog-gate-check (10 total)"]
     S_VC["bin/validate-citations"]
     S_CGC["bin/changelog-gate-check"]
     S_CI[".github/workflows/ci.yml"]
@@ -166,7 +166,7 @@ graph LR
 
 | Metric | Value |
 |--------|-------|
-| **New tests** | 32 added (22 validate-citations T01–T22, 10 changelog-gate B01–B10), 0 modified |
+| **New tests** | 32 added (22 validate-citations T01–T22, 10 changelog-gate: 5 string-presence + B01–B05 behavioral), 0 modified |
 | **Total suite** | cargo test --all-targets: full suite green |
 | **Coverage delta** | N/A — Python tooling, no Rust source |
 | **Mutation kill rate** | N/A — governance story |
@@ -177,30 +177,52 @@ graph LR
 
 ### validate-citations (T01–T22)
 
-| Test | Failure class | Result |
-|------|--------------|--------|
-| T01 missing citations table | input error | PASS |
-| T02 no anchors | PASS path | PASS |
-| T03 valid single anchor | PASS path | PASS |
-| T04 valid multi-anchor | PASS path | PASS |
-| T05 file not found | FILE NOT FOUND | PASS |
-| T06 line out of range | LINE OUT OF RANGE | PASS |
-| T07 invalid range (start > end) | INVALID RANGE | PASS |
-| T08 invalid line (0 or negative) | INVALID LINE | PASS |
-| T09 malformed anchor | MALFORMED | PASS |
-| T10 outside repo | OUTSIDE REPO | PASS |
-| T11 not a file (directory) | NOT A FILE | PASS |
-| T12 unreadable target | UNREADABLE | PASS |
-| T13–T22 | edge cases / exit codes 0/1/2 | PASS (10/10) |
+| Test | Function | Description | Exit |
+|------|----------|-------------|------|
+| T01 | `test_T01_valid_line_citation_passes` | Valid file:line citation within bounds | 0 |
+| T02 | `test_T02_valid_range_citation_passes` | Valid file:line-range citation, both endpoints in bounds | 0 |
+| T03 | `test_T03_nonexistent_file_rejected` | Nonexistent file → FILE NOT FOUND | 1 |
+| T04 | `test_T04_out_of_range_single_line_rejected` | Single line beyond file length → LINE OUT OF RANGE | 1 |
+| T05 | `test_T05_out_of_range_range_endpoint_rejected` | Range end endpoint exceeds file length → LINE OUT OF RANGE | 1 |
+| T06 | `test_T06_comments_and_blanks_ignored` | Comment lines (#…) and blank lines silently ignored | 0 |
+| T07 | `test_T07_empty_input_passes` | Empty input (all comments) → PASS: 0 citations | 0 |
+| T08 | `test_T08_invalid_range_start_gt_end` | Range where start > end → INVALID RANGE (EC-002) | 1 |
+| T09 | `test_T09_bad_argument_exits_2` | Nonexistent citations file as argument → usage error | 2 |
+| T10 | `test_T10_multiple_valid_citations_count` | Multiple valid citations all pass, count correct | 0 |
+| T11 | `test_T11_mixed_valid_and_invalid` | Mixed valid + invalid → FAIL with correct failure count | 1 |
+| T12 | `test_T12_malformed_line_reported` | Non-blank, non-comment, unparseable line → MALFORMED | 1 |
+| T13 | `test_T13_zero_line_number_rejected` | Line number 0 → INVALID LINE (F-S164P1-004) | 1 |
+| T14 | `test_T14_zero_range_start_rejected` | Range start 0 → INVALID LINE (F-S164P1-004) | 1 |
+| T15 | `test_T15_malformed_counts_in_fail_denominator` | MALFORMED line counted in denominator → "FAIL: 1 of 1" | 1 |
+| T16 | `test_T16_absolute_path_rejected` | Absolute path citation → OUTSIDE REPO, CWE-22 | 1 |
+| T17 | `test_T17_parent_escape_rejected` | Parent-escape path (../../…) → OUTSIDE REPO, CWE-22 | 1 |
+| T18 | `test_T18_non_utf8_citations_file_exits_2` | Non-UTF-8 citations file → exit 2, no traceback | 2 |
+| T19 | `test_T19_unreadable_citations_file_exits_2` | Unreadable citations file (chmod 000) → exit 2, no traceback | 2 |
+| T20 | `test_T20_non_utf8_stdin_exits_2` | Non-UTF-8 bytes on stdin → exit 2, no traceback (F-S164P6-001) | 2 |
+| T21 | `test_T21_directory_target_not_a_file` | Citation to an existing directory → NOT A FILE, exit 1 | 1 |
+| T22 | `test_T22_unreadable_target_file` | Unreadable cited target (chmod 000) → UNREADABLE, exit 1 | 1 |
 
-### changelog-gate-check (B01–B10)
+### changelog-gate-check (5 string-presence tests + B01–B05 behavioral)
 
-| Test | Scenario | Result |
-|------|----------|--------|
-| B01 real Unreleased content | PASS exit 0 | PASS |
-| B02 whitespace-only addition | FAIL exit 1 | PASS |
-| B03 header-only addition | FAIL exit 1 | PASS |
-| B04–B10 | edge cases + direct invocation | PASS (7/7) |
+**String-presence tests (verify key constructs in `bin/changelog-gate-check`):**
+
+| Function | Construct verified |
+|----------|--------------------|
+| `test_content_lines_variable_present` | `CONTENT_LINES` bash variable present |
+| `test_changelog_diff_variable_present` | `CHANGELOG_DIFF` variable present |
+| `test_whitespace_only_message_present` | "whitespace-only" FAIL message text present |
+| `test_content_line_pass_message_present` | "content line" PASS message text present |
+| `test_grep_filter_chain_present` | `^+##` section-header filter present |
+
+**Behavioral tests (execute gate logic against crafted diff fixtures):**
+
+| Test | Function | Scenario | Exit |
+|------|----------|----------|------|
+| B01 | `test_B01_real_content_line_pass` | Real content line addition → PASS | 0 |
+| B02 | `test_B02_blank_only_touch_fail` | Blank-line-only additions → whitespace-only FAIL | 1 |
+| B03 | `test_B03_section_header_only_add_fail` | Section header-only additions → FAIL (headers not counted) | 1 |
+| B04 | `test_B04_deletions_only_fail` | Deletions only, no content additions → FAIL | 1 |
+| B05 | `test_B05_exec_bit_direct_invocation` | Direct path invocation (no `bash` prefix) → PASS (exec-bit guard) | 0 |
 
 </details>
 
@@ -357,9 +379,12 @@ Rollback is trivially safe.
 The following deliverables are committed on the `factory-artifacts` branch and are NOT part of
 this develop PR diff:
 
-- **AC-164-001:** STORY-INDEX status-vocabulary legend — six statuses with precise semantics,
-  synonym note (delivered/merged/completed equivalence), loci agreement rule; placed after
-  `## Index Table` heading before the table itself.
+- **AC-164-001:** STORY-INDEX status-vocabulary legend — seven statuses with precise semantics
+  (draft, ready, pending, delivered, merged, completed, superseded — AC-164-001 originally
+  specified six statuses at delivery (v1.10); the seventh (`superseded`) was added during
+  wave-gate convergence (F-W74P3-001, STORY-164 v1.12 / STORY-INDEX v3.48)), synonym note
+  (delivered/merged/completed equivalence), loci agreement rule; placed after `## Index Table`
+  heading before the table itself.
 - **AC-164-005 companion:** `breaking-change-delivery-protocol.md` in `.factory/maintenance/`
   codifying the BREAKING-change holdout-sweep obligation identified in wave-73.
 
@@ -370,7 +395,7 @@ this develop PR diff:
 | Process Gap | Story AC | Test / Artifact | Status |
 |-------------|---------|-----------------|--------|
 | PG-W73-CITATION-VALIDATOR (F-S163P1-001 CRITICAL) | AC-164-002 | T01–T22 (22/22) | PASS |
-| PG-W73-CHANGELOG-GATE-CONTENT | AC-164-003 | B01–B10 (10/10) + ci.yml | PASS |
+| PG-W73-CHANGELOG-GATE-CONTENT | AC-164-003 | 5 string-presence + B01–B05 behavioral (10/10) + ci.yml | PASS |
 | Wave-73 docs-writer guidance discoverability | AC-164-004 | CLAUDE.md line 249 | PASS |
 | Breaking-change holdout-sweep obligation | AC-164-005 | CLAUDE.md line 250 | PASS |
 | PG-W73-STATUS-VOCAB (F-W73G-P3-001) | AC-164-001 | factory-artifacts STORY-INDEX legend | PASS (companion) |
@@ -381,7 +406,7 @@ this develop PR diff:
 
 ```
 F-S163P1-001 CRITICAL -> AC-164-002 -> T01–T22 -> bin/validate-citations (CWE-22 contained)
-PG-W73-CHANGELOG-GATE-CONTENT -> AC-164-003 -> B01–B10 -> bin/changelog-gate-check + ci.yml:509
+PG-W73-CHANGELOG-GATE-CONTENT -> AC-164-003 -> 5 string-presence + B01–B05 behavioral -> bin/changelog-gate-check + ci.yml:509
 Wave-73 consistency audit -> AC-164-004 -> CLAUDE.md line 249 (docs-writer row)
 Wave-73 consistency audit -> AC-164-005 -> CLAUDE.md line 250 (breaking-change row)
 F-W73G-P3-001 -> AC-164-001 -> STORY-INDEX legend -> factory-artifacts branch

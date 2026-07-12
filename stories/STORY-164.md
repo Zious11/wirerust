@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-164
 epic_id: E-11
-version: "1.10"
-status: ready
+version: "1.16"
+status: delivered
 producer: story-writer
 timestamp: 2026-07-11T00:00:00Z
 phase: f7
@@ -37,13 +37,13 @@ inputs:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/docs-writer-dispatch-guidance.md
-input-hash: "b256f9e"
+input-hash: "74afab0"
 ---
 
 # STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 74
 **Points:** 4
 **Priority:** P3
@@ -57,8 +57,9 @@ input-hash: "b256f9e"
   References row for the docs-writer dispatch guidance, and a BREAKING-change holdout-sweep
   obligation protocol in `.factory/maintenance/`
 - **So that** future contributors have an authoritative definition of story-status vocabulary,
-  citation fabrication is caught mechanically before dispatch rather than by the adversary
-  at CRITICAL severity, the changelog-gate cannot be silently satisfied by a whitespace-
+  phantom-anchor fabrication (citations to nonexistent files or out-of-range lines — the
+  F-S163P1-001 class) is caught mechanically before dispatch; content-mismatch fabrication
+  remains an adversarial-review responsibility, the changelog-gate cannot be silently satisfied by a whitespace-
   only touch to CHANGELOG.md, the docs-writer dispatch guidance is discoverable from
   CLAUDE.md alongside the existing pr-manager guidance peer, and BREAKING-change stories
   are required to sweep and repair stale holdout expectations before opening a PR
@@ -133,9 +134,9 @@ Evidence:
   P5 notes: "process-gap noted (PG-W73-CHANGELOG-GATE-CONTENT: changelog-gate is presence-only,
   no content assertion — pre-existing gate weakness, not introduced by this story)."
 - Carried finding PG-W73-CHANGELOG-GATE-CONTENT: same file, `carried_findings` array.
-- Current gate implementation: `.github/workflows/ci.yml` lines 506-509: the check is
-  `if echo "${CHANGED}" | grep -q '^CHANGELOG\.md$'; then ... exit 0` — presence-only with
-  no content quality assertion.
+- Pre-STORY-164 gate implementation (as of develop b5e1e15 / v0.12.0): the changelog-gate
+  was presence-only with no content quality assertion — resolved by this story's AC-164-003
+  (ci.yml now delegates to `bin/changelog-gate-check` at line 509).
 
 ### Wave-73 Consistency Audit — docs-writer dispatch guidance missing from CLAUDE.md
 
@@ -158,7 +159,7 @@ Evidence:
 STORY-INDEX gains a **status-vocabulary legend** — a canonical table defining each story
 status term with precise semantics and loci. The legend MUST:
 
-(a) Define all six recognized status values with precise semantics:
+(a) Define all seven recognized status values with precise semantics:
 
 | Status | Definition | Loci |
 |--------|------------|------|
@@ -167,13 +168,14 @@ status term with precise semantics and loci. The legend MUST:
 | `pending` | Story dispatched; implementation in progress or blocked on predecessor | Frontmatter `status:`, body header, index cell |
 | `delivered` | PR merged to develop; story on develop but wave not yet closed | Frontmatter `status:`, body header, index cell |
 | `merged` | Story squash-merged to develop via tagged PR; semantically equivalent to `delivered` | Frontmatter `status:`, body header, index cell |
-| `completed` | Equivalent to `delivered`/`merged`; used in early-wave entries for delivery + closed wave | Index cell only (legacy phrasing); frontmatter prefers `delivered` or `merged` |
+| `completed` | Equivalent to `delivered`/`merged`; valid wherever used | Frontmatter `status:`, body header, index cell (dominant in early-wave stories); new stories prefer `delivered` |
+| `superseded` | Story scope fully delivered by a later story/PR; retained for traceability — no further delivery expected | Frontmatter `status:`, body header, index cell |
 
 (b) Add a **Synonym note**: `delivered`, `merged`, and `completed` are delivery-class synonyms
     — they all mean "PR merged to develop." The canonical term for new stories is `delivered`
-    (frontmatter) or `completed` (index cell for early waves pre-v3.00); stories already
-    using `merged` need not be updated. Tooling that reads story status MUST treat all three
-    as equivalent delivery-class values.
+    (frontmatter); `completed` is historically dominant in early waves and remains valid
+    wherever used. Stories already using `merged` need not be updated. Tooling that reads
+    story status MUST treat all three as equivalent delivery-class values.
 
 (c) State the **loci agreement rule**: frontmatter `status:`, the body status line (e.g.,
     `**Status:** delivered`), and the STORY-INDEX index cell MUST agree on the delivery-class
@@ -216,10 +218,12 @@ cited file exists and the cited line numbers are within the file's actual line c
     - The cited file must exist (FAIL otherwise with "FILE NOT FOUND: path").
     - The cited path must be a regular file, not a directory or symlink-to-dir
       (FAIL otherwise with "NOT A FILE: path" — F-S164P8-001).
-    - The cited file must be readable by the process (FAIL otherwise with
-      "UNREADABLE: path" — catches PermissionError/OSError on the target; F-S164P8-001).
     - The cited line number (or both endpoints of a range) must be ≥ 1 (FAIL otherwise
       with "INVALID LINE: path:N (line numbers start at 1)").
+    - The cited file must be readable by the process (FAIL otherwise with
+      "UNREADABLE: path" — catches PermissionError/OSError on the target; F-S164P8-001).
+    - For a range citation, the start line must be ≤ the end line (FAIL otherwise with
+      "INVALID RANGE: path:N-M (start > end)"; EC-002).
     - The cited line number (or both endpoints of a range) must be ≤ the file's actual
       line count (FAIL otherwise with "LINE OUT OF RANGE: path:N (file has M lines)").
     - Non-parseable lines are reported as "MALFORMED: {line}" (see (a)).
@@ -495,7 +499,7 @@ No Rust source files in `src/`, no test files in `tests/`, no `Cargo.toml` chang
    row. Use the exact wording from AC-164-004.
 
 6. **Amend STORY-INDEX (AC-164-001):** Add the status-vocabulary legend immediately after
-   the `## Index Table` heading. Include all six statuses, synonym note, and loci
+   the `## Index Table` heading. Include all seven statuses, synonym note, and loci
    agreement rule per AC-164-001. No row-level status changes are required for this story.
 
 7. **Open develop PR:** Create a PR targeting `develop` for the develop-tree changes
@@ -648,6 +652,12 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.16 | 2026-07-11 | spec-amend | F-W74P13-001: Background PG-W73-CHANGELOG-GATE-CONTENT evidence bullet reframed historically — "Current gate implementation" → "Pre-STORY-164 gate implementation (as of develop b5e1e15 / v0.12.0)"; stale line-range citation and bash snippet dropped; AC-164-003 resolution noted. Sibling sweep: section heading + quoted adversary note exempt (historical context); line 326 "the check is deterministic" refers to new behavior — clean. |
+| 1.15 | 2026-07-11 | spec-amend | F-W74P12-001/002 (spec-precision, no behavior change): narrative "citation fabrication is caught mechanically" narrowed to phantom-anchor subclass (F-W74P12-001); AC-164-002(b) bullet order corrected to match delivered validate() precedence — INVALID LINE before UNREADABLE, INVALID RANGE bullet added between UNREADABLE and LINE OUT OF RANGE (F-W74P12-002). Sibling sweep: single overclaim at narrative line 60 only. |
+| 1.14 | 2026-07-11 | spec-amend | F-W74P6-001 + full-legend ground-truth audit: AC-164-001(a) completed row — Loci "Index cell only" → all-loci with dominant note (83 frontmatters ground-truth); Definition "early-wave entries" qualifier removed (STORY-162 wave-73 counter-evidence). 6 other rows audited: all pass. Sync with STORY-INDEX v3.50. |
+| 1.13 | 2026-07-11 | spec-amend | F-W74P4-001: AC-164-001(b) synonym-note "pre-v3.00" characterization corrected to descriptive-accurate form ("historically dominant in early waves and remains valid wherever used") — STORY-162 wave-73 counter-evidence. Sync with STORY-INDEX v3.49 Synonym note. |
+| 1.12 | 2026-07-11 | spec-amend | F-W74P3-001: AC-164-001(a) superseded row added (seventh status value; STORY-148 ground-truth; loci-rule categories complete); "six recognized" → "seven recognized" in AC text and Task 6; sibling sweep: demo-evidence/story-164/AC-164-001.md "six" count noted stale (currency note added). |
+| 1.11 | 2026-07-11 | spec-amend | F-W74P1-001: status ready → delivered at all loci (delivery flip PR #397 d6e3be8; loci-agreement per AC-164-001(c)). Sibling sweep: v1.3 changelog entry "promoted to ready" is historical archive — exempt. |
 | 1.10 | 2026-07-11 | spec-amend | F-S164P8-001: AC-164-002(b) extended with NOT A FILE (directory cited, F-S164P8-001) and UNREADABLE (PermissionError on target, F-S164P8-001) — now eight validation checks; AC-164-002(d) T01–T20 → T01–T22 (T21: directory → NOT A FILE exit 1; T22: unreadable target → UNREADABLE exit 1, root-skip guard); EC-014/EC-015 added; Task 1 failure-class list updated; Task 2 count synced to 22 cases. Delivered code verified at 59a70ea. |
 | 1.9 | 2026-07-11 | spec-amend | F-S164P7-002: AC-164-003(b) wording precision — removed "version line" from always-satisfy list; added clarification that `##`-prefixed section/version headings are filtered by `grep -v '^+##'` and do not count as content (a version-header-only addition FAILS). Sibling sweep: no other "version line" content claims found. |
 | 1.8 | 2026-07-11 | spec-amend | F-S164P6-001 T20 sync: AC-164-002(c) extended to cover non-UTF-8 stdin (F-S164P6-001); AC-164-002(d) T01–T19 → T01–T20 (T20: non-UTF-8 stdin → exit 2, no traceback, parity with file-argument path); EC-013 added (stdin non-UTF-8 edge case); Task 2 count synced to 20 cases; F-S164P6-002 accepted-by-design disposition recorded in Notes. Delivered code verified at f66dd12. |
