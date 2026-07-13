@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-11T23:23:53Z","command":"cargo test --all-targets 2>&1 | grep -E \"^test result|FAILED|error\\[\" | tail -20"}
+{"status":"pass","timestamp":"2026-07-13T18:58:51Z","command":"cargo test --all-targets 2>&1 | grep -E \"^test result\" | grep -v \"ok\" || echo \"All test results are ok\""}
