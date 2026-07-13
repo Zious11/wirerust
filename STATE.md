@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "wave-74"
 status: idle
-current_step: "Wave-74 CLOSED (D-432, human-approved 2026-07-12). Gate all-green: integration cargo 904/0 + python 101/101 + clippy/fmt clean; wave adversary 13-pass CONVERGED streak 3/3 (W11/W12/W13); STORY-164 v1.16 delivered (PR #397 d6e3be8); S-7.02 SATISFIED (STORY-165 drafted wave-TBD codifying PG-W74-CI-BIN-SELFTEST AC-165-001 + PG-W74-PRDESC-ROW-VERIFY AC-165-002 + PG-W74-DELIVERY-DOC-CURRENCY AC-165-003 + PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004). Deferred: ROUTE-W74-DEFERRED + ROUTE-BC-DEFERRED-2026-07-11 + PERF-RERUN-001 + SEC-001 (next feature wave). Pipeline PAUSED. Next: STORY-165 wave assignment, deferred spec-coherence batch, quiescent perf re-run, v0.12.1 release candidate (3 unreleased commits). trajectory-tail →1→0→2n→1n"
+current_step: "Session wrap (human-requested, 2026-07-13). Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release with 3 unreleased commits on develop (b5e1e15/6779be6/d6e3be8); no sub-agents abandoned mid-step; no story worktrees; develop==origin==d6e3be8 clean. Pipeline PAUSED between cycles. Next candidates: v0.12.1 release (3 unreleased), STORY-165 wave assignment (wave-TBD draft), deferred spec-coherence batch (ROUTE-W74-DEFERRED, ROUTE-BC-DEFERRED-2026-07-11, PERF-RERUN-001 quiescent, SEC-001 next feature wave), session review. trajectory-tail →1→0→2n→1n"
 current_cycle: "wave-74"
 pipeline: PAUSED
-timestamp: 2026-07-12T00:00:00Z
-# wave-74 CLOSED (D-432, 2026-07-12); gate all-green; 13-pass wave convergence; STORY-164 v1.16 delivered; S-7.02 SATISFIED (STORY-165 drafted); Pipeline PAUSED
+timestamp: 2026-07-13T00:00:00Z
+# session wrap (human-requested, 2026-07-13); wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release; 3 unreleased commits; Pipeline PAUSED
 
 # Release chain (latest)
 released_version: v0.12.0
@@ -82,7 +82,7 @@ maintenance_prior_run: maint-2026-07-09
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.40 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 104 delivered / 118 total (STORY-INDEX v3.51, 726 pts) |
-| **Last Updated** | 2026-07-12 — Wave-74 CLOSED (D-432, human-approved). Gate all-green; 13-pass wave CONVERGED streak 3/3; STORY-164 v1.16 @ 1a02b00; S-7.02 SATISFIED (STORY-165 drafted). STORY-INDEX v3.51 (74 waves, 118 stories). Pipeline PAUSED. trajectory-tail →1→0→2n→1n |
+| **Last Updated** | 2026-07-13 — Session wrap (human-requested). Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release with 3 unreleased commits on develop; develop==origin==d6e3be8 clean. Pipeline PAUSED between cycles. trajectory-tail →1→0→2n→1n |
 
 ---
 
@@ -145,11 +145,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **Session wrap (human-requested, 2026-07-13). Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release with 3 unreleased commits on develop (b5e1e15/6779be6/d6e3be8); no sub-agents abandoned mid-step; no story worktrees; develop==origin==d6e3be8 clean. Pipeline PAUSED between cycles. Next candidates: v0.12.1 release (3 unreleased), STORY-165 wave assignment (wave-TBD draft), deferred spec-coherence batch (ROUTE-W74-DEFERRED, ROUTE-BC-DEFERRED-2026-07-11, PERF-RERUN-001 quiescent, SEC-001 next feature wave), session review. trajectory-tail →1→0→2n→1n** | **PAUSED** | Session wrap. Pipeline PAUSED. |
 | **Wave-74 CLOSED (D-432, human-approved 2026-07-12). Gate all-green: cargo 904/0 + python 101/101 + clippy/fmt clean; wave adversary 13-pass CONVERGED streak 3/3 (W11/W12/W13) trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n; 8 substantive defects caught; code-review PASS (2 MINOR + 4 NIT DEFERRED ROUTE-W74-DEFERRED); security PASS; S-7.02 SATISFIED (STORY-165 drafted wave-TBD 118 stories); input-hash MATCH=118 STALE=0. STORY-164 v1.16 final. Pipeline PAUSED. trajectory-tail →1→0→2n→1n** | **CLOSED (D-432)** | Wave-74 CLOSED. Pipeline PAUSED. |
 | **STORY-164 DELIVERED (D-431, 2026-07-11). PR #397 d6e3be8 human-merged 2026-07-11T23:04:56Z; CI 12/12; pr-reviewer APPROVE (3 NITs accept-by-design); security PASS; adversary 8-pass streak 3/3 (P6/P7/P8) trajectory 6→4→3→2n→2→1n→2n→1n; F-S164P5-001 phantom-citation catch; demo 6 artifacts scrub PASS. STORY-INDEX v3.47; stories_delivered 103→104; develop=d6e3be8 (3 unreleased). Wave-74 ALL STORIES DELIVERED — wave gate NEXT. trajectory-tail →2→1n→2n→1n** | **DELIVERED (D-431)** | Wave-74 all stories delivered. Wave gate next. |
 | **Wave-74 OPENED (D-430, plan gate approved human 2026-07-11). STORY-164 v1.3 (4 pts, E-11, 5 ACs) delivery STARTING — citation pre-validation GO (1 fabricated anchor F-VAL-164-001 fixed pre-gate). STORY-INDEX v3.45 (74 waves); sprint-state.yaml wave-74 entry added. Carry-forward: ROUTE-BC-DEFERRED-2026-07-11. Next: test-writer Red Gate. trajectory-tail →0→0→0→0** | **OPEN (D-430)** | Wave-74 OPENED. Pipeline RUNNING. |
 | **Maintenance run maint-2026-07-11 COMPLETE (D-429, 2026-07-11). 8 sweeps 0 HIGH/CRIT; PR #396 merged 6779be6 (17 findings, adversary VOID→3/3 CONVERGED; human-merged); STORY-164 v1.1 AC-164-005 (W72-L2 codified); Routes B/C DEFERRED (ROUTE-BC-DEFERRED-2026-07-11); PERF-RERUN-001 OPEN; SEC-001 DEFERRED next feature wave; develop=6779be6 (2 unreleased commits). STORY-INDEX v3.44 (117 stories/723 pts). Pipeline PAUSED. trajectory-tail →0→0→0→0** | **COMPLETE (D-429)** | maint-2026-07-11 COMPLETE. Pipeline PAUSED. |
-| **Session wrap (human-requested, 2026-07-11). Wave-73 CLOSED (D-428); v0.12.0 remains latest release; no sub-agents abandoned mid-step; no story worktrees open; develop==origin==b5e1e15 clean. Pipeline PAUSED between cycles. trajectory-tail →0→0→0→0** | **PAUSED** | Session wrap. Pipeline PAUSED. |
 
 ## Decisions Log
 
@@ -390,22 +390,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**Wave-74 CLOSED (D-432, human-approved 2026-07-12). Gate all-green; 13-pass wave CONVERGED streak 3/3 (W11/W12/W13); STORY-164 v1.16 final; S-7.02 SATISFIED (STORY-165 drafted). Pipeline PAUSED.**
+**Session wrap (human-requested, 2026-07-13). Steady-state. Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release; 3 unreleased commits on develop. Pipeline PAUSED between cycles.**
 
-Prior checkpoint (STORY-164 DELIVERED, D-431) archived to `cycles/wave-74/session-checkpoints.md`.
+Prior checkpoint (Wave-74 CLOSED, D-432, 2026-07-12) archived to `cycles/wave-74/session-checkpoints.md`.
 
-- **Date:** 2026-07-12. Position: Wave-74 CLOSED (D-432); pipeline PAUSED.
+- **Date:** 2026-07-13. Position: Steady-state, wave-74 CLOSED (D-432), pipeline PAUSED between cycles.
 - **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `d6e3be83e19c76113a115f8fcb8a01b618c571df`. Tag v0.12.0 resolves to `f1e0c36`. GitHub Release Latest with 4 binaries live. Develop is 3 unreleased commits ahead of main (b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11 + d6e3be8 STORY-164 PR #397).
-- **In-flight / abandoned:** None. Wave-74 gate complete; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches. STORY-165 drafted (wave-TBD, factory-artifacts-only).
-- **Completed this burst (D-432):** Wave-74 gate CLOSED. Wave adversary 13-pass CONVERGED streak 3/3. STORY-164 v1.16 @ 1a02b00 (input-hash 74afab0) final. 8 substantive post-merge defects fixed. Code-review 2 MINOR + 4 NIT DEFERRED (ROUTE-W74-DEFERRED). Security 4 LOW/INFO dispositioned. Demo scrub PASS. Input-hash MATCH=118 STALE=0. STORY-165 drafted (S-7.02). Cycle files written: cycles/wave-74/lessons.md + cycles/wave-74/wave-gate/gate-summary.md. Tech-debt-register v1.9 (ROUTE-W74-DEFERRED added; ADVERSARY-RELAY-UNRELIABLE-001 updated 5+ wave-74 incidents). STATE.md close burst D-432 complete.
-- **Carry-forwards:** ROUTE-W74-DEFERRED (code-review MINOR ×2 + NIT ×4 + OBS ×2, human-ratified P3); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified).
+- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches. STORY-165 drafted wave-TBD (factory-artifacts-only, no develop work yet). No sub-agents abandoned mid-step.
+- **Carry-forwards:** ROUTE-W74-DEFERRED (code-review MINOR ×2 + NIT ×4 + OBS ×2, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified).
+- **Pending human decisions:** None blocking. Next-step menu below — human chooses path.
 - **Next-work candidates (priority order):**
-  1. **STORY-165 wave assignment** — assign to wave-75 (or first available wave), plan gate.
-  2. **ROUTE-BC-DEFERRED-2026-07-11 spec-coherence batch** — HS-INDEX/ARCH-INDEX/epics.md/STORY-INDEX corrections, HS-087/HS-129 repairs, BC-2.07.NNN authoring, R-001 correction, Modbus holdout scenarios.
-  3. **AC-149-003 quiescent perf re-run** (PERF-RERUN-001) — standing advisory; quiescent machine required.
-  4. **v0.12.1 release candidate** — 3 unreleased commits (b5e1e15 + 6779be6 + d6e3be8); all E-11 governance, no BC-breaking changes.
+  1. **v0.12.1 release** — 3 unreleased commits (b5e1e15 + 6779be6 + d6e3be8); all E-11 governance, no BC-breaking changes.
+  2. **STORY-165 wave assignment** — assign to wave-75 plan gate (wave-TBD draft, E-11, 3 pts).
+  3. **Deferred spec-coherence batch** (ROUTE-BC-DEFERRED-2026-07-11) — HS-INDEX/ARCH-INDEX/epics.md/STORY-INDEX corrections, HS-087/HS-129 repairs, BC-2.07.NNN authoring, R-001 correction, Modbus holdout scenarios; also ROUTE-W74-DEFERRED + PERF-RERUN-001 (quiescent machine) + SEC-001.
+  4. **Session review** — rich material: relay-failure ×8 lifetime, wave-gate cost profile L-3, validator dogfood wins (D-432 gate caught 8 post-merge defects).
 - **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.51 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
-- **Resume command:** Next wave assignment or spec-coherence batch; Pipeline PAUSED — no active delivery.
+- **Resume command:** `/vsdd-factory:next-step`
 
 ---
 
