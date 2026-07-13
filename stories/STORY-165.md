@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-165
 epic_id: E-11
-version: "1.0"
-status: draft
+version: "1.1"
+status: ready
 producer: story-writer
-timestamp: 2026-07-11T00:00:00Z
+timestamp: 2026-07-13T00:00:00Z
 phase: f7
 level: feature
 cycle: wave-74
@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: bin/
 subsystems: []
 estimated_days: 1
-wave: "TBD"
+wave: "75"
 traces_to:
   - .factory/stories/STORY-INDEX.md
   - .factory/cycles/wave-74/wave-gate/code-review.md
@@ -33,14 +33,14 @@ inputs:
   - .factory/cycles/wave-74/wave-gate/code-review.md
   - .github/workflows/ci.yml
   - CLAUDE.md
-input-hash: "d3df8d5"
+input-hash: "23d6614"
 ---
 
 # STORY-165: Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** TBD
+**Status:** ready
+**Wave:** 75
 **Points:** 3
 **Priority:** P3
 
@@ -167,9 +167,9 @@ Authors and agents default to fixing the found cell and moving on, leaving sibli
 subsequent passes.
 
 Evidence:
-- STORY-INDEX.md:12 (v3.50 header): F-W74P6-001 `completed` row correction.
-- STORY-INDEX.md:13 (v3.49 header): F-W74P4-001 `pending` synonym note correction.
-- STORY-INDEX.md:14 (v3.48 header): F-W74P3-001 `superseded` row addition.
+- STORY-INDEX.md:14 (v3.50 header): F-W74P6-001 `completed` row correction.
+- STORY-INDEX.md:15 (v3.49 header): F-W74P4-001 `pending` synonym note correction.
+- STORY-INDEX.md:16 (v3.48 header): F-W74P3-001 `superseded` row addition.
 
 ## Acceptance Criteria
 
@@ -382,7 +382,7 @@ No new Python or bash files in `bin/`.
    currency sweep record requirement, and wave-74 evidence (F-W74P1-001, F-W74P13-001).
 
 5. **Amend STORY-INDEX (AC-165-004):** Add the Governance-Table Amendment Protocol note
-   immediately after the Loci Agreement Rule (`.factory/stories/STORY-INDEX.md:146`),
+   immediately after the Loci Agreement Rule (`.factory/stories/STORY-INDEX.md:148`),
    before the horizontal rule that follows. Include the audit-first rule and wave-74
    evidence rationale per AC-165-004.
 
@@ -500,4 +500,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-13 | story-writer | Wave-75 assignment (plan gate approved, human, 2026-07-13): status draft→ready, wave TBD→75; fixed 2 consistency-audit MINORs (stale STORY-INDEX line citations in Background evidence and Task 5 insert-point hint) per wave-75 opening audit. |
 | 1.0 | 2026-07-11 | story-writer | Initial authorship — wave-74 process-gap codifications: PG-W74-CI-BIN-SELFTEST (AC-165-001 bin-selftest CI wiring), PG-W74-PRDESC-ROW-VERIFY (AC-165-002 PR description row-verify mandate), PG-W74-DELIVERY-DOC-CURRENCY (AC-165-003 delivery-doc currency sweep protocol), PG-W74-GROUND-TRUTH-AUDIT-FIRST (AC-165-004 governance-table audit-first rule). S-7.02 wave-74 cycle-close. bin/validate-citations dogfood: PASS on 11-entry anchor list. |

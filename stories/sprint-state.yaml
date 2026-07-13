@@ -856,3 +856,17 @@ stories:
     pr: 397
     merge_sha: d6e3be83e19c76113a115f8fcb8a01b618c571df
     merged_date: "2026-07-11"
+
+  # ---------------------------------------------------------------------------
+  # Wave 75 — STORY-165 (E-11 wave-74 process-gap codifications)
+  # D-433 wave-75 OPENED 2026-07-13 (plan gate approved, human). STORY-165 v1.1 assigned+ready.
+  # Pre-gate: input-hash MATCH=118 STALE=0; consistency audit PASS (0 BLOCKER/0 MAJOR/2 MINOR fixed).
+  # Delivery order: STORY-165 (3 pts, 4 ACs: AC-165-001..004).
+  # ---------------------------------------------------------------------------
+
+  STORY-165:
+    status: ready
+    wave: 75
+    branch: null
+    worktree: null
+    blocked_by: []
