@@ -461,6 +461,24 @@ jobs:
       - name: Scan for stale RED-phase comment headers in test files
         run: python3 bin/check-green-doc-tense
 
+  # AC-165-001 / PG-W74-CI-BIN-SELFTEST: run Python self-test suites for bin/ gate scripts.
+  #
+  # STORY-164 (wave-74) delivered bin/test_validate_citations.py (22 tests) and
+  # bin/test_changelog_gate_content.py (10 tests) without CI wiring. This job closes that gap
+  # following the green-doc-tense-gate structural pattern (STORY-162 AC-162-002).
+  bin-selftest:
+    name: Bin selftest suite (test_validate_citations + test_changelog_gate_content)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Run bin/test_validate_citations.py (22 tests)
+        run: python3 bin/test_validate_citations.py
+      - name: Run bin/test_changelog_gate_content.py (10 tests)
+        run: python3 bin/test_changelog_gate_content.py
+
   # AC-158-001 / PG-W71-CHANGELOG: enforce CHANGELOG entry for production-code PRs.
   #
   # Trigger set: src/ (production Rust), Cargo.toml (dependency/version changes),
@@ -504,7 +522,9 @@ jobs:
           fi
           # Trigger set was hit — CHANGELOG.md must also be in the diff
           if echo "${CHANGED}" | grep -q '^CHANGELOG\.md$'; then
-            echo "PASS: CHANGELOG.md updated alongside trigger-set changes."
+            # AC-164-003: content assertion via bin/changelog-gate-check.
+            # A whitespace-only touch must not satisfy the gate.
+            git diff origin/develop...HEAD -- CHANGELOG.md | bin/changelog-gate-check
             exit 0
           fi
           echo "FAIL: AC-158-001 / PG-W71-CHANGELOG — this PR modifies files in the"

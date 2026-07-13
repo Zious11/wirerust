@@ -436,37 +436,222 @@ def run_tests() -> int:
     # AC-158-005: zero-file guard — must exit non-zero when
     # _collect_rust_files returns [].
     #
-    # Current behavior (pre-fix): prints WARNING and exits 0.
-    # Required behavior (post-fix, AC-158-005): exits non-zero.
-    #
-    # These tests assert the TO-BE behavior and MUST FAIL against the
-    # current tool (line ~367: prints WARNING, exits 0).
+    # Behavior shipped with AC-158-005: exits non-zero when no files found.
+    # Originally authored RED for AC-158-005 (pre-fix: printed WARNING,
+    # exited 0); now a GREEN regression guard — guards against any reversion
+    # to the silent-exit-0 behavior.
     # ------------------------------------------------------------------
     print()
     print("=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===")
 
+    _orig_find_005 = mod._find_repo_root  # type: ignore[attr-defined]
     _orig_collect = mod._collect_rust_files  # type: ignore[attr-defined]
     try:
-        # Patch _collect_rust_files to return [] — simulates a repo with no
-        # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
-        mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
-        exit_code = mod.main()  # type: ignore[attr-defined]
-        if exit_code != 0:
+        with tempfile.TemporaryDirectory() as _td_005:
+            _hermetic_005 = Path(_td_005)
+            (_hermetic_005 / ".factory").mkdir()
+            mod._find_repo_root = lambda _s: _hermetic_005  # type: ignore[attr-defined]
+            # Patch _collect_rust_files to return [] — simulates a repo with no
+            # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
+            mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
+            exit_code = mod.main()  # type: ignore[attr-defined]
+            if exit_code == 1:
+                print(
+                    "  PASS  [zero-file guard: exits 1 exactly when _collect_rust_files "
+                    "returns [] (AC-158-005)]"
+                )
+                passed += 1
+            else:
+                print(
+                    "  FAIL  [zero-file guard: expected exit 1 when "
+                    "_collect_rust_files returns [], got "
+                    + repr(exit_code)
+                    + " — REGRESSION: zero-file guard (AC-158-005) no longer exits 1 — "
+                    "check the `if not rust_files:` guard in main()]"
+                )
+                failures += 1
+    finally:
+        mod._find_repo_root = _orig_find_005  # type: ignore[attr-defined]
+        mod._collect_rust_files = _orig_collect  # type: ignore[attr-defined]
+
+    # ------------------------------------------------------------------
+    # AC-162-004: _find_repo_root hermetic sentinel tests
+    # (F-W72G-P2-OBS-001 — .factory/ OR-sentinel arm untested)
+    #
+    # Calls mod._find_repo_root(start) directly and verifies the
+    # implementation correctly identifies repo roots by walking upward for
+    # .git or .factory sentinels. Includes cases: (a) .factory/ only,
+    # (b1) .git directory, (b2) .git file (worktree), (c) no sentinel
+    # (regression guard).
+    # ------------------------------------------------------------------
+    print()
+    print(
+        "=== AC-162-004 _find_repo_root sentinel hermetic tests "
+        "(F-W72G-P2-OBS-001) ==="
+    )
+
+    _find_repo_root = mod._find_repo_root  # type: ignore[attr-defined]
+
+    # (a) .factory/ sentinel only — exercises the OR-sentinel arm (no .git present).
+    with tempfile.TemporaryDirectory() as _td_a:
+        _root_a = Path(_td_a)
+        (_root_a / ".factory").mkdir()
+        _deep_a = _root_a / "sub" / "deep"
+        _deep_a.mkdir(parents=True)
+        _result_a = _find_repo_root(_deep_a)
+        if _result_a == _root_a:
             print(
-                "  PASS  [zero-file guard: exits non-zero when _collect_rust_files "
-                "returns [] (AC-158-005)]"
+                "  PASS  [_find_repo_root: .factory/ OR-sentinel resolves root "
+                "(F-W72G-P2-OBS-001)]"
             )
             passed += 1
         else:
             print(
-                "  FAIL  [zero-file guard: expected exit non-zero when "
-                "_collect_rust_files returns [], got 0 — "
-                "AC-158-005 not yet implemented (current line ~367 prints WARNING "
-                "and continues to exit 0)]"
+                f"  FAIL  [_find_repo_root: .factory/ OR-sentinel resolves root "
+                f"(F-W72G-P2-OBS-001)] — expected {_root_a}, got {_result_a!r}"
             )
             failures += 1
+
+    # (b1) .git directory sentinel.
+    with tempfile.TemporaryDirectory() as _td_b1:
+        _root_b1 = Path(_td_b1)
+        (_root_b1 / ".git").mkdir()
+        _sub_b1 = _root_b1 / "project" / "src"
+        _sub_b1.mkdir(parents=True)
+        _result_b1 = _find_repo_root(_sub_b1)
+        if _result_b1 == _root_b1:
+            print(
+                "  PASS  [_find_repo_root: .git directory sentinel resolves root "
+                "(F-W72G-P2-OBS-001)]"
+            )
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [_find_repo_root: .git directory sentinel resolves root "
+                f"(F-W72G-P2-OBS-001)] — expected {_root_b1}, got {_result_b1!r}"
+            )
+            failures += 1
+
+    # (b2) .git FILE sentinel (worktree case — .git is a file, not a directory).
+    with tempfile.TemporaryDirectory() as _td_b2:
+        _root_b2 = Path(_td_b2)
+        (_root_b2 / ".git").write_text(
+            "gitdir: /some/repo/.git/worktrees/branch\n", encoding="utf-8"
+        )
+        _sub_b2 = _root_b2 / "nested" / "dir"
+        _sub_b2.mkdir(parents=True)
+        _result_b2 = _find_repo_root(_sub_b2)
+        if _result_b2 == _root_b2:
+            print(
+                "  PASS  [_find_repo_root: .git file (worktree) sentinel resolves root "
+                "(F-W72G-P2-OBS-001)]"
+            )
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [_find_repo_root: .git file (worktree) sentinel resolves root "
+                f"(F-W72G-P2-OBS-001)] — expected {_root_b2}, got {_result_b2!r}"
+            )
+            failures += 1
+
+    # (c) NO sentinel — temp tree with neither .git nor .factory should return None or
+    # an ancestor root outside the temp tree (if walk passes the boundary). This is a
+    # regression guard: before fix, _find_repo_root would return None unconditionally.
+    # Post-fix, if _result_c is not None, it MUST NOT be within the temp tree (the
+    # temp tree contains no sentinels, so a non-None result must be an ancestor that
+    # lives outside it). Assertion: _result_c is None, OR the result path does not
+    # start with the temp-tree root (F-W72G-P2-OBS-001).
+    with tempfile.TemporaryDirectory() as _td_c:
+        _root_c = Path(_td_c)
+        _deep_c = _root_c / "a" / "b" / "c" / "d"
+        _deep_c.mkdir(parents=True)
+        _result_c = _find_repo_root(_deep_c)
+        if _result_c is None or not _result_c.is_relative_to(_root_c):
+            print(
+                "  PASS  [_find_repo_root: no-sentinel temp tree returns None or "
+                "ancestor (F-W72G-P2-OBS-001)]"
+            )
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [_find_repo_root: no-sentinel temp tree must return None or "
+                f"ancestor outside tree (F-W72G-P2-OBS-001)] — result {_result_c} "
+                f"is within temp tree {_root_c}"
+            )
+            failures += 1
+
+    # ------------------------------------------------------------------
+    # AC-162-003: zero-file guard exit-code precision (hermetic)
+    # (F-W72G-P2-OBS-001 + AC-162-003)
+    #
+    # Patches _find_repo_root to return a hermetic repo root, and installs
+    # a spy on _collect_rust_files that records the repo_root argument and
+    # returns [].
+    #
+    # Primary assertion: spy confirms main() passes the hermetic root to
+    # _collect_rust_files, verifying that main() delegates repo-root
+    # detection to _find_repo_root.
+    #
+    # Secondary assertion: exit_code == 1 exactly (zero-file guard fires,
+    # not exit 2 from repo-root-not-found guard).
+    #
+    # Both assertions hold now that main() delegates to _find_repo_root;
+    # the combined test guards against regression of either.
+    # ------------------------------------------------------------------
+    print()
+    print(
+        "=== AC-162-003 zero-file guard exit-code precision hermetic "
+        "(F-W72G-P2-OBS-001) ==="
+    )
+
+    _orig_find = mod._find_repo_root  # type: ignore[attr-defined]
+    _orig_collect3 = mod._collect_rust_files  # type: ignore[attr-defined]
+    try:
+        with tempfile.TemporaryDirectory() as _td_main:
+            _hermetic_root = Path(_td_main)
+            (_hermetic_root / ".factory").mkdir()
+
+            _collect_calls: list = []
+
+            def _spy_collect(_repo_root: "Path") -> list:  # type: ignore[type-arg]
+                _collect_calls.append(_repo_root)
+                return []
+
+            mod._find_repo_root = lambda _start: _hermetic_root  # type: ignore[attr-defined]
+            mod._collect_rust_files = _spy_collect  # type: ignore[attr-defined]
+            _exit_code = mod.main()  # type: ignore[attr-defined]
+
+            _root_used_ok = bool(_collect_calls) and _collect_calls[0] == _hermetic_root
+            _exit_code_ok = _exit_code == 1
+
+            if _root_used_ok and _exit_code_ok:
+                print(
+                    "  PASS  [zero-file guard hermetic: main() used _find_repo_root result "
+                    "and exited 1 exactly (AC-162-003, F-W72G-P2-OBS-001)]"
+                )
+                passed += 1
+            else:
+                _reasons = []
+                if not _root_used_ok:
+                    _actual_root = (
+                        _collect_calls[0] if _collect_calls else "<not called>"
+                    )
+                    _reasons.append(
+                        f"main() passed {_actual_root!r} to _collect_rust_files "
+                        f"(expected hermetic root {_hermetic_root}; "
+                        f"main() must delegate to _find_repo_root)"
+                    )
+                if not _exit_code_ok:
+                    _reasons.append(f"exit_code={_exit_code!r} (expected 1, not 2)")
+                print(
+                    f"  FAIL  [zero-file guard hermetic: main() must use _find_repo_root "
+                    f"for repo-root detection (AC-162-003, F-W72G-P2-OBS-001)] — "
+                    + "; ".join(_reasons)
+                )
+                failures += 1
     finally:
-        mod._collect_rust_files = _orig_collect  # type: ignore[attr-defined]
+        mod._find_repo_root = _orig_find  # type: ignore[attr-defined]
+        mod._collect_rust_files = _orig_collect3  # type: ignore[attr-defined]
 
     print()
     print(f"Results: {passed} passed, {failures} failed.")

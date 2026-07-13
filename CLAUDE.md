@@ -246,3 +246,7 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | `.factory/` | VSDD factory artifacts (STATE.md, stories, specs, research, maintenance logs) |
 | `.factory/maintenance/demo-evidence-scrub-gate.md` | Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB; run before committing demo evidence) |
 | `.factory/maintenance/pr-manager-merge-auth-guidance.md` | PR merge-authorization classifier guidance (DF-MERGE-AUTH-CLASSIFIER-001) |
+| `.factory/maintenance/docs-writer-dispatch-guidance.md` | Docs-writer dispatch citation mandate (PG-RA-P3-ARP-REC006-INVERSION-001; `bin/validate-citations` preflight required) |
+| `.factory/maintenance/breaking-change-delivery-protocol.md` | BREAKING-change holdout-sweep obligation (PG-W72-BREAKING-HOLDOUT-SWEEP; `holdout-expectations-sweep: COMPLETE` required before PR for BREAKING or output-format-change stories) |
+| `.factory/maintenance/pr-description-row-verify-mandate.md` | PR-description test-evidence row-verify + aggregate-count cross-check mandate (PG-W74-PRDESC-ROW-VERIFY; pr-reviewer/pr-manager must row-verify ≥3 per-test entries and cross-check claimed counts against actual CI output) |
+| `.factory/maintenance/delivery-doc-currency-protocol.md` | Delivery-doc currency sweep (PG-W74-DELIVERY-DOC-CURRENCY; mandatory wave-gate-entry sweep — status loci, tense audit, demo-evidence currency notes — before first adversarial pass of the wave gate) |
