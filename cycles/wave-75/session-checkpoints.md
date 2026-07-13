@@ -53,4 +53,24 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-13) — Wave-75 CLOSED (D-435); NEXT: v0.12.1 release cut
+
+**wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7. S-7.02 SATISFIED (STORY-166 drafted). STORY-INDEX v3.56 (119 stories/731 pts). develop==origin==fa646ed. NEXT: v0.12.1 release cut. Pipeline ACTIVE.**
+
+- **Date:** 2026-07-13. Position: Wave-75 CLOSED (D-435, human-approved); pipeline ACTIVE.
+- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f`. Tag v0.12.0 resolves to `f1e0c36`. GitHub Release Latest with 4 binaries live. Develop is 4 unreleased commits ahead of main (b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398).
+- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches. No sub-agents abandoned mid-step.
+- **Active story:** None. STORY-165 v1.6 CLOSED (wave-75, E-11, 3 pts, 4 ACs; PR #398 fa646ed). STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad — wave-75 S-7.02 cycle-close codifications).
+- **Carry-forwards:** ROUTE-W74-DEFERRED (wave-74 code-review MINOR ×2 + NIT ×5 (now including wave-75 NIT-1) + OBS ×4, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified).
+- **Wave-75 gate convergence:** 7 passes; streak 3/3 (W5/W6/W7); trajectory 2→0→0→1→0→0→0. S-7.02 SATISFIED: STORY-166 AC-166-001..004 (symbol-at-line validator, finding-ID naming policy, scrub-scope, streak-persistence). process-gap-ledger.md all items DISPOSITIONED (D-435).
+- **Next work (ordered):**
+  1. **v0.12.1 release cut** — 4 unreleased commits (b5e1e15/6779be6/d6e3be8/fa646ed) per human direction.
+  2. After release: ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.56 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step`
+
+*Archived 2026-07-13 when v0.12.1 RELEASED (D-436) checkpoint replaced this.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

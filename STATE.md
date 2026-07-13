@@ -10,28 +10,28 @@ project: wirerust
 mode: steady-state
 phase: "wave-75"
 status: active
-current_step: "wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7. Code-review PASS (0 BLOCKING/MAJOR, 1 NIT DEFERRED joins ROUTE-W74-DEFERRED). Security PASS (adjudicated CI+docs only). Currency sweep COMPLETE first-ever execution MATCH=119 STALE=0. S-7.02 SATISFIED: STORY-166 drafted wave-TBD (119 stories / 731 pts). STORY-INDEX v3.56. develop==origin==fa646ed. Carry-forwards: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: v0.12.1 release cut (4 unreleased commits b5e1e15/6779be6/d6e3be8/fa646ed). trajectory-tail →0→0→0→0"
+current_step: "v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries, Latest) + back-merge PR #400 squash 7b11b83. Trees identical: main==develop tree 5e75fd5. DRIFT-BACKMERGE-SQUASH-001 noted (squash history-only). Carry-forwards: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. Pipeline PAUSED. trajectory-tail →0→0→0→0"
 current_cycle: "wave-75"
-pipeline: ACTIVE
-timestamp: 2026-07-13T23:00:00Z
-# wave-75 CLOSED (D-435, 2026-07-13); gate CONVERGED 7 passes streak W5/W6/W7; STORY-INDEX v3.56 (119 stories/731 pts); 4 unreleased commits; Pipeline ACTIVE — NEXT: v0.12.1 release
+pipeline: PAUSED
+timestamp: 2026-07-13T23:59:00Z
+# v0.12.1 RELEASED (D-436, 2026-07-13); PR #399 fedcea4 + tag d687a77 + GH release (4 binaries) + back-merge PR #400 squash 7b11b83; trees identical; DRIFT-BACKMERGE-SQUASH-001; Pipeline PAUSED — NEXT: session review, STORY-166 wave-76
 
 # Release chain (latest)
-released_version: v0.12.0
-released_at: "2026-07-10"
-release_tag: v0.12.0
-release_tag_object: f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2
-release_commit: f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.0
-prior_released_version: v0.11.5
-prior_released_at: "2026-07-07"
-# Ground-truth HEADs (updated 2026-07-13 — D-434 STORY-165 DELIVERED: PR #398 fa646ed squash-merged to develop; main unchanged at f1e0c36; develop 4 unreleased commits ahead)
-main_head: f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2
-develop_head: fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f
-# Cargo.toml version: main=0.12.0; develop=0.12.0 (4 unreleased commits — b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398)
-cargo_version_main: "0.12.0"
-cargo_version_develop: "0.12.0"
-# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. No open release/* or chore/backmerge-* branches (release/0.12.0 + chore/backmerge-v0.12.0 deleted post-merge).
+released_version: v0.12.1
+released_at: "2026-07-13"
+release_tag: v0.12.1
+release_tag_object: d687a77d911503e67a8d171c00536bd710762bba
+release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
+prior_released_version: v0.12.0
+prior_released_at: "2026-07-10"
+# Ground-truth HEADs (updated 2026-07-13 — D-436 v0.12.1 RELEASED: PR #399 fedcea4 merged to main; back-merge PR #400 squash 7b11b83 to develop; trees identical 5e75fd5; DRIFT-BACKMERGE-SQUASH-001 noted)
+main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
+develop_head: 7b11b830ed8138136159a45aa6686b9df32cf707
+# Cargo.toml version: main=0.12.1; develop=0.12.1 (0 unreleased commits; trees identical 5e75fd5; squash back-merge PR #400; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 7b11b83, trees match)
+cargo_version_main: "0.12.1"
+cargo_version_develop: "0.12.1"
+# Open worktrees: main checkout [develop] + .factory [factory-artifacts]. No open release/* or chore/backmerge-* branches (release/0.12.1 + chore/backmerge-v0.12.1 deleted post-merge).
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
@@ -64,7 +64,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7; code-review PASS (1 NIT DEFERRED); security PASS (adjudicated); S-7.02 SATISFIED (STORY-166 drafted wave-TBD E-11 5 pts). STORY-INDEX v3.56 (119 stories/731 pts). develop==origin==fa646ed; 4 unreleased commits. NEXT: v0.12.1 release cut. Pipeline ACTIVE.**
+**v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 (release/0.12.1 → main, merge commit fedcea4ab17d9b3257c9903636aec0c0fd08f147) + tag v0.12.1 (obj d687a77d911503e67a8d171c00536bd710762bba) + GitHub Release Latest (4 binaries) + back-merge PR #400 (squash 7b11b83, DRIFT-BACKMERGE-SQUASH-001). Trees identical: main==develop tree 5e75fd5. 0 unreleased commits. ROUTE-BC-DEFERRED-2026-07-11 and ROUTE-W74-DEFERRED carry forward. Next candidates: STORY-166 wave-76 plan gate, session review, SEC-001 feature wave. Pipeline PAUSED.**
 
 ---
 
@@ -73,16 +73,16 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Steady-state — wave-75 CLOSED (D-435, 2026-07-13); NEXT: v0.12.1 release cut; pipeline ACTIVE |
-| Version | 0.12.0 (released 2026-07-10; main=f1e0c36; develop=fa646ed — 4 unreleased commits: b5e1e15 STORY-162 + 6779be6 PR #396 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398) |
-| Main HEAD | `f1e0c36` (full: `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`) |
-| Develop HEAD | `fa646ed` (full: `fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f`) — PR #398 squash-merged 2026-07-13; 4 unreleased commits ahead of v0.12.0 |
-| Tag v0.12.0 | commit `f1e0c36`; tag object `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2` (lightweight-style annotated tag resolves to commit SHA) |
-| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.12.0 (Latest, with 4 binaries) |
+| Mode | Steady-state — v0.12.1 RELEASED (D-436, 2026-07-13); pipeline PAUSED; NEXT: session review, STORY-166 wave-76 |
+| Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=7b11b83 — 0 unreleased commits; trees identical 5e75fd5; DRIFT-BACKMERGE-SQUASH-001: squash back-merge, histories diverge, trees match) |
+| Main HEAD | `fedcea4` (full: `fedcea4ab17d9b3257c9903636aec0c0fd08f147`) |
+| Develop HEAD | `7b11b83` (full: `7b11b830ed8138136159a45aa6686b9df32cf707`) — PR #400 squash back-merge 2026-07-13; DRIFT-BACKMERGE-SQUASH-001: fedcea4 not ancestor of 7b11b83, trees identical (5e75fd5) |
+| Tag v0.12.1 | commit `fedcea4`; tag object `d687a77d911503e67a8d171c00536bd710762bba` (annotated tag) |
+| GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.12.1 (Latest, 4 binaries: aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.22 / VP-INDEX v2.40 / ARCH-INDEX v2.12 / PRD v1.51 |
 | Stories | 105 delivered / 119 total (STORY-INDEX v3.56, 731 pts) |
-| **Last Updated** | 2026-07-13 — wave-75 CLOSED (D-435, human-approved). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7; code-review PASS (1 NIT DEFERRED); security PASS (adjudicated); S-7.02 SATISFIED (STORY-166 drafted). STORY-INDEX v3.56 (119 stories/731 pts); input-hash MATCH=119 STALE=0. NEXT: v0.12.1 release. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-13 — v0.12.1 RELEASED (D-436, human-authorized). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries) + back-merge PR #400 squash 7b11b83. Trees identical: main==develop tree 5e75fd5. DRIFT-BACKMERGE-SQUASH-001. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -136,10 +136,13 @@ maintenance_prior_run: maint-2026-07-09
 | D-429 | Maintenance run maint-2026-07-11 COMPLETE (2026-07-11). 8 sweeps (6=DTU N/A, 9=a11y N/A), 0 CRITICAL/HIGH. Route A: PR #396 squash-merged 6779be6 (2026-07-11T16:45:25Z) by human (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER; admin-bypass declined in auto-mode); 17 findings fixed; adversary VOID→F-P1-001→F-P1r-002→1/3→F-P2-001→1/3→2/3→3/3 CONVERGED. Routes B/C DEFERRED (human, 2026-07-11) → ROUTE-BC-DEFERRED-2026-07-11. STORY-164 v1.1 AC-164-005 added (PG-W72-BREAKING-HOLDOUT-SWEEP; W72-L2 codified; breaking-change-delivery-protocol.md). Tech-debt: PC-013 line numbers updated; PC-014 RESOLVED; SEC-001 DEFERRED next feature wave; ISSUE-102-PREMATURE-CLOSE-001 CLOSED-REFUTED (WEAK_CIPHER_EVIDENCE_CAP exists at tls.rs:635; grep for wrong symbol); ARP-RATE-INTDIV-DOC-001/DNP3-TUNING-BIDIR-001/UNIT-FMT-5-20S-001/README-OPTIONS-L117-NEUTRAL-001/ROUTE-B-DEFERRED/PG-W-README-JSON-SCHEMA/CHANGELOG-D3-T0830-DRIFT-001 all RESOLVED PR #396. ADVERSARY-RELAY-UNRELIABLE-001 3rd recurrence (sweep-4 holdout). DRIFT-ENGINE-CHECKOUT-GUARD-001 2nd recurrence (PR #396 Pass 1 VOID). PERF-RERUN-001 OPEN (load avg 52.57 — human deferred quiescent re-run). STORY-INDEX v3.44 (117 stories/723 pts). develop=6779be6. Pipeline PAUSED. | 2026-07-11 |
 | Wave 74: STORY-164 | **CLOSED (D-432, 2026-07-12)** | STORY-164 v1.16 @ 1a02b00 (4 pts, E-11, 5 ACs) DELIVERED. PR #397 d6e3be8; gate all-green: cargo 904/0 + python 101/101; wave adversary 13-pass CONVERGED streak 3/3 (W11/W12/W13) trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n; code-review PASS (2 MINOR + 4 NIT DEFERRED); security PASS (4 LOW/INFO); S-7.02 SATISFIED (STORY-165 drafted). |
 | Wave 75: STORY-165 | **CLOSED (D-435, 2026-07-13)** | Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7; code-review PASS (0 B/M/M, 1 NIT DEFERRED ROUTE-W74-DEFERRED); security PASS (adjudicated CI+docs only); currency sweep COMPLETE MATCH=119 STALE=0; S-7.02 SATISFIED (STORY-166 drafted wave-TBD E-11 5 pts). STORY-INDEX v3.56 (119 stories/731 pts). |
+| v0.12.1 release run | OPENED (D-436, 2026-07-13) | |
+| v0.12.1 RELEASED + CHAIN COMPLETE (D-436) | **RELEASED 2026-07-13** | PR #399 (release/0.12.1 → main, merge fedcea4ab17d9b3257c9903636aec0c0fd08f147); tag v0.12.1 (obj d687a77d911503e67a8d171c00536bd710762bba); GitHub Release Latest 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu). Back-merge PR #400 (squash 7b11b83, DRIFT-BACKMERGE-SQUASH-001: squash severs shared history; trees identical 5e75fd5; resolve at next release). Cargo 0.12.1. Release content: 4 develop commits (b5e1e15 STORY-162 + 6779be6 maint-2026-07-11 + d6e3be8 STORY-164 + fa646ed STORY-165) + version bump ec019b3. Product src/ delta: lint hygiene only (arp.rs/dnp3.rs/cli.rs, 39 lines, non-behavioral) — tooling/process patch release. |
 | D-430 | Wave-74 OPENED; plan-gate Q&A: scope approved as-written incl. changelog content gate + bin/ Python validator convention + 4 pts unsplit; pre-gate citation validation caught F-VAL-164-001 fabricated anchor, fixed v1.2→v1.3; STORY-164 v1.3 assigned+ready (wave 74, E-11, 4 pts, 5 ACs); STORY-INDEX v3.45; sprint-state.yaml wave-74 entry added. | 2026-07-11 |
 | D-431 | STORY-164 DELIVERED. PR #397 squash-merged to develop at d6e3be83e19c76113a115f8fcb8a01b618c571df (2026-07-11T23:04:56Z, merged BY HUMAN directly under D-425 interim path — self-PR review waiver noted, review comment 4678783752). CI 12/12 (changelog-gate exercised bin/changelog-gate-check on its own PR). pr-reviewer APPROVE (3 NITs accept-by-design). Security PASS (SEC-001/002 LOW accepted, SEC-003 INFO deferred-to-#392, SEC-004 INFO accepted). Per-story adversarial convergence: 8 passes, streak 3/3 (P6/P7/P8), trajectory 6→4→3→2n→2→1n→2n→1n, zero open findings, 2 accepted-by-design dispositions. F-S164P5-001 phantom-citation-in-citation-doc caught and fixed. Demo evidence 6 artifacts, scrub PASS. Worktree + branches cleaned. develop=d6e3be8 (3 unreleased: b5e1e15 + 6779be6 + d6e3be8). Story spec final v1.16 @ 1a02b00 (16 versions; wave-gate passes drove spec/artifact hardening from delivery-close v1.10/b256f9e to v1.16; consistency-audit NIT resolution at gate-close; input-hash 74afab0 canonical). STORY-INDEX v3.47; stories_delivered 103→104. | 2026-07-11 |
 | D-433 | Wave-75 OPENED (plan gate approved, human, 2026-07-13). Pre-gate Q&A: scope approved as-written; STORY-165 v1.1 (3 pts, E-11, 4 ACs: AC-165-001..004) consistency-audit 2 MINORs fixed; input-hash 23d6614 (canonical Python tool); STORY-165 draft→ready (wave-TBD→75); STORY-INDEX v3.52 (75 waves, 704 pts); sprint-state.yaml wave-75 entry added. Carry-forward: ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED + PERF-RERUN-001 + SEC-001. | 2026-07-13 |
 | D-434 | STORY-165 DELIVERED. PR #398 squash-merged to develop at fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f (2026-07-13; squash-merge HUMAN-AUTHORIZED at orchestrator merge-authorization gate — pr-manager executed per DF-MERGE-AUTH-CLASSIFIER-001/DF-PR-MANAGER-COMPLETE-001 steps 8-9). ADJUDICATION NOTE (F-W75G-P1-001): delivery D-records SHOULD carry merge-auth attribution going forward (sibling-consistency with D-431). CI 13/13 green (bin-selftest first-ever run AC-165-001; changelog-gate PASS; format/clippy clean). pr-reviewer APPROVE 0 findings. Per-story adversarial convergence: 9 passes, streak 3/3 (P7/P8/P9), trajectory 1→0→0→2→0→1→0→0→0. Findings fixed: F-S165P1-001 HIGH (fabricated test name — validate-citations symbol-gap PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP); F-S165P4-001 HIGH (finding-ID collision — PG-W75-FINDING-ID-DUAL-SCHEME); F-S165P4-002 MEDIUM; F-S165P4-003 LOW (human-ratified); F-S165P6-001 MEDIUM; F-S165P7-001 editorial. PG-W74-PRDESC-ROW-VERIFY first compliant execution (9 rows row-verified; AC-165-002). Demo evidence 4 AC artifacts, scrub PASS. Mandate docs written: pr-description-row-verify-mandate.md (AC-165-002) + delivery-doc-currency-protocol.md (AC-165-003). DF-VALIDATION-001 research report: pg-validation-wave-75.md (3 findings VALID → process-gap-ledger.md). STORY-INDEX v3.55 (D-432→D-434 cell correction; Governance-Table Amendment Protocol applied, wave-74 row audited). stories_delivered 104→105. develop==origin/develop==fa646ed; 4 unreleased commits. | 2026-07-13 |
+| D-436 | v0.12.1 RELEASED (human-authorized 2026-07-13). PR #399 "chore: release v0.12.1" merged to main via merge commit fedcea4ab17d9b3257c9903636aec0c0fd08f147 (human-authorized at orchestrator gate; merge + tag push executed in main session — merge-auth: orchestrator-main under direct human authorization per DF-MERGE-AUTH-CLASSIFIER-001; F-W75G-P1-001 adjudication note: D-records carry merge-auth attribution). Tag v0.12.1: annotated tag object d687a77d911503e67a8d171c00536bd710762bba → commit fedcea4. GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.12.1 — published, Latest, 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml build + publish all green. Back-merge PR #400 "chore: back-merge release v0.12.1 into develop" SQUASH-merged → develop HEAD 7b11b830ed8138136159a45aa6686b9df32cf707. DRIFT-BACKMERGE-SQUASH-001: squash back-merge means main (fedcea4) is NOT an ancestor of develop (7b11b83); trees ARE identical (both 5e75fd53e74c9f2a75f5847981db7a6d377935ad); resolve at next release (merge-commit back-merge per 72a2842 precedent) or accept as convention — decision deferred. Branch cleanup: release/0.12.1 + chore/backmerge-v0.12.1 deleted (remote auto-deleted on merge; local pruned); main checkout back on develop 7b11b83, clean. Release content: 4 develop commits (b5e1e15 STORY-162 + 6779be6 maint-2026-07-11 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398) + version bump ec019b3. Product src/ delta: lint hygiene only (arp.rs/dnp3.rs/cli.rs, 39 lines, non-behavioral) — tooling/process patch release. | 2026-07-13 |
 | D-435 | Wave-75 CLOSED (human-approved 2026-07-13). Gate all-green across all dimensions: (a) Full Suite PASS — CI 13/13 green (bin-selftest AC-165-001 first-ever run; changelog-gate PASS; clippy -D warnings clean; fmt clean); (b) Wave Adversarial PASS — 7 passes, streak 3/3 (W5/W6/W7), trajectory 2→0→0→1→0→0→0, CONVERGED; 3 substantive defects caught post-merge (F-W75G-P1-001 LOW merge-auth attribution, F-W75G-P1-002 LOW line citation, F-W75G-P4-001 MEDIUM blanket provenance), all fixed; (c) Code Review PASS — 0 BLOCKING/MAJOR/MINOR, 1 NIT DEFERRED (human-ratified 2026-07-13; joins ROUTE-W74-DEFERRED), 2 OBS; (d) Security PASS — adjudicated: CI-yaml+docs-only delta, no separate wave pass required; (e) Consistency/Currency PASS — delivery-doc currency sweep first mandatory execution COMPLETE; STORY-INDEX v3.56 consistent; (f) Holdout N/A — zero src/ changes; (g) Wave Demos PASS — 4 artifacts, scrub PASS; (h) Input-hash PASS — MATCH=119 STALE=0 (canonical Python tool). S-7.02 SATISFIED: STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad, STORY-INDEX v3.56, 119 stories/731 pts) codifying PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP AC-166-001, PG-W75-FINDING-ID-DUAL-SCHEME AC-166-002, OBS-W75-W7 scrub-scope AC-166-003, OBS-W75-W6 streak-persistence AC-166-004; PG-W75-GATE-SUMMARY-VERSION-ATTRIBUTION corrected in-burst (gate-summary.md:43 v3.48→v3.47). Justified deferral: sprint-state field-drift → Drift Items vestigial-file retirement. Carry-forwards: ROUTE-W74-DEFERRED; ROUTE-BC-DEFERRED-2026-07-11. develop==origin==fa646ed; 4 unreleased commits. Pipeline ACTIVE. | 2026-07-13 |
 | D-432 | Wave-74 CLOSED (human-approved 2026-07-12). Gate all-green across all dimensions: (a) Full Suite PASS — cargo 904/0, clippy -D warnings clean, fmt clean, python 101/101 (22+10 bin/ self-tests + integration suite), release profile clean; (b) Wave Adversarial PASS — 13 passes, streak 3/3 (W11/W12/W13), trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n, CONVERGED; 8 substantive defects caught post-merge (status-legend corpus contradictions ×3, fabricated PR test table ×1, demo/currency staleness ×3, historical-framing inversion ×1), all fixed; (c) Code Review PASS — 2 MINOR + 4 NIT DEFERRED (human-ratified 2026-07-12; ROUTE-W74-DEFERRED, next bin-touch PR); (d) Security PASS — 4 LOW/INFO dispositioned (SEC-001/002 LOW accepted, SEC-003 INFO deferred-to-#392, SEC-004 INFO accepted); (e) Consistency PASS — status-legend corpus sweep completed; STORY-INDEX v3.51 consistent; (f) Holdout N/A — zero src/ changes; (g) Wave Demos PASS — 6 artifacts on develop, scrub PASS (zero host paths); (h) Input-hash PASS — MATCH=118 STALE=0 (canonical Python tool, 118 stories). STORY-164 spec final: v1.16 @ 1a02b00 (16 versions — 8 per-story passes + 13 wave passes). Gate value: 8 substantive defects caught post-merge. S-7.02 SATISFIED: STORY-165 drafted (wave-TBD, E-11, 3 pts, v1.0 @ d3df8d5, STORY-INDEX v3.51, 118 stories) codifying PG-W74-CI-BIN-SELFTEST AC-165-001, PG-W74-PRDESC-ROW-VERIFY AC-165-002, PG-W74-DELIVERY-DOC-CURRENCY AC-165-003, PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004. Deferred: ROUTE-W74-DEFERRED (human-ratified P3) + ROUTE-BC-DEFERRED-2026-07-11 + PERF-RERUN-001 + SEC-001 (next feature wave). develop=d6e3be8 (3 unreleased commits ahead of v0.12.0). Pipeline PAUSED. | 2026-07-12 |
 
@@ -149,11 +152,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 merged to main + tag d687a77 + GitHub Release Latest (4 binaries) + back-merge PR #400 squash 7b11b83. Trees identical main==develop 5e75fd5. 0 unreleased commits. DRIFT-BACKMERGE-SQUASH-001 (squash history-only divergence). ROUTE-BC-DEFERRED-2026-07-11 and ROUTE-W74-DEFERRED carry forward. Pipeline PAUSED. trajectory-tail →0→0→0→0** | **RELEASED (D-436)** | v0.12.1 RELEASED. Pipeline PAUSED. |
 | **wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7; 3 findings fixed (F-W75G-P1-001/002 LOW, F-W75G-P4-001 MEDIUM); code-review PASS (1 NIT DEFERRED); security PASS (adjudicated CI+docs only); S-7.02 SATISFIED (STORY-166 drafted wave-TBD E-11 5 pts hash 8e244ad); STORY-INDEX v3.56 (119 stories/731 pts); input-hash MATCH=119 STALE=0. develop==origin==fa646ed. NEXT: v0.12.1 release. trajectory-tail →0→0→0→0** | **CLOSED (D-435)** | Wave-75 CLOSED. NEXT: v0.12.1 release. |
 | **STORY-165 DELIVERED (D-434, 2026-07-13). PR #398 fa646ed squash-merged to develop; CI 13/13 green (bin-selftest first-ever run); pr-reviewer APPROVE 0 findings; 9 passes trajectory 1→0→0→2→0→1→0→0→0 streak P7/P8/P9; PG-W74-PRDESC-ROW-VERIFY first compliant execution (9 rows row-verified). STORY-INDEX v3.55 (D-432→D-434 cell correction). develop==origin/develop==fa646ed; 4 unreleased commits. Wave-75 delivery complete; gate NEXT. trajectory-tail →1→0→0→0** | **DELIVERED (D-434)** | Wave-75 all stories delivered. Gate next. |
 | **Wave-75 OPENED (D-433, plan gate approved human 2026-07-13). STORY-165 v1.1 (3 pts, E-11, 4 ACs) delivery STARTING — pre-gate checks green (input-hash MATCH=118 STALE=0, consistency audit PASS 0 BLOCKER 0 MAJOR 2 MINOR fixed; 23d6614). STORY-INDEX v3.52 (75 waves, 704 pts); sprint-state.yaml wave-75 entry added. Carry-forward: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001 quiescent; SEC-001 next feature wave. trajectory-tail →0→0→0→0** | **OPEN (D-433)** | Wave-75 OPENED. Pipeline ACTIVE. |
 | **Session wrap (human-requested, 2026-07-13). Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release with 3 unreleased commits on develop (b5e1e15/6779be6/d6e3be8); no sub-agents abandoned mid-step; develop==origin==d6e3be8 clean. Pipeline PAUSED between cycles. NEXT: v0.12.1 release or STORY-165 wave assignment. trajectory-tail →1→0→2n→1n** | **PAUSED** | Session wrap. Pipeline PAUSED. |
-| **Wave-74 CLOSED (D-432, human-approved 2026-07-12). Gate all-green: cargo 904/0 + python 101/101 + clippy/fmt clean; wave adversary 13-pass CONVERGED streak 3/3 (W11/W12/W13) trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n; 8 substantive defects caught; code-review PASS (2 MINOR + 4 NIT DEFERRED ROUTE-W74-DEFERRED); security PASS; S-7.02 SATISFIED (STORY-165 drafted wave-TBD 118 stories); input-hash MATCH=118 STALE=0. STORY-164 v1.16 final. Pipeline PAUSED. trajectory-tail →1→0→2n→1n** | **CLOSED (D-432)** | Wave-74 CLOSED. Pipeline PAUSED. |
 
 ## Decisions Log
 
@@ -299,6 +302,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | ID | Summary | Source | Target |
 |----|---------|--------|--------|
 | DRIFT-SPRINT-STATE-FIELD-FORM-001 | sprint-state.yaml uses both `merge_sha:` and `merge_commit:` field names inconsistently across wave entries. File self-declares vestigial (greenfield artifact; STORY-INDEX is authoritative wave registry). Field-form inconsistency is cosmetic drift in a vestigial file. | wave-75 gate S-7.02 justified deferral (D-435, 2026-07-13) | vestigial-file retirement decision at next housekeeping pass |
+| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) is NOT an ancestor of develop (7b11b83). Trees ARE identical (both 5e75fd53e74c9f2a75f5847981db7a6d377935ad) — content fully synced, history-only divergence. Justified deferral: resolve at next release (merge-commit back-merge per 72a2842 precedent) or accept as convention. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
 
 ---
 
@@ -402,19 +406,20 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7. S-7.02 SATISFIED (STORY-166 drafted). STORY-INDEX v3.56 (119 stories/731 pts). develop==origin==fa646ed. NEXT: v0.12.1 release cut. Pipeline ACTIVE.**
+**v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries, Latest) + back-merge PR #400 squash 7b11b83. 0 unreleased commits; trees identical (5e75fd5). Pipeline PAUSED for session wrap.**
 
-Prior checkpoint (Wave-75 DELIVERED, D-434, 2026-07-13) archived to `cycles/wave-75/session-checkpoints.md`.
+Prior checkpoint (Wave-75 CLOSED, D-435, 2026-07-13) archived to `cycles/wave-75/session-checkpoints.md`.
 
-- **Date:** 2026-07-13. Position: Wave-75 CLOSED (D-435, human-approved); pipeline ACTIVE.
-- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f`. Tag v0.12.0 resolves to `f1e0c36`. GitHub Release Latest with 4 binaries live. Develop is 4 unreleased commits ahead of main (b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398).
-- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches. No sub-agents abandoned mid-step.
-- **Active story:** None. STORY-165 v1.6 CLOSED (wave-75, E-11, 3 pts, 4 ACs; PR #398 fa646ed). STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad — wave-75 S-7.02 cycle-close codifications).
-- **Carry-forwards:** ROUTE-W74-DEFERRED (wave-74 code-review MINOR ×2 + NIT ×5 (now including wave-75 NIT-1) + OBS ×4, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified).
-- **Wave-75 gate convergence:** 7 passes; streak 3/3 (W5/W6/W7); trajectory 2→0→0→1→0→0→0. S-7.02 SATISFIED: STORY-166 AC-166-001..004 (symbol-at-line validator, finding-ID naming policy, scrub-scope, streak-persistence). process-gap-ledger.md all items DISPOSITIONED (D-435).
+- **Date:** 2026-07-13. Position: v0.12.1 RELEASED (D-436, human-authorized); pipeline PAUSED.
+- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147` (PR #399 merge commit); develop = `7b11b830ed8138136159a45aa6686b9df32cf707` (PR #400 squash back-merge). Tag v0.12.1: annotated tag object `d687a77d911503e67a8d171c00536bd710762bba` → commit `fedcea4`. GitHub Release Latest (4 binaries) at https://github.com/Zious11/wirerust/releases/tag/v0.12.1. Trees identical: main==develop tree `5e75fd53e74c9f2a75f5847981db7a6d377935ad` — 0 unreleased commits. DRIFT-BACKMERGE-SQUASH-001: main (fedcea4) is NOT an ancestor of develop (7b11b83) due to squash back-merge; content fully synced; history-only divergence.
+- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches (release/0.12.1 + chore/backmerge-v0.12.1 deleted post-merge). No sub-agents abandoned mid-step.
+- **Active story:** None. STORY-165 v1.6 CLOSED (wave-75, E-11, 3 pts, 4 ACs; PR #398 fa646ed). STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad).
+- **Carry-forwards:** ROUTE-W74-DEFERRED (wave-74 code-review MINOR ×2 + NIT ×5 (wave-75 NIT-1 included) + OBS ×4, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified); DRIFT-BACKMERGE-SQUASH-001 (resolve at next release cut).
 - **Next work (ordered):**
-  1. **v0.12.1 release cut** — 4 unreleased commits (b5e1e15/6779be6/d6e3be8/fa646ed) per human direction.
-  2. After release: ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
+  1. Session review (post-release housekeeping).
+  2. STORY-166 wave-76 plan gate (E-11, 5 pts, wave-TBD).
+  3. ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
+  4. SEC-001 next feature wave.
 - **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.56 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
