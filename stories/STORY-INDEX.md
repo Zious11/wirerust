@@ -1,14 +1,17 @@
 ---
 document_type: story-index
-version: "3.52"
+version: "3.55"
 status: draft
 producer: story-writer
-timestamp: 2026-07-11T00:00:00Z
+timestamp: 2026-07-13T00:00:00Z
 phase: f7
 total_stories: 118
 total_waves: 75
 total_points: 726  # = 726 (+3 STORY-165, wave-75); wave-table scheduled: 704 (STORY-165 wave-TBD→75 included); epic-table grand total: 726; stories: 118; waves: 75
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.55 (2026-07-13): wave-75 Delivery Progress row D-number corrected D-432→D-434 (cell correction; no totals changed).
+# v3.54 (2026-07-13): STORY-165 DELIVERED (PR #398 fa646ed, 2026-07-13); status ready→delivered at all loci; wave-75 Delivery Progress → DELIVERED. No numeric totals changed.
+# v3.53 (2026-07-13): Governance-Table Amendment Protocol note added after Loci Agreement Rule (AC-165-004, PG-W74-GROUND-TRUTH-AUDIT-FIRST; STORY-165 wave-75). No numeric totals changed.
 # v3.52 (2026-07-13): wave-75 OPENED — STORY-165 assigned (3 pts, E-11 governance); STORY-165 wave-TBD→75, draft→ready (plan gate approved, human, 2026-07-13). total_waves: 74→75; wave-table scheduled: 701→704 (+3 STORY-165). total_stories/total_points unchanged (118/726).
 # v3.51 (2026-07-11): STORY-165 added (wave-TBD draft, E-11, 3 pts; wave-74 S-7.02 cycle-close: PG-W74-CI-BIN-SELFTEST AC-165-001 bin-selftest CI wiring + PG-W74-PRDESC-ROW-VERIFY AC-165-002 PR description row-verify mandate + PG-W74-DELIVERY-DOC-CURRENCY AC-165-003 delivery-doc currency sweep + PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004 governance-table audit-first rule). total_stories: 117→118; total_points: 723→726; E-11: 14→15 stories, 50→53 pts. Wave-table scheduled unchanged (701, STORY-165 wave-TBD excluded).
 # v3.50 (2026-07-11): F-W74P6-001 + full-legend ground-truth audit — completed row: Loci "Index cell only" → all-loci with dominant note (83 frontmatters; F-W74P6-001); Definition "early-wave entries" qualifier removed (STORY-162 wave-73 counter-evidence). 6 other rows audited: all pass.
@@ -147,6 +150,17 @@ The table below defines the canonical status values used in story files and this
 
 **Loci agreement rule:** Frontmatter `status:`, the body status line (e.g., `**Status:** delivered`), and the STORY-INDEX index cell MUST agree on the delivery-class category (draft/ready/pending/delivered-class/superseded). Wave-gate adversarial passes are authorized to correct loci mismatches as administrative fixes.
 
+**Governance-Table Amendment Protocol:** When remediating any governance table (including but not limited to the Status Vocabulary legend, the Wave Delivery Progress table, and the Stories by Epic table), the remediation agent MUST follow this mandatory sequence:
+
+1. **Read the full table in one burst** — load all rows of the target table before writing any correction.
+2. **Identify ALL cells with potential errors** against ground truth — enumerate every suspected discrepancy across all rows and columns.
+3. **Record every suspected error before writing any correction** — produce a complete audit list first.
+4. **Apply all corrections in a single edit pass** — correct all identified errors atomically.
+
+Correcting one cell and submitting before auditing siblings is **non-conforming**. A single audit burst followed by a single correction burst is the mandatory sequence.
+
+**Evidence rationale (PG-W74-GROUND-TRUTH-AUDIT-FIRST):** The wave-74 gate fixed the Status Vocabulary legend in three separate passes (v3.48, v3.49, v3.50 — F-W74P3-001, F-W74P4-001, F-W74P6-001) because each pass fixed one cell without auditing siblings. Three adversarial passes were consumed where one audit burst would have sufficed.
+
 ---
 
 | Story ID | Title | Epic | Wave | Points | Status | Dependencies |
@@ -213,7 +227,7 @@ The table below defines the canonical status values used in story files and this
 | STORY-162 | Wave-72 cycle-closing: LMR-003 template-conformance exemption + check-green-doc-tense main() guard self-tests | E-11 | 73 | 3 | completed | — |
 | STORY-163 | maint-2026-07-09 cycle-closing: docs-dispatch citation mandate + subagent merge-auth resolution path | E-11 | 73 | 2 | delivered | — |
 | STORY-164 | Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation | E-11 | 74 | 4 | delivered | — |
-| STORY-165 | Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule | E-11 | 75 | 3 | ready | — |
+| STORY-165 | Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule | E-11 | 75 | 3 | delivered | — |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
@@ -462,7 +476,7 @@ The table below defines the canonical status values used in story files and this
 | 72 | STORY-158, STORY-159, STORY-160, STORY-161 | **DELIVERED & CLOSED (D-416, 2026-07-09)** | #387, #388, #389, #390, #391 | 75c5ba5, d410b8d, 704fd2e, 80fbb64, 44f8c9c | 2026-07-09 |
 | 73 | STORY-162, STORY-163 | **DELIVERED & CLOSED (D-428, 2026-07-11)** | #395 (STORY-162); STORY-163 factory-only (D-427) | b5e1e15; n/a | 2026-07-11 |
 | 74 | STORY-164 | **DELIVERED (D-431, 2026-07-11)** | #397 | d6e3be8 | 2026-07-11 |
-| 75 | STORY-165 | IN PROGRESS | — | — | — |
+| 75 | STORY-165 | **DELIVERED (D-434, 2026-07-13)** | #398 | fa646ed | 2026-07-13 |
 
 ## Coverage Verification
 

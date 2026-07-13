@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-165
 epic_id: E-11
-version: "1.1"
-status: ready
+version: "1.6"
+status: delivered
 producer: story-writer
 timestamp: 2026-07-13T00:00:00Z
 phase: f7
@@ -33,13 +33,13 @@ inputs:
   - .factory/cycles/wave-74/wave-gate/code-review.md
   - .github/workflows/ci.yml
   - CLAUDE.md
-input-hash: "23d6614"
+input-hash: "71d6798"
 ---
 
 # STORY-165: Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 75
 **Points:** 3
 **Priority:** P3
@@ -77,8 +77,9 @@ follow-up stories.
 
 STORY-164 (wave-74) delivered two Python test scripts — `bin/test_validate_citations.py` (22
 tests) and `bin/test_changelog_gate_content.py` (10 tests) — as part of AC-164-002(d) and
-AC-164-003(c). These files pass locally but were not wired into the CI pipeline. If a future
-PR breaks these tests, CI will not catch the regression.
+AC-164-003(c). These files passed locally at wave-74 close but were not wired into the CI
+pipeline. CI would not have caught regressions in these test scripts (gap closed: PR #398
+fa646ed, 2026-07-13).
 
 The wave-73 precedent (STORY-162 AC-162-002) established the correct pattern: when a gate
 script has a self-test file in `bin/`, a dedicated CI job runs that self-test on every PR. The
@@ -96,26 +97,30 @@ Evidence:
 - The `green-doc-tense-gate` pattern (ci.yml:451): the structural template for wiring a
   `bin/test_*.py` file into CI — one job, one checkout step, one run step.
 
-### PG-W74-PRDESC-ROW-VERIFY — per-test results tables unverified during review
+### PG-W74-PRDESC-ROW-VERIFY — test-evidence tables unverified during review
 
-PR #397 (STORY-164) included a per-test results table in the PR description listing T01–T22
-with pass/fail statuses for `bin/test_validate_citations.py`. Wave-74 gate adversarial
-convergence Pass 8 (F-W74P8-001) found that neither the pr-reviewer nor pr-manager agent
-cross-checked any entry in that table against the actual test function names in the source
-file. A PR description could carry a fabricated or mis-keyed test table and the review
-pipeline would pass it unchallenged.
+PR #397 (STORY-164) included a test-evidence table in the delivery doc (`code-delivery/
+STORY-164/pr-description.md`). Wave-74 gate adversarial convergence Pass 3 (W3)
+(F-W74G-P3-001, HIGH) found that the table's aggregate count row claimed "python 101/101"
+across both bin/ test suites, but that count was computed before the final 10-test suite
+(`bin/test_changelog_gate_content.py`) was complete; the row also cited a pytest run output
+that did not match the actual `bin/test_changelog_gate_content.py` output format. The PR
+description also carried a per-test results table listing T01–T22 per-test results for
+`bin/test_validate_citations.py`; neither the pr-reviewer nor pr-manager agent cross-checked
+any entry in that table against the actual test function names in the source file.
 
-Root cause: no mandate exists requiring agents to spot-verify per-test results tables when
-they appear in PR descriptions. Code review artifacts (`.factory/cycles/wave-74/wave-gate/
-code-review.md:104`) record wave-74 gate findings, but none of the finding dispositions
-addresses the PR description row-verify gap — it was surfaced at the adversarial-convergence
-level, not the code-review level. The gap must be codified as an explicit pr-reviewer and
-pr-manager process obligation.
+Root cause: no mandate exists requiring agents to cross-check aggregate test counts or
+spot-verify per-test results tables in PR descriptions. Code review artifacts
+(`.factory/cycles/wave-74/wave-gate/code-review.md:104`) record wave-74 gate findings, but
+none of the finding dispositions addresses the PR description row-verify gap — it was surfaced
+at the adversarial-convergence level, not the code-review level. The gap must be codified as
+an explicit pr-reviewer and pr-manager process obligation.
 
 Evidence:
-- Wave-74 PR #397 included a per-test table. Disposition table at
+- Wave-74 PR #397 delivery doc claimed an aggregate count ("python 101/101" / "22+10=32")
+  before the final test suite was complete (F-W74G-P3-001). Disposition table at
   `.factory/cycles/wave-74/wave-gate/code-review.md:104` does not include a PR-description
-  row-verify requirement — confirming the gap was not caught by code review.
+  row-verify requirement — confirming the gap was not caught at code-review level.
 
 ### PG-W74-DELIVERY-DOC-CURRENCY — delivery-narrative staleness burned late adversarial passes
 
@@ -150,11 +155,11 @@ Evidence:
 ### PG-W74-GROUND-TRUTH-AUDIT-FIRST — legend remediated cell-by-cell over three passes
 
 The STORY-INDEX status-vocabulary legend was corrected in three separate gate passes:
-- v3.48 (F-W74P3-001, STORY-INDEX.md:14): `superseded` row added — gap in the legend not
+- v3.48 (F-W74P3-001, STORY-INDEX.md:17): `superseded` row added — gap in the legend not
   caught by the v3.46 authorship pass.
-- v3.49 (F-W74P4-001, STORY-INDEX.md:13): `pending` synonym-note "pre-v3.00" corrected —
+- v3.49 (F-W74P4-001, STORY-INDEX.md:16): `pending` synonym-note "pre-v3.00" corrected —
   a sibling of the superseded-row change not swept at v3.48.
-- v3.50 (F-W74P6-001, STORY-INDEX.md:12): `completed` row Loci and Definition corrected —
+- v3.50 (F-W74P6-001, STORY-INDEX.md:15): `completed` row Loci and Definition corrected —
   another sibling not swept at v3.48 or v3.49.
 
 Each pass fixed the found cell but failed to audit sibling cells in the same burst, forcing
@@ -167,9 +172,9 @@ Authors and agents default to fixing the found cell and moving on, leaving sibli
 subsequent passes.
 
 Evidence:
-- STORY-INDEX.md:14 (v3.50 header): F-W74P6-001 `completed` row correction.
-- STORY-INDEX.md:15 (v3.49 header): F-W74P4-001 `pending` synonym note correction.
-- STORY-INDEX.md:16 (v3.48 header): F-W74P3-001 `superseded` row addition.
+- STORY-INDEX.md:15 (v3.50 header): F-W74P6-001 `completed` row correction.
+- STORY-INDEX.md:16 (v3.49 header): F-W74P4-001 `pending` synonym note correction.
+- STORY-INDEX.md:17 (v3.48 header): F-W74P3-001 `superseded` row addition.
 
 ## Acceptance Criteria
 
@@ -215,30 +220,45 @@ A new maintenance artifact `.factory/maintenance/pr-description-row-verify-manda
 (factory-artifacts branch) is created that codifies the **PR description per-test table
 row-verify mandate** for pr-reviewer and pr-manager agents.
 
-(a) **Scope:** The mandate applies whenever a PR description carries a per-test results table
-    — a markdown table or bulleted list enumerating individual test identifiers (e.g., T01–T22,
-    B01–B10) with pass/fail or similar status annotations. Such tables are common in E-11
-    governance and tooling stories.
+(a) **Scope:** The mandate applies whenever a PR description carries:
+    - A **per-test results table** — a markdown table or bulleted list enumerating individual
+      test identifiers (e.g., T01–T22, B01–B10) with pass/fail or similar status annotations.
+    - Any **claimed aggregate test count or aggregate result** (e.g., "22 passed", "101/101",
+      "22 + 10 = 32 tests pass") in a test-evidence section of the PR description.
+    Such tables and counts are common in E-11 governance and tooling stories.
 
-(b) **Mandate:** The pr-reviewer and pr-manager agents MUST row-verify at least three
+(b) **Mandate:** The pr-reviewer and pr-manager agents MUST perform BOTH of the following
+    checks where applicable:
+
+    **1. Per-test row-verify (when per-test rows are present):** Row-verify at least three
     randomly-selected entries from any per-test results table in the PR description by:
     1. Locating the test file named in the PR description.
     2. Reading that file to confirm the test function name for each selected row exists at
        the line or location implied by the table.
     3. Recording in the review that row-verification was performed (e.g., "Row-verified T01
        (`test_T01_valid_line_citation_passes`, `bin/test_validate_citations.py:120`), T12
-       (`test_T12_malformed_line_counted_in_denominator`), T22 (`test_T22_unreadable_target_file`,
+       (`test_T12_malformed_line_reported`, line 278), T22 (`test_T22_unreadable_target_file`,
        line 553)."). A table with fewer than three rows requires verification of all rows.
+
+    **2. Aggregate-count cross-check (when aggregate counts are claimed):** Cross-check every
+    claimed aggregate count or aggregate result in the PR description's test-evidence section
+    (e.g., "22 passed", "101/101", "22 + 10 = 32") against the actual test-run or CI output
+    for the PR HEAD commit, and record the cross-check. A claimed aggregate count that cannot
+    be matched to an actual run output is a **blocking review finding**.
 
 (c) **Fabrication risk:** A per-test results table claiming "22 tests PASS" is unverifiable
     without reading the source. Row-verification prevents copy-paste errors,
     auto-generation hallucinations, and count drift from subsequent test additions from
     passing through PR review undetected.
 
-(d) **Wave-74 evidence:** PR #397 (STORY-164) carried a per-test table for T01–T22 of
-    `bin/test_validate_citations.py`. Neither the pr-reviewer nor pr-manager agent
-    row-verified any entry. The gap was identified at wave-74 gate adversarial convergence
-    Pass 8 (F-W74P8-001).
+(d) **Wave-74 evidence:** PR #397 (STORY-164) delivery doc (`code-delivery/STORY-164/
+    pr-description.md`) claimed "python 101/101" as an aggregate count across both bin/ test
+    suites, but that count was computed before the final 10-test suite
+    (`bin/test_changelog_gate_content.py`) was complete; the cited pytest run output also did
+    not match the actual CI output. The delivery doc also carried a per-test table for T01–T22
+    of `bin/test_validate_citations.py`; neither the pr-reviewer nor pr-manager agent
+    cross-checked any row against actual test function names in the source file. The gap was
+    identified at wave-74 gate adversarial convergence Pass 3 (W3) (F-W74G-P3-001, HIGH).
 
 Verification:
 ```bash
@@ -254,8 +274,8 @@ A new maintenance artifact `.factory/maintenance/delivery-doc-currency-protocol.
 (factory-artifacts branch) is created that codifies the **delivery-doc currency sweep** as a
 mandatory wave-gate-entry step.
 
-(a) **Scope trigger:** This sweep is performed once per wave, before any adversarial
-    convergence pass begins. It applies to all delivery-narrative artifacts associated with
+(a) **Scope trigger:** This sweep is performed once per wave, before the first adversarial
+    pass of the wave gate begins (per-story Step-4.5 passes out of scope). It applies to all delivery-narrative artifacts associated with
     the wave's stories: story spec files (`.factory/stories/STORY-NNN.md`), demo-evidence
     artifacts (`.factory/demo-evidence/`), and maintenance docs created or amended by the
     wave's stories.
@@ -279,7 +299,7 @@ mandatory wave-gate-entry step.
 
 (c) **Currency sweep record:** The sweep completion MUST be recorded before the first pass.
     A one-line `**Currency sweep: COMPLETE (YYYY-MM-DD)**` note is sufficient. Omitting the
-    sweep record is non-conforming; the first adversarial pass MUST verify that the record
+    sweep record is non-conforming; the first adversarial pass of the wave gate MUST verify that the record
     exists.
 
 (d) **Why pre-gate:** Stale delivery-narrative text forces late adversarial passes to re-open
@@ -352,7 +372,7 @@ No new Python or bash files in `bin/`.
 | EC-001 | PR description table has fewer than three rows | Row-verify ALL rows (AC-165-002(b) minimum floors to the actual row count when < 3) |
 | EC-002 | A new `bin/test_*.py` file is added in a future PR | That PR MUST include a CHANGELOG entry (bin/ is in the trigger set per AC-165-001(b) adjudication) AND a CI wiring amendment to add the new test to the `bin-selftest` job |
 | EC-003 | `bin-selftest` CI job runs on a PR that does not touch `bin/test_*.py` | The job still runs (it runs unconditionally on all PRs, like `green-doc-tense-gate`), exercising the tests on every change to ensure the suite remains green |
-| EC-004 | Delivery-doc currency sweep finds zero stale items | Still MUST record `**Currency sweep: COMPLETE**` before the first adversarial pass (AC-165-003(c)) |
+| EC-004 | Delivery-doc currency sweep finds zero stale items | Still MUST record `**Currency sweep: COMPLETE**` before the first adversarial pass of the wave gate (AC-165-003(c)) |
 | EC-005 | Governance table has only one row (or all rows have been freshly audited) | The audit-first rule still applies; the audit concludes with no corrections needed, and a single no-op edit pass is acceptable |
 
 ## Tasks
@@ -363,26 +383,33 @@ No new Python or bash files in `bin/`.
    in sequence. Use the same SHA-pinned `actions/checkout` ref as adjacent jobs; do NOT
    introduce a new unpinned action ref. Verify the action-pin-gate passes after the amendment.
 
-2. **Open develop PR for .github/workflows/ci.yml (AC-165-001):** Create a PR targeting
-   `develop`. No CHANGELOG.md entry is required (`.github/` is excluded from the trigger
-   set per AC-158-001; adjudication per AC-165-001(b)).
+2. **Open develop PR for .github/workflows/ci.yml and CLAUDE.md (AC-165-001, F-S165P4-003):**
+   Create a PR targeting `develop` that includes both:
+   - `.github/workflows/ci.yml` — `bin-selftest` CI job (AC-165-001).
+   - `CLAUDE.md` — add Project References table rows for the two new maintenance docs:
+     `.factory/maintenance/pr-description-row-verify-mandate.md` and
+     `.factory/maintenance/delivery-doc-currency-protocol.md`, following the pattern of
+     existing entries in the Project References table (path | purpose).
+   No CHANGELOG.md entry is required: `.github/` is excluded from the trigger set per
+   AC-158-001; `CLAUDE.md` is also not in the trigger set (trigger set = `src/`, `Cargo.toml`,
+   `bin/`); adjudication per AC-165-001(b).
 
 3. **Create pr-description-row-verify-mandate.md (AC-165-002):** Write
    `.factory/maintenance/pr-description-row-verify-mandate.md` on the factory-artifacts
    branch. The document MUST cover: scope (per-test results tables in PR descriptions),
    the mandate (row-verify ≥3 entries against actual test function names), fabrication risk,
-   and wave-74 evidence (F-W74P8-001). Follow the structural pattern of
+   and wave-74 evidence (F-W74G-P3-001). Follow the structural pattern of
    `.factory/maintenance/breaking-change-delivery-protocol.md` (Policy reference header +
    Finding reference + Background + Scope + Mandate + Non-Conformance Consequence + Evidence).
 
 4. **Create delivery-doc-currency-protocol.md (AC-165-003):** Write
    `.factory/maintenance/delivery-doc-currency-protocol.md` on the factory-artifacts
    branch. The document MUST cover: scope trigger (once per wave, before first adversarial
-   pass), mandatory steps (status loci check, tense audit, demo-evidence currency notes),
+   pass of the wave gate), mandatory steps (status loci check, tense audit, demo-evidence currency notes),
    currency sweep record requirement, and wave-74 evidence (F-W74P1-001, F-W74P13-001).
 
 5. **Amend STORY-INDEX (AC-165-004):** Add the Governance-Table Amendment Protocol note
-   immediately after the Loci Agreement Rule (`.factory/stories/STORY-INDEX.md:148`),
+   immediately after the Loci Agreement Rule (`.factory/stories/STORY-INDEX.md:149`),
    before the horizontal rule that follows. Include the audit-first rule and wave-74
    evidence rationale per AC-165-004.
 
@@ -406,9 +433,11 @@ and STORY-164, which immediately precede this story:
 
 - **STORY-163 (wave-73, E-11, 2 pts) — meta-irony precedent:** STORY-163 codified the
   citation mandate, yet its own evidence contained fabricated citations — caught by the
-  adversary at CRITICAL severity. The wave-74 analog (F-W74P8-001 for STORY-165) is
-  softer: a PR description table was not row-verified. In both cases the gap is that a
-  self-referential quality property was not applied to the story's own artifacts.
+  adversary at CRITICAL severity. The wave-74 analog (F-W74G-P3-001 for STORY-165) is
+  softer: a PR description delivery doc claimed a stale aggregate test count ("python 101/101")
+  that was pre-completion and did not match actual CI output; per-test row verification was
+  also absent. In both cases the gap is that a self-referential quality property was not
+  applied to the story's own artifacts.
 
 - **STORY-162 (wave-72, E-11, 3 pts):** Introduced the `green-doc-tense-gate` CI job
   pattern (AC-162-002). AC-165-001 follows the exact same structural template. This is the
@@ -446,6 +475,7 @@ and STORY-164, which immediately precede this story:
 | File | Action | Branch | Notes |
 |------|--------|--------|-------|
 | `.github/workflows/ci.yml` | Modify | develop | Add `bin-selftest` CI job (AC-165-001) |
+| `CLAUDE.md` | Modify | develop | Project References rows for the two new maintenance docs (F-S165P4-003, sibling-registration pattern) |
 | `.factory/maintenance/pr-description-row-verify-mandate.md` | Create | factory-artifacts | PR description per-test table row-verify mandate (AC-165-002; PG-W74-PRDESC-ROW-VERIFY) |
 | `.factory/maintenance/delivery-doc-currency-protocol.md` | Create | factory-artifacts | Delivery-doc currency sweep protocol (AC-165-003; PG-W74-DELIVERY-DOC-CURRENCY) |
 | `.factory/stories/STORY-INDEX.md` | Modify | factory-artifacts | Governance-Table Amendment Protocol note after Loci Agreement Rule (AC-165-004) |
@@ -465,9 +495,10 @@ Well within context window. No story split required.
 ## Notes
 
 - **DF-VALIDATION-001 gate:** All four process gaps are DF-VALIDATION-001-exempt. All
-  originate from wave-74 in-process execution findings: F-W74P8-001 (gate adversarial Pass 8),
-  F-W74P1-001 (gate Pass 1), F-W74P13-001 (gate Pass 13), and F-W74P3-001/P4-001/P6-001
-  (gate Passes 3, 4, 6 — all legend remediation). All are in-process execution findings —
+  originate from wave-74 in-process execution findings: F-W74G-P3-001 (gate adversarial
+  convergence Pass 3, W3), F-W74P1-001 (gate Pass 1), F-W74P13-001 (gate Pass 13), and
+  F-W74P3-001/P4-001/P6-001 (gate Passes 3, 4, 6 — all legend remediation). All are
+  in-process execution findings —
   DF-VALIDATION-001-exempt per the in-process exemption (same pattern as STORY-164 Notes,
   STORY-163 Notes, STORY-162 Notes).
 - **S-7.02 disposition:** Creating this story at draft status codifies four wave-74 process-gap
@@ -476,8 +507,12 @@ Well within context window. No story split required.
 - **No behavioral contract required:** E-11 convention (epics.md E-11: "BCs: none
   authored yet -- status: draft; pending PO authorship").
 - **Develop/factory split:** AC-165-001 (.github/workflows/ci.yml) touches the develop tree
-  and requires a PR. AC-165-002 and AC-165-003 (new maintenance docs) and AC-165-004
-  (STORY-INDEX amendment) are factory-artifacts branch commits only.
+  and requires a PR. The develop PR also includes CLAUDE.md Project References rows for the
+  two new maintenance docs (F-S165P4-003, sibling-registration pattern). CLAUDE.md is not in
+  the changelog trigger set (AC-158-001: trigger set = `src/`, `Cargo.toml`, `bin/`), so no
+  CHANGELOG entry is required for the CLAUDE.md change. AC-165-002 and AC-165-003 (new
+  maintenance docs) and AC-165-004 (STORY-INDEX amendment) are factory-artifacts branch
+  commits only.
 - **No CHANGELOG obligation for AC-165-001 develop PR:** The PR touches ONLY
   `.github/workflows/ci.yml`; `.github/` is explicitly excluded from the changelog-gate
   trigger set (AC-158-001). No CHANGELOG.md entry is required. This is distinct from
@@ -500,5 +535,10 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-07-13 | story-writer | STORY-165 DELIVERED — develop track PR #398 squash-merged (fa646ed, 2026-07-13; 13/13 CI green incl. bin-selftest first run; pr-reviewer APPROVE 0 findings, 9 rows row-verified + counts cross-checked per PG-W74-PRDESC-ROW-VERIFY first compliant execution); factory track AC-165-002/003/004 complete. Status ready→delivered at all loci. |
+| 1.5 | 2026-07-13 | story-writer | F-S165P6-001 (wave-75 Pass 6, MEDIUM): currency-sweep trigger disambiguated — wave-gate-entry only; per-story Step-4.5 passes explicitly out of scope. AC-165-003(a) + protocol doc fixed at all loci in one burst. |
+| 1.4 | 2026-07-13 | story-writer | Wave-75 Pass-4 remediation (human-ratified): F-S165P4-001 fabricated finding-ID F-W74P8-001/Pass-8 corrected to F-W74G-P3-001/Pass-3(W3) at all loci; F-S165P4-002 wave-74 evidence recharacterized (aggregate count vs CI output) + AC-165-002(b) mandate broadened with aggregate-count cross-check clause; F-S165P4-003 CLAUDE.md registration rows added to develop track (File Structure + Tasks). |
+| 1.3 | 2026-07-13 | story-writer | F-S165P1-001 (wave-75 Pass 1, HIGH): fabricated test name test_T12_malformed_line_counted_in_denominator corrected to test_T12_malformed_line_reported (line 278) in AC-165-002(b) example; sibling locus in pr-description-row-verify-mandate.md fixed in same burst per DF-SIBLING-SWEEP-001. |
+| 1.2 | 2026-07-13 | story-writer | Line-citation refresh after STORY-INDEX v3.53 prepend (AC-165-004 delivery); no content change. |
 | 1.1 | 2026-07-13 | story-writer | Wave-75 assignment (plan gate approved, human, 2026-07-13): status draft→ready, wave TBD→75; fixed 2 consistency-audit MINORs (stale STORY-INDEX line citations in Background evidence and Task 5 insert-point hint) per wave-75 opening audit. |
 | 1.0 | 2026-07-11 | story-writer | Initial authorship — wave-74 process-gap codifications: PG-W74-CI-BIN-SELFTEST (AC-165-001 bin-selftest CI wiring), PG-W74-PRDESC-ROW-VERIFY (AC-165-002 PR description row-verify mandate), PG-W74-DELIVERY-DOC-CURRENCY (AC-165-003 delivery-doc currency sweep protocol), PG-W74-GROUND-TRUTH-AUDIT-FIRST (AC-165-004 governance-table audit-first rule). S-7.02 wave-74 cycle-close. bin/validate-citations dogfood: PASS on 11-entry anchor list. |

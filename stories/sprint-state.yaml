@@ -865,8 +865,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-165:
-    status: ready
+    status: done
     wave: 75
-    branch: null
+    branch: null  # squash-merged; worktree cleaned
     worktree: null
     blocked_by: []
+    pr: 398
+    merge_commit: fa646ed
+    merged_date: "2026-07-13"
