@@ -73,4 +73,25 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-13) — v0.12.1 RELEASED (D-436); pipeline PAUSED
+
+**v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries, Latest) + back-merge PR #400 squash 7b11b83. 0 unreleased commits; trees identical (5e75fd5). Pipeline PAUSED for session wrap.**
+
+- **Date:** 2026-07-13. Position: v0.12.1 RELEASED (D-436, human-authorized); pipeline PAUSED.
+- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147` (PR #399 merge commit); develop = `7b11b830ed8138136159a45aa6686b9df32cf707` (PR #400 squash back-merge). Tag v0.12.1: annotated tag object `d687a77d911503e67a8d171c00536bd710762bba` → commit `fedcea4`. GitHub Release Latest (4 binaries) at https://github.com/Zious11/wirerust/releases/tag/v0.12.1. Trees identical: main==develop tree `5e75fd53e74c9f2a75f5847981db7a6d377935ad` — 0 unreleased commits. DRIFT-BACKMERGE-SQUASH-001: main (fedcea4) is NOT an ancestor of develop (7b11b83) due to squash back-merge; content fully synced; history-only divergence.
+- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches (release/0.12.1 + chore/backmerge-v0.12.1 deleted post-merge). No sub-agents abandoned mid-step.
+- **Active story:** None. STORY-165 v1.6 CLOSED (wave-75, E-11, 3 pts, 4 ACs; PR #398 fa646ed). STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad).
+- **Carry-forwards:** ROUTE-W74-DEFERRED (wave-74 code-review MINOR ×2 + NIT ×5 (wave-75 NIT-1 included) + OBS ×4, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified); DRIFT-BACKMERGE-SQUASH-001 (resolve at next release cut).
+- **Next work (ordered):**
+  1. Session review (post-release housekeeping).
+  2. STORY-166 wave-76 plan gate (E-11, 5 pts, wave-TBD).
+  3. ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
+  4. SEC-001 next feature wave.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.56 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step`
+
+*Archived 2026-07-14 when post-wrap engine/project triage (D-437) checkpoint replaced this.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

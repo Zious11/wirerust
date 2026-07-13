@@ -2,14 +2,14 @@
 document_type: story
 story_id: STORY-166
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-13T00:00:00Z
 phase: f7
 level: feature
 cycle: wave-75
-points: 5
+points: 3
 priority: P3
 depends_on: []
 blocks: []
@@ -21,7 +21,7 @@ risk_mitigations: []
 tdd_mode: strict
 target_module: bin/
 subsystems: []
-estimated_days: 2
+estimated_days: 1
 wave: "TBD"
 traces_to:
   - .factory/cycles/wave-75/process-gap-ledger.md
@@ -35,31 +35,29 @@ traces_to:
 inputs:
   - .factory/cycles/wave-75/process-gap-ledger.md
   - .factory/research/pg-validation-wave-75.md
-input-hash: "3f3fe8e"
+input-hash: "b56924f"
 ---
 
-# STORY-166: Wave-75 cycle-closing: citation symbol-at-line assertion, finding-ID naming policy, demo-evidence scrub scope extension, mid-gate streak persistence
+# STORY-166: Wave-75 cycle-closing: citation symbol-at-line assertion, demo-evidence scrub scope extension (project half)
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
 **Wave:** TBD
-**Points:** 5
+**Points:** 3
 **Priority:** P3
 
 ## Narrative
 
 - **As a** spec-steward, toolchain maintainer, and future contributor on the wirerust project
-- **I want** four process improvements codified: (1) `bin/validate-citations` extended with
+- **I want** two process improvements codified: (1) `bin/validate-citations` extended with
   an opt-in `path:line:anchor` grammar that asserts a named symbol exists at the cited line,
-  (2) a finding-ID naming policy registered in `.factory/policies.yaml` that canonicalizes
-  the `F-W<NN>G-P<n>-<seq>` form and deprecates the G-less variant, (3) the demo-evidence
-  scrub discipline extended to `.factory/demo-evidence/` for new captures, and (4) wave-gate
-  `findings.md` updated to record every pass verdict (CLEAN passes included) incrementally
+  and (2) the demo-evidence scrub discipline extended to `.factory/demo-evidence/` for new
+  captures (project-side documentation; engine half tracked as drbothen/vsdd-factory#636)
 - **So that** fabricated symbol names at in-bounds lines no longer pass citation preflight
-  silently, wave-gate and story finding IDs are unambiguous across all artifacts, new
-  `.factory/demo-evidence/` captures are scrubbed of absolute host paths, and mid-gate
-  streak state is rehydratable from persisted findings.md records without relying on
-  in-session context
+  silently, and new `.factory/demo-evidence/` captures are scrubbed of absolute host paths
+  (project documentation mandates in place; finding-ID naming policy tracked as
+  drbothen/vsdd-factory#638, mid-gate streak persistence tracked as
+  drbothen/vsdd-factory#635 — both engine-level)
 
 ## Behavioral Contracts
 
@@ -236,50 +234,19 @@ grep -n "(22 tests)\|(10 tests)" .github/workflows/ci.yml
 
 ### AC-166-002 (traces to PG-W75-FINDING-ID-DUAL-SCHEME — finding-ID naming policy)
 
-A new naming-convention policy is registered in `.factory/policies.yaml`, and
-`bin/lint-cycle-artifact` gains a lint check that flags the G-less wave-gate ID pattern in
-NEW artifacts.
+**MOVED TO ENGINE — drbothen/vsdd-factory#638**
 
-(a) **Policy registration:** A new policy entry is added to `.factory/policies.yaml`
-    following the existing policy structure. The policy MUST have:
-    - `id: FINDING-ID-NAMING-001`
-    - `name: finding-id-canonical-form`
-    - `severity: MEDIUM`
-    - Three clauses in `description:`:
-      1. **Per-story convergence findings** MUST use `F-S<NNN>P<n>-<seq>` (e.g.,
-         `F-S165P4-001`). The `F-S` prefix unambiguously identifies per-story scope.
-      2. **Wave-gate findings** MUST use the canonical `F-W<NN>G-P<n>-<seq>` (G before P,
-         e.g., `F-W74G-P3-001`). The G-less form `F-W<NN>P<n>-<seq>` (e.g., `F-W74P3-001`)
-         is deprecated and disallowed for wave-gate findings.
-      3. **Cross-references:** when a story artifact (e.g., a changelog row) records an
-         amendment prompted by a wave-gate finding, it MUST cite the canonical wave-gate ID
-         (`F-W<NN>G-P<n>-<seq>`), not a G-less variant or an unanchored pass number.
+Root cause is engine-level: agent prompts coin finding IDs across all projects; the
+G-less lint band-aid (`bin/lint-cycle-artifact` rule) is superseded by the engine fix.
+wirerust takes no local action.
 
-(b) **bin/lint-cycle-artifact extension:** The lint tool is extended to flag the regex
-    pattern `F-W\d+P\d` (G-less wave-gate ID form) in NEW artifact files. Historical
-    artifacts (all files that pre-date this story's delivery) are explicitly allowlisted or
-    treated as exempt. Only files created or modified after the lint rule is added are
-    subject to the check.
-
-    Failure message for a G-less pattern detection:
-    ```
-    WARN: G-less wave-gate finding ID detected: '<match>' in <file> — use F-W<NN>G-P<n>-<seq> form
-    ```
-    This is a warning (non-blocking) for now; it can be escalated to a hard error in a
-    future story once historical occurrences are resolved.
-
-Verification:
-```bash
-# AC-166-002(a): policy registered
-grep -n "FINDING-ID-NAMING-001\|finding-id-canonical-form" .factory/policies.yaml
-# Must emit non-empty output
-
-# AC-166-002(b): lint rule present
-grep -n "F-W.*P.*G-less\|F-W.d.P.d\|G-less" bin/lint-cycle-artifact
-# Must emit non-empty output containing the lint rule
-```
+**Cross-reference:** drbothen/vsdd-factory#638 — finding-ID scheme canonicalization.
 
 ### AC-166-003 (traces to PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE — demo-evidence scrub scope extension)
+
+**Scope note:** This AC covers the project-side documentation changes only. The engine half
+(demo-recorder agent automatic host-path scrub step) is tracked as
+drbothen/vsdd-factory#636 — no wirerust action required for the engine half.
 
 The demo-evidence scrub discipline is extended to cover `.factory/demo-evidence/` for NEW
 captures. The 92 pre-existing files (163 host-path occurrences) are exempt with a documented
@@ -319,35 +286,12 @@ grep -n "factory/demo-evidence\|PG-W75-DEMO-EVIDENCE" \
 
 ### AC-166-004 (traces to PG-W75-MIDGATE-STREAK-PERSISTENCE — mid-gate streak persistence)
 
-`delivery-doc-currency-protocol.md` is amended (or a new gate-operations note is created)
-so that wave-gate operators are required to record every pass verdict (CLEAN passes included)
-incrementally to `findings.md` at pass completion.
+**MOVED TO ENGINE — drbothen/vsdd-factory#635**
 
-(a) **Mandatory incremental pass recording:** The currency protocol (or a new gate-operations
-    note) MUST state:
+Mid-gate streak persistence is an engine-level concern (wave-gate agent behavior
+across all projects). wirerust takes no local action.
 
-    At the start of each adversarial pass during the wave gate, the operator MUST append a
-    pass record to the wave's `findings.md` file:
-    - For a CLEAN pass: `Pass N: CLEAN (YYYY-MM-DD)` — one line
-    - For a findings pass: `Pass N: <count> findings (YYYY-MM-DD)` followed by the finding
-      list (IDs and severities)
-
-    These records are written incrementally — at each pass completion, not only at gate-close.
-    This ensures the streak counter and pass trajectory are rehydratable from `findings.md`
-    at any mid-gate checkpoint without relying on in-session context.
-
-(b) **Placement:** If added to `delivery-doc-currency-protocol.md`, the record MUST appear
-    as a new "Step 4 — Incremental Pass Records" within the Mandatory Sweep Steps section,
-    or as a separate "Gate Operations" subsection after the Currency Sweep Record section. A
-    standalone `.factory/maintenance/gate-operations-note.md` is also acceptable if the
-    currency protocol is considered out of scope for this addition.
-
-Verification:
-```bash
-grep -n "incremental\|Pass N.*CLEAN\|streak\|PG-W75-MIDGATE" \
-  .factory/maintenance/delivery-doc-currency-protocol.md
-# Must emit non-empty output (OR same check against gate-operations-note.md)
-```
+**Cross-reference:** drbothen/vsdd-factory#635 — mid-gate streak persistence.
 
 ## Architecture Mapping
 
@@ -357,10 +301,8 @@ grep -n "incremental\|Pass N.*CLEAN\|streak\|PG-W75-MIDGATE" \
 | Symbol assertion tests | `bin/test_validate_citations.py` (amend) | Test harness |
 | bin-selftest hardcoded counts fix | `.github/workflows/ci.yml` (amend) | CI configuration |
 | ROUTE-W74-DEFERRED housekeeping | `bin/test_validate_citations.py`, `bin/validate-citations` (amend) | Pure / Test harness |
-| Finding-ID naming policy | `.factory/policies.yaml` (amend) | Documentation |
-| G-less ID lint rule | `bin/lint-cycle-artifact` (amend) | Pure (file-system reads) |
 | Demo-evidence scrub scope | `.factory/maintenance/demo-evidence-scrub-gate.md` (amend) | Documentation |
-| Step 3 + mid-gate streak note | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | Documentation |
+| Step 3 scrub note | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | Documentation |
 
 No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes.
 
@@ -370,9 +312,7 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes.
 |------|---------------|--------|
 | `bin/validate-citations` | Pure Python | File-system reads; no network; stdlib only |
 | `bin/test_validate_citations.py` | Test harness | Subprocess-based tool invocation |
-| `bin/lint-cycle-artifact` | Pure Python | File-system reads; no network |
 | `.github/workflows/ci.yml` | CI configuration | Delegates to existing Python scripts |
-| `.factory/policies.yaml` | Documentation artifact | Governance YAML |
 | `demo-evidence-scrub-gate.md` | Documentation artifact | Governance prose |
 | `delivery-doc-currency-protocol.md` | Documentation artifact | Governance prose |
 
@@ -384,8 +324,7 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes.
 | EC-002 | Anchor field contains special regex characters (e.g., `test_T01_valid_line_citation_passes`) | Tool MUST escape the anchor via `re.escape()` before pattern matching to avoid regex errors |
 | EC-003 | `path:line:anchor` citation with a multi-line range (`path:3-7:anchor`) | Anchor assertion applies only to the START line (line 3); range endpoints are still bounds-checked as before |
 | EC-004 | `.factory/demo-evidence/` historical files contain host paths that are not scrubbed | Files pre-dating this story's delivery are documented-baseline exempt; the gate applies only to NEW captures committed after delivery |
-| EC-005 | `findings.md` does not exist at the start of a wave gate | The gate-operations requirement creates it on first use; an empty-or-absent `findings.md` at the start of Pass 1 is acceptable (write the Pass 1 record as the first entry) |
-| EC-006 | G-less wave-gate ID `F-W<NN>P<n>` appears in a historical pre-existing artifact during lint scan | The `bin/lint-cycle-artifact` extension MUST NOT flag historical artifacts; only files modified or created post-delivery are in scope |
+
 
 ## Tasks
 
@@ -413,33 +352,25 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes.
    (Task 3). The PR MUST include a `CHANGELOG.md` `[Unreleased]` entry (AC-158-001:
    `bin/` is in the trigger set). This is the primary develop-track deliverable.
 
-5. **Register FINDING-ID-NAMING-001 policy in .factory/policies.yaml (AC-166-002(a)):**
-   Add the three-clause naming-convention policy using the existing policy YAML structure.
-   Factory-artifacts branch commit. Follow the `/vsdd-factory:policy-add` convention for
-   policy formatting.
+5. ~~**Register FINDING-ID-NAMING-001 policy (AC-166-002(a)):** MOVED TO ENGINE —
+   drbothen/vsdd-factory#638. wirerust takes no local action.~~
 
-6. **Extend bin/lint-cycle-artifact to flag G-less IDs (AC-166-002(b)):** Add a lint check
-   for the regex `F-W\d+P\d` (G-less wave-gate ID form) in NEW artifacts. Historical
-   artifacts are exempt (document the exemption criterion in the lint rule's comment).
-   Emit a WARN (non-blocking). Include this in the same develop PR as Task 4, or in a
-   separate develop PR; either is acceptable. If included in Task 4, it is part of the
-   CHANGELOG trigger.
+6. ~~**Extend bin/lint-cycle-artifact to flag G-less IDs (AC-166-002(b)):** MOVED TO ENGINE —
+   drbothen/vsdd-factory#638. wirerust takes no local action.~~
 
 7. **Amend demo-evidence-scrub-gate.md (AC-166-003(a)):** Add the ".factory/demo-evidence/
    — Extended Scope" subsection with the extended gate command and the documented 92-file
    pre-existing baseline. Factory-artifacts branch commit.
 
-8. **Amend delivery-doc-currency-protocol.md (AC-166-003(b) and AC-166-004(a-b)):** Add a
-   Step 3 currency note for `.factory/demo-evidence/` scope, and add Step 4 (incremental
-   pass records) or a standalone gate-operations subsection for mid-gate streak persistence.
-   Factory-artifacts branch commit. Batch both amendments in one burst per
-   DF-SIBLING-SWEEP-001.
+8. **Amend delivery-doc-currency-protocol.md (AC-166-003(b)):** Add a Step 3 currency note
+   for `.factory/demo-evidence/` scope (project-side scrub mandate). Factory-artifacts
+   branch commit. (Mid-gate streak persistence was AC-166-004; moved to engine as
+   drbothen/vsdd-factory#635.)
 
-> **Note for implementer:** The develop PR (Task 4, covering Tasks 1-3 and optionally 6)
-> is the primary develop-track deliverable and requires a CHANGELOG entry. Tasks 5, 7, 8,
-> and the STORY-INDEX registration are factory-artifacts branch commits. Both tracks must
-> complete for the story to be declared delivered. If Task 6 (lint-cycle-artifact extension)
-> is included in the develop PR, no separate PR is needed.
+> **Note for implementer:** The develop PR (Task 4, covering Tasks 1–3) is the primary
+> develop-track deliverable and requires a CHANGELOG entry. Tasks 7, 8, and the STORY-INDEX
+> registration are factory-artifacts branch commits. Both tracks must complete for the story
+> to be declared delivered. (Tasks 5 and 6 were moved to engine as drbothen/vsdd-factory#638.)
 
 ## Previous Story Intelligence
 
@@ -503,13 +434,11 @@ STORY-165, which immediately precede this story:
 |------|--------|--------|-------|
 | `bin/validate-citations` | Modify | develop | Anchor grammar + MINOR-2 docstring fix (AC-166-001) |
 | `bin/test_validate_citations.py` | Modify | develop | T23/T24/T25 tests + MINOR-1 + NIT-1 + NIT-4 housekeeping (AC-166-001) |
-| `bin/lint-cycle-artifact` | Modify | develop | G-less wave-gate ID lint rule (AC-166-002(b)) |
 | `.github/workflows/ci.yml` | Modify | develop | Remove hardcoded test counts from bin-selftest steps (W75 NIT-1) |
 | `CHANGELOG.md` | Modify | develop | `[Unreleased]` entry (AC-158-001 obligation) |
-| `.factory/policies.yaml` | Modify | factory-artifacts | FINDING-ID-NAMING-001 policy (AC-166-002(a)) |
 | `.factory/maintenance/demo-evidence-scrub-gate.md` | Modify | factory-artifacts | Extended scope subsection + 92-file baseline note (AC-166-003(a)) |
-| `.factory/maintenance/delivery-doc-currency-protocol.md` | Modify | factory-artifacts | Step 3 scrub note + Step 4 mid-gate streak (AC-166-003(b) + AC-166-004) |
-| `.factory/stories/STORY-INDEX.md` | Modify | factory-artifacts | STORY-166 registration (v3.56) |
+| `.factory/maintenance/delivery-doc-currency-protocol.md` | Modify | factory-artifacts | Step 3 scrub note — `.factory/demo-evidence/` scope (AC-166-003(b)) |
+| `.factory/stories/STORY-INDEX.md` | Modify | factory-artifacts | STORY-166 registration (v3.57) |
 
 ## Token Budget Estimate
 
@@ -518,44 +447,51 @@ STORY-165, which immediately precede this story:
 | Story spec (this file) | ~4.0 k |
 | `bin/validate-citations` (~309 lines + extension) | ~2.5 k |
 | `bin/test_validate_citations.py` (~655 lines + new tests) | ~4.5 k |
-| `bin/lint-cycle-artifact` (partial read for extension point) | ~1.0 k |
-| `.factory/policies.yaml` (existing entries for structure reference) | ~0.5 k |
 | `delivery-doc-currency-protocol.md` (amendment target) | ~1.0 k |
 | `demo-evidence-scrub-gate.md` (amendment target) | ~0.5 k |
-| **Total** | **~14 k** |
+| **Total** | **~12.5 k** |
 
 Well within context window. No story split required.
 
 ## Notes
 
-- **DF-VALIDATION-001 gate:** PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP and
-  PG-W75-FINDING-ID-DUAL-SCHEME are research-validated in
-  `.factory/research/pg-validation-wave-75.md` (verdicts VALID and VALID-with-refinement).
-  The W6/W7 gate observations (AC-166-004/AC-166-003) are in-process execution findings —
+- **DF-VALIDATION-001 gate:** PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP is research-validated in
+  `.factory/research/pg-validation-wave-75.md` (verdict VALID). PG-W75-FINDING-ID-DUAL-SCHEME
+  research-validated (VALID-with-refinement) but moved to engine (drbothen/vsdd-factory#638).
+  The W7 gate observation (AC-166-003, project half) is an in-process execution finding —
   DF-VALIDATION-001-exempt per the in-process exemption (same pattern as STORY-165 Notes,
-  STORY-164 Notes, STORY-163 Notes, STORY-162 Notes).
-- **S-7.02 disposition:** Creating this story at draft status codifies three research-validated
-  wave-75 process-gap findings (PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP,
-  PG-W75-FINDING-ID-DUAL-SCHEME, and PG-W75-GATE-SUMMARY-VERSION-ATTRIBUTION — note: Finding
-  3 requires only a one-line factual correction to `gate-summary.md:43` per research report,
-  not a separate story; AC-166-002 addresses the root cause) plus two in-process gate
-  observations (PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE W7, PG-W75-MIDGATE-STREAK-PERSISTENCE W6)
-  for the S-7.02 cycle-close obligation.
+  STORY-164 Notes, STORY-163 Notes, STORY-162 Notes). The W6 gate observation
+  (AC-166-004) moved to engine (drbothen/vsdd-factory#635).
+- **S-7.02 disposition:** Creating this story at draft status codifies one research-validated
+  wave-75 process-gap finding (PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP, AC-166-001) plus one
+  in-process gate observation (PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE W7, AC-166-003, project half).
+  PG-W75-FINDING-ID-DUAL-SCHEME moved to engine (drbothen/vsdd-factory#638);
+  PG-W75-MIDGATE-STREAK-PERSISTENCE moved to engine (drbothen/vsdd-factory#635).
+  PG-W75-GATE-SUMMARY-VERSION-ATTRIBUTION remains dispositioned by one-line gate-summary
+  factual correction (no separate story required).
 - **No behavioral contract required:** E-11 convention (epics.md E-11: "BCs: none
   authored yet -- status: draft; pending PO authorship").
-- **Develop/factory split:** AC-166-001 and AC-166-002(b) (`bin/` changes + ci.yml + CHANGELOG)
-  touch the develop tree and require a PR. AC-166-002(a) (`.factory/policies.yaml`),
-  AC-166-003 (demo-evidence-scrub-gate.md), and AC-166-004
-  (delivery-doc-currency-protocol.md) are factory-artifacts branch commits.
+- **Develop/factory split:** AC-166-001 (`bin/` changes + ci.yml + CHANGELOG) touches
+  the develop tree and requires a PR. AC-166-003(a/b) (demo-evidence-scrub-gate.md +
+  delivery-doc-currency-protocol.md Step 3) are factory-artifacts branch commits.
+  AC-166-002 and AC-166-004 were moved to engine (no factory-artifacts commits needed
+  for those items).
 - **CHANGELOG obligation for AC-166-001 develop PR:** The PR modifies files in `bin/`
   (AC-158-001 trigger set). A `CHANGELOG.md` `[Unreleased]` entry is REQUIRED. This is
   distinct from STORY-165 (which touched only `.github/workflows/ci.yml`, excluded from the
   trigger set) — adjudication per AC-165-001(b).
-- **Points rationale:** 5 pts vs STORY-165's 3 pts (pure governance). AC-166-001 involves
-  real Python code changes to `bin/validate-citations`, new tests, and ROUTE-W74-DEFERRED
-  housekeeping items that come due with this PR. The remaining three ACs are governance-only.
-  This is analogous to STORY-164 (4 pts, which created two new tools) but slightly higher
-  because the ROUTE-W74-DEFERRED carry-forward adds implementation surface.
+- **Points rationale:** 3 pts (re-estimated from 5 after engine/project re-scoping,
+  2026-07-13). AC-166-001 (unchanged, substantial bin/ Python code + tests +
+  ROUTE-W74-DEFERRED housekeeping) accounts for most effort. AC-166-003 (narrowed
+  project half: two doc amendments only) is minimal. AC-166-002 and AC-166-004 moved
+  to engine; no local delivery expected for those items.
+- **Engine/project split (2026-07-13):** Four issues filed in the vsdd-factory engine
+  at wave-75 close:
+  - drbothen/vsdd-factory#635 — mid-gate streak persistence (was AC-166-004)
+  - drbothen/vsdd-factory#636 — demo-recorder host-path scrub step (engine half of AC-166-003)
+  - drbothen/vsdd-factory#637 — validate-input-hash $(cat) hook divergence
+    (PG-HASH-HOOK-DIVERGENCE; pre-existing CLAUDE.md-documented issue, not a STORY-166 AC)
+  - drbothen/vsdd-factory#638 — finding-ID scheme canonicalization (was AC-166-002)
 - **Citation preflight:** This story's Background and Acceptance Criteria citations were
   pre-validated by `bin/validate-citations` before writing: 14 citations, all PASS
   (run 2026-07-13 during story authorship).
@@ -571,4 +507,5 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.1 | 2026-07-13 | story-writer | Human-directed engine/project re-scoping: AC-166-002 → drbothen/vsdd-factory#638, AC-166-004 → drbothen/vsdd-factory#635 (moved to engine); AC-166-003 narrowed to wirerust scrub-gate scope (engine half → drbothen/vsdd-factory#636); PG-HASH-HOOK-DIVERGENCE tracked as drbothen/vsdd-factory#637. Points 5→3. |
 | 1.0 | 2026-07-13 | story-writer | Initial authorship — wave-75 process-gap codifications: PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP (AC-166-001 citation symbol-at-line assertion + ROUTE-W74-DEFERRED housekeeping), PG-W75-FINDING-ID-DUAL-SCHEME (AC-166-002 finding-ID naming policy + bin/lint-cycle-artifact G-less regex flag), PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE (AC-166-003 extended scrub scope), PG-W75-MIDGATE-STREAK-PERSISTENCE (AC-166-004 incremental pass records). S-7.02 wave-75 cycle-close. bin/validate-citations preflight: PASS on 14-entry anchor list (2026-07-13). Research report pg-validation-wave-75.md line-19 fix applied (F-W75G-P2-001). |

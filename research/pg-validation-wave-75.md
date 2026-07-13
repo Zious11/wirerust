@@ -224,3 +224,216 @@ This is a concrete instance of the Finding-2 collision, not an independent defec
 | Finding | Date | Change |
 |---------|------|--------|
 | F-W75G-P2-001 | 2026-07-13 | Summary prose at line 19 corrected: "Both findings are sound" → "All three findings are sound"; "Neither is covered" → "None is covered". Stale two-finding count failed to account for Finding 3 (gate-summary.md:43 version attribution discrepancy) added per team-lead follow-up before publication. |
+
+---
+
+# Engine-issue validation (2026-07-13)
+
+**Validator:** research-agent (fresh context)
+**Directive:** DF-VALIDATION-001 pre-filing validation for four engine-level process-gap
+candidates found during wirerust wave-75, to be filed as issues in the FACTORY ENGINE repo
+(`drbothen/vsdd-factory`) — NOT as wirerust stories. Per-candidate axes validated: (1) sound?
+(2) still open? (3) correctly stated as an ENGINE — plugin/agent/skill/hook — gap rather than a
+wirerust-project gap? Plus independent dedup confirmation against the engine issue tracker via
+`gh`-equivalent web retrieval of each cited issue.
+**Engine plugin under inspection:** `~/.claude/plugins/cache/claude-mp/vsdd-factory/1.0.0-rc.22`.
+**Tooling note:** `Bash` is denied to this agent, so `gh issue view` was executed as read-only
+`WebFetch` against the public `github.com/drbothen/vsdd-factory` issue pages (each issue rendered
+title + open/closed + body). This is equivalent to `gh issue view` for read-only dedup and is
+noted for transparency.
+
+## Summary verdicts
+
+| Cand | Claim (short) | Verdict | Engine-level? | Dedup |
+|------|---------------|---------|---------------|-------|
+| A | Mid-gate streak/CLEAN passes not persisted to disk | **VALID** | Yes — orchestrator convergence-loop | Distinct from #343 / #592 / #579 |
+| B | Demo host-path scrub scope misses `.factory/demo-evidence/` | **MIS-STATED** | Partly — narrow to demo-recorder agent scrub-step gap; scrub-*gate* scope is a wirerust doc | Distinct from #172 / #501 / #494 |
+| C | validate-input-hash hook diverges from raw-byte hash | **VALID** | Yes — hook + bash tool ship in plugin | Distinct from #623 / #314 |
+| D | Finding-ID dual scheme (G-less vs G-form) not canonical | **VALID** | Yes — adversary/orchestrator/state-manager prompts | No existing engine issue; distinct from #576 / #579 |
+
+---
+
+## Candidate A — Mid-gate adversarial streak not persisted
+
+### Verdict: VALID (correctly stated as an engine gap)
+
+**Sound.** Confirmed on-disk. The wave-75 gate ran **7 passes** (W1–W7), but
+`.factory/cycles/wave-75/wave-gate/findings.md` records **only the three defect-bearing passes**
+(F-W75G-P1-001, F-W75G-P1-002, F-W75G-P4-001 — findings.md:12-16). The four CLEAN passes
+(W2/W3/W5/W6/W7 minus the two defect passes) and the streak counter exist nowhere in findings.md;
+they appear only in `gate-summary.md` (Wave Adversarial Convergence Detail, gate-summary.md:36-47),
+which is written at gate close. Corroborating the pattern: wave-74's gate directory
+(`.factory/cycles/wave-74/wave-gate/`) contains **no findings.md at all** — only `code-review.md`
+and `gate-summary.md` — so the entire wave-74 streak trajectory was reconstructed at close, never
+persisted incrementally. gate-summary.md:43 itself flags this: "OBS-W75-W6: mid-gate CLEAN passes
+not incrementally recorded in findings.md — streak-persistence visibility gap."
+
+**Still open.** Yes. It is codified only as wirerust STORY-166 AC-166-004 (gate-summary.md:75) —
+i.e. as a *project* AC, which per the human directive is the wrong venue: the durable-persistence
+fix belongs in the engine orchestrator's convergence loop. No engine-side fix exists.
+
+**Engine-level.** Yes. The streak counter and the multi-pass convergence loop are held by the
+orchestrator in-context; the persistence gap is a property of the engine's convergence-loop
+procedure, not a wirerust artifact convention. The three cited siblings are themselves all
+engine orchestrator/adversary process-gaps, confirming this is engine territory.
+
+**Dedup — CONFIRMED DISTINCT:**
+- **#343** (OPEN) — "process-gap(orchestrator): multi-pass convergence loop yields after each
+  state-manager dispatch — engine prompt has no 'continuation point' semantics." About the loop
+  *idling* after a dispatch; says nothing about persisting the streak/CLEAN passes to disk. Distinct.
+- **#592** (OPEN) — "process-gap(orchestrator+adversary): adversarial verdicts delivered via async
+  teammate channel can be dropped ... no verdict↔HEAD binding." About verdict transport/binding
+  integrity, not on-disk streak persistence. Distinct.
+- **#579** (OPEN) — "process-gap(adversary+orchestrator): no stale-finding/reopening rule —
+  recurrence ... resets the clean streak under STRICT." About streak-*reset semantics* on
+  recurrence, not persistence of streak position. Distinct.
+- A tracker search (`is:open streak persist`) surfaced only #470 (state-manager sibling-sweep) and
+  #312 (dashboard) — neither on-point. No existing issue covers on-disk streak persistence.
+
+**Suggested title:** `process-gap(orchestrator): mid-gate adversarial streak counter + CLEAN passes are never persisted to disk — a session crash before gate-summary.md loses convergence position`
+
+---
+
+## Candidate B — Demo-evidence host-path scrub scope
+
+### Verdict: MIS-STATED (a wirerust doc-scope gap is conflated with a genuine engine agent gap)
+
+**Sound (facts).** All three factual sub-claims verified:
+1. **163 host-path occurrences across 92 files** in `.factory/demo-evidence/` — reproduced exactly
+   (`grep -rE '/Users/|/home/|~/' .factory/demo-evidence/` → "Found 163 total occurrences across
+   92 files").
+2. The scrub-gate covers **only `docs/demo-evidence/`** — confirmed:
+   `.factory/maintenance/demo-evidence-scrub-gate.md:33` greps `docs/demo-evidence/` only
+   (`.factory/demo-evidence/` is not in scope). Lines 30-33, 56-60, 69 all scope to `docs/`.
+3. The demo-recorder agent has **no path-scrub step** — confirmed: the agent's Recording Protocol
+   (`agents/demo-recorder.md:90-100`) captures VHS terminal output (which leaks prompt-string
+   paths) and commits it, with no scrub anywhere in the file.
+
+**Why MIS-STATED.** The candidate's engine framing ("demo-recorder agent behavior + the
+scrub-gate *skill pattern* originate in the plugin") is partly incorrect on the second clause:
+- There is **no demo-scrub skill in the plugin** (skills glob of the plugin shows none). The
+  scrub gate is a **wirerust-authored maintenance doc** (`demo-evidence-scrub-gate.md`, authored
+  in STORY-157 AC-157-002 under PG-W70-DEMO-SCRUB, per its header lines 3-6). Extending its scope
+  to `.factory/demo-evidence/` is a **wirerust doc edit** = STORY-166 AC-166-003 — a project gap,
+  correctly a wirerust AC, NOT an engine issue.
+- `.factory/demo-evidence/` is itself a **wirerust-local routing choice**: the engine demo-recorder
+  writes to `docs/demo-evidence/<STORY-ID>/` (agent spec lines 34-38, 50), never `.factory/`. The
+  `.factory/` routing is a wirerust adaptation and is the subject of engine issue #172.
+- The **genuinely engine-filable core** is narrower and repo-agnostic: the demo-recorder agent
+  emits absolute `/Users/...` host paths into committed demo evidence *in the first place* because
+  its recording protocol has no scrub step. That is the engine gap worth filing — reframed away
+  from "the scrub-gate scope" (project) to "the demo-recorder has no scrub step" (engine).
+
+**Still open.** Yes — 163 occurrences persist in `.factory/demo-evidence/`; the demo-recorder
+agent spec (plugin 1.0.0-rc.22) still has no scrub step.
+
+**Dedup — CONFIRMED DISTINCT (none cover host-path scrubbing):**
+- **#172** (OPEN) — "feat(demo): route demo evidence to factory-artifacts ... operator choice of
+  repo / factory-artifacts / local-only." About *where* evidence is routed + reconciling
+  docs/ vs .factory/ path contradictions; not about scrubbing host paths. Distinct.
+- **#501** (OPEN) — "enhancement(demo-recorder): add ... `demo_artifact_format` knob (tape-only |
+  tape+gif | tape+gif+webm)." About binary render format/bloat; not path scrubbing. Distinct.
+- **#494** (OPEN) — "process-gap(demo-recorder+adversary): attestation quality — fabricated
+  evidence text and presence-vs-change verification gap." About evidence *truthfulness*, not path
+  privacy. Distinct.
+- Tracker searches (`scrub absolute path`, `demo host path scrub`) returned **no results** — no
+  existing engine issue covers host-path scrubbing.
+
+**Recommendation:** File the engine issue narrowed to the demo-recorder agent scrub-step gap.
+Keep the scrub-*gate* scope extension as wirerust STORY-166 AC-166-003 (project venue is correct
+for the wirerust doc).
+
+**Suggested title (narrowed):** `process-gap(demo-recorder): recording protocol has no host-path scrub step — VHS/Playwright captures leak absolute /Users/... paths into committed demo evidence`
+
+---
+
+## Candidate C — validate-input-hash plugin hook diverges from raw-byte algorithm
+
+### Verdict: VALID (correctly stated as an engine gap)
+
+**Sound.** Confirmed at the source in the plugin:
+- The hook exists and ships in the plugin: `hooks-registry.toml:293,302` registers
+  `validate-input-hash` → `hooks/validate-input-hash.sh`.
+- `hooks/validate-input-hash.sh:76,107-114` computes the comparison hash by invoking
+  `$PLUGIN_ROOT/bin/compute-input-hash` and **hard-blocks (exit 2 via `block_pre`)** on any
+  mismatch ("input-hash drift ... stored X != computed Y").
+- The plugin's `bin/compute-input-hash` is a **bash** implementation using the lossy idiom
+  `CONCAT="${CONCAT}$(cat "$RESOLVED")"` (`bin/compute-input-hash:348`; also `:334`) and
+  `md5sum`/`md5` (`:386-390`).
+- External confirmation of the root cause (Perplexity, 2 independent Stack Overflow/GNU sources):
+  bash `$(cat file)` command substitution strips **all** trailing newlines, so an MD5 of
+  `$(cat file)` is insensitive to trailing newlines — whereas a raw-byte reader (`md5sum file`,
+  or wirerust's Python `bin/compute-input-hash`) is sensitive to them. Hence the two
+  implementations produce different digests for any file with trailing newlines, and the hook
+  blocks on the resulting false drift.
+- Documented concrete divergences in wirerust CLAUDE.md "Known Tool Divergences"
+  (STORY-156 Python `ce96d86` vs hook `7b7dc6b`; STORY-150 `c5acbe4` vs `26416e1`;
+  STORY-157 `357bca5` vs `4a47ab6`), matching the observed session divergence (stored `cf5ca8f`
+  vs hook `260c7b7`).
+
+**Still open.** Yes — the hook and bash tool ship unchanged in plugin 1.0.0-rc.22.
+
+**Engine-level.** Yes — both the PostToolUse hook and the bash `compute-input-hash` it calls ship
+with the plugin. Minor framing sharpening for the issue body: from the *engine's own* vantage its
+bash tool is "canonical," so the precise engine defect is "the plugin's bash `$(cat)` idiom makes
+its hash insensitive to trailing newlines and divergent from any raw-byte reader, and the hook
+then hard-blocks on the false drift" — rather than "diverges from wirerust's Python canonical"
+(wirerust's Python choice is a downstream consequence, not the engine defect). Either framing is
+engine-level.
+
+**Dedup — CONFIRMED DISTINCT (same tool family, different bugs):**
+- **#623** (OPEN) — "compute-input-hash --update silently no-ops when the target file has no
+  pre-existing input-hash field." A *write-path* no-op bug; unrelated to the trailing-newline
+  hash-value divergence. Distinct.
+- **#314** (OPEN) — "input-hash includes YAML frontmatter → populating an artifact's own hash
+  spuriously drifts all its downstream consumers." A *what-bytes-are-hashed* (frontmatter
+  inclusion) bug; orthogonal to the `$(cat)` trailing-newline divergence. Distinct.
+
+**Suggested title:** `bug(hooks): validate-input-hash + bash compute-input-hash use $(cat) command substitution (strips trailing newlines) — hashes diverge from raw-byte readers and the PostToolUse hook hard-blocks (exit 2) on false-positive drift`
+
+---
+
+## Candidate D — Finding-ID dual scheme (dedup-confirm only)
+
+### Verdict: VALID (already validated as Finding 2 above); no existing engine issue — safe to file
+
+**Engine-level.** Yes. The G-less `F-W<NN>P<n>` and canonical `F-W<NN>G-P<n>` forms are coined by
+engine agent prompts (adversary / orchestrator / state-manager), and the G-less form appears
+repo-wide including wave-70 artifacts and `.factory/policies.yaml` (Finding 2 evidence above,
+this file lines 131-138). Cross-project scope confirms engine venue.
+
+**Dedup — CONFIRMED NO EXISTING COVERAGE:**
+- Tracker searches (`finding-id naming scheme`, `finding ID convention canonical`) surfaced only
+  **#213** (decision-registry pre-flight to formalize conventions before adversarial review),
+  **#224** (adversary scan-plan declaration), **#280** (test-writer signature trap) — none address
+  finding-ID nomenclature or ID canonicalization. #213 formalizes *decision-registry* conventions,
+  not finding-ID forms — not on-point.
+- **#576** (OPEN) — "process-gap(adversary+orchestrator): pass-summary verdict can contradict
+  findings list — verdict must derive mechanically from finding count." About verdict↔count
+  derivation, not ID naming. Distinct.
+- **#579** (OPEN) — streak-reset semantics (see Candidate A). Distinct.
+
+No engine issue covers finding-ID scheme canonicalization. Safe to file as a new engine issue.
+
+**Suggested title:** `process-gap(adversary+orchestrator): finding-ID scheme is not canonicalized — G-less F-W<NN>P<n> collides with canonical F-W<NN>G-P<n> repo-wide, enabling mis-numbered/fabricated cross-references (instantiated by F-S165P4-001)`
+
+---
+
+## Research Methods
+
+| Tool | Queries | Purpose |
+|------|---------|---------|
+| **Perplexity perplexity_research (PRIMARY)** | 0 | Not used — task is internal artifact + private-tracker validation, minimal external-research surface. One external fact (bash `$(cat)` behavior for Candidate C) was a ≤2-sentence lookup, appropriately routed to perplexity_ask per the tool-selection bias rule. |
+| Perplexity perplexity_ask | 1 | Confirm bash `$(cat file)` strips trailing newlines → MD5 insensitivity (Candidate C root cause). |
+| WebFetch | 10 | `gh issue view`-equivalent read-only retrieval of engine issues #343, #592, #579, #172, #623, #314, #576, #501, #494 (9) + 4 tracker searches for dedup on B and D (some folded). |
+| Read | 6 | wave-75 findings.md + gate-summary.md; scrub-gate.md; demo-recorder.md; validate-input-hash.sh; target report. |
+| Grep | 3 | `.factory/demo-evidence/` host-path count (163/92); plugin `$(cat)` idiom; hook registration. |
+| Glob | 4 | Plugin agent/skill inventory; wave-74/75 gate dirs. |
+| Training data | 1 area | Engine-vs-project boundary reasoning (which artifacts are plugin-owned) — grounded against the read plugin files, not asserted from memory. |
+
+**Total MCP tool calls:** 1 (perplexity_ask). **Deviation from perplexity_research default:**
+justified — the validation surface is internal wirerust artifacts and the private engine issue
+tracker, neither reachable by deep web research; the single external fact needed was a one-sentence
+shell-behavior confirmation.
+**Training data reliance:** low — every verdict is anchored to file:line evidence or a retrieved
+issue page; the one external claim is web-cited.

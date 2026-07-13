@@ -17,8 +17,9 @@ All three findings were validated by DF-VALIDATION-001 research report
 `.factory/research/pg-validation-wave-75.md` (2026-07-13).
 
 Items were marked **PENDING wave-gate disposition** — all dispositioned at wave-75 gate
-close (D-435, 2026-07-13). See STORY-166 (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad) for
-full codification, and STATE.md Drift Items for justified-deferral rows.
+close (D-435, 2026-07-13). See STORY-166 (wave-TBD, E-11, 3 pts, v1.1, input-hash 8235695) for
+project-side codification. Engine items tracked as drbothen/vsdd-factory#635/#636/#637/#638.
+See STATE.md Drift Items for justified-deferral rows.
 
 ---
 
@@ -67,7 +68,7 @@ wave-gate findings; (3) story-artifact cross-references (e.g., changelog rows) M
 canonical wave-gate ID. Optional: extend `bin/lint-cycle-artifact` to flag the regex
 `F-W[0-9]+P[0-9]` (G-less) as malformed.
 See pg-validation-wave-75.md §Finding 2 "Recommended minimal codification" for full spec.
-**Status:** DISPOSITIONED → STORY-166 AC-166-002 (wave-75 gate close D-435, 2026-07-13). Canonical G-form IDs (`F-W<NN>G-P<n>-<seq>`) used throughout wave-75 gate artifacts as dogfood-fix ahead of policy codification.
+**Status:** DISPOSITIONED → engine (drbothen/vsdd-factory#638, 2026-07-13). Root cause is engine-level (agent prompts coin finding IDs across all projects); wirerust takes no local action. Canonical G-form IDs (`F-W<NN>G-P<n>-<seq>`) used throughout wave-75 gate artifacts as dogfood-fix ahead of engine fix. STORY-166 AC-166-002 updated to moved-to-engine note (v1.1, 2026-07-13).
 
 ---
 
@@ -110,7 +111,7 @@ claim); this observation is about gate-progress logging completeness.
 **Recommended codification:** Extend wave-gate `findings.md` (and per-story findings logs)
 to record a row for every pass verdict, not only finding passes — one CLEAN row per clean pass
 with the running streak count. Makes mid-gate progress legible without separate state audits.
-**Status:** DISPOSITIONED → STORY-166 AC-166-004 (wave-75 gate close D-435, 2026-07-13).
+**Status:** DISPOSITIONED → engine (drbothen/vsdd-factory#635, 2026-07-13). Mid-gate streak persistence is an engine-level concern (wave-gate agent behavior across all projects); wirerust takes no local action. STORY-166 AC-166-004 updated to moved-to-engine note (v1.1, 2026-07-13).
 
 ---
 
@@ -125,7 +126,7 @@ in the scrub scope. The scrub gate should be extended to enumerate `.factory/dem
 as a second root alongside `.factory/cycles/<cycle>/demo-evidence/`.
 **Recommended codification:** Amend demo-evidence-scrub-gate.md scope section to add
 `.factory/demo-evidence/` as an explicit scrub target root.
-**Status:** DISPOSITIONED → STORY-166 AC-166-003 (wave-75 gate close D-435, 2026-07-13).
+**Status:** DISPOSITIONED — split: project half → STORY-166 AC-166-003 (narrowed v1.1, 2026-07-13; wirerust docs only: demo-evidence-scrub-gate.md scope + delivery-doc Step 3 note); engine half (demo-recorder agent scrub step) → drbothen/vsdd-factory#636. STORY-166 AC-166-003 narrowed to project scope.
 
 ---
 
@@ -140,4 +141,13 @@ ledger-redundant. No separate action beyond STORY-166 AC-166-002 codification.
 
 ---
 
-*Wave-75 S-7.02 ledger created 2026-07-13 (D-434 burst). All items DISPOSITIONED at wave-75 gate close D-435, 2026-07-13.*
+## Ledger Note: PG-HASH-HOOK-DIVERGENCE — validate-input-hash Hook Algorithm Mismatch
+
+**Class:** pre-existing documented issue (CLAUDE.md §Known Tool Divergences)
+**Engine tracking:** drbothen/vsdd-factory#637
+**Description:** The `validate-input-hash` plugin hook uses a bash `$(cat file)` concatenation that strips trailing newlines, producing a different MD5 hash than the canonical Python `bin/compute-input-hash` tool. This causes false-positive drift warnings (and blocking errors) on every story edit. Per CLAUDE.md policy, hook errors citing this divergence MUST be treated as advisory-only. `input-hash:` values MUST be set using the canonical Python tool only.
+**Status:** Not a STORY-166 AC. Tracked in the vsdd-factory engine as drbothen/vsdd-factory#637 for reconciliation of the plugin hook to the canonical algorithm.
+
+---
+
+*Wave-75 S-7.02 ledger created 2026-07-13 (D-434 burst). All items DISPOSITIONED at wave-75 gate close D-435, 2026-07-13. Engine/project re-scoping applied 2026-07-13 (STORY-166 v1.1).*
