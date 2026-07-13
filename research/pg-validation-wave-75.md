@@ -16,7 +16,7 @@ proposed for codification as S-7.02 follow-up items at wave close (Finding 3 add
 | 2 — wave-74 artifacts use dual/colliding finding-ID schemes | **VALID (accurately stated)**, with a **remediation-scope refinement** | Dual scheme confirmed; the F-S165P4-001 defect instantiated exactly this ambiguity. The proposed *remediation framing* ("per-story vs wave-gate") is mis-targeted — the real collision axis is G-less `F-W<NN>P<n>` vs canonical `F-W<NN>G-P<n>`. |
 | 3 — wave-74 v3.48 attribution discrepancy | **VALID** | The two records genuinely disagree on what produced STORY-INDEX v3.48; `gate-summary.md:43` is the artifact in error, and this is a concrete instance of Finding 2's root cause. |
 
-Both findings are **sound and still open** on the current repo. Neither is covered by any
+All three findings are **sound and still open** on the current repo. None is covered by any
 existing story: STORY-165 codifies AC-165-001..004 (bin-selftest CI, PR-desc row-verify,
 delivery-doc currency, governance-table audit-first) — none touch citation symbol-resolution
 or finding-ID naming (`.factory/stories/STORY-INDEX.md:228`, `:14`). No existing `bin/` tool
@@ -212,7 +212,15 @@ This is a concrete instance of the Finding-2 collision, not an independent defec
   irreconcilability is itself a manifestation of the ambiguity, not a defect in this
   validation — but it means the changelog's pass labels cannot be authoritatively cross-walked
   to `F-W74G-P<n>` IDs. Flagged, not blocking.
-- Both findings are DF-VALIDATION-001-satisfied here (in-process wave-75 convergence findings,
-  now research-validated); no external-research dependency was required. Context7/web research
-  was not needed — the ctags-vs-grep design tradeoff is resolvable from the tool's own
-  stdlib-only constraint.
+- All three findings are DF-VALIDATION-001-satisfied here (in-process wave-75 convergence
+  findings, now research-validated); no external-research dependency was required.
+  Context7/web research was not needed — the ctags-vs-grep design tradeoff is resolvable
+  from the tool's own stdlib-only constraint.
+
+---
+
+## Correction Record
+
+| Finding | Date | Change |
+|---------|------|--------|
+| F-W75G-P2-001 | 2026-07-13 | Summary prose at line 19 corrected: "Both findings are sound" → "All three findings are sound"; "Neither is covered" → "None is covered". Stale two-finding count failed to account for Finding 3 (gate-summary.md:43 version attribution discrepancy) added per team-lead follow-up before publication. |

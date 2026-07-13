@@ -2,7 +2,9 @@
 document_type: process-gap-ledger
 cycle: wave-75
 created: 2026-07-13
-status: open
+status: closed
+closed_date: 2026-07-13
+decision: D-435
 owner: state-manager
 policy: S-7.02
 ---
@@ -14,8 +16,9 @@ convergence, proposed for codification as S-7.02 follow-up items at wave close.
 All three findings were validated by DF-VALIDATION-001 research report
 `.factory/research/pg-validation-wave-75.md` (2026-07-13).
 
-Items are marked **PENDING wave-gate disposition** — resolution (story codification or
-justified deferral) required before wave-75 is CLOSED (S-7.02).
+Items were marked **PENDING wave-gate disposition** — all dispositioned at wave-75 gate
+close (D-435, 2026-07-13). See STORY-166 (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad) for
+full codification, and STATE.md Drift Items for justified-deferral rows.
 
 ---
 
@@ -36,7 +39,7 @@ anchor pattern (e.g., `def test_<anchor>`, `fn <anchor>`, `class <anchor>`). New
 `SYMBOL NOT AT LINE: path:line (expected anchor '<x>')`. Backward-compatible: bare `path:line`
 citations remain unchanged. Keep stdlib-only (no ctags / external binary deps).
 See pg-validation-wave-75.md §Finding 1 "Recommended minimal design" for full spec.
-**Status:** PENDING wave-gate disposition (codification story or justified deferral).
+**Status:** DISPOSITIONED → STORY-166 AC-166-001 (wave-75 gate close D-435, 2026-07-13).
 
 ---
 
@@ -64,7 +67,7 @@ wave-gate findings; (3) story-artifact cross-references (e.g., changelog rows) M
 canonical wave-gate ID. Optional: extend `bin/lint-cycle-artifact` to flag the regex
 `F-W[0-9]+P[0-9]` (G-less) as malformed.
 See pg-validation-wave-75.md §Finding 2 "Recommended minimal codification" for full spec.
-**Status:** PENDING wave-gate disposition (codification story or justified deferral).
+**Status:** DISPOSITIONED → STORY-166 AC-166-002 (wave-75 gate close D-435, 2026-07-13). Canonical G-form IDs (`F-W<NN>G-P<n>-<seq>`) used throughout wave-75 gate artifacts as dogfood-fix ahead of policy codification.
 
 ---
 
@@ -91,9 +94,50 @@ changelog for the IN PROGRESS→DELIVERED sub-cell correction at wave 74). Findi
 no separate codification story beyond the gate-summary correction and remediation of
 PG-W75-FINDING-ID-DUAL-SCHEME.
 See pg-validation-wave-75.md §Finding 3 for full evidence.
-**Status:** PENDING wave-gate disposition (one-line factual correction to gate-summary.md:43
-+ parent PG-W75-FINDING-ID-DUAL-SCHEME codification).
+**Status:** DISPOSITIONED — factual correction applied to `cycles/wave-74/wave-gate/gate-summary.md:43` in wave-75 gate-close burst (D-435, 2026-07-13). Bracketed correction note added citing PG-W75-GATE-SUMMARY-VERSION-ATTRIBUTION + research evidence (pg-validation-wave-75.md Finding 3). No separate codification story beyond gate-summary correction + parent PG-W75-FINDING-ID-DUAL-SCHEME (STORY-166 AC-166-002).
 
 ---
 
-*Wave-75 S-7.02 ledger created 2026-07-13 (D-434 burst). Disposition required at wave-75 gate close.*
+## Gate Observation: OBS-W75-W6 — Mid-Gate Streak Persistence Gap
+
+**Class:** gate-observation
+**Surfaced:** wave-75 gate pass W6 (CLEAN pass; streak #2).
+**Description:** The wave gate `findings.md` log was updated at findings-only passes but CLEAN
+passes were not incrementally recorded. A reader mid-gate could not determine whether the
+streak had persisted through intervening CLEAN passes without reading multiple separate
+artifacts. This is distinct from the F-W75G-P4-001 fix (which corrected a blanket-provenance
+claim); this observation is about gate-progress logging completeness.
+**Recommended codification:** Extend wave-gate `findings.md` (and per-story findings logs)
+to record a row for every pass verdict, not only finding passes — one CLEAN row per clean pass
+with the running streak count. Makes mid-gate progress legible without separate state audits.
+**Status:** DISPOSITIONED → STORY-166 AC-166-004 (wave-75 gate close D-435, 2026-07-13).
+
+---
+
+## Gate Observation: OBS-W75-W7 — Demo-Evidence Scrub Scope Gap
+
+**Class:** gate-observation
+**Surfaced:** wave-75 gate pass W7 (CLEAN pass; streak #3).
+**Description:** The demo-evidence-scrub-gate.md mandate covers `demo-evidence/` paths under
+`.factory/cycles/<cycle>/demo-evidence/`. New demo captures written to `.factory/demo-evidence/`
+(a different root path introduced for some E-11 governance stories) were not explicitly listed
+in the scrub scope. The scrub gate should be extended to enumerate `.factory/demo-evidence/`
+as a second root alongside `.factory/cycles/<cycle>/demo-evidence/`.
+**Recommended codification:** Amend demo-evidence-scrub-gate.md scope section to add
+`.factory/demo-evidence/` as an explicit scrub target root.
+**Status:** DISPOSITIONED → STORY-166 AC-166-003 (wave-75 gate close D-435, 2026-07-13).
+
+---
+
+## Ledger Note: F-W75G-P3-002 Redundancy Resolved
+
+**Wave-75 gate pass W3** filed a finding F-W75G-P3-002 against the process-gap-ledger that
+overlapped with PG-W75-FINDING-ID-DUAL-SCHEME already present in this ledger. The finding
+was research-adjudicated as redundant: pg-validation-wave-75.md Finding 2 fully covers the
+dual-scheme issue; F-W75G-P3-002 introduced no additional evidence or scope. The ledger item
+PG-W75-FINDING-ID-DUAL-SCHEME above is the authoritative record; F-W75G-P3-002 is closed as
+ledger-redundant. No separate action beyond STORY-166 AC-166-002 codification.
+
+---
+
+*Wave-75 S-7.02 ledger created 2026-07-13 (D-434 burst). All items DISPOSITIONED at wave-75 gate close D-435, 2026-07-13.*

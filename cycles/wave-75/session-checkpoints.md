@@ -36,4 +36,21 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-13) — Wave-75 ALL STORIES DELIVERED (D-434); gate NEXT
+
+**STORY-165 DELIVERED (D-434, 2026-07-13). Wave-75 delivery complete; wave-75 gate NEXT. Pipeline ACTIVE.**
+
+- **Date:** 2026-07-13. Position: Wave-75 ALL STORIES DELIVERED (D-434); wave-75 gate NEXT.
+- **Ground truth:** main = `f1e0c3647a1b9ef15a21727afacaa6e6c1515bd2`; develop = `fa646ed89cdd1d0e9a703c6d9b30a4c90256dc7f`. Develop is 4 unreleased commits ahead of main (b5e1e15 STORY-162 + 6779be6 PR #396 maint-2026-07-11 + d6e3be8 STORY-164 PR #397 + fa646ed STORY-165 PR #398).
+- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches. No sub-agents abandoned mid-step. PR #398 squash-merged; local branch + worktree cleaned.
+- **Active story:** STORY-165 v1.6 DELIVERED (wave-75, E-11, 3 pts, 4 ACs: AC-165-001..004; PR #398 fa646ed, 2026-07-13). All ACs SATISFIED.
+- **Carry-forwards:** ROUTE-W74-DEFERRED; ROUTE-BC-DEFERRED-2026-07-11; PERF-RERUN-001 OPEN; SEC-001 DEFERRED; CR-001/002/003 DEFERRED.
+- **Wave-75 gate S-7.02 status:** 3 research-validated findings in `cycles/wave-75/process-gap-ledger.md` — PENDING wave-gate disposition.
+- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.55 / dependency-graph v3.8 / module-criticality v1.6.
+- **Resume command:** `/vsdd-factory:next-step`
+
+*Archived 2026-07-13 when wave-75 CLOSED (D-435) checkpoint replaced this.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

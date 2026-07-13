@@ -862,6 +862,7 @@ stories:
   # D-433 wave-75 OPENED 2026-07-13 (plan gate approved, human). STORY-165 v1.1 assigned+ready.
   # Pre-gate: input-hash MATCH=118 STALE=0; consistency audit PASS (0 BLOCKER/0 MAJOR/2 MINOR fixed).
   # Delivery order: STORY-165 (3 pts, 4 ACs: AC-165-001..004).
+  # D-435 wave-75 CLOSED 2026-07-13 (gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7).
   # ---------------------------------------------------------------------------
 
   STORY-165:
@@ -873,3 +874,4 @@ stories:
     pr: 398
     merge_commit: fa646ed
     merged_date: "2026-07-13"
+    gate_closed_date: "2026-07-13"
