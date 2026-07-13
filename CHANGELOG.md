@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-07-13
+
 ### Added
 
 - **`bin/validate-citations`: mechanical citation preflight validator (STORY-164,
@@ -1261,7 +1263,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
 [0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/Zious11/wirerust/compare/v0.11.3...v0.11.4
