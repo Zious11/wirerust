@@ -166,9 +166,11 @@ pub fn is_valid_iec104_frame(data: &[u8]) -> bool {
 // VP-044 Kani proof harness skeleton (ADR-013 Decision 8; STORY-167)
 //
 // Full Kani proof run targeting all five properties is STORY-174.
-// This block compiles under `#[cfg(kani)]` but does not yet prove anything —
-// parse_apci_header has a todo!() body which will panic under symbolic execution.
-// The skeleton establishes the seam and harness structure required by ADR-013 Decision 8.
+// parse_apci_header is fully implemented (BC-2.19.001-005). This #[cfg(kani)]
+// harness asserts VP-044 Property A (no panic on any bounded symbolic input),
+// Property B (returned total frame LEN+2 in [6,255]), and Property C (LEN in
+// [4,253]) per ADR-013 Decision 8. STORY-174 wires the actual `cargo kani`
+// execution into CI (this skeleton establishes the harness seam).
 // ---------------------------------------------------------------------------
 #[cfg(kani)]
 mod kani_proofs {
@@ -189,7 +191,7 @@ mod kani_proofs {
     #[kani::proof]
     fn verify_parse_apci_header_safety() {
         let len: usize = kani::any();
-        kani::assume(len <= 300);
+        kani::assume(len <= 260); // BOUND=260 per ADR-013 Decision 8 / BC-2.19.001
         let mut data = vec![0u8; len];
         for b in data.iter_mut() {
             *b = kani::any();
