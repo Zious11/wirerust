@@ -9,6 +9,46 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 frame format discrimination + U-format session state machine (STORY-168, wave-77,
+  BC-2.19.007–014, ADR-013 Decisions 4/5; T0881/T0814 emission).**
+
+  Extends `src/analyzer/iec104` with pure-core frame classification and an effectful U-frame
+  session state machine:
+
+  - `classify_frame_format(cf1: u8) -> FrameFormat`: pure-core free function; total over all
+    256 u8 CF1 values; no panic (BC-2.19.007–009; VP-046 proptest; ADR-013 Decision 4).
+    Classifies by low 2 bits of CF1: bit 0 = 0 → IFormat, bits1:0 = 0b01 → SFormat,
+    bits1:0 = 0b11 → UFormat.
+
+  - `process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding>`: effectful
+    session state machine for STARTDT/STOPDT/TESTFR U-frames (ADR-013 Decision 5;
+    BC-2.19.010–014). Dispatch table:
+    - STARTDT-act (0x07) / STARTDT-con (0x0B): `session_started = true`; no finding.
+      Idempotent (BC-2.19.010).
+    - STOPDT-act (0x13): emits T0881 "Service Stop" `Impact/Possible` (if session active) or
+      `Impact/Likely` (if no prior STARTDT — anomalous stop); sets `session_started = false`
+      (BC-2.19.011/012).
+    - STOPDT-con (0x23): `session_started = false`; no finding (ACT-only MVP; BC-2.19.012).
+    - TESTFR-act (0x43) / TESTFR-con (0x83): no finding; session state unchanged (BC-2.19.013).
+    - Non-canonical U CF1 (any other value with bits1:0 = 0b11): emits T0814 `Anomaly/Possible`
+      (CVE-2026-1773 fail-closed; BC-2.19.014). Session state NOT advanced.
+
+  - `Iec104FlowState::session_started: bool` field: initialized `false` via `Default`;
+    governs T0881 confidence escalation (BC-2.19.010–012).
+
+  - VP-046 proptest skeleton `proptest_vp046_frame_format_totality` exercising all 256 CF1
+    values (AC-168-009; full proof run in STORY-174).
+
+  34 new tests in `tests/iec104_analyzer_tests.rs` (mod story_168) covering all
+  BC-2.19.007–014 postconditions, edge cases, and VP-046 proptest. All 64 IEC-104 tests
+  (30 STORY-167 + 34 STORY-168) pass; no pre-existing regressions.
+
+  **Pass-1 adversarial remediation (STORY-168 wave-77):** T0881 Likely-path finding
+  (STOPDT-act without prior STARTDT) now includes a distinguishing evidence entry
+  "STOPDT received without prior STARTDT on this flow" (BC-2.19.012 postcondition 3).
+  This makes the cold-start anomaly self-describing without requiring session-timeline
+  correlation by the analyst.
+
 - **IEC-104 APCI core parser: `parse_apci_header` pure-core free function + VP-044 Kani
   skeleton (STORY-167, wave-76, BC-2.19.001–006, ADR-013 Decisions 1/3/8).**
 
