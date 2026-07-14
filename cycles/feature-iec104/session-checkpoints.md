@@ -4,6 +4,21 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-14 (replaced by D-442 STORY-168 GREEN checkpoint)
+
+**feature-iec104 F4 IN PROGRESS — wave-76/STORY-167 DELIVERED (D-441, 2026-07-14). develop=e65e0d6; stories_delivered=106; STORY-INDEX v3.59. NEXT: STORY-168 wave-77.**
+
+- **Date:** 2026-07-14. Position: feature-iec104 F4 delta-implementation IN PROGRESS; wave-76 DELIVERED (D-441); pipeline PAUSED between waves.
+- **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `e65e0d6eddbd24ce5a1c9482369978d2cc9dff36`. DRIFT-BACKMERGE-SQUASH-001: histories diverge (squash back-merge); trees differ by IEC-104 feature code. 1 unreleased commit (STORY-167 PR #401).
+- **Active cycle:** feature-iec104 — F4 IN PROGRESS. Wave-76 DELIVERED: STORY-167 (APCI core parser, 5 pts, BC-2.19.001-006 + VP-044 skeleton). Per-story adversarial CONVERGED 4 passes streak 3/3 (BC-5.39.001). Security CLEAN. CI 13/13. Demo 7 artifacts scrub PASS.
+- **Remaining F4 work:** STORY-168 (wave-77) → STORY-169 (wave-78) → STORY-170 (wave-79) → STORY-171 (wave-80) → STORY-172 (wave-81) → STORY-173 (wave-82) → STORY-174 (wave-83). All E-22, serialized due to src/analyzer/iec104.rs file contention.
+- **F3 handoff carry-observations:** BC-2.10.010 EMITTED harness → STORY-173; RETRANSMIT-NS-FALSEPOS-001 → STORY-171; F3-H-002..005 LOW/NIT doc cleanup.
+- **Carry-forwards:** ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Next work:** STORY-168 wave-77 plan gate + delivery. STORY-166 wave-TBD (E-11, 3 pts, draft).
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / STORY-INDEX v3.59 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-14 (replaced by D-441 STORY-167 DELIVERED checkpoint)
 
 **feature-iec104 F2 APPROVED+CLOSED (D-439, 2026-07-14). First-frame-guard mandate applied; Option<u16> enhancement in spec; MITRE ics-attack-19.1 confirmed. F3 story decomposition DONE (D-440); STORY-167..174 registered; plan-gate APPROVED. Pipeline PAUSED awaiting F4 delivery.**
