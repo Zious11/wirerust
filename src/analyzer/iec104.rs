@@ -32,6 +32,8 @@
 //! This module is an original Rust implementation derived from IEC 60870-5-104:2006 framing
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
+use crate::findings::Finding;
+
 // ---------------------------------------------------------------------------
 // Data types
 // ---------------------------------------------------------------------------
@@ -81,6 +83,250 @@ pub struct ApciHeader {
 pub enum Iec104ParseError {
     /// The input slice is shorter than the 6-byte APCI header minimum (BC-2.19.001).
     Incomplete,
+}
+
+// ---------------------------------------------------------------------------
+// Frame format discrimination (STORY-168 — BC-2.19.007–009; ADR-013 Decision 4)
+// ---------------------------------------------------------------------------
+
+/// IEC-104 APCI frame format classification.
+///
+/// Determined by the low 2 bits of CF1 per IEC 60870-5-104 §5.1 and
+/// ADR-013 Decision 4. VP-046 proptest verifies totality over all 256 CF1 values
+/// (BC-2.19.009 invariant 1; `proptest_vp046_frame_format_totality`; STORY-174 full run).
+///
+/// ## Variants
+/// - `IFormat` — carries an ASDU payload with N(S)/N(R) sequence numbers. `cf1 & 0x01 == 0x00`
+///   (BC-2.19.007).
+/// - `SFormat` — supervisory-only with N(R) counter; no ASDU payload. `cf1 & 0x03 == 0x01`
+///   (BC-2.19.008).
+/// - `UFormat` — unnumbered session-control commands (STARTDT/STOPDT/TESTFR). `cf1 & 0x03 == 0x03`
+///   (BC-2.19.009).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameFormat {
+    /// I-format (Information): bit 0 of CF1 is 0. `cf1 & 0x01 == 0x00` (BC-2.19.007).
+    IFormat,
+    /// S-format (Supervisory): bits 1:0 of CF1 are `0b01`. `cf1 & 0x03 == 0x01` (BC-2.19.008).
+    SFormat,
+    /// U-format (Unnumbered): bits 1:0 of CF1 are `0b11`. `cf1 & 0x03 == 0x03` (BC-2.19.009).
+    UFormat,
+}
+
+// ---------------------------------------------------------------------------
+// U-frame canonical CF1 constants (ADR-013 Decision 5)
+// ---------------------------------------------------------------------------
+
+/// STARTDT-act CF1 value: activates data transfer; no finding emitted (BC-2.19.010).
+pub const U_STARTDT_ACT: u8 = 0x07;
+
+/// STARTDT-con CF1 value: confirms data transfer activation; no finding emitted (BC-2.19.010).
+pub const U_STARTDT_CON: u8 = 0x0B;
+
+/// STOPDT-act CF1 value: halts data acquisition.
+/// Emits T0881 "Service Stop" with `Verdict::Possible` (if started) or `Verdict::Likely`
+/// (if no prior STARTDT; BC-2.19.011/012).
+pub const U_STOPDT_ACT: u8 = 0x13;
+
+/// STOPDT-con CF1 value: confirms data transfer deactivation; sets `session_started = false`;
+/// no finding on ACT-only MVP (BC-2.19.012).
+pub const U_STOPDT_CON: u8 = 0x23;
+
+/// TESTFR-act CF1 value: keepalive request; no finding; session state unchanged (BC-2.19.013).
+pub const U_TESTFR_ACT: u8 = 0x43;
+
+/// TESTFR-con CF1 value: keepalive response; no finding; session state unchanged (BC-2.19.013).
+pub const U_TESTFR_CON: u8 = 0x83;
+
+// ---------------------------------------------------------------------------
+// Per-flow state (STORY-168 — introduces session_started; STORY-171 wires N(S) fields)
+// ---------------------------------------------------------------------------
+
+/// Per-flow state for the IEC-104 passive analyzer (SS-19, ADR-013).
+///
+/// Five fields per the SS-19 architecture shard (v1.6). `session_started` and the carry
+/// buffers are introduced and wired in STORY-168. `last_ns_c2s`/`last_ns_s2c` are declared
+/// here per the SS-19 field inventory but their behavior is wired in STORY-171 (N(S)
+/// desync detection, BC-2.19.024).
+///
+/// ## Fields
+/// - `carry_c2s`: reassembly carry buffer for C→S direction; max `MAX_IEC104_CARRY_BYTES`
+///   = 255 bytes (BC-2.19.025–027).
+/// - `carry_s2c`: reassembly carry buffer for S→C direction; same bound.
+/// - `session_started`: `true` iff a STARTDT-act/con has been observed without a subsequent
+///   STOPDT-con (BC-2.19.010/012). Initialized `false` via `Default`.
+/// - `last_ns_c2s`: last observed 15-bit N(S) in the C→S direction. `None` = no I-frame
+///   seen yet; first I-frame sets baseline without emitting a desync finding (BC-2.19.024;
+///   STORY-171).
+/// - `last_ns_s2c`: last observed 15-bit N(S) in the S→C direction. Same semantics
+///   (STORY-171).
+#[derive(Debug, Default)]
+pub struct Iec104FlowState {
+    /// Directional carry buffer for client-to-server APCI stream reassembly.
+    /// Max 255 bytes (`MAX_IEC104_CARRY_BYTES`; BC-2.19.025). Wired in STORY-171+.
+    pub carry_c2s: Vec<u8>,
+    /// Directional carry buffer for server-to-client APCI stream reassembly.
+    /// Max 255 bytes. Wired in STORY-171+.
+    pub carry_s2c: Vec<u8>,
+    /// STARTDT/STOPDT session state flag.
+    /// `true` after STARTDT-act (`0x07`) or STARTDT-con (`0x0B`).
+    /// `false` after STOPDT-con (`0x23`) or at flow initialization.
+    /// Governs T0881 confidence level in STOPDT-act handling (BC-2.19.010–012).
+    pub session_started: bool,
+    /// Last observed N(S) send-sequence counter in C→S direction.
+    /// `None` before the first I-frame in this direction (BC-2.19.024). Wired in STORY-171.
+    pub last_ns_c2s: Option<u16>,
+    /// Last observed N(S) send-sequence counter in S→C direction.
+    /// `None` before the first I-frame in this direction (BC-2.19.024). Wired in STORY-171.
+    pub last_ns_s2c: Option<u16>,
+}
+
+// ---------------------------------------------------------------------------
+// Pure-core frame format classifier (VP-046 proptest target — ADR-013 Decision 4)
+// ---------------------------------------------------------------------------
+
+/// Classify the IEC-104 APCI frame format from CF1 octet 1.
+///
+/// Pure-core free function — no I/O, no global state, no side effects. Total over all 256
+/// u8 CF1 values: every input maps to exactly one `FrameFormat` variant with no unhandled
+/// case and no panic (BC-2.19.007–009; ADR-013 Decision 4).
+///
+/// ## Classification rule
+/// Examines only the low 2 bits of CF1 (`cf1 & 0x03`):
+/// - `cf1 & 0x01 == 0x00` (bit 0 = 0) → `FrameFormat::IFormat` (BC-2.19.007)
+/// - `cf1 & 0x03 == 0x01` (bits1:0 = 0b01) → `FrameFormat::SFormat` (BC-2.19.008)
+/// - `cf1 & 0x03 == 0x03` (bits1:0 = 0b11) → `FrameFormat::UFormat` (BC-2.19.009)
+///
+/// Note: `cf1 & 0x03 == 0x02` maps to I-format (bit 0 = 0) per IEC 60870-5-104 §5.1;
+/// the I-format guard `cf1 & 0x01 == 0x00` absorbs both `0bXX00` and `0bXX10` values.
+///
+/// ## Purity and VP-046 seam
+/// Not amenable to Kani (pure discriminant over the full u8 range; proptest is correct tool).
+/// VP-046 `proptest_vp046_frame_format_totality` exercises all 256 CF1 values exhaustively
+/// (anchored STORY-168; full run STORY-174). See ADR-013 §Trade-offs.
+pub fn classify_frame_format(cf1: u8) -> FrameFormat {
+    // I-format: bit 0 of CF1 is 0 (absorbs both 0bXX00 and 0bXX10 values).
+    // Check bit 0 first; the 0x01 mask is strictly narrower than the 0x03 mask.
+    if cf1 & 0x01 == 0x00 {
+        FrameFormat::IFormat
+    } else if cf1 & 0x03 == 0x01 {
+        // S-format: bits 1:0 = 0b01
+        FrameFormat::SFormat
+    } else {
+        // U-format: bits 1:0 = 0b11 (the only remaining case; cf1 & 0x03 == 0x03).
+        // Totality proof: all 256 u8 values are covered — no unhandled case, no panic
+        // (BC-2.19.009 invariant 1; VP-046 proptest exhaustively verifies this;
+        // ADR-013 Decision 4).
+        FrameFormat::UFormat
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Effectful U-format session state machine (ADR-013 Decision 5)
+// ---------------------------------------------------------------------------
+
+/// Process a U-format APCI frame, update per-flow session state, and return a finding.
+///
+/// Effectful free function — mutates `Iec104FlowState::session_started` and may return
+/// `Some(Finding)`. Called by the dispatcher after `classify_frame_format` returns
+/// `FrameFormat::UFormat` (ADR-013 Decision 5; BC-2.19.010–014).
+///
+/// ## ACT-only MVP dispatch table (ADR-013 Decision 5)
+///
+/// | CF1    | Command      | State change              | Finding emitted                    |
+/// |--------|--------------|---------------------------|------------------------------------|
+/// | `0x07` | STARTDT-act  | `session_started = true`  | None (BC-2.19.010)                 |
+/// | `0x0B` | STARTDT-con  | `session_started = true`  | None (BC-2.19.010)                 |
+/// | `0x13` | STOPDT-act   | `session_started = false` | T0881 `Possible` (was started) /   |
+/// |        |              |                           | T0881 `Likely` (not started)       |
+/// |        |              |                           | (BC-2.19.011/012)                  |
+/// | `0x23` | STOPDT-con   | `session_started = false` | None (ACT-only MVP; BC-2.19.012)   |
+/// | `0x43` | TESTFR-act   | unchanged                 | None (BC-2.19.013)                 |
+/// | `0x83` | TESTFR-con   | unchanged                 | None (BC-2.19.013)                 |
+/// | other  | Non-canonical| unchanged                 | T0814 `Possible` (BC-2.19.014;     |
+/// |        | U-frame      |                           | CVE-2026-1773)                     |
+///
+/// ## Technique IDs
+/// - `"T0881"` — "Service Stop" (`IcsInhibitResponseFunction`): STOPDT-act detection.
+///   Catalog entry added atomically in STORY-173 per ADR-013 Decision 9/10 (BC-2.10.010).
+/// - `"T0814"` — "Denial of Service": non-canonical U-frame CF1 (CVE-2026-1773).
+///
+/// ## Purity boundary (ADR-013 Decision 4)
+/// `classify_frame_format` is pure; `process_u_frame` is effectful. These two functions
+/// MUST remain separate — `classify_frame_format` MUST NOT read or write `Iec104FlowState`.
+pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> {
+    use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+    match cf1 {
+        // STARTDT-act / STARTDT-con: activate data transfer; session goes live; no finding.
+        // Idempotent: if already started, session_started remains true (BC-2.19.010).
+        U_STARTDT_ACT | U_STARTDT_CON => {
+            state.session_started = true;
+            None
+        }
+
+        // STOPDT-act: halt data acquisition; emit T0881 "Service Stop" (BC-2.19.011/012).
+        // Confidence depends on whether the session was previously started:
+        //   - session_started=true  → Verdict::Possible  (normal stop, but warrant attention)
+        //   - session_started=false → Verdict::Likely    (stop without prior start is anomalous)
+        U_STOPDT_ACT => {
+            let verdict = if state.session_started {
+                Verdict::Possible
+            } else {
+                Verdict::Likely
+            };
+            state.session_started = false;
+            Some(Finding {
+                category: ThreatCategory::Impact,
+                verdict,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 STOPDT-act received: CF1=0x{cf1:02X} — \
+                     ICS data-transfer service stop request observed \
+                     (T0881 inhibit-response-function; BC-2.19.011/012)"
+                ),
+                evidence: vec![format!("CF1=0x{cf1:02X} (STOPDT-act)")],
+                mitre_techniques: vec!["T0881".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+        }
+
+        // STOPDT-con: confirms deactivation; sets session_started=false; no finding
+        // (ACT-only MVP per ADR-013 Decision 5; BC-2.19.012).
+        U_STOPDT_CON => {
+            state.session_started = false;
+            None
+        }
+
+        // TESTFR-act / TESTFR-con: keepalive; no finding; session state unchanged
+        // (BC-2.19.013).
+        U_TESTFR_ACT | U_TESTFR_CON => None,
+
+        // Non-canonical U-frame CF1: any value with bits1:0=0b11 that is not one of the
+        // six canonical commands is a protocol anomaly (CVE-2026-1773; BC-2.19.014).
+        // Fail-closed: session state is NOT advanced (invariant 1).
+        _ => Some(Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Possible,
+            confidence: Confidence::Medium,
+            summary: format!(
+                "IEC-104 non-canonical U-frame CF1=0x{cf1:02X}: \
+                 CF1 bits1:0=0b11 but not in canonical set \
+                 {{0x07,0x0B,0x13,0x23,0x43,0x83}} — \
+                 potential CVE-2026-1773 denial-of-service attack (T0814; BC-2.19.014)"
+            ),
+            evidence: vec![format!(
+                "CF1=0x{cf1:02X} not in canonical U-frame set \
+                 {{STARTDT-act=0x07, STARTDT-con=0x0B, STOPDT-act=0x13, \
+                 STOPDT-con=0x23, TESTFR-act=0x43, TESTFR-con=0x83}}"
+            )],
+            mitre_techniques: vec!["T0814".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }),
+    }
 }
 
 // ---------------------------------------------------------------------------
