@@ -256,6 +256,15 @@ pub fn classify_frame_format(cf1: u8) -> FrameFormat {
 pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
+    // L1: defensive guard — process_u_frame is only valid for U-format CF1 values
+    // (bits1:0 = 0b11). This assertion fails fast in debug builds if a mis-dispatch
+    // occurs (e.g., STORY-173 dispatcher sends an I/S-format frame here by mistake).
+    // Compiled out in release builds (debug_assert is a no-op in --release).
+    debug_assert!(
+        classify_frame_format(cf1) == FrameFormat::UFormat,
+        "process_u_frame called with non-U-format CF1: {cf1:#04x}"
+    );
+
     match cf1 {
         // STARTDT-act / STARTDT-con: activate data transfer; session goes live; no finding.
         // Idempotent: if already started, session_started remains true (BC-2.19.010).
@@ -267,14 +276,23 @@ pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> 
         // STOPDT-act: halt data acquisition; emit T0881 "Service Stop" (BC-2.19.011/012).
         // Confidence depends on whether the session was previously started:
         //   - session_started=true  → Verdict::Possible  (normal stop, but warrant attention)
-        //   - session_started=false → Verdict::Likely    (stop without prior start is anomalous)
+        //   - session_started=false → Verdict::Likely    (stop without prior start is anomalous;
+        //                            BC-2.19.012 postcondition 3: note added to evidence)
         U_STOPDT_ACT => {
-            let verdict = if state.session_started {
+            let was_started = state.session_started;
+            let verdict = if was_started {
                 Verdict::Possible
             } else {
                 Verdict::Likely
             };
             state.session_started = false;
+            // BC-2.19.012 postcondition 3: when emitted on the Likely path (no prior STARTDT),
+            // include a distinguishing note in evidence so analysts can identify cold-start
+            // STOPDT-act without correlating the session timeline themselves.
+            let mut evidence = vec![format!("CF1=0x{cf1:02X} (STOPDT-act)")];
+            if !was_started {
+                evidence.push("STOPDT received without prior STARTDT on this flow".to_string());
+            }
             Some(Finding {
                 category: ThreatCategory::Impact,
                 verdict,
@@ -284,7 +302,7 @@ pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> 
                      ICS data-transfer service stop request observed \
                      (T0881 inhibit-response-function; BC-2.19.011/012)"
                 ),
-                evidence: vec![format!("CF1=0x{cf1:02X} (STOPDT-act)")],
+                evidence,
                 mitre_techniques: vec!["T0881".to_string()],
                 source_ip: None,
                 timestamp: None,

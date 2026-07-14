@@ -685,7 +685,7 @@ mod story_168 {
     use wirerust::analyzer::iec104::{
         FrameFormat, Iec104FlowState, classify_frame_format, process_u_frame,
     };
-    use wirerust::findings::Verdict;
+    use wirerust::findings::{ThreatCategory, Verdict};
 
     // =========================================================================
     // BC-2.19.007: classify_frame_format returns IFormat when CF1 bit 0 = 0
@@ -1090,6 +1090,11 @@ mod story_168 {
             Verdict::Possible,
             "STOPDT-act after STARTDT must emit Verdict::Possible (BC-2.19.011 postcondition 2)"
         );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Impact,
+            "T0881 finding must have category Impact (BC-2.19.011; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0881"),
             "T0881 finding must have mitre_techniques containing \"T0881\" \
@@ -1156,10 +1161,25 @@ mod story_168 {
             Verdict::Likely,
             "STOPDT without prior STARTDT must emit Verdict::Likely (BC-2.19.012 postcondition 2)"
         );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Impact,
+            "T0881 finding must have category Impact (BC-2.19.012; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0881"),
             "T0881 finding must have mitre_techniques containing \"T0881\" \
              (BC-2.19.012 MITRE Techniques field)"
+        );
+        // BC-2.19.012 postcondition 3 (M1): Likely-path finding MUST carry the cold-start
+        // note so analysts can distinguish it from a Possible (session-active) stop.
+        assert!(
+            f.summary.contains("without prior STARTDT")
+                || f.evidence
+                    .iter()
+                    .any(|e| e.contains("without prior STARTDT")),
+            "STOPDT-act without STARTDT finding must contain the note \
+             'without prior STARTDT' in summary or evidence (BC-2.19.012 PC3)"
         );
     }
 
@@ -1316,6 +1336,11 @@ mod story_168 {
             Verdict::Possible,
             "T0814 finding must have Verdict::Possible (BC-2.19.014 postcondition 1)"
         );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "T0814 finding must have category Anomaly (BC-2.19.014; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0814"),
             "T0814 finding must have mitre_techniques containing \"T0814\" \
@@ -1340,6 +1365,11 @@ mod story_168 {
             Verdict::Possible,
             "T0814 must have Verdict::Possible (BC-2.19.014 postcondition 1)"
         );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "T0814 finding must have category Anomaly (BC-2.19.014; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0814"),
             "T0814 finding must contain \"T0814\" in mitre_techniques"
@@ -1363,6 +1393,11 @@ mod story_168 {
             Verdict::Possible,
             "T0814 must be Possible (BC-2.19.014)"
         );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "T0814 finding must have category Anomaly (BC-2.19.014; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0814"),
             "T0814 finding must contain \"T0814\" in mitre_techniques"
@@ -1380,6 +1415,11 @@ mod story_168 {
         let finding = process_u_frame(&mut state, 0x1B);
         let f = finding.expect("Non-canonical U CF1=0x1B must emit T0814 finding (BC-2.19.014)");
         assert_eq!(f.verdict, Verdict::Possible, "T0814 must be Possible");
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "T0814 finding must have category Anomaly (BC-2.19.014; L3 category regression guard)"
+        );
         assert!(
             f.mitre_techniques.iter().any(|t| t == "T0814"),
             "must contain T0814"

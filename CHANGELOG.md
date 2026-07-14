@@ -43,6 +43,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   BC-2.19.007–014 postconditions, edge cases, and VP-046 proptest. All 64 IEC-104 tests
   (30 STORY-167 + 34 STORY-168) pass; no pre-existing regressions.
 
+  **Pass-1 adversarial remediation (STORY-168 wave-77):** T0881 Likely-path finding
+  (STOPDT-act without prior STARTDT) now includes a distinguishing evidence entry
+  "STOPDT received without prior STARTDT on this flow" (BC-2.19.012 postcondition 3).
+  This makes the cold-start anomaly self-describing without requiring session-timeline
+  correlation by the analyst.
+
 - **IEC-104 APCI core parser: `parse_apci_header` pure-core free function + VP-044 Kani
   skeleton (STORY-167, wave-76, BC-2.19.001–006, ADR-013 Decisions 1/3/8).**
 
