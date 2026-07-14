@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: feature-iec104
 modified:
   - "v1.1: F-P2-H1 remediation — VP-044 over-scope: extract_ns/extract_nr are not parse_apci_header; Invariant 2 re-anchored to VP-047 (cargo-fuzz); VP-044 Verification Properties row and VP Anchor removed. 2026-07-13"
+  - "v1.2: D-438 follow-on (human-mandated) — Postcondition 3 updated: last_ns_c2s/last_ns_s2c type is now Option<u16> (SS-19 shard v1.6, ADR-013 Decision 6). State transition is None → Some(ns) on first I-frame, Some(prev) → Some(ns) on subsequent frames. Extraction arithmetic is unchanged. EC-003 unescaped-pipe pre-existing table bug fixed. 2026-07-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -25,7 +26,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "f5a97d3"
+input-hash: "a153144"
 ---
 
 # BC-2.19.023: N(S)/N(R) 15-Bit Sequence Numbers Extracted Correctly from I/S Frame CF1–CF4
@@ -40,8 +41,10 @@ The extraction formulas are:
   `N(S) = ((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` (I-frame only)
   `N(R) = ((cf3 as u16) >> 1) | ((cf4 as u16) << 7)` (I- and S-frame)
 N(S) is tracked per-direction in `Iec104FlowState::last_ns_c2s` (C2S) and `last_ns_s2c`
-(S2C) and is used in BC-2.19.024 to detect sequence-number desynchronization attacks.
-N(R) is extracted from I/S-format frames but is not separately stored in Iec104FlowState.
+(S2C) as `Option<u16>` (initialized to `None`; transitions to `Some(ns)` on first I-frame,
+then `Some(prev)` → `Some(ns)` on subsequent frames) and is used in BC-2.19.024 to detect
+sequence-number desynchronization attacks. N(R) is extracted from I/S-format frames but is
+not separately stored in Iec104FlowState.
 
 ## Preconditions
 
@@ -52,7 +55,7 @@ N(R) is extracted from I/S-format frames but is not separately stored in Iec104F
 
 1. For I-format: `ns = ((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` — range [0, 32767].
 2. For I/S-format: `nr = ((cf3 as u16) >> 1) | ((cf4 as u16) << 7)` — range [0, 32767].
-3. `Iec104FlowState::last_ns_c2s` (C2S direction) or `last_ns_s2c` (S2C direction) updated to `ns` after I-frame processing, selected by the `direction` parameter.
+3. `Iec104FlowState::last_ns_c2s` (C2S direction) or `last_ns_s2c` (S2C direction) — type `Option<u16>` — transitions `None → Some(ns)` on the first observed I-frame in that direction, and `Some(prev) → Some(ns)` on all subsequent I-frames, selected by the `direction` parameter. The extraction arithmetic (`((cf1 as u16) >> 1) | ((cf2 as u16) << 7)`) is unchanged.
 4. N(R) (`nr`) is computed and available transiently but is not stored — `Iec104FlowState` has no `last_nr` field.
 
 ## Invariants
@@ -67,7 +70,7 @@ N(R) is extracted from I/S-format frames but is not separately stored in Iec104F
 |----|-------------|-------------------|
 | EC-001 | CF1=0x02, CF2=0x00 | N(S)=1 |
 | EC-002 | CF1=0x00, CF2=0x80 | N(S)=0x4000 = 16384 |
-| EC-003 | CF1=0xFE, CF2=0xFF | N(S) = (0xFE >> 1) | (0xFF << 7) = 0x7F | 0x7F80 = 0x7FFF = 32767 |
+| EC-003 | CF1=0xFE, CF2=0xFF | N(S) = (0xFE >> 1) \| (0xFF << 7) = 0x7F \| 0x7F80 = 0x7FFF = 32767 |
 | EC-004 | Wrap: previous N(S)=32767, current N(S)=0 | valid wrap; no anomaly |
 
 ## Canonical Test Vectors

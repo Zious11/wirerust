@@ -8,13 +8,13 @@ input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
 mode: steady-state
-phase: "feature-iec104/F2"
+phase: "feature-iec104/F3"
 status: active
-current_step: "feature-iec104 F2 CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak (P10/P11/P12), research-validated canonical facts. 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + ADR-0013 + VP-044..047 + SS-19. BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: F2 human gate → F3 incremental stories. trajectory-tail →0→0→0→0"
+current_step: "feature-iec104 F2 APPROVED (human, 2026-07-14) WITH first-frame-guard mandate (D-439). Option<u16> applied (SS-19 v1.6 / BC-2.19.023 v1.2 / BC-2.19.024 v1.3); scoped re-verify CLEAN; MITRE pin confirmed ics-attack-19.1. F2 CONVERGED-AND-CLOSED. NEXT: F3 incremental stories (~8 stories / ~36 pts / 3 waves). Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: PAUSED
-timestamp: 2026-07-14T12:00:00Z
-# feature-iec104 F2 CONVERGED (D-438, 2026-07-14); 12 passes 3-clean streak P10/P11/P12; 30 new BCs + ADR-0013 + VP-044..047 + SS-19; BC-INDEX v2.28/VP-INDEX v2.46/ARCH-INDEX v2.16/PRD v1.56; carry ROUTE-BC-DEFERRED-2026-07-11; NEXT: F2 human gate → F3.
+timestamp: 2026-07-14T18:00:00Z
+# feature-iec104 F2 APPROVED+CLOSED (D-439, 2026-07-14); first-frame-guard Option<u16> applied SS-19 v1.6/BC-2.19.023 v1.2/BC-2.19.024 v1.3; MITRE ics-attack-19.1 confirmed; carry ROUTE-BC-DEFERRED-2026-07-11; NEXT: F3 incremental stories.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -64,7 +64,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**feature-iec104 F2 SPEC-EVOLUTION CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak (P10/P11/P12), research-validated canonical facts. 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + ADR-0013 + VP-044..047 + SS-19. BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: F2 human gate → F3 incremental stories. (Prior steady-state: v0.12.1 RELEASED D-436 2026-07-13, pipeline PAUSED.)**
+**feature-iec104 F2 APPROVED (human, 2026-07-14) WITH first-frame-guard mandate (D-439). Option<u16> applied (SS-19 v1.6 / BC-2.19.023 v1.2 / BC-2.19.024 v1.3); scoped re-verify CLEAN (adversary 2 LOW applied + consistency 7/7 PASS). MITRE pin confirmed ics-attack-19.1. F2 CONVERGED-AND-CLOSED. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: F3 incremental stories (~8 stories / ~36 pts / 3 waves). (Prior: F2 CONVERGED D-438, 2026-07-14.)**
 
 ---
 
@@ -73,7 +73,7 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F2 CONVERGED (D-438, 2026-07-14); pipeline PAUSED; NEXT: F2 human gate → F3 |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F2 CLOSED (D-439, 2026-07-14); pipeline PAUSED; NEXT: F3 incremental stories |
 | Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=7b11b83 — 0 unreleased commits; trees identical 5e75fd5; DRIFT-BACKMERGE-SQUASH-001: squash back-merge, histories diverge, trees match) |
 | Main HEAD | `fedcea4` (full: `fedcea4ab17d9b3257c9903636aec0c0fd08f147`) |
 | Develop HEAD | `7b11b83` (full: `7b11b830ed8138136159a45aa6686b9df32cf707`) — PR #400 squash back-merge 2026-07-13; DRIFT-BACKMERGE-SQUASH-001: fedcea4 not ancestor of 7b11b83, trees identical (5e75fd5) |
@@ -82,7 +82,7 @@ maintenance_prior_run: maint-2026-07-09
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
 | Spec versions | BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 |
 | Stories | 105 delivered / 119 total (STORY-INDEX v3.57, 729 pts) |
-| **Last Updated** | 2026-07-14 — feature-iec104 F2 CONVERGED (D-438). 12 adversarial passes, 3-clean streak P10/P11/P12. 30 new BCs + ADR-0013 + VP-044..047 + SS-19. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-14 — feature-iec104 F2 APPROVED+CLOSED (D-439). first-frame-guard Option<u16> applied (SS-19 v1.6 / BC-2.19.023 v1.2 / BC-2.19.024 v1.3); MITRE ics-attack-19.1 confirmed. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -110,7 +110,7 @@ maintenance_prior_run: maint-2026-07-09
 | Feature cycle feature-protocol-coverage — F6 (targeted-hardening) | **DONE/PASS (D-380)** | VP-041/042/043 ALL PROVEN. 5 Kani harnesses VERIFICATION SUCCESSFUL (0/103 checks); VP-041 catalog Kani JUSTIFIED-DEFERRED (compile-time constant, documented inline); fuzz_coverage_gap_classify 2,049,292 execs/301s/0 crashes; cargo-mutants delta kill rate 100% (3 E-21 survivors killed by f6_hardening tests; 2 pre-existing LOW-tier survivors remain). PR #357 squash-merged to develop 6da5456. Full-tree cargo test + clippy + fmt + deny all green. |
 | Feature cycle feature-protocol-coverage — F7 (delta-convergence) | **CONVERGED/CLOSED (D-382, 2026-07-05)** | Human gate approved. All 5 dimensions SATISFIED (D-381). Cycle CLOSED. v0.11.2 RELEASED. S-7.02 SATISFIED (STORY-155 filed). |
 | Feature cycle feature-iec104 — F1 (delta-analysis) | **DONE/APPROVED (2026-07-14)** | Delta-analysis COMPLETE. Impact: src/analyzer/iec104.rs (new), src/dispatcher.rs (Rule 8 + DispatchTarget::Iec104), src/protocols.rs (port 2404), src/mitre.rs (T0881). 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + new SS-19 subsystem + ADR-0013 + VP-044..047. Human-approved. |
-| Feature cycle feature-iec104 — F2 (spec-evolution) | **DONE/CONVERGED (D-438, 2026-07-14)** | 12 adversarial passes, 3-clean streak (P10/P11/P12), 12 fresh-context consistency audits. Research-validated canonical facts (T0881, TypeIDs 45-51, T1692.001 name). HIGH-decay 4→1→1→2→2→1→0→0→0→0→0→0. Final: BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.5 / ADR-0013 / VP-044..047. 5 F3-handoff items (LOW/NIT). Input-hash STALE=0. NEXT: F2 human gate → F3. |
+| Feature cycle feature-iec104 — F2 (spec-evolution) | **APPROVED (D-439, human, 2026-07-14) — CLOSED** | F2 gate WITH first-frame-guard mandate. Option<u16> applied: SS-19 v1.6, BC-2.19.023 v1.2, BC-2.19.024 v1.3 (type-only; BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 unchanged). Scoped re-verify CLEAN (adversary 2 LOW applied + consistency 7/7 PASS). MITRE pin ics-attack-19.1 confirmed. 4 F3-handoff items remaining (LOW/NIT; first-frame-guard RESOLVED). 27 BC-2.19.* input-hashes recomputed → a153144. RETRANSMIT-NS-FALSEPOS-001 carried to F3. |
 | v0.11.2 RELEASED | **RELEASED 2026-07-05** | PR #358 (release/0.11.2 → main, merge 96ef1ff); tag v0.11.2 (tag obj 2852165d); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3). |
 | Out-of-cycle fix — issue #342 (D-383, 2026-07-06) | **DONE/CLOSED — RELEASED in v0.11.3** | DF-VALIDATION-001 triage: SEC-005+SEC-006 CONFIRMED dedup-into-#342; PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed. Released v0.11.3 (2026-07-06). |
 | v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
@@ -149,6 +149,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-432 | Wave-74 CLOSED (human-approved 2026-07-12). Gate all-green across all dimensions: (a) Full Suite PASS — cargo 904/0, clippy -D warnings clean, fmt clean, python 101/101 (22+10 bin/ self-tests + integration suite), release profile clean; (b) Wave Adversarial PASS — 13 passes, streak 3/3 (W11/W12/W13), trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n, CONVERGED; 8 substantive defects caught post-merge (status-legend corpus contradictions ×3, fabricated PR test table ×1, demo/currency staleness ×3, historical-framing inversion ×1), all fixed; (c) Code Review PASS — 2 MINOR + 4 NIT DEFERRED (human-ratified 2026-07-12; ROUTE-W74-DEFERRED, next bin-touch PR); (d) Security PASS — 4 LOW/INFO dispositioned (SEC-001/002 LOW accepted, SEC-003 INFO deferred-to-#392, SEC-004 INFO accepted); (e) Consistency PASS — status-legend corpus sweep completed; STORY-INDEX v3.51 consistent; (f) Holdout N/A — zero src/ changes; (g) Wave Demos PASS — 6 artifacts on develop, scrub PASS (zero host paths); (h) Input-hash PASS — MATCH=118 STALE=0 (canonical Python tool, 118 stories). STORY-164 spec final: v1.16 @ 1a02b00 (16 versions — 8 per-story passes + 13 wave passes). Gate value: 8 substantive defects caught post-merge. S-7.02 SATISFIED: STORY-165 drafted (wave-TBD, E-11, 3 pts, v1.0 @ d3df8d5, STORY-INDEX v3.51, 118 stories) codifying PG-W74-CI-BIN-SELFTEST AC-165-001, PG-W74-PRDESC-ROW-VERIFY AC-165-002, PG-W74-DELIVERY-DOC-CURRENCY AC-165-003, PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004. Deferred: ROUTE-W74-DEFERRED (human-ratified P3) + ROUTE-BC-DEFERRED-2026-07-11 + PERF-RERUN-001 + SEC-001 (next feature wave). develop=d6e3be8 (3 unreleased commits ahead of v0.12.0). Pipeline PAUSED. | 2026-07-12 |
 | D-437 | Engine/project triage (human-directed, 2026-07-14): 4 engine issues filed in drbothen/vsdd-factory (#635 streak persistence, #636 demo-recorder scrub, #637 input-hash hook divergence, #638 finding-ID canonicalization; all DF-VALIDATION-001-validated); STORY-166 re-scoped v1.1 5→3 pts (AC-002/004 moved to engine, AC-003 narrowed); STORY-INDEX v3.57 (729 pts); PG-HASH-HOOK-DIVERGENCE now tracked upstream as #637 (CLAUDE.md advisory note remains valid until fixed). | 2026-07-14 |
 | D-438 | feature-iec104 F2 spec-evolution CONVERGED (2026-07-14). 12 adversarial passes (3-clean streak P10/P11/P12), 12 fresh-context consistency audits. Research-agent canonical-fact validation at P1: T0881 "Service Stop"/IcsInhibitResponseFunction confirmed correct for STOPDT-abuse; T0809 "Data Destruction" wrong; control TypeIDs 45-51 confirmed; C_SE_ND_1 nonexistent; TypeID 52 reserved. HIGH-decay trajectory 4→1→1→2→2→1→0→0→0→0→0→0. Final spec: BC-INDEX v2.28 (30 new BCs: BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025; 2 amended: BC-2.18.003 v1.5 + BC-2.18.004 v1.3); PRD v1.56; VP-INDEX v2.46 (VP-044 Kani + VP-045/046 proptest + VP-047 fuzz); ARCH-INDEX v2.16 (SS-19 + ADR-0013); SS-19 v1.5; verification-architecture v2.33; verification-coverage-matrix v1.48. ADR-0013: docs/adr/ + .factory/specs/architecture/decisions/ byte-identical. Input-hash audit STALE=0 (BC-2.19.* f5a97d3; cross-subsystem 8b69772; BC-2.18.* 84318a1; canonical Python tool). 5 F3-handoff items (LOW/NIT — F3-H-001..005). 4 F3 code obligations (T0881 in mitre.rs; port 2404 in protocols.rs; DispatchTarget::Iec104 in dispatcher.rs; new src/analyzer/iec104.rs). Process-gaps: DF-SIBLING-SWEEP-001 under-swept ×8 bursts; PG-VP-CONSISTENCY-HOOK-FP advisory-only; research-doc reconciliation-sweep gap. Pre-existing drift: DRIFT-VP039-BC207038-TLS-TODO-001 (VP-039 stale TODOs, SS-07 scope). Convergence report: .factory/cycles/feature-iec104/adversarial/f2-convergence-report.md. | 2026-07-14 |
+| D-439 | feature-iec104 F2 gate APPROVED WITH first-frame-guard mandate (human, 2026-07-14); Option<u16> enhancement applied + scoped-reverified CLEAN; MITRE pin confirmed v19.1; F2 CLOSED; proceeding to F3. Enhancement detail: last_ns_c2s/last_ns_s2c u16→Option<u16> in SS-19 shard v1.5→v1.6 (still 5 fields); BC-2.19.023 v1.1→v1.2 (None→Some transition description); BC-2.19.024 v1.1→v1.3 (three-path gap check + Description + VP-047 text + canonical vectors mid-capture 5000→5001→5020 and wrap 32767→1); ADR-013 Decision 6 first-frame baseline added (docs/adr/0013 + .factory/specs/architecture/decisions/ byte-identical). 27 BC-2.19.* input-hashes recomputed (canonical Python tool) → a153144 (was f5a97d3). MITRE ATT&CK ICS v19.1 pin confirmation: all 8 technique identities CONFIRMED-AT-v19.1; pin string ics-attack-19.1 valid; no spec change required (see .factory/cycles/feature-iec104/research/f2-mitre-pin-confirmation.md). Scoped re-verify CLEAN: adversary 2 LOW prose fixes applied in BC-2.19.024 v1.3; consistency PASS 7/7; canonical vectors hand-verified correct. Pre-existing observation RETRANSMIT-NS-FALSEPOS-001 carried to F3/F4 (backwards/retransmitted N(S) → large 15-bit gap → possible T1692.001 false-positive; pre-existing in gap arithmetic, not introduced by first-frame guard). Spec versions post-enhancement: SS-19 v1.6 / BC-2.19.023 v1.2 / BC-2.19.024 v1.3 — BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 unchanged (type-only, no index-count change). Review: .factory/cycles/feature-iec104/adversarial/f2-first-frame-guard-review.md. | 2026-07-14 |
 
 ---
 
@@ -156,11 +157,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **feature-iec104 F2 APPROVED (human, 2026-07-14) WITH first-frame-guard mandate (D-439). Enhancement: last_ns_c2s/last_ns_s2c u16→Option<u16> in SS-19 v1.5→v1.6; BC-2.19.023 v1.1→v1.2 (None→Some transition); BC-2.19.024 v1.1→v1.3 (three-path gap check + VP-047 text + canonical vectors 5000→5001→5020 and 32767→1). ADR-013 Decision 6 first-frame baseline added. 27 BC-2.19.* input-hashes recomputed a153144. Scoped re-verify CLEAN. MITRE pin ics-attack-19.1 confirmed. F2 CLOSED. NEXT: F3. trajectory-tail →0→0→0→0** | **APPROVED+CLOSED (D-439)** | F2 gate closed. NEXT: F3 incremental stories. |
 | **v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 merged to main + tag d687a77 + GitHub Release Latest (4 binaries) + back-merge PR #400 squash 7b11b83. Trees identical main==develop 5e75fd5. 0 unreleased commits. DRIFT-BACKMERGE-SQUASH-001 (squash history-only divergence). ROUTE-BC-DEFERRED-2026-07-11 and ROUTE-W74-DEFERRED carry forward. Pipeline PAUSED. trajectory-tail →0→0→0→0** | **RELEASED (D-436)** | v0.12.1 RELEASED. Pipeline PAUSED. |
 | **wave-75 CLOSED (D-435, human-approved 2026-07-13). Gate CONVERGED 7 passes trajectory 2→0→0→1→0→0→0 streak W5/W6/W7; 3 findings fixed (F-W75G-P1-001/002 LOW, F-W75G-P4-001 MEDIUM); code-review PASS (1 NIT DEFERRED); security PASS (adjudicated CI+docs only); S-7.02 SATISFIED (STORY-166 drafted wave-TBD E-11 5 pts hash 8e244ad); STORY-INDEX v3.56 (119 stories/731 pts); input-hash MATCH=119 STALE=0. develop==origin==fa646ed. NEXT: v0.12.1 release. trajectory-tail →0→0→0→0** | **CLOSED (D-435)** | Wave-75 CLOSED. NEXT: v0.12.1 release. |
 | **STORY-165 DELIVERED (D-434, 2026-07-13). PR #398 fa646ed squash-merged to develop; CI 13/13 green (bin-selftest first-ever run); pr-reviewer APPROVE 0 findings; 9 passes trajectory 1→0→0→2→0→1→0→0→0 streak P7/P8/P9; PG-W74-PRDESC-ROW-VERIFY first compliant execution (9 rows row-verified). STORY-INDEX v3.55 (D-432→D-434 cell correction). develop==origin/develop==fa646ed; 4 unreleased commits. Wave-75 delivery complete; gate NEXT. trajectory-tail →1→0→0→0** | **DELIVERED (D-434)** | Wave-75 all stories delivered. Gate next. |
 | **Wave-75 OPENED (D-433, plan gate approved human 2026-07-13). STORY-165 v1.1 (3 pts, E-11, 4 ACs) delivery STARTING — pre-gate checks green (input-hash MATCH=118 STALE=0, consistency audit PASS 0 BLOCKER 0 MAJOR 2 MINOR fixed; 23d6614). STORY-INDEX v3.52 (75 waves, 704 pts); sprint-state.yaml wave-75 entry added. Carry-forward: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001 quiescent; SEC-001 next feature wave. trajectory-tail →0→0→0→0** | **OPEN (D-433)** | Wave-75 OPENED. Pipeline ACTIVE. |
-| **Session wrap (human-requested, 2026-07-13). Wave-74 CLOSED (D-432); maint-2026-07-11 COMPLETE; v0.12.0 latest release with 3 unreleased commits on develop (b5e1e15/6779be6/d6e3be8); no sub-agents abandoned mid-step; develop==origin==d6e3be8 clean. Pipeline PAUSED between cycles. NEXT: v0.12.1 release or STORY-165 wave assignment. trajectory-tail →1→0→2n→1n** | **PAUSED** | Session wrap. Pipeline PAUSED. |
 
 ## Decisions Log
 
@@ -308,6 +309,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 | DRIFT-SPRINT-STATE-FIELD-FORM-001 | sprint-state.yaml uses both `merge_sha:` and `merge_commit:` field names inconsistently across wave entries. File self-declares vestigial (greenfield artifact; STORY-INDEX is authoritative wave registry). Field-form inconsistency is cosmetic drift in a vestigial file. | wave-75 gate S-7.02 justified deferral (D-435, 2026-07-13) | vestigial-file retirement decision at next housekeeping pass |
 | DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) is NOT an ancestor of develop (7b11b83). Trees ARE identical (both 5e75fd53e74c9f2a75f5847981db7a6d377935ad) — content fully synced, history-only divergence. Justified deferral: resolve at next release (merge-commit back-merge per 72a2842 precedent) or accept as convention. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly subsystem). Discovered by architect during feature-iec104 F2 review (D-438). These TODOs belong to the SS-07 (TLS) owner, not the IEC-104 team — out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS subsystem owner — next TLS maintenance sweep |
+| RETRANSMIT-NS-FALSEPOS-001 | Backwards/retransmitted/reordered IEC-104 I-frame N(S) computes a large 15-bit gap (e.g., first-frame None→Some(5001) then retransmit N(S)=5000 → gap = (5000 - 5001 + 32768) mod 32768 = 32767) → possible high-confidence T1692.001 false-positive. Pre-existing in the converged gap arithmetic — not introduced by the first-frame guard (D-439). F3 implementer should consider retransmit tolerance (suppress N(S) regressions below a threshold or ignore when gap > MAX_FORWARD_WINDOW). F4 holdout should include a retransmit scenario. | feature-iec104 F2 gate (D-439, 2026-07-14) | F3 implementer + F4 holdout consideration |
 
 ---
 
@@ -411,22 +413,24 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**feature-iec104 F2 CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak P10/P11/P12. Pipeline PAUSED awaiting F2 human gate.**
+**feature-iec104 F2 APPROVED+CLOSED (D-439, 2026-07-14). First-frame-guard mandate applied; Option<u16> enhancement in spec; MITRE ics-attack-19.1 confirmed. Pipeline PAUSED awaiting F3.**
 
-Prior checkpoint (v0.12.1 RELEASED, D-437, 2026-07-14) archived to `cycles/wave-75/session-checkpoints.md`.
+Prior checkpoint (F2 CONVERGED, D-438, 2026-07-14) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-14. Position: feature-iec104 F2 spec-evolution CONVERGED (D-438); pipeline PAUSED.
+- **Date:** 2026-07-14. Position: feature-iec104 F2 gate CLOSED (D-439); pipeline PAUSED.
 - **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `7b11b830ed8138136159a45aa6686b9df32cf707`. DRIFT-BACKMERGE-SQUASH-001: trees identical (5e75fd5); history-only divergence. 0 unreleased commits.
-- **Active cycle:** feature-iec104 — F2 CONVERGED; F3 PENDING human gate. Convergence report: `cycles/feature-iec104/adversarial/f2-convergence-report.md`.
-- **F3-handoff items (5, LOW/NIT):** F3-H-001 BC-2.19.024 first-frame guard; F3-H-002 BC-2.19.023 prose; F3-H-003 BC-2.10.010 VP table; F3-H-004 research-doc reconciliation note; F3-H-005 BC-2.19.017 COT wording.
+- **Active cycle:** feature-iec104 — F2 CLOSED; F3 ready to start. Convergence report: `cycles/feature-iec104/adversarial/f2-convergence-report.md`. Gate review: `cycles/feature-iec104/adversarial/f2-first-frame-guard-review.md`.
+- **F3-handoff items (4, LOW/NIT):** F3-H-002 BC-2.19.023 Description prose polish [partially addressed in v1.2]; F3-H-003 BC-2.10.010 VP table to also cite verify_all_emitted_ids_resolve; F3-H-004 feature-iec104-research.md §3.3/3.5/3.8 pre-v19 MITRE names reconciliation note; F3-H-005 BC-2.19.017 COT "2-byte little-endian" → "2 octets" terminology. (F3-H-001 first-frame-guard RESOLVED via Option<u16> D-439.)
 - **F3 code obligations (4):** T0881 in src/mitre.rs; port 2404 in src/protocols.rs; DispatchTarget::Iec104 in src/dispatcher.rs; new src/analyzer/iec104.rs.
+- **F3 carry-observations:** RETRANSMIT-NS-FALSEPOS-001 (backwards/retransmitted N(S) → large gap → possible T1692.001 false-positive; F3 implementer + F4 holdout to consider retransmit tolerance).
 - **Carry-forwards:** ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 wave-76 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Note:** STATE.md is ~490 lines (target 200). A /vsdd-factory:compact-state pass is recommended at next convenient checkpoint (do NOT perform full compaction now — low-risk deferral).
 - **Next work (ordered):**
-  1. F2 human gate → F3 incremental-stories decomposition.
+  1. F3 incremental-stories decomposition (SS-19 BC-2.19.001-027 + 3 cross-subsystem BCs → ~8 stories / ~36 pts / 3 waves).
   2. STORY-166 wave-76 plan gate (E-11, 3 pts, wave-TBD).
   3. ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
   4. SEC-001 next feature wave.
-- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / HS-INDEX v2.13 / STORY-INDEX v3.57 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / BC-2.19.023 v1.2 / BC-2.19.024 v1.3 / HS-INDEX v2.13 / STORY-INDEX v3.57 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
@@ -443,6 +447,8 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | Content | Location |
 |---------|----------|
 | feature-iec104 F2 convergence report | `cycles/feature-iec104/adversarial/f2-convergence-report.md` (12 passes, CONVERGED P10/P11/P12, D-438) |
+| feature-iec104 F2 gate review (first-frame guard) | `cycles/feature-iec104/adversarial/f2-first-frame-guard-review.md` (CLEAN; 2 LOW applied; RETRANSMIT-NS-FALSEPOS-001 carried; D-439) |
+| feature-iec104 MITRE pin confirmation | `cycles/feature-iec104/research/f2-mitre-pin-confirmation.md` (8 techniques CONFIRMED-AT-v19.1; ics-attack-19.1 valid; D-439) |
 | Wave 75 gate files | `cycles/wave-75/wave-gate/` (gate-summary.md D-435, code-review.md, findings.md) |
 | Wave 75 lessons | `cycles/wave-75/lessons.md` (5 lessons; L-1..L-2 codified STORY-166; L-3 applied; L-4 codified; L-5 observation) |
 | Wave 75 process-gap ledger | `cycles/wave-75/process-gap-ledger.md` (3 PGs + 2 OBS + 1 redundancy note; all DISPOSITIONED D-435) |

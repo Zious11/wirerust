@@ -6,7 +6,7 @@ section: ss-19-iec104-analysis
 subsystem_id: SS-19
 phase: 1c
 traces_to: ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-07-13T00:00:00Z
@@ -29,6 +29,9 @@ modified:
   - date: 2026-07-14
     author: architect
     note: "F2 Pass-8 remediation (F-P8-M2/F-P8-L2): Removed vestigial window machinery copy-pasted from DNP3/ENIP siblings — inapplicable to IEC-104. (F-P8-L2) window_start_ts: u32 field removed from Iec104FlowState (no BC governs a window property; T0814 detection is per-event, not time-windowed). (F-P8-M2) Bounded-Resource Note: phantom sentence 'Window arithmetic uses saturating_sub for backwards-timestamp safety (RULING-DNP3-SIBLING-001 pattern; see VP-045 Sub-B/C proptest harnesses)' removed — VP-045 is carry-buffer direction isolation with exactly two harnesses (proptest_vp045_direction_isolation, proptest_vp045_independent_run_equivalence); no Sub-B/C and no window property exist. Version bump 1.4→1.5. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
+  - date: 2026-07-14
+    author: architect
+    note: "Human-mandated F2 gate follow-on (D-438): first-frame N(S) baseline guard — last_ns_c2s and last_ns_s2c promoted from u16 to Option<u16>. None = no I-frame seen yet in that direction; first observed I-frame sets Some(ns) baseline without emitting a desync finding; gap check runs only when state is already Some(prev). Field count stays 5. Version bump 1.5→1.6. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
 ---
 
 # SS-19: IEC-104 Analysis
@@ -102,12 +105,14 @@ pub enum UCommand {
     NonCanonical(u8),   // CVE-2026-1773 angle: reserved bits set
 }
 pub struct Iec104FlowState {
-    carry_c2s:       Vec<u8>,  // ≤ MAX_IEC104_CARRY_BYTES = 255
-    carry_s2c:       Vec<u8>,  // ≤ MAX_IEC104_CARRY_BYTES = 255
+    carry_c2s:       Vec<u8>,     // ≤ MAX_IEC104_CARRY_BYTES = 255
+    carry_s2c:       Vec<u8>,     // ≤ MAX_IEC104_CARRY_BYTES = 255
     session_started: bool,
-    last_ns_c2s:     u16,      // 15-bit N(S), c2s direction
-    last_ns_s2c:     u16,      // 15-bit N(S), s2c direction
+    last_ns_c2s:     Option<u16>, // 15-bit N(S), c2s direction
+    last_ns_s2c:     Option<u16>, // 15-bit N(S), s2c direction
 }
+// Option<u16>: None = no I-frame seen yet in this direction (fresh flow OR mid-capture start);
+// first observed I-frame establishes the baseline and emits no desync finding (BC-2.19.024).
 pub struct Iec104Analyzer {
     flows:              HashMap<FlowKey, Iec104FlowState>,
     findings:           Vec<Finding>,

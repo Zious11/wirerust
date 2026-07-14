@@ -17,6 +17,9 @@ modified:
   - date: 2026-07-14
     actor: architect
     reason: "F2 Pass-8 remediation (F-P8-M2): Decision 2 window-expiry clause removed — IEC-104 has no windowed detection; the sentence 'Window expiry uses saturating_sub (not wrapping_sub) to prevent spurious resets on backwards timestamps, per RULING-DNP3-SIBLING-001 §2 (ADR-007 Decision 3 pattern)' was copy-pasted from DNP3/ENIP sibling ADRs and does not apply to IEC-104; Iec104FlowState no longer has window_start_ts. Both ADR copies updated identically."
+  - date: 2026-07-14
+    actor: architect
+    reason: "Human-mandated F2 gate follow-on (D-438): first-frame N(S) baseline guard added; last_ns fields promoted from u16 to Option<u16>. Decision 6 updated with Option<u16> tracking semantics: None = no I-frame seen yet; first I-frame sets baseline without emitting a desync finding; gap check runs only on Some(prev) state. Both ADR copies updated identically."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -187,10 +190,13 @@ IEC-104 I-frames carry 15-bit send sequence counter N(S) and receive sequence co
 N(R) (modulo 32768). The protocol mandates a maximum unacknowledged window `k = 12`
 (maximum 12 unacknowledged I-frames outstanding).
 
-The analyzer tracks `last_ns: u16` (last observed N(S)) per direction. When the gap
-between consecutive N(S) values exceeds `k = 12`, a sequence desynchronization finding
-is emitted (T1692.001 "Unauthorized Message: Command Message" — a gap this large indicates either
-replayed frames or a missing segment out of passive capture).
+N(S) desync detection tracks last-seen N(S) per direction as `Option<u16>`
+(`Iec104FlowState::last_ns_c2s` and `last_ns_s2c`). On the first observed I-frame in a
+direction (state `None`), the parser records the baseline `Some(ns)` and emits NO finding
+— this prevents a false-positive desync on mid-session captures (the analyzer's primary
+use case, where the first observed N(S) is arbitrary). On subsequent I-frames
+(state `Some(prev)`), gap = `ns.wrapping_sub(prev) & 0x7FFF`; if gap > k=12, emit
+T1692.001 "Unauthorized Message: Command Message" (Possible).
 
 N(S)/N(R) extraction:
 ```
