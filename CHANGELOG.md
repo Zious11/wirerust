@@ -7,6 +7,38 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **IEC-104 APCI core parser: `parse_apci_header` pure-core free function + VP-044 Kani
+  skeleton (STORY-167, wave-76, BC-2.19.001–006, ADR-013 Decisions 1/3/8).**
+
+  New `src/analyzer/iec104` module implementing the IEC 60870-5-104 (IEC-104) APCI header
+  parser as a pure-core free function with zero external dependencies (ADR-013 Decision 7
+  licensing constraint — no `iec60870-5`, Wireshark, or lib60870 code):
+
+  - `parse_apci_header(data: &[u8]) -> Option<ApciHeader>`: returns None for input shorter
+    than 6 bytes (BC-2.19.001), start byte ≠ 0x68 (BC-2.19.002), LEN < 4 (BC-2.19.003), or
+    LEN > 253 (BC-2.19.004); returns `Some(ApciHeader)` with CF1–CF4 extracted verbatim from
+    bytes [2..6] for valid input (BC-2.19.005). Overflow-safe: `len + 2` ≤ 255 for all valid
+    LEN values. VP-044 Kani formal verification target (full proof run: STORY-174).
+
+  - `is_valid_iec104_frame(data: &[u8]) -> bool`: lightweight post-classification gate for
+    port-2404-dispatched flows (BC-2.19.006). Returns true iff `data.len() >= 2`,
+    `data[0] == 0x68`, and `4 <= data[1] <= 253`. Consistent with `parse_apci_header`:
+    gate-true ∧ data.len() >= 6 ⟹ parse returns Some (BC-2.19.006 invariant 2).
+
+  - `ApciHeader` struct (`start`, `len`, `cf1`–`cf4`; all `u8`; `#[derive(Debug, Clone,
+    PartialEq, Eq)]`).
+
+  - `Iec104ParseError` error enum skeleton (extended in STORY-168).
+
+  - VP-044 Kani harness skeleton under `#[cfg(kani)]` (ADR-013 Decision 8; full proof:
+    STORY-174).
+
+  30 new tests in `tests/iec104_analyzer_tests.rs` covering all BC-2.19.001–006
+  postconditions, boundary values, and cross-function invariants (no pre-existing test
+  regressions).
+
 ## [0.12.1] - 2026-07-13
 
 ### Added
