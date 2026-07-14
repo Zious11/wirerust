@@ -285,26 +285,44 @@ patterns:
     status: OPEN
 
   - id: PAT-013
-    name: background-adversary-relay-unreliable
+    name: adversary-relay-unreliable
     description: >
-      Background-dispatched adversary agents with large output complete their analysis
-      internally but fail to relay the final report back to the orchestrator session.
-      The completed report is buffered but not emitted. Requires synchronous re-dispatch
-      to recover. Specific to adversary agents; other background agent types not observed
-      to have this issue.
+      Adversary agents (and, at least once, a holdout-freshness agent) complete their
+      analysis and write output artifacts internally but fail to relay the final report
+      back to the orchestrator session. The completed report is buffered but not emitted.
+      Requires synchronous re-dispatch to recover. The failure is volume-correlated:
+      low-output-volume sessions see zero or few incidents; high-output-volume sessions
+      (13+ passes) see 5+ incidents. Synchronous dispatch (run_in_background: false)
+      reduces but does not eliminate the failure.
     first_observed: "v0.12.0-release-chain"
     occurrences:
       - cycle: "v0.12.0-release-chain"
         run: "maint-2026-07-08"
         incidents: 2
-        affected_prs: ["#382 Pass 2", "#383 convergence pass"]
+        context: "background dispatch; large output buffer"
         workaround: "synchronous re-dispatch (run_in_background: false)"
-    total_occurrences: 2
+      - cycle: "v0.12.1-release-chain"
+        run: "maint-2026-07-11"
+        incidents: 1
+        context: "sweep-4 holdout-freshness agent; synchronous dispatch active"
+        workaround: "synchronous re-dispatch"
+      - cycle: "v0.12.1-release-chain"
+        run: "wave-74 gate"
+        incidents: "5+"
+        context: "13-pass wave-gate session; synchronous dispatch active; highest concentration"
+        workaround: "synchronous re-dispatch each incident"
+    total_occurrences: "8+"  # maint-07-08: 2, maint-07-11: 1, wave-74: 5+
     confirmed_mitigation: >
-      Dispatch adversary agents with run_in_background: false for maintenance PRs.
-      Background dispatch acceptable only for clearly bounded, short-output tasks.
+      Dispatch adversary agents with run_in_background: false for maintenance PRs and wave
+      gates. Partially effective: reduces incidents at low volume but insufficient at
+      high-pass-count sessions (wave-74: 5+ incidents despite sync dispatch).
+    engine_issue_needed: true  # PROP-V0.12.1-01 — no engine issue filed yet
     severity: MEDIUM
-    proposal: PROP-V0.12.0-03
+    proposal: PROP-V0.12.1-01
+    notes: >
+      Volume-correlation hypothesis: wave-75 gate (7 passes, lower total output) = 0 incidents;
+      wave-74 gate (13 passes, higher total output) = 5+ incidents. Engine fix required.
+      PROP-V0.12.0-03 (sync dispatch) is applied but insufficient as standalone mitigation.
     status: OPEN
 
   - id: PAT-014
@@ -334,6 +352,35 @@ patterns:
     severity: MEDIUM
     proposal: PROP-V0.12.0-05  # STORY-163 AC-163-002 covers codification
     status: CODIFIED  # STORY-163 AC-163-002
+
+  - id: PAT-015
+    name: squash-backmerge-recurring
+    description: >
+      Post-release back-merges from main to develop default to squash when no explicit
+      codified mandate requires merge-commit. Squash back-merges sever shared history
+      (main is not an ancestor of develop), producing a drift item that must be resolved
+      at the next release by a join commit or re-merge. Two consecutive releases
+      (v0.11.5 and v0.12.1) used squash back-merges.
+    first_observed: "v0.12.0-release-chain"
+    occurrences:
+      - cycle: "v0.12.0-release-chain"
+        release: "v0.11.5"
+        pr: null
+        tracking_id: "PG-GITFLOW-SQUASH-BACKMERGE"
+        resolution: "join commit before v0.12.0 release PR"
+      - cycle: "v0.12.1-release-chain"
+        release: "v0.12.1"
+        pr: 400
+        tracking_id: "DRIFT-BACKMERGE-SQUASH-001"
+        resolution: "deferred; trees identical; resolve at next release"
+    total_occurrences: 2
+    recurrence_rate: "2/2 releases reviewed (100%)"
+    severity: MEDIUM
+    proposal: PROP-V0.12.1-02
+    notes: >
+      No merge-commit mandate exists in CLAUDE.md or policies.yaml. Without explicit codification
+      (BACKMERGE-FAST-FORWARD-001), the pattern will continue every release cycle.
+    status: OPEN
 
 ---
 

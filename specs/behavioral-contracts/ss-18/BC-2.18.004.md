@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -15,12 +15,17 @@ introduced: feature-protocol-coverage-F2
 modified:
   - "v1.1: F-F2P2-002 Pass-2 remediation — second VP-041 harness proptest_vp041_partition_invariant added; non-vacuity clarification. 2026-07-01"
   - "v1.2: F-F2P7-004 Pass-7 remediation — partition harness non-vacuity mislabeling corrected: proptest_vp041_partition_invariant holds trivially by the complement derivation (unsupported = KNOWN \\ supported); proptest_vp041_oracle_cross_check is the non-vacuous guard. Invariant 4, VP table partition row, Architecture Anchors, VP Anchors updated. 2026-07-01"
+  - "v1.3: BC-INDEX v2.23 feature-iec104 amendment — EC-003/EC-007 IEC-104 examples added. NEW-GAP-002: inputs and input-hash frontmatter added. 2026-07-13"
 deprecated: null
 deprecated_by: null
 replacement: null
 retired: null
 removed: null
 removal_reason: null
+inputs:
+  - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
+  - docs/adr/0012-protocols-catalog-and-coverage-gaps.md
+input-hash: "84318a1"
 ---
 
 # BC-2.18.004: Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint
@@ -67,10 +72,11 @@ their outputs jointly exhaustive.
 |----|-------------|-------------------|
 | EC-001 | Catalog at minimum size (1 entry) | Union = {entry}, disjoint trivially satisfied; partition holds |
 | EC-002 | New ICS protocol added to KNOWN_PROTOCOLS without corresponding SUPPORTED_PORTS entry | New entry appears in unsupported set; partition still valid; no drift in supported set |
-| EC-003 | New supported protocol added: KNOWN_PROTOCOLS entry added AND SUPPORTED_PORTS updated | New entry appears in supported set; partition valid; counting invariant holds |
+| EC-003 | New supported protocol added: IEC-104 KNOWN_PROTOCOLS entry added AND port 2404 added to SUPPORTED_PORTS (feature-iec104) | IEC-104 entry appears in supported set; partition valid; counting invariant holds (supported 7→8 entries) |
 | EC-004 | ARP entry is only entry with `canonical_ports: &[]` in supported set | Partition still valid; ARP special case does not create a phantom entry |
 | EC-005 | Port-102 entries (four entries all with `canonical_ports: &[102]`) | All four in unsupported set; union still complete; disjoint holds since 102 is not in SUPPORTED_PORTS |
 | EC-006 | All entries are unsupported (hypothetical) | `supported_protocols()` returns empty Vec; `unsupported_protocols()` returns full KNOWN_PROTOCOLS slice; counting invariant holds (0 + N == N) |
+| EC-007 | Port 2404 (IEC-104) added to SUPPORTED_PORTS and IEC-104 entry added to KNOWN_PROTOCOLS (feature-iec104) | IEC-104 moves from unsupported to supported set; counting invariant holds; partition remains valid |
 
 ## Canonical Test Vectors
 

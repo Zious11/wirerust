@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-07-01T18:00:00Z
@@ -16,12 +16,18 @@ modified:
   - "v1.1: F-F2P2-001/002 Pass-2 remediation — VP-041 anti-drift semantics corrected; second VP-041 harness added. 2026-07-01"
   - "v1.2: F-F2P5-001 Pass-5 remediation — SUPPORTED_PORTS semantics reframed per ADR-012 canonical wording (not a pure classify() mirror); DNS/53 decode-loop path documented; Architecture Anchor doc-comment obligation updated verbatim; EC-005 clarified. 2026-07-01"
   - "v1.3: F-F2P7-004 Pass-7 remediation — partition harness non-vacuity mislabeling corrected: proptest_vp041_partition_invariant holds trivially by the complement derivation (unsupported = KNOWN \\ supported); proptest_vp041_oracle_cross_check is the non-vacuous guard. VP table partition row, Architecture Anchors, VP Anchors updated. 2026-07-01"
+  - "v1.4: BC-INDEX v2.23 feature-iec104 amendment — SUPPORTED_PORTS adds port 2404 (IEC-104); supported entries count 7→8; port 2404 reflected in Precondition 3, Invariant 1, EC-005, Canonical Test Vectors. NEW-GAP-002: inputs and input-hash frontmatter added. 2026-07-13"
+  - "v1.5: F7-L3 — unsupported_protocols() canonical test vector count corrected: ~23 → ~22 (IEC-104 moved from unsupported to supported in v1.4; unsupported count decrements by 1). 2026-07-14"
 deprecated: null
 deprecated_by: null
 replacement: null
 retired: null
 removed: null
 removal_reason: null
+inputs:
+  - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
+  - docs/adr/0012-protocols-catalog-and-coverage-gaps.md
+input-hash: "84318a1"
 ---
 
 # BC-2.18.003: `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement
@@ -31,7 +37,7 @@ removal_reason: null
 `supported_protocols()` is a pure-core function in `src/protocols.rs` that returns the
 subset of `KNOWN_PROTOCOLS` whose `canonical_ports` intersect the compile-time constant
 `SUPPORTED_PORTS` (which is the full set of ports wirerust actively dissects by any
-mechanism: ports 502, 20000, 44818, 443, 8443, 80, 8080 correspond to `DispatchTarget`
+mechanism: ports 502, 20000, 44818, 2404, 443, 8443, 80, 8080 correspond to `DispatchTarget`
 variants in `dispatcher.rs::classify()`; port 53 corresponds to the DNS decode-loop path
 in `main.rs` via `dns_analyzer.can_decode()` — there is no `DispatchTarget::Dns` variant
 and no port-53 rule in `classify()`; DNS/53 and ARP being non-mirroring with respect to
@@ -59,7 +65,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 
 1. `supported_protocols()` is called as a pure function — no mutable state, no I/O.
 2. `KNOWN_PROTOCOLS` is a non-empty static array (compile-time constant).
-3. `SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53]` is the compile-time constant equal to the full set of ports wirerust actively dissects: ports 502, 20000, 44818, 443, 8443, 80, 8080 correspond to `DispatchTarget` variants in `classify()`; port 53 is handled via the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) with no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`. DNS/53 not mirroring `classify()` is PERMANENT and BY DESIGN.
+3. `SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 2404, 443, 8443, 80, 8080, 53]` is the compile-time constant equal to the full set of ports wirerust actively dissects: ports 502, 20000, 44818, 2404, 443, 8443, 80, 8080 correspond to `DispatchTarget` variants in `classify()`; port 53 is handled via the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) with no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`. DNS/53 not mirroring `classify()` is PERMANENT and BY DESIGN.
 
 ## Postconditions
 
@@ -74,7 +80,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 
 ## Invariants
 
-1. `SUPPORTED_PORTS` is the compile-time constant equal to the full set of ports wirerust actively dissects by any mechanism (ADR-012 Decision 5). It is NOT a pure mirror of `dispatcher.rs::classify()` port-fallback rules: ports 502, 20000, 44818, 443, 8443, 80, 8080 correspond to `DispatchTarget` variants in `classify()`; port 53 corresponds to the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) — there is no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`. DNS/53 and ARP being non-mirroring with respect to `classify()` is PERMANENT and BY DESIGN, not drift. If a new `DispatchTarget` variant and port rule is added to `classify()`, `SUPPORTED_PORTS` MUST be updated. VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency ONLY. `classify()`-vs-`SUPPORTED_PORTS` drift on the ports 502..8080 entries is an UNENFORCED documented convention: the VP-041 oracle references `SUPPORTED_PORTS` directly and therefore cannot detect when `classify()` and `SUPPORTED_PORTS` diverge for those entries. Drift there is not auto-detected by any VP.
+1. `SUPPORTED_PORTS` is the compile-time constant equal to the full set of ports wirerust actively dissects by any mechanism (ADR-012 Decision 5). It is NOT a pure mirror of `dispatcher.rs::classify()` port-fallback rules: ports 502, 20000, 44818, 443, 8443, 80, 8080 correspond to `DispatchTarget` variants in `classify()`; port 2404 corresponds to `DispatchTarget::Iec104` in `classify()` (added feature-iec104); port 53 corresponds to the DNS decode-loop path in `main.rs` (`dns_analyzer.can_decode()`) — there is no `DispatchTarget::Dns` variant and no port-53 rule in `classify()`. DNS/53 and ARP being non-mirroring with respect to `classify()` is PERMANENT and BY DESIGN, not drift. If a new `DispatchTarget` variant and port rule is added to `classify()`, `SUPPORTED_PORTS` MUST be updated. VP-041 guards `supported_protocols()`-vs-`SUPPORTED_PORTS` consistency ONLY. `classify()`-vs-`SUPPORTED_PORTS` drift on the ports 502..8080 entries is an UNENFORCED documented convention: the VP-041 oracle references `SUPPORTED_PORTS` directly and therefore cannot detect when `classify()` and `SUPPORTED_PORTS` diverge for those entries. Drift there is not auto-detected by any VP.
 2. `supported_protocols()` is pure and referentially transparent — the same call always returns the same result (given the same compile-time constants).
 3. The ARP special case is explicit in the implementation (e.g., `|| p.name == "ARP"` or via an ARP-port constant). It MUST NOT be omitted.
 4. `unsupported_protocols()` MUST NOT be a separate hand-maintained list; it must be derived as the complement of `supported_protocols()` within `KNOWN_PROTOCOLS`.
@@ -88,7 +94,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 | EC-002 | TLS has two ports (443 and 8443) — both are in SUPPORTED_PORTS | TLS appears once in `supported_protocols()`; not duplicated |
 | EC-003 | BACnet/IP has port 47808 — NOT in SUPPORTED_PORTS | BACnet/IP appears in `unsupported_protocols()` |
 | EC-004 | GOOSE has `canonical_ports: &[]` and is NOT ARP | GOOSE appears in `unsupported_protocols()` |
-| EC-005 | A port is already present in `SUPPORTED_PORTS` (e.g., port 20000 for DNP3 — already a member before this BC was authored) | `SUPPORTED_PORTS` already contains 20000; no change to the supported set |
+| EC-005 | Port 2404 (IEC-104) added to SUPPORTED_PORTS (feature-iec104) — IEC-104 entry has `canonical_ports: &[2404]` | IEC-104 entry moves to `supported_protocols()`; supported count 7→8 |
 | EC-006 | `unsupported_protocols()` is called — result is KNOWN_PROTOCOLS minus supported set | Exact complement; no manual list |
 | EC-007 | Port 102 entries (S7comm, S7comm-plus, MMS, ICCP) — port 102 is NOT in SUPPORTED_PORTS | All four appear in `unsupported_protocols()` |
 
@@ -96,8 +102,8 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| `supported_protocols()` | Returns 7 entries: Modbus/TCP (502), DNP3 (20000), EtherNet/IP+CIP (44818), TLS (443/8443), ARP, DNS (53), HTTP (80/8080) | happy-path |
-| `unsupported_protocols()` | Returns all other entries (~23); ARP absent; BACnet/IP, GOOSE, S7comm, etc. present | happy-path |
+| `supported_protocols()` | Returns 8 entries: Modbus/TCP (502), DNP3 (20000), EtherNet/IP+CIP (44818), IEC-104 (2404), TLS (443/8443), ARP, DNS (53), HTTP (80/8080) | happy-path |
+| `unsupported_protocols()` | Returns all other entries (~22); ARP absent; BACnet/IP, GOOSE, S7comm, etc. present | happy-path |
 | ARP in `supported_protocols()` result | `p.name == "ARP"` present in result | ARP-special-case |
 | BACnet/IP NOT in `supported_protocols()` | Port 47808 not in SUPPORTED_PORTS; BACnet/IP absent from supported set | unsupported-udp |
 | `supported_protocols().len() + unsupported_protocols().len()` | == `KNOWN_PROTOCOLS.len()` | partition |
@@ -125,7 +131,7 @@ Keeping `classify()` aligned with `SUPPORTED_PORTS` is an UNENFORCED documented 
 
 ## Architecture Anchors
 
-- `src/protocols.rs` — `SUPPORTED_PORTS: &[u16]` compile-time constant: `&[502, 20000, 44818, 443, 8443, 80, 8080, 53]`; doc-comment MUST list each port and its dissection path: either a `DispatchTarget` variant (for ports handled by `dispatcher.rs::classify()`) or "decode-loop" (for ports dissected outside `classify()`, e.g., `53 → DNS decode-loop in main.rs, no DispatchTarget variant`). Port-independent protocols (ARP) are flagged separately via a special case in `supported_protocols()`.
+- `src/protocols.rs` — `SUPPORTED_PORTS: &[u16]` compile-time constant: `&[502, 20000, 44818, 2404, 443, 8443, 80, 8080, 53]`; doc-comment MUST list each port and its dissection path: either a `DispatchTarget` variant (for ports handled by `dispatcher.rs::classify()`) or "decode-loop" (for ports dissected outside `classify()`, e.g., `53 → DNS decode-loop in main.rs, no DispatchTarget variant`). Port-independent protocols (ARP) are flagged separately via a special case in `supported_protocols()`.
 - `src/protocols.rs` — `pub fn supported_protocols() -> Vec<&'static KnownProtocol>` — returns entries matching SUPPORTED_PORTS intersection OR ARP special case
 - `src/protocols.rs` — `pub fn unsupported_protocols() -> Vec<&'static KnownProtocol>` — returns complement of `supported_protocols()` within `KNOWN_PROTOCOLS`
 - `src/protocols.rs` — `pub fn all_protocols() -> &'static [KnownProtocol]` — returns full `KNOWN_PROTOCOLS` slice

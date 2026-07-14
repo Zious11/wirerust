@@ -8,13 +8,13 @@ input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
 mode: steady-state
-phase: "wave-75"
+phase: "feature-iec104/F2"
 status: active
-current_step: "v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries, Latest) + back-merge PR #400 squash 7b11b83. Trees identical: main==develop tree 5e75fd5. DRIFT-BACKMERGE-SQUASH-001 noted (squash history-only). Carry-forwards: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. Pipeline PAUSED. trajectory-tail →0→0→0→0"
-current_cycle: "wave-75"
+current_step: "feature-iec104 F2 CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak (P10/P11/P12), research-validated canonical facts. 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + ADR-0013 + VP-044..047 + SS-19. BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: F2 human gate → F3 incremental stories. trajectory-tail →0→0→0→0"
+current_cycle: "feature-iec104"
 pipeline: PAUSED
-timestamp: 2026-07-14T00:30:00Z
-# v0.12.1 RELEASED (D-436, 2026-07-13); PR #399 fedcea4 + tag d687a77 + GH release (4 binaries) + back-merge PR #400 squash 7b11b83; trees identical; DRIFT-BACKMERGE-SQUASH-001; Pipeline PAUSED — NEXT: session review, STORY-166 wave-76
+timestamp: 2026-07-14T12:00:00Z
+# feature-iec104 F2 CONVERGED (D-438, 2026-07-14); 12 passes 3-clean streak P10/P11/P12; 30 new BCs + ADR-0013 + VP-044..047 + SS-19; BC-INDEX v2.28/VP-INDEX v2.46/ARCH-INDEX v2.16/PRD v1.56; carry ROUTE-BC-DEFERRED-2026-07-11; NEXT: F2 human gate → F3.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -42,10 +42,10 @@ story_index_version: "v3.57"
 total_stories: 119
 story_index_note: "119 stories / 75 waves / 729 pts. v3.57 (2026-07-14): STORY-166 re-scoped v1.1 5→3 pts (AC-166-002→#638, AC-166-004→#635, AC-166-003 narrowed, engine half→#636; hash b56924f); total_points 731→729; 4 engine issues filed in drbothen/vsdd-factory (#635/#636/#637/#638, all DF-VALIDATION-001-validated). (Prior: 119 stories / 75 waves / 731 pts. v3.56 (2026-07-13): STORY-166 added (wave-TBD draft, E-11, 5 pts; wave-75 S-7.02 cycle-close codifications). total_stories 118→119; total_points 726→731; E-11: 15→16 stories, 53→58 pts. Wave-table scheduled unchanged (704). (Prior: 118 stories / 75 waves / 726 pts. v3.55 (2026-07-13): wave-75 Delivery Progress row D-number corrected D-432→D-434 (cell correction; no totals changed). v3.54 (2026-07-13): STORY-165 DELIVERED (PR #398 fa646ed, 2026-07-13); status ready→delivered; wave-75 Delivery Progress IN PROGRESS→DELIVERED; stories_delivered 104→105. v3.53 (2026-07-13): Governance-Table Amendment Protocol note added (AC-165-004). (Prior: 118 stories / 75 waves / 726 pts. v3.52: wave-75 OPENED — STORY-165 assigned (3 pts, E-11 governance); STORY-165 wave-TBD→75, draft→ready (plan gate approved, human, 2026-07-13). total_waves: 74→75; wave-table scheduled: 701→704 (+3 STORY-165). total_stories/total_points unchanged (118/726). input-hash 23d6614 (canonical Python tool). (Prior: 118 stories / 74 waves / 726 pts. v3.51: STORY-165 added (wave-TBD draft, E-11, 3 pts; wave-74 S-7.02 cycle-close: PG-W74-CI-BIN-SELFTEST AC-165-001 + PG-W74-PRDESC-ROW-VERIFY AC-165-002 + PG-W74-DELIVERY-DOC-CURRENCY AC-165-003 + PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004). total_stories 117→118; total_points 723→726; E-11: 14→15 stories, 50→53 pts. Wave-table scheduled unchanged (701, STORY-165 wave-TBD excluded). (Prior: 117 stories / 74 waves / 723 pts. v3.47: STORY-164 DELIVERED (D-431, PR #397 d6e3be8, 2026-07-11); status ready→delivered; wave-74 Delivery Progress IN PROGRESS→DELIVERED; stories_delivered 103→104. v3.46: AC-164-001 status-vocabulary legend added (PG-W73-STATUS-VOCAB). v3.45: wave-74 OPENED — STORY-164 assigned (4 pts, E-11 governance); STORY-164 wave-TBD→74, draft→ready (plan gate approved, human, 2026-07-11). total_waves: 73→74; wave-table scheduled: 697→701 (+4 STORY-164). total_stories/total_points unchanged (117/723). v3.44: STORY-164 amended v1.1 (maint-2026-07-11 S-7.02 carry: AC-164-005 added — PG-W72-BREAKING-HOLDOUT-SWEEP W72-L2 codified; breaking-change-delivery-protocol.md + CLAUDE.md reference row); points 3→4; total_points 722→723. v3.43: STORY-164 added (wave-TBD draft, E-11, 3 pts; wave-73 S-7.02 cycle-close: PG-W73-STATUS-VOCAB AC-164-001 + PG-W73-CITATION-VALIDATOR AC-164-002 + PG-W73-CHANGELOG-GATE-CONTENT AC-164-003 + CLAUDE.md row AC-164-004). total_stories 116→117; total_points 719→722; epic-table TOTAL corrected 115/717→117/722. 2026-07-11; wave-73 Delivery Progress row added at close (D-428). v3.39: STORY-163 delivered (factory-artifacts-only, D-427, 2026-07-11); stories_delivered 102→103. v3.38: STORY-162 delivered (PR #395, b5e1e15, 2026-07-11); stories_delivered 101→102. v3.37: STORY-162/163 promoted draft→ready (D-425 consequence, 2026-07-10); sprint-state.yaml wave-73 entries added; input-hash scan MATCH=116 STALE=0. v3.36: wave-73 row added (STORY-162 + STORY-163, 2 stories, 5 pts, both E-11 governance-only); STORY-163 input-hash drift resolved 1cd3179→e1ad659; total_waves 73; input-hash scan MATCH=116 STALE=0. 2026-07-10. v3.35: STORY-163 added (wave-TBD draft, E-11, 2 pts; maint-2026-07-09 S-7.02 cycle-close: PG-RA-P3-ARP-REC006-INVERSION-001 AC-163-001 docs-dispatch citation mandate + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER AC-163-002 subagent merge-halt resolution path). 2026-07-10. v3.34: SC-001 fixed (D-419, 2026-07-09); stories_delivered adjudicated 106→101 (direct row count 82 completed + 15 merged + 4 delivered = 101); registry header extended to STORY-158..162; SC-PERSIST-002 carry-forward updated. v3.33: wave-72 CLOSED (D-416, 2026-07-09); Wave Delivery Progress row updated DELIVERED & CLOSED. No numeric totals changed. v3.32: STORY-162 added (wave-TBD draft, E-11, 3 pts; wave-72 S-7.02 cycle-close: PG-W72-LMR003-TEMPLATE-CONFORMANCE (F-S161P1-001) + PG-W72-CGDT-MAIN-GUARDS (F-W72G-P2-OBS-001)). 2026-07-09.)"
 # Spec versions (current)
-bc_index_version: "v2.22"
-vp_index_version: "v2.40"
-arch_index_version: "v2.12"
-prd_version: "v1.51"
+bc_index_version: "v2.28"
+vp_index_version: "v2.46"
+arch_index_version: "v2.16"
+prd_version: "v1.56"
 epics_version: v2.1
 # DTU
 dtu_required: false
@@ -64,7 +64,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**v0.12.1 RELEASED (D-436, human-authorized 2026-07-13). PR #399 (release/0.12.1 → main, merge commit fedcea4ab17d9b3257c9903636aec0c0fd08f147) + tag v0.12.1 (obj d687a77d911503e67a8d171c00536bd710762bba) + GitHub Release Latest (4 binaries) + back-merge PR #400 (squash 7b11b83, DRIFT-BACKMERGE-SQUASH-001). Trees identical: main==develop tree 5e75fd5. 0 unreleased commits. ROUTE-BC-DEFERRED-2026-07-11 and ROUTE-W74-DEFERRED carry forward. Next candidates: STORY-166 wave-76 plan gate, session review, SEC-001 feature wave. Pipeline PAUSED.**
+**feature-iec104 F2 SPEC-EVOLUTION CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak (P10/P11/P12), research-validated canonical facts. 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + ADR-0013 + VP-044..047 + SS-19. BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. NEXT: F2 human gate → F3 incremental stories. (Prior steady-state: v0.12.1 RELEASED D-436 2026-07-13, pipeline PAUSED.)**
 
 ---
 
@@ -73,16 +73,16 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Steady-state — v0.12.1 RELEASED (D-436, 2026-07-13); pipeline PAUSED; NEXT: session review, STORY-166 wave-76 |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F2 CONVERGED (D-438, 2026-07-14); pipeline PAUSED; NEXT: F2 human gate → F3 |
 | Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=7b11b83 — 0 unreleased commits; trees identical 5e75fd5; DRIFT-BACKMERGE-SQUASH-001: squash back-merge, histories diverge, trees match) |
 | Main HEAD | `fedcea4` (full: `fedcea4ab17d9b3257c9903636aec0c0fd08f147`) |
 | Develop HEAD | `7b11b83` (full: `7b11b830ed8138136159a45aa6686b9df32cf707`) — PR #400 squash back-merge 2026-07-13; DRIFT-BACKMERGE-SQUASH-001: fedcea4 not ancestor of 7b11b83, trees identical (5e75fd5) |
 | Tag v0.12.1 | commit `fedcea4`; tag object `d687a77d911503e67a8d171c00536bd710762bba` (annotated tag) |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.12.1 (Latest, 4 binaries: aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu) |
 | Factory artifacts HEAD | see `git -C .factory log -1 --format='%h %s'` |
-| Spec versions | BC-INDEX v2.22 / VP-INDEX v2.40 / ARCH-INDEX v2.12 / PRD v1.51 |
+| Spec versions | BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 |
 | Stories | 105 delivered / 119 total (STORY-INDEX v3.57, 729 pts) |
-| **Last Updated** | 2026-07-13 — v0.12.1 RELEASED (D-436, human-authorized). PR #399 fedcea4 + tag d687a77 + GH release (4 binaries) + back-merge PR #400 squash 7b11b83. Trees identical: main==develop tree 5e75fd5. DRIFT-BACKMERGE-SQUASH-001. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-14 — feature-iec104 F2 CONVERGED (D-438). 12 adversarial passes, 3-clean streak P10/P11/P12. 30 new BCs + ADR-0013 + VP-044..047 + SS-19. Carry: ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -109,6 +109,8 @@ maintenance_prior_run: maint-2026-07-09
 | Feature cycle feature-protocol-coverage — F5 (scoped-adversarial) | **DONE/CONVERGED (D-378)** | 8 fresh-context passes (7 scoped-adversarial + 1 confirmation); CODE ZERO findings every pass; BC-completeness 9/9; canonical values re-derived every pass; SS-18 purity + VP-041/042/043 non-vacuity confirmed; all findings were spec-doc reconciliation-drift (D-375+D-376+D-377); final pass develop cad7024 BC-INDEX v2.16 CLEAN. |
 | Feature cycle feature-protocol-coverage — F6 (targeted-hardening) | **DONE/PASS (D-380)** | VP-041/042/043 ALL PROVEN. 5 Kani harnesses VERIFICATION SUCCESSFUL (0/103 checks); VP-041 catalog Kani JUSTIFIED-DEFERRED (compile-time constant, documented inline); fuzz_coverage_gap_classify 2,049,292 execs/301s/0 crashes; cargo-mutants delta kill rate 100% (3 E-21 survivors killed by f6_hardening tests; 2 pre-existing LOW-tier survivors remain). PR #357 squash-merged to develop 6da5456. Full-tree cargo test + clippy + fmt + deny all green. |
 | Feature cycle feature-protocol-coverage — F7 (delta-convergence) | **CONVERGED/CLOSED (D-382, 2026-07-05)** | Human gate approved. All 5 dimensions SATISFIED (D-381). Cycle CLOSED. v0.11.2 RELEASED. S-7.02 SATISFIED (STORY-155 filed). |
+| Feature cycle feature-iec104 — F1 (delta-analysis) | **DONE/APPROVED (2026-07-14)** | Delta-analysis COMPLETE. Impact: src/analyzer/iec104.rs (new), src/dispatcher.rs (Rule 8 + DispatchTarget::Iec104), src/protocols.rs (port 2404), src/mitre.rs (T0881). 30 new BCs (BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025) + new SS-19 subsystem + ADR-0013 + VP-044..047. Human-approved. |
+| Feature cycle feature-iec104 — F2 (spec-evolution) | **DONE/CONVERGED (D-438, 2026-07-14)** | 12 adversarial passes, 3-clean streak (P10/P11/P12), 12 fresh-context consistency audits. Research-validated canonical facts (T0881, TypeIDs 45-51, T1692.001 name). HIGH-decay 4→1→1→2→2→1→0→0→0→0→0→0. Final: BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.5 / ADR-0013 / VP-044..047. 5 F3-handoff items (LOW/NIT). Input-hash STALE=0. NEXT: F2 human gate → F3. |
 | v0.11.2 RELEASED | **RELEASED 2026-07-05** | PR #358 (release/0.11.2 → main, merge 96ef1ff); tag v0.11.2 (tag obj 2852165d); GitHub Release Latest. Back-merge PR #359 (main → develop, squash 4a9eba3). |
 | Out-of-cycle fix — issue #342 (D-383, 2026-07-06) | **DONE/CLOSED — RELEASED in v0.11.3** | DF-VALIDATION-001 triage: SEC-005+SEC-006 CONFIRMED dedup-into-#342; PR #362 squash-merged → develop ae931245; issue #342 CLOSED. Issues #360/#361 filed. Released v0.11.3 (2026-07-06). |
 | v0.11.3 RELEASED | **RELEASED 2026-07-06** | PR #363 (release/0.11.3 → main, merge 6785716); tag v0.11.3 (tag obj 57381877); GitHub Release Latest. Back-merge PR #364 (main → develop, squash a85c6f7). Cargo.toml 0.11.3 on main+develop. Smoke-test GO (37/37 clean invocations; #342 fix confirmed; RSS 303 MB / 2.25M-pkt). |
@@ -146,6 +148,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-435 | Wave-75 CLOSED (human-approved 2026-07-13). Gate all-green across all dimensions: (a) Full Suite PASS — CI 13/13 green (bin-selftest AC-165-001 first-ever run; changelog-gate PASS; clippy -D warnings clean; fmt clean); (b) Wave Adversarial PASS — 7 passes, streak 3/3 (W5/W6/W7), trajectory 2→0→0→1→0→0→0, CONVERGED; 3 substantive defects caught post-merge (F-W75G-P1-001 LOW merge-auth attribution, F-W75G-P1-002 LOW line citation, F-W75G-P4-001 MEDIUM blanket provenance), all fixed; (c) Code Review PASS — 0 BLOCKING/MAJOR/MINOR, 1 NIT DEFERRED (human-ratified 2026-07-13; joins ROUTE-W74-DEFERRED), 2 OBS; (d) Security PASS — adjudicated: CI-yaml+docs-only delta, no separate wave pass required; (e) Consistency/Currency PASS — delivery-doc currency sweep first mandatory execution COMPLETE; STORY-INDEX v3.56 consistent; (f) Holdout N/A — zero src/ changes; (g) Wave Demos PASS — 4 artifacts, scrub PASS; (h) Input-hash PASS — MATCH=119 STALE=0 (canonical Python tool). S-7.02 SATISFIED: STORY-166 drafted (wave-TBD, E-11, 5 pts, v1.0, hash 8e244ad, STORY-INDEX v3.56, 119 stories/731 pts) codifying PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP AC-166-001, PG-W75-FINDING-ID-DUAL-SCHEME AC-166-002, OBS-W75-W7 scrub-scope AC-166-003, OBS-W75-W6 streak-persistence AC-166-004; PG-W75-GATE-SUMMARY-VERSION-ATTRIBUTION corrected in-burst (gate-summary.md:43 v3.48→v3.47). Justified deferral: sprint-state field-drift → Drift Items vestigial-file retirement. Carry-forwards: ROUTE-W74-DEFERRED; ROUTE-BC-DEFERRED-2026-07-11. develop==origin==fa646ed; 4 unreleased commits. Pipeline ACTIVE. | 2026-07-13 |
 | D-432 | Wave-74 CLOSED (human-approved 2026-07-12). Gate all-green across all dimensions: (a) Full Suite PASS — cargo 904/0, clippy -D warnings clean, fmt clean, python 101/101 (22+10 bin/ self-tests + integration suite), release profile clean; (b) Wave Adversarial PASS — 13 passes, streak 3/3 (W11/W12/W13), trajectory 2→0→1→1→0→1→0→3→1→1→0→2n→1n, CONVERGED; 8 substantive defects caught post-merge (status-legend corpus contradictions ×3, fabricated PR test table ×1, demo/currency staleness ×3, historical-framing inversion ×1), all fixed; (c) Code Review PASS — 2 MINOR + 4 NIT DEFERRED (human-ratified 2026-07-12; ROUTE-W74-DEFERRED, next bin-touch PR); (d) Security PASS — 4 LOW/INFO dispositioned (SEC-001/002 LOW accepted, SEC-003 INFO deferred-to-#392, SEC-004 INFO accepted); (e) Consistency PASS — status-legend corpus sweep completed; STORY-INDEX v3.51 consistent; (f) Holdout N/A — zero src/ changes; (g) Wave Demos PASS — 6 artifacts on develop, scrub PASS (zero host paths); (h) Input-hash PASS — MATCH=118 STALE=0 (canonical Python tool, 118 stories). STORY-164 spec final: v1.16 @ 1a02b00 (16 versions — 8 per-story passes + 13 wave passes). Gate value: 8 substantive defects caught post-merge. S-7.02 SATISFIED: STORY-165 drafted (wave-TBD, E-11, 3 pts, v1.0 @ d3df8d5, STORY-INDEX v3.51, 118 stories) codifying PG-W74-CI-BIN-SELFTEST AC-165-001, PG-W74-PRDESC-ROW-VERIFY AC-165-002, PG-W74-DELIVERY-DOC-CURRENCY AC-165-003, PG-W74-GROUND-TRUTH-AUDIT-FIRST AC-165-004. Deferred: ROUTE-W74-DEFERRED (human-ratified P3) + ROUTE-BC-DEFERRED-2026-07-11 + PERF-RERUN-001 + SEC-001 (next feature wave). develop=d6e3be8 (3 unreleased commits ahead of v0.12.0). Pipeline PAUSED. | 2026-07-12 |
 | D-437 | Engine/project triage (human-directed, 2026-07-14): 4 engine issues filed in drbothen/vsdd-factory (#635 streak persistence, #636 demo-recorder scrub, #637 input-hash hook divergence, #638 finding-ID canonicalization; all DF-VALIDATION-001-validated); STORY-166 re-scoped v1.1 5→3 pts (AC-002/004 moved to engine, AC-003 narrowed); STORY-INDEX v3.57 (729 pts); PG-HASH-HOOK-DIVERGENCE now tracked upstream as #637 (CLAUDE.md advisory note remains valid until fixed). | 2026-07-14 |
+| D-438 | feature-iec104 F2 spec-evolution CONVERGED (2026-07-14). 12 adversarial passes (3-clean streak P10/P11/P12), 12 fresh-context consistency audits. Research-agent canonical-fact validation at P1: T0881 "Service Stop"/IcsInhibitResponseFunction confirmed correct for STOPDT-abuse; T0809 "Data Destruction" wrong; control TypeIDs 45-51 confirmed; C_SE_ND_1 nonexistent; TypeID 52 reserved. HIGH-decay trajectory 4→1→1→2→2→1→0→0→0→0→0→0. Final spec: BC-INDEX v2.28 (30 new BCs: BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025; 2 amended: BC-2.18.003 v1.5 + BC-2.18.004 v1.3); PRD v1.56; VP-INDEX v2.46 (VP-044 Kani + VP-045/046 proptest + VP-047 fuzz); ARCH-INDEX v2.16 (SS-19 + ADR-0013); SS-19 v1.5; verification-architecture v2.33; verification-coverage-matrix v1.48. ADR-0013: docs/adr/ + .factory/specs/architecture/decisions/ byte-identical. Input-hash audit STALE=0 (BC-2.19.* f5a97d3; cross-subsystem 8b69772; BC-2.18.* 84318a1; canonical Python tool). 5 F3-handoff items (LOW/NIT — F3-H-001..005). 4 F3 code obligations (T0881 in mitre.rs; port 2404 in protocols.rs; DispatchTarget::Iec104 in dispatcher.rs; new src/analyzer/iec104.rs). Process-gaps: DF-SIBLING-SWEEP-001 under-swept ×8 bursts; PG-VP-CONSISTENCY-HOOK-FP advisory-only; research-doc reconciliation-sweep gap. Pre-existing drift: DRIFT-VP039-BC207038-TLS-TODO-001 (VP-039 stale TODOs, SS-07 scope). Convergence report: .factory/cycles/feature-iec104/adversarial/f2-convergence-report.md. | 2026-07-14 |
 
 ---
 
@@ -304,6 +307,7 @@ D-001..D-301 (exhaustive): see `cycles/*/decisions-archive.md` (greenfield → f
 |----|---------|--------|--------|
 | DRIFT-SPRINT-STATE-FIELD-FORM-001 | sprint-state.yaml uses both `merge_sha:` and `merge_commit:` field names inconsistently across wave entries. File self-declares vestigial (greenfield artifact; STORY-INDEX is authoritative wave registry). Field-form inconsistency is cosmetic drift in a vestigial file. | wave-75 gate S-7.02 justified deferral (D-435, 2026-07-13) | vestigial-file retirement decision at next housekeeping pass |
 | DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) is NOT an ancestor of develop (7b11b83). Trees ARE identical (both 5e75fd53e74c9f2a75f5847981db7a6d377935ad) — content fully synced, history-only divergence. Justified deferral: resolve at next release (merge-commit back-merge per 72a2842 precedent) or accept as convention. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
+| DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly subsystem). Discovered by architect during feature-iec104 F2 review (D-438). These TODOs belong to the SS-07 (TLS) owner, not the IEC-104 team — out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS subsystem owner — next TLS maintenance sweep |
 
 ---
 
@@ -407,21 +411,22 @@ Detail: `cycles/feature-enip-v0.11.0/decisions-archive` + `cycles/maint-2026-07-
 
 ## Session Resume Checkpoint
 
-**v0.12.1 RELEASED (D-436, 2026-07-13) + post-wrap engine/project triage (D-437, 2026-07-14): 4 vsdd-factory issues filed (#635/#636/#637/#638, all DF-VALIDATION-001-validated); STORY-166 re-scoped v1.1 5→3 pts; STORY-INDEX v3.57 (729 pts). Pipeline PAUSED.**
+**feature-iec104 F2 CONVERGED (D-438, 2026-07-14). 12 adversarial passes, 3-clean streak P10/P11/P12. Pipeline PAUSED awaiting F2 human gate.**
 
-Prior checkpoint (v0.12.1 RELEASED, D-436, 2026-07-13) archived to `cycles/wave-75/session-checkpoints.md`.
+Prior checkpoint (v0.12.1 RELEASED, D-437, 2026-07-14) archived to `cycles/wave-75/session-checkpoints.md`.
 
-- **Date:** 2026-07-14 (post-wrap addendum). Position: v0.12.1 RELEASED (D-436); engine/project triage complete (D-437); pipeline PAUSED.
-- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147` (PR #399 merge commit); develop = `7b11b830ed8138136159a45aa6686b9df32cf707` (PR #400 squash back-merge). Tag v0.12.1: annotated tag object `d687a77d911503e67a8d171c00536bd710762bba` → commit `fedcea4`. GitHub Release Latest (4 binaries) at https://github.com/Zious11/wirerust/releases/tag/v0.12.1. Trees identical: main==develop tree `5e75fd53e74c9f2a75f5847981db7a6d377935ad` — 0 unreleased commits. DRIFT-BACKMERGE-SQUASH-001: main (fedcea4) is NOT an ancestor of develop (7b11b83) due to squash back-merge; content fully synced; history-only divergence.
-- **In-flight / abandoned:** None. No mid-TDD stories; no open PRs; no open worktrees; no open release/* or chore/backmerge-* branches (release/0.12.1 + chore/backmerge-v0.12.1 deleted post-merge). No sub-agents abandoned mid-step.
-- **Active story:** None. STORY-165 v1.6 CLOSED (wave-75, E-11, 3 pts, 4 ACs; PR #398 fa646ed). STORY-166 re-scoped v1.1 (wave-TBD, E-11, 3 pts, hash b56924f; engine issues #635/#636/#637/#638 cross-referenced — AC-166-002→#638, AC-166-004→#635, AC-166-003 narrowed, engine half→#636).
-- **Carry-forwards:** ROUTE-W74-DEFERRED (wave-74 code-review MINOR ×2 + NIT ×5 (wave-75 NIT-1 included) + OBS ×4, human-ratified next bin-touch PR); ROUTE-BC-DEFERRED-2026-07-11 (spec-index fixes + holdout repairs — deferred by human); PERF-RERUN-001 OPEN (quiescent conditions required); SEC-001 DEFERRED (next feature wave); CR-001/002/003 (wave-73 D-428 code-review DEFERRED, human-ratified); DRIFT-BACKMERGE-SQUASH-001 (resolve at next release cut).
+- **Date:** 2026-07-14. Position: feature-iec104 F2 spec-evolution CONVERGED (D-438); pipeline PAUSED.
+- **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `7b11b830ed8138136159a45aa6686b9df32cf707`. DRIFT-BACKMERGE-SQUASH-001: trees identical (5e75fd5); history-only divergence. 0 unreleased commits.
+- **Active cycle:** feature-iec104 — F2 CONVERGED; F3 PENDING human gate. Convergence report: `cycles/feature-iec104/adversarial/f2-convergence-report.md`.
+- **F3-handoff items (5, LOW/NIT):** F3-H-001 BC-2.19.024 first-frame guard; F3-H-002 BC-2.19.023 prose; F3-H-003 BC-2.10.010 VP table; F3-H-004 research-doc reconciliation note; F3-H-005 BC-2.19.017 COT wording.
+- **F3 code obligations (4):** T0881 in src/mitre.rs; port 2404 in src/protocols.rs; DispatchTarget::Iec104 in src/dispatcher.rs; new src/analyzer/iec104.rs.
+- **Carry-forwards:** ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 wave-76 (E-11, 3 pts, wave-TBD, hash b56924f).
 - **Next work (ordered):**
-  1. Session review (post-release housekeeping).
-  2. STORY-166 wave-76 plan gate (E-11, 3 pts, wave-TBD — re-scoped v1.1 per D-437).
+  1. F2 human gate → F3 incremental-stories decomposition.
+  2. STORY-166 wave-76 plan gate (E-11, 3 pts, wave-TBD).
   3. ROUTE-BC-DEFERRED-2026-07-11 + ROUTE-W74-DEFERRED at next bin-touch PR.
   4. SEC-001 next feature wave.
-- **Spec versions:** BC-INDEX v2.22 / VP-INDEX v2.40 / HS-INDEX v2.13 / STORY-INDEX v3.57 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / HS-INDEX v2.13 / STORY-INDEX v3.57 / dependency-graph v3.8 (128 edges) / module-criticality v1.6.
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
@@ -437,6 +442,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 
 | Content | Location |
 |---------|----------|
+| feature-iec104 F2 convergence report | `cycles/feature-iec104/adversarial/f2-convergence-report.md` (12 passes, CONVERGED P10/P11/P12, D-438) |
 | Wave 75 gate files | `cycles/wave-75/wave-gate/` (gate-summary.md D-435, code-review.md, findings.md) |
 | Wave 75 lessons | `cycles/wave-75/lessons.md` (5 lessons; L-1..L-2 codified STORY-166; L-3 applied; L-4 codified; L-5 observation) |
 | Wave 75 process-gap ledger | `cycles/wave-75/process-gap-ledger.md` (3 PGs + 2 OBS + 1 redundancy note; all DISPOSITIONED D-435) |

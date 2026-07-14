@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.51"
+version: "1.56"
 status: draft
 producer: product-owner
-timestamp: 2026-07-01T18:00:00Z
+timestamp: 2026-07-13T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -24,7 +24,7 @@ inputs:
   - .factory/specs/domain/capabilities/cap-11-reporting-output.md
   - .factory/semport/wirerust/wirerust-pass-3-behavioral-contracts.md
   - .factory/semport/wirerust/wirerust-pass-3-deep-behavioral-contracts-r4.md
-input-hash: "ff3462e"
+input-hash: "6c65410"
 traces_to: .factory/specs/domain/domain-spec.md
 supplements:
   - prd-supplements/interface-definitions.md
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 288 BCs.**
+> **→ Current total after all deltas: 288 BCs → 377 active (378 on disk, BC-2.01.004 retired).**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -424,6 +424,23 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.56 delta (2026-07-14 — F2 Pass-7 remediation — BC-2.19.005 title sync; BC-2.19.026 Inv-4 math; BC-2.18.003 test-vector count):**
+> M1 (MEDIUM) §2.19.A RTM row BC-2.19.005 title propagated from H1 — added "6-byte APCI" (was "Valid Input", now "Valid 6-byte APCI Input (Happy Path)"). L2 (LOW) BC-2.19.026 v1.4→v1.5: Invariant 4 math corrected ceil(255/6)=43→floor(255/6)=42; unsound "input ≤ 255" assumption dropped (termination unconditional for any finite input). L3 (LOW) BC-2.18.003 v1.4→v1.5: unsupported_protocols() canonical test vector count ~23→~22. BC-INDEX bumped to v2.28. Comprehensive title-sync sweep (DF-SIBLING-SWEEP-001): all 32 IEC-104-related BCs verified — only BC-2.19.005 had a title mismatch. No BC count change.
+>
+> **Version 1.55 delta (2026-07-14 — F2 Pass-6 remediation — BC-2.19.019 title label correction):**
+> F-P6-H1 (LOW) §2.19.E RTM row BC-2.19.019 title corrected — "Set-Point TypeIDs 48–51" → "Set-Point + Bitstring TypeIDs 48–51" (TypeID 51 = C_BO_NA_1 bitstring, not a set-point). Resolves intra-PRD contradiction between §2.19 prose ("set-point + bitstring writes (C_SE 48–50, C_BO 51)") and the §2.19.E RTM row. BC-2.19.019 H1 and BC-INDEX row also updated to match. No other changes. BC-INDEX bumped to v2.27.
+>
+> **Version 1.54 delta (2026-07-14 — F2 Pass-5 remediation — T0836 label + carry-semantics + VP attribution):**
+> F2 Pass-5 final sibling loci sweep. (1) §2.19 control-command prose: "set-point/bitstring TypeIDs 48–51" → "set-point + bitstring writes (C_SE 48–50, C_BO 51)" — aligns label to ADR-013 authoritative wording (F-P5-L1). (2) BC-2.19.004 v1.0→v1.1: VP attribution corrected — forward-progress/loop-termination attributed to VP-047; VP-044 scope restated as LEN-bounds-only (F-P5-M1). (3) BC-2.19.002 v1.1→v1.2: bad-start-byte carry semantics reconciled to ADR-013 Decision 3 step 3 — carry NOT discarded; advance 1 byte (resync scan) (F-P5-H1). (4) BC-2.19.026 v1.3→v1.4: PC-4 + Inv-1 reconciled to ADR-013 — full advance-mode enumeration added; stale BC-2.19.002 postcondition-3 cite removed (F-P5-H1/F-P5-L2). All 27 BC-2.19.* input-hashes recomputed to canonical c8a16ed.
+>
+> **Version 1.53 delta (2026-07-13 — F2-Pass-1 remediation — T0881 technique correction; traces_to normalization; BC/PRD sync):**
+> F2 adversarial Pass-1 remediation. (1) Technique corrected throughout: T0809 "Data Destruction" replaced with T0881 "Service Stop" (MitreTactic::IcsInhibitResponseFunction / TA0107) — this is the research-validated technique for IEC-104 STOPDT-act patterns. Corrected in: §2.19 session-state-machine prose, §2.19.X cross-subsystem BC table, §2.10 O-04 domain-debt row. (2) Control-command TypeID range corrected 45–52→45–51 in §2.19 prose and BC-2.19.019 row (TypeID 52 is RESERVED; C_SE has only NA_1=48/NB_1=49/NC_1=50; C_BO_NA_1=51). (3) §2.10 O-04 arithmetic updated to SEEDED=29, EMITTED=21, CATALOGUE-ONLY=8 (T0881 is a new registration, not moved from CATALOGUE-ONLY). BC-INDEX bumped v2.23→v2.24.
+>
+> **Version 1.52 delta (2026-07-13 — feature-iec104 F2 spec-evolution — 30 new BCs + 2 SS-18 amendments; SS-19 added):**
+> NEW §2.19: IEC 60870-5-104 Passive Analysis (CAP-19, SS-19, ADR-013). 27 greenfield BCs (BC-2.19.001..027) covering APCI framing/validation, I/S/U frame format discrimination (VP-046 totality), U-format session state machine (STARTDT/STOPDT/TESTFR), ASDU parsing (TypeID/VSQ/COT/CASDU/IOA), control-command detection (TypeIDs 45–51→T1692.001 (all); set-point TypeIDs 48–51→+T0836; TypeID 105→T0827, reserved→T0814), N(S)/N(R) 15-bit extraction + k=12 desync detection (T1692.001), directional carry isolation (VP-045, 255-byte cap), frame-walk loop (VP-044+VP-047), per-flow teardown. CROSS-SUBSYSTEM: BC-2.05.012 (Rule 8: TCP/2404→DispatchTarget::Iec104), BC-2.10.010 (T0881 SEEDED/technique_info/EMITTED atomic registration, SEEDED 28→29), BC-2.12.025 (--iec104 flag, opt-in, included in --all). AMENDED: BC-2.18.003 v1.3→v1.4 (SUPPORTED_PORTS adds port 2404, supported entries 7→8), BC-2.18.004 v1.2→v1.3 (EC-003/EC-007 IEC-104 examples). Total BC count: 347→377 active. BC-INDEX v2.22→v2.23.
+> **Licensing constraint (ADR-013 Decision 7 — BLOCKING):** `iec60870-5` crate BANNED (proprietary). Wireshark IEC-104 dissector BANNED (GPLv2). lib60870 BANNED (GPLv3). Original Rust parser only.
+> **MITRE coverage:** T1692.001 (control commands), T0836 (set-point), T0881 (service stop), T0814 (DoS/malformed), T0827 (loss of control), T1692.002 (spoofed telemetry — SEEDED/staged, not yet emitted). CWE coverage: CWE-306/294/184/319/311.
 >
 > **Version 1.51 delta (2026-07-01 — F2 adversarial Pass-7 PRD-narrative reconciliation):**
 > F-F2P7-002 (HIGH) PRD §2.18 L2/multicast caveat: Ethernet POWERLINK (0x88AB) added as 5th structurally-absent L2 protocol — matches canonical 5-protocol list in ADR-012 Decision 3a, BC-2.12.024 PC-1, BC-2.18.001 EC-001, cap-18, and the PRD's own §2.18 scope line ("5 L2/multicast"). F-F2P7-003 (HIGH) PRD §2.18 formal-verification narrative: VP-041 "single harness `proptest_vp041_oracle_cross_check`" corrected to "two harnesses `proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`" — matches RTM rows at §2.18 and BC-2.18.003/004 VP tables (added Pass-2). BC-INDEX bumped to v2.11 for F-F2P7-004 (MEDIUM): BC-2.18.003 v1.2→v1.3 and BC-2.18.004 v1.1→v1.2 — partition harness `proptest_vp041_partition_invariant` "non-vacuous / oracle computed independently" mislabeling corrected; holds trivially by complement derivation per verification-architecture.md line 184; `proptest_vp041_oracle_cross_check` is the non-vacuous guard. No BC count change.
@@ -1073,8 +1090,8 @@ remaining`, covering both partial-copy and full-drop). It is surfaced in `summar
 > T1691.001, T0827 are emitted by the DNP3 analyzer (Feature #8).
 > T0830, T1557.002 are emitted by the ARP analyzer (Feature #9) — added in v1.9.
 > T0858, T0816, T0836, T0846, T0888, T0814 are emitted by the EtherNet/IP analyzer (Feature #316, v0.11.0).
-> Arithmetic: SEEDED=28, EMITTED=20, CATALOGUE-ONLY=28−20=8.
-> BC-2.10.005 v1.12 documents all 28 seeded IDs; BC-2.10.008 v1.14 documents 20 emitted IDs. (BC-2.10.005/BC-2.10.008 version-bump COMPLETE — Pre-F3 finding F-P2-010 CLEARED, 2026-06-24.)
+> Arithmetic: SEEDED=29, EMITTED=21, CATALOGUE-ONLY=29−21=8.
+> BC-2.10.005 v1.12 documents all 28 seeded IDs (pre-feature-iec104); BC-2.10.008 v1.14 documents 20 emitted IDs (pre-feature-iec104). feature-iec104 adds T0881 (v1.53: SEEDED 28→29, EMITTED 20→21, CATALOGUE-ONLY remains 8). (BC-2.10.005/BC-2.10.008 version-bump COMPLETE — Pre-F3 finding F-P2-010 CLEARED, 2026-06-24.)
 
 ### 2.11 Reporting and Output (CAP-11)
 
@@ -2218,6 +2235,112 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 > - `behavioral-contracts/ss-12/BC-2.12.022.md` through `BC-2.12.024.md` (SS-12 CLI surface)
 
 
+### 2.19 IEC 60870-5-104 Passive Analysis (CAP-19) [Feature — ADR-013, feature-iec104]
+
+> **Release target: future (v0.13.0 candidate — additive: new `--iec104` analyzer flag + TCP/2404 passive analysis).**
+> 27 BCs (BC-2.19.001..027) authored plus 3 cross-subsystem BCs (BC-2.05.012, BC-2.10.010, BC-2.12.025).
+
+> **Protocol overview:** IEC 60870-5-104 is a SCADA telecontrol protocol over TCP port 2404. Two-layer framing:
+> outer APCI (6-byte: start byte 0x68, LEN octet 4–253, CF1–CF4 control octets) + inner ASDU
+> (TypeID + VSQ + COT + CASDU + IOA + data objects). Three frame formats discriminated on CF1 low bits:
+> I-format (bit0=0, carries ASDU), S-format (bits1:0=0b01, supervisory), U-format (bits1:0=0b11, session control).
+
+> **Session state machine (STARTDT/STOPDT/TESTFR):**
+> - STARTDT-act (CF1=0x07): initiates data transfer; sets session_started=true.
+> - STOPDT-act (CF1=0x13) after STARTDT: T0881 "Service Stop" (IcsInhibitResponseFunction / TA0107) Possible.
+> - STOPDT-act without prior STARTDT: T0881 Likely (elevated confidence).
+> - TESTFR (CF1=0x43/0x83): keepalive; no finding.
+> - Non-canonical U-frame CF1: T0814 "Denial of Service" Possible (CVE-2026-1773 pattern).
+
+> **Control-command detection (ASDU TypeIDs):**
+> - TypeIDs 45–51 (C_SC/C_DC/C_RC/C_SE_NA_1/C_SE_NB_1/C_SE_NC_1/C_BO_NA_1): T1692.001 (all Possible); set-point + bitstring writes (C_SE 48–50, C_BO 51) emit T0836 (Possible).
+> - TypeID 105 (C_RP Reset Process): T0827 "Loss of Control" Possible.
+> - TypeIDs 100/101/103 (interrogation/clock-sync): benign, logged only.
+> - Reserved TypeIDs (0, 128–255): T0814 Possible.
+
+> **Formal verification:** VP-044 (Kani P0: parse_apci_header arithmetic safety, no panic, LEN+2∈[6,255]),
+> VP-045 (proptest P1: directional carry buffer isolation), VP-046 (proptest P1: classify_frame_format
+> totality over all 256 CF1 values via classify_oracle), VP-047 (cargo-fuzz P1: on_data no-panic harness).
+
+> **Licensing constraint (BLOCKING):** iec60870-5 crate BANNED (proprietary). Wireshark IEC-104 dissector BANNED (GPLv2). lib60870 BANNED (GPLv3). Original Rust parser only (ADR-013 Decision 7).
+
+#### 2.19.A APCI Header Parsing (Group A — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.001 | `parse_apci_header` Returns None for Input Shorter Than 6 Bytes | P0 | feature-iec104 |
+| BC-2.19.002 | `parse_apci_header` Returns None and Emits Anomaly When Start Byte ≠ 0x68 | P0 | feature-iec104 |
+| BC-2.19.003 | `parse_apci_header` Rejects LEN < 4 with T0814 Finding (Malformed Length) | P0 | feature-iec104 |
+| BC-2.19.004 | `parse_apci_header` Rejects LEN > 253 with T0814 Finding (Malformed Length) | P0 | feature-iec104 |
+| BC-2.19.005 | `parse_apci_header` Returns Some(ApciHeader) for Valid 6-byte APCI Input (Happy Path) | P0 | feature-iec104 |
+| BC-2.19.006 | `is_valid_iec104_frame` Post-Classification Validity Gate | P0 | feature-iec104 |
+
+#### 2.19.B Frame Format Discrimination (Group B — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.007 | `classify_frame_format` Returns IFormat When CF1 Bit 0 = 0 | P0 | feature-iec104 |
+| BC-2.19.008 | `classify_frame_format` Returns SFormat When CF1 Bits 1:0 = 0b01 | P0 | feature-iec104 |
+| BC-2.19.009 | `classify_frame_format` Totality — UFormat for All Remaining CF1 Values (VP-046) | P0 | feature-iec104 |
+
+#### 2.19.C U-Format Session State Machine (Group C — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.010 | STARTDT-act (CF1=0x07) Sets session_started=true in Iec104FlowState | P0 | feature-iec104 |
+| BC-2.19.011 | STOPDT-act (CF1=0x13) After STARTDT Emits T0881 (Possible) "Service Stop" | P0 | feature-iec104 |
+| BC-2.19.012 | STOPDT-act Without Prior STARTDT Emits T0881 (Likely) "Service Stop" | P0 | feature-iec104 |
+| BC-2.19.013 | TESTFR Keepalive Frames (CF1=0x43/0x83) Produce No Finding | P1 | feature-iec104 |
+| BC-2.19.014 | Non-Canonical U-Frame CF1 Emits T0814 Anomaly (CVE-2026-1773 Pattern) | P0 | feature-iec104 |
+
+#### 2.19.D ASDU Parsing (Group D — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.015 | ASDU Minimum-Length Guard Rejects I-Frame ASDU Body Shorter Than 6 Bytes | P0 | feature-iec104 |
+| BC-2.19.016 | TypeID and VSQ Extraction from ASDU Bytes 0–1 | P0 | feature-iec104 |
+| BC-2.19.017 | COT Extraction (Cause of Transmission) from ASDU Bytes 2–3 | P0 | feature-iec104 |
+| BC-2.19.018 | CASDU and First IOA Extraction from ASDU Bytes 4–8 | P0 | feature-iec104 |
+
+#### 2.19.E Control-Command Detection (Group E — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.019 | Control Command TypeIDs 45–51 Emit T1692.001; Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836 | P0 | feature-iec104 |
+| BC-2.19.020 | C_RP_NA_1 (TypeID 105) Emits T0827 "Loss of Control" Finding | P0 | feature-iec104 |
+| BC-2.19.021 | Interrogation and Clock-Sync Commands (TypeIDs 100, 101, 103) Are Logged Without Findings | P1 | feature-iec104 |
+| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly | P0 | feature-iec104 |
+
+#### 2.19.F Sequence Tracking (Group F — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.023 | N(S)/N(R) 15-Bit Sequence Numbers Extracted Correctly from I/S Frame CF1–CF4 | P0 | feature-iec104 |
+| BC-2.19.024 | N(S) Gap > k=12 Emits T1692.001 Sequence-Desync Finding | P0 | feature-iec104 |
+
+#### 2.19.G Carry Lifecycle and Flow Teardown (Group G — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.025 | Directional Carry Buffers Bounded at MAX_IEC104_CARRY_BYTES=255 (VP-045) | P0 | feature-iec104 |
+| BC-2.19.026 | Frame-Walk Loop Processes Multiple APDUs per on_data Call | P0 | feature-iec104 |
+| BC-2.19.027 | on_flow_close Removes Iec104FlowState and Discards Carry Bytes | P0 | feature-iec104 |
+
+#### 2.19.X Cross-Subsystem Extensions
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.05.012 | `classify()` Rule 8 — TCP Port 2404 Returns DispatchTarget::Iec104 | P0 | feature-iec104 |
+| BC-2.10.010 | T0881 "Service Stop" Registered in SEEDED_TECHNIQUE_IDS, technique_info(), and EMITTED_IDS | P0 | feature-iec104 |
+| BC-2.12.025 | `--iec104` Flag Enables IEC-104 Analysis; Included in `--all`; Default False | P0 | feature-iec104 |
+
+> Full contracts:
+> - `behavioral-contracts/ss-19/BC-2.19.001.md` through `BC-2.19.027.md` (SS-19 IEC-104)
+> - `behavioral-contracts/ss-05/BC-2.05.012.md` (SS-05 dispatch Rule 8)
+> - `behavioral-contracts/ss-10/BC-2.10.010.md` (SS-10 MITRE catalog T0881)
+> - `behavioral-contracts/ss-12/BC-2.12.025.md` (SS-12 --iec104 flag)
+
+
 ## 8. Domain Debt Index
 
 > These open items from domain-debt.md are cross-referenced here for quick lookup.
@@ -2228,7 +2351,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | ~~O-01~~ | ~~Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors~~ **[CLOSED — STORY-097/098/099; BC-2.04.054 retains timestamp:None by design]** | ~~BC-2.09.001, BC-2.09.006~~ |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | MITRE techniques seeded but never emitted: T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T1693.001 (staged-not-emitted per ADR-010 Decision 7; GetAndClear firmware detection deferred); T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap. T0846 NOW emitted by EtherNet/IP (BC-2.17.010 ListIdentity — removed from not-emitted list). T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus (Feature #7); T1691.001/T0827 now emitted by DNP3 (Feature #8); T0830/T1557.002 now emitted by ARP (Feature #9); T0858/T0816/T0836/T0846/T0888/T0814 now emitted by EtherNet/IP (Feature #316, v0.11.0) — T0858 (IcsExecution TA0104, new catalog entry) and T0816 (IcsInhibitResponseFunction TA0107, new catalog entry) require `technique_info()` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant. Per ARCH-INDEX v1.7 + F2 EtherNet/IP update: SEEDED=28, EMITTED=20, CATALOGUE-ONLY=8. BC-2.10.005 v1.12/BC-2.10.008 v1.14 updated to reflect T0858+T0816+T0846 emitted entries (Pre-F3 finding F-P2-010 CLEARED, 2026-06-24). | BC-2.10.005, BC-2.10.008 |
+| O-04 | MITRE techniques seeded but never emitted: T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T1693.001 (staged-not-emitted per ADR-010 Decision 7; GetAndClear firmware detection deferred); T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap. T0846 NOW emitted by EtherNet/IP (BC-2.17.010 ListIdentity — removed from not-emitted list). T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus (Feature #7); T1691.001/T0827 now emitted by DNP3 (Feature #8); T0830/T1557.002 now emitted by ARP (Feature #9); T0858/T0816/T0836/T0846/T0888/T0814 now emitted by EtherNet/IP (Feature #316, v0.11.0) — T0858 (IcsExecution TA0104, new catalog entry) and T0816 (IcsInhibitResponseFunction TA0107, new catalog entry) require `technique_info()` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant. Per ARCH-INDEX v1.7 + F2 EtherNet/IP update: SEEDED=28, EMITTED=20, CATALOGUE-ONLY=8. BC-2.10.005 v1.12/BC-2.10.008 v1.14 updated to reflect T0858+T0816+T0846 emitted entries (Pre-F3 finding F-P2-010 CLEARED, 2026-06-24). **feature-iec104 update (2026-07-13):** T0881 "Service Stop" newly registered in all three structures (BC-2.10.010); SEEDED 28→29, EMITTED 20→21, CATALOGUE-ONLY remains 8 (T0881 is a new entry, not moved from CATALOGUE-ONLY). T0881/T0814/T1692.001/T0836/T0827 all emitted by IEC-104 analyzer. | BC-2.10.005, BC-2.10.008 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

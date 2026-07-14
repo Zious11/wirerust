@@ -88,6 +88,35 @@ Evidence pointer: `.factory/session-reviews/session-review-2026-07-10-v0.12.0.md
 
 ---
 
+## From: v0.12.1 Release Chain Session Review (2026-07-13)
+
+See full proposals in: `.factory/session-reviews/session-review-2026-07-13-v0.12.1.md`
+
+Human decisions: PENDING (within 72h of 2026-07-13)
+
+| ID | Category | Priority | Summary | Status | Revisit Trigger |
+|---|---|---|---|---|---|
+| PROP-V0.12.1-01 | agent / engine-escalation | P1 HIGH | File vsdd-factory engine issue for ADVERSARY-RELAY-UNRELIABLE-001 — 8+ lifetime occurrences; 5+ in wave-74 gate despite sync dispatch; sync workaround insufficient at gate scale. Pending DF-VALIDATION-001 validation before filing. | PENDING HUMAN REVIEW | Before wave-76 gate dispatch |
+| PROP-V0.12.1-02 | workflow / policy-codification | P2 MEDIUM | Draft E-11 governance story codifying BACKMERGE-FAST-FORWARD-001 in CLAUDE.md (back-merges must use merge-commit, not squash); 2nd squash back-merge in 2 releases. | PENDING HUMAN REVIEW | Before next release cut |
+| PROP-V0.12.1-03 | workflow / benchmarking | P2 MEDIUM | Add separate E-11 governance wave convergence targets to benchmarks.yaml (≤9 passes single-story, ≤8 passes multi-story); current ≤4 implementation-wave target is inapplicable to governance waves and masks quality signals. | PENDING HUMAN REVIEW | Before wave-76 gate dispatch |
+| PROP-V0.12.1-04 | workflow / tech-debt | P3 LOW | Schedule ROUTE-W74-DEFERRED resolution (11 accumulated items) during STORY-166 delivery — STORY-166 is a bin-touch PR and satisfies the trigger condition. | PENDING HUMAN REVIEW | STORY-166 delivery planning |
+
+Evidence pointer: `.factory/session-reviews/session-review-2026-07-13-v0.12.1.md` § Improvement Proposals.
+
+---
+
+## Status Updates to Prior Proposals (as of 2026-07-13 review)
+
+| ID | Prior Status | Updated Status | Basis |
+|---|---|---|---|
+| PROP-V0.12.0-01 | PENDING HUMAN REVIEW | PARTIALLY ADDRESSED | breaking-change-delivery-protocol.md created (D-429, STORY-164 v1.1 AC-164-005); CLAUDE.md row added; workflow not yet wired into story template; open item: full template wiring |
+| PROP-V0.12.0-03 | PENDING HUMAN REVIEW | APPLIED/INSUFFICIENT | Sync dispatch applied per recommendation; ADVERSARY-RELAY-UNRELIABLE-001 still 5+ incidents at wave-74 gate — see PROP-V0.12.1-01 for escalation |
+| PROP-V0.12.0-05 | PENDING HUMAN REVIEW | SUPERSEDED | PG-HASH-HOOK-DIVERGENCE tracked at vsdd-factory#637 (D-437); CLAUDE.md advisory note remains valid; no local project action required |
+| PROP-V0.12.0-06 | PENDING HUMAN REVIEW | CONFIRMED RESOLVED-EFFECTIVE | PAT-009 already updated to RESOLVED-EFFECTIVE in pattern-database.yaml (2026-07-10); zero recurrences across 20+ gate passes in this cycle |
+| ADV-4 OVERDUE | open carry-forward (prior reviews) | CLOSED-STALE | tech-debt-register maint-2026-07-11 confirms "ADV-4 OVERDUE flag stale (already RESOLVED PR #369)"; no further action needed |
+
+---
+
 ## Auto-Deferral Note
 
 If no human response within 72h of session review completion (2026-06-16), all

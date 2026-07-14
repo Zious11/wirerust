@@ -1,0 +1,47 @@
+# Affected files for cycle: feature-iec104
+# Generated: 2026-07-13
+# Base commit: 7b11b83 (develop)
+# Format: <change_type> <file_path>
+# change_type: NEW | MODIFIED | DEPENDENT | BASELINE
+#
+# NEW     — file does not yet exist; must be created
+# MODIFIED — file exists and requires substantive changes
+# DEPENDENT — file is unchanged but depends on a MODIFIED/NEW file;
+#             its tests must stay green throughout the cycle
+# BASELINE — must not be modified; forms the regression baseline
+
+# --- NEW FILE ---
+NEW     src/analyzer/iec104.rs
+
+# --- MODIFIED FILES (substantive changes required) ---
+MODIFIED src/dispatcher.rs
+MODIFIED src/analyzer/mod.rs
+MODIFIED src/protocols.rs
+MODIFIED src/mitre.rs
+MODIFIED src/cli.rs
+MODIFIED src/main.rs
+
+# --- DEPENDENT FILES (unchanged; tests must stay green) ---
+DEPENDENT src/reporter/terminal.rs
+DEPENDENT src/reporter/json.rs
+DEPENDENT src/lib.rs
+
+# --- REGRESSION BASELINE (must not be modified) ---
+BASELINE src/analyzer/arp.rs
+BASELINE src/analyzer/dnp3.rs
+BASELINE src/analyzer/dns.rs
+BASELINE src/analyzer/enip.rs
+BASELINE src/analyzer/http.rs
+BASELINE src/analyzer/modbus.rs
+BASELINE src/analyzer/tls.rs
+BASELINE src/decoder.rs
+BASELINE src/reader.rs
+BASELINE src/findings.rs
+BASELINE src/summary.rs
+BASELINE src/reassembly/mod.rs
+BASELINE src/reassembly/flow.rs
+BASELINE src/reassembly/handler.rs
+BASELINE src/reassembly/lifecycle.rs
+BASELINE src/reassembly/segment.rs
+BASELINE src/reassembly/config.rs
+BASELINE src/reassembly/stats.rs

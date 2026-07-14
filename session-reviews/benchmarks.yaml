@@ -278,3 +278,96 @@ runs:
       asm_cand_009_resolved: true  # PR #382
       td_maint_risk_registry_backfill_resolved: true  # D-420 risk-register.md + assumptions.md
       sec_w71_001_filed: true  # GitHub issue #392 (CWE-22)
+
+  - cycle: v0.12.1-release-chain
+    released_version: v0.12.1
+    prior_released_version: v0.12.0
+    released_at: "2026-07-13"
+    run_type: composite  # wave-73-close + maint-2026-07-11 + wave-74 + wave-75 + release + post-wrap-triage
+    duration: "~4 calendar days (2026-07-11..2026-07-14)"
+    stories_delivered: 2  # STORY-164 (wave-74, 4pts) + STORY-165 (wave-75, 3pts)
+    story_points: 7  # both E-11 governance-only; zero behavioral src/ delta
+    prs_merged: [396, 397, 398, 399, 400]
+    waves_closed: [74, 75]  # plus wave-73 tail close (D-428)
+    maintenance_runs: [maint-2026-07-11]
+
+    quality:
+      holdout_mean: null  # N/A — zero src/ changes; all stories E-11 governance
+      holdout_scenarios: null
+      spec_coherence_pass: null  # not re-run; last known 33/33 maint-2026-07-09
+      test_count_at_release: 2392  # unchanged from v0.12.0; zero src/ delta
+      test_failures: 0
+      security_findings_exploitable: 0
+      security_wave74: "4 LOW/INFO accepted/deferred"
+      security_wave75: "CLEAN (CI-yaml+docs only)"
+      ci_gates_at_release: 13  # +1 bin-selftest (AC-165-001)
+      bin_selftest_first_run: true  # AC-165-001 first execution CI-green
+      input_hash_at_release: "MATCH=119 STALE=0"
+
+    convergence:
+      wave73_adversary_passes: 6  # D-428 close; trajectory 4→2→1→0→1n→0
+      wave73_not_clean: 3  # substantive (4+2+1 = early passes)
+      wave74_adversary_passes: 13  # highest single-gate pass count in project history
+      wave74_not_clean_substantive: 8  # defects caught post-merge; all fixed
+      wave74_refuted: 2  # W9+W10 ACCEPTED-REFUTED (AC-165-004 root cause)
+      wave74_trajectory: "2→0→1→1→0→1→0→3→1→1→0→2n→1n"
+      wave75_adversary_passes: 7  # reduced 46% from wave-74 via currency sweep (AC-165-003)
+      wave75_not_clean_substantive: 3  # all fixed
+      wave75_trajectory: "2→0→0→1→0→0→0"
+      story164_per_story_passes: 8
+      story164_first_pass_findings: 6  # highest per-story first-pass finding count on record
+      story164_trajectory: "6→4→3→2n→2→1n→2n→1n"
+      story165_per_story_passes: 9
+      story165_first_pass_findings: 1
+      story165_trajectory: "1→0→0→2→0→1→0→0→0"
+      maint_2026_07_11_convergence: "VOID+finding_rounds+3/3"  # DRIFT-ENGINE-CHECKOUT-GUARD-001 2nd recurrence
+
+    efficiency:
+      adversary_relay_failures: 6  # maint-07-11: 1 (3rd lifetime) + wave-74 gate: 5+ (4th+ lifetime)
+      adversary_relay_lifetime_total: "8+"
+      checkout_guard_void_passes: 1  # maint-07-11 Pass 1 VOID (DRIFT-ENGINE-CHECKOUT-GUARD-001 2nd recurrence)
+      squash_backmerge_incidents: 1  # PR #400 v0.12.1 back-merge (DRIFT-BACKMERGE-SQUASH-001; 2nd overall)
+      route_w74_deferred_accumulated: 11  # MINOR×2 + NIT×5 + OBS×4 (wave-74 ×8 + wave-75 ×1 NIT-1 + OBS×2)
+      engine_issues_filed: 4  # vsdd-factory #635/#636/#637/#638 (D-437; all DF-VALIDATION-001-validated)
+      story166_rescoped: "5→3 pts (2 ACs moved to engine, 1 narrowed)"
+      row_verify_mandate_first_run: true  # AC-165-002 first compliant execution (9 rows, all accurate)
+      currency_sweep_first_mandatory: true  # AC-165-003 first execution at wave-75 gate
+
+    gate_first_try:
+      total_gates_counted: 12
+      passed_first_try: 3  # wave-75 plan gate, v0.12.1 release PR, back-merge PR
+      rate_pct: 25  # NOTE: low rate is expected/correct; wave gates are designed to find things
+      non_first_try_notable:
+        - "wave-74 gate: 13 passes (highest single-gate total)"
+        - "STORY-164 per-story: 8 passes (first-pass 6 findings — highest on record)"
+        - "maint-2026-07-11 Route A: VOID + 2 finding rounds before 3/3"
+
+    governance_wave_cost_profile:
+      # New benchmark category added per PROP-V0.12.1-03
+      wave74_passes_per_pt: 5.25  # 21 total / 4 pts
+      wave75_passes_per_pt: 5.3   # 16 total / 3 pts
+      wave73_passes_per_pt: 2.4   # ~12 total / 5 pts (multi-story comparison)
+      proposed_e11_single_story_target: 9  # PROP-V0.12.1-03 proposed target
+
+    process_improvements:
+      proposals_generated: 4  # PROP-V0.12.1-01..04
+      proposals_p1: 1  # PROP-V0.12.1-01
+      proposals_p2: 2  # PROP-V0.12.1-02, PROP-V0.12.1-03
+      proposals_p3: 1  # PROP-V0.12.1-04
+
+    targets_for_next_run:
+      e11_single_story_passes_target: 9  # governance-wave benchmark (PROP-V0.12.1-03)
+      adversary_relay_failures: 0  # requires engine fix (PROP-V0.12.1-01)
+      squash_backmerge_incidents: 0  # requires BACKMERGE-FAST-FORWARD-001 codification (PROP-V0.12.1-02)
+      route_w74_deferred_accumulated: 0  # resolve during STORY-166 delivery (PROP-V0.12.1-04)
+      spec_coherence_criteria: "33/33"  # target third consecutive (pending next maintenance sweep)
+      test_count_minimum: 2392
+      holdout_scenarios_active: 132  # next implementation wave will re-activate holdout eval
+
+    ongoing_metrics:
+      prop_v012001_status: "PARTIALLY_ADDRESSED"  # breaking-change-delivery-protocol.md created
+      drift_backmerge_squash_001: "OPEN"  # resolve at next release
+      route_bc_deferred_2026_07_11: "OPEN"  # spec-index fixes + holdout repairs
+      sec_001: "DEFERRED_next_feature_wave"
+      perf_rerun_001: "OPEN"  # quiescent conditions required
+      story166_wave76: "SCHEDULED"
