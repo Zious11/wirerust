@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.58"
+version: "3.59"
 status: draft
 producer: story-writer
-timestamp: 2026-07-14T00:00:00Z
-phase: f3
+timestamp: 2026-07-14T22:00:00Z
+phase: f4
 total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.59 (2026-07-14): STORY-167 DELIVERED (PR #401 e65e0d6, 2026-07-14); status draft→delivered; wave-76 Delivery Progress → DELIVERED (D-441); per-story adversarial CONVERGED 3-clean (BC-5.39.001); security CLEAN; AI APPROVE (2 MINOR/3 NIT accepted); CI 13/13; demo 7 artifacts scrub PASS. stories_delivered 105→106. No numeric totals changed.
 # v3.58 (2026-07-14): F3 feature-iec104 story decomposition — E-22 added (IEC-104 Passive Analyzer, 8 stories/36 pts); STORY-167..174 registered (waves 76–83; serialized due to src/analyzer/iec104.rs file contention; 170→171 file-seq edge per F-F3P2-005 precedent); dep-graph v3.9 acyclic (137 edges; topo 167→168→169→170→171→172→173→174); total_stories 119→127; total_points 729→765; total_waves 75→83; wave-table scheduled 112/704→120/740; input-hash MATCH=127 STALE=0 (canonical Python tool); awaiting F3 plan-gate human approval (D-440).
 # v3.57 (2026-07-13): STORY-166 re-scoped v1.0→v1.1: AC-166-002 → drbothen/vsdd-factory#638 (engine), AC-166-004 → drbothen/vsdd-factory#635 (engine), AC-166-003 narrowed to project half (engine half → #636); PG-HASH-HOOK-DIVERGENCE tracked as #637. Points 5→3; E-11: 58→56 pts; total_points: 731→729. Epic-table TOTAL 731→729.
 # v3.56 (2026-07-13): STORY-166 added (wave-TBD draft, E-11, 5 pts; wave-75 S-7.02 cycle-close: PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP AC-166-001 citation symbol-at-line assertion + ROUTE-W74-DEFERRED housekeeping + PG-W75-FINDING-ID-DUAL-SCHEME AC-166-002 finding-ID naming policy + G-less lint + PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE AC-166-003 demo-evidence scrub scope extension + PG-W75-MIDGATE-STREAK-PERSISTENCE AC-166-004 mid-gate streak persistence). total_stories: 118→119; total_points: 726→731; E-11: 15→16 stories, 53→58 pts. Wave-table scheduled unchanged (704, STORY-166 wave-TBD excluded). Epic-table TOTAL 726→731.
@@ -287,7 +288,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-152 | `protocols` CLI Subcommand — CLI Dispatch Wiring + Terminal Table Renderer + JSON Output (BC-2.12.022 + BC-2.18.001 + BC-2.18.002) | E-21 | 68 | 8 | merged | STORY-151 |
 | STORY-153 | Dispatcher `unclassified_port_counts` + UDP Decode-Loop `udp_unclassified_counts` — BC-2.05.010 + BC-2.05.011 + VP-042/VP-043 | E-21 | 67 | 8 | merged | — |
 | STORY-154 | `--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024) | E-21 | 69 | 8 | merged | STORY-151, STORY-152, STORY-153 |
-| STORY-167 | IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton | E-22 | 76 | 5 | draft | — |
+| STORY-167 | IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton | E-22 | 76 | 5 | delivered | — |
 | STORY-168 | IEC-104 Frame Format Discrimination + U-Format Session State Machine (STARTDT/STOPDT/TESTFR) | E-22 | 77 | 5 | draft | STORY-167 |
 | STORY-169 | IEC-104 ASDU Header Extraction: TypeID, VSQ, COT, CASDU, IOA | E-22 | 78 | 3 | draft | STORY-168 |
 | STORY-170 | IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs | E-22 | 79 | 5 | draft | STORY-169 |
@@ -498,6 +499,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 73 | STORY-162, STORY-163 | **DELIVERED & CLOSED (D-428, 2026-07-11)** | #395 (STORY-162); STORY-163 factory-only (D-427) | b5e1e15; n/a | 2026-07-11 |
 | 74 | STORY-164 | **DELIVERED (D-431, 2026-07-11)** | #397 | d6e3be8 | 2026-07-11 |
 | 75 | STORY-165 | **DELIVERED (D-434, 2026-07-13)** | #398 | fa646ed | 2026-07-13 |
+| 76 | STORY-167 | **DELIVERED (D-441, 2026-07-14)** | #401 | e65e0d6 | 2026-07-14 |
 
 ## Coverage Verification
 
