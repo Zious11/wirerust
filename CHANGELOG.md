@@ -9,6 +9,23 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 ASDU DUI header extraction: `parse_asdu` + `Asdu` struct (STORY-169, wave-78,
+  BC-2.19.015–018, ADR-013 Decision 8).**
+
+  Adds pure-core ASDU header extraction to `src/analyzer/iec104`:
+
+  - `Asdu` struct with nine broken-out DUI fields: `type_id` (u8), `sq` (bool), `count` (u8),
+    `cot_cause` (u8), `cot_pn` (bool), `cot_test` (bool), `cot_originator` (u8), `casdu` (u16),
+    `first_ioa: Option<u32>`. No packed `vsq: u8` or `cot: u16` fields (ADR-013 Decision 3).
+
+  - `parse_asdu(asdu_body: &[u8]) -> Option<Asdu>`: pure-core free function. Returns `None`
+    when `asdu_body.len() < 6` (6-byte DUI minimum guard; BC-2.19.015; caller emits T0814).
+    On the accept path, extracts all nine fields: TypeID verbatim from byte 0; SQ and count
+    from VSQ byte 1 (BC-2.19.016); COT cause/P-N/T/originator from bytes 2–3 (BC-2.19.017);
+    CASDU as 16-bit LE from bytes 4–5 (BC-2.19.018). `first_ioa` is
+    `Some(24-bit LE zero-extended to u32)` when `count > 0` AND `len >= 9`; `None` otherwise
+    (BC-2.19.018). No panic for any input (VP-047 fuzz seam).
+
 - **IEC-104 frame format discrimination + U-format session state machine (STORY-168, wave-77,
   BC-2.19.007–014, ADR-013 Decisions 4/5; T0881/T0814 emission).**
 
