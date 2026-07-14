@@ -4,6 +4,19 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-14 (replaced by D-443 STORY-168 DELIVERED checkpoint)
+
+**STORY-168 GREEN CHECKPOINT (D-442, 2026-07-14) — impl complete, adversarial NOT started. Worktree `.worktrees/STORY-168` durable; branch `feature/STORY-168-iec104-frame-discrimination-session-sm` (base develop e65e0d6); commits `392436b`+`dc8b867` (NOT pushed). NEXT: STORY-168 per-story adversarial 3-clean → demo → PR → merge, then STORY-169..174 (waves 78–83).**
+
+- **Date:** 2026-07-14. Position: feature-iec104 F4 IN PROGRESS; wave-77 STORY-168 GREEN (impl complete); per-story adversarial NOT STARTED; pipeline PAUSED (session checkpoint).
+- **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `e65e0d6eddbd24ce5a1c9482369978d2cc9dff36`. 1 unreleased commit (STORY-167 PR #401).
+- **STORY-168 state:** Worktree `.worktrees/STORY-168` EXISTS and durable (local only). Branch `feature/STORY-168-iec104-frame-discrimination-session-sm` (base develop e65e0d6). NOT pushed to origin (local commits only). Commits: `392436b` (impl: classify_frame_format I/S/U + process_u_frame session SM + T0881/T0814, BC-2.19.007-014) + `dc8b867` (CHANGELOG). Tests: 64/64 iec104 tests green; full suite 0 failures; clippy/fmt/release CLEAN.
+- **Scope in STORY-168:** classify_frame_format I/S/U; process_u_frame session SM: STARTDT-act→STARTDT-con (T0881 Possible/Likely); STOPDT-act→STOPDT-con; TESTFR-act→TESTFR-con (T0814 non-canonical U); fail-closed on non-canonical U. VP-046 totality covered. Iec104FlowState 5 fields per SS-19 v1.6. N(S) tracking UNWIRED — STORY-171. No dispatch wiring — STORY-173.
+- **Carry-forwards:** ROUTE-BC-DEFERRED-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / STORY-INDEX v3.59 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-14 (replaced by D-442 STORY-168 GREEN checkpoint)
 
 **feature-iec104 F4 IN PROGRESS — wave-76/STORY-167 DELIVERED (D-441, 2026-07-14). develop=e65e0d6; stories_delivered=106; STORY-INDEX v3.59. NEXT: STORY-168 wave-77.**
