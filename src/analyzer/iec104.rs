@@ -551,13 +551,6 @@ pub struct Asdu {
 /// ## VP-047 fuzz seam (ADR-013 Decision 8)
 /// This is a VP-047 cargo-fuzz target (no-panic for any input). It is NOT a VP-044
 /// Kani target — `parse_apci_header` is the Kani target; ASDU extraction is VP-047 only.
-///
-/// ## BC-5.38.001 / BC-5.38.005 Red Gate compliance
-/// Body is `todo!()` per BC-5.38.001. BC-5.38.005 self-check applied:
-/// "If I include this real implementation, will the test for this function pass
-/// trivially without any implementer work?" — YES: every field assertion in the test
-/// suite (e.g., `assert_eq!(asdu.type_id, asdu_body[0])`) would trivially pass.
-/// Therefore: `todo!()`.
 pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
     // BC-2.19.015: minimum-length guard — DUI requires at least 6 bytes:
     // TypeID(1) + VSQ(1) + COT(2) + CASDU(2) = 6. Return None without accessing any byte.
