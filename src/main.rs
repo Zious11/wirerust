@@ -352,9 +352,7 @@ fn run_analyze(
     };
 
     // BC-2.12.025: construct Iec104Analyzer only when enabled AND reassembly is on.
-    // STUB (STORY-173 TDD step): analyzer is constructed but the dispatcher forwarding
-    // arm in on_data is not yet wired. This ensures `--iec104` instantiates the analyzer
-    // (AC-173-003 PC-1) but does not route data to it yet.
+    // Dispatcher forwarding arm is wired (dispatcher.rs:464-470; STORY-173).
     let iec104_analyzer: Option<Iec104Analyzer> = if enable_iec104 && !skip_reassembly {
         Some(Iec104Analyzer::new())
     } else {
@@ -534,6 +532,13 @@ fn run_analyze(
     if let Some(enip) = dispatcher.take_enip_analyzer() {
         all_findings.extend(enip.all_findings.iter().cloned());
         analyzer_summaries.push(enip.summarize());
+    }
+
+    // BC-2.19.028 / AC-173-007: post-finalize — collect IEC-104 findings and summary.
+    // Mirrors take_enip_analyzer() / take_dnp3_analyzer() pattern (ADR-013 Decision 9).
+    if let Some(iec104) = dispatcher.take_iec104_analyzer() {
+        all_findings.extend(iec104.all_findings.iter().cloned());
+        analyzer_summaries.push(iec104.summarize());
     }
 
     // STORY-113: ARP post-capture summary (BC-2.16.011 PC7/8; AC-016).

@@ -1295,9 +1295,40 @@ impl Iec104Analyzer {
     /// Aggregates analyzer-level counters into an `AnalysisSummary`. The detail map
     /// MUST include key `"dropped_findings"` (BC-2.19.028 PC-5 / AC-173-007).
     ///
+    /// `packets_analyzed` is set to `all_findings.len()` — the IEC-104 analyzer tracks
+    /// no independent per-frame counter; the retained-findings count is the closest
+    /// available proxy for analysis activity (do not invent a new counter field).
+    ///
+    /// Does NOT emit new findings (no side effects).
+    ///
     /// Traces: BC-2.19.028 Postcondition 5; AC-173-007; STORY-173 F-173-001.
     pub fn summarize(&self) -> AnalysisSummary {
-        todo!("STORY-173 F-173-001")
+        use std::collections::BTreeMap;
+
+        let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+
+        // BC-2.19.028 PC-5 / AC-173-007: MUST be present; value is monotonically
+        // non-decreasing across on_data calls (zero when no cap event has fired).
+        detail.insert(
+            "dropped_findings".to_string(),
+            serde_json::Value::Number(self.dropped_findings.into()),
+        );
+        // Observability: number of TCP flows tracked (open at summarize time).
+        detail.insert(
+            "flows_analyzed".to_string(),
+            serde_json::Value::Number((self.flows.len() as u64).into()),
+        );
+        // Observability: retained findings count (capped at MAX_IEC104_FINDINGS).
+        detail.insert(
+            "total_findings".to_string(),
+            serde_json::Value::Number((self.all_findings.len() as u64).into()),
+        );
+
+        AnalysisSummary {
+            analyzer_name: "IEC-104".to_string(),
+            packets_analyzed: self.all_findings.len() as u64,
+            detail,
+        }
     }
 
     /// Remove per-flow state for a closed flow, discarding carry bytes silently.
