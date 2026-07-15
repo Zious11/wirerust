@@ -3478,8 +3478,6 @@ mod story_170 {
 //            Option<u16> First-Frame Guard + Desync Detection
 //
 // Covers BC-2.19.023 and BC-2.19.024.
-// ALL tests in this module MUST FAIL (Red Gate) because extract_ns, extract_nr,
-// and track_ns_desync are todo!() stubs. They pass after implementation.
 //
 // ## Contract coverage
 // - BC-2.19.023: extract_ns(cf1, cf2) -> u16 via ((cf1>>1)|(cf2<<7)); range [0,32767]
@@ -3503,8 +3501,8 @@ mod story_170 {
 // this known false-positive; suppression via TCP deduplication is deferred.
 //
 // ## Provenance
-// Written Red-first as TDD stubs (STORY-171 strict TDD mode, wave-80).
-// All tests FAIL until extract_ns, extract_nr, track_ns_desync are implemented.
+// Written Red-first as TDD stubs (STORY-171 strict TDD mode, wave-80); now GREEN
+// against the delivered extract_ns / extract_nr / track_ns_desync implementation.
 // =============================================================================
 mod story_171 {
     use proptest::prelude::*;
@@ -4012,6 +4010,24 @@ mod story_171 {
             Some(5020),
             "Path C canonical: last_ns_c2s must update to Some(5020) \
              (BC-2.19.024 postcondition C3)"
+        );
+        // BC-2.19.024 PC-C2: finding message must embed current N(S), prev N(S), and gap value.
+        // Impl summary format: "IEC-104 N(S) sequence desync: N(S)={current} prev={prev} gap={gap} > k=12"
+        // F-171-002; DF-SIBLING-SWEEP-001.
+        assert!(
+            f.summary.contains("5020"),
+            "Path C canonical: summary must contain current N(S) \"5020\" \
+             (BC-2.19.024 postcondition C2; AC-171-005; F-171-002)"
+        );
+        assert!(
+            f.summary.contains("5001"),
+            "Path C canonical: summary must contain prev N(S) \"5001\" \
+             (BC-2.19.024 postcondition C2; AC-171-005; F-171-002)"
+        );
+        assert!(
+            f.summary.contains("19"),
+            "Path C canonical: summary must contain gap value \"19\" \
+             (BC-2.19.024 postcondition C2; AC-171-005; F-171-002)"
         );
     }
 
