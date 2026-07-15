@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
 status: in_progress
-current_step: "D-452 STORY-172 Pass-1 adversarial remediation COMPLETE (2026-07-15). F-172-001 HIGH (aggregate carry pre-check = Ptacek/Newsham evasion channel + false-positive source; WALK-FIRST-RESIDUAL-BOUND research-validated) + F-172-002 HIGH (dispatch-effect assertions; 6 tests added) remediated. F-172-003 LOW DEFERRED STORY-174. BC-2.19.025 v1.2 / BC-INDEX v2.30 / ADR-013 / SS-19 v1.8 / ARCH-INDEX v2.18. STORY-172 v3.0 hash 246add6; worktree 4dc85c4; 2584/0 tests. STORY-INDEX v3.66. Pass 2 pending (streak target 3-clean). trajectory-tail →0→0→0→4"
+current_step: "D-453 STORY-172 Pass-2 adversarial review → 1L F-172-201 prose precision (entry-check vs residual-after-walk; equivalents proved; no observable divergence) REMEDIATED (2026-07-15). BC-2.19.025 v1.3 / BC-INDEX v2.31 / ADR-013 / SS-19 v1.9 / ARCH-INDEX v2.19 / STORY-172 v3.1 hash 938645f. Code unchanged 4dc85c4; 2584/0. STORY-INDEX v3.67. Pass 3 pending (streak target 3-clean). trajectory-tail →0→0→4→1"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-15T20:40:00Z
-# D-452 STORY-172 Pass-1 remediation COMPLETE (2026-07-15). F-172-001/002 remediated, WALK-FIRST-RESIDUAL-BOUND research-validated; BC-INDEX v2.30; ARCH-INDEX v2.18; SS-19 v1.8; STORY-172 v3.0 hash 246add6. STORY-INDEX v3.66. Pass 2 pending.
+timestamp: 2026-07-15T22:15:00Z
+# D-453 STORY-172 Pass-2 adversarial review → 1L F-172-201 prose precision remediated (2026-07-15). BC-2.19.025 v1.3; BC-INDEX v2.31; ADR-013; SS-19 v1.9; ARCH-INDEX v2.19. STORY-172 v3.1 hash 938645f. STORY-INDEX v3.67. Pass 3 pending.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,7 +25,7 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-15 — D-452 STORY-172 Pass-1 remediation COMPLETE; develop=1a64380 (STORY-167+168+169+170+171, 5 unreleased); STORY-172 in TDD worktree 4dc85c4; DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-15 — D-453 STORY-172 Pass-2 F-172-201 prose precision remediated; develop=1a64380 (STORY-167+168+169+170+171, 5 unreleased); STORY-172 in TDD worktree 4dc85c4; DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 develop_head: 1a64380
 # Cargo.toml version: main=0.12.1; develop=0.12.1 (5 unreleased commits 1a64380 STORY-167+168+169+170+171; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 1a64380, histories diverge; trees differ by IEC-104 feature code)
@@ -38,13 +38,13 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 110
-story_index_version: "v3.66"
+story_index_version: "v3.67"
 total_stories: 127
-story_index_note: "127 stories / 83 waves / 765 pts. v3.66 (2026-07-15): STORY-172 v3.0 (D-452, Pass-1 remediation; walk-first residual-bound; carry_overflow dedup flags; hash 246add6); BC-INDEX v2.30; ARCH-INDEX v2.18. See cycles/feature-iec104/ for full F2/F3 history."
+story_index_note: "127 stories / 83 waves / 765 pts. v3.67 (2026-07-15): STORY-172 v3.1 (D-453, Pass-2 prose precision; BC-2.19.025 v1.3 entry-check formulation; hash 938645f); BC-INDEX v2.31; ARCH-INDEX v2.19. See cycles/feature-iec104/ for full F2/F3 history."
 # Spec versions (current)
-bc_index_version: "v2.30"
+bc_index_version: "v2.31"
 vp_index_version: "v2.46"
-arch_index_version: "v2.18"
+arch_index_version: "v2.19"
 prd_version: "v1.56"
 epics_version: v2.1
 # DTU

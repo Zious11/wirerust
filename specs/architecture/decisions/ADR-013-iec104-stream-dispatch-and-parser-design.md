@@ -26,6 +26,9 @@ modified:
   - date: 2026-07-15
     actor: architect
     reason: "Decision 2 carry-bound semantics corrected to walk-first residual-bound per F-172-001 (adversarial Pass 1) + research validation; aggregate pre-check removed as evasion channel."
+  - date: 2026-07-15
+    actor: architect
+    reason: "Decision 2 guard-placement prose precision per F-172-201; behavior unchanged."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -142,8 +145,11 @@ also the F-B-002 evasion-DoS hole in the DNP3 analyzer (ADR-007 / SS-15) that wa
 explicitly hardened away; adopting it for IEC-104 would re-open the same hole and split
 SS-19 from SS-15 (RULING-DNP3-SIBLING-001 consistency).
 
-**Carry-overflow reaction (bound-trip on malformed or adversarial residual):** If the
-residual partial-frame carry after the walk exceeds MAX_IEC104_CARRY_BYTES, the analyzer:
+**Carry-overflow reaction (bound-trip on malformed or adversarial carry):** The guard runs
+at on_data entry on the directional carry alone (equivalent to bounding the previous walk's
+residual; the walk stashes ≤254 bytes by construction, so the guard is defensive-only and
+unreachable via the wire). If the carry at on_data entry exceeds MAX_IEC104_CARRY_BYTES,
+the analyzer:
 1. Clears the offending direction's residual carry.
 2. Byte-walks forward to find the next `0x68` start byte (drop-and-rescan; fresh start, not
    a permanent desync latch — a single overflow must not blind the analyzer to subsequent
@@ -184,12 +190,12 @@ resync scan; insufficient data (steps 2 or 5): stash in carry and return — gua
 termination. Per BC-2.19.026: advancing only 1 on a bad start byte (not 2) preserves any
 valid 0x68 at the next offset (VP-047, cargo-fuzz).
 
-**Post-loop carry-bound check:** after the loop terminates (insufficient bytes for a new
-frame — step 2 or step 5 triggers — the remaining bytes become the new directional carry).
-If the resulting carry exceeds `MAX_IEC104_CARRY_BYTES = 255` bytes (unreachable for
-conformant traffic; see Decision 2 reachability note), apply the carry-overflow reaction
-from Decision 2: clear carry, resync to next `0x68`, emit one T0814 per direction via the
-carry-overflow dedup flag (distinct from the malformed-LEN dedup flag in step 4).
+**Carry-overflow check (on_data entry, directional carry):** The carry-overflow reaction
+from Decision 2 runs at on_data entry on the directional carry alone — equivalent to
+bounding the previous walk's residual (the walk stashes ≤254 bytes by construction;
+guard is unreachable for conformant traffic per Decision 2 reachability note). Reaction:
+clear carry, resync to next `0x68`, emit one T0814 per direction via the carry-overflow
+dedup flag (distinct from the malformed-LEN dedup flag in step 4).
 
 VP-044 (Kani) proves that `parse_apci_header` — the pure-core function implementing
 steps 1–5 — never panics, never produces an out-of-bounds index, and that the
@@ -451,7 +457,7 @@ strategy is sufficient for a simple bit-discriminant function; Kani would add no
 | T0836 | Modify Parameter | set-point + bitstring writes (C_SE 48–50, C_BO 51) | Pre-existing EMITTED |
 | T0831 | Manipulation of Control | C_SE + C_SC actuation on same flow | NOT emitted by IEC-104 this cycle (pre-existing EMITTED via Modbus analyzer; correlated C_SE+C_SC detection deferred to a future cycle) |
 | **T0881** | **Service Stop** | **STOPDT-act observed; STOPDT without prior STARTDT** | **NEW — add via Decision 10** |
-| T0814 | Denial of Service | Malformed APCI LEN out of [4,253]: one finding per flow direction (malformed-LEN dedup flag, Decision 3 step 4). Bad start byte: silent resync, no finding. Non-canonical U-frame CF1. Carry-overflow (residual > MAX_IEC104_CARRY_BYTES after walk): one finding per flow direction (carry-overflow dedup flag, Decision 2; distinct from malformed-LEN flag). | Pre-existing EMITTED |
+| T0814 | Denial of Service | Malformed APCI LEN out of [4,253]: one finding per flow direction (malformed-LEN dedup flag, Decision 3 step 4). Bad start byte: silent resync, no finding. Non-canonical U-frame CF1. Carry-overflow (carry at on_data entry > MAX_IEC104_CARRY_BYTES): one finding per flow direction (carry-overflow dedup flag, Decision 2; distinct from malformed-LEN flag). | Pre-existing EMITTED |
 | T1692.002 | Unauthorized Message: Reporting Message | M_* telemetry TypeIDs 1,3,5,9,11,13 | SEEDED; NOT emitted this cycle — M_* spoofed telemetry detection staged, out of feature-iec104 scope |
 | T0827 | Loss of Control | Reset process command (C_RP_NA_1, TypeID 105) | Pre-existing EMITTED |
 

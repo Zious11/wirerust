@@ -20,8 +20,9 @@ behavioral_contracts:
 verification_properties:
   - VP-045
   - VP-047
-version: "3.0"
+version: "3.1"
 modified:
+  - "v3.1 (2026-07-15): F-172-201 prose precision — overflow guard placement aligned to BC-2.19.025 v1.3 (on_data entry, one-call equivalent); behavior unchanged."
   - "v3.0 (2026-07-15): F-172-001 remediation — AC-172-002 re-derived to BC-2.19.025 v1.2 walk-first residual-bound (research-validated; old canonical vectors were the defect); F-172-002 dispatch-effect test citations added to AC-172-003; Iec104FlowState 9 fields."
   - "v2.0 BC-realignment per SR-172-01/02/03 (pre-delivery fidelity check, 3rd F3-DECOMPOSITION-BC-FIDELITY occurrence, 2026-07-15): FlowId->FlowKey; carry-overflow discard-all-new canonical vectors; malformed-LEN EMIT-WITH-DEDUP per BC-2.19.026 v1.6 + research validation; sibling on_data signature adopted; inputs completed."
 inputs:
@@ -37,7 +38,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "246add6"
+input-hash: "938645f"
 ---
 
 # STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
@@ -69,18 +70,22 @@ detected (T0814), and no state leaks occur across flows.
   are never appended to the other's carry buffer (VP-045 proptest verifies this)
 - Each carry buffer is bounded at `MAX_IEC104_CARRY_BYTES = 255` bytes
 
-### AC-172-002: Carry overflow emits T0814 (walk-first residual-bound, BC-2.19.025 v1.2)
+### AC-172-002: Carry overflow emits T0814 (walk-first residual-bound, BC-2.19.025 v1.3)
 **Traces to:** BC-2.19.025 postconditions 1–3, invariants 1–5
 
-The carry overflow check applies **only to the residual** partial-frame bytes remaining
-after the frame-walk loop (BC-2.19.026) drains all complete frames. No aggregate-size
-pre-check may discard a delivery before frame extraction (anti-evasion clause, F-172-001;
-cites Ptacek/Newsham 1998 evasion taxonomy and RULING-DNP3-SIBLING-001).
+The carry overflow check fires at `on_data` entry on the directional carry buffer — the
+prior walk's residual stash — before the current delivery is appended and the frame-walk
+loop begins (BC-2.19.025 v1.3, one-call-shifted equivalent of a post-walk residual bound;
+Invariant 2). No aggregate-size pre-check may discard a delivery before frame extraction
+(anti-evasion clause, F-172-001; cites Ptacek/Newsham 1998 evasion taxonomy and
+RULING-DNP3-SIBLING-001).
 
-- Given a carry buffer and incoming delivery, the frame-walk loop (AC-172-003) extracts
-  ALL complete APCI frames first (walk-first ordering — BC-2.19.025 Invariant 2)
-- After the walk, if `residual.len() > MAX_IEC104_CARRY_BYTES` (i.e., > 255 bytes;
-  non-conformant or adversarial condition — unreachable for conformant IEC-104 traffic):
+- The frame-walk loop (AC-172-003) extracts ALL complete APCI frames first (walk-first
+  ordering — BC-2.19.025 Invariant 2); no aggregate-size pre-check discard
+- At `on_data` entry, BEFORE the current delivery is appended and the frame-walk loop
+  begins, if `carry.len() > MAX_IEC104_CARRY_BYTES` (i.e., > 255 bytes; carry at entry
+  is the prior call's walk residual — non-conformant or adversarial condition,
+  unreachable for conformant IEC-104 traffic):
   - The offending direction's carry is **cleared** (empty after overflow)
   - The analyzer resyncs (subsequent deliveries scan fresh for the next `0x68` start byte;
     NOT a permanent desync latch — flow tracking and analyzer remain active)
@@ -250,13 +255,14 @@ Full execution in STORY-174. Mirrors VP-033 (ENIP carry isolation) pattern.
       (`ThreatCategory::Anomaly / Verdict::Possible / Confidence::Medium`) on first occurrence
       per direction and set `malformed_len_reported_{c2s,s2c}`; subsequent: advance-only, no finding
     - Valid frame → parse + dispatch (calling STORY-167/168/169/170/171 fns) → advance LEN+2
-    - Insufficient → after the walk, check residual overflow: if residual.len() > 255,
-      clear carry + resync + emit ONE T0814 with `carry_overflow_reported_*` dedup
-      (BC-2.19.025 v1.2 Invariants 2–4); else stash residual to carry; return
-  - Carry overflow semantics (walk-first residual-bound): frame walk extracts ALL complete
-    frames first (no pre-check discard); if residual.len() > 255 after the walk, clear
-    carry + resync + emit ONE T0814 per direction with `carry_overflow_reported_c2s/s2c`
-    dedup; this is the canonical BC-2.19.025 v1.2 semantic (F-172-001 remediation)
+    - Insufficient → stash remaining bytes to carry (residual); return (overflow check
+      fires at on_data entry on the prior carry, not per-walk-iteration — see below)
+  - Carry overflow semantics (walk-first residual-bound, BC-2.19.025 v1.3): at `on_data`
+    entry, BEFORE appending the current delivery and running the frame-walk loop, check
+    carry.len() > 255 (the directional carry at entry is the prior call's walk residual);
+    if exceeded: clear carry + resync + emit ONE T0814 per direction with
+    `carry_overflow_reported_c2s/s2c` dedup (BC-2.19.025 Invariants 2–4, F-172-001
+    remediation — one-call-shifted equivalent of bounding the post-walk residual)
 - [ ] Implement `Iec104Analyzer::on_flow_close(&mut self, flow_key: FlowKey)`:
   - `self.flows.remove(&flow_key)` (state dropped; carry freed) (BC-2.19.027)
 - [ ] Write VP-045 proptest skeletons in `tests/iec104_analyzer_tests.rs`
@@ -272,7 +278,7 @@ Full execution in STORY-174. Mirrors VP-033 (ENIP carry isolation) pattern.
 |----|-----------|-------------|-------------------|
 | EC-001 | BC-2.19.025 | Frame walk produces residual = 254 bytes (largest conformant partial frame) | Residual stashed to carry; no T0814 (`test_BC_2_19_025_v12_ec001_max_conformant_partial_254_no_t0814`) |
 | EC-002 | BC-2.19.025 | Frame walk produces residual = 255 bytes (conformant: unreachable — a 255-byte prefix is a complete frame with LEN=253 that the walk would have consumed) | Guard does not fire (255 is not > 255); bytes stashed to carry; no T0814 |
-| EC-003 | BC-2.19.025 | Frame walk produces residual = 256 bytes (adversarial/non-conformant, first C2S occurrence) | carry_c2s cleared; ONE T0814 (Anomaly/Possible/Medium) emitted; `carry_overflow_reported_c2s` set (`test_BC_2_19_025_v12_vector_iii_defensive_overflow_dedup_c2s`) |
+| EC-003 | BC-2.19.025 | carry_c2s at `on_data` entry = 256 bytes (prior walk's residual, state injected; adversarial/non-conformant, first C2S occurrence) | carry_c2s cleared; ONE T0814 (Anomaly/Possible/Medium) emitted; `carry_overflow_reported_c2s` set (`test_BC_2_19_025_v12_vector_iii_defensive_overflow_dedup_c2s`) |
 | EC-004 | BC-2.19.026 | Empty data slice | No processing; carry unchanged; no panic |
 | EC-005 | BC-2.19.026 | Bad start byte mid-stream | Advance 1 byte; carry NOT cleared; continue scanning; NO finding |
 | EC-006 | BC-2.19.026 | First malformed-LEN frame (valid 0x68, LEN=3) in C2S direction | 2-byte advance; ONE T0814 (`ThreatCategory::Anomaly / Verdict::Possible / Confidence::Medium`) emitted; `malformed_len_reported_c2s` flag set |
@@ -317,18 +323,21 @@ Agent context window ~200k tokens. This story uses ~21% — within budget.
 
 Extracted from `docs/adr/0013-iec104-stream-dispatch-and-parser-design.md`:
 - **ADR-013 Decision 2**: `MAX_IEC104_CARRY_BYTES = 255` — WALK-FIRST-RESIDUAL-BOUND
-  (BC-2.19.025 v1.2, F-172-001): this constant applies exclusively to the residual
-  partial-frame bytes remaining after the frame walk drains all complete frames. A
-  spec-conformant partial frame is at most 254 bytes (a 255-byte prefix is a complete
-  frame with LEN=253 that the walk already consumed). This bound is a fail-closed
-  defensive guard (SEC-001-S168 defense-in-depth); it is unreachable for conformant
-  IEC-104 traffic. Overflow reaction: clear carry + resync + ONE T0814 per direction
-  with `carry_overflow_reported_c2s/s2c` dedup (see BC-2.19.025 Invariant 4).
+  (BC-2.19.025 v1.3, F-172-001): this constant gates the directional carry buffer checked
+  at `on_data` entry — before the current delivery is appended and walked — where the
+  carry at entry is the prior call's walk residual (one-call-shifted equivalent of a
+  post-walk residual bound). A spec-conformant partial frame is at most 254 bytes (a
+  255-byte prefix is a complete frame with LEN=253 that the walk already consumed). This
+  bound is a fail-closed defensive guard (SEC-001-S168 defense-in-depth); it is
+  unreachable for conformant IEC-104 traffic. Overflow reaction: clear carry + resync +
+  ONE T0814 per direction with `carry_overflow_reported_c2s/s2c` dedup (BC-2.19.025
+  Invariant 4).
 - **ADR-013 Decision 3**: Frame-walk advance modes: bad-start-byte → +1/no-carry-clear/no-finding;
   malformed-LEN → +2-stub + EMIT-WITH-DEDUP (T0814 on first occurrence per direction only,
   `ThreatCategory::Anomaly / Verdict::Possible / Confidence::Medium`); valid → LEN+2;
-  insufficient → residual-overflow check (if residual.len() > 255: clear carry + resync +
-  T0814 with dedup; else stash residual to carry) → return. This exact enumeration MUST be
+  insufficient → stash remaining bytes to carry (residual); return (overflow check fires
+  at on_data entry on the prior carry before the walk — BC-2.19.025 v1.3 Invariant 2).
+  This exact enumeration MUST be
   implemented; no other advance mode is valid.
 - **ADR-013 Decision 8**: `on_data` is the effectful shell — VP-047 fuzz target. `parse_apci_header`
   is VP-044 Kani target. These scopes MUST NOT be conflated.

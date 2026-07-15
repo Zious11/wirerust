@@ -6,7 +6,7 @@ section: ss-19-iec104-analysis
 subsystem_id: SS-19
 phase: 1c
 traces_to: ARCH-INDEX.md
-version: "1.8"
+version: "1.9"
 status: draft
 producer: architect
 timestamp: 2026-07-13T00:00:00Z
@@ -38,6 +38,9 @@ modified:
   - date: 2026-07-15
     author: architect
     note: "F-172-001 WALK-FIRST-RESIDUAL-BOUND alignment: detection table T0814 row updated to include carry-overflow trigger with dedicated per-direction dedup flag (distinct from malformed-LEN flag); Bounded-Resource Note updated — bound applies to residual carry only (not aggregate carry+delivery); carry-overflow reaction described (clear, resync to 0x68, emit one T0814 per direction). Version bump 1.7→1.8. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
+  - date: 2026-07-15
+    author: architect
+    note: "F-172-201 guard-placement prose precision: detection table T0814 row 'after walk' → 'at on_data entry'; Bounded-Resource Note aligned — guard runs at on_data entry on directional carry alone (equivalent to bounding previous walk's residual). Version bump 1.8→1.9. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
 ---
 
 # SS-19: IEC-104 Analysis
@@ -67,7 +70,7 @@ SS-19 detects high-value adversarial scenarios in substation traffic:
 | Set-point + bitstring writes (C_SE 48–50, C_BO 51) | T0836 Modify Parameter | Possible |
 | STOPDT-act observed | T0881 Service Stop | Possible |
 | STOPDT without prior STARTDT | T0881 Service Stop | Likely |
-| Malformed APCI LEN out of [4,253]: EMIT-WITH-DEDUP one T0814 per flow direction (malformed-LEN dedup flag). Bad start byte: silent resync, no finding. Non-canonical U-frame. Carry-overflow (residual > MAX_IEC104_CARRY_BYTES after walk): one T0814 per flow direction (carry-overflow dedup flag; distinct from malformed-LEN flag). | T0814 Denial of Service | Possible/Likely |
+| Malformed APCI LEN out of [4,253]: EMIT-WITH-DEDUP one T0814 per flow direction (malformed-LEN dedup flag). Bad start byte: silent resync, no finding. Non-canonical U-frame. Carry-overflow (carry at on_data entry > MAX_IEC104_CARRY_BYTES): one T0814 per flow direction (carry-overflow dedup flag; distinct from malformed-LEN flag). | T0814 Denial of Service | Possible/Likely |
 | N(S) desync gap > k=12 | T1692.001 Unauthorized Message: Command Message | Possible |
 | Reset process (TypeID 105) | T0827 Loss of Control | Likely |
 | M_* spoofed telemetry (TypeIDs 1,3,5,9,11,13) | T1692.002 Unauthorized Message: Reporting Message | SEEDED; NOT emitted this cycle (staged per ADR-013 Decision 10) |
@@ -188,8 +191,9 @@ carry cap of all binary ICS analyzers (DNP3: 292 bytes, ENIP: 600 bytes). Frame-
 loop advances at least 1 byte per iteration (valid frame: LEN+2; malformed-LEN: 2-byte APCI
 stub; bad-start-byte: 1-byte resync scan to next 0x68 candidate) — no infinite loop (per
 BC-2.19.026). The 255-byte bound applies to the **residual partial-frame carry only** (walk-
-first semantics per ADR-013 Decision 2 / WALK-FIRST-RESIDUAL-BOUND): the frame walk runs
-unconditionally on carry+data, then the residual is bounded. A spec-conformant residual is
+first semantics per ADR-013 Decision 2 / WALK-FIRST-RESIDUAL-BOUND): the guard runs at
+on_data entry on the directional carry alone — equivalent to bounding the previous walk's
+residual (the walk stashes ≤254 bytes by construction). A spec-conformant residual is
 ≤ 254 bytes (a 255-byte prefix is a complete max-size APDU). Carry-overflow reaction
 (unreachable for conformant traffic): clear carry, resync to next 0x68, emit one T0814 per
 direction (carry-overflow dedup flag, distinct from malformed-LEN dedup flag).
