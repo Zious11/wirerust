@@ -9,6 +9,42 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 dispatcher integration: `DispatchTarget::Iec104`, `--iec104` flag, T0881 catalog
+  entry, port 2404 in `SUPPORTED_PORTS`, and `MAX_IEC104_FINDINGS` cap (STORY-173, wave-82,
+  BC-2.05.012, BC-2.10.010, BC-2.12.025, BC-2.18.003, BC-2.18.004, BC-2.19.028,
+  ADR-013 Decisions 1/9/10).**
+
+  Wires the IEC-104 passive analyzer into the full wirerust pipeline across five subsystems:
+
+  - **Dispatcher wiring (SS-05, AC-173-008):** `StreamDispatcher` gains `iec104:
+    Option<Iec104Analyzer>` field, a 6-parameter `new()`, `set_iec104_analyzer()` setter, and
+    `iec104_analyzer()` / `take_iec104_analyzer()` accessors. `on_data` Iec104 arm routes
+    port-2404 flow data to `Iec104Analyzer::on_data`; `on_flow_close` Iec104 arm forwards
+    to `Iec104Analyzer::on_flow_close`. Early-exit guard extended with `&& self.iec104.is_none()`
+    so `--iec104`-only invocations are not silently dropped (ADR-013 Decision 9 steps 4–5).
+
+  - **MITRE catalog — T0881 six-part atomic (SS-10, AC-173-002):** `SEEDED_TECHNIQUE_IDS`
+    gains `"T0881"` (28→29 entries); `SEEDED_TECHNIQUE_ID_COUNT` bumped to 29; `EMITTED_IDS`
+    updated; `technique_info("T0881")` arm returns `("Service Stop",
+    MitreTactic::IcsInhibitResponseFunction)` (TA0107); `vp007_catalog_drift_guard` and
+    `verify_all_seeded_ids_resolve` pass at count=29 (ADR-013 Decision 10).
+
+  - **CLI flag (SS-12, AC-173-003):** `--iec104` boolean flag added to `CliArgs`; `main.rs`
+    constructs and registers `Iec104Analyzer` when the flag is present (default-off opt-in
+    model per BC-2.12.025).
+
+  - **Protocol catalog (SS-18, AC-173-004/005):** port 2404 added to `SUPPORTED_PORTS`
+    (count 8→9); `supported_protocols()` count 7→8; VP-041 partition proptest confirms no
+    overlap with `UNMONITORED_PORTS`.
+
+  - **Findings cap (SS-19, AC-173-007 / BC-2.19.028):** `const MAX_IEC104_FINDINGS: usize =
+    10_000` added to `src/analyzer/iec104.rs`; `Iec104Analyzer` gains `dropped_findings: u64`
+    field; cap enforced at the `on_data` extend step by truncating `local_findings` to the
+    remaining capacity and accumulating the discarded count into `dropped_findings`; surfaced
+    in `summarize()` as detail key `"dropped_findings"`. Mirrors the DNP3/EtherNet/IP
+    `MAX_FINDINGS` pattern (BC-2.15.022 / BC-2.17.022). Per-flow state continues updating
+    regardless of the cap.
+
 - **IEC-104 carry buffers + frame-walk loop + flow lifecycle (STORY-172, wave-81,
   BC-2.19.025–027, ADR-013 Decision 3).**
 

@@ -1110,8 +1110,6 @@ impl Iec104Analyzer {
     /// At the extend step, `local_findings` is truncated to the remaining capacity
     /// (`MAX_IEC104_FINDINGS - self.all_findings.len()` slots) before merging; discarded count
     /// is added to `self.dropped_findings`. Per-flow state continues updating regardless.
-    ///
-    /// STUB NOTE: cap enforcement is NOT yet implemented (STORY-173 TDD step, Red Gate).
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
         let _ = ts;
@@ -1280,6 +1278,14 @@ impl Iec104Analyzer {
             }
         }
 
+        // BC-2.19.028 PC-2 / IEC104-FINDINGS-CAP-001: cap at MAX_IEC104_FINDINGS.
+        let remaining_cap = MAX_IEC104_FINDINGS.saturating_sub(self.all_findings.len());
+        if local_findings.len() > remaining_cap {
+            self.dropped_findings = self
+                .dropped_findings
+                .saturating_add((local_findings.len() - remaining_cap) as u64);
+            local_findings.truncate(remaining_cap);
+        }
         self.all_findings.extend(local_findings);
     }
 

@@ -355,8 +355,11 @@ fn run_analyze(
     // STUB (STORY-173 TDD step): analyzer is constructed but the dispatcher forwarding
     // arm in on_data is not yet wired. This ensures `--iec104` instantiates the analyzer
     // (AC-173-003 PC-1) but does not route data to it yet.
-    let iec104_analyzer: Option<Iec104Analyzer> =
-        if enable_iec104 && !skip_reassembly { Some(Iec104Analyzer::new()) } else { None };
+    let iec104_analyzer: Option<Iec104Analyzer> = if enable_iec104 && !skip_reassembly {
+        Some(Iec104Analyzer::new())
+    } else {
+        None
+    };
 
     // AC-154-002: apply .with_coverage_gaps() builder (STORY-153 pattern).
     // All existing StreamDispatcher::new() call sites remain untouched (no blast radius).

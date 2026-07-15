@@ -381,7 +381,9 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_29() {
          Found declaration: {decl_line:?}"
     );
     // Negative guard: ensure no stale value appears on the same line.
-    for stale in ["= 21", "= 22", "= 23", "= 24", "= 25", "= 26", "= 27", "= 28"] {
+    for stale in [
+        "= 21", "= 22", "= 23", "= 24", "= 25", "= 26", "= 27", "= 28",
+    ] {
         assert!(
             !decl_line.contains(stale),
             "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT declaration contains \
