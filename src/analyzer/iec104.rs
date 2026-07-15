@@ -13,6 +13,8 @@
 //! - `is_valid_iec104_frame` — post-classification validity gate; 2-byte check
 //!   (BC-2.19.006); VP-047 cargo-fuzz covered.
 //! - `Iec104ParseError` — error type skeleton (extended in STORY-168).
+//! - `parse_asdu` — pure-core ASDU header extraction into broken-out `Asdu` fields
+//!   (BC-2.19.015–018; STORY-169); VP-047 fuzz target (no-panic for any input).
 //! - VP-044 Kani harness skeleton under `#[cfg(kani)]` (full proof run: STORY-174).
 //!
 //! ## Behavioral contracts
@@ -424,6 +426,177 @@ pub fn parse_apci_header(data: &[u8]) -> Option<ApciHeader> {
 pub fn is_valid_iec104_frame(data: &[u8]) -> bool {
     // BC-2.19.006: need at least 2 bytes to read start byte and LEN.
     data.len() >= 2 && data[0] == 0x68 && data[1] >= 4 && data[1] <= 253
+}
+
+// ---------------------------------------------------------------------------
+// ASDU data model (STORY-169 — BC-2.19.015–018; ADR-013 Decision 3)
+// ---------------------------------------------------------------------------
+
+/// Parsed ASDU (Application Service Data Unit) with broken-out DUI header fields,
+/// extracted from an IEC-104 I-format frame body.
+///
+/// All nine fields are semantically broken out from the raw bytes — no packed `vsq: u8`
+/// or `cot: u16` fields are present (ADR-013 Decision 3; STORY-169 §Forbidden Dependencies).
+///
+/// ## Field layout (per IEC 60870-5-104:2006 §8.6)
+///
+/// | Field            | Source bytes        | Expression                         | BC ref        |
+/// |------------------|--------------------|------------------------------------|---------------|
+/// | `type_id`        | `asdu_body[0]`      | verbatim                           | BC-2.19.016 §1 |
+/// | `sq`             | `asdu_body[1]`      | `(byte & 0x80) != 0`               | BC-2.19.016 §2 |
+/// | `count`          | `asdu_body[1]`      | `byte & 0x7F`                      | BC-2.19.016 §3 |
+/// | `cot_cause`      | `asdu_body[2]`      | `byte & 0x3F`                      | BC-2.19.017 §1 |
+/// | `cot_pn`         | `asdu_body[2]`      | `(byte & 0x40) != 0`               | BC-2.19.017 §2 |
+/// | `cot_test`       | `asdu_body[2]`      | `(byte & 0x80) != 0`               | BC-2.19.017 §3 |
+/// | `cot_originator` | `asdu_body[3]`      | verbatim (0 = no originator)       | BC-2.19.017 §4 |
+/// | `casdu`          | `asdu_body[4..=5]`  | `u16::from_le_bytes([b4, b5])`     | BC-2.19.018 §1 |
+/// | `first_ioa`      | `asdu_body[6..=8]`  | `Some(u32 LE + 0-pad)` or `None`   | BC-2.19.018 §2 |
+///
+/// ## `first_ioa` semantics (BC-2.19.018 postconditions 2–3)
+/// `Some(24-bit LE zero-extended to u32)` when `count > 0` AND `asdu_body.len() >= 9`.
+/// `None` when `count == 0` (no objects declared) or `asdu_body.len() < 9` (bytes unavailable).
+///
+/// ## Populated by
+/// [`parse_asdu`], which enforces the 6-byte DUI minimum-length guard (BC-2.19.015).
+///
+/// ## Architecture compliance (ADR-013 Decisions 3, 7, 8)
+/// - Pure-core data struct: no behaviour, no I/O, no finding emission.
+/// - VP-047 cargo-fuzz target (no-panic for all extraction paths; ADR-013 Decision 8).
+///   `parse_asdu` is NOT a VP-044 Kani target; it is covered by VP-047 only.
+/// - Forbidden dependencies: `iec60870-5`, Wireshark, lib60870 (ADR-013 Decision 7).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Asdu {
+    /// Type Identification (TypeID): identifies the ASDU content type
+    /// (e.g., M_SP_NA_1 = 1, C_SC_NA_1 = 45, C_IC_NA_1 = 100, C_RP_NA_1 = 105).
+    /// Value range: 0–255; TypeID 0 is undefined per IEC 60870-5-104 (passed through).
+    /// Source: `asdu_body[0]`. BC-2.19.016 postcondition 1.
+    pub type_id: u8,
+    /// SQ (Sequence qualifier) flag from VSQ byte (bit 7 of `asdu_body[1]`).
+    /// `true` = contiguous sequence of IOs starting at `first_ioa`; `false` = each IO has its own address.
+    /// BC-2.19.016 postcondition 2; AC-169-002.
+    pub sq: bool,
+    /// Count of information objects (bits 6:0 of `asdu_body[1]`, range 0–127).
+    /// 0 = no information objects present (valid, unusual).
+    /// BC-2.19.016 postcondition 3; AC-169-002.
+    pub count: u8,
+    /// COT cause code (bits 5:0 of `asdu_body[2]`, range 0–63).
+    /// Common values: 3 = spontaneous, 6 = activation, 7 = activation confirmation.
+    /// BC-2.19.017 postcondition 1; AC-169-003.
+    pub cot_cause: u8,
+    /// COT P/N flag (bit 6 of `asdu_body[2]`).
+    /// `true` = negative confirmation; `false` = positive confirmation.
+    /// BC-2.19.017 postcondition 2; AC-169-003.
+    pub cot_pn: bool,
+    /// COT T (test) flag (bit 7 of `asdu_body[2]`).
+    /// `true` = test transmission; caller may suppress or tag findings `[TEST]` per
+    /// BC-2.19.017 invariant 1.
+    /// BC-2.19.017 postcondition 3; AC-169-003.
+    pub cot_test: bool,
+    /// COT originator address (`asdu_body[3]`). 0 = no originator defined.
+    /// BC-2.19.017 postcondition 4; AC-169-003.
+    pub cot_originator: u8,
+    /// Common Address of ASDU (16-bit little-endian from `asdu_body[4..=5]`).
+    /// Identifies the RTU/IED (0 = undefined per spec; extracted without rejection).
+    /// BC-2.19.018 postcondition 1; AC-169-004.
+    pub casdu: u16,
+    /// First Information Object Address — 24-bit LE from `asdu_body[6..=8]`, zero-padded to u32.
+    /// `Some(ioa)` when `count > 0` AND `asdu_body.len() >= 9`; `None` otherwise.
+    /// Range when present: `[0, 16_777_215]` (max 24-bit value 0xFFFFFF).
+    /// BC-2.19.018 postconditions 2–3; AC-169-005.
+    pub first_ioa: Option<u32>,
+}
+
+// ---------------------------------------------------------------------------
+// Pure-core ASDU parser (VP-047 fuzz target — ADR-013 Decision 8)
+// ---------------------------------------------------------------------------
+
+/// Parse the ASDU DUI header fields from an I-format ASDU body slice.
+///
+/// Returns `Some(Asdu)` iff `asdu_body.len() >= 6` — the 6-byte DUI minimum:
+/// TypeID(1) + VSQ(1) + COT(2) + CASDU(2) = 6 bytes (BC-2.19.015 invariant 1; AC-169-001).
+/// Returns `None` for any shorter input, without accessing any byte beyond the bounds
+/// and without panicking.
+///
+/// ## Field extraction mapping (when `Some` is returned)
+///
+/// | Field            | Expression                                                  | BC           |
+/// |------------------|-------------------------------------------------------------|--------------|
+/// | `type_id`        | `asdu_body[0]`                                              | BC-2.19.016  |
+/// | `sq`             | `(asdu_body[1] & 0x80) != 0`                                | BC-2.19.016  |
+/// | `count`          | `asdu_body[1] & 0x7F`                                       | BC-2.19.016  |
+/// | `cot_cause`      | `asdu_body[2] & 0x3F`                                       | BC-2.19.017  |
+/// | `cot_pn`         | `(asdu_body[2] & 0x40) != 0`                                | BC-2.19.017  |
+/// | `cot_test`       | `(asdu_body[2] & 0x80) != 0`                                | BC-2.19.017  |
+/// | `cot_originator` | `asdu_body[3]`                                              | BC-2.19.017  |
+/// | `casdu`          | `u16::from_le_bytes([asdu_body[4], asdu_body[5]])`          | BC-2.19.018  |
+/// | `first_ioa`      | `Some(u32::from_le_bytes([b6, b7, b8, 0]))` when eligible   | BC-2.19.018  |
+///
+/// ## `first_ioa` eligibility (BC-2.19.018 postconditions 2–3; AC-169-005)
+/// `Some(...)` only when `count > 0` AND `asdu_body.len() >= 9`; `None` in all other cases.
+///
+/// ## ASDU body offset
+/// The caller must pass the ASDU body slice starting at CF1 offset 4 within the APCI data
+/// (i.e., `&apci_data[4..]` where `apci_data.len() == header.len as usize`).
+/// ASDU body length = `header.len - 4` (LEN covers CF1–CF4 + ASDU).
+/// See STORY-169 §Previous Story Intelligence and ADR-013 §ASDU payload offset.
+///
+/// ## Minimum-length guard (BC-2.19.015; AC-169-001)
+/// Guard is `< 6` (NOT `< 10`). The 6-byte DUI minimum covers TypeID + VSQ + COT(2) + CASDU(2).
+/// IOA bytes (6–8) are conditional — only accessed when `count > 0 && len >= 9`.
+///
+/// ## Purity (AC-169-006 / BC-2.19.015 invariant 2)
+/// Pure-core free function: no I/O, no finding emission, no mutation of any state.
+/// The caller (STORY-170 effectful shell) emits T0814 on `None`.
+///
+/// ## VP-047 fuzz seam (ADR-013 Decision 8)
+/// This is a VP-047 cargo-fuzz target (no-panic for any input). It is NOT a VP-044
+/// Kani target — `parse_apci_header` is the Kani target; ASDU extraction is VP-047 only.
+pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
+    // BC-2.19.015: minimum-length guard — DUI requires at least 6 bytes:
+    // TypeID(1) + VSQ(1) + COT(2) + CASDU(2) = 6. Return None without accessing any byte.
+    // The caller (STORY-170 effectful shell) emits T0814 on None (AC-169-001).
+    if asdu_body.len() < 6 {
+        return None;
+    }
+
+    // BC-2.19.016: TypeID verbatim from byte 0; VSQ broken out from byte 1 (AC-169-002).
+    let type_id = asdu_body[0];
+    let sq = (asdu_body[1] & 0x80) != 0;
+    let count = asdu_body[1] & 0x7F;
+
+    // BC-2.19.017: COT broken out from bytes 2–3 (AC-169-003).
+    let cot_cause = asdu_body[2] & 0x3F;
+    let cot_pn = (asdu_body[2] & 0x40) != 0;
+    let cot_test = (asdu_body[2] & 0x80) != 0;
+    let cot_originator = asdu_body[3];
+
+    // BC-2.19.018 postcondition 1: CASDU as 16-bit little-endian from bytes 4–5 (AC-169-004).
+    let casdu = u16::from_le_bytes([asdu_body[4], asdu_body[5]]);
+
+    // BC-2.19.018 postconditions 2–3: first_ioa is Some(24-bit LE zero-extended to u32) only
+    // when count > 0 AND asdu_body.len() >= 9; None otherwise (AC-169-005).
+    let first_ioa = if count > 0 && asdu_body.len() >= 9 {
+        Some(u32::from_le_bytes([
+            asdu_body[6],
+            asdu_body[7],
+            asdu_body[8],
+            0,
+        ]))
+    } else {
+        None
+    };
+
+    Some(Asdu {
+        type_id,
+        sq,
+        count,
+        cot_cause,
+        cot_pn,
+        cot_test,
+        cot_originator,
+        casdu,
+        first_ioa,
+    })
 }
 
 // ---------------------------------------------------------------------------

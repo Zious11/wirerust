@@ -1536,3 +1536,737 @@ mod story_168 {
         }
     }
 }
+
+// =============================================================================
+// STORY-169: IEC-104 ASDU Header Extraction: parse_asdu / Asdu with Broken-Out DUI Fields
+//
+// Covers BC-2.19.015–018 and all edge cases from the BCs and STORY-169 EC table.
+// All tests in this module MUST FAIL (Red Gate) because parse_asdu is todo!().
+// They pass after implementation.
+//
+// ## Contract coverage
+// - BC-2.19.015: parse_asdu returns None for asdu_body.len() < 6; purity invariant (no panic).
+// - BC-2.19.016: type_id = asdu_body[0]; sq = (asdu_body[1] & 0x80) != 0;
+//                count = asdu_body[1] & 0x7F.
+// - BC-2.19.017: cot_cause = asdu_body[2] & 0x3F; cot_pn = (asdu_body[2] & 0x40) != 0;
+//                cot_test = (asdu_body[2] & 0x80) != 0; cot_originator = asdu_body[3].
+// - BC-2.19.018: casdu = u16 LE from asdu_body[4..6];
+//                first_ioa = Some(24-bit LE) when count>0 && len>=9, else None.
+//
+// ## STORY-169 EC table coverage
+// - EC-001: 5B → None
+// - EC-002: 6B → Some, first_ioa=None
+// - EC-003: 6–8B, count>0 → first_ioa=None
+// - EC-004: 9B, count>0 → first_ioa=Some
+// - EC-005: count==0 → first_ioa=None regardless of body length
+// - EC-006: IOA=[0xFF,0xFF,0xFF] → first_ioa=Some(0xFFFFFF)
+// - EC-007: TypeID=0 (undefined) passes through without rejection
+// - EC-008: cot_test=true is extracted; caller handles [TEST] tagging
+//
+// ## Canonical test vectors (DF-CANONICAL-FRAME-HOLDOUT-001)
+// Used verbatim from BC-2.19.015–018; no invented inputs where BCs provide them.
+//
+// ## Provenance
+// Written Red-first as TDD stubs (STORY-169 strict TDD mode);
+// GREEN after implementer delivers parse_asdu.
+// =============================================================================
+mod story_169 {
+    use wirerust::analyzer::iec104::{Asdu, parse_asdu};
+
+    // -------------------------------------------------------------------------
+    // Test helpers: construct canonical byte bodies without repetition.
+    // Layout: [type_id, vsq, cot_byte2, cot_orig, casdu_lo, casdu_hi, ...]
+    // -------------------------------------------------------------------------
+
+    /// Build a 6-byte minimum-valid ASDU body (DUI only, no IOA bytes).
+    fn body_6(
+        type_id: u8,
+        vsq: u8,
+        cot_byte2: u8,
+        cot_orig: u8,
+        casdu_lo: u8,
+        casdu_hi: u8,
+    ) -> Vec<u8> {
+        vec![type_id, vsq, cot_byte2, cot_orig, casdu_lo, casdu_hi]
+    }
+
+    // =========================================================================
+    // BC-2.19.015: ASDU Minimum-Length Guard Rejects Body Shorter Than 6 Bytes
+    // AC-169-001
+    // =========================================================================
+
+    /// BC-2.19.015 canonical vector: 0-byte ASDU body → None.
+    ///
+    /// Canonical vector from BC-2.19.015 table: `asdu_body.len() == 0` → None + T0814 (caller).
+    /// parse_asdu must not access any byte and must not panic.
+    ///
+    /// Traces: BC-2.19.015 postconditions 1–3; AC-169-001; BC-2.19.015 EC-001.
+    #[test]
+    fn test_BC_2_19_015_returns_none_for_empty_body() {
+        let result = parse_asdu(&[]);
+        assert!(
+            result.is_none(),
+            "0-byte ASDU body must return None (BC-2.19.015 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.015 canonical vector: 5-byte ASDU body → None (one byte short of DUI minimum).
+    ///
+    /// Canonical vector from BC-2.19.015 table: `asdu_body.len() == 5` → None + T0814 (caller).
+    /// This is STORY-169 EC-001 (5B → None) and BC-2.19.015 EC-002.
+    ///
+    /// Traces: BC-2.19.015 postconditions 1–3; AC-169-001; EC-002 (BC-015); EC-001 (STORY-169).
+    #[test]
+    fn test_BC_2_19_015_returns_none_for_five_bytes_canonical_vector() {
+        // Five bytes that look like a valid ASDU start but are one byte short of the 6-byte DUI.
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01];
+        let result = parse_asdu(data);
+        assert!(
+            result.is_none(),
+            "5-byte ASDU body must return None — one byte short of 6-byte DUI minimum \
+             (BC-2.19.015 canonical vector / STORY-169 EC-001)"
+        );
+    }
+
+    /// BC-2.19.015 canonical vector: exactly 6 bytes → Some(Asdu) with first_ioa=None.
+    ///
+    /// Canonical vector from BC-2.19.015 table: `asdu_body.len() == 6` → Some(Asdu{...}).
+    /// Minimum valid DUI — no IOA bytes present, so first_ioa=None.
+    /// STORY-169 EC-002 (6B → Some, first_ioa=None). All nine fields asserted individually.
+    ///
+    /// Traces: BC-2.19.015 postcondition 1 (accept); BC-2.19.016/017/018; AC-169-001/002/003/004/005;
+    ///         EC-003 (BC-015); EC-002 (STORY-169).
+    #[test]
+    fn test_BC_2_19_015_returns_some_for_exactly_six_bytes_minimum_valid() {
+        // Canonical 6-byte body: TypeID=45 (C_SC_NA_1), count=1, cause=6 (activation), orig=0, casdu=1
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("6-byte ASDU body must return Some (BC-2.19.015 EC-003 / STORY-169 EC-002)");
+        // BC-2.19.016: TypeID and VSQ fields
+        assert_eq!(
+            asdu.type_id, 0x2D,
+            "type_id must be 0x2D (45) — BC-2.19.016 PC1"
+        );
+        assert!(!asdu.sq, "sq must be false for VSQ=0x01 — BC-2.19.016 PC2");
+        assert_eq!(
+            asdu.count, 1,
+            "count must be 1 for VSQ=0x01 — BC-2.19.016 PC3"
+        );
+        // BC-2.19.017: COT fields
+        assert_eq!(
+            asdu.cot_cause, 6,
+            "cot_cause must be 6 for byte2=0x06 — BC-2.19.017 PC1"
+        );
+        assert!(
+            !asdu.cot_pn,
+            "cot_pn must be false for byte2=0x06 — BC-2.19.017 PC2"
+        );
+        assert!(
+            !asdu.cot_test,
+            "cot_test must be false for byte2=0x06 — BC-2.19.017 PC3"
+        );
+        assert_eq!(
+            asdu.cot_originator, 0,
+            "cot_originator must be 0 — BC-2.19.017 PC4"
+        );
+        // BC-2.19.018: CASDU and first_ioa
+        assert_eq!(
+            asdu.casdu, 1,
+            "casdu must be 1 for bytes [0x01,0x00] LE — BC-2.19.018 PC1"
+        );
+        assert_eq!(
+            asdu.first_ioa, None,
+            "first_ioa must be None for 6-byte body (insufficient IOA bytes) \
+             — BC-2.19.018 PC3 / STORY-169 EC-002"
+        );
+    }
+
+    /// BC-2.19.015 invariant 2: parse_asdu must not panic for any short input (len 0–5).
+    ///
+    /// Exercises every boundary length 0–5 inclusive. If any call panics, the test fails.
+    /// Also verifies all return None (no vacuous pass).
+    ///
+    /// Traces: BC-2.19.015 invariants 1–2; AC-169-001; VP-047 (no-panic).
+    #[test]
+    fn test_BC_2_19_015_invariant_no_panic_on_all_short_lengths() {
+        let short_inputs: &[&[u8]] = &[
+            &[],
+            &[0x2D],
+            &[0x2D, 0x01],
+            &[0x2D, 0x01, 0x06],
+            &[0x2D, 0x01, 0x06, 0x00],
+            &[0x2D, 0x01, 0x06, 0x00, 0x01],
+        ];
+        for &data in short_inputs {
+            // Must return None without panicking (BC-2.19.015 postcondition 1; invariant 2).
+            let result = parse_asdu(data);
+            assert!(
+                result.is_none(),
+                "ASDU body of len {} must return None — min-length guard (BC-2.19.015 invariant 2)",
+                data.len()
+            );
+        }
+    }
+
+    /// BC-2.19.015 invariant 2 / AC-169-006: parse_asdu is pure — same input produces same output.
+    ///
+    /// Calls parse_asdu three times on the same 9-byte input and verifies all results are
+    /// structurally equal (PartialEq on Option<Asdu>). Also verifies the result is Some for
+    /// a valid input, making the equality assertion non-vacuous.
+    ///
+    /// Traces: BC-2.19.015 invariant 2; AC-169-006 (purity — no side effects, deterministic).
+    #[test]
+    fn test_BC_2_19_015_invariant_parse_asdu_pure_deterministic() {
+        // 9-byte body: TypeID=45, count=1, cause=6, orig=0, casdu=1, IOA=5
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00];
+        let r1: Option<Asdu> = parse_asdu(data);
+        let r2: Option<Asdu> = parse_asdu(data);
+        let r3: Option<Asdu> = parse_asdu(data);
+        // All three calls must produce structurally identical results (purity).
+        assert_eq!(
+            r1, r2,
+            "parse_asdu must be deterministic: call 1 == call 2 (AC-169-006)"
+        );
+        assert_eq!(
+            r2, r3,
+            "parse_asdu must be deterministic: call 2 == call 3 (AC-169-006)"
+        );
+        // Verify the result is Some — ensures the equality assertion is non-vacuous
+        // (None == None is trivially true but meaningless for purity verification).
+        let asdu = r1.expect("9-byte body must return Some — purity test requires non-None result");
+        assert_eq!(
+            asdu.type_id, 0x2D,
+            "type_id must be stable across all calls (AC-169-006)"
+        );
+        assert_eq!(
+            asdu.first_ioa,
+            Some(5),
+            "first_ioa must be stable across all calls (AC-169-006)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.016: TypeID and VSQ Extraction from ASDU Bytes 0–1
+    // AC-169-002
+    // =========================================================================
+
+    /// BC-2.19.016 postcondition 1: type_id equals asdu_body[0] verbatim for multiple values.
+    ///
+    /// Exercises TypeID values 1, 45 (C_SC_NA_1), 100 (C_IC_NA_1), and 255 to confirm
+    /// the verbatim extraction rule holds regardless of the TypeID value.
+    ///
+    /// Traces: BC-2.19.016 postcondition 1; AC-169-002.
+    #[test]
+    fn test_BC_2_19_016_type_id_extracted_verbatim_from_byte_0() {
+        let type_ids: &[u8] = &[0x01, 0x2D, 0x64, 0xFF];
+        for &tid in type_ids {
+            let body = body_6(tid, 0x01, 0x06, 0x00, 0x01, 0x00);
+            let asdu = parse_asdu(&body).unwrap_or_else(|| {
+                panic!("6-byte body with type_id=0x{tid:02X} must return Some (BC-2.19.016 PC1)")
+            });
+            assert_eq!(
+                asdu.type_id, tid,
+                "type_id must equal asdu_body[0]=0x{tid:02X} verbatim (BC-2.19.016 postcondition 1)"
+            );
+        }
+    }
+
+    /// BC-2.19.016 canonical vector: TypeID=45 (C_SC_NA_1), VSQ=0x01 → type_id=45, sq=false, count=1.
+    ///
+    /// Canonical vector from BC-2.19.016 table row 2:
+    ///   `asdu_body[0]=0x2D, asdu_body[1]=0x01` → `type_id=45, sq=false, count=1`.
+    ///
+    /// Traces: BC-2.19.016 postconditions 1–3; AC-169-002; EC-001 (BC-016).
+    #[test]
+    fn test_BC_2_19_016_type_id_45_c_sc_na_1_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.016 canonical vector [0x2D, 0x01, ...] must return Some");
+        assert_eq!(
+            asdu.type_id, 45,
+            "type_id must be 45 (0x2D = C_SC_NA_1) (BC-2.19.016 canonical vector)"
+        );
+        assert!(
+            !asdu.sq,
+            "sq must be false for VSQ=0x01 (bit7=0) (BC-2.19.016 PC2)"
+        );
+        assert_eq!(
+            asdu.count, 1,
+            "count must be 1 for VSQ=0x01 (bits6:0=1) (BC-2.19.016 PC3)"
+        );
+    }
+
+    /// BC-2.19.016 canonical vector: TypeID=0 (undefined per spec) passes through without rejection.
+    ///
+    /// Per BC-2.19.016 invariant 1: TypeID=0 is undefined; parse_asdu extracts it verbatim and
+    /// returns Some — the caller (STORY-170 effectful shell) handles anomaly detection via
+    /// BC-2.19.022. STORY-169 EC-007.
+    ///
+    /// Traces: BC-2.19.016 postcondition 1; invariant 1; AC-169-002; EC-002 (BC-016); EC-007 (STORY-169).
+    #[test]
+    fn test_BC_2_19_016_type_id_0_undefined_passthrough_canonical_vector() {
+        let data: &[u8] = &[0x00, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect(
+            "TypeID=0 must not be rejected by parse_asdu — caller handles anomaly \
+             (BC-2.19.016 invariant 1; STORY-169 EC-007)",
+        );
+        assert_eq!(
+            asdu.type_id, 0,
+            "type_id must be 0 verbatim — undefined TypeID passthrough (BC-2.19.016 PC1; EC-007)"
+        );
+    }
+
+    /// BC-2.19.016: VSQ=0x81 → sq=true, count=1.
+    ///
+    /// 0x81 = 0b10000001: bit7=1 (SQ=true), bits6:0=0x01 (count=1).
+    ///
+    /// Traces: BC-2.19.016 postconditions 2–3; AC-169-002.
+    #[test]
+    fn test_BC_2_19_016_vsq_0x81_sq_true_count_1() {
+        let data: &[u8] = &[0x2D, 0x81, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect("6-byte body with VSQ=0x81 must return Some");
+        assert!(
+            asdu.sq,
+            "sq must be true for VSQ=0x81 (bit7=1) (BC-2.19.016 postcondition 2)"
+        );
+        assert_eq!(
+            asdu.count, 1,
+            "count must be 1 for VSQ=0x81 (bits6:0=1) (BC-2.19.016 postcondition 3)"
+        );
+    }
+
+    /// BC-2.19.016: VSQ=0x03 → sq=false, count=3.
+    ///
+    /// 0x03 = 0b00000011: bit7=0 (SQ=false), bits6:0=0x03 (count=3).
+    ///
+    /// Traces: BC-2.19.016 postconditions 2–3; AC-169-002.
+    #[test]
+    fn test_BC_2_19_016_vsq_0x03_sq_false_count_3() {
+        let data: &[u8] = &[0x2D, 0x03, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect("6-byte body with VSQ=0x03 must return Some");
+        assert!(
+            !asdu.sq,
+            "sq must be false for VSQ=0x03 (bit7=0) (BC-2.19.016 postcondition 2)"
+        );
+        assert_eq!(
+            asdu.count, 3,
+            "count must be 3 for VSQ=0x03 (bits6:0=3) (BC-2.19.016 postcondition 3)"
+        );
+    }
+
+    /// BC-2.19.016 canonical vector: TypeID=255, VSQ=0x80 → type_id=255, sq=true, count=0.
+    ///
+    /// Canonical vector from BC-2.19.016 table row 3:
+    ///   `asdu_body[0]=0xFF, asdu_body[1]=0x80` → `type_id=255, sq=true, count=0`.
+    /// Also exercises EC-003 from BC-016 (sq=true, count=0 → no IOA iteration).
+    /// Also exercises STORY-169 EC-005 (count=0 → first_ioa=None, covered by BC-2.19.018).
+    ///
+    /// Traces: BC-2.19.016 postconditions 1–4; AC-169-002; EC-003 (BC-016).
+    #[test]
+    fn test_BC_2_19_016_type_id_255_vsq_0x80_sq_true_count_0_canonical_vector() {
+        let data: &[u8] = &[0xFF, 0x80, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.016 canonical vector [0xFF, 0x80, ...] must return Some");
+        assert_eq!(
+            asdu.type_id, 255,
+            "type_id must be 255 (BC-2.19.016 canonical vector row 3)"
+        );
+        assert!(
+            asdu.sq,
+            "sq must be true for VSQ=0x80 (bit7=1) (BC-2.19.016 canonical vector)"
+        );
+        assert_eq!(
+            asdu.count, 0,
+            "count must be 0 for VSQ=0x80 (bits6:0=0) (BC-2.19.016 canonical vector; EC-003)"
+        );
+    }
+
+    /// BC-2.19.016 invariant 3: VSQ=0x7F → sq=false, count=127 (maximum count value).
+    ///
+    /// 0x7F = 0b01111111: bit7=0 (SQ=false), bits6:0=0x7F (count=127).
+    /// Verifies the 7-bit count field boundary.
+    ///
+    /// Traces: BC-2.19.016 postconditions 2–3; invariant 3 (count bound 0–127); AC-169-002.
+    #[test]
+    fn test_BC_2_19_016_vsq_0x7F_sq_false_count_127_max() {
+        let data: &[u8] = &[0x01, 0x7F, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect("6-byte body with VSQ=0x7F must return Some");
+        assert!(
+            !asdu.sq,
+            "sq must be false for VSQ=0x7F (bit7=0) (BC-2.19.016 postcondition 2)"
+        );
+        assert_eq!(
+            asdu.count, 127,
+            "count must be 127 for VSQ=0x7F — max 7-bit count (BC-2.19.016 invariant 3)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.017: COT Extraction (Cause of Transmission) from ASDU Bytes 2–3
+    // AC-169-003
+    // =========================================================================
+
+    /// BC-2.19.017 canonical vector: byte2=0x06, byte3=0x00 → cause=6, pn=false, test=false, orig=0.
+    ///
+    /// Canonical vector from BC-2.19.017 table row 1:
+    ///   `byte[2]=0x06, byte[3]=0x00` → `cause=6, P/N=false, T=false, originator=0`.
+    ///
+    /// Traces: BC-2.19.017 postconditions 1–4; AC-169-003; EC-003 (BC-017).
+    #[test]
+    fn test_BC_2_19_017_cot_cause_6_activation_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.017 canonical vector [byte2=0x06, byte3=0x00] must return Some");
+        assert_eq!(
+            asdu.cot_cause, 6,
+            "cot_cause must be 6 for byte2=0x06 (0x06 & 0x3F = 6) (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            !asdu.cot_pn,
+            "cot_pn must be false for byte2=0x06 (bit6=0) (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            !asdu.cot_test,
+            "cot_test must be false for byte2=0x06 (bit7=0) (BC-2.19.017 canonical vector)"
+        );
+        assert_eq!(
+            asdu.cot_originator, 0,
+            "cot_originator must be 0 for byte3=0x00 (BC-2.19.017 canonical vector)"
+        );
+    }
+
+    /// BC-2.19.017: byte2=0x46 → cot_cause=6, cot_pn=true, cot_test=false.
+    ///
+    /// 0x46 = 0b01000110: bits5:0=6 (cause=6), bit6=1 (pn=true), bit7=0 (test=false).
+    ///
+    /// Traces: BC-2.19.017 postconditions 1–2; AC-169-003.
+    #[test]
+    fn test_BC_2_19_017_cot_pn_true_byte2_0x46_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x46, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect("6-byte body with byte2=0x46 must return Some");
+        assert_eq!(
+            asdu.cot_cause, 6,
+            "cot_cause must be 6 for byte2=0x46 (0x46 & 0x3F = 6) (BC-2.19.017 PC1)"
+        );
+        assert!(
+            asdu.cot_pn,
+            "cot_pn must be true for byte2=0x46 (bit6=1) (BC-2.19.017 postcondition 2)"
+        );
+        assert!(
+            !asdu.cot_test,
+            "cot_test must be false for byte2=0x46 (bit7=0) (BC-2.19.017 postcondition 3)"
+        );
+    }
+
+    /// BC-2.19.017: byte2=0x86 → cot_cause=6, cot_pn=false, cot_test=true.
+    ///
+    /// 0x86 = 0b10000110: bits5:0=6 (cause=6), bit6=0 (pn=false), bit7=1 (test=true).
+    /// STORY-169 EC-008: T-bit set; extract normally; caller may suppress or tag [TEST].
+    ///
+    /// Traces: BC-2.19.017 postconditions 1, 3; invariant 1; AC-169-003; EC-001 (BC-017); EC-008 (STORY-169).
+    #[test]
+    fn test_BC_2_19_017_cot_test_true_byte2_0x86_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x86, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data).expect("6-byte body with byte2=0x86 must return Some");
+        assert_eq!(
+            asdu.cot_cause, 6,
+            "cot_cause must be 6 for byte2=0x86 (0x86 & 0x3F = 6) (BC-2.19.017 PC1)"
+        );
+        assert!(
+            !asdu.cot_pn,
+            "cot_pn must be false for byte2=0x86 (bit6=0) (BC-2.19.017 postcondition 2)"
+        );
+        assert!(
+            asdu.cot_test,
+            "cot_test must be true for byte2=0x86 (bit7=1) \
+             (BC-2.19.017 postcondition 3; STORY-169 EC-008)"
+        );
+    }
+
+    /// BC-2.19.017 canonical vector: byte2=0xC6, byte3=0x01 → cause=6, pn=true, test=true, orig=1.
+    ///
+    /// Canonical vector from BC-2.19.017 table row 2:
+    ///   `byte[2]=0xC6, byte[3]=0x01` → `cause=6, P/N=true, T=true, originator=1`.
+    /// 0xC6 = 0b11000110: bits5:0=6, bit6=1 (pn=true), bit7=1 (test=true).
+    ///
+    /// Traces: BC-2.19.017 postconditions 1–4; AC-169-003; EC-001 (BC-017).
+    #[test]
+    fn test_BC_2_19_017_cot_all_bits_byte2_0xC6_byte3_0x01_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0xC6, 0x01, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.017 canonical vector [byte2=0xC6, byte3=0x01] must return Some");
+        assert_eq!(
+            asdu.cot_cause, 6,
+            "cot_cause must be 6 (0xC6 & 0x3F = 6) (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            asdu.cot_pn,
+            "cot_pn must be true (0xC6 bit6=1) (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            asdu.cot_test,
+            "cot_test must be true (0xC6 bit7=1) (BC-2.19.017 canonical vector)"
+        );
+        assert_eq!(
+            asdu.cot_originator, 1,
+            "cot_originator must be 1 (byte3=0x01) (BC-2.19.017 canonical vector)"
+        );
+    }
+
+    /// BC-2.19.017 canonical vector: byte2=0x3F, byte3=0xFF → cause=63, pn=false, test=false, orig=255.
+    ///
+    /// Canonical vector from BC-2.19.017 table row 3:
+    ///   `byte[2]=0x3F, byte[3]=0xFF` → `cause=63, P/N=false, T=false, originator=255`.
+    /// 0x3F = 0b00111111: bits5:0=63 (max cause), bit6=0, bit7=0.
+    ///
+    /// Traces: BC-2.19.017 postconditions 1–4; invariant 2 (max cause=63); AC-169-003.
+    #[test]
+    fn test_BC_2_19_017_cot_cause_max_63_byte2_0x3F_byte3_0xFF_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x3F, 0xFF, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.017 canonical vector [byte2=0x3F, byte3=0xFF] must return Some");
+        assert_eq!(
+            asdu.cot_cause, 63,
+            "cot_cause must be 63 (0x3F & 0x3F = 63) — max cause (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            !asdu.cot_pn,
+            "cot_pn must be false (0x3F bit6=0) (BC-2.19.017 canonical vector)"
+        );
+        assert!(
+            !asdu.cot_test,
+            "cot_test must be false (0x3F bit7=0) (BC-2.19.017 canonical vector)"
+        );
+        assert_eq!(
+            asdu.cot_originator, 255,
+            "cot_originator must be 255 (byte3=0xFF) (BC-2.19.017 canonical vector)"
+        );
+    }
+
+    /// BC-2.19.017 postcondition 4: cot_originator equals asdu_body[3] verbatim.
+    ///
+    /// Exercises originator values 0x00 (no originator), 0x01, and 0xAB to verify
+    /// verbatim extraction from byte index 3.
+    ///
+    /// Traces: BC-2.19.017 postcondition 4; AC-169-003; EC-002 (BC-017).
+    #[test]
+    fn test_BC_2_19_017_cot_originator_verbatim_from_byte_3() {
+        let originator_values: &[u8] = &[0x00, 0x01, 0xAB];
+        for &orig in originator_values {
+            let body = body_6(0x2D, 0x01, 0x06, orig, 0x01, 0x00);
+            let asdu = parse_asdu(&body).unwrap_or_else(|| {
+                panic!(
+                    "6-byte body with originator=0x{orig:02X} must return Some (BC-2.19.017 PC4)"
+                )
+            });
+            assert_eq!(
+                asdu.cot_originator, orig,
+                "cot_originator must equal asdu_body[3]=0x{orig:02X} verbatim \
+                 (BC-2.19.017 postcondition 4)"
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.018: CASDU and First IOA Extraction from ASDU Bytes 4–8
+    // AC-169-004, AC-169-005
+    // =========================================================================
+
+    /// BC-2.19.018 canonical vector: CASDU bytes [0x01, 0x00] → casdu=1.
+    ///
+    /// Canonical vector from BC-2.19.018 table row 1:
+    ///   `asdu_body[4..6] = [0x01, 0x00]` → `casdu = 1`.
+    ///
+    /// Traces: BC-2.19.018 postcondition 1; AC-169-004; EC-001 (BC-018).
+    #[test]
+    fn test_BC_2_19_018_casdu_little_endian_1_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.018 canonical vector [CASDU=0x01,0x00] must return Some");
+        assert_eq!(
+            asdu.casdu, 1,
+            "casdu must be 1 for LE bytes [0x01, 0x00] (BC-2.19.018 postcondition 1 canonical vector)"
+        );
+    }
+
+    /// BC-2.19.018 canonical vector: CASDU bytes [0xFF, 0xFF] → casdu=65535 (maximum).
+    ///
+    /// Canonical vector from BC-2.19.018 table row 2:
+    ///   `asdu_body[4..6] = [0xFF, 0xFF]` → `casdu = 65535`.
+    /// Also exercises BC-2.19.018 EC-004: maximum CASDU value.
+    ///
+    /// Traces: BC-2.19.018 postcondition 1; AC-169-004; EC-004 (BC-018).
+    #[test]
+    fn test_BC_2_19_018_casdu_max_65535_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0xFF, 0xFF];
+        let asdu = parse_asdu(data)
+            .expect("BC-2.19.018 canonical vector [CASDU=0xFF,0xFF] must return Some");
+        assert_eq!(
+            asdu.casdu, 65535,
+            "casdu must be 65535 for LE bytes [0xFF, 0xFF] (BC-2.19.018 EC-004 max CASDU)"
+        );
+    }
+
+    /// BC-2.19.018 invariant 1: CASDU=0 is extracted without rejection.
+    ///
+    /// BC-2.19.018 invariant 1 states CASDU=0 is undefined per IEC 60870-5-104 but
+    /// is extracted without rejection (anomaly flagging is out of MVP scope).
+    ///
+    /// Traces: BC-2.19.018 postcondition 1; invariant 1; AC-169-004; EC-003 (BC-018).
+    #[test]
+    fn test_BC_2_19_018_casdu_0_undefined_extracted_without_rejection() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x00, 0x00];
+        let asdu =
+            parse_asdu(data).expect("CASDU=0 must not cause rejection (BC-2.19.018 invariant 1)");
+        assert_eq!(
+            asdu.casdu, 0,
+            "casdu must be 0 — undefined value extracted without rejection (BC-2.19.018 invariant 1)"
+        );
+    }
+
+    /// BC-2.19.018 canonical vector: 9-byte body, count=1 → first_ioa=Some(1).
+    ///
+    /// Canonical vector from BC-2.19.018 table row 1:
+    ///   `IOA = [0x01, 0x00, 0x00]` → `first_ioa = Some(1)`.
+    /// STORY-169 EC-004: 9B, count>0 → first_ioa=Some.
+    ///
+    /// Traces: BC-2.19.018 postcondition 2; AC-169-005; EC-001 (BC-018); EC-004 (STORY-169).
+    #[test]
+    fn test_BC_2_19_018_first_ioa_some_count_1_len_9_canonical_vector() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00];
+        let asdu = parse_asdu(data).expect("BC-2.19.018 canonical 9-byte vector must return Some");
+        assert_eq!(
+            asdu.first_ioa,
+            Some(1),
+            "first_ioa must be Some(1) for IOA=[0x01,0x00,0x00], count=1 \
+             (BC-2.19.018 postcondition 2 canonical vector; STORY-169 EC-004)"
+        );
+    }
+
+    /// BC-2.19.018 canonical vector: IOA=[0xFF,0xFF,0xFF] → first_ioa=Some(0xFFFFFF = 16777215).
+    ///
+    /// Canonical vector from BC-2.19.018 table row 2:
+    ///   `IOA = [0xFF, 0xFF, 0xFF]` → `first_ioa = Some(16777215)` (max 24-bit value).
+    /// STORY-169 EC-006: IOA max 0xFFFFFF.
+    ///
+    /// Traces: BC-2.19.018 postcondition 2; invariant 2 (max 24-bit IOA); AC-169-005;
+    ///         EC-004 (BC-018); EC-006 (STORY-169).
+    #[test]
+    fn test_BC_2_19_018_first_ioa_max_0xFFFFFF_canonical_vector() {
+        // Canonical: CASDU=[0xFF,0xFF], IOA=[0xFF,0xFF,0xFF]
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let asdu = parse_asdu(data).expect("BC-2.19.018 max-IOA canonical vector must return Some");
+        assert_eq!(
+            asdu.first_ioa,
+            Some(0x00FF_FFFF),
+            "first_ioa must be Some(0xFFFFFF = 16777215) for IOA=[0xFF,0xFF,0xFF] \
+             (BC-2.19.018 invariant 2 max 24-bit; STORY-169 EC-006)"
+        );
+    }
+
+    /// BC-2.19.018 postcondition 3: first_ioa=None when count==0 regardless of body length.
+    ///
+    /// STORY-169 EC-005: count==0 → first_ioa=None even with 9+ byte body.
+    /// Tests VSQ=0x00 (sq=false, count=0) and VSQ=0x80 (sq=true, count=0).
+    ///
+    /// Traces: BC-2.19.018 postcondition 3; AC-169-005; EC-001 (BC-018); EC-005 (STORY-169).
+    #[test]
+    fn test_BC_2_19_018_first_ioa_none_when_count_0_regardless_of_length() {
+        // EC-005 (STORY-169): VSQ=0x00 (count=0), 9-byte body → first_ioa=None
+        let data_vsq_0x00: &[u8] = &[0x2D, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01, 0x02, 0x03];
+        let asdu_0x00 = parse_asdu(data_vsq_0x00)
+            .expect("9-byte body with count=0 (VSQ=0x00) must return Some");
+        assert_eq!(
+            asdu_0x00.count, 0,
+            "count must be 0 for VSQ=0x00 (precondition for EC-005)"
+        );
+        assert_eq!(
+            asdu_0x00.first_ioa, None,
+            "first_ioa must be None when count==0 (VSQ=0x00) regardless of body length \
+             (BC-2.19.018 postcondition 3; STORY-169 EC-005)"
+        );
+
+        // EC-003 (BC-016) + EC-005 (STORY-169): VSQ=0x80 (sq=true, count=0), 9-byte body → None
+        let data_vsq_0x80: &[u8] = &[0x2D, 0x80, 0x06, 0x00, 0x01, 0x00, 0x01, 0x02, 0x03];
+        let asdu_0x80 = parse_asdu(data_vsq_0x80)
+            .expect("9-byte body with count=0 (VSQ=0x80, sq=true) must return Some");
+        assert_eq!(
+            asdu_0x80.first_ioa, None,
+            "first_ioa must be None when count==0 (VSQ=0x80, sq=true) regardless of length \
+             (BC-2.19.018 postcondition 3; EC-005 STORY-169)"
+        );
+    }
+
+    /// BC-2.19.018 postcondition 3: first_ioa=None when exactly 6 bytes and count>0.
+    ///
+    /// BC-2.19.018 EC-002: 6-byte body, count=1 → IOA would need bytes 6–8 but body ends
+    /// at byte 5 → first_ioa=None (truncated, insufficient bytes for 3-byte IOA).
+    /// STORY-169 EC-002: 6B → first_ioa=None.
+    ///
+    /// Traces: BC-2.19.018 postcondition 3; AC-169-005; EC-002 (BC-018 and STORY-169).
+    #[test]
+    fn test_BC_2_19_018_first_ioa_none_when_exactly_6_bytes_count_gt_0() {
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00];
+        let asdu =
+            parse_asdu(data).expect("6-byte body with count=1 must return Some (STORY-169 EC-002)");
+        assert_eq!(
+            asdu.count, 1,
+            "count must be 1 (precondition: count>0 for this IOA-absence check)"
+        );
+        assert_eq!(
+            asdu.first_ioa, None,
+            "first_ioa must be None for 6-byte body with count=1 — no IOA bytes available \
+             (BC-2.19.018 postcondition 3; EC-002 BC-018 and STORY-169)"
+        );
+    }
+
+    /// BC-2.19.018 postcondition 3: first_ioa=None for 7-byte and 8-byte bodies with count>0.
+    ///
+    /// STORY-169 EC-003: 6–8 byte body, count>0 → first_ioa=None (insufficient for 3-byte IOA).
+    /// A 3-byte IOA requires asdu_body.len() >= 9; 7 or 8 bytes are still insufficient.
+    ///
+    /// Traces: BC-2.19.018 postcondition 3; AC-169-005; EC-003 (STORY-169).
+    #[test]
+    fn test_BC_2_19_018_first_ioa_none_when_7_or_8_bytes_count_gt_0() {
+        // 7-byte body, count=1 → first_ioa=None (STORY-169 EC-003)
+        let data_7: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, 0xAA];
+        let asdu_7 = parse_asdu(data_7)
+            .expect("7-byte body with count=1 must return Some (STORY-169 EC-003)");
+        assert_eq!(
+            asdu_7.first_ioa, None,
+            "first_ioa must be None for 7-byte body with count=1 — still insufficient for 3-byte IOA \
+             (BC-2.19.018 postcondition 3; STORY-169 EC-003)"
+        );
+
+        // 8-byte body, count=1 → first_ioa=None (STORY-169 EC-003)
+        let data_8: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, 0xAA, 0xBB];
+        let asdu_8 = parse_asdu(data_8)
+            .expect("8-byte body with count=1 must return Some (STORY-169 EC-003)");
+        assert_eq!(
+            asdu_8.first_ioa, None,
+            "first_ioa must be None for 8-byte body with count=1 — still insufficient for 3-byte IOA \
+             (BC-2.19.018 postcondition 3; STORY-169 EC-003)"
+        );
+    }
+
+    /// BC-2.19.018 postcondition 2: first_ioa is 24-bit LE zero-extended, verified with
+    /// a non-trivial multi-byte IOA value.
+    ///
+    /// IOA=[0x34,0x12,0x00] → first_ioa=Some(0x001234=4660) verifies correct LE byte order
+    /// (if bytes were reversed it would be Some(0x123400=1193984), catching a BE bug).
+    ///
+    /// Traces: BC-2.19.018 postcondition 2; invariant 2; AC-169-005.
+    #[test]
+    fn test_BC_2_19_018_first_ioa_le_byte_order_verified() {
+        // IOA=[0x34, 0x12, 0x00] → 0x00001234 = 4660 in LE (would be 0x123400 in BE — catches swap)
+        let data: &[u8] = &[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, 0x34, 0x12, 0x00];
+        let asdu =
+            parse_asdu(data).expect("9-byte body with IOA=[0x34,0x12,0x00] must return Some");
+        assert_eq!(
+            asdu.first_ioa,
+            Some(0x0000_1234),
+            "first_ioa must be Some(0x1234=4660) for IOA=[0x34,0x12,0x00] — \
+             LE byte order: b0 is LSB (BC-2.19.018 postcondition 2; invariant 2)"
+        );
+    }
+}
