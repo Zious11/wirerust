@@ -167,9 +167,10 @@ pub const KNOWN_PROTOCOLS: &[KnownProtocol] = &[
     },
     // -----------------------------------------------------------------------
     // ICS Tier-1, Port-Detectable (9)
-    // IEC 60870-5-104 (first entry) is functionally SUPPORTED via port 2404;
-    // the remaining 8 entries are unsupported. IEC-104 remains physically here
-    // — promoted in place, membership determined by port-filter (STORY-173).
+    // IEC 60870-5-104 (the first SUPPORTED entry in this block) is functionally
+    // SUPPORTED via port 2404; the remaining 8 entries are unsupported. IEC-104
+    // remains physically here — promoted in place, membership determined by
+    // port-filter (STORY-173).
     // -----------------------------------------------------------------------
     KnownProtocol {
         name: "S7comm",
@@ -422,9 +423,9 @@ pub fn all_protocols() -> &'static [KnownProtocol] {
 /// `SUPPORTED_PORTS`, plus the ARP entry (ARP special case, BC-2.18.003
 /// Invariant 3 — `|| p.name == "ARP"` is explicit).
 ///
-/// Returns exactly 8 entries: Modbus/TCP, DNP3, EtherNet/IP+CIP,
-/// IEC 60870-5-104, TLS, ARP, DNS, HTTP. IEC 60870-5-104 is included because
-/// port 2404 was added to `SUPPORTED_PORTS` in STORY-173 (BC-2.18.003 PC-1).
+/// Returns exactly 8 entries: Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP,
+/// DNS, HTTP, IEC 60870-5-104. IEC 60870-5-104 is included because port 2404
+/// was added to `SUPPORTED_PORTS` in STORY-173 (BC-2.18.003 PC-1).
 ///
 /// Pure function; no I/O.
 ///

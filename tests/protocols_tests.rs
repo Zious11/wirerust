@@ -568,7 +568,7 @@ mod story_151 {
             supported_protocols().len(),
             8,
             "supported_protocols() must return exactly 8 entries: \
-             Modbus/TCP, DNP3, EtherNet/IP+CIP, IEC 60870-5-104, TLS, ARP, DNS, HTTP \
+             Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP, IEC 60870-5-104 \
              (IEC 60870-5-104 added in STORY-173)"
         );
     }
