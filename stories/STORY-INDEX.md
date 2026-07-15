@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.60"
+version: "3.61"
 status: draft
 producer: story-writer
-timestamp: 2026-07-14T23:30:00Z
+timestamp: 2026-07-14T23:50:00Z
 phase: f4
 total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.61 (2026-07-14): STORY-169 DELIVERED (PR #403 ac01d9f2, 2026-07-14); status draft→delivered; wave-78 Delivery Progress → DELIVERED (D-445); BC-realigned v1.1 (parse_asdu/Asdu broken-out, min-6, first_ioa Option; F3-drift correction); per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 MEDIUM (stale todo!() docstring) remediated 0debf98; security 0 CRIT/HIGH/MEDIUM (SEC-001 LOW carry-bound deferred STORY-172); AI APPROVE (0 blocking/major, 1 MINOR+1 NIT accepted); CI 13/13; demo 6 artifacts scrub PASS. Wave-78 gate SATISFIED (single-story wave; per-story 3-clean == wave-78 diff). stories_delivered 107→108. No numeric totals changed.
 # v3.60 (2026-07-14): STORY-168 DELIVERED (PR #402 b720fd96, 2026-07-14); status draft→delivered; wave-77 Delivery Progress → DELIVERED (D-443); per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 findings remediated in 2d29bce; security 0 CRIT/HIGH (SEC-001-S168 MEDIUM carry-buffer deferred STORY-172; SEC-002/003 accepted); AI APPROVE (0 blocking/0 major, 3 NIT); CI 13/13; demo 6 artifacts scrub PASS. Wave-77 gate SATISFIED (single-story wave; per-story 3-clean == wave-77 diff). stories_delivered 106→107. No numeric totals changed.
 # v3.59 (2026-07-14): STORY-167 DELIVERED (PR #401 e65e0d6, 2026-07-14); status draft→delivered; wave-76 Delivery Progress → DELIVERED (D-441); per-story adversarial CONVERGED 3-clean (BC-5.39.001); security CLEAN; AI APPROVE (2 MINOR/3 NIT accepted); CI 13/13; demo 7 artifacts scrub PASS. stories_delivered 105→106. No numeric totals changed.
 # v3.58 (2026-07-14): F3 feature-iec104 story decomposition — E-22 added (IEC-104 Passive Analyzer, 8 stories/36 pts); STORY-167..174 registered (waves 76–83; serialized due to src/analyzer/iec104.rs file contention; 170→171 file-seq edge per F-F3P2-005 precedent); dep-graph v3.9 acyclic (137 edges; topo 167→168→169→170→171→172→173→174); total_stories 119→127; total_points 729→765; total_waves 75→83; wave-table scheduled 112/704→120/740; input-hash MATCH=127 STALE=0 (canonical Python tool); awaiting F3 plan-gate human approval (D-440).
@@ -291,7 +292,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-154 | `--coverage-gaps` Opt-In Flag + `CoverageGapsSummary` Tri-State Report + Mandatory Caveats (BC-2.12.023 + BC-2.12.024) | E-21 | 69 | 8 | merged | STORY-151, STORY-152, STORY-153 |
 | STORY-167 | IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton | E-22 | 76 | 5 | delivered | — |
 | STORY-168 | IEC-104 Frame Format Discrimination + U-Format Session State Machine (STARTDT/STOPDT/TESTFR) | E-22 | 77 | 5 | delivered | STORY-167 |
-| STORY-169 | IEC-104 ASDU Header Extraction: TypeID, VSQ, COT, CASDU, IOA | E-22 | 78 | 3 | draft | STORY-168 |
+| STORY-169 | IEC-104 ASDU Header Extraction: TypeID, VSQ, COT, CASDU, IOA | E-22 | 78 | 3 | delivered | STORY-168 |
 | STORY-170 | IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs | E-22 | 79 | 5 | draft | STORY-169 |
 | STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | draft | STORY-168, STORY-170 (file-seq) |
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | draft | STORY-170, STORY-171 |
@@ -502,6 +503,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 75 | STORY-165 | **DELIVERED (D-434, 2026-07-13)** | #398 | fa646ed | 2026-07-13 |
 | 76 | STORY-167 | **DELIVERED (D-441, 2026-07-14)** | #401 | e65e0d6 | 2026-07-14 |
 | 77 | STORY-168 | **DELIVERED (D-443, 2026-07-14)** | #402 | b720fd96 | 2026-07-14 |
+| 78 | STORY-169 | **DELIVERED (D-445, 2026-07-14)** | #403 | ac01d9f2 | 2026-07-14 |
 
 ## Coverage Verification
 
