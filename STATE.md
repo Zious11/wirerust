@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
 status: in_progress
-current_step: "D-455 STORY-172 DELIVERED (PR #406 d64e5fe, 2026-07-15). wave-81 gate SATISFIED. Human-authorized squash-merge per DF-MERGE-AUTH-CLASSIFIER-001. develop=d64e5fe (6 unreleased: STORY-167+168+169+170+171+172). SEC-001-S168 carry-bound FULLY MITIGATED. ADR-0013 landed (c5b098f). stories_delivered=111. STORY-INDEX v3.69. Next: STORY-173 (wave-82, dispatch integration + T0881 six-part + Rule 8 + --iec104 + SUPPORTED_PORTS; IEC104-FINDINGS-CAP-001 lands here; pre-delivery AC↔BC fidelity check first). trajectory-tail →1→0→0→0"
+current_step: "D-456 STORY-173 pre-delivery fidelity remediation COMPLETE (2026-07-15). DRIFT-FOUND 2 BLOCKING/3 MEDIUM/3 LOW (SR-173-01..08). SR-173-01 BLOCKING: T0881 tactic corrected MitreTactic::IcsInhibitResponseFunction (TA0107). SR-173-02 BLOCKING: IEC104-FINDINGS-CAP-001 gap → BC-2.19.028 v1.0 (MAX_IEC104_FINDINGS=10_000). BC-INDEX v2.32. STORY-173 v2.0 hash f3d3673 (canonical). 4th F3-DECOMPOSITION-BC-FIDELITY (story-decomposition imprecision; ADR-013/code correct). STORY-INDEX v3.70. Next: STORY-173 TDD delivery (wave-82). trajectory-tail →1→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-16T02:02:00Z
-# D-455 STORY-172 DELIVERED (PR #406 d64e5fe, wave-81, 2026-07-15). wave-81 gate SATISFIED. Human-authorized squash-merge per DF-MERGE-AUTH-CLASSIFIER-001. develop=d64e5fe (6 unreleased: STORY-167+168+169+170+171+172). SEC-001-S168 RESOLVED. ADR-0013 landed. stories_delivered=111. STORY-INDEX v3.69. Next: STORY-173 wave-82.
+timestamp: 2026-07-16T10:32:00Z
+# D-456 STORY-173 pre-delivery fidelity remediation COMPLETE (2026-07-15). DRIFT-FOUND 2 BLOCKING/3 MEDIUM/3 LOW (SR-173-01..08). BC-2.19.028 v1.0 findings cap created. BC-INDEX v2.32. STORY-173 v2.0 hash f3d3673. 4th F3-DECOMPOSITION-BC-FIDELITY. STORY-INDEX v3.70. Next: STORY-173 TDD delivery (wave-82).
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,7 +25,7 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-15 — D-455 STORY-172 DELIVERED; develop=d64e5fe (STORY-167+168+169+170+171+172, 6 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-15 — D-456 STORY-173 pre-delivery fidelity remediation COMPLETE; develop=d64e5fe (STORY-167+168+169+170+171+172, 6 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 develop_head: d64e5fe
 # Cargo.toml version: main=0.12.1; develop=0.12.1 (6 unreleased commits d64e5fe STORY-167+168+169+170+171+172; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop d64e5fe, histories diverge; trees differ by IEC-104 feature code)
@@ -38,11 +38,11 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 111
-story_index_version: "v3.69"
+story_index_version: "v3.70"
 total_stories: 127
-story_index_note: "127 stories / 83 waves / 765 pts. v3.69 (2026-07-15): STORY-172 DELIVERED (D-455; PR #406 d64e5fe; wave-81 gate SATISFIED; SEC-001-S168 RESOLVED; ADR-0013 landed). See cycles/feature-iec104/ for full F2/F3 history."
+story_index_note: "127 stories / 83 waves / 765 pts. v3.70 (2026-07-15): STORY-173 BC-realigned v2.0 pre-delivery D-456 (SR-173-01..08; BC-2.19.028 findings-cap added; hash f3d3673; bc active 377→378). See cycles/feature-iec104/ for full F2/F3 history."
 # Spec versions (current)
-bc_index_version: "v2.31"
+bc_index_version: "v2.32"
 vp_index_version: "v2.46"
 arch_index_version: "v2.19"
 prd_version: "v1.56"
