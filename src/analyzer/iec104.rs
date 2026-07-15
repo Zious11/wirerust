@@ -42,7 +42,10 @@
 //! This module is an original Rust implementation derived from IEC 60870-5-104:2006 framing
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
+use std::collections::HashMap;
+
 use crate::findings::Finding;
+use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
@@ -149,15 +152,29 @@ pub const U_TESTFR_ACT: u8 = 0x43;
 pub const U_TESTFR_CON: u8 = 0x83;
 
 // ---------------------------------------------------------------------------
+// Carry buffer bound (ADR-013 Decision 2; BC-2.19.025)
+// ---------------------------------------------------------------------------
+
+/// Maximum bytes held in a directional carry buffer between `on_data` calls.
+///
+/// The maximum on-wire APCI frame is LEN=253 + 2 prefix bytes = 255 bytes
+/// (IEC 60870-5-104 §5.1; ADR-013 Decision 2). A carry buffer exceeding this
+/// bound is therefore impossible without malformed or adversarial input; carry
+/// accumulation beyond 255 bytes triggers T0814 overflow detection (BC-2.19.025).
+///
+/// Used by `Iec104Analyzer::on_data` carry-overflow check (STORY-172).
+pub const MAX_IEC104_CARRY_BYTES: usize = 255;
+
+// ---------------------------------------------------------------------------
 // Per-flow state (STORY-168 — introduces session_started; STORY-171 wires N(S) fields)
 // ---------------------------------------------------------------------------
 
 /// Per-flow state for the IEC-104 passive analyzer (SS-19, ADR-013).
 ///
-/// Five fields per the SS-19 architecture shard (v1.6). `session_started` and the carry
+/// Seven fields per the SS-19 architecture shard (v1.6). `session_started` and the carry
 /// buffers are introduced and wired in STORY-168. `last_ns_c2s`/`last_ns_s2c` are declared
-/// here per the SS-19 field inventory but their behavior is wired in STORY-171 (N(S)
-/// desync detection, BC-2.19.024).
+/// and wired in STORY-171 (N(S) desync detection, BC-2.19.024). The two malformed-LEN
+/// per-direction dedup flags are added in STORY-172 (BC-2.19.026 invariant 5).
 ///
 /// ## Fields
 /// - `carry_c2s`: reassembly carry buffer for C→S direction; max `MAX_IEC104_CARRY_BYTES`
@@ -170,13 +187,18 @@ pub const U_TESTFR_CON: u8 = 0x83;
 ///   STORY-171).
 /// - `last_ns_s2c`: last observed 15-bit N(S) in the S→C direction. Same semantics
 ///   (STORY-171).
+/// - `malformed_len_reported_c2s`: one-shot dedup flag; set on first malformed-LEN in C→S
+///   direction; prevents T0814 re-emission on subsequent occurrences (BC-2.19.026 invariant 5;
+///   STORY-172).
+/// - `malformed_len_reported_s2c`: same dedup flag for S→C direction (BC-2.19.026 invariant 5;
+///   STORY-172).
 #[derive(Debug, Default)]
 pub struct Iec104FlowState {
     /// Directional carry buffer for client-to-server APCI stream reassembly.
-    /// Max 255 bytes (`MAX_IEC104_CARRY_BYTES`; BC-2.19.025). Wired in STORY-171+.
+    /// Max 255 bytes (`MAX_IEC104_CARRY_BYTES`; BC-2.19.025). Wired in STORY-172.
     pub carry_c2s: Vec<u8>,
     /// Directional carry buffer for server-to-client APCI stream reassembly.
-    /// Max 255 bytes. Wired in STORY-171+.
+    /// Max 255 bytes. Wired in STORY-172.
     pub carry_s2c: Vec<u8>,
     /// STARTDT/STOPDT session state flag.
     /// `true` after STARTDT-act (`0x07`) or STARTDT-con (`0x0B`).
@@ -189,6 +211,16 @@ pub struct Iec104FlowState {
     /// Last observed N(S) send-sequence counter in S→C direction.
     /// `None` before the first I-frame in this direction (BC-2.19.024). Wired in STORY-171.
     pub last_ns_s2c: Option<u16>,
+    /// One-shot dedup flag for malformed-LEN T0814 emission in C→S direction.
+    /// Set on the first valid-0x68-start but out-of-range-LEN frame in C→S.
+    /// Once set, subsequent malformed-LEN frames in C→S advance the cursor silently.
+    /// Never reset within a flow lifetime (BC-2.19.026 invariant 5; STORY-172).
+    pub malformed_len_reported_c2s: bool,
+    /// One-shot dedup flag for malformed-LEN T0814 emission in S→C direction.
+    /// Same semantics as `malformed_len_reported_c2s` but for S→C.
+    /// The two flags are independent — C→S and S→C dedup states never cross
+    /// (BC-2.19.026 invariant 5; STORY-172).
+    pub malformed_len_reported_s2c: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -969,6 +1001,78 @@ pub fn track_ns_desync(
                 None
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// IEC-104 analyzer struct + flow lifecycle stubs (STORY-172 — BC-2.19.025/026/027)
+// ---------------------------------------------------------------------------
+
+/// IEC-104 TCP stream analyzer.
+///
+/// Holds per-flow [`Iec104FlowState`] keyed by [`FlowKey`]. The pure-core parse and
+/// classification free functions (`parse_apci_header`, `parse_asdu`, `classify_frame_format`,
+/// etc.) are NOT methods — they remain free `fn`s for VP-044 Kani amenability
+/// (ADR-013 Decision 8).
+///
+/// ## Subsystem
+/// SS-19; ADR-013 Decision 8 (effectful-shell / pure-core separation).
+///
+/// ## BC anchors
+/// - BC-2.19.025: directional carry buffers bounded at `MAX_IEC104_CARRY_BYTES` = 255
+/// - BC-2.19.026: frame-walk loop processes multiple APDUs per `on_data` call
+/// - BC-2.19.027: `on_flow_close` removes `Iec104FlowState` and discards carry bytes
+#[allow(dead_code)]
+pub struct Iec104Analyzer {
+    /// Per-flow IEC-104 analyzer state, keyed by canonicalized TCP 4-tuple.
+    pub flows: HashMap<FlowKey, Iec104FlowState>,
+}
+
+impl Iec104Analyzer {
+    /// Construct a new `Iec104Analyzer` with an empty flow state map.
+    pub fn new() -> Self {
+        Self {
+            flows: HashMap::new(),
+        }
+    }
+
+    /// Process a chunk of reassembled TCP stream data for the given flow.
+    ///
+    /// Effectful shell per ADR-013 Decision 8. VP-047 cargo-fuzz target (`fuzz_iec104_parser`).
+    ///
+    /// Frame-walk loop (BC-2.19.026 / ADR-013 Decision 3):
+    /// - Prepend directional carry to data (carry-append helper).
+    /// - Loop: bad-start-byte → advance 1; malformed-LEN → advance 2 + EMIT-WITH-DEDUP T0814
+    ///   on first occurrence per direction (BC-2.19.026 invariant 5); valid frame → parse +
+    ///   dispatch + advance LEN+2; insufficient data → carry-overflow check + stash or T0814.
+    ///
+    /// Carry overflow semantics (BC-2.19.025 canonical vectors): when carry.len() + rem.len()
+    /// > MAX_IEC104_CARRY_BYTES, retain prior carry unchanged, emit T0814, discard all new bytes.
+    ///
+    /// BC-2.19.025 / BC-2.19.026 / STORY-172.
+    #[allow(dead_code, unused_variables)]
+    pub fn on_data(
+        &mut self,
+        flow_key: FlowKey,
+        data: &[u8],
+        ts: u32,
+        direction: Direction,
+    ) {
+        todo!("STORY-172: implement frame-walk loop with carry buffers (BC-2.19.025/026)")
+    }
+
+    /// Remove per-flow state for a closed flow, discarding carry bytes silently.
+    ///
+    /// Postconditions (BC-2.19.027):
+    /// 1. `self.flows.remove(&flow_key)` removes `Iec104FlowState` for the flow.
+    /// 2. `carry_c2s` and `carry_s2c` are dropped (memory freed) as part of state removal.
+    /// 3. No finding is emitted for normal flow close.
+    /// 4. Unknown `flow_key` is a no-op — no panic (BC-2.19.027 postcondition 4).
+    ///
+    /// BC-2.19.027 / STORY-172.
+    #[allow(dead_code, unused_variables)]
+    pub fn on_flow_close(&mut self, flow_key: FlowKey) {
+        todo!("STORY-172: implement flow teardown (BC-2.19.027)")
     }
 }
 

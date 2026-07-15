@@ -4438,3 +4438,93 @@ mod story_171 {
         );
     }
 }
+
+// =============================================================================
+// STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
+//
+// VP-045 proptest skeletons (AC-172-007).
+//
+// These harnesses compile as stubs; their proptest bodies call on_data (todo!())
+// which makes them fail at runtime in the Red Gate phase.
+// Full proptest execution is anchored in STORY-174.
+//
+// ## Contract coverage
+// - BC-2.19.025: directional carry buffers bounded at MAX_IEC104_CARRY_BYTES = 255
+// - BC-2.19.026: frame-walk loop processes multiple APDUs per on_data call
+// - BC-2.19.027: on_flow_close removes Iec104FlowState and discards carry bytes
+//
+// ## Proptest obligation (VP-045)
+// Harnesses: proptest_vp045_direction_isolation, proptest_vp045_independent_run_equivalence
+// Mirrors VP-033 (ENIP carry isolation), VP-035 (DNP3), VP-037 (Modbus) patterns.
+// =============================================================================
+mod story_172 {
+    use proptest::prelude::*;
+    use wirerust::analyzer::iec104::Iec104Analyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    // =========================================================================
+    // VP-045: proptest_vp045_direction_isolation
+    // AC-172-007 (proptest skeleton compiles)
+    // =========================================================================
+
+    proptest! {
+        /// VP-045 proptest skeleton: carry direction isolation (AC-172-007).
+        ///
+        /// Interleaved C2S and S2C deliveries to the same flow must never mix their
+        /// carry buffers. `carry_c2s` must only accumulate bytes from the C2S delivery
+        /// path; `carry_s2c` from S2C only (BC-2.19.025 invariant 1;
+        /// RULING-DNP3-SIBLING-001).
+        ///
+        /// Full proptest execution is in STORY-174. This skeleton establishes the
+        /// harness seam and verifies compilation (AC-172-007).
+        ///
+        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        #[test]
+        fn proptest_vp045_direction_isolation(
+            c2s_data in prop::collection::vec(any::<u8>(), 0..256),
+            s2c_data in prop::collection::vec(any::<u8>(), 0..256),
+        ) {
+            let mut analyzer = Iec104Analyzer::new();
+            let flow_key = FlowKey::new(
+                "127.0.0.1".parse().unwrap(), 1234,
+                "127.0.0.2".parse().unwrap(), 2404,
+            );
+            // Interleaved C2S and S2C deliveries must not mix carries.
+            // carry_c2s must only contain bytes from the c2s_data path;
+            // carry_s2c must only contain bytes from s2c_data path.
+            // (STORY-174 wires the isolation assertion; this skeleton verifies compile.)
+            analyzer.on_data(flow_key.clone(), &c2s_data, 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &s2c_data, 0, Direction::ServerToClient);
+        }
+    }
+
+    proptest! {
+        /// VP-045 proptest skeleton: independent-run equivalence (AC-172-007).
+        ///
+        /// Running on_data with the same data on two separate analyzer instances must
+        /// produce identical per-flow carry state. Verifies that on_data is deterministic
+        /// and carries no hidden cross-flow state (BC-2.19.025 invariant 2).
+        ///
+        /// Full proptest execution is in STORY-174. This skeleton establishes the
+        /// harness seam and verifies compilation (AC-172-007).
+        ///
+        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        #[test]
+        fn proptest_vp045_independent_run_equivalence(
+            data in prop::collection::vec(any::<u8>(), 0..256),
+        ) {
+            let mut analyzer_a = Iec104Analyzer::new();
+            let mut analyzer_b = Iec104Analyzer::new();
+            let flow_key = FlowKey::new(
+                "10.0.0.1".parse().unwrap(), 5000,
+                "10.0.0.2".parse().unwrap(), 2404,
+            );
+            // Two independent analyzer instances with the same input must produce
+            // equivalent per-flow carry state.
+            // (STORY-174 wires the equivalence assertion; this skeleton verifies compile.)
+            analyzer_a.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+            analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+        }
+    }
+}
