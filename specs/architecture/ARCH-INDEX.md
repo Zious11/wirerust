@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.16"
+version: "2.17"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -117,6 +117,9 @@ modified:
   - date: 2026-07-14
     actor: architect
     reason: "F2 Pass-9 exhaustive time-window remediation: Bounded-Resource Design SS-19 note — removed vestigial phrase 'window arithmetic uses `saturating_sub` for backwards-timestamp safety (ADR-013 Decision 6)'. This was a false claim AND a wrong citation: IEC-104 MVP has no time-windowed detection (T0814 is per-event); ADR-013 Decision 6 is N(S)/N(R) sequence counter tracking, not window arithmetic. The real k=12 protocol window (`--iec104-k-window`, BC-2.19.024) is preserved in BC/ADR-013/SS-19 shard. Version bump 2.15→2.16."
+  - date: 2026-07-15
+    actor: architect
+    reason: "ADR-013 Decision 3 SR-172-03 reconciliation: bad-start-byte silenced (no finding); malformed-LEN ratified EMIT-WITH-DEDUP (one T0814 per flow direction); SS-19 v1.6→v1.7 aligned. Version bump 2.16→2.17."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service

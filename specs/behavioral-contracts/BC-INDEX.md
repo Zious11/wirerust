@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.28"
+version: "2.29"
 status: draft
 producer: product-owner
-timestamp: 2026-07-13T00:00:00Z
+timestamp: 2026-07-15T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -20,6 +20,9 @@ traces_to: .factory/specs/prd.md
 >
 > **v2.23 2026-07-13 (feature-iec104 — 27 new BC-2.19.001..027 SS-19 + 3 cross-subsystem new + 2 SS-18 amendments; ARCH-INDEX SS-19 27 BCs; SS-05: 11→12, SS-10: 9→10, SS-12: 24→25, SS-18: 2 amendments; total 348→378 on disk; 347→377 active):**
 > NEW SS-19 (IEC 60870-5-104 Passive Analysis, CAP-19): BC-2.19.001..027 — 27 greenfield BCs covering APCI framing (0x68 start byte validation, LEN range 4–253, carry-incomplete path), post-classification validity gate, I/S/U frame format discrimination (CF1 low-bit rules, VP-046 totality), U-format session state machine (STARTDT, STOPDT-with/without-STARTDT→T0881, TESTFR no-op, non-canonical CF1→T0814/CVE-2026-1773), ASDU parsing (TypeID/VSQ/COT/CASDU/IOA), control-command detection (TypeIDs 45–51→T1692.001 (all); set-point TypeIDs 48–51→+T0836; TypeID 105→T0827, TypeIDs 100/101/103 benign, reserved TypeIDs 0,128–255→T0814), N(S)/N(R) 15-bit extraction + k=12 desync detection→T1692.001, directional carry isolation (VP-045, MAX_IEC104_CARRY_BYTES=255), frame-walk loop (VP-044+VP-047), per-flow teardown. VP anchors: VP-044 (Kani P0), VP-045 (proptest P1), VP-046 (proptest P1), VP-047 (cargo-fuzz P1). NEW cross-subsystem: BC-2.05.012 (Rule 8: TCP/2404→Iec104), BC-2.10.010 (T0881 SEEDED+technique_info+EMITTED, SEEDED count 28→29), BC-2.12.025 (--iec104 flag, included in --all). AMENDED: BC-2.18.003 v1.3→v1.4 (SUPPORTED_PORTS adds 2404, supported entries 7→8), BC-2.18.004 v1.2→v1.3 (EC-003/EC-007 IEC-104 examples). BC count: 348→378 on disk; 347→377 active.
+>
+> **v2.29 2026-07-15 (pre-STORY-172 BC fidelity remediation — BC-2.19.027 FlowId→FlowKey; BC-2.19.026 malformed-LEN EMIT-WITH-DEDUP):**
+> SR-172-01 (HIGH) BC-2.19.027 v1.0→v1.1: FlowId→FlowKey type-name correction throughout — Description signature, Architecture Anchor `fn on_flow_close` code snippet; aligns with SS-19 data model (src/reassembly/flow.rs) and delivered code. SR-172-03 (HIGH) BC-2.19.026 v1.5→v1.6: malformed-LEN branch (valid 0x68 start byte, LEN outside [4,253]) revised from advance-only/no-finding to EMIT-WITH-DEDUP — FIRST occurrence per flow direction emits ONE T0814 (Denial of Service, ThreatCategory::Anomaly / Verdict::Possible / Confidence::Medium) then advances 2-byte APCI stub; per-direction dedup flags (malformed_len_reported_c2s / malformed_len_reported_s2c) in Iec104FlowState prevent re-emission; bad-start-byte branch unchanged; Invariant 5 added (dedup guarantee); EC-006..EC-008 added; MITRE Techniques updated (T0814); Architecture Anchors updated (dedup flag fields + validation report). Validation: .factory/cycles/feature-iec104/research/sr-172-03-malformed-len-validation.md (CVE-2023-5768, Snort3 IEC104_BAD_LENGTH, Wireshark iec104.apdu_invalid_len, Zeek weird+sampling). No BC count change (378 on disk; 377 active).
 >
 > **v2.28 2026-07-14 (F2-Pass-7 — BC-2.19.005 H1 title sync; BC-2.19.026 Inv-4 math; BC-2.18.003 test-vector count; input-hash recompute):**
 > M1 (MEDIUM) BC-2.19.005: BC-INDEX row title propagated from H1 — added "6-byte APCI" (was "Valid Input", now "Valid 6-byte APCI Input (Happy Path)"). L2 (LOW) BC-2.19.026 v1.4→v1.5: Invariant 4 math corrected — ceil(255/6)=43 → floor(255/6)=42 (max whole 6-byte frames); unsound "input ≤ 255" assumption dropped (termination holds for any finite input via ≥1 byte/iteration progress). L3 (LOW) BC-2.18.003 v1.4→v1.5: unsupported_protocols() canonical test vector count corrected ~23→~22 (IEC-104 moved to supported in v1.4). PRD bumped to v1.56. Comprehensive title-sync sweep (DF-SIBLING-SWEEP-001): all 27 BC-2.19.* + BC-2.05.012/BC-2.10.010/BC-2.12.025 + BC-2.18.003/004 checked — only BC-2.19.005 had a mismatch. Input-hashes recomputed via canonical Python tool. No BC count change (378 on disk; 377 active).

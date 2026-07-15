@@ -20,6 +20,9 @@ modified:
   - date: 2026-07-14
     actor: architect
     reason: "Human-mandated F2 gate follow-on (D-438): first-frame N(S) baseline guard added; last_ns fields promoted from u16 to Option<u16>. Decision 6 updated with Option<u16> tracking semantics: None = no I-frame seen yet; first I-frame sets baseline without emitting a desync finding; gap check runs only on Some(prev) state. Both ADR copies updated identically."
+  - date: 2026-07-15
+    actor: architect
+    reason: "Decision 3 steps 3–4 reconciled with BC-2.19.026 per SR-172-03 fidelity finding; malformed-LEN detection ratified EMIT-WITH-DEDUP via research validation."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -123,11 +126,17 @@ Each directional carry is independently bounded at 255 bytes.
 The parser processes TCP segment data with a frame-walk loop:
 1. Prepend any carry bytes to the incoming data.
 2. If carry + data < 2 bytes, stash in carry and return (insufficient for start byte + LEN).
-3. Validate start byte == 0x68. If not, emit anomaly finding and advance 1 byte (resync
-   scan to next 0x68 candidate — advancing 2 would skip a real 0x68 at the next offset
-   and lose a valid frame; 1-byte advance is the correct passive-parser resync behavior
-   per BC-2.19.026).
-4. If LEN < 4 or LEN > 253, emit T0814 finding and advance past 2-byte APCI stub.
+3. Validate start byte == 0x68. If not, advance 1 byte (silent resync scan to next 0x68
+   candidate — advancing 2 would skip a real 0x68 at the next offset and lose a valid
+   frame; 1-byte advance is the correct passive-parser resync behavior per BC-2.19.026;
+   per-byte findings would flood on junk traffic, so bad-start-byte is silent with no
+   finding emitted).
+4. If LEN < 4 or LEN > 253, emit T0814 (Anomaly/Possible/Medium) on the FIRST
+   out-of-range-LEN occurrence per flow direction (per-direction dedup flag); subsequent
+   malformed-LEN frames in that direction advance silently. Advance past the 2-byte APCI
+   stub in all cases. Rationale: CVE-2023-5768; Snort3 IEC104_BAD_LENGTH; Zeek
+   weird-length sampling — established monitors emit-then-dedup
+   (`.factory/cycles/feature-iec104/research/sr-172-03-malformed-len-validation.md`).
 5. If carry + data < LEN + 2, stash full carry and return (incomplete APDU).
 6. Extract full APDU (LEN + 2 bytes), advance frame-walk pointer by LEN + 2, process.
 7. Repeat from step 2 with remaining bytes.
@@ -392,7 +401,7 @@ strategy is sufficient for a simple bit-discriminant function; Kani would add no
 | T0836 | Modify Parameter | set-point + bitstring writes (C_SE 48–50, C_BO 51) | Pre-existing EMITTED |
 | T0831 | Manipulation of Control | C_SE + C_SC actuation on same flow | NOT emitted by IEC-104 this cycle (pre-existing EMITTED via Modbus analyzer; correlated C_SE+C_SC detection deferred to a future cycle) |
 | **T0881** | **Service Stop** | **STOPDT-act observed; STOPDT without prior STARTDT** | **NEW — add via Decision 10** |
-| T0814 | Denial of Service | Malformed APCI (LEN OOB, start ≠ 0x68); non-canonical U-frame CF1 | Pre-existing EMITTED |
+| T0814 | Denial of Service | Malformed APCI (LEN out of [4,253]; one finding per flow direction). Bad start byte: silent resync, no finding. Non-canonical U-frame CF1. | Pre-existing EMITTED |
 | T1692.002 | Unauthorized Message: Reporting Message | M_* telemetry TypeIDs 1,3,5,9,11,13 | SEEDED; NOT emitted this cycle — M_* spoofed telemetry detection staged, out of feature-iec104 scope |
 | T0827 | Loss of Control | Reset process command (C_RP_NA_1, TypeID 105) | Pre-existing EMITTED |
 

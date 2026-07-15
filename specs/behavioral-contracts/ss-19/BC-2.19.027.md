@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
-timestamp: 2026-07-13T00:00:00Z
+timestamp: 2026-07-15T00:00:00Z
 phase: f2
 origin: greenfield
 extracted_from: null
@@ -13,7 +13,8 @@ subsystem: SS-19
 capability: CAP-19
 lifecycle_status: active
 introduced: feature-iec104
-modified: []
+modified:
+  - "v1.1: SR-172-01 FlowId→FlowKey type-name correction per pre-STORY-172 fidelity check (2026-07-15); aligns with SS-19 data model and delivered code in src/reassembly/flow.rs. Constructor references (none present) would use FlowKey::new(ip_a, port_a, ip_b, port_b) semantics."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,11 +32,11 @@ input-hash: "a153144"
 
 ## Description
 
-`Iec104Analyzer::on_flow_close(flow_id: FlowId)` is called by the stream dispatcher when a
+`Iec104Analyzer::on_flow_close(flow_id: FlowKey)` is called by the stream dispatcher when a
 TCP flow terminates. It removes the `Iec104FlowState` entry for the flow from the analyzer's
 state map, discarding any unprocessed carry bytes in `carry_c2s` and `carry_s2c`. This is
 the standard flow lifecycle teardown path. After `on_flow_close`, the flow's state is
-permanently deleted — no state can leak to a future flow with the same flow ID.
+permanently deleted — no state can leak to a future flow with the same flow key.
 
 ## Preconditions
 
@@ -95,7 +96,7 @@ permanently deleted — no state can leak to a future flow with the same flow ID
 
 ## Architecture Anchors
 
-- `src/analyzer/iec104.rs` — `fn on_flow_close(&mut self, flow_id: FlowId) { self.flows.remove(&flow_id); }`
+- `src/analyzer/iec104.rs` — `fn on_flow_close(&mut self, flow_id: FlowKey) { self.flows.remove(&flow_id); }`
 - `docs/adr/0013-iec104-stream-dispatch-and-parser-design.md §Decision 2`
 
 ## Story Anchor

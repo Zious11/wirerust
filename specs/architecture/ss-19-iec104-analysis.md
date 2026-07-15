@@ -6,7 +6,7 @@ section: ss-19-iec104-analysis
 subsystem_id: SS-19
 phase: 1c
 traces_to: ARCH-INDEX.md
-version: "1.6"
+version: "1.7"
 status: draft
 producer: architect
 timestamp: 2026-07-13T00:00:00Z
@@ -32,6 +32,9 @@ modified:
   - date: 2026-07-14
     author: architect
     note: "Human-mandated F2 gate follow-on (D-438): first-frame N(S) baseline guard — last_ns_c2s and last_ns_s2c promoted from u16 to Option<u16>. None = no I-frame seen yet in that direction; first observed I-frame sets Some(ns) baseline without emitting a desync finding; gap check runs only when state is already Some(prev). Field count stays 5. Version bump 1.5→1.6. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
+  - date: 2026-07-15
+    author: architect
+    note: "ADR-013 Decision 3 reconciliation (SR-172-03 / EMIT-WITH-DEDUP ratification): detection table T0814 row updated — 'Malformed APCI / non-canonical U-frame' expanded to clarify LEN-OOB only with EMIT-WITH-DEDUP (one T0814 per flow direction); bad-start-byte noted as silent resync with no finding. Version bump 1.6→1.7. NOTE: this shard is an input to all 27 BC-2.19.* files — PO must recompute input-hashes for all 27 BCs using bin/compute-input-hash --write."
 ---
 
 # SS-19: IEC-104 Analysis
@@ -61,7 +64,7 @@ SS-19 detects high-value adversarial scenarios in substation traffic:
 | Set-point + bitstring writes (C_SE 48–50, C_BO 51) | T0836 Modify Parameter | Possible |
 | STOPDT-act observed | T0881 Service Stop | Possible |
 | STOPDT without prior STARTDT | T0881 Service Stop | Likely |
-| Malformed APCI / non-canonical U-frame | T0814 Denial of Service | Possible/Likely |
+| Malformed APCI (LEN out of [4,253]; EMIT-WITH-DEDUP: one T0814 per flow direction). Bad start byte: silent resync, no finding. Non-canonical U-frame. | T0814 Denial of Service | Possible/Likely |
 | N(S) desync gap > k=12 | T1692.001 Unauthorized Message: Command Message | Possible |
 | Reset process (TypeID 105) | T0827 Loss of Control | Likely |
 | M_* spoofed telemetry (TypeIDs 1,3,5,9,11,13) | T1692.002 Unauthorized Message: Reporting Message | SEEDED; NOT emitted this cycle (staged per ADR-013 Decision 10) |
