@@ -4700,11 +4700,16 @@ mod story_172 {
         ]
         .to_vec();
         analyzer.on_data(flow_key.clone(), &two_frames, 0, Direction::ClientToServer);
-        // Both frames processed → no residual carry.
+        // Both frames processed → no residual carry, and STARTDT-act dispatch effect present.
         let state = analyzer.flows.get(&flow_key).unwrap();
         assert!(
             state.carry_c2s.is_empty(),
             "two complete frames must leave no carry residual (BC-2.19.026 postcondition 3)"
+        );
+        assert!(
+            state.session_started,
+            "STARTDT-act frames must set session_started=true via on_data dispatch \
+             (BC-2.19.026 PC2; DF-SIBLING-SWEEP-001)"
         );
     }
 
@@ -4939,11 +4944,16 @@ mod story_172 {
             0,
             Direction::ClientToServer,
         );
-        // All three frames processed → no residual carry.
+        // All three frames processed → no residual carry, and STARTDT-act dispatch effect present.
         let state = analyzer.flows.get(&flow_key).unwrap();
         assert!(
             state.carry_c2s.is_empty(),
             "three complete back-to-back frames must leave no carry residual (EC-009)"
+        );
+        assert!(
+            state.session_started,
+            "STARTDT-act frames must set session_started=true via on_data dispatch \
+             (BC-2.19.026 PC2; DF-SIBLING-SWEEP-001)"
         );
     }
 
