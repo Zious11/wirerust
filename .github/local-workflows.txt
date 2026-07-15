@@ -1,0 +1,30 @@
+# Fork-local files — protected during upstream sync.
+#
+# Used by .github/workflows/sync-upstream.yml: when a scheduled upstream
+# merge conflicts on a file listed here, the fork's version wins
+# automatically ("ours"); conflicts in any other file stop the sync for
+# manual resolution. One path per line, relative to repo root. Comments (#)
+# and blank lines are ignored.
+#
+# These files carry the ArcavenAE fork's release-ops pipeline (Apple code
+# signing, notarization, Homebrew tap publishing) ported from the
+# fork-friendly release-ops design in ArcavenAE/jira-cli
+# (docs/specs/fork-friendly-release-ops.md there). Upstream
+# (Zious11/wirerust) does not carry these files today; if it ever adopts
+# them in identical form, entries can be pruned. This file lists itself so
+# the fork's list survives upstream template changes.
+.github/local-workflows.txt
+.github/workflows/sign-and-publish.yml
+.github/workflows/sync-upstream.yml
+.github/workflows/backfill-release.yml
+.github/workflows/signing-guard.yml
+Formula/wirerust.rb
+Formula/wirerust-a.rb
+Formula/wirerust-b.rb
+Formula/wirerust-d.rb
+Formula/wirerust-rc.rb
+packaging/Info.plist
+scripts/create-app.sh
+scripts/create-dmg.sh
+scripts/create-pkg.sh
+scripts/check-signing-workflow-injection.sh

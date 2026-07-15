@@ -1,0 +1,46 @@
+# Signing Workflow Injection Guard — fork-local CI gate.
+#
+# Runs scripts/check-signing-workflow-injection.sh (YAML-structure-aware
+# CWE-77 scanner) against the secret-bearing release-ops workflows
+# (sign-and-publish.yml, backfill-release.yml). In ArcavenAE/jira-cli this
+# guard is a job inside the shared ci.yml; wirerust's ci.yml is
+# upstream-owned, so the fork hosts the guard as a separate fork-local
+# workflow to keep upstream syncs conflict-free. Spec:
+# ArcavenAE/jira-cli docs/specs/fork-friendly-release-ops.md
+# § "Required CI regression guard".
+name: Signing Guard
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/check-signing-workflow-injection.sh'
+  push:
+    branches: [develop, main]
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/check-signing-workflow-injection.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  check-signing-workflow-injection:
+    name: Signing Workflow Injection Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run injection guard (YAML-aware)
+        run: bash scripts/check-signing-workflow-injection.sh
+
+      - name: Run injection guard negative fixture self-test
+        run: bash scripts/check-signing-workflow-injection.sh --self-test
