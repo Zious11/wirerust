@@ -9,12 +9,12 @@ traces_to: ""
 project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
-status: active
-current_step: "STORY-171 DELIVERED (D-448, 2026-07-15). PR #405 1a64380 squash-merged to develop (human-authorized). Pre-delivery AC↔BC fidelity check: NO drift (Option<u16> first-frame model already faithful). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 F-171-001 MEDIUM (stale header, PG-REDGREEN 4th occurrence) + F-171-002 (PC-C2 coverage) remediated 27bb678. Security PASS (0 CRIT/HIGH); AI APPROVE (1 cycle, 0 blocking); CI 13/13; 166 iec104 tests; demo 8 artifacts scrub PASS. RETRANSMIT-NS-FALSEPOS-001 resolved (EC-007 fail-closed per INV-3). PG-REDGREEN-COMMENT-CLEANUP: 4th occurrence — CODIFY-NOW. stories_delivered=110; STORY-INDEX v3.64. NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement). PAUSED. trajectory-tail →2→0→0→0"
+status: paused
+current_step: "STORY-171 DELIVERED (D-448, 2026-07-15). PR #405 1a64380 squash-merged to develop (human-authorized). Pre-delivery AC↔BC fidelity check: NO drift (Option<u16> first-frame model already faithful). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 F-171-001 MEDIUM (stale header, PG-REDGREEN 4th occurrence) + F-171-002 (PC-C2 coverage) remediated 27bb678. Security PASS (0 CRIT/HIGH); AI APPROVE (1 cycle, 0 blocking); CI 13/13; 166 iec104 tests; demo 8 artifacts scrub PASS. RETRANSMIT-NS-FALSEPOS-001 resolved (EC-007 fail-closed per INV-3). PG-REDGREEN-COMMENT-CLEANUP: 4th occurrence — CODIFY-NOW. stories_delivered=110; STORY-INDEX v3.64. NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement). PAUSED (D-449 /wrap 2026-07-15). trajectory-tail →2→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: PAUSED
-timestamp: 2026-07-15T20:04:00Z
-# STORY-171 DELIVERED (D-448, 2026-07-15); STORY-INDEX v3.64; stories_delivered=110; PG-REDGREEN-COMMENT-CLEANUP 4 confirmed occurrences CODIFY-NOW; RETRANSMIT-NS-FALSEPOS-001 resolved (EC-007 fail-closed). PAUSED.
+timestamp: 2026-07-15T14:10:00Z
+# STORY-171 DELIVERED (D-448, 2026-07-15); STORY-INDEX v3.64; stories_delivered=110; PG-REDGREEN-COMMENT-CLEANUP 4 confirmed occurrences CODIFY-NOW; RETRANSMIT-NS-FALSEPOS-001 resolved (EC-007 fail-closed). PAUSED. D-449 /wrap 2026-07-15.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 260 = 240 (dual-margin form). 260 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 263 = 237 (dual-margin form). 263 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -70,7 +70,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**STORY-171 DELIVERED (D-448, 2026-07-15). PR #405 1a64380; 4-pass adversary CONVERGED 3-clean (P2/P3/P4); security PASS; CI 13/13; demo PASS. develop=1a64380; stories_delivered=110; STORY-INDEX v3.64. PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW. CLEAN PAUSE. NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement). trajectory-tail →2→0→0→0.**
+**STORY-171 DELIVERED (D-448, 2026-07-15). PR #405 1a64380; 4-pass adversary CONVERGED 3-clean (P2/P3/P4); security PASS; CI 13/13; demo PASS. develop=1a64380; stories_delivered=110; STORY-INDEX v3.64. PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW. CLEAN PAUSE (D-449 /wrap). NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement lands here). trajectory-tail →2→0→0→0.**
 
 ---
 
@@ -85,7 +85,7 @@ maintenance_prior_run: maint-2026-07-09
 | Develop HEAD | `1a64380` — PR #405 STORY-171 squash 2026-07-15; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 |
 | Stories | 110 delivered / 127 total (STORY-INDEX v3.64, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-15 — STORY-171 DELIVERED (D-448, PR #405 1a64380); wave-80 gate-satisfied; PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW; STORY-INDEX v3.64. trajectory-tail →2→0→0→0 |
+| **Last Updated** | 2026-07-15 — D-449 /wrap; STORY-171 DELIVERED (D-448, PR #405 1a64380); wave-80 gate-satisfied; PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW; STORY-INDEX v3.64. trajectory-tail →2→0→0→0 |
 
 ---
 
@@ -111,7 +111,7 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 — F1 (delta-analysis) | DONE/APPROVED (2026-07-14) | 30 new BCs; SS-19; ADR-013; VP-044..047 |
 | feature-iec104 — F2 (spec-evolution) | **APPROVED (D-439) CLOSED** | BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56; Option<u16>; MITRE ics-attack-19.1 confirmed |
 | feature-iec104 — F3 (incremental-stories) | **APPROVED (D-440)** | STORY-167..174 (8 stories/36 pts/waves 76–83); dep-graph v3.9 (137 edges) |
-| feature-iec104 — F4 (delta-implementation) | **IN PROGRESS** | Wave-76 DELIVERED (D-441): STORY-167 PR #401 e65e0d6. Wave-77 DELIVERED (D-443): STORY-168 PR #402 b720fd96. Wave-78 DELIVERED (D-445): STORY-169 PR #403 ac01d9f2; wave-78 gate SATISFIED. Wave-79 DELIVERED (D-447): STORY-170 PR #404 0bd93f8; BC-realigned v2.0; 5-pass 3-clean (P3/P4/P5); CI 13/13; wave-79 gate SATISFIED. **Wave-80 DELIVERED (D-448): STORY-171 PR #405 1a64380; 4-pass 3-clean (P2/P3/P4); CI 13/13; wave-80 gate SATISFIED. 5/8 stories done. STORY-172 next (wave-81).** |
+| feature-iec104 — F4 (delta-implementation) | **IN PROGRESS** | Wave-76 DELIVERED (D-441): STORY-167 PR #401 e65e0d6. Wave-77 DELIVERED (D-443): STORY-168 PR #402 b720fd96. Wave-78 DELIVERED (D-445): STORY-169 PR #403 ac01d9f2; wave-78 gate SATISFIED. Wave-79 DELIVERED (D-447): STORY-170 PR #404 0bd93f8; BC-realigned v2.0; 5-pass 3-clean (P3/P4/P5); CI 13/13; wave-79 gate SATISFIED. **Wave-80 DELIVERED (D-448): STORY-171 PR #405 1a64380; 4-pass 3-clean (P2/P3/P4); CI 13/13; wave-80 gate SATISFIED. 5/8 stories done. STORY-172 next (wave-81). PAUSED (D-449 /wrap).** |
 | feature-iec104 — F4 per-story adversary pass-4 (STORY-171) | CONVERGED | Trajectory 4 passes, 3-clean P2/P3/P4 (BC-5.39.001 SATISFIED); Pass-1 F-171-001 MEDIUM (stale header, PG-REDGREEN 4th) + F-171-002 (PC-C2 coverage) remediated 27bb678; trajectory-tail →2→0→0→0 |
 | feature-iec104 — F4 fix burst (STORY-167 P1) | COMPLETE | Pass-1 findings remediated; commit 557b6a8; re-ran P2/P3/P4 clean |
 | feature-iec104 — F4 fix burst (STORY-169 P1) | COMPLETE | Pass-1 MEDIUM (stale todo!() docstring) remediated 0debf98; re-ran P2/P3/P4 clean |
@@ -134,7 +134,7 @@ maintenance_prior_run: maint-2026-07-09
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | ACTIVE — F4 IN PROGRESS (STORY-171 DELIVERED D-448; PAUSED; STORY-172 wave-81 NEXT); trajectory-tail →2→0→0→0 | develop |
+| feature-iec104 | PAUSED — F4 IN PROGRESS (STORY-171 DELIVERED D-448; D-449 /wrap; STORY-172 wave-81 NEXT); trajectory-tail →2→0→0→0 | develop |
 
 ---
 
@@ -166,6 +166,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-446 | STORY-170 pre-delivery BC-realignment v2.0 (2026-07-14). Corrected significant F3-decomposition drift caught pre-code: (1) AsduHeader→Asdu/extract_asdu_header→parse_asdu naming (STORY-169 delivered broken-out Asdu struct); (2) FALSE-POSITIVE bug fixed — interrogation/clock-sync C_IC/C_CI/C_CS (TypeIDs 100/101/103) were speccing T0827 Possible, BC-2.19.021 says benign/no-finding; (3) AC-170-002 confidence Possible→Likely (BC-2.19.020); (4) reserved-TypeID scope corrected to TypeID=0 or [128,255] (BC-2.19.022); (5) dispatch table corrected (45-47 T1692.001 only; 48-51 +T0836; 105 T0827 Likely; 128-255 T0814); (6) AC-170-007 cot_test [TEST]-tagging added (BC-2.19.017 inv1); (7) BC-2.19.017 added to inputs; input-hash 7c3c35c (canonical; story-writer set d4fcb27 via hook, corrected per PG-HASH-HOOK-DIVERGENCE). STORY-INDEX v3.62. Reinforces F3-DECOMPOSITION-BC-FIDELITY (2nd confirmed occurrence; STORY-169 field-shape/guard drift + STORY-170 false-positive/confidence/scope). Recommend pre-delivery AC↔BC fidelity check for STORY-171-174. | 2026-07-14 |
 | D-447 | STORY-170 DELIVERED (PR #404 0bd93f8, 2026-07-15, human-authorized). Story BC-realigned v2.0 pre-impl (F3-drift: FALSE-POSITIVE interrogation→T0827 bug fixed per BC-2.19.021; T0827 Likely; cot_test [TEST]; reserved-scope). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 5 passes, streak P3/P4/P5; F-170-001 MEDIUM (CASDU/first_ioa context, BC-2.19.019 PC3/BC-2.19.020 PC2) + F-P2-L1 LOW (stale Red-Gate test-header) remediated. Security CLEAN (0 CRIT/HIGH/MEDIUM; 4 INFO accepted); AI APPROVE (0 blocking, 2 NIT accepted); CI 13/13; 136 iec104 tests; demo 6 artifacts scrub PASS; worktree+branch cleaned. 4th of 8 IEC-104 stories. develop=0bd93f8; stories_delivered=109; STORY-INDEX v3.63. PG-REDGREEN-COMMENT-CLEANUP: 3rd occurrence — READY-TO-CODIFY (codification obligation: CI/pre-commit grep guard for stale Red-Gate phrases OR implementer cleanup checklist). | 2026-07-15 |
 | D-448 | STORY-171 DELIVERED (PR #405 1a64380, 2026-07-15, human-authorized). Pre-delivery AC↔BC fidelity check: NO drift (Option<u16> first-frame model already BC-faithful). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 F-171-001 MEDIUM (stale header, PG-REDGREEN 4th occurrence) + F-171-002 (PC-C2 coverage) remediated 27bb678. Security PASS (0 CRIT/HIGH); AI APPROVE (1 cycle, 0 blocking); CI 13/13; 166 iec104 tests; demo 8 artifacts scrub PASS; worktree+branch cleaned. 5th of 8 IEC-104 stories. RETRANSMIT-NS-FALSEPOS-001 resolved (documented EC-007, fail-closed per INV-3). develop=1a64380; stories_delivered=110; STORY-INDEX v3.64. PG-REDGREEN-COMMENT-CLEANUP: 4th occurrence — CODIFY-NOW (strongly recommend CI/pre-commit grep-guard as STORY-174 hardening item or E-11 governance follow-up; 4 confirmed recurrences: STORY-167/169/170/171). | 2026-07-15 |
+| D-449 | Session /wrap (human-requested, 2026-07-15) — pipeline PAUSED at feature-iec104 F4, 5/8 stories delivered (STORY-167..171); develop=1a64380 (5 unreleased); .factory tree clean (sidecar-learning.md committed in wrap commit); docs/adr/0013 untracked-on-develop flagged for STORY-173/docs-commit (recoverable from factory-artifacts mirror); no in-flight TDD, no open PRs, no story worktrees. input-hash scan MATCH=125 STALE=2 (STORY-164/165 pre-existing PG-HASH-HOOK-DIVERGENCE noise, non-blocking). Resume: /vsdd-factory:next-step → STORY-172. | 2026-07-15 |
 
 ---
 
@@ -217,17 +218,19 @@ maintenance_prior_run: maint-2026-07-09
 
 ## Session Resume Checkpoint
 
-**STORY-171 DELIVERED (D-448, 2026-07-15). develop=1a64380; stories_delivered=110; STORY-INDEX v3.64. PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW. CLEAN PAUSE. NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement lands here).**
+**STORY-171 DELIVERED (D-448, 2026-07-15). develop=1a64380; stories_delivered=110; STORY-INDEX v3.64. PG-REDGREEN-COMMENT-CLEANUP 4x CODIFY-NOW. CLEAN PAUSE (D-449 /wrap). NEXT: STORY-172 (wave-81, carry buffers + frame-walk + flow-close, BC-2.19.025-027; SEC-001 carry-bound enforcement lands here).**
 
 Prior checkpoint (STORY-170 DELIVERED, D-447, 2026-07-15) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-15. Position: feature-iec104 F4 delta-implementation IN PROGRESS; STORY-171 DELIVERED (D-448, wave-80); pipeline PAUSED. trajectory-tail →2→0→0→0.
+- **Date:** 2026-07-15. Position: feature-iec104 F4 delta-implementation IN PROGRESS; STORY-171 DELIVERED (D-448, wave-80); pipeline PAUSED (D-449 /wrap). trajectory-tail →2→0→0→0.
 - **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `1a64380`. DRIFT-BACKMERGE-SQUASH-001 still applies. 5 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380).
 - **Wave status:** Wave-76 DELIVERED (D-441): STORY-167. Wave-77 DELIVERED (D-443): STORY-168. Wave-78 DELIVERED (D-445): STORY-169. Wave-79 DELIVERED (D-447): STORY-170 (BC-realigned v2.0; 5-pass adversary 3-clean). Wave-80 DELIVERED (D-448): STORY-171 (N(S)/N(R) tracking + Option<u16> first-frame guard + desync; 4-pass adversary 3-clean; RETRANSMIT-NS-FALSEPOS-001 resolved EC-007). 5 of 8 IEC-104 stories complete.
-- **Remaining F4:** STORY-172 (wave-81, carry buffers + frame-walk loop + on_flow_close lifecycle, BC-2.19.025-027; enforces SEC-001 255-byte carry bound) → STORY-173 (wave-82, dispatch integration + T0881 six-part atomic + Rule 8 + --iec104 + SUPPORTED_PORTS; VP-004/VP-007 Kani zone) → STORY-174 (wave-83, formal hardening + PG-REDGREEN grep-guard codification candidate). stories_delivered=110.
+- **Remaining delivery sequence:** STORY-172 (wave-81, carry buffers + frame-walk loop + on_flow_close lifecycle, BC-2.19.025-027; **pre-delivery AC↔BC fidelity check first** — SEC-001 255-byte carry bound enforced here) → STORY-173 (wave-82, dispatch integration + T0881 six-part atomic + Rule 8 + --iec104 + SUPPORTED_PORTS; VP-004/VP-007 Kani zone; **also land docs/adr/0013 on develop** via STORY-173 or dedicated `docs(adr): add ADR-0013` commit) → STORY-174 (wave-83, formal hardening + PG-REDGREEN-COMMENT-CLEANUP CODIFY-NOW grep-guard) → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → **release cut** (5+ unreleased commits: STORY-167..171 on develop). stories_delivered=110.
 - **Pre-delivery recommendation:** Run AC↔BC field/behavior-fidelity check for STORY-172/173/174 before coding — cheap, caught real bugs in STORY-169 and STORY-170 (F3-DECOMPOSITION-BC-FIDELITY, 2 confirmed; STORY-171 check passed cleanly).
-- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; SEC-001-S168 (LOW, carry-append path inert; STORY-172); STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; SEC-001-S168 (LOW, carry-append path inert; STORY-172); STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); **STORY-164/165 input-hash STALE=2** (pre-existing PG-HASH-HOOK-DIVERGENCE noise — bash hook vs Python canonical algorithm; non-blocking).
 - **Process-gaps CODIFY-NOW:** PG-REDGREEN-COMMENT-CLEANUP (4 occurrences: STORY-167+169+170+171; stale Red-Gate phrases in Green delivery; CODIFY-NOW per D-448; candidate: STORY-174 or E-11 governance follow-up); PG-REDGREEN-SIBLING-SWEEP (stale test-module headers in STORY-168+169 merged baselines; sweep at feature wave-gate); F3-DECOMPOSITION-BC-FIDELITY (2 confirmed: STORY-169+170; run pre-delivery AC↔BC check for STORY-172-174).
+- **UNTRACKED-DEVELOP-ADR:** `docs/adr/0013-iec104-stream-dispatch-and-parser-design.md` is UNTRACKED on the develop working tree (never committed through STORY-167..171 PRs, which touched only src/ + CHANGELOG). Byte-identical to factory mirror `.factory/specs/architecture/decisions/ADR-013-iec104-stream-dispatch-and-parser-design.md` (zero data-loss; recoverable from factory-artifacts). **ACTION ON RESUME:** commit docs/adr/0013 to develop via a story PR — STORY-173 is the natural carrier, OR a dedicated `docs(adr): add ADR-0013` commit. Do NOT commit directly to develop outside a PR.
+- **WRAP STATE:** Session paused by human /wrap at 2026-07-15. No sub-agents abandoned mid-step (STORY-171 fully delivered + merged before pause). No in-flight TDD, no open PRs, no story worktrees. Factory tree clean (sidecar-learning.md committed in D-449 wrap commit).
 - **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / STORY-INDEX v3.64 / dep-graph v3.9 (137 edges).
 - **Resume command:** `/vsdd-factory:next-step`
 
