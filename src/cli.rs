@@ -249,6 +249,12 @@ pub enum Commands {
         #[arg(long)]
         enip: bool,
 
+        /// Analyze IEC 60870-5-104 (IEC-104) TCP traffic (port 2404, requires stream reassembly).
+        /// Default-off; included by --all.
+        // BC-2.12.025
+        #[arg(long)]
+        iec104: bool,
+
         /// Per-flow write-burst threshold: fires T0836 when more than N write-class
         /// requests are observed within any 1-second window. Default: 50.
         /// 0 triggers detection on the very first write (1 > 0).

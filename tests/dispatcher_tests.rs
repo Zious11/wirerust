@@ -42,6 +42,7 @@ fn test_tls_content_wins_over_port_8080() {
         None,
         None,
         None,
+        None,
     );
     // Port 8080 would fall back to Http by port — if content wins, Tls is chosen instead.
     let fk = flow_key(49152, 8080);
@@ -74,6 +75,7 @@ fn test_tls_content_routes_tls_on_port_443() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 443);
 
@@ -95,7 +97,7 @@ fn test_tls_content_routes_tls_on_port_443() {
 
 #[test]
 fn test_dispatcher_routes_http() {
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -142,6 +144,7 @@ fn test_all_http_method_prefixes_route_to_http() {
             None,
             None,
             None,
+            None,
         );
         // Port 9999: no port fallback hint — Http must be chosen by content.
         let fk = flow_key(49152 + i as u16, 9999);
@@ -177,6 +180,7 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 80); // Port 80, but content is TLS
 
@@ -197,6 +201,7 @@ fn test_port_fallback_443_to_tls() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -245,6 +250,7 @@ fn test_port_fallback_8443_to_tls() {
         None,
         None,
         None,
+        None,
     );
     // Port 8443 is a known TLS port; data has no TLS/HTTP signature.
     let fk = flow_key(49152, 8443);
@@ -290,6 +296,7 @@ fn test_port_fallback_80_to_http() {
         None,
         None,
         None,
+        None,
     );
     // Port 80 is a known HTTP port; data has no TLS/HTTP signature.
     let fk = flow_key(49152, 80);
@@ -324,6 +331,7 @@ fn test_port_fallback_8080_to_http() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -368,6 +376,7 @@ fn test_tls_check_skipped_below_len_5() {
         None,
         None,
         None,
+        None,
     );
     // Port 9999: no port fallback hint — isolates the length-gate from port fallback.
     let fk = flow_key(49152, 9999);
@@ -408,6 +417,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
         None,
         None,
         None,
+        None,
     );
     // Port 9999: no port fallback hint.
     let fk = flow_key(49152, 9999);
@@ -437,6 +447,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
         None,
         None,
         None,
+        None,
     );
     let fk2 = flow_key(49152, 9999);
     let almost_tls2 = [0x16u8, 0x02, 0x03, 0x00, 0x05];
@@ -454,6 +465,7 @@ fn test_unclassified_flows_counter() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -477,6 +489,7 @@ fn test_classified_flow_not_counted_as_unclassified() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 80);
 
@@ -492,7 +505,7 @@ fn test_classified_flow_not_counted_as_unclassified() {
 #[test]
 fn test_default_max_classification_attempts() {
     // The default cap is exposed and matches the documented constant.
-    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     assert_eq!(
         dispatcher.max_classification_attempts(),
         wirerust::dispatcher::DEFAULT_MAX_CLASSIFICATION_ATTEMPTS
@@ -502,7 +515,7 @@ fn test_default_max_classification_attempts() {
 #[test]
 fn test_with_max_classification_attempts_overrides_default() {
     // The builder-style override sets a custom cap.
-    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
         .with_max_classification_attempts(3);
     assert_eq!(dispatcher.max_classification_attempts(), 3);
 }
@@ -516,6 +529,7 @@ fn test_unclassifiable_flow_still_counted_after_attempt_cap() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -545,6 +559,7 @@ fn test_late_classification_within_attempt_budget_still_routes() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -585,7 +600,7 @@ fn test_zero_attempt_budget_classifies_nothing() {
     // A flow whose first chunk *is* a clear protocol still routes,
     // because classification on a positive match doesn't consume the
     // (already-zero) failure budget.
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
         .with_max_classification_attempts(0);
     let fk = flow_key(49152, 80);
 
@@ -610,6 +625,7 @@ fn test_http_no_space_does_not_match() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -692,6 +708,7 @@ fn test_tls_takes_priority_over_http_methods_check() {
         None,
         None,
         None,
+        None,
     );
     // Neutral port (9999) — port fallback plays no part.
     let fk = flow_key(49152, 9999);
@@ -725,6 +742,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -826,6 +844,7 @@ fn test_http_content_on_port_443_routes_to_http() {
         None,
         None,
         None,
+        None,
     );
     // Port 443 would fall back to Tls — but content check for HTTP must fire first.
     let fk = flow_key(49152, 443);
@@ -861,6 +880,7 @@ fn test_BC_2_05_005_classification_cached_after_first_match() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -938,6 +958,7 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1035,6 +1056,7 @@ fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     // Port 22 (SSH): not in {80, 443, 8080, 8443} → port fallback also fails → None.
@@ -1106,6 +1128,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(3);
     assert_eq!(
@@ -1160,6 +1183,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(0);
     let fk2 = flow_key(49152, 22);
@@ -1188,6 +1212,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
     let mut d_default = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1260,6 +1285,7 @@ fn test_BC_2_05_006_late_classification_after_nones() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     let fk = flow_key(49152, 22);
@@ -1328,6 +1354,7 @@ fn test_BC_2_05_006_late_classification_after_nones() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     let fk2 = flow_key(49153, 22);
@@ -1370,6 +1397,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
         None,
         None,
         None,
+        None,
     );
     let fk_no_data = flow_key(49200, 9999);
 
@@ -1395,6 +1423,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
     let mut dispatcher2 = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1428,6 +1457,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
         None,
         None,
         None,
+        None,
     );
     let fk_a = flow_key(49202, 9999);
     let fk_b = flow_key(49203, 9999);
@@ -1454,6 +1484,7 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1502,14 +1533,14 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     // without a dedicated decrement test).
 }
 
-// STORY-033 AC-004 + AC-005 (early-return aspect): StreamDispatcher::new(None, None, None, None, None) returns
+// STORY-033 AC-004 + AC-005 (early-return aspect): StreamDispatcher::new(None, None, None, None, None, None) returns
 // immediately from on_data before any classify or state mutation. Indirect proof via
 // observing that routes/attempts maps remain empty (unclassified_flows stays 0 even
 // on close, because the guard also prevents incrementing when no analyzers are configured).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
-    let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
+    let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, None);
     let fk = flow_key(49220, 9999);
 
     // Call on_data multiple times with various byte patterns — must be no-ops.
@@ -1566,7 +1597,7 @@ fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
 fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     // Part 1: http=Some, tls=None. HTTP GET bytes must be classified and forwarded.
     let mut dispatcher_http_only =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     let fk_http = flow_key(49230, 9999);
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
     dispatcher_http_only.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0, 0);
@@ -1587,7 +1618,7 @@ fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     // After on_data with TLS bytes, TlsAnalyzer receives the data and its
     // internal buffer has the flow registered (active_flows_len_for_testing == 1).
     let mut dispatcher_tls_only =
-        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None, None);
+        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None, None, None);
     let fk_tls = flow_key(49231, 9999);
     // Valid-length TLS-like bytes: record_type=0x16, version=0x0301, payload_len=1 byte.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
@@ -1615,6 +1646,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1659,6 +1691,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let mut dispatcher2 = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1709,6 +1742,7 @@ fn test_BC_2_05_009_flow_close_for_unknown_flow_key() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1783,6 +1817,7 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
             None,
             None,
             None,
+            None,
         );
         let fk_tls = flow_key(49300, 9999);
 
@@ -1819,6 +1854,7 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
         let mut dispatcher = StreamDispatcher::new(
             Some(HttpAnalyzer::new()),
             Some(TlsAnalyzer::new()),
+            None,
             None,
             None,
             None,
@@ -1888,14 +1924,14 @@ mod story_153 {
     /// Satisfies the dual-gate precondition (analyzer-present AND gaps enabled)
     /// required by BC-2.05.010 PC-1 / ADR-012 Decision 6 Clarification.
     fn gaps_dispatcher() -> StreamDispatcher {
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
             .with_coverage_gaps(true)
     }
 
     /// `StreamDispatcher` with one HTTP analyzer and `coverage_gaps_enabled = false`
     /// (the default). Used by F-F3P10-001 and the coverage_gaps_disabled tests.
     fn no_gaps_dispatcher() -> StreamDispatcher {
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
     }
 
     /// Builds a `FlowKey` where `10.0.0.1` is always the lower IP (since `10.0.0.1 <
@@ -2541,7 +2577,7 @@ mod f6_hardening {
     #[test]
     fn f6_unclassified_counts_with_only_enip_analyzer() {
         let mut dispatcher =
-            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(10, 10)));
+            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(10, 10)), None);
         dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
         assert_eq!(
             dispatcher.unclassified_flows(),
@@ -2556,7 +2592,7 @@ mod f6_hardening {
     #[test]
     fn f6_unclassified_counts_with_only_dnp3_analyzer() {
         let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(Dnp3Analyzer::new(10)), None);
+            StreamDispatcher::new(None, None, None, Some(Dnp3Analyzer::new(10)), None, None);
         dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
         assert_eq!(
             dispatcher.unclassified_flows(),

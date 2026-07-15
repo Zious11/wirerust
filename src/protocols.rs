@@ -62,6 +62,7 @@ pub struct KnownProtocol {
 /// - 502   → `DispatchTarget::Modbus` in `dispatcher.rs::classify()`
 /// - 20000 → `DispatchTarget::Dnp3` in `dispatcher.rs::classify()`
 /// - 44818 → `DispatchTarget::Enip` in `dispatcher.rs::classify()`
+/// - 2404  → `DispatchTarget::Iec104` in `dispatcher.rs::classify()` (Rule 8, ADR-013)
 /// - 443, 8443 → `DispatchTarget::Tls` in `dispatcher.rs::classify()`
 /// - 80, 8080 → `DispatchTarget::Http` in `dispatcher.rs::classify()`
 /// - 53 → DNS decode-loop in `main.rs` (`dns_analyzer.can_decode()`); NO
@@ -70,14 +71,15 @@ pub struct KnownProtocol {
 ///
 /// ARP is NOT in this list; it is handled via `DecodedFrame::Arp` (ARP special
 /// case in `supported_protocols()`).
-pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53];
+pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 2404, 443, 8443, 80, 8080, 53];
 
 /// Static catalog of all known ICS/IT protocols that wirerust is aware of.
 ///
-/// Exactly 30 entries in catalog-declaration order: the 7 supported entries
-/// first (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP), then
-/// the 23 unsupported entries (9 ICS tier-1 port-detectable, 5 L2/multicast,
-/// 9 IT core).
+/// Exactly 30 entries in catalog-declaration order: the 8 supported entries
+/// first (Modbus/TCP, DNP3, EtherNet/IP+CIP, IEC-104, TLS, ARP, DNS, HTTP), then
+/// the 22 unsupported entries (8 ICS tier-1 port-detectable, 5 L2/multicast,
+/// 9 IT core). IEC 60870-5-104 promoted from unsupported to supported in STORY-173
+/// by adding port 2404 to SUPPORTED_PORTS (BC-2.18.003 PC-1).
 ///
 /// Canonical EtherType values (IEEE RA registry):
 /// - GOOSE    = 0x88B8 (35000 decimal) — IEC 61850-8-1 §4
@@ -435,7 +437,7 @@ pub fn supported_protocols() -> Vec<&'static KnownProtocol> {
 /// `KNOWN_PROTOCOLS` — i.e., every entry NOT in `supported_protocols()`.
 ///
 /// Derived as the complement; not a hand-maintained list
-/// (BC-2.18.003 Invariant 4). Returns exactly 23 entries.
+/// (BC-2.18.003 Invariant 4). Returns exactly 22 entries (after IEC-104 promoted in STORY-173).
 ///
 /// Pure function; no I/O.
 ///

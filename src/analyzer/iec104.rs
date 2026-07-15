@@ -165,6 +165,20 @@ pub const U_TESTFR_CON: u8 = 0x83;
 /// Used by `Iec104Analyzer::on_data` carry-overflow check (STORY-172).
 pub const MAX_IEC104_CARRY_BYTES: usize = 255;
 
+/// DoS bound on accumulated IEC-104 findings per analyzer instance.
+///
+/// Cap enforced at the `on_data` extend step: `local_findings` is truncated to the remaining
+/// capacity before merging into `self.all_findings`; the discarded count is added to
+/// `self.dropped_findings` (BC-2.19.028; IEC104-FINDINGS-CAP-001; STORY-173).
+///
+/// Mirrors `MAX_FINDINGS` in `Dnp3Analyzer` (BC-2.15.022) and `EnipAnalyzer` (BC-2.17.022).
+/// Same value (10_000) and same silent-cap-drop pattern.
+///
+/// CALLER NOTE: `detect_iec104_threats` callers MUST enforce this cap externally at the
+/// `on_data` extend step. `detect_iec104_threats` itself is unbounded — the caller is
+/// responsible for truncation (BC-2.19.028 Invariant 6 / IEC104-FINDINGS-CAP-001).
+pub const MAX_IEC104_FINDINGS: usize = 10_000;
+
 // ---------------------------------------------------------------------------
 // Per-flow state (STORY-168 — introduces session_started; STORY-171 wires N(S) fields)
 // ---------------------------------------------------------------------------
@@ -682,6 +696,12 @@ pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
 /// ## VP-047 seam
 /// No-panic for all TypeID values is a VP-047 cargo-fuzz property (`fuzz_iec104_parser`).
 /// This function is NOT a VP-044 Kani target.
+///
+/// ## Findings cap
+/// This function is UNBOUNDED — it appends findings without checking `MAX_IEC104_FINDINGS`.
+/// The caller (`Iec104Analyzer::on_data`) MUST enforce the cap at the extend step by
+/// truncating `local_findings` before merging into `self.all_findings`
+/// (BC-2.19.028 Invariant 6 / IEC104-FINDINGS-CAP-001).
 pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
@@ -1040,6 +1060,13 @@ pub struct Iec104Analyzer {
     /// Tests inspect this field to assert T0814 emission counts and attributes.
     /// Mirrors the `Dnp3Analyzer::all_findings` / `EnipAnalyzer::all_findings` pattern.
     pub all_findings: Vec<Finding>,
+    /// Count of findings silently dropped because `all_findings` reached `MAX_IEC104_FINDINGS`.
+    ///
+    /// Initialized to 0. Incremented at the `on_data` extend step whenever
+    /// `local_findings` is truncated to the remaining capacity
+    /// (BC-2.19.028 PC-3/PC-4; IEC104-FINDINGS-CAP-001; STORY-173).
+    /// Surfaced in `summarize()` as `detail["dropped_findings"]`.
+    pub dropped_findings: u64,
 }
 
 impl Default for Iec104Analyzer {
@@ -1054,6 +1081,7 @@ impl Iec104Analyzer {
         Self {
             flows: HashMap::new(),
             all_findings: Vec::new(),
+            dropped_findings: 0,
         }
     }
 
@@ -1077,6 +1105,13 @@ impl Iec104Analyzer {
     ///   → stash remaining to carry and return.
     ///
     /// BC-2.19.025 / BC-2.19.026 / STORY-172.
+    ///
+    /// ## Findings cap (BC-2.19.028; IEC104-FINDINGS-CAP-001; STORY-173)
+    /// At the extend step, `local_findings` is truncated to the remaining capacity
+    /// (`MAX_IEC104_FINDINGS - self.all_findings.len()` slots) before merging; discarded count
+    /// is added to `self.dropped_findings`. Per-flow state continues updating regardless.
+    ///
+    /// STUB NOTE: cap enforcement is NOT yet implemented (STORY-173 TDD step, Red Gate).
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
         let _ = ts;

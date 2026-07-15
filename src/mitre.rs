@@ -246,6 +246,9 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
             "Modify Firmware: System Firmware",
             MitreTactic::IcsInhibitResponseFunction,
         ),
+        // STORY-173 / VP-007 atomic obligation (ADR-013 Decision 10) — T0881 six-part atomic.
+        // Tactic: IcsInhibitResponseFunction (TA0107). Emitted on STOPDT-act in IEC-104 flows.
+        "T0881" => ("Service Stop", MitreTactic::IcsInhibitResponseFunction),
         _ => return None,
     };
     Some(info)
@@ -327,9 +330,11 @@ mod kani_proofs {
     const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
 
     /// IDs actually emitted by analyzers today (`grep -rn 'mitre_techniques: vec!' src/`).
-    /// 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) + 3 ENIP (STORY-133) = 20 emitted IDs
+    /// 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) + 3 ENIP (STORY-133)
+    /// + 1 IEC-104 (STORY-173) = 21 emitted IDs
     /// (BC-2.10.008 postcondition 1). T0846 promoted from seeded-only to emitted (STORY-133, Step 4).
     /// T0888 IS emitted (Modbus recon). T1693.001 is seeded-only (staged for v0.12.0).
+    /// T0881 added: IEC-104 STOPDT-act detection (STORY-173 VP-007 atomic obligation, ADR-013 Decision 10).
     /// Sub-property B's emitter half: each must resolve in the catalogue.
     const EMITTED_IDS: &[&str] = &[
         // Enterprise (6)
@@ -357,6 +362,8 @@ mod kani_proofs {
         "T0858", // Change Operating Mode (BC-2.17.011; IcsExecution/TA0104)
         "T0816", // Device Restart/Shutdown (BC-2.17.013; IcsInhibitResponseFunction/TA0107)
         "T0846", // Remote System Discovery (BC-2.17.010; IcsDiscovery/TA0102; promoted from seeded-only)
+        // STORY-173 (1) — VP-007 IEC-104 atomic obligation (ADR-013 Decision 10).
+        "T0881", // Service Stop (BC-2.19.011/012; IcsInhibitResponseFunction/TA0107; STOPDT-act)
     ];
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
@@ -425,6 +432,8 @@ mod kani_proofs {
 ///   = 25 total (12 Enterprise + 13 ICS; normative split per VP-007 §CC-003).
 /// STORY-133 (VP-007 ENIP obligation) +3 ENIP (T0858 IcsExecution/TA0104, T0816 IcsInhibitResponseFunction/TA0107,
 ///   T1693.001 staged IcsInhibitResponseFunction/TA0107) = 28 total.
+/// STORY-173 (VP-007 IEC-104 obligation, ADR-013 Decision 10) +1 IEC-104 (T0881 "Service Stop"
+///   IcsInhibitResponseFunction/TA0107) = 29 total.
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
@@ -462,16 +471,18 @@ const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     "T0858",
     "T0816",
     "T1693.001",
+    // IEC-104 STORY-173 (1) — VP-007 atomic obligation (ADR-013 Decision 10)
+    "T0881",
 ];
 
 /// Expected number of Some-returning arms in [`technique_info`]. Declared
 /// separately from `SEEDED_TECHNIQUE_IDS.len()` so the drift guard catches BOTH
 /// directions of accidental edit: bumping this without adding an ID (or vice
 /// versa) fails the test. Must equal the count of `=> (...)` arms in
-/// `technique_info` (currently 28: 21 post-F2/STORY-100 + 2 STORY-109 + 2 ARP/STORY-114
-/// + 3 ENIP/STORY-133 additions).
+/// `technique_info` (currently 29: 21 post-F2/STORY-100 + 2 STORY-109 + 2 ARP/STORY-114
+/// + 3 ENIP/STORY-133 + 1 IEC-104/STORY-173 additions).
 #[cfg(any(kani, test))]
-const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
+const SEEDED_TECHNIQUE_ID_COUNT: usize = 29;
 
 /// Validates MITRE technique-ID format: `T[0-9]{4}` (parent) or
 /// `T[0-9]{4}.[0-9]{3}` (sub-technique). Used by the VP-007 format proof; gated
