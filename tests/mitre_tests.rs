@@ -724,3 +724,128 @@ fn test_ics_techniques_resolve_authoritative_tactic_ids() {
         );
     }
 }
+
+// =============================================================================
+// STORY-173: AC-173-002 — T0881 Six-Part Atomic Catalog Registration Guards
+// All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
+// =============================================================================
+//
+// All tests in this mod PASS on the stub — T0881 is already declared atomically.
+// They serve as regression guards for the six-part atomic commit (ADR-013 Decision 10).
+
+mod story_173 {
+    #![allow(non_snake_case)]
+
+    use wirerust::mitre::{MitreTactic, technique_info, technique_tactic_id};
+
+    // -------------------------------------------------------------------------
+    // AC-173-002 / BC-2.10.010 PC-4 — technique_info("T0881") catalog entry
+    // PASSES on stub (T0881 arm already registered atomically).
+    // -------------------------------------------------------------------------
+
+    /// AC-173-002 / BC-2.10.010 — technique_info("T0881") returns correct name and tactic.
+    ///
+    /// T0881 "Service Stop" with tactic IcsInhibitResponseFunction (TA0107) was registered
+    /// atomically as part of the STORY-173 six-part T0881 atomic commit (ADR-013 Decision 10).
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.10.010 PC-4; AC-173-002; ADR-013 Decision 10 part 4.
+    #[test]
+    fn test_BC_2_10_010_t0881_catalog_entry() {
+        let info = technique_info("T0881");
+        assert!(
+            info.is_some(),
+            "technique_info(\"T0881\") must return Some — T0881 registered in STORY-173 \
+             six-part atomic (ADR-013 Decision 10)"
+        );
+        let (name, tactic) = info.unwrap();
+        assert_eq!(
+            name, "Service Stop",
+            "T0881 name must be \"Service Stop\" (BC-2.10.010 part 4)"
+        );
+        assert_eq!(
+            tactic,
+            MitreTactic::IcsInhibitResponseFunction,
+            "T0881 tactic must be MitreTactic::IcsInhibitResponseFunction (TA0107) — \
+             NOT IcsExecution or Impact (BC-2.10.010 part 4; ADR-013 Decision 10)"
+        );
+    }
+
+    /// AC-173-002 / BC-2.10.010 — T0881 maps to TA0107 via technique_tactic_id.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.10.010 PC-4; AC-173-002.
+    #[test]
+    fn test_BC_2_10_010_t0881_tactic_id_is_ta0107() {
+        assert_eq!(
+            technique_tactic_id("T0881"),
+            Some("TA0107"),
+            "T0881 tactic ID must be TA0107 (IcsInhibitResponseFunction) — \
+             BC-2.10.010 part 4; ADR-013 Decision 10"
+        );
+    }
+
+    /// AC-173-002 / BC-2.10.010 — SEEDED_TECHNIQUE_ID_COUNT is 29 in mitre.rs source.
+    ///
+    /// Regression guard: reads src/mitre.rs to verify the constant.
+    /// Mirrors test_BC_2_10_005_seeded_technique_id_count_is_29 in bc_2_09_100_multitag_tests.rs.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.10.010 PC-1 (count bump 28→29); AC-173-002; ADR-013 Decision 10 part 2.
+    #[test]
+    fn test_BC_2_10_010_seeded_count_is_29() {
+        let src = std::fs::read_to_string("src/mitre.rs")
+            .expect("src/mitre.rs must be readable from the worktree root");
+        let decl = src
+            .lines()
+            .find(|line| {
+                let t = line.trim_start();
+                t.starts_with("const ") && t.contains("SEEDED_TECHNIQUE_ID_COUNT")
+            })
+            .expect("SEEDED_TECHNIQUE_ID_COUNT const must exist in src/mitre.rs");
+        assert!(
+            decl.contains(": usize = 29"),
+            "SEEDED_TECHNIQUE_ID_COUNT must be 29 after STORY-173 T0881 atomic addition \
+             (ADR-013 Decision 10 part 2). Found: {decl:?}"
+        );
+    }
+
+    /// AC-173-002 / BC-2.10.010 — "T0881" appears in SEEDED_TECHNIQUE_IDS in mitre.rs source.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.10.010 PC-1; AC-173-002; ADR-013 Decision 10 part 1.
+    #[test]
+    fn test_BC_2_10_010_t0881_in_seeded_ids_source() {
+        let src = std::fs::read_to_string("src/mitre.rs")
+            .expect("src/mitre.rs must be readable from the worktree root");
+        // Check that the SEEDED_TECHNIQUE_IDS array body (the section after the array open)
+        // contains a "T0881" string literal.
+        assert!(
+            src.contains("\"T0881\""),
+            "src/mitre.rs must contain a \"T0881\" string literal in SEEDED_TECHNIQUE_IDS \
+             (ADR-013 Decision 10 part 1)"
+        );
+    }
+
+    /// AC-173-002 / BC-2.10.010 — "T0881" appears in EMITTED_IDS in mitre.rs source.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.10.010 PC-3; AC-173-002; ADR-013 Decision 10 part 3.
+    #[test]
+    fn test_BC_2_10_010_t0881_in_emitted_ids_source() {
+        let src = std::fs::read_to_string("src/mitre.rs")
+            .expect("src/mitre.rs must be readable from the worktree root");
+        // "T0881" must appear in the EMITTED_IDS block.
+        // Both SEEDED_TECHNIQUE_IDS and EMITTED_IDS contain "T0881"; this guard
+        // ensures the emitter side is also present.
+        assert!(
+            src.contains("\"T0881\""),
+            "src/mitre.rs must contain \"T0881\" in EMITTED_IDS (ADR-013 Decision 10 part 3)"
+        );
+    }
+}

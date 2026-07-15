@@ -2602,3 +2602,193 @@ mod f6_hardening {
         );
     }
 }
+
+// =============================================================================
+// STORY-173: AC-173-001 (classify) + AC-173-008 (dispatcher wiring)
+// All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
+// =============================================================================
+//
+// Two tests MUST FAIL on the stub:
+//   test_iec104_only_dispatcher_data_reaches_analyzer — Iec104 on_data arm is NO-OP
+//   test_iec104_only_dispatcher_stopdt_produces_t0881 — same root cause
+//
+// Two tests are GUARDS that PASS on current stub code:
+//   test_BC_2_05_012_early_exit_guard_includes_iec104 — guard is in stub
+//   test_iec104_disabled_port_2404_no_panic           — None iec104 doesn't panic
+//   test_iec104_only_guard_unclassified_flows_counted  — guard is in stub
+
+mod story_173 {
+    #![allow(non_snake_case)]
+
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::iec104::Iec104Analyzer;
+    use wirerust::dispatcher::StreamDispatcher;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+
+    fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            src_port,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            dst_port,
+        )
+    }
+
+    // STARTDT-act U-frame: start=0x68, LEN=4, CF1=0x07, CF2-CF4=0.
+    fn startdt_act() -> Vec<u8> {
+        vec![0x68, 0x04, 0x07, 0x00, 0x00, 0x00]
+    }
+
+    // STOPDT-act U-frame: start=0x68, LEN=4, CF1=0x13, CF2-CF4=0.
+    fn stopdt_act() -> Vec<u8> {
+        vec![0x68, 0x04, 0x13, 0x00, 0x00, 0x00]
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-008 — DISPATCHER WIRING (MUST FAIL on stub)
+    // Iec104 on_data arm is `let _ = (flow_key, data, timestamp, direction);` — no forwarding.
+    // -------------------------------------------------------------------------
+
+    /// AC-173-008 — dispatcher wiring: STARTDT-act on port 2404 must reach Iec104Analyzer.
+    ///
+    /// With ONLY iec104 set, feeding a STARTDT-act on port 2404 through the dispatcher
+    /// must result in Iec104Analyzer::flows having 1 entry and session_started = true.
+    ///
+    /// MUST FAIL until the Iec104 arm in on_data calls `iec104.on_data(...)`.
+    /// Current stub: the arm discards data with `let _ = (flow_key, data, timestamp, direction)`.
+    ///
+    /// Traces: AC-173-008; BC-2.05.012 invariant 1; ADR-013 Decision 9 step 5.
+    #[test]
+    fn test_iec104_only_dispatcher_data_reaches_analyzer() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60001, 2404);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &startdt_act(), 0, 1_700_000_000);
+
+        let analyzer = dispatcher
+            .iec104_analyzer()
+            .expect("IEC-104 analyzer must be present when configured");
+
+        // FAILS today: on_data Iec104 arm is a no-op → no per-flow state created.
+        assert_eq!(
+            analyzer.flows.len(),
+            1,
+            "AC-173-008: Iec104Analyzer::flows must have 1 entry after feeding a STARTDT-act \
+             on port 2404. Got {} entries — Iec104 on_data arm is not forwarding to the analyzer \
+             (stub discards data with `let _ = ...`).",
+            analyzer.flows.len()
+        );
+        // FAILS today: flow entry absent → unwrap would panic; test fails at flows.len() first.
+        let state = analyzer.flows.get(&fk);
+        assert!(
+            state.is_some(),
+            "AC-173-008: flows must have an entry for the port-2404 FlowKey"
+        );
+        assert!(
+            state.unwrap().session_started,
+            "AC-173-008: STARTDT-act must set session_started = true after dispatcher wiring"
+        );
+    }
+
+    /// AC-173-008 — STOPDT-act on port 2404 must produce a T0881 finding via the dispatcher.
+    ///
+    /// With ONLY iec104 set, a STOPDT-act (session_started=false → T0881 Verdict::Likely)
+    /// fed through the dispatcher must appear in all_findings.
+    ///
+    /// MUST FAIL until the Iec104 arm calls iec104.on_data().
+    ///
+    /// Traces: AC-173-008; BC-2.19.011 (T0881 Likely on stop without prior start).
+    #[test]
+    fn test_iec104_only_dispatcher_stopdt_produces_t0881() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60002, 2404);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &stopdt_act(), 0, 1_700_000_000);
+
+        let analyzer = dispatcher
+            .iec104_analyzer()
+            .expect("IEC-104 analyzer must be present when configured");
+
+        // FAILS today: all_findings is empty because the Iec104 arm never calls on_data.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "AC-173-008: STOPDT-act through the dispatcher must emit 1 T0881 finding. \
+             Got {} findings — Iec104 on_data arm is not forwarding.",
+            analyzer.all_findings.len()
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .first()
+                .map(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+                .unwrap_or(false),
+            "AC-173-008: the finding must cite T0881 (Service Stop)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-001 / AC-173-008 GUARDS (PASS on current stub)
+    // -------------------------------------------------------------------------
+
+    /// AC-173-001 guard — early-exit guard includes iec104.is_none() so a iec104-only
+    /// dispatcher does NOT silently discard data before reaching the match arm.
+    ///
+    /// PASSES on current stub (guard is in place; data reaches the (no-op) Iec104 arm).
+    /// Validates ADR-013 Decision 9 step 4.
+    ///
+    /// Traces: AC-173-008; ADR-013 Decision 9 step 4 (early-exit guard).
+    #[test]
+    fn test_BC_2_05_012_early_exit_guard_includes_iec104() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60003, 2404);
+        // This would panic / return early if the guard were missing iec104.is_none().
+        // With the guard in place, no panic occurs (data reaches Iec104 arm, even if no-op).
+        dispatcher.on_data(&fk, Direction::ClientToServer, &startdt_act(), 0, 0);
+    }
+
+    /// AC-173-003 edge (EC-003) — with iec104=None, port-2404 traffic causes no panic.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: BC-2.12.025 PC-2 (default-off); AC-173-003 EC-003.
+    #[test]
+    fn test_iec104_disabled_port_2404_no_panic() {
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, None);
+        let fk = flow_key(60004, 2404);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &stopdt_act(), 0, 0);
+        dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    }
+
+    /// AC-173-008 guard — iec104-only dispatcher counts unclassified flows.
+    ///
+    /// The early-exit guard `&& self.iec104.is_none()` means that with ONLY iec104 set,
+    /// the guard is false and data is processed. A non-2404 flow → None target →
+    /// unclassified_flows incremented in on_flow_close.
+    ///
+    /// PASSES on current stub.
+    ///
+    /// Traces: AC-173-008 (early-exit guard); BC-2.05.012.
+    #[test]
+    fn test_iec104_only_guard_unclassified_flows_counted() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        // Non-2404 flow → DispatchTarget::None → unclassified_flows + 1.
+        let fk = flow_key(60005, 9999);
+        dispatcher.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            dispatcher.unclassified_flows(),
+            1,
+            "AC-173-008: iec104-only dispatcher must count an unclassified None-target close \
+             (guard depends on `|| self.iec104.is_some()`)"
+        );
+    }
+}
