@@ -319,9 +319,15 @@ mod story_105 {
         let random_data = [0xDEu8, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
 
         // Force it past the retry cap so it gets cached as None.
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)), None, None, None)
-                .with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(
+            None,
+            None,
+            Some(ModbusAnalyzer::new(20, 10)),
+            None,
+            None,
+            None,
+        )
+        .with_max_classification_attempts(1);
 
         dispatcher.on_data(
             &key,
@@ -806,9 +812,15 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus() {
         // Modbus-only dispatcher, but port 9999 — classify returns None.
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)), None, None, None)
-                .with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(
+            None,
+            None,
+            Some(ModbusAnalyzer::new(20, 10)),
+            None,
+            None,
+            None,
+        )
+        .with_max_classification_attempts(1);
         let key = flow_key(12345, 9999);
         let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
         // classify() returns None (no content match, not 443/8443/80/8080/502).
@@ -1181,7 +1193,8 @@ mod story_105 {
                 "F-105-003 pin-2: no valid PDU must be counted on the crafted invalid stream"
             );
             // Re-insert the analyzer so we can test subsequent behavior.
-            let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref), None, None, None);
+            let mut dispatcher2 =
+                StreamDispatcher::new(None, None, Some(modbus_ref), None, None, None);
 
             // Now send a valid complete ADU on the same flow key.
             // Because is_non_modbus == true, on_data bails immediately without processing.

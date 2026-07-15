@@ -189,8 +189,14 @@ mod story_110 {
     fn test_http_on_port_20000_routes_to_http() {
         use wirerust::analyzer::http::HttpAnalyzer;
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher =
-            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, Some(dnp3), None, None);
+        let mut dispatcher = StreamDispatcher::new(
+            Some(HttpAnalyzer::new()),
+            None,
+            None,
+            Some(dnp3),
+            None,
+            None,
+        );
         let key = flow_key(12345, 20000);
         let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
         // Rule 2 fires (HTTP content) before Rule 6 (port 20000).
@@ -573,7 +579,8 @@ mod story_110 {
         // A port-502 flow must go to Modbus, not DNP3.
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None, None);
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None, None);
         let key = flow_key(12345, 502);
 
         // Valid Modbus ADU on port 502.
@@ -795,7 +802,8 @@ mod story_110 {
         use wirerust::analyzer::modbus::ModbusAnalyzer;
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None, None);
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None, None);
         // src=502, dst=20000 — both ports present in the flow key
         let key = flow_key(502, 20000);
 

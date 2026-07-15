@@ -97,7 +97,8 @@ fn test_tls_content_routes_tls_on_port_443() {
 
 #[test]
 fn test_dispatcher_routes_http() {
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
+    let mut dispatcher =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -600,8 +601,9 @@ fn test_zero_attempt_budget_classifies_nothing() {
     // A flow whose first chunk *is* a clear protocol still routes,
     // because classification on a positive match doesn't consume the
     // (already-zero) failure budget.
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
-        .with_max_classification_attempts(0);
+    let mut dispatcher =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
+            .with_max_classification_attempts(0);
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -2576,8 +2578,14 @@ mod f6_hardening {
     /// becomes `false && true == false`, so the counter would stay 0.
     #[test]
     fn f6_unclassified_counts_with_only_enip_analyzer() {
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(10, 10)), None);
+        let mut dispatcher = StreamDispatcher::new(
+            None,
+            None,
+            None,
+            None,
+            Some(EnipAnalyzer::new(10, 10)),
+            None,
+        );
         dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
         assert_eq!(
             dispatcher.unclassified_flows(),
@@ -2666,7 +2674,13 @@ mod story_173 {
         let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
 
         let fk = flow_key(60001, 2404);
-        dispatcher.on_data(&fk, Direction::ClientToServer, &startdt_act(), 0, 1_700_000_000);
+        dispatcher.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &startdt_act(),
+            0,
+            1_700_000_000,
+        );
 
         let analyzer = dispatcher
             .iec104_analyzer()
@@ -2707,7 +2721,13 @@ mod story_173 {
         let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
 
         let fk = flow_key(60002, 2404);
-        dispatcher.on_data(&fk, Direction::ClientToServer, &stopdt_act(), 0, 1_700_000_000);
+        dispatcher.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &stopdt_act(),
+            0,
+            1_700_000_000,
+        );
 
         let analyzer = dispatcher
             .iec104_analyzer()

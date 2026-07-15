@@ -462,12 +462,11 @@ impl StreamHandler for StreamDispatcher {
                 }
             }
             DispatchTarget::Iec104 => {
-                // BC-2.05.012 §P2 (stub — STORY-173 TDD step, Red Gate):
-                // Forwarding to Iec104Analyzer is UNIMPLEMENTED here.
-                // The behavioral wiring (iec104.on_data call) is added in the TDD implementation step.
-                // This arm compiles but does NOT route data to the analyzer, keeping the
-                // test_BC_2_05_012_dispatch_port_2404 and test_iec104_only_dispatcher tests RED.
-                let _ = (flow_key, data, timestamp, direction);
+                // BC-2.05.012 §P2 / AC-173-008: forward port-2404 flow data to Iec104Analyzer.
+                // Mirrors the ENIP arm (ADR-013 Decision 9 step 5).
+                if let Some(ref mut iec104) = self.iec104 {
+                    iec104.on_data(flow_key.clone(), data, timestamp, direction);
+                }
             }
             DispatchTarget::None => {}
         }
@@ -513,10 +512,12 @@ impl StreamHandler for StreamDispatcher {
                 }
             }
             Some(DispatchTarget::Iec104) => {
-                // BC-2.05.012 (stub — STORY-173 TDD step, Red Gate):
-                // Forwarding to Iec104Analyzer is UNIMPLEMENTED here.
-                // The behavioral wiring (iec104.on_flow_close call) is added in the TDD step.
+                // BC-2.05.012 / AC-173-008: forward flow-close to Iec104Analyzer.
+                // Mirrors the ENIP arm (ADR-013 Decision 9 step 5).
                 let _ = reason;
+                if let Some(ref mut iec104) = self.iec104 {
+                    iec104.on_flow_close(flow_key.clone());
+                }
             }
             Some(DispatchTarget::None) | None => {
                 // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3 + enip + iec104.
