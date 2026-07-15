@@ -75,11 +75,13 @@ pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 2404, 443, 8443, 80, 80
 
 /// Static catalog of all known ICS/IT protocols that wirerust is aware of.
 ///
-/// Exactly 30 entries in catalog-declaration order: the 8 supported entries
-/// first (Modbus/TCP, DNP3, EtherNet/IP+CIP, IEC-104, TLS, ARP, DNS, HTTP), then
-/// the 22 unsupported entries (8 ICS tier-1 port-detectable, 5 L2/multicast,
-/// 9 IT core). IEC 60870-5-104 promoted from unsupported to supported in STORY-173
-/// by adding port 2404 to SUPPORTED_PORTS (BC-2.18.003 PC-1).
+/// Exactly 30 entries in catalog-declaration order: 7 entries in the supported
+/// block (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP), then 23
+/// entries in the remaining blocks. IEC 60870-5-104 is functionally supported
+/// (port 2404 in `SUPPORTED_PORTS` since STORY-173; BC-2.18.003 PC-1) but is
+/// physically still in the ICS Tier-1 block below — membership-by-port-filter
+/// pattern: `supported_protocols()` returns it via the port intersection, not by
+/// physical placement. Total supported: 8; total unsupported: 22.
 ///
 /// Canonical EtherType values (IEEE RA registry):
 /// - GOOSE    = 0x88B8 (35000 decimal) — IEC 61850-8-1 §4
@@ -89,7 +91,9 @@ pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 2404, 443, 8443, 80, 80
 /// - POWERLINK= 0x88AB (34987 decimal) — EPSG V2 current standard
 pub const KNOWN_PROTOCOLS: &[KnownProtocol] = &[
     // -----------------------------------------------------------------------
-    // Supported (7) — catalog-declaration order per BC-2.18.003 v1.3 PC-2
+    // Supported (7 physically here) — catalog-declaration order per BC-2.18.003 v1.3 PC-2
+    // IEC 60870-5-104 is the 8th supported protocol; it is promoted-in-place
+    // (physically in the Tier-1 block below; membership via port-filter on port 2404).
     // -----------------------------------------------------------------------
     KnownProtocol {
         name: "Modbus/TCP",
@@ -162,7 +166,10 @@ pub const KNOWN_PROTOCOLS: &[KnownProtocol] = &[
                       HMI web interfaces, historian REST APIs",
     },
     // -----------------------------------------------------------------------
-    // ICS Tier-1 Unsupported, Port-Detectable (9)
+    // ICS Tier-1, Port-Detectable (9)
+    // IEC 60870-5-104 (first entry) is functionally SUPPORTED via port 2404;
+    // the remaining 8 entries are unsupported. IEC-104 remains physically here
+    // — promoted in place, membership determined by port-filter (STORY-173).
     // -----------------------------------------------------------------------
     KnownProtocol {
         name: "S7comm",
@@ -415,8 +422,9 @@ pub fn all_protocols() -> &'static [KnownProtocol] {
 /// `SUPPORTED_PORTS`, plus the ARP entry (ARP special case, BC-2.18.003
 /// Invariant 3 — `|| p.name == "ARP"` is explicit).
 ///
-/// Returns exactly 7 entries: Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP,
-/// DNS, HTTP.
+/// Returns exactly 8 entries: Modbus/TCP, DNP3, EtherNet/IP+CIP,
+/// IEC 60870-5-104, TLS, ARP, DNS, HTTP. IEC 60870-5-104 is included because
+/// port 2404 was added to `SUPPORTED_PORTS` in STORY-173 (BC-2.18.003 PC-1).
 ///
 /// Pure function; no I/O.
 ///

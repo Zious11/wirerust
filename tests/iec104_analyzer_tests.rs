@@ -5656,8 +5656,8 @@ mod story_173 {
 
     use std::net::IpAddr;
 
-    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_FINDINGS};
     use wirerust::analyzer::AnalysisSummary;
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_FINDINGS};
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
