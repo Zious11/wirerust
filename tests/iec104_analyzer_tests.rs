@@ -4456,7 +4456,7 @@ mod story_171 {
 // =============================================================================
 mod story_172 {
     use proptest::prelude::*;
-    use wirerust::analyzer::iec104::{Iec104Analyzer, Iec104FlowState, MAX_IEC104_CARRY_BYTES};
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_CARRY_BYTES};
     use wirerust::findings::{ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
@@ -4574,7 +4574,10 @@ mod story_172 {
             let state = analyzer.flows.entry(flow_key.clone()).or_default();
             state.carry_c2s = prior_carry.clone();
         }
-        assert_eq!(MAX_IEC104_CARRY_BYTES, 255, "MAX_IEC104_CARRY_BYTES must be 255 (ADR-013 Decision 2)");
+        assert_eq!(
+            MAX_IEC104_CARRY_BYTES, 255,
+            "MAX_IEC104_CARRY_BYTES must be 255 (ADR-013 Decision 2)"
+        );
         let delivery: Vec<u8> = vec![0xBBu8; 255]; // 1+255 = 256 > 255 → overflow
         analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
         // Exactly one T0814 must be emitted.
@@ -4667,7 +4670,10 @@ mod story_172 {
         analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
         // No T0814 must be emitted for the exact-boundary case.
         assert!(
-            analyzer.all_findings.iter().all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
             "exact-255 boundary must not emit T0814 carry-overflow finding (BC-2.19.025 EC-001)"
         );
     }
@@ -4720,8 +4726,8 @@ mod story_172 {
         let flow_key = flow_key_default();
         // 1 garbage byte (0xAA) followed by a complete 6-byte STARTDT frame.
         let data: Vec<u8> = [
-            0xAAu8,                               // bad start byte → advance 1
-            0x68, 0x04, 0x07, 0x00, 0x00, 0x00,  // STARTDT-act (valid frame)
+            0xAAu8, // bad start byte → advance 1
+            0x68, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT-act (valid frame)
         ]
         .to_vec();
         analyzer.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
@@ -4756,7 +4762,12 @@ mod story_172 {
         let flow_key = flow_key_default();
         // LEN=3 is below the minimum of 4 → malformed.
         let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
-        analyzer.on_data(flow_key.clone(), &malformed_data, 0, Direction::ClientToServer);
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ClientToServer,
+        );
         assert_eq!(
             analyzer.all_findings.len(),
             1,
@@ -4805,7 +4816,12 @@ mod story_172 {
             state.malformed_len_reported_c2s = true;
         }
         let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
-        analyzer.on_data(flow_key.clone(), &malformed_data, 0, Direction::ClientToServer);
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ClientToServer,
+        );
         // No additional finding must be emitted (dedup flag was already set).
         assert!(
             analyzer.all_findings.is_empty(),
@@ -4837,7 +4853,12 @@ mod story_172 {
         }
         // First malformed-LEN in S2C direction.
         let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
-        analyzer.on_data(flow_key.clone(), &malformed_data, 0, Direction::ServerToClient);
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ServerToClient,
+        );
         // Exactly one T0814 must be emitted for the S2C direction independently.
         assert_eq!(
             analyzer.all_findings.len(),
@@ -4912,7 +4933,12 @@ mod story_172 {
             0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT frame 3
         ]
         .to_vec();
-        analyzer.on_data(flow_key.clone(), &three_frames, 0, Direction::ClientToServer);
+        analyzer.on_data(
+            flow_key.clone(),
+            &three_frames,
+            0,
+            Direction::ClientToServer,
+        );
         // All three frames processed → no residual carry.
         let state = analyzer.flows.get(&flow_key).unwrap();
         assert!(
