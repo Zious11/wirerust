@@ -5657,6 +5657,7 @@ mod story_173 {
     use std::net::IpAddr;
 
     use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_FINDINGS};
+    use wirerust::analyzer::AnalysisSummary;
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
@@ -5816,6 +5817,65 @@ mod story_173 {
             "BC-2.19.028 EC-004: dropped_findings must equal {N} after {N} suppressed on_data \
              calls (one finding per call). Got {}.",
             analyzer.dropped_findings
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-007 / BC-2.19.028 PC-5 / F-173-001 — DROPPED_FINDINGS SURFACED IN SUMMARIZE
+    // MUST FAIL on stub: Iec104Analyzer::summarize() body is todo!().
+    // -------------------------------------------------------------------------
+
+    /// AC-173-007 / BC-2.19.028 PC-5 — `dropped_findings` counter MUST appear in
+    /// `summarize()` output under detail key `"dropped_findings"` with value > 0 after
+    /// findings are suppressed by the cap.
+    ///
+    /// Drives the analyzer over the cap (mirrors `test_BC_2_19_028_findings_cap` setup),
+    /// then calls `analyzer.summarize()` and asserts `detail["dropped_findings"] > 0`.
+    ///
+    /// MUST FAIL until `summarize()` is implemented (current body is `todo!()`).
+    ///
+    /// Traces: BC-2.19.028 PC-5; AC-173-007; F-173-001.
+    #[test]
+    fn test_BC_2_19_028_dropped_findings_surfaced_in_summarize() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60099, 2404);
+
+        // Pre-fill to MAX.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS];
+
+        // Feed one STOPDT-act (session_started=false → T0881 Likely finding produced).
+        // With the cap enforced this finding is discarded; dropped_findings increments to 1.
+        analyzer.on_data(fk.clone(), &stopdt_act(), 0, Direction::ClientToServer);
+
+        // Sanity: dropped_findings must be > 0 for this test to be meaningful.
+        // (This also fails on the pre-cap stub, but the todo!() in summarize() is the
+        // load-bearing failure for F-173-001.)
+        assert!(
+            analyzer.dropped_findings > 0,
+            "pre-condition: dropped_findings must be > 0 before calling summarize(); \
+             got {} (cap not enforced or frame produced no finding)",
+            analyzer.dropped_findings
+        );
+
+        // Call summarize() — this panics via todo!() until the method is implemented.
+        let summary: AnalysisSummary = analyzer.summarize();
+
+        // BC-2.19.028 PC-5: detail map must contain "dropped_findings" key.
+        assert!(
+            summary.detail.contains_key("dropped_findings"),
+            "BC-2.19.028 PC-5: summarize() detail map must contain key \"dropped_findings\"; \
+             got keys: {:?}",
+            summary.detail.keys().collect::<Vec<_>>()
+        );
+
+        // The value must be > 0 (matches the actual count dropped above).
+        let dropped_val = summary.detail["dropped_findings"]
+            .as_u64()
+            .expect("\"dropped_findings\" detail value must be a JSON u64");
+        assert!(
+            dropped_val > 0,
+            "BC-2.19.028 PC-5: summarize() detail[\"dropped_findings\"] must be > 0 after \
+             findings were suppressed by the cap; got {dropped_val}"
         );
     }
 }

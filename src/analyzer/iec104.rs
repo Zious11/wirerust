@@ -44,6 +44,7 @@
 
 use std::collections::HashMap;
 
+use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::Direction;
@@ -1287,6 +1288,16 @@ impl Iec104Analyzer {
             local_findings.truncate(remaining_cap);
         }
         self.all_findings.extend(local_findings);
+    }
+
+    /// Produce the IEC-104 analyzer summary.
+    ///
+    /// Aggregates analyzer-level counters into an `AnalysisSummary`. The detail map
+    /// MUST include key `"dropped_findings"` (BC-2.19.028 PC-5 / AC-173-007).
+    ///
+    /// Traces: BC-2.19.028 Postcondition 5; AC-173-007; STORY-173 F-173-001.
+    pub fn summarize(&self) -> AnalysisSummary {
+        todo!("STORY-173 F-173-001")
     }
 
     /// Remove per-flow state for a closed flow, discarding carry bytes silently.
