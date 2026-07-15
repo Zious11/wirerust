@@ -24,7 +24,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     unreachable from conformant traffic), the carry is cleared and ONE T0814
     `Anomaly/Possible/Medium` emitted on the first overflow per direction via
     per-direction dedup flags `carry_overflow_reported_c2s` /
-    `carry_overflow_reported_s2c` (BC-2.19.025 v1.2 invariants 4–5; SEC-001-S168
+    `carry_overflow_reported_s2c` (BC-2.19.025 v1.3 invariants 4–5; SEC-001-S168
     defense-in-depth). The delivery is always walked regardless — no delivery is ever
     discarded before frame extraction (anti-evasion per F-172-001 and Ptacek/Newsham
     1998; BC-2.19.025 invariant 2). Malformed-LEN frames (valid 0x68 + LEN outside

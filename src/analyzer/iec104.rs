@@ -1061,7 +1061,7 @@ impl Iec104Analyzer {
     ///
     /// Effectful shell per ADR-013 Decision 8. VP-047 cargo-fuzz target (`fuzz_iec104_parser`).
     ///
-    /// WALK-FIRST RESIDUAL-BOUND semantics (BC-2.19.025 v1.2, F-172-001, ADR-013 Decision 2):
+    /// WALK-FIRST RESIDUAL-BOUND semantics (BC-2.19.025 v1.3, F-172-001, ADR-013 Decision 2):
     /// No aggregate pre-check on `carry.len() + delivery.len()`. Frame extraction always
     /// completes before any carry-bound reaction. The only pre-walk check is on the directional
     /// carry alone: if carry.len() > MAX_IEC104_CARRY_BYTES (adversarial state injection;
@@ -1088,7 +1088,7 @@ impl Iec104Analyzer {
         {
             let state = self.flows.entry(flow_key).or_default();
 
-            // BC-2.19.025 v1.2 carry-overflow check (F-172-001, WALK-FIRST-RESIDUAL-BOUND):
+            // BC-2.19.025 v1.3 carry-overflow check (F-172-001, WALK-FIRST-RESIDUAL-BOUND):
             // Check the directional carry alone — NOT the aggregate carry + delivery.
             // A carry exceeding MAX_IEC104_CARRY_BYTES is adversarial or non-conformant state;
             // conformant on_data calls always stash ≤ 254 bytes as residual (a 255-byte prefix
@@ -1116,7 +1116,7 @@ impl Iec104Analyzer {
                                  exceeded MAX_IEC104_CARRY_BYTES={MAX_IEC104_CARRY_BYTES} — \
                                  adversarial or non-conformant byte sequence; carry cleared \
                                  and analyzer resyncs on next delivery \
-                                 (T0814; BC-2.19.025 v1.2 F-172-001)"
+                                 (T0814; BC-2.19.025 v1.3 F-172-001)"
                             ),
                             evidence: vec![format!(
                                 "carry overflow (>{}); direction={:?}; carry cleared",
