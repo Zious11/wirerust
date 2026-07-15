@@ -651,6 +651,16 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
         // No T0836 emitted: switching commands are binary control, not parameter writes
         // (BC-2.19.019 postcondition 1; invariant 2; AC-170-001).
         45..=47 => {
+            // BC-2.19.019 postcondition 3 (F-170-001): include CASDU and first_ioa as
+            // target-address context so analysts can identify which RTU/IED and IO address
+            // was targeted by the control command (BC-2.19.019 PC3; BC-2.19.020 PC2).
+            let mut evidence = vec![
+                format!("TypeID={type_id} is a switching control command (C_SC/C_DC/C_RC)"),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                evidence.push(format!("first_ioa={ioa}"));
+            }
             findings.push(Finding {
                 category: ThreatCategory::Impact,
                 verdict: Verdict::Possible,
@@ -660,9 +670,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                      switching control command observed on passive monitor \
                      (T1692.001 unauthorized command message; BC-2.19.019)"
                 ),
-                evidence: vec![format!(
-                    "TypeID={type_id} is a switching control command (C_SC/C_DC/C_RC)"
-                )],
+                evidence,
                 mitre_techniques: vec!["T1692.001".to_string()],
                 source_ip: None,
                 timestamp: None,
@@ -676,6 +684,24 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
         // AND T0836 Possible (parameter/value modification unique to set-point/bitstring).
         // (BC-2.19.019 postconditions 1–2; AC-170-001).
         48..=51 => {
+            // BC-2.19.019 postcondition 3 (F-170-001): CASDU/first_ioa target-address context
+            // for both co-emitted findings (T1692.001 + T0836).
+            let mut ev1 = vec![
+                format!(
+                    "TypeID={type_id} is a set-point/bitstring write command (C_SE_NA/NB/NC or C_BO)"
+                ),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                ev1.push(format!("first_ioa={ioa}"));
+            }
+            let mut ev2 = vec![
+                format!("TypeID={type_id} is a set-point/bitstring write; parameter modification"),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                ev2.push(format!("first_ioa={ioa}"));
+            }
             findings.push(Finding {
                 category: ThreatCategory::Impact,
                 verdict: Verdict::Possible,
@@ -685,9 +711,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                      set-point or bitstring write command observed on passive monitor \
                      (T1692.001 unauthorized command message; BC-2.19.019)"
                 ),
-                evidence: vec![format!(
-                    "TypeID={type_id} is a set-point/bitstring write command (C_SE_NA/NB/NC or C_BO)"
-                )],
+                evidence: ev1,
                 mitre_techniques: vec!["T1692.001".to_string()],
                 source_ip: None,
                 timestamp: None,
@@ -702,9 +726,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                      set-point or bitstring write modifies ICS control parameters \
                      (T0836 modify parameter; BC-2.19.019 postcondition 2)"
                 ),
-                evidence: vec![format!(
-                    "TypeID={type_id} is a set-point/bitstring write; parameter modification"
-                )],
+                evidence: ev2,
                 mitre_techniques: vec!["T0836".to_string()],
                 source_ip: None,
                 timestamp: None,
@@ -717,6 +739,14 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
         // Only T0827 is emitted — not T1692.001 (reset is session management, not parameter change).
         // (BC-2.19.020 postcondition 1; invariant 1; AC-170-002).
         105 => {
+            // BC-2.19.020 postcondition 2 (F-170-001): CASDU/first_ioa target-address context.
+            let mut evidence = vec![
+                "TypeID=105 (C_RP_NA_1: Reset Process Command)".to_string(),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                evidence.push(format!("first_ioa={ioa}"));
+            }
             findings.push(Finding {
                 category: ThreatCategory::Impact,
                 verdict: Verdict::Likely,
@@ -726,7 +756,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                      adversarial use causes equipment to revert to default state \
                      (T0827 loss of control; BC-2.19.020)"
                     .to_string(),
-                evidence: vec!["TypeID=105 (C_RP_NA_1: Reset Process Command)".to_string()],
+                evidence,
                 mitre_techniques: vec!["T0827".to_string()],
                 source_ip: None,
                 timestamp: None,
@@ -751,6 +781,21 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
         // IEC 60870-5-104 and should not produce anomaly findings (BC-2.19.022 invariant 1;
         // AC-170-004).
         0 | 128..=255 => {
+            // BC-2.19.022 postcondition 1 (F-170-001): CASDU/first_ioa target-address context.
+            let mut evidence = vec![
+                format!(
+                    "TypeID={type_id} is {} per IEC 60870-5-104",
+                    if type_id == 0 {
+                        "undefined (TypeID 0 has no assigned meaning)"
+                    } else {
+                        "in the private-use/reserved range [128, 255]"
+                    }
+                ),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                evidence.push(format!("first_ioa={ioa}"));
+            }
             findings.push(Finding {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Possible,
@@ -761,14 +806,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                      or adversarial protocol probe \
                      (T0814 denial of service; BC-2.19.022)"
                 ),
-                evidence: vec![format!(
-                    "TypeID={type_id} is {} per IEC 60870-5-104",
-                    if type_id == 0 {
-                        "undefined (TypeID 0 has no assigned meaning)"
-                    } else {
-                        "in the private-use/reserved range [128, 255]"
-                    }
-                )],
+                evidence,
                 mitre_techniques: vec!["T0814".to_string()],
                 source_ip: None,
                 timestamp: None,
