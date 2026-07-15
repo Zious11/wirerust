@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
 status: in_progress
-current_step: "D-454 STORY-172 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-15). 6 passes; trajectory →(2H+1L+1N)→1L→1NIT→0→0→0; streak P4/P5/P6. Worktree fec9bfa; 2584/0; 26 story_172 tests. F-172-001/002 HIGH remediated D-452; F-172-201 LOW remediated D-453; F-172-301 NIT remediated fec9bfa. Deferred: F-172-003 LOW STORY-174; F-172-004 NIT PG-REDGREEN-SIBLING-SWEEP. PG-SPEC-VERSION-CITATION-CURRENCY noted. STORY-INDEX v3.68. Next: demos → push → PR to develop. trajectory-tail →1→0→0→0"
+current_step: "D-455 STORY-172 DELIVERED (PR #406 d64e5fe, 2026-07-15). wave-81 gate SATISFIED. Human-authorized squash-merge per DF-MERGE-AUTH-CLASSIFIER-001. develop=d64e5fe (6 unreleased: STORY-167+168+169+170+171+172). SEC-001-S168 carry-bound FULLY MITIGATED. ADR-0013 landed (c5b098f). stories_delivered=111. STORY-INDEX v3.69. Next: STORY-173 (wave-82, dispatch integration + T0881 six-part + Rule 8 + --iec104 + SUPPORTED_PORTS; IEC104-FINDINGS-CAP-001 lands here; pre-delivery AC↔BC fidelity check first). trajectory-tail →1→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-16T00:05:00Z
-# D-454 STORY-172 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-15). 6 passes; streak P4/P5/P6; trajectory →(2H+1L+1N)→1L→1NIT→0→0→0. Findings remediated: F-172-001/002 HIGH (D-452) + F-172-201 LOW (D-453) + F-172-301 NIT (fec9bfa). STORY-INDEX v3.68. Next: demos → push → PR to develop.
+timestamp: 2026-07-16T02:02:00Z
+# D-455 STORY-172 DELIVERED (PR #406 d64e5fe, wave-81, 2026-07-15). wave-81 gate SATISFIED. Human-authorized squash-merge per DF-MERGE-AUTH-CLASSIFIER-001. develop=d64e5fe (6 unreleased: STORY-167+168+169+170+171+172). SEC-001-S168 RESOLVED. ADR-0013 landed. stories_delivered=111. STORY-INDEX v3.69. Next: STORY-173 wave-82.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,22 +25,22 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-15 — D-454 STORY-172 adversarial CONVERGED 3-clean; develop=1a64380 (STORY-167+168+169+170+171, 5 unreleased); STORY-172 worktree fec9bfa (not yet merged); DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-15 — D-455 STORY-172 DELIVERED; develop=d64e5fe (STORY-167+168+169+170+171+172, 6 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
-develop_head: 1a64380
-# Cargo.toml version: main=0.12.1; develop=0.12.1 (5 unreleased commits 1a64380 STORY-167+168+169+170+171; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 1a64380, histories diverge; trees differ by IEC-104 feature code)
+develop_head: d64e5fe
+# Cargo.toml version: main=0.12.1; develop=0.12.1 (6 unreleased commits d64e5fe STORY-167+168+169+170+171+172; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop d64e5fe, histories diverge; trees differ by IEC-104 feature code)
 cargo_version_main: "0.12.1"
 cargo_version_develop: "0.12.1"
-# Open worktrees: main checkout [develop] + .factory [factory-artifacts] + .worktrees/STORY-172 [feature/STORY-172-iec104-carry-frame-walk-flow-lifecycle].
+# Open worktrees: main checkout [develop] + .factory [factory-artifacts].
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
-stories_delivered: 110
-story_index_version: "v3.68"
+stories_delivered: 111
+story_index_version: "v3.69"
 total_stories: 127
-story_index_note: "127 stories / 83 waves / 765 pts. v3.68 (2026-07-15): STORY-172 per-story adversarial CONVERGED 3-clean (D-454; BC-5.39.001; 6 passes streak P4/P5/P6; fec9bfa). See cycles/feature-iec104/ for full F2/F3 history."
+story_index_note: "127 stories / 83 waves / 765 pts. v3.69 (2026-07-15): STORY-172 DELIVERED (D-455; PR #406 d64e5fe; wave-81 gate SATISFIED; SEC-001-S168 RESOLVED; ADR-0013 landed). See cycles/feature-iec104/ for full F2/F3 history."
 # Spec versions (current)
 bc_index_version: "v2.31"
 vp_index_version: "v2.46"

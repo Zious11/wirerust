@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-15T18:41:29Z","command":"cargo test --all-targets 2>&1 | grep -E \"^test result\" | awk '{p+=$4; f+=$6} END {print \"passed:\", p, \"failed:\", f}' && cargo clippy --all-targets -- -D warnings 2>&1 | tail -1 && cargo fmt --check && echo FMT-CLEAN && git log --oneline -3 && git status --short && echo TREE-CLEAN && grep -n \"carry_len + data\\|carry.len() + data\" src/analyzer/iec104.rs; echo \"pre-check-grep-exit:$?\""}
+{"status":"pass","timestamp":"2026-07-15T20:52:09Z","command":"cargo test --test iec104_analyzer_tests 2>&1"}
