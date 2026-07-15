@@ -5133,4 +5133,249 @@ mod story_172 {
             analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
         }
     }
+
+    // =========================================================================
+    // BC-2.19.026 PC2: dispatch-effect assertions (F-172-002 remediation)
+    // Verifies that valid-frame dispatch branches produce their documented
+    // state or finding effects when driven entirely through on_data.
+    // =========================================================================
+
+    /// BC-2.19.026 PC2 — STARTDT-act U-frame through on_data sets session_started.
+    ///
+    /// A STARTDT-act U-frame (CF1=0x07) delivered through on_data must set
+    /// `session_started = true` on the flow state. Confirms that the U-format dispatch
+    /// arm (process_u_frame) is wired into the on_data frame-walk loop.
+    ///
+    /// Frame: `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — start, LEN=4, CF1=0x07
+    /// (STARTDT-act, U-format), CF2-CF4=0.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.010 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_startdt_act_sets_session_started() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let startdt_act: &[u8] = &[0x68, 0x04, 0x07, 0x00, 0x00, 0x00];
+        analyzer.on_data(flow_key.clone(), startdt_act, 0, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.session_started,
+            "STARTDT-act through on_data must set session_started=true \
+             (BC-2.19.026 PC2; BC-2.19.010 postcondition 1)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "STARTDT-act must not emit any finding (BC-2.19.010)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — STOPDT-act U-frame after STARTDT-act emits T0881.
+    ///
+    /// A STARTDT-act activates the session; a subsequent STOPDT-act (CF1=0x13) delivered
+    /// through on_data must emit a T0881 finding with Verdict::Possible. Confirms that
+    /// process_u_frame's STOPDT-act arm is reached via the on_data dispatch path.
+    ///
+    /// Delivery sequence:
+    ///   1. `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — STARTDT-act (no finding)
+    ///   2. `[0x68, 0x04, 0x13, 0x00, 0x00, 0x00]` — STOPDT-act (T0881 Possible)
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.011 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_stopdt_act_after_startdt_emits_t0881() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let startdt_act: &[u8] = &[0x68, 0x04, 0x07, 0x00, 0x00, 0x00];
+        let stopdt_act: &[u8] = &[0x68, 0x04, 0x13, 0x00, 0x00, 0x00];
+        analyzer.on_data(flow_key.clone(), startdt_act, 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), stopdt_act, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "STOPDT-act after STARTDT-act must emit exactly one T0881 finding \
+             (BC-2.19.026 PC2; BC-2.19.011 postcondition 1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0881"),
+            "STOPDT-act finding must cite T0881 (BC-2.19.011 postcondition 1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "STOPDT-act after active session must have Verdict::Possible (BC-2.19.011)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — TypeID 105 I-frame through on_data emits T0827.
+    ///
+    /// An I-format frame carrying TypeID=105 (C_RP_NA_1, reset-process) delivered through
+    /// on_data must emit a T0827 "Loss of Control" finding with Verdict::Likely. Confirms
+    /// that the I-format dispatch arm (parse_asdu + detect_iec104_threats) is wired into
+    /// the on_data frame-walk loop.
+    ///
+    /// Frame layout (12 bytes):
+    ///   APCI: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00]` — start, LEN=10,
+    ///         CF1=0x00 (I-format, N(S)=0), CF2-CF4=0.
+    ///   ASDU: `[0x69, 0x01, 0x06, 0x00, 0x01, 0x00]` — TypeID=105(0x69), VSQ=1,
+    ///         COT_cause=6(activation), originator=0, CASDU=1.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.020 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_type105_i_frame_emits_t0827() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let i_frame_type105: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: start, LEN=10, CF1-CF4
+            0x69, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=105, VSQ=1, COT=6, CASDU=1
+        ];
+        analyzer.on_data(
+            flow_key.clone(),
+            i_frame_type105,
+            0,
+            Direction::ClientToServer,
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "TypeID=105 I-frame through on_data must emit T0827 finding \
+             (BC-2.19.026 PC2; BC-2.19.020 postcondition 1)"
+        );
+        let t0827 = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0827"))
+            .unwrap();
+        assert_eq!(
+            t0827.verdict,
+            Verdict::Likely,
+            "T0827 finding from TypeID=105 must have Verdict::Likely (BC-2.19.020)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — TypeID 45 control-command I-frame through on_data emits T1692.001.
+    ///
+    /// An I-format frame carrying TypeID=45 (C_SC_NA_1, single command) delivered through
+    /// on_data must emit a T1692.001 "Unauthorized Command Message" finding. Confirms that
+    /// the detect_iec104_threats switching-command arm (TypeIDs 45-47) is reached via the
+    /// on_data dispatch path.
+    ///
+    /// Frame layout (12 bytes):
+    ///   APCI: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00]` — start, LEN=10, CF1=0x00 (N(S)=0).
+    ///   ASDU: `[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00]` — TypeID=45(0x2D), VSQ=1,
+    ///         COT_cause=6, originator=0, CASDU=1.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.019 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_type45_control_command_emits_t1692_001() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let i_frame_type45: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: start, LEN=10, CF1-CF4
+            0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=45, VSQ=1, COT=6, CASDU=1
+        ];
+        analyzer.on_data(
+            flow_key.clone(),
+            i_frame_type45,
+            0,
+            Direction::ClientToServer,
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=45 I-frame through on_data must emit T1692.001 finding \
+             (BC-2.19.026 PC2; BC-2.19.019 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — N(S) desync scenario through on_data emits T1692.001.
+    ///
+    /// Two C2S I-frames with a gap of 14 (> k=12) delivered through on_data trigger the
+    /// track_ns_desync path-C branch:
+    ///   frame 1 — N(S)=0  (CF1=0x00): path A, baseline set, no finding
+    ///   frame 2 — N(S)=14 (CF1=0x1C): gap=14 > 12, T1692.001 Possible
+    ///
+    /// N(S) encoding: CF1 = (ns & 0x7F) << 1; CF2 = ns >> 7.
+    ///   N(S)=14 → CF1 = 14 << 1 = 0x1C, CF2 = 0x00.
+    ///
+    /// TypeID=1 (M_SP_NA_1) is used in both frames; it falls in the unhandled 1-127 range
+    /// and emits no finding, isolating the T1692.001 assertion to the desync path.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.024 path C; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_ns_desync_via_on_data_emits_t1692_001() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Frame 1: N(S)=0, TypeID=1 (monitoring, no threat finding).
+        let i_frame_ns0: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: CF1=0x00 → N(S)=0
+            0x01, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=1 (M_SP_NA_1)
+        ];
+        // Frame 2: N(S)=14, TypeID=1. Gap = 14 > k=12 → T1692.001.
+        let i_frame_ns14: &[u8] = &[
+            0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, // APCI: CF1=0x1C → N(S)=14 (14<<1=28=0x1C)
+            0x01, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=1 (M_SP_NA_1)
+        ];
+        analyzer.on_data(flow_key.clone(), i_frame_ns0, 0, Direction::ClientToServer);
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "first I-frame establishes baseline (path A) — must not emit any finding \
+             (BC-2.19.024 path A)"
+        );
+        analyzer.on_data(flow_key.clone(), i_frame_ns14, 0, Direction::ClientToServer);
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "N(S) gap of 14 > k=12 through on_data must emit T1692.001 \
+             (BC-2.19.026 PC2; BC-2.19.024 path C)"
+        );
+    }
+
+    /// BC-2.19.026 PC1+PC2 joint — STARTDT-act + TypeID-105 I-frame in one on_data call.
+    ///
+    /// A single on_data delivery containing a STARTDT-act U-frame followed immediately by
+    /// a TypeID=105 I-frame must produce BOTH dispatch effects:
+    ///   - session_started = true  (STARTDT-act processed; BC-2.19.010)
+    ///   - T0827 in all_findings   (TypeID=105 I-frame dispatched; BC-2.19.020)
+    ///
+    /// This pins BC-2.19.026 postconditions 1 and 2 jointly: the frame-walk loop processes
+    /// every complete frame in a single delivery, calling each dispatch branch in sequence.
+    ///
+    /// Delivery (18 bytes):
+    ///   frame 1: `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — STARTDT-act (6 bytes)
+    ///   frame 2: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00]`
+    ///            — I-format TypeID=105 (12 bytes)
+    ///
+    /// Traces: BC-2.19.026 PC1+PC2; BC-2.19.010; BC-2.19.020; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_multi_frame_startdt_plus_type105_joint_effects() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Concatenation: STARTDT-act (6 bytes) + I-frame TypeID=105 (12 bytes) = 18 bytes total.
+        let combined: &[u8] = &[
+            // Frame 1: STARTDT-act U-frame (6 bytes)
+            0x68, 0x04, 0x07, 0x00, 0x00, 0x00,
+            // Frame 2: I-format TypeID=105 (12 bytes)
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ];
+        analyzer.on_data(flow_key.clone(), combined, 0, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.session_started,
+            "STARTDT-act in multi-frame delivery must set session_started=true \
+             (BC-2.19.026 PC1+PC2 joint; BC-2.19.010)"
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "TypeID=105 I-frame in multi-frame delivery must emit T0827 \
+             (BC-2.19.026 PC1+PC2 joint; BC-2.19.020)"
+        );
+    }
 }
