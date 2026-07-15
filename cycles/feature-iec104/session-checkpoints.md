@@ -4,6 +4,21 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-14 (replaced by D-446 STORY-170 v2.0 BC-realignment)
+
+**STORY-167 + STORY-168 + STORY-169 DELIVERED (D-441/D-443/D-445, 2026-07-14) — waves 76–78 complete. develop=ac01d9f2; stories_delivered=108; STORY-INDEX v3.61. NEXT: STORY-170 (wave-79, BC-realignment required before coding).**
+
+- **Date:** 2026-07-14. Position: feature-iec104 F4 delta-implementation IN PROGRESS; waves 76–78 DELIVERED; pipeline PAUSED between waves. trajectory-tail →0→0→0→0.
+- **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `ac01d9f2`. DRIFT-BACKMERGE-SQUASH-001 still applies. 3 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2).
+- **Wave status:** Wave-76 DELIVERED (D-441): STORY-167 (APCI core parser, 5 pts, BC-2.19.001-006 + VP-044 skeleton). Wave-77 DELIVERED (D-443): STORY-168 (frame discrimination + U-format session SM, 5 pts, BC-2.19.007-014 + VP-046). Wave-78 DELIVERED (D-445): STORY-169 (ASDU header extraction parse_asdu/Asdu, 3 pts, BC-2.19.015-018 + VP-047; BC-realigned v1.1).
+- **Remaining F4:** STORY-170 (wave-79, control-command detection BC-2.19.019-022) through STORY-174 (wave-83). stories_delivered=108.
+- **Pre-delivery note for STORY-170:** BC-realignment required before coding — AsduHeader→Asdu rename at 4 source sites + cot_test [TEST]-suppression AC (BC-2.19.017 inv1) missing from STORY-170 draft.
+- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; SEC-001-S168 (LOW, carry-append path inert; STORY-172); STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Process-gaps:** PG-REDGREEN-COMMENT-CLEANUP (2 occurrences: STORY-167+169); F3-DECOMPOSITION-BC-FIDELITY (STORY-170 pre-known drift).
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / STORY-INDEX v3.61 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-14 (replaced by D-443 STORY-168 DELIVERED checkpoint)
 
 **STORY-168 GREEN CHECKPOINT (D-442, 2026-07-14) — impl complete, adversarial NOT started. Worktree `.worktrees/STORY-168` durable; branch `feature/STORY-168-iec104-frame-discrimination-session-sm` (base develop e65e0d6); commits `392436b`+`dc8b867` (NOT pushed). NEXT: STORY-168 per-story adversarial 3-clean → demo → PR → merge, then STORY-169..174 (waves 78–83).**
