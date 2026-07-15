@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.17"
+version: "2.18"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -120,6 +120,9 @@ modified:
   - date: 2026-07-15
     actor: architect
     reason: "ADR-013 Decision 3 SR-172-03 reconciliation: bad-start-byte silenced (no finding); malformed-LEN ratified EMIT-WITH-DEDUP (one T0814 per flow direction); SS-19 v1.6→v1.7 aligned. Version bump 2.16→2.17."
+  - date: 2026-07-15
+    actor: architect
+    reason: "F-172-001 WALK-FIRST-RESIDUAL-BOUND alignment: ADR-013 Decision 2 rewritten — carry bound applies to residual only (not aggregate carry+delivery); aggregate pre-check removed as Ptacek/Newsham-class evasion channel; carry-overflow reaction documented (clear, resync to 0x68, one T0814 per direction via carry-overflow dedup flag, distinct from malformed-LEN flag); SS-19 v1.7→v1.8 aligned; Bounded-Resource Design SS-19 note updated. Version bump 2.17→2.18."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -247,7 +250,7 @@ Three independent caps operate at different layers:
 - L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
 - L3/SS-17: carry buffer bounded to 600 bytes per ENIP flow (`MAX_ENIP_CARRY_BYTES = 600`; ADR-010 Decision 3); `MAX_FINDINGS = 10,000` shared constant; `MALFORMED_ANOMALY_THRESHOLD = 3` for T0814 windowed gate (architecture-delta §4.2; ADR-010 Decision 4)
 - L3/SS-18 (via SS-05 + SS-12): two `(TransportProto, u16)` keyed counters back the dynamic gap report — (a) `StreamDispatcher.unclassified_port_counts: HashMap<(TransportProto, u16), u64>` for TCP None-target flows (key: `(Tcp, min(src_port, dst_port))`; symmetric normalization eliminates ephemeral-port noise; populated at `on_flow_close`; overhead proportional to closed unclassified TCP flows, not packet volume); (b) `udp_unclassified_counts: HashMap<(TransportProto, u16), u64>` in `main.rs` decode loop for UDP packets not handled by a dissector (key: `(Udp, min(src_port, dst_port))`; per-packet; symmetric with TCP); `TransportProto` is a minimal `{Tcp, Udp}` enum in `dispatcher.rs` (NOT imported from `protocols.rs`); combined bound: 2 × 65,536 unique keys (port space 0..=65535 = 65,536 values per transport); both maps read-only after `run_analyze()` returns; ADR-012 Decision 6 (F-F2P1-006 key fix, F-F2P1-012 bound fix)
-- L3/SS-19: two directional carry buffers, each ≤ 255 bytes (`MAX_IEC104_CARRY_BYTES = 255`); smallest carry cap of all binary ICS analyzers (DNP3 292 bytes, ENIP 600 bytes); frame-walk loop advances at least 1 byte per iteration (valid frame: LEN+2; malformed-LEN: 2; bad-start-byte: 1-byte resync to next 0x68 candidate) — no infinite loop (per BC-2.19.026); `MAX_FINDINGS = 10,000` shared constant
+- L3/SS-19: two directional carry buffers, each ≤ 255 bytes (`MAX_IEC104_CARRY_BYTES = 255`); smallest carry cap of all binary ICS analyzers (DNP3 292 bytes, ENIP 600 bytes); bound applies to **residual partial-frame carry only** (walk-first semantics — frame walk runs unconditionally on carry+data, bound checked on residual; WALK-FIRST-RESIDUAL-BOUND per ADR-013 Decision 2 / F-172-001); carry-overflow reaction: clear carry, resync to next 0x68 (fresh start, no permanent latch), emit one T0814 per direction via carry-overflow dedup flag (distinct from malformed-LEN dedup flag); conformant residual ≤ 254 bytes so bound is fail-closed defense-in-depth; frame-walk loop advances at least 1 byte per iteration (valid frame: LEN+2; malformed-LEN: 2; bad-start-byte: 1-byte resync) — no infinite loop (per BC-2.19.026); `MAX_FINDINGS = 10,000` shared constant
 - L1/SS-04: `max_flows` and `memcap` configurable via `ReassemblyConfig`
 
 ### Single-Threaded Synchronous Execution
