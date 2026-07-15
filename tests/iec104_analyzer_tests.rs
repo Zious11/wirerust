@@ -4553,128 +4553,358 @@ mod story_172 {
     }
 
     // =========================================================================
-    // AC-172-002: carry overflow emits T0814 and retains prior carry
-    // BC-2.19.025 postconditions 1–3, invariant 3; EC-001/002/003
+    // AC-172-002: BC-2.19.025 v1.2 WALK-FIRST-RESIDUAL-BOUND carry-overflow tests
+    // F-172-001 remediation: replaces PRE-CHECK-DISCARD-ALL canonical vectors
+    // Canonical test vectors from BC-2.19.025 v1.2
     // =========================================================================
 
-    /// AC-172-002 / EC-002 canonical vector: C2S carry=1, delivery=255 → T0814.
+    /// AC-172-002 / Vector (i) — split frame across carry/delivery (legit traffic, no overflow).
     ///
-    /// Canonical overflow vector from BC-2.19.025:
-    ///   carry_c2s = [0xAA] (1 byte), delivery = 255 bytes (1+255 = 256 > 255).
-    ///   Postconditions: T0814 Anomaly/Possible/Medium emitted; carry retains prior [0xAA];
-    ///   all 255 delivery bytes discarded (NOT appended then truncated).
+    /// BC-2.19.025 v1.2 walk-first semantics: the 200-byte carry + 100-byte delivery (total=300)
+    /// must NOT be discarded by a carry+delivery pre-check. The frame-walk loop consumes the
+    /// complete 255-byte I-frame first, dispatching a T0827 finding; then the 45-byte partial
+    /// frame tail is stashed as residual carry. No T0814 carry-overflow finding is emitted.
     ///
-    /// Traces: BC-2.19.025 postconditions 1–3, invariant 3; AC-172-002; EC-002.
+    /// Arithmetic: carry(200) + delivery(55+45) = 300. Frame = LEN+2 = 253+2 = 255 ≤ 300 →
+    /// complete. Residual = 300−255 = 45 ≤ 255. No overflow.
+    ///
+    /// Step 1: first on_data delivers the first 200 bytes (exercises the carry-stash path).
+    /// Step 2: second on_data delivers 55 completing bytes + 45-byte partial frame tail.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postconditions 1–2, invariant 2 (walk-first ordering);
+    ///         F-172-001; AC-172-002.
     #[test]
-    fn test_BC_2_19_025_carry_overflow_c2s_1_plus_255_emits_t0814() {
+    fn test_BC_2_19_025_v12_vector_i_split_frame_c2s_walk_first_no_t0814() {
         let mut analyzer = Iec104Analyzer::new();
         let flow_key = flow_key_default();
-        let prior_carry = vec![0xAAu8]; // 1 byte in carry
-        {
-            let state = analyzer.flows.entry(flow_key.clone()).or_default();
-            state.carry_c2s = prior_carry.clone();
-        }
-        assert_eq!(
-            MAX_IEC104_CARRY_BYTES, 255,
-            "MAX_IEC104_CARRY_BYTES must be 255 (ADR-013 Decision 2)"
-        );
-        let delivery: Vec<u8> = vec![0xBBu8; 255]; // 1+255 = 256 > 255 → overflow
-        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
-        // Exactly one T0814 must be emitted.
-        assert_eq!(
-            analyzer.all_findings.len(),
-            1,
-            "carry overflow must emit exactly one T0814 finding (BC-2.19.025 postcondition 3)"
-        );
-        let f = &analyzer.all_findings[0];
-        assert_eq!(
-            f.category,
-            ThreatCategory::Anomaly,
-            "T0814 carry overflow must have ThreatCategory::Anomaly (BC-2.19.025)"
-        );
-        assert_eq!(
-            f.verdict,
-            Verdict::Possible,
-            "T0814 carry overflow must have Verdict::Possible (BC-2.19.025)"
-        );
-        assert!(
-            f.mitre_techniques.iter().any(|t| t == "T0814"),
-            "T0814 carry overflow must cite mitre_technique T0814 (BC-2.19.025)"
-        );
-        // carry retains its prior content unchanged — NOT extended or truncated.
-        let state = analyzer.flows.get(&flow_key).unwrap();
-        assert_eq!(
-            state.carry_c2s, prior_carry,
-            "carry_c2s must retain its prior 1-byte content after overflow (BC-2.19.025 invariant 3)"
-        );
-        assert_eq!(
-            state.carry_s2c,
-            Vec::<u8>::new(),
-            "carry_s2c must be unaffected by C2S overflow (BC-2.19.025 directional isolation)"
-        );
-    }
 
-    /// AC-172-002 / EC-003 canonical vector: S2C carry=200, delivery=100 → T0814.
-    ///
-    /// Canonical overflow vector from BC-2.19.025:
-    ///   carry_s2c = [0xCC; 200], delivery = 100 bytes (200+100 = 300 > 255).
-    ///   carry_c2s must be unaffected; carry_s2c retains prior 200 bytes.
-    ///
-    /// Traces: BC-2.19.025 postconditions 1–3, invariant 3; AC-172-002; EC-003.
-    #[test]
-    fn test_BC_2_19_025_carry_overflow_s2c_200_plus_100_emits_t0814() {
-        let mut analyzer = Iec104Analyzer::new();
-        let flow_key = flow_key_default();
-        let prior_carry_s2c = vec![0xCCu8; 200]; // 200 bytes in S2C carry
-        {
-            let state = analyzer.flows.entry(flow_key.clone()).or_default();
-            state.carry_s2c = prior_carry_s2c.clone();
-        }
-        let delivery: Vec<u8> = vec![0xDDu8; 100]; // 200+100 = 300 > 255 → overflow
-        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ServerToClient);
-        assert_eq!(
-            analyzer.all_findings.len(),
-            1,
-            "S2C carry overflow must emit exactly one T0814 (BC-2.19.025 EC-003)"
-        );
-        let f = &analyzer.all_findings[0];
-        assert_eq!(f.category, ThreatCategory::Anomaly, "T0814 must be Anomaly");
-        assert_eq!(f.verdict, Verdict::Possible, "T0814 must be Possible");
-        assert!(
-            f.mitre_techniques.iter().any(|t| t == "T0814"),
-            "T0814 carry overflow must cite T0814"
-        );
-        let state = analyzer.flows.get(&flow_key).unwrap();
-        assert_eq!(
-            state.carry_s2c, prior_carry_s2c,
-            "carry_s2c must retain prior 200 bytes after overflow (BC-2.19.025 EC-003)"
-        );
-        assert!(
-            state.carry_c2s.is_empty(),
-            "carry_c2s must be unaffected by S2C overflow (BC-2.19.025 EC-003)"
-        );
-    }
+        // Build the 255-byte I-frame with TypeID 105 (C_RP_NA_1 → emits T0827 on dispatch).
+        // Frame layout: [0x68, 0xFD(LEN=253), CF1=0x00(I-frame), CF2, CF3, CF4, ASDU...]
+        // ASDU bytes: type_id=105 at offset 6, VSQ=0x01 at 7, COT=0x06 at 8, orig=0 at 9,
+        //             CASDU=0x01,0x00 at 10-11, IOA=0x01,0x00,0x00 at 12-14, zeros thereafter.
+        let mut frame_255 = vec![0u8; 255];
+        frame_255[0] = 0x68u8; // start byte
+        frame_255[1] = 0xFDu8; // LEN = 253 → frame_total = LEN+2 = 255
+        frame_255[2] = 0x00u8; // CF1 = 0x00 → I-format (bit 0 = 0)
+        frame_255[3] = 0x00u8; // CF2
+        frame_255[4] = 0x00u8; // CF3
+        frame_255[5] = 0x00u8; // CF4
+        frame_255[6] = 105u8; // ASDU type_id = 105 (C_RP_NA_1) → detect_iec104_threats → T0827
+        frame_255[7] = 0x01u8; // VSQ: count=1, SQ=0
+        frame_255[8] = 0x06u8; // COT: cause=6 (activation)
+        frame_255[9] = 0x00u8; // originator = 0
+        frame_255[10] = 0x01u8; // CASDU low
+        frame_255[11] = 0x00u8; // CASDU high
+        frame_255[12] = 0x01u8; // IOA byte 0
+        frame_255[13] = 0x00u8; // IOA byte 1
+        frame_255[14] = 0x00u8; // IOA byte 2
+        // bytes 15-254: remain zero (padding to fill 255-byte frame)
 
-    /// AC-172-002 / EC-001 boundary: carry + delivery = 255 exactly → no T0814.
-    ///
-    /// At the exact boundary (255 = MAX_IEC104_CARRY_BYTES), carry is extended; no
-    /// T0814 emitted. Only carry + delivery > 255 triggers overflow.
-    ///
-    /// Traces: BC-2.19.025 postcondition 1; AC-172-002; EC-001.
-    #[test]
-    fn test_BC_2_19_025_ec_001_exact_255_boundary_no_t0814() {
-        let mut analyzer = Iec104Analyzer::new();
-        let flow_key = flow_key_default();
-        // delivery = 255 bytes with carry = 0 → 0+255 = 255 = MAX, not > MAX → no overflow.
-        let delivery: Vec<u8> = vec![0xBBu8; 255];
+        // Step 1: deliver first 200 bytes of the frame (exercises the carry-stash path).
+        // carry_c2s must hold 200 bytes after this call; no finding emitted.
+        analyzer.on_data(flow_key.clone(), &frame_255[..200], 0, Direction::ClientToServer);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                200,
+                "Vector (i) step 1: first 200 bytes of 255-byte frame must be stashed into carry_c2s"
+            );
+        }
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "Vector (i) step 1: partial frame stash must emit no finding"
+        );
+
+        // 45-byte partial second frame: [0x68, LEN=100 (frame_total=102), 43 body bytes].
+        // frame_len = 100+2 = 102; only 45 bytes available → incomplete → stashed as residual.
+        let mut partial_frame_45 = vec![0u8; 45];
+        partial_frame_45[0] = 0x68u8;
+        partial_frame_45[1] = 100u8; // LEN=100 → frame_total=102; 45 < 102 → partial
+
+        // Step 2: deliver 55 completing bytes (frame_255[200..255]) + 45-byte partial tail.
+        // Working buf = carry(200) + delivery(55+45) = 300 bytes.
+        // Walk: consume 255-byte frame → T0827; stash 45-byte partial as residual.
+        let mut delivery = frame_255[200..].to_vec(); // 55 bytes completing the 255-byte frame
+        delivery.extend_from_slice(&partial_frame_45); // + 45-byte partial tail
+        assert_eq!(delivery.len(), 100, "delivery for step 2 must be exactly 100 bytes");
+
         analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
-        // No T0814 must be emitted for the exact-boundary case.
+
+        // Assert: T0827 in findings (frame was dispatched, NOT discarded — walk-first semantics).
+        // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(200)+delivery(100)=300>255 → T0814 emitted,
+        // delivery discarded before frame extraction → no T0827. This assertion FAILS v1.1.
+        assert!(
+            analyzer.all_findings.iter().any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "Vector (i): 255-byte TypeID-105 I-frame must be dispatched and emit T0827 \
+             (BC-2.19.025 v1.2 walk-first: no pre-check-discard-all; F-172-001)"
+        );
+        // Assert: NO T0814 carry-overflow (residual=45 ≤ MAX_IEC104_CARRY_BYTES=255).
         assert!(
             analyzer
                 .all_findings
                 .iter()
                 .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
-            "exact-255 boundary must not emit T0814 carry-overflow finding (BC-2.19.025 EC-001)"
+            "Vector (i): conformant split-frame delivery must NOT emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2: overflow guard fires only on residual >255; F-172-001)"
+        );
+        // Assert: carry_c2s holds exactly the 45-byte partial tail.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s.len(),
+            45,
+            "Vector (i): carry_c2s must hold exactly 45-byte residual after walk (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "Vector (i): carry_s2c must be unaffected by C2S delivery (directional isolation)"
+        );
+    }
+
+    /// AC-172-002 / Vector (ii) — single S2C delivery: complete frame plus tail (no prior carry).
+    ///
+    /// BC-2.19.025 v1.2: a 300-byte S2C delivery (0 carry + 300 delivery) must NOT be
+    /// discarded by a pre-check. The frame-walk loop extracts the complete 255-byte I-frame,
+    /// dispatching T0827, and stashes the remaining 45-byte partial frame as residual carry.
+    ///
+    /// Arithmetic: carry(0) + delivery(255+45) = 300. Frame = 255 bytes ≤ 300 → complete.
+    /// Residual = 45 ≤ 255. No overflow.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postconditions 1–2, invariant 2 (walk-first ordering);
+    ///         F-172-001; AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_vector_ii_single_delivery_s2c_walk_first_no_t0814() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+
+        // Same 255-byte I-frame structure as Vector (i).
+        let mut frame_255 = vec![0u8; 255];
+        frame_255[0] = 0x68u8;
+        frame_255[1] = 0xFDu8; // LEN = 253 → frame_total = 255
+        frame_255[2] = 0x00u8; // CF1 = 0x00 → I-format
+        frame_255[3] = 0x00u8;
+        frame_255[4] = 0x00u8;
+        frame_255[5] = 0x00u8;
+        frame_255[6] = 105u8; // type_id = 105 → T0827
+        frame_255[7] = 0x01u8;
+        frame_255[8] = 0x06u8;
+        frame_255[9] = 0x00u8;
+        frame_255[10] = 0x01u8;
+        frame_255[11] = 0x00u8;
+        frame_255[12] = 0x01u8;
+        frame_255[13] = 0x00u8;
+        frame_255[14] = 0x00u8;
+        // bytes 15-254: zeros
+
+        // 45-byte partial second frame: [0x68, LEN=100, 43 body bytes] → frame_total=102 > 45.
+        let mut partial_frame_45 = vec![0u8; 45];
+        partial_frame_45[0] = 0x68u8;
+        partial_frame_45[1] = 100u8; // LEN=100 → frame_total=102; 45 < 102 → partial
+
+        // Single 300-byte delivery: 255-byte complete frame + 45-byte partial tail.
+        let mut delivery = frame_255.clone();
+        delivery.extend_from_slice(&partial_frame_45);
+        assert_eq!(delivery.len(), 300, "Vector (ii) delivery must be exactly 300 bytes");
+
+        // carry_s2c is empty before this call (no prior carry).
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ServerToClient);
+
+        // Assert: T0827 in findings (frame dispatched via walk-first; NOT discarded).
+        // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(0)+delivery(300)=300>255 → T0814, discard.
+        // This assertion FAILS v1.1.
+        assert!(
+            analyzer.all_findings.iter().any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "Vector (ii): S2C 255-byte TypeID-105 frame must be dispatched and emit T0827 \
+             (BC-2.19.025 v1.2 walk-first; F-172-001)"
+        );
+        // Assert: NO T0814 carry-overflow.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            "Vector (ii): conformant single-delivery must NOT emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2 residual bound; F-172-001)"
+        );
+        // Assert: carry_s2c holds exactly the 45-byte residual.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_s2c.len(),
+            45,
+            "Vector (ii): carry_s2c must hold exactly 45-byte residual after walk (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_c2s.is_empty(),
+            "Vector (ii): carry_c2s must be unaffected by S2C delivery (directional isolation)"
+        );
+    }
+
+    /// AC-172-002 / Vector (iii) — defensive adversarial carry-overflow dedup (EC-003/EC-004).
+    ///
+    /// Non-conformant, adversarially-constructed scenario. Tests the dedup guard for T0814
+    /// carry-overflow events (`carry_overflow_reported_c2s` flag; BC-2.19.025 invariant 4).
+    ///
+    /// State injection: set `carry_c2s` directly to 256 bytes (one byte beyond
+    /// MAX_IEC104_CARRY_BYTES=255), then call on_data with empty delivery.
+    ///
+    /// Expected v1.2 behavior:
+    ///   - First overflow event (EC-003): carry cleared; ONE T0814 (Anomaly/Possible/Medium)
+    ///     emitted; `carry_overflow_reported_c2s` set to true.
+    ///   - Second overflow event (EC-004): carry cleared; NO additional T0814
+    ///     (flag suppresses re-emission); `carry_overflow_reported_c2s` stays true.
+    ///   - `carry_overflow_reported_s2c` remains false throughout (EC-005: per-direction
+    ///     independence; C2S overflow must not set S2C dedup flag).
+    ///
+    /// Under PRE-CHECK-DISCARD-ALL (v1.1): carry(256)+delivery(0)=256>255 → T0814 emitted,
+    /// carry RETAINED at 256 bytes (not cleared), flag never set → EC-003 assertions fail.
+    /// Second trip also emits T0814 (no dedup) → EC-004 assertion fails.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postcondition 3, invariants 4–5; F-172-001; EC-003/004/005;
+    ///         AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_vector_iii_defensive_overflow_dedup_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+
+        // Construct 256-byte adversarial carry: one byte beyond MAX_IEC104_CARRY_BYTES=255.
+        // Pattern: [0x68, 0xFD(LEN=253), <254 zero bytes>] = 256 bytes total.
+        // Injected directly — this carry state is unreachable through conformant IEC-104 traffic
+        // (the walk always stashes ≤ 254 bytes). Direct injection tests the defensive guard.
+        let mut overflow_carry = vec![0u8; 256];
+        overflow_carry[0] = 0x68u8;
+        overflow_carry[1] = 0xFDu8; // LEN=253 → frame_total=255; buf only has 256 bytes
+
+        // First overflow event (EC-003): inject 256-byte carry, call on_data with empty delivery.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = overflow_carry.clone();
+        }
+        analyzer.on_data(flow_key.clone(), &[], 0, Direction::ClientToServer);
+
+        // carry_c2s must be CLEARED after overflow — v1.2 clears on overflow (EC-003).
+        // Under v1.1 PRE-CHECK-DISCARD-ALL: carry is RETAINED (256 bytes). Assertion FAILS v1.1.
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                0,
+                "Vector (iii) first trip: carry_c2s must be CLEARED after overflow \
+                 (BC-2.19.025 v1.2 EC-003; v1.1 PRE-CHECK retained carry — now wrong)"
+            );
+            // Dedup flag must be set on first overflow (EC-003).
+            // Under v1.1: flag never wired → remains false. Assertion FAILS v1.1.
+            assert!(
+                state.carry_overflow_reported_c2s,
+                "Vector (iii) first trip: carry_overflow_reported_c2s must be true after \
+                 first overflow (BC-2.19.025 invariant 4; EC-003)"
+            );
+            // S2C flag must remain false — per-direction independence (EC-005).
+            assert!(
+                !state.carry_overflow_reported_s2c,
+                "Vector (iii): carry_overflow_reported_s2c must remain false \
+                 (EC-005: C2S overflow must not affect S2C dedup flag)"
+            );
+        }
+        // Exactly ONE T0814 must be emitted on first overflow.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Vector (iii) first trip: exactly one T0814 carry-overflow finding must be emitted \
+             (BC-2.19.025 v1.2 EC-003)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "Vector (iii) T0814 must have ThreatCategory::Anomaly (BC-2.19.025)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Vector (iii) T0814 must have Verdict::Possible (BC-2.19.025)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0814"),
+            "Vector (iii) carry-overflow finding must cite T0814 (BC-2.19.025)"
+        );
+
+        // Second overflow event (EC-004): re-inject 256-byte carry, call on_data again.
+        // The dedup flag (carry_overflow_reported_c2s=true) must suppress T0814 re-emission.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = overflow_carry.clone();
+        }
+        analyzer.on_data(flow_key.clone(), &[], 0, Direction::ClientToServer);
+
+        // carry must be cleared again (resync — not a permanent desync latch; EC-004).
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                0,
+                "Vector (iii) second trip: carry_c2s must be cleared again on resync (EC-004)"
+            );
+        }
+        // NO additional T0814 — dedup flag suppresses re-emission (EC-004).
+        // Under v1.1: no dedup → second T0814 emitted → findings.len()==2. Assertion FAILS v1.1.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Vector (iii) second trip: dedup flag must suppress T0814 re-emission — \
+             total findings must remain 1 (BC-2.19.025 invariant 4; EC-004)"
+        );
+    }
+
+    /// AC-172-002 / EC-001 adapted boundary: conformant-maximum partial frame residual (254 bytes)
+    /// is stashed without T0814 (residual ≤ MAX_IEC104_CARRY_BYTES=255).
+    ///
+    /// The maximum achievable conformant partial-frame residual is 254 bytes: a 255-byte frame
+    /// (LEN=253) with only 254 bytes delivered — one byte short of completion.
+    /// Residual = 254 bytes ≤ MAX_IEC104_CARRY_BYTES=255 → the >255 guard does not fire.
+    ///
+    /// Note: residual = 255 bytes is unreachable for conformant IEC-104 traffic by construction
+    /// (a 255-byte prefix with start 0x68 + LEN=253 IS a complete frame; the walk consumes it).
+    /// BC-2.19.025 EC-002 documents this as "conformant traffic: unreachable". This test uses
+    /// the closest achievable value (254 bytes) to pin that the guard threshold is >255, not ≥255.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postcondition 2, invariants 2–3; EC-001/EC-002; AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_ec001_max_conformant_partial_254_no_t0814() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        assert_eq!(
+            MAX_IEC104_CARRY_BYTES, 255,
+            "MAX_IEC104_CARRY_BYTES must be 255 (ADR-013 Decision 2; BC-2.19.025 invariant 3)"
+        );
+
+        // Deliver 254 bytes: first 254 bytes of a 255-byte frame [0x68, 0xFD, 252 zeros].
+        // frame_len = LEN+2 = 253+2 = 255. delivery.len()=254 < frame_len=255 → partial stash.
+        // Residual = 254 bytes ≤ MAX_IEC104_CARRY_BYTES=255 → no overflow, no T0814.
+        let mut partial_254 = vec![0u8; 254];
+        partial_254[0] = 0x68u8;
+        partial_254[1] = 0xFDu8; // LEN=253 → frame_total=255; only 254 bytes → incomplete partial
+
+        analyzer.on_data(flow_key.clone(), &partial_254, 0, Direction::ClientToServer);
+
+        // No T0814 carry-overflow: residual=254 ≤ MAX_IEC104_CARRY_BYTES=255.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            "254-byte conformant partial frame must not emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2 EC-001: overflow guard is >255, not ≥255)"
+        );
+        // carry must hold all 254 bytes (partial stash preserves residual).
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s.len(),
+            254,
+            "254-byte partial frame must be fully stashed into carry_c2s (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "carry_s2c must be unaffected by C2S delivery (directional isolation)"
         );
     }
 

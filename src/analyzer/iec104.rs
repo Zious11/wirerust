@@ -221,6 +221,17 @@ pub struct Iec104FlowState {
     /// The two flags are independent — C→S and S→C dedup states never cross
     /// (BC-2.19.026 invariant 5; STORY-172).
     pub malformed_len_reported_s2c: bool,
+    /// One-shot dedup flag for carry-residual-overflow T0814 emission in C→S direction.
+    /// Set on the first carry-overflow event in C→S; suppresses T0814 re-emission for that
+    /// direction within the flow lifetime. SEPARATE from `malformed_len_reported_c2s` so
+    /// that the two anomaly classes cannot suppress each other (BC-2.19.025 invariant 4;
+    /// F-172-001; STORY-172). Stub field — wired in F-172-001 remediation implementation.
+    pub carry_overflow_reported_c2s: bool,
+    /// One-shot dedup flag for carry-residual-overflow T0814 emission in S→C direction.
+    /// Same semantics as `carry_overflow_reported_c2s` but for S→C direction.
+    /// (BC-2.19.025 invariant 4; F-172-001; STORY-172). Stub field — wired in F-172-001
+    /// remediation implementation.
+    pub carry_overflow_reported_s2c: bool,
 }
 
 // ---------------------------------------------------------------------------
