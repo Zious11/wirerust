@@ -33,7 +33,7 @@ inputs:
   - .factory/cycles/wave-74/wave-gate/code-review.md
   - .github/workflows/ci.yml
   - CLAUDE.md
-input-hash: "bf065d2"
+input-hash: "d6d4af2"
 ---
 
 # STORY-165: Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule

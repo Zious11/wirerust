@@ -5,9 +5,9 @@ story_id: STORY-170
 title: "IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs"
 epic_id: E-22
 version: "2.0"
-status: draft
+status: delivered
 producer: story-writer
-timestamp: 2026-07-14T00:00:00Z
+timestamp: 2026-07-15T00:00:00Z
 phase: f3
 traces_to: .factory/specs/prd.md
 points: 5

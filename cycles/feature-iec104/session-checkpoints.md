@@ -4,6 +4,21 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-15 (replaced by D-447 STORY-170 DELIVERED)
+
+**STORY-170 v2.0 BC-realigned (D-446, 2026-07-14) — ready for code cycle. develop=ac01d9f2; stories_delivered=108; STORY-INDEX v3.62. NEXT: STORY-170 code cycle (wave-79, worktree → stub → test → impl → adversarial → demo → PR).**
+
+- **Date:** 2026-07-14. Position: feature-iec104 F4 delta-implementation IN PROGRESS; STORY-170 v2.0 BC-realigned (D-446); pipeline PAUSED pre-wave-79 coding. trajectory-tail →0→0→0→0.
+- **Ground truth (source):** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `ac01d9f2`. DRIFT-BACKMERGE-SQUASH-001 still applies. 3 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2).
+- **Wave status:** Wave-76 DELIVERED (D-441): STORY-167. Wave-77 DELIVERED (D-443): STORY-168. Wave-78 DELIVERED (D-445): STORY-169 (BC-realigned v1.1). STORY-170 v2.0 BC-realigned (D-446, pre-delivery).
+- **Remaining F4:** STORY-170 (wave-79, control-command detection; v2.0 BC-aligned, ready for coding) through STORY-174 (wave-83). stories_delivered=108.
+- **Pre-delivery recommendation:** Run AC↔BC field/behavior-fidelity check for STORY-171/172/173/174 before coding — cheap, caught real bugs in STORY-169 and STORY-170 (F3-DECOMPOSITION-BC-FIDELITY, 2 confirmed occurrences).
+- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; SEC-001-S168 (LOW, carry-append path inert; STORY-172); STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f).
+- **Process-gaps:** PG-REDGREEN-COMMENT-CLEANUP (2 occurrences: STORY-167+169); F3-DECOMPOSITION-BC-FIDELITY (2 confirmed: STORY-169+170; recommend pre-delivery AC↔BC check for STORY-171-174).
+- **Spec versions:** BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56 / SS-19 v1.6 / STORY-INDEX v3.62 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-14 (replaced by D-446 STORY-170 v2.0 BC-realignment)
 
 **STORY-167 + STORY-168 + STORY-169 DELIVERED (D-441/D-443/D-445, 2026-07-14) — waves 76–78 complete. develop=ac01d9f2; stories_delivered=108; STORY-INDEX v3.61. NEXT: STORY-170 (wave-79, BC-realignment required before coding).**
