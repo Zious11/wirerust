@@ -1026,13 +1026,18 @@ pub fn track_ns_desync(
 pub struct Iec104Analyzer {
     /// Per-flow IEC-104 analyzer state, keyed by canonicalized TCP 4-tuple.
     pub flows: HashMap<FlowKey, Iec104FlowState>,
+    /// Accumulated findings from `on_data` calls across all flows.
+    /// Tests inspect this field to assert T0814 emission counts and attributes.
+    /// Mirrors the `Dnp3Analyzer::all_findings` / `EnipAnalyzer::all_findings` pattern.
+    pub all_findings: Vec<Finding>,
 }
 
 impl Iec104Analyzer {
-    /// Construct a new `Iec104Analyzer` with an empty flow state map.
+    /// Construct a new `Iec104Analyzer` with an empty flow state map and findings list.
     pub fn new() -> Self {
         Self {
             flows: HashMap::new(),
+            all_findings: Vec::new(),
         }
     }
 
