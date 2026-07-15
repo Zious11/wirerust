@@ -43,6 +43,7 @@
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
 use crate::findings::Finding;
+use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -831,6 +832,79 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
             f.summary.push_str(" [TEST]");
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// N(S)/N(R) sequence number extraction (STORY-171 — BC-2.19.023; ADR-013 Decision 6)
+// ---------------------------------------------------------------------------
+
+/// Extract N(S) 15-bit send sequence number from I-format CF1/CF2 control field bytes.
+///
+/// Pure-core free function — no state mutation, no I/O. Called before any state
+/// mutation on I-format frames (BC-2.19.023 postcondition 1; ADR-013 Decision 6).
+///
+/// ## Extraction formula (BC-2.19.023 postcondition 1)
+/// `ns = ((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` — result in [0, 32767].
+///
+/// ## VP-047 seam
+/// No-panic for all (cf1, cf2) u8 inputs is a VP-047 cargo-fuzz property
+/// (`fuzz_iec104_parser`; BC-2.19.023 invariant 2).
+pub fn extract_ns(_cf1: u8, _cf2: u8) -> u16 {
+    todo!("STORY-171 extract_ns: 15-bit N(S) from CF1/CF2 per BC-2.19.023")
+}
+
+/// Extract N(R) 15-bit receive sequence number from I/S-format CF3/CF4 control field bytes.
+///
+/// Pure-core free function — no state mutation, no I/O. N(R) is computed but NOT
+/// stored in `Iec104FlowState` (BC-2.19.023 postcondition 4; ADR-013 Decision 6).
+///
+/// ## Extraction formula (BC-2.19.023 postcondition 2)
+/// `nr = ((cf3 as u16) >> 1) | ((cf4 as u16) << 7)` — result in [0, 32767].
+///
+/// ## VP-047 seam
+/// No-panic for all (cf3, cf4) u8 inputs is a VP-047 cargo-fuzz property
+/// (`fuzz_iec104_parser`; BC-2.19.023 invariant 2).
+pub fn extract_nr(_cf3: u8, _cf4: u8) -> u16 {
+    todo!("STORY-171 extract_nr: 15-bit N(R) from CF3/CF4 per BC-2.19.023")
+}
+
+// ---------------------------------------------------------------------------
+// N(S) gap detection + Option<u16> first-frame guard (STORY-171 — BC-2.19.024)
+// ---------------------------------------------------------------------------
+
+/// Track per-direction N(S) and emit T1692.001 Possible on gap > k=12.
+///
+/// Effectful free function — mutates `Iec104FlowState::last_ns_c2s` or
+/// `last_ns_s2c` (selected by `direction`) and may return `Some(Finding)`.
+/// Called by the dispatcher on each I-format frame after `extract_ns`
+/// (ADR-013 Decision 6; BC-2.19.024).
+///
+/// ## Three-path dispatch (BC-2.19.024)
+///
+/// | State (`last_ns_dir`) | Gap      | Action                                           |
+/// |-----------------------|----------|--------------------------------------------------|
+/// | `None` (first frame)  | N/A      | Set `Some(current_ns)`; return `None` (Path A)   |
+/// | `Some(prev)`, gap ≤ 12 | ≤ 12   | Update `Some(current_ns)`; return `None` (Path B) |
+/// | `Some(prev)`, gap > 12 | > 12   | Update + return `Some(T1692.001 Possible)` (Path C) |
+///
+/// ## 15-bit modular arithmetic (BC-2.19.024 invariant 1)
+/// Gap = `current_ns.wrapping_sub(prev) & 0x7FFF`. The `& 0x7FFF` mask is
+/// mandatory — `wrapping_sub` wraps at 2^16, not 2^15; plain subtraction is WRONG.
+///
+/// ## Direction field selection (BC-2.19.023 postcondition 3; AC-171-007)
+/// `Direction::ClientToServer` → `state.last_ns_c2s`
+/// `Direction::ServerToClient` → `state.last_ns_s2c`
+/// The two fields are mutated independently — no cross-direction mixing.
+///
+/// ## VP-045 proptest seam
+/// VP-045 verifies directional isolation: last_ns_c2s and last_ns_s2c updated
+/// independently (AC-171-007; STORY-172 anchors proptest; full run STORY-174).
+pub fn track_ns_desync(
+    _state: &mut Iec104FlowState,
+    _current_ns: u16,
+    _direction: Direction,
+) -> Option<Finding> {
+    todo!("STORY-171 track_ns_desync: Option<u16> first-frame guard + gap>k=12 T1692.001")
 }
 
 // ---------------------------------------------------------------------------
