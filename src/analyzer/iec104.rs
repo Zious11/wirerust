@@ -43,6 +43,7 @@
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
 use crate::findings::Finding;
+use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -829,6 +830,144 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
     if asdu.cot_test {
         for f in &mut findings[start_idx..] {
             f.summary.push_str(" [TEST]");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// N(S)/N(R) sequence number extraction (STORY-171 — BC-2.19.023; ADR-013 Decision 6)
+// ---------------------------------------------------------------------------
+
+/// Extract N(S) 15-bit send sequence number from I-format CF1/CF2 control field bytes.
+///
+/// Pure-core free function — no state mutation, no I/O. Called before any state
+/// mutation on I-format frames (BC-2.19.023 postcondition 1; ADR-013 Decision 6).
+///
+/// ## Extraction formula (BC-2.19.023 postcondition 1)
+/// `ns = ((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` — result in [0, 32767].
+///
+/// ## VP-047 seam
+/// No-panic for all (cf1, cf2) u8 inputs is a VP-047 cargo-fuzz property
+/// (`fuzz_iec104_parser`; BC-2.19.023 invariant 2).
+pub fn extract_ns(cf1: u8, cf2: u8) -> u16 {
+    // BC-2.19.023 postcondition 1: ns = ((cf1 as u16) >> 1) | ((cf2 as u16) << 7).
+    // Result is always in [0, 32767] — no additional masking needed (BC-2.19.023 invariant 1).
+    ((cf1 as u16) >> 1) | ((cf2 as u16) << 7)
+}
+
+/// Extract N(R) 15-bit receive sequence number from I/S-format CF3/CF4 control field bytes.
+///
+/// Pure-core free function — no state mutation, no I/O. N(R) is computed but NOT
+/// stored in `Iec104FlowState` (BC-2.19.023 postcondition 4; ADR-013 Decision 6).
+///
+/// ## Extraction formula (BC-2.19.023 postcondition 2)
+/// `nr = ((cf3 as u16) >> 1) | ((cf4 as u16) << 7)` — result in [0, 32767].
+///
+/// ## VP-047 seam
+/// No-panic for all (cf3, cf4) u8 inputs is a VP-047 cargo-fuzz property
+/// (`fuzz_iec104_parser`; BC-2.19.023 invariant 2).
+pub fn extract_nr(cf3: u8, cf4: u8) -> u16 {
+    // BC-2.19.023 postcondition 2: nr = ((cf3 as u16) >> 1) | ((cf4 as u16) << 7).
+    // Same formula as extract_ns but applied to CF3/CF4 (BC-2.19.023 postconditions 1–2).
+    // N(R) is transient — caller holds it; NOT stored in Iec104FlowState (postcondition 4).
+    ((cf3 as u16) >> 1) | ((cf4 as u16) << 7)
+}
+
+// ---------------------------------------------------------------------------
+// N(S) gap detection + Option<u16> first-frame guard (STORY-171 — BC-2.19.024)
+// ---------------------------------------------------------------------------
+
+/// Track per-direction N(S) and emit T1692.001 Possible on gap > k=12.
+///
+/// Effectful free function — mutates `Iec104FlowState::last_ns_c2s` or
+/// `last_ns_s2c` (selected by `direction`) and may return `Some(Finding)`.
+/// Called by the dispatcher on each I-format frame after `extract_ns`
+/// (ADR-013 Decision 6; BC-2.19.024).
+///
+/// ## Three-path dispatch (BC-2.19.024)
+///
+/// | State (`last_ns_dir`) | Gap      | Action                                           |
+/// |-----------------------|----------|--------------------------------------------------|
+/// | `None` (first frame)  | N/A      | Set `Some(current_ns)`; return `None` (Path A)   |
+/// | `Some(prev)`, gap ≤ 12 | ≤ 12   | Update `Some(current_ns)`; return `None` (Path B) |
+/// | `Some(prev)`, gap > 12 | > 12   | Update + return `Some(T1692.001 Possible)` (Path C) |
+///
+/// ## 15-bit modular arithmetic (BC-2.19.024 invariant 1)
+/// Gap = `current_ns.wrapping_sub(prev) & 0x7FFF`. The `& 0x7FFF` mask is
+/// mandatory — `wrapping_sub` wraps at 2^16, not 2^15; plain subtraction is WRONG.
+///
+/// ## Direction field selection (BC-2.19.023 postcondition 3; AC-171-007)
+/// `Direction::ClientToServer` → `state.last_ns_c2s`
+/// `Direction::ServerToClient` → `state.last_ns_s2c`
+/// The two fields are mutated independently — no cross-direction mixing.
+///
+/// ## VP-045 proptest seam
+/// VP-045 verifies directional isolation: last_ns_c2s and last_ns_s2c updated
+/// independently (AC-171-007; STORY-172 anchors proptest; full run STORY-174).
+pub fn track_ns_desync(
+    state: &mut Iec104FlowState,
+    current_ns: u16,
+    direction: Direction,
+) -> Option<Finding> {
+    use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+    // Select the directional field by direction parameter (BC-2.19.023 postcondition 3;
+    // AC-171-007). The two fields are mutated independently — no cross-direction mixing.
+    let last_ns_dir = match direction {
+        Direction::ClientToServer => &mut state.last_ns_c2s,
+        Direction::ServerToClient => &mut state.last_ns_s2c,
+    };
+
+    match *last_ns_dir {
+        // Path A — first I-frame (state None): set baseline; NO finding unconditionally.
+        // Handles mid-capture starts where the first observed N(S) is arbitrary (not 0);
+        // any gap relative to an assumed zero baseline would be a false positive
+        // (BC-2.19.024 postconditions A1–A2; invariant 3; ADR-013 Decision 6).
+        None => {
+            *last_ns_dir = Some(current_ns);
+            None
+        }
+
+        // Path B/C — subsequent I-frame (state Some(prev)): compute 15-bit modular gap.
+        Some(prev) => {
+            // BC-2.19.024 invariant 1: gap MUST use wrapping_sub + & 0x7FFF mask.
+            // wrapping_sub wraps at 2^16 (65536), not 2^15 (32768); the mask collapses
+            // the result to the 15-bit N(S) range. Plain subtraction is WRONG here.
+            let gap = current_ns.wrapping_sub(prev) & 0x7FFF;
+            // Update state before returning finding (BC-2.19.024 postcondition C3:
+            // state is always updated even when a finding is emitted).
+            *last_ns_dir = Some(current_ns);
+
+            if gap > 12 {
+                // Path C: gap > k=12 → T1692.001 "Unauthorized Message: Command Message"
+                // with Verdict::Possible (BC-2.19.024 postcondition C1; ADR-013 Decision 6).
+                // source_ip and timestamp left None — enriched in STORY-173.
+                Some(Finding {
+                    category: ThreatCategory::Impact,
+                    verdict: Verdict::Possible,
+                    confidence: Confidence::Medium,
+                    summary: format!(
+                        "IEC-104 N(S) sequence desync: N(S)={current_ns} prev={prev} \
+                         gap={gap} > k=12 — sequence-number desynchronization detected; \
+                         possible replay injection or adversarial manipulation \
+                         (T1692.001 unauthorized command message; BC-2.19.024)"
+                    ),
+                    evidence: vec![
+                        format!(
+                            "N(S) gap={gap} exceeds k=12 window \
+                             (current_ns={current_ns}, prev_ns={prev})"
+                        ),
+                        format!("direction={direction:?}"),
+                    ],
+                    mitre_techniques: vec!["T1692.001".to_string()],
+                    source_ip: None,
+                    timestamp: None,
+                    direction: None,
+                })
+            } else {
+                // Path B: gap ≤ k=12 — state updated, no finding (BC-2.19.024 postcondition B).
+                None
+            }
         }
     }
 }
