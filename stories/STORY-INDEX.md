@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.67"
+version: "3.68"
 status: draft
 producer: story-writer
-timestamp: 2026-07-15T21:30:00Z
+timestamp: 2026-07-16T00:05:00Z
 phase: f4
 total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.68 (2026-07-15): STORY-172 per-story adversarial CONVERGED 3-clean (D-454; BC-5.39.001; 6 passes streak P4/P5/P6; trajectory →(2H+1L+1N)→1L→1NIT→0→0→0; fec9bfa; 2584/0). Status stays draft until PR merged. PG-SPEC-VERSION-CITATION-CURRENCY noted (cycle-close codification). No numeric totals changed.
 # v3.67 (2026-07-15): STORY-172 v3.0→v3.1 (D-453, Pass-2 prose precision — F-172-201 LOW remediated; BC-2.19.025 v1.2→v1.3 PC-3/Inv-2 entry-check formulation; BC-INDEX v2.30→v2.31; ADR-013; SS-19 v1.8→v1.9; ARCH-INDEX v2.18→v2.19; input-hash 938645f canonical Python tool). Code unchanged 4dc85c4. Pass 3 pending. No numeric totals changed.
 # v3.66 (2026-07-15): STORY-172 realigned v3.0 (D-452, Pass-1 adversarial remediation) — AC-172-002 re-derived to BC-2.19.025 v1.2; walk-first residual-bound; new canonical vectors i/ii/iii replacing defective 1+255→1/200+100→200; carry_overflow_reported_c2s/s2c separate dedup flags; AC-172-003 +6 dispatch-effect citations (DF-AC-TEST-NAME-SYNC-001); 9-field Iec104FlowState sweep; input-hash 246add6 (canonical Python tool). No numeric totals changed.
 # v3.65 (2026-07-15): STORY-172 BC-realignment v2.0 (pre-delivery fidelity check D-451) — SR-172-01 BLOCKING (FlowId→FlowKey); SR-172-02 MEDIUM (carry-overflow discard-all-new canonical vectors 1+255→1/200+100→200); SR-172-03 MEDIUM (malformed-LEN EMIT-WITH-DEDUP research-validated per CVE-2023-5768/Snort3/Wireshark/Zeek; BC-2.19.026 v1.6 PC4 + inv5 + EC-006/007/008); BC-2.19.027 v1.1 / BC-INDEX v2.29 / ADR-013 reconciled / SS-19 v1.7 / ARCH-INDEX v2.17; sibling on_data signature adopted; inputs 5→12; input-hash af0f732 (canonical Python tool). 3rd F3-DECOMPOSITION-BC-FIDELITY occurrence — CODIFY-NOW (D-451). No numeric totals changed.
@@ -301,7 +302,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-169 | IEC-104 ASDU Header Extraction: TypeID, VSQ, COT, CASDU, IOA | E-22 | 78 | 3 | delivered | STORY-168 |
 | STORY-170 | IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs | E-22 | 79 | 5 | delivered | STORY-169 |
 | STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | delivered | STORY-168, STORY-170 (file-seq) |
-| STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | draft (v3.1, hash 938645f; Pass-2 remediated D-453) | STORY-170, STORY-171 |
+| STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | draft (v3.1, hash 938645f; adversarial CONVERGED 3-clean D-454; demos/PR pending) | STORY-170, STORY-171 |
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | draft | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | draft | STORY-173 |
 
