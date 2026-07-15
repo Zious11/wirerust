@@ -7,7 +7,7 @@ wave: 80
 points: 3
 phase: f3
 tdd_mode: strict
-status: draft
+status: delivered
 feature_id: feature-iec104
 subsystems: [SS-19]
 target_module: analyzer/iec104

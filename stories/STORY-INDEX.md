@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.63"
+version: "3.64"
 status: draft
 producer: story-writer
-timestamp: 2026-07-15T00:00:00Z
+timestamp: 2026-07-15T20:00:00Z
 phase: f4
 total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.64 (2026-07-15): STORY-171 DELIVERED (PR #405 1a64380, 2026-07-15); status draft→delivered; wave-80 Delivery Progress → DELIVERED (D-448); per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 F-171-001 MEDIUM (stale header, PG-REDGREEN 4th occurrence) + F-171-002 (PC-C2 coverage) remediated 27bb678; security PASS (0 CRIT/HIGH); AI APPROVE (1 cycle, 0 blocking); CI 13/13; 166 iec104 tests; demo 8 artifacts scrub PASS. Wave-80 gate SATISFIED (single-story wave; per-story 3-clean == wave diff). stories_delivered 109→110. PG-REDGREEN-COMMENT-CLEANUP: 4th occurrence — CODIFY-NOW. RETRANSMIT-NS-FALSEPOS-001 resolved (documented EC-007 fail-closed per INV-3). STORY-172 next (wave-81). No numeric totals changed.
 # v3.63 (2026-07-15): STORY-170 DELIVERED (PR #404 0bd93f8, 2026-07-15); status draft→delivered; wave-79 Delivery Progress → DELIVERED (D-447); BC-realigned v2.0; per-story adversarial CONVERGED 3-clean (BC-5.39.001): 5 passes, streak P3/P4/P5; F-170-001 MEDIUM (CASDU/first_ioa context, BC-2.19.019 PC3/BC-2.19.020 PC2) + F-P2-L1 LOW (stale Red-Gate test-header) remediated; security CLEAN (0 CRIT/HIGH/MEDIUM; 4 INFO accepted); AI APPROVE (0 blocking, 2 NIT accepted); CI 13/13; 136 iec104 tests; demo 6 artifacts scrub PASS. Wave-79 gate SATISFIED (single-story wave; per-story 3-clean == wave diff). stories_delivered 108→109. PG-REDGREEN-COMMENT-CLEANUP: 3rd occurrence — READY-TO-CODIFY. STORY-171 next (wave-80). No numeric totals changed.
 # v3.62 (2026-07-14): STORY-170 BC-realignment v2.0 (pre-delivery drift correction, D-446) — AsduHeader→Asdu/extract_asdu_header→parse_asdu naming (STORY-169 delivered broken-out Asdu struct); FALSE-POSITIVE bug fixed (C_IC/C_CI/C_CS interrogation TypeIDs 100/101/103 were speccing T0827 Possible, BC-2.19.021 says benign/no-finding); AC-170-002 confidence Possible→Likely (BC-2.19.020); AC-170-004 reserved-TypeID scope corrected to TypeID=0 or [128,255] (BC-2.19.022); AC-170-006 dispatch table corrected (45-47 T1692.001 only; 48-51 +T0836; 105 T0827 Likely; 128-255 T0814); AC-170-007 cot_test [TEST]-tagging added (BC-2.19.017 inv1); BC-2.19.017 added to inputs; input-hash d4fcb27. F3-DECOMPOSITION-BC-FIDELITY: 2nd confirmed occurrence (STORY-169 field-shape/guard drift + STORY-170 false-positive/confidence/scope drift). Recommend pre-delivery AC↔BC fidelity check for STORY-171-174 before coding. No numeric totals changed.
 # v3.61 (2026-07-14): STORY-169 DELIVERED (PR #403 ac01d9f2, 2026-07-14); status draft→delivered; wave-78 Delivery Progress → DELIVERED (D-445); BC-realigned v1.1 (parse_asdu/Asdu broken-out, min-6, first_ioa Option; F3-drift correction); per-story adversarial CONVERGED 3-clean (BC-5.39.001): 4 passes, streak P2/P3/P4; Pass-1 MEDIUM (stale todo!() docstring) remediated 0debf98; security 0 CRIT/HIGH/MEDIUM (SEC-001 LOW carry-bound deferred STORY-172); AI APPROVE (0 blocking/major, 1 MINOR+1 NIT accepted); CI 13/13; demo 6 artifacts scrub PASS. Wave-78 gate SATISFIED (single-story wave; per-story 3-clean == wave-78 diff). stories_delivered 107→108. No numeric totals changed.
@@ -296,7 +297,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-168 | IEC-104 Frame Format Discrimination + U-Format Session State Machine (STARTDT/STOPDT/TESTFR) | E-22 | 77 | 5 | delivered | STORY-167 |
 | STORY-169 | IEC-104 ASDU Header Extraction: TypeID, VSQ, COT, CASDU, IOA | E-22 | 78 | 3 | delivered | STORY-168 |
 | STORY-170 | IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs | E-22 | 79 | 5 | delivered | STORY-169 |
-| STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | draft | STORY-168, STORY-170 (file-seq) |
+| STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | delivered | STORY-168, STORY-170 (file-seq) |
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | draft | STORY-170, STORY-171 |
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | draft | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | draft | STORY-173 |
@@ -507,6 +508,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 77 | STORY-168 | **DELIVERED (D-443, 2026-07-14)** | #402 | b720fd96 | 2026-07-14 |
 | 78 | STORY-169 | **DELIVERED (D-445, 2026-07-14)** | #403 | ac01d9f2 | 2026-07-14 |
 | 79 | STORY-170 | **DELIVERED (D-447, 2026-07-15)** | #404 | 0bd93f8 | 2026-07-15 |
+| 80 | STORY-171 | **DELIVERED (D-448, 2026-07-15)** | #405 | 1a64380 | 2026-07-15 |
 
 ## Coverage Verification
 
