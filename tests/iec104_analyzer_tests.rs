@@ -3472,3 +3472,953 @@ mod story_170 {
         );
     }
 }
+
+// =============================================================================
+// STORY-171: IEC-104 N(S)/N(R) Sequence Tracking
+//            Option<u16> First-Frame Guard + Desync Detection
+//
+// Covers BC-2.19.023 and BC-2.19.024.
+// ALL tests in this module MUST FAIL (Red Gate) because extract_ns, extract_nr,
+// and track_ns_desync are todo!() stubs. They pass after implementation.
+//
+// ## Contract coverage
+// - BC-2.19.023: extract_ns(cf1, cf2) -> u16 via ((cf1>>1)|(cf2<<7)); range [0,32767]
+//               extract_nr(cf3, cf4) -> u16 via ((cf3>>1)|(cf4<<7)); range [0,32767]
+//               N(R) is transient — NOT stored in Iec104FlowState
+// - BC-2.19.024: track_ns_desync(&mut state, current_ns, direction) -> Option<Finding>
+//               Path A (None): state → Some(ns); no finding (mid-capture guard)
+//               Path B (Some(prev), gap ≤ 12): state → Some(current_ns); no finding
+//               Path C (Some(prev), gap > 12): T1692.001 Possible; state → Some(current_ns)
+//               15-bit modular gap: current_ns.wrapping_sub(prev) & 0x7FFF (mandatory mask)
+//               Directional isolation: last_ns_c2s / last_ns_s2c independent
+//
+// ## Canonical test vectors (BC-2.19.023 + BC-2.19.024 tables; used verbatim)
+// BC-2.19.023: CF1=0x02/CF2=0x00→N(S)=1; CF1=0x00/CF2=0x00→N(S)=0; CF1=0xFE/CF2=0xFF→32767
+// BC-2.19.024: None→5000→None; Some(5000)→5001→None; Some(5001)→5020→T1692.001 Possible
+//
+// ## RETRANSMIT-NS-FALSEPOS-001 note
+// TCP retransmissions that re-deliver lower N(S) values produce a large backwards
+// 15-bit gap (e.g. prev=5020, current=5001 → gap=32749) → T1692.001 Possible.
+// This is INTENTIONAL fail-closed behavior (INV-3). The test documents and exercises
+// this known false-positive; suppression via TCP deduplication is deferred.
+//
+// ## Provenance
+// Written Red-first as TDD stubs (STORY-171 strict TDD mode, wave-80).
+// All tests FAIL until extract_ns, extract_nr, track_ns_desync are implemented.
+// =============================================================================
+mod story_171 {
+    use proptest::prelude::*;
+    use wirerust::analyzer::iec104::{Iec104FlowState, extract_nr, extract_ns, track_ns_desync};
+    use wirerust::findings::Verdict;
+    use wirerust::reassembly::handler::Direction;
+
+    // =========================================================================
+    // BC-2.19.023: extract_ns — 15-bit N(S) from CF1/CF2
+    // AC-171-001
+    // =========================================================================
+
+    /// BC-2.19.023 canonical vector: CF1=0x02, CF2=0x00 → N(S)=1.
+    ///
+    /// Formula: `((0x02u16) >> 1) | ((0x00u16) << 7)` = `0x01 | 0x00` = 1.
+    /// Canonical vector from BC-2.19.023 test vector table row 1.
+    ///
+    /// Traces: BC-2.19.023 postcondition 1; AC-171-001; EC-001.
+    #[test]
+    fn test_BC_2_19_023_extract_ns_cf1_0x02_cf2_0x00_returns_1() {
+        let ns = extract_ns(0x02, 0x00);
+        assert_eq!(
+            ns, 1,
+            "extract_ns(0x02, 0x00) must return 1 (BC-2.19.023 canonical vector table row 1)"
+        );
+    }
+
+    /// BC-2.19.023 canonical vector: CF1=0xFE, CF2=0xFF → N(S)=32767.
+    ///
+    /// Formula: `((0xFEu16) >> 1) | ((0xFFu16) << 7)` = `0x7F | 0x7F80` = `0x7FFF` = 32767.
+    /// This is the maximum 15-bit value.
+    /// Canonical vector from BC-2.19.023 EC-003 and test vector table row 3.
+    ///
+    /// Traces: BC-2.19.023 postcondition 1, invariant 1; AC-171-001; EC-003.
+    #[test]
+    fn test_BC_2_19_023_extract_ns_cf1_0xFE_cf2_0xFF_returns_32767() {
+        let ns = extract_ns(0xFE, 0xFF);
+        assert_eq!(
+            ns, 32767,
+            "extract_ns(0xFE, 0xFF) must return 32767 = 0x7FFF \
+             (BC-2.19.023 canonical vector EC-003; maximum 15-bit value)"
+        );
+    }
+
+    /// BC-2.19.023 canonical vector: CF1=0x00, CF2=0x00 → N(S)=0.
+    ///
+    /// Formula: `((0x00u16) >> 1) | ((0x00u16) << 7)` = 0.
+    /// Canonical vector from BC-2.19.023 test vector table row 2 (N(S) column).
+    ///
+    /// Traces: BC-2.19.023 postcondition 1; AC-171-001.
+    #[test]
+    fn test_BC_2_19_023_extract_ns_cf1_0x00_cf2_0x00_returns_0() {
+        let ns = extract_ns(0x00, 0x00);
+        assert_eq!(
+            ns, 0,
+            "extract_ns(0x00, 0x00) must return 0 (BC-2.19.023 zero case)"
+        );
+    }
+
+    /// BC-2.19.023 EC-002: CF1=0x00, CF2=0x80 → N(S)=16384 = 0x4000.
+    ///
+    /// Formula: `((0x00u16) >> 1) | ((0x80u16) << 7)` = `0 | 0x4000` = 16384.
+    /// Mid-range 15-bit value; only the CF2 high-bits contribute.
+    ///
+    /// Traces: BC-2.19.023 postcondition 1, invariant 1; AC-171-001; EC-002.
+    #[test]
+    fn test_BC_2_19_023_extract_ns_cf1_0x00_cf2_0x80_returns_16384() {
+        let ns = extract_ns(0x00, 0x80);
+        assert_eq!(
+            ns, 16384,
+            "extract_ns(0x00, 0x80) must return 16384 = 0x4000 (BC-2.19.023 EC-002)"
+        );
+    }
+
+    /// BC-2.19.023 invariant 1: boundary range check for extract_ns.
+    ///
+    /// Exercises all three canonical table rows plus EC-002. Asserts the exact expected
+    /// value AND the 15-bit range invariant (result must be ≤ 32767) for each input.
+    ///
+    /// Traces: BC-2.19.023 invariant 1; AC-171-001; VP-047 seam.
+    #[test]
+    fn test_BC_2_19_023_invariant_extract_ns_range_and_exact_values_boundary_inputs() {
+        // (cf1, cf2, expected_ns) — BC-2.19.023 canonical table + EC-002/EC-003
+        let cases: &[(u8, u8, u16)] = &[
+            (0x00, 0x00, 0),     // table row 2 N(S) col: zero
+            (0x02, 0x00, 1),     // table row 1 N(S) col
+            (0x00, 0x80, 16384), // EC-002: 0x4000
+            (0xFE, 0xFF, 32767), // table row 3 N(S) col / EC-003: 0x7FFF
+        ];
+        for &(cf1, cf2, expected) in cases {
+            let ns = extract_ns(cf1, cf2);
+            assert_eq!(
+                ns, expected,
+                "extract_ns(0x{cf1:02X}, 0x{cf2:02X}) must return {expected} \
+                 (BC-2.19.023 postcondition 1 + invariant 1)"
+            );
+            assert!(
+                ns <= 32767,
+                "extract_ns(0x{cf1:02X}, 0x{cf2:02X}) = {ns} must be in [0, 32767] \
+                 (BC-2.19.023 invariant 1)"
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.023: extract_nr — 15-bit N(R) from CF3/CF4
+    // AC-171-002
+    // =========================================================================
+
+    /// BC-2.19.023 canonical vector: CF3=0x02, CF4=0x00 → N(R)=1.
+    ///
+    /// Formula: `((0x02u16) >> 1) | ((0x00u16) << 7)` = 1.
+    /// Canonical vector from BC-2.19.023 test vector table row 1 (N(R) column).
+    ///
+    /// Traces: BC-2.19.023 postcondition 2; AC-171-002.
+    #[test]
+    fn test_BC_2_19_023_extract_nr_cf3_0x02_cf4_0x00_returns_1() {
+        let nr = extract_nr(0x02, 0x00);
+        assert_eq!(
+            nr, 1,
+            "extract_nr(0x02, 0x00) must return 1 (BC-2.19.023 canonical vector table row 1)"
+        );
+    }
+
+    /// BC-2.19.023 canonical vector: CF3=0xFE, CF4=0xFF → N(R)=32767.
+    ///
+    /// Formula: `((0xFEu16) >> 1) | ((0xFFu16) << 7)` = `0x7FFF` = 32767.
+    /// Canonical vector from BC-2.19.023 test vector table row 3 (N(R) column).
+    ///
+    /// Traces: BC-2.19.023 postcondition 2, invariant 1; AC-171-002.
+    #[test]
+    fn test_BC_2_19_023_extract_nr_cf3_0xFE_cf4_0xFF_returns_32767() {
+        let nr = extract_nr(0xFE, 0xFF);
+        assert_eq!(
+            nr, 32767,
+            "extract_nr(0xFE, 0xFF) must return 32767 (BC-2.19.023 canonical vector table row 3)"
+        );
+    }
+
+    /// BC-2.19.023: CF3=0x00, CF4=0x00 → N(R)=0.
+    ///
+    /// Formula: `((0x00u16) >> 1) | ((0x00u16) << 7)` = 0.
+    ///
+    /// Traces: BC-2.19.023 postcondition 2; AC-171-002.
+    #[test]
+    fn test_BC_2_19_023_extract_nr_cf3_0x00_cf4_0x00_returns_0() {
+        let nr = extract_nr(0x00, 0x00);
+        assert_eq!(
+            nr, 0,
+            "extract_nr(0x00, 0x00) must return 0 (BC-2.19.023 zero case)"
+        );
+    }
+
+    /// BC-2.19.023 postcondition 4: N(R) is transient — Iec104FlowState has no last_nr fields.
+    ///
+    /// Postcondition 4 states N(R) is computed and available transiently but is NOT stored.
+    /// This test calls extract_nr and confirms the return value, then verifies that
+    /// Iec104FlowState has no last_nr field (compile-time proof: rustc rejects access to
+    /// nonexistent fields; runtime proof: state only exposes last_ns_c2s / last_ns_s2c).
+    ///
+    /// Traces: BC-2.19.023 postcondition 4; AC-171-002.
+    #[test]
+    fn test_BC_2_19_023_extract_nr_is_transient_no_last_nr_field_in_flow_state() {
+        // extract_nr returns a transient value — the caller holds it temporarily.
+        let nr = extract_nr(0x02, 0x00);
+        assert_eq!(
+            nr, 1,
+            "extract_nr(0x02, 0x00) must return 1 — used transiently by caller \
+             (BC-2.19.023 postcondition 4)"
+        );
+        // Compile-time proof of postcondition 4: Iec104FlowState has last_ns_c2s / last_ns_s2c
+        // but NO last_nr_c2s / last_nr_s2c. Any attempt to access .last_nr_c2s would fail to
+        // compile. Runtime proof: the Default state only initialises the ns fields.
+        let state = Iec104FlowState::default();
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "Iec104FlowState::default() must have last_ns_c2s=None (not last_nr)"
+        );
+        assert_eq!(
+            state.last_ns_s2c, None,
+            "Iec104FlowState::default() must have last_ns_s2c=None (not last_nr)"
+        );
+    }
+
+    /// BC-2.19.023: extract_nr and extract_ns use the symmetric formula — same inputs yield same output.
+    ///
+    /// The formulas are identical: ns uses CF1/CF2; nr uses CF3/CF4. For equal byte pairs the
+    /// results must be equal. Exercises all three canonical table rows.
+    ///
+    /// Traces: BC-2.19.023 postconditions 1-2; AC-171-001, AC-171-002.
+    #[test]
+    fn test_BC_2_19_023_extract_nr_symmetric_formula_equal_inputs_equal_outputs() {
+        // BC canonical table: all three rows have matching (cf1=cf3, cf2=cf4) inputs
+        let cases: &[(u8, u8)] = &[(0x02, 0x00), (0x00, 0x00), (0xFE, 0xFF)];
+        for &(hi, lo) in cases {
+            let ns = extract_ns(hi, lo);
+            let nr = extract_nr(hi, lo);
+            assert_eq!(
+                ns, nr,
+                "extract_ns(0x{hi:02X}, 0x{lo:02X}) must equal extract_nr(0x{hi:02X}, 0x{lo:02X}) \
+                 — symmetric formula (BC-2.19.023 postconditions 1-2)"
+            );
+        }
+    }
+
+    // BC-2.19.023 invariant 2: extract_ns result is always in [0, 32767] for all u8 inputs.
+    //
+    // Proptest exercises 1000+ random (cf1, cf2) input pairs and asserts no overflow.
+    // Verifies VP-047 no-overflow property for the N(S) extraction path.
+    //
+    // Traces: BC-2.19.023 invariant 2; AC-171-001; VP-047 seam.
+    proptest! {
+        #[test]
+        fn test_BC_2_19_023_proptest_extract_ns_always_in_15bit_range(
+            cf1 in 0u8..=255u8,
+            cf2 in 0u8..=255u8,
+        ) {
+            let ns = extract_ns(cf1, cf2);
+            prop_assert!(
+                ns <= 32767,
+                "extract_ns(0x{:02X}, 0x{:02X}) = {} must be ≤ 32767 \
+                 (BC-2.19.023 invariant 2 — 15-bit range; VP-047)",
+                cf1,
+                cf2,
+                ns
+            );
+        }
+    }
+
+    // BC-2.19.023 invariant 2: extract_nr result is always in [0, 32767] for all u8 inputs.
+    //
+    // Proptest exercises 1000+ random (cf3, cf4) input pairs and asserts no overflow.
+    //
+    // Traces: BC-2.19.023 invariant 2; AC-171-002; VP-047 seam.
+    proptest! {
+        #[test]
+        fn test_BC_2_19_023_proptest_extract_nr_always_in_15bit_range(
+            cf3 in 0u8..=255u8,
+            cf4 in 0u8..=255u8,
+        ) {
+            let nr = extract_nr(cf3, cf4);
+            prop_assert!(
+                nr <= 32767,
+                "extract_nr(0x{:02X}, 0x{:02X}) = {} must be ≤ 32767 \
+                 (BC-2.19.023 invariant 2 — 15-bit range; VP-047)",
+                cf3,
+                cf4,
+                nr
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.024 Path A: first I-frame (state None) — no finding; baseline set
+    // AC-171-003
+    // =========================================================================
+
+    /// BC-2.19.024 Path A EC-001: first I-frame C2S, N(S)=0, state None → no finding;
+    /// last_ns_c2s = Some(0).
+    ///
+    /// Precondition: state.last_ns_c2s == None (fresh flow, no prior I-frame).
+    /// Postcondition A1: state.last_ns_c2s == Some(0) — exact value asserted.
+    /// Postcondition A2: return value is None — no finding unconditionally on first frame.
+    ///
+    /// Traces: BC-2.19.024 Path A postconditions 1-2; AC-171-003; EC-001.
+    #[test]
+    fn test_BC_2_19_024_path_a_first_frame_c2s_ns_0_no_finding_state_becomes_some_0() {
+        let mut state = Iec104FlowState::default();
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "precondition: last_ns_c2s must be None"
+        );
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "Path A (None state): first I-frame with N(S)=0 must return None — \
+             no finding (BC-2.19.024 postcondition A2; first-frame guard)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(0),
+            "Path A: last_ns_c2s must become Some(0) after first I-frame \
+             (BC-2.19.024 postcondition A1)"
+        );
+    }
+
+    /// BC-2.19.024 Path A EC-002/EC-006: mid-capture start, first I-frame C2S, N(S)=5000
+    /// (arbitrary mid-capture value) → no finding; last_ns_c2s = Some(5000).
+    ///
+    /// This is the primary correctness guard for the mid-capture use case:
+    /// the first observed N(S) is arbitrary (not necessarily 0) and MUST NEVER
+    /// generate a desync finding regardless of its value (ADR-013 Decision 6).
+    ///
+    /// Traces: BC-2.19.024 Path A postconditions 1-2; AC-171-003; EC-002; EC-006.
+    #[test]
+    fn test_BC_2_19_024_path_a_mid_capture_first_frame_c2s_ns_5000_no_finding_state_becomes_some_5000()
+     {
+        let mut state = Iec104FlowState::default();
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "precondition: last_ns_c2s must be None"
+        );
+        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "Path A mid-capture: N(S)=5000 on first frame must return None — \
+             no false positive on arbitrary mid-capture N(S) \
+             (BC-2.19.024 postcondition A2; AC-171-003; EC-002)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5000),
+            "Path A mid-capture: last_ns_c2s must become Some(5000) \
+             (BC-2.19.024 postcondition A1)"
+        );
+    }
+
+    /// BC-2.19.024 Path A: first I-frame S2C direction, N(S)=0 → no finding;
+    /// last_ns_s2c = Some(0); last_ns_c2s remains None.
+    ///
+    /// Mirrors the C2S Path A test for the opposite direction.
+    /// Also pre-checks directional isolation: last_ns_c2s must not be touched.
+    ///
+    /// Traces: BC-2.19.024 Path A postconditions 1-2; AC-171-003; AC-171-007.
+    #[test]
+    fn test_BC_2_19_024_path_a_first_frame_s2c_ns_0_no_finding_state_becomes_some_0() {
+        let mut state = Iec104FlowState::default();
+        assert_eq!(
+            state.last_ns_s2c, None,
+            "precondition: last_ns_s2c must be None"
+        );
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "precondition: last_ns_c2s must be None"
+        );
+        let finding = track_ns_desync(&mut state, 0, Direction::ServerToClient);
+        assert!(
+            finding.is_none(),
+            "Path A S2C: first I-frame with N(S)=0 must return None \
+             (BC-2.19.024 postcondition A2)"
+        );
+        assert_eq!(
+            state.last_ns_s2c,
+            Some(0),
+            "Path A S2C: last_ns_s2c must become Some(0) \
+             (BC-2.19.024 postcondition A1)"
+        );
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "Path A S2C: last_ns_c2s must remain None — no cross-direction mutation \
+             (AC-171-007 directional isolation)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.024 Path B: subsequent frame, gap ≤ k=12 — no finding
+    // AC-171-004
+    // =========================================================================
+
+    /// BC-2.19.024 Path B canonical vector: prev=5000, current=5001, gap=1 → no finding;
+    /// last_ns_c2s = Some(5001).
+    ///
+    /// Canonical test vector from BC-2.19.024 table row 3: Some(5000)→5001, gap=1 → no finding.
+    ///
+    /// Traces: BC-2.19.024 Path B postconditions 1-2; AC-171-004; canonical table row 3.
+    #[test]
+    fn test_BC_2_19_024_path_b_gap_1_no_finding_state_updates_to_current_ns() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(5000),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "Path B gap=1: no finding expected (BC-2.19.024 postcondition B2; 1 ≤ 12)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5001),
+            "Path B gap=1: last_ns_c2s must update to Some(5001) \
+             (BC-2.19.024 postcondition B1)"
+        );
+    }
+
+    /// BC-2.19.024 Path B EC-003: gap=12 (exactly k) → no finding.
+    ///
+    /// EC-003: gap=12 is the boundary — ≤ k is allowed, so no finding.
+    /// Canonical test vector: Some(0)→12, gap=12 → no finding; state→Some(12).
+    ///
+    /// Traces: BC-2.19.024 Path B postconditions 1-2; AC-171-004; EC-003; canonical table row 5.
+    #[test]
+    fn test_BC_2_19_024_path_b_gap_12_exactly_k_boundary_no_finding() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(0),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 12, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "Path B EC-003: gap=12 (exactly k=12) must return None — boundary ≤ k is allowed \
+             (BC-2.19.024 EC-003)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(12),
+            "Path B EC-003: last_ns_c2s must update to Some(12) \
+             (BC-2.19.024 postcondition B1)"
+        );
+    }
+
+    /// BC-2.19.024 Path B: gap=0 (same N(S) repeated) → no finding.
+    ///
+    /// Gap=0 is valid (≤ 12); emitting no finding preserves non-false-positive behavior.
+    ///
+    /// Traces: BC-2.19.024 Path B postconditions 1-2; AC-171-004.
+    #[test]
+    fn test_BC_2_19_024_path_b_gap_0_same_ns_no_finding() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(100),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "Path B gap=0 (same N(S) repeated): no finding (BC-2.19.024; gap=0 ≤ 12)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(100),
+            "Path B gap=0: state must update to Some(100) (same value) \
+             (BC-2.19.024 postcondition B1)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.024 Path C: subsequent frame, gap > k=12 — T1692.001 Possible
+    // AC-171-005
+    // =========================================================================
+
+    /// BC-2.19.024 Path C EC-004: gap=13 (k+1) → T1692.001 Possible.
+    ///
+    /// EC-004: gap=13 is the first value that exceeds k=12 and triggers a finding.
+    /// Canonical test vector: Some(0)→13, gap=13 → T1692.001 Possible; state→Some(13).
+    /// Asserts exact verdict (Possible) and mitre_techniques containing "T1692.001".
+    ///
+    /// Traces: BC-2.19.024 Path C postconditions 1-3; AC-171-005; EC-004; canonical table row 6.
+    #[test]
+    fn test_BC_2_19_024_path_c_gap_13_k_plus_1_emits_t1692_001_possible() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(0),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 13, Direction::ClientToServer);
+        let f = finding.expect(
+            "Path C EC-004: gap=13 (k+1) must emit T1692.001 Possible \
+             (BC-2.19.024 Path C postcondition 1; EC-004)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Path C EC-004: verdict must be Possible (BC-2.19.024 postcondition C1)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "Path C EC-004: mitre_techniques must contain \"T1692.001\" \
+             (BC-2.19.024 postcondition C1; AC-171-005)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(13),
+            "Path C EC-004: last_ns_c2s must update to Some(13) \
+             (BC-2.19.024 postcondition C3)"
+        );
+    }
+
+    /// BC-2.19.024 Path C canonical vector: prev=5001, current=5020, gap=19 → T1692.001 Possible.
+    ///
+    /// Canonical test vector from BC-2.19.024 table row 4: Some(5001)→5020, gap=19 → T1692.001.
+    /// Asserts exact verdict (Possible), mitre_techniques ("T1692.001"), and state update (Some(5020)).
+    ///
+    /// Traces: BC-2.19.024 Path C postconditions 1-3; AC-171-005; canonical table row 4.
+    #[test]
+    fn test_BC_2_19_024_path_c_gap_19_canonical_vector_prev_5001_current_5020_emits_t1692_001() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(5001),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let f = finding.expect(
+            "Path C canonical: Some(5001)→5020, gap=19 must emit T1692.001 Possible \
+             (BC-2.19.024 canonical table row 4)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Path C canonical: verdict must be Possible (BC-2.19.024 postcondition C1)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "Path C canonical: mitre_techniques must contain \"T1692.001\" \
+             (BC-2.19.024 postcondition C1; AC-171-005)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5020),
+            "Path C canonical: last_ns_c2s must update to Some(5020) \
+             (BC-2.19.024 postcondition C3)"
+        );
+    }
+
+    /// BC-2.19.024 Path C canonical table row 8: prev=100, current=114, gap=14 → T1692.001 Possible.
+    ///
+    /// Canonical test vector from BC-2.19.024 table row 8: Some(100)→114, gap=14 → T1692.001 Possible.
+    ///
+    /// Traces: BC-2.19.024 Path C postconditions 1-3; AC-171-005; canonical table row 8.
+    #[test]
+    fn test_BC_2_19_024_path_c_canonical_table_row8_prev_100_current_114_gap_14_emits_finding() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(100),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 114, Direction::ClientToServer);
+        let f = finding.expect(
+            "Path C table row 8: Some(100)→114, gap=14 must emit T1692.001 Possible \
+             (BC-2.19.024 canonical table row 8)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Path C table row 8: verdict must be Possible"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "Path C table row 8: mitre_techniques must contain \"T1692.001\""
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(114),
+            "Path C table row 8: state must update to Some(114) (BC-2.19.024 postcondition C3)"
+        );
+    }
+
+    /// BC-2.19.024 Path C EC-005: gap=32767 (massive jump / replay) → T1692.001 Possible.
+    ///
+    /// EC-005: prev=0, current=32767 → gap=32767 >> 12 → T1692.001 Possible.
+    /// Indicates replay injection or completely desynchronized counter (INV-3 fail-closed).
+    ///
+    /// Traces: BC-2.19.024 Path C postconditions 1-3; AC-171-005; EC-005.
+    #[test]
+    fn test_BC_2_19_024_path_c_ec005_gap_32767_massive_jump_emits_t1692_001_possible() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(0),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 32767, Direction::ClientToServer);
+        let f = finding.expect(
+            "Path C EC-005: prev=0, current=32767 (gap=32767) must emit T1692.001 Possible \
+             (BC-2.19.024 EC-005; massive gap indicates replay/desync)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Path C EC-005: verdict must be Possible (BC-2.19.024 EC-005)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "Path C EC-005: mitre_techniques must contain \"T1692.001\""
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(32767),
+            "Path C EC-005: state must update to Some(32767) (BC-2.19.024 postcondition C3)"
+        );
+    }
+
+    /// BC-2.19.024 Path C postcondition C3: state always updates to Some(current_ns)
+    /// even when a finding is emitted.
+    ///
+    /// Verifies postcondition C3 independently by checking that after a Path C finding
+    /// the next frame with gap=1 from the new baseline produces no finding (Path B),
+    /// proving the state was updated and not left stale.
+    ///
+    /// Traces: BC-2.19.024 Path C postcondition 3; AC-171-005.
+    #[test]
+    fn test_BC_2_19_024_path_c_state_updates_to_current_ns_after_finding_emitted() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(1000),
+            ..Default::default()
+        };
+        // gap = 1030 - 1000 = 30 > 12 → Path C finding
+        let f1 = track_ns_desync(&mut state, 1030, Direction::ClientToServer);
+        assert!(
+            f1.is_some(),
+            "gap=30 must emit a finding (Path C precondition)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(1030),
+            "Path C: last_ns_c2s must update to Some(1030) even when finding emitted \
+             (BC-2.19.024 postcondition C3)"
+        );
+        // Next frame from new baseline: gap=1 → no finding (proves state was updated)
+        let f2 = track_ns_desync(&mut state, 1031, Direction::ClientToServer);
+        assert!(
+            f2.is_none(),
+            "After state update to Some(1030), gap=1 (1030→1031) must not emit finding \
+             (Path B — state correctly updated by Path C)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.024 invariant 1: 15-bit modular arithmetic — wrapping_sub & 0x7FFF
+    // AC-171-006
+    // =========================================================================
+
+    /// BC-2.19.024 AC-171-006 EC-004: Some(32767) → current=1 → gap=2 (15-bit) → no finding.
+    ///
+    /// Gap calculation:
+    ///   `(1u16.wrapping_sub(32767)) & 0x7FFF`
+    ///   = `32770 & 0x7FFF` = `32770 & 32767` = 2 (≤ 12 → no finding).
+    ///
+    /// CRITICAL: plain subtraction would be `1 - 32767` which overflows in debug mode
+    /// or gives the wrong 16-bit result. The `& 0x7FFF` mask is mandatory to collapse
+    /// the 16-bit wrapping to the 15-bit N(S) range.
+    ///
+    /// Traces: BC-2.19.024 invariant 1; AC-171-006; EC-004.
+    #[test]
+    fn test_BC_2_19_024_ac171_006_wrap_32767_to_1_gap_2_no_finding() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(32767),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 1, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "AC-171-006: Some(32767)→current=1, 15-bit gap=2 must NOT emit finding \
+             (BC-2.19.024 invariant 1 — wrapping_sub & 0x7FFF; EC-004)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(1),
+            "AC-171-006: state must update to Some(1) after valid wrap \
+             (BC-2.19.024 postcondition B1)"
+        );
+    }
+
+    /// BC-2.19.024 AC-171-006: Some(32767) → current=0 → 15-bit gap=1 → no finding.
+    ///
+    /// Full wraparound: N(S) goes 32767 → 0 (one past the maximum).
+    /// Gap = `(0u16.wrapping_sub(32767)) & 0x7FFF` = `32769 & 32767` = 1.
+    /// gap=1 ≤ 12 → no finding. Validates BC-2.19.023 invariant 3 (valid wrap).
+    ///
+    /// Traces: BC-2.19.024 invariant 1; AC-171-006; BC-2.19.023 invariant 3.
+    #[test]
+    fn test_BC_2_19_024_ac171_006_wrap_32767_to_0_gap_1_no_finding() {
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(32767),
+            ..Default::default()
+        };
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        assert!(
+            finding.is_none(),
+            "AC-171-006: Some(32767)→0 full wrap, gap=1 (15-bit) must not emit finding \
+             (BC-2.19.024 invariant 1; valid N(S) wraparound)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(0),
+            "AC-171-006: state must update to Some(0) after full wrap"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.024 invariant 3: Directional isolation — C2S and S2C independent
+    // AC-171-007
+    // =========================================================================
+
+    /// BC-2.19.024 AC-171-007: C2S call updates last_ns_c2s, leaves last_ns_s2c untouched.
+    ///
+    /// Given fresh state (both fields None), a C2S call must update last_ns_c2s and
+    /// leave last_ns_s2c as None.
+    ///
+    /// Traces: BC-2.19.023 postcondition 3; BC-2.19.024 invariant 3; AC-171-007.
+    #[test]
+    fn test_BC_2_19_024_ac171_007_c2s_call_updates_c2s_not_s2c() {
+        let mut state = Iec104FlowState::default();
+        let _f = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(100),
+            "AC-171-007: C2S call must update last_ns_c2s to Some(100)"
+        );
+        assert_eq!(
+            state.last_ns_s2c, None,
+            "AC-171-007: C2S call must NOT touch last_ns_s2c — must remain None \
+             (BC-2.19.024 directional isolation)"
+        );
+    }
+
+    /// BC-2.19.024 AC-171-007: S2C call updates last_ns_s2c, leaves last_ns_c2s untouched.
+    ///
+    /// Given fresh state (both fields None), an S2C call must update last_ns_s2c and
+    /// leave last_ns_c2s as None.
+    ///
+    /// Traces: BC-2.19.023 postcondition 3; BC-2.19.024 invariant 3; AC-171-007.
+    #[test]
+    fn test_BC_2_19_024_ac171_007_s2c_call_updates_s2c_not_c2s() {
+        let mut state = Iec104FlowState::default();
+        let _f = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        assert_eq!(
+            state.last_ns_s2c,
+            Some(200),
+            "AC-171-007: S2C call must update last_ns_s2c to Some(200)"
+        );
+        assert_eq!(
+            state.last_ns_c2s, None,
+            "AC-171-007: S2C call must NOT touch last_ns_c2s — must remain None \
+             (BC-2.19.024 directional isolation)"
+        );
+    }
+
+    /// BC-2.19.024 AC-171-007: interleaved C2S and S2C calls maintain independent baselines
+    /// and do not interfere with each other's gap calculation.
+    ///
+    /// Four-frame sequence:
+    ///   1. C2S N(S)=10  → Path A: None→Some(10); no finding
+    ///   2. S2C N(S)=200 → Path A: None→Some(200); no finding
+    ///   3. C2S N(S)=11  → Path B: gap=1 from Some(10); no finding; c2s→Some(11)
+    ///   4. S2C N(S)=220 → Path C: gap=20 from Some(200) > 12; T1692.001 Possible; s2c→Some(220)
+    ///      last_ns_c2s must remain Some(11) throughout step 4.
+    ///
+    /// Traces: BC-2.19.023 postcondition 3; BC-2.19.024 invariant 3; AC-171-007.
+    #[test]
+    fn test_BC_2_19_024_ac171_007_interleaved_c2s_s2c_independent_baselines_and_gaps() {
+        let mut state = Iec104FlowState::default();
+
+        // Step 1: C2S first frame N(S)=10 → Path A
+        let f1 = track_ns_desync(&mut state, 10, Direction::ClientToServer);
+        assert!(f1.is_none(), "step 1: C2S N(S)=10 Path A must return None");
+        assert_eq!(state.last_ns_c2s, Some(10), "step 1: c2s must be Some(10)");
+        assert_eq!(state.last_ns_s2c, None, "step 1: s2c must remain None");
+
+        // Step 2: S2C first frame N(S)=200 → Path A
+        let f2 = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        assert!(f2.is_none(), "step 2: S2C N(S)=200 Path A must return None");
+        assert_eq!(
+            state.last_ns_s2c,
+            Some(200),
+            "step 2: s2c must be Some(200)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(10),
+            "step 2: c2s must remain Some(10) after S2C call"
+        );
+
+        // Step 3: C2S N(S)=11 → Path B (gap=1)
+        let f3 = track_ns_desync(&mut state, 11, Direction::ClientToServer);
+        assert!(
+            f3.is_none(),
+            "step 3: C2S N(S)=11, gap=1 from Some(10) must return None"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(11),
+            "step 3: c2s must update to Some(11)"
+        );
+        assert_eq!(
+            state.last_ns_s2c,
+            Some(200),
+            "step 3: s2c must remain Some(200) after C2S update"
+        );
+
+        // Step 4: S2C N(S)=220 → Path C (gap=20 > 12) → T1692.001 Possible
+        let f4 = track_ns_desync(&mut state, 220, Direction::ServerToClient);
+        let f =
+            f4.expect("step 4: S2C N(S)=220, gap=20 from Some(200) must emit T1692.001 Possible");
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "step 4: S2C Path C finding must be Verdict::Possible"
+        );
+        assert_eq!(
+            state.last_ns_s2c,
+            Some(220),
+            "step 4: s2c must update to Some(220)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(11),
+            "step 4: c2s must remain Some(11) — S2C Path C must not affect c2s (AC-171-007)"
+        );
+    }
+
+    // =========================================================================
+    // RETRANSMIT-NS-FALSEPOS-001: TCP retransmission false positive
+    // EC-007 / STORY-171 Edge Case Table
+    // =========================================================================
+
+    /// RETRANSMIT-NS-FALSEPOS-001: TCP retransmission of older N(S) produces large
+    /// backwards 15-bit gap → T1692.001 Possible (EXPECTED / INTENTIONAL false positive).
+    ///
+    /// Scenario:
+    ///   last seen N(S) = 5020 (state = Some(5020))
+    ///   TCP retransmission re-delivers N(S) = 5001 (older, lower than last seen)
+    ///   Gap = (5001u16.wrapping_sub(5020)) & 0x7FFF
+    ///       = (5001 + 65536 - 5020) & 0x7FFF = 65517 & 32767 = 32749 >> 12
+    ///   → T1692.001 Possible emitted.
+    ///
+    /// This IS a false positive: the frame is benign (TCP retransmit of a real frame).
+    /// The passive analyzer cannot distinguish TCP retransmits from adversarial replays.
+    /// Behavior is INTENTIONALLY fail-closed (INV-3: Fail-Closed Finding Emission).
+    /// Future mitigation via TCP deduplication is deferred (STORY-171 Edge Cases EC-007).
+    ///
+    /// DO NOT change this test to expect None or to treat the finding as incorrect.
+    /// The finding IS correct for the MVP fail-closed policy.
+    ///
+    /// Traces: STORY-171 EC-007; RETRANSMIT-NS-FALSEPOS-001; BC-2.19.024 invariant 3 (INV-3).
+    #[test]
+    fn test_RETRANSMIT_NS_FALSEPOS_001_backwards_ns_yields_large_gap_emits_t1692_001_finding() {
+        // Simulate: analyzer has seen N(S)=5020; TCP retransmit re-delivers N(S)=5001
+        let mut state = Iec104FlowState {
+            last_ns_c2s: Some(5020),
+            ..Default::default()
+        };
+        // Backwards gap: (5001.wrapping_sub(5020)) & 0x7FFF = 32749 > 12 → T1692.001 Possible
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        assert!(
+            finding.is_some(),
+            "RETRANSMIT-NS-FALSEPOS-001: backwards N(S) (5001 after 5020) must emit \
+             T1692.001 Possible — fail-closed MVP behavior (INV-3). \
+             This is an INTENTIONAL false positive: TCP retransmits that re-deliver \
+             lower N(S) values are indistinguishable from adversarial replays by a \
+             passive analyzer. Future mitigation: TCP deduplication."
+        );
+        let f = finding.unwrap();
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "RETRANSMIT-NS-FALSEPOS-001: finding verdict must be Possible"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "RETRANSMIT-NS-FALSEPOS-001: finding must cite T1692.001"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5001),
+            "RETRANSMIT-NS-FALSEPOS-001: state must update to Some(5001) \
+             even for backwards/retransmit N(S)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.024 EC-006: full mid-capture three-frame sequence
+    // =========================================================================
+
+    /// BC-2.19.024 EC-006: full mid-capture three-frame sequence exercises all three paths.
+    ///
+    /// EC-006 from BC-2.19.024:
+    ///   Frame 1: state None → N(S)=5000 → Some(5000); no finding (Path A)
+    ///   Frame 2: Some(5000) → N(S)=5001 → gap=1 → Some(5001); no finding (Path B)
+    ///   Frame 3: Some(5001) → N(S)=5020 → gap=19 → T1692.001 Possible; Some(5020) (Path C)
+    ///
+    /// Tests all three postcondition paths in a single realistic capture sequence.
+    ///
+    /// Traces: BC-2.19.024 EC-006; AC-171-003, AC-171-004, AC-171-005.
+    #[test]
+    fn test_BC_2_19_024_ec_006_mid_capture_three_frame_sequence_exercises_all_three_paths() {
+        let mut state = Iec104FlowState::default();
+
+        // Frame 1: mid-capture start, N(S)=5000, state=None → Path A
+        let f1 = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        assert!(
+            f1.is_none(),
+            "EC-006 frame 1: N(S)=5000, state=None must return None (Path A; mid-capture guard)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5000),
+            "EC-006 frame 1: state must become Some(5000) (Path A postcondition A1)"
+        );
+
+        // Frame 2: gap=1 from Some(5000) → Path B
+        let f2 = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        assert!(
+            f2.is_none(),
+            "EC-006 frame 2: N(S)=5001, gap=1 from Some(5000) must return None (Path B)"
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5001),
+            "EC-006 frame 2: state must become Some(5001) (Path B postcondition B1)"
+        );
+
+        // Frame 3: gap=19 from Some(5001) → Path C → T1692.001 Possible
+        let f3 = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let f = f3.expect(
+            "EC-006 frame 3: N(S)=5020, gap=19 from Some(5001) must emit T1692.001 Possible \
+             (Path C; BC-2.19.024 EC-006)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "EC-006 frame 3: verdict must be Possible (BC-2.19.024 Path C)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "EC-006 frame 3: mitre_techniques must contain \"T1692.001\""
+        );
+        assert_eq!(
+            state.last_ns_c2s,
+            Some(5020),
+            "EC-006 frame 3: state must become Some(5020) (Path C postcondition C3)"
+        );
+    }
+}

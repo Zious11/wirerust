@@ -9,6 +9,38 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 N(S)/N(R) extraction + `Option<u16>` first-frame-baseline desync detection
+  (STORY-171, wave-80, BC-2.19.023–024, ADR-013 Decision 6).**
+
+  Implements N(S) sequence-number tracking and desynchronization detection in
+  `src/analyzer/iec104.rs`:
+
+  - `extract_ns(cf1, cf2) -> u16`: pure-core free function extracting the 15-bit send
+    sequence number from I-format CF1/CF2 bytes via
+    `((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` — range [0, 32767]
+    (BC-2.19.023 postcondition 1).
+
+  - `extract_nr(cf3, cf4) -> u16`: pure-core free function extracting the 15-bit receive
+    sequence number from I/S-format CF3/CF4 bytes via the symmetric formula.
+    N(R) is transient — not stored in `Iec104FlowState` (BC-2.19.023 postcondition 4).
+
+  - `track_ns_desync(state, current_ns, direction) -> Option<Finding>`: effectful function
+    implementing the three-path `Option<u16>` first-frame guard and k=12 window check:
+    - **Path A** (state `None`): sets `Some(current_ns)` baseline; NO finding unconditionally.
+      Prevents false positives on mid-capture starts where first N(S) is arbitrary
+      (BC-2.19.024 postcondition A; ADR-013 Decision 6 invariant 3).
+    - **Path B** (state `Some(prev)`, 15-bit gap ≤ 12): updates state; no finding
+      (BC-2.19.024 postcondition B).
+    - **Path C** (state `Some(prev)`, 15-bit gap > 12): updates state and emits T1692.001
+      "Unauthorized Message: Command Message" with `Verdict::Possible`,
+      `ThreatCategory::Impact` — sequence desynchronization or replay injection detected
+      (BC-2.19.024 postcondition C).
+    - Gap uses `current_ns.wrapping_sub(prev) & 0x7FFF` — the `& 0x7FFF` mask is
+      mandatory to collapse `wrapping_sub`'s 2^16 wrap to the 15-bit N(S) range
+      (BC-2.19.024 invariant 1).
+    - `Direction::ClientToServer` selects `last_ns_c2s`; `Direction::ServerToClient`
+      selects `last_ns_s2c` — directional fields updated independently (AC-171-007).
+
 - **IEC-104 control command detection: `detect_iec104_threats` (STORY-170, wave-79,
   BC-2.19.017/019–022, ADR-013 Decision 8).**
 
