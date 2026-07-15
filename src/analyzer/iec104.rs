@@ -42,7 +42,10 @@
 //! This module is an original Rust implementation derived from IEC 60870-5-104:2006 framing
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
+use std::collections::HashMap;
+
 use crate::findings::Finding;
+use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
@@ -149,15 +152,30 @@ pub const U_TESTFR_ACT: u8 = 0x43;
 pub const U_TESTFR_CON: u8 = 0x83;
 
 // ---------------------------------------------------------------------------
+// Carry buffer bound (ADR-013 Decision 2; BC-2.19.025)
+// ---------------------------------------------------------------------------
+
+/// Maximum bytes held in a directional carry buffer between `on_data` calls.
+///
+/// The maximum on-wire APCI frame is LEN=253 + 2 prefix bytes = 255 bytes
+/// (IEC 60870-5-104 §5.1; ADR-013 Decision 2). A carry buffer exceeding this
+/// bound is therefore impossible without malformed or adversarial input; carry
+/// accumulation beyond 255 bytes triggers T0814 overflow detection (BC-2.19.025).
+///
+/// Used by `Iec104Analyzer::on_data` carry-overflow check (STORY-172).
+pub const MAX_IEC104_CARRY_BYTES: usize = 255;
+
+// ---------------------------------------------------------------------------
 // Per-flow state (STORY-168 — introduces session_started; STORY-171 wires N(S) fields)
 // ---------------------------------------------------------------------------
 
 /// Per-flow state for the IEC-104 passive analyzer (SS-19, ADR-013).
 ///
-/// Five fields per the SS-19 architecture shard (v1.6). `session_started` and the carry
+/// Nine fields per the SS-19 architecture shard. `session_started` and the carry
 /// buffers are introduced and wired in STORY-168. `last_ns_c2s`/`last_ns_s2c` are declared
-/// here per the SS-19 field inventory but their behavior is wired in STORY-171 (N(S)
-/// desync detection, BC-2.19.024).
+/// and wired in STORY-171 (N(S) desync detection, BC-2.19.024). The two malformed-LEN
+/// per-direction dedup flags and the two carry-overflow per-direction dedup flags are
+/// fully wired in STORY-172 (BC-2.19.026 invariant 5; BC-2.19.025 invariants 4–5).
 ///
 /// ## Fields
 /// - `carry_c2s`: reassembly carry buffer for C→S direction; max `MAX_IEC104_CARRY_BYTES`
@@ -170,13 +188,18 @@ pub const U_TESTFR_CON: u8 = 0x83;
 ///   STORY-171).
 /// - `last_ns_s2c`: last observed 15-bit N(S) in the S→C direction. Same semantics
 ///   (STORY-171).
+/// - `malformed_len_reported_c2s`: one-shot dedup flag; set on first malformed-LEN in C→S
+///   direction; prevents T0814 re-emission on subsequent occurrences (BC-2.19.026 invariant 5;
+///   STORY-172).
+/// - `malformed_len_reported_s2c`: same dedup flag for S→C direction (BC-2.19.026 invariant 5;
+///   STORY-172).
 #[derive(Debug, Default)]
 pub struct Iec104FlowState {
     /// Directional carry buffer for client-to-server APCI stream reassembly.
-    /// Max 255 bytes (`MAX_IEC104_CARRY_BYTES`; BC-2.19.025). Wired in STORY-171+.
+    /// Max 255 bytes (`MAX_IEC104_CARRY_BYTES`; BC-2.19.025). Wired in STORY-172.
     pub carry_c2s: Vec<u8>,
     /// Directional carry buffer for server-to-client APCI stream reassembly.
-    /// Max 255 bytes. Wired in STORY-171+.
+    /// Max 255 bytes. Wired in STORY-172.
     pub carry_s2c: Vec<u8>,
     /// STARTDT/STOPDT session state flag.
     /// `true` after STARTDT-act (`0x07`) or STARTDT-con (`0x0B`).
@@ -189,6 +212,26 @@ pub struct Iec104FlowState {
     /// Last observed N(S) send-sequence counter in S→C direction.
     /// `None` before the first I-frame in this direction (BC-2.19.024). Wired in STORY-171.
     pub last_ns_s2c: Option<u16>,
+    /// One-shot dedup flag for malformed-LEN T0814 emission in C→S direction.
+    /// Set on the first valid-0x68-start but out-of-range-LEN frame in C→S.
+    /// Once set, subsequent malformed-LEN frames in C→S advance the cursor silently.
+    /// Never reset within a flow lifetime (BC-2.19.026 invariant 5; STORY-172).
+    pub malformed_len_reported_c2s: bool,
+    /// One-shot dedup flag for malformed-LEN T0814 emission in S→C direction.
+    /// Same semantics as `malformed_len_reported_c2s` but for S→C.
+    /// The two flags are independent — C→S and S→C dedup states never cross
+    /// (BC-2.19.026 invariant 5; STORY-172).
+    pub malformed_len_reported_s2c: bool,
+    /// One-shot dedup flag for carry-residual-overflow T0814 emission in C→S direction.
+    /// Set on the first carry-overflow event in C→S; suppresses T0814 re-emission for that
+    /// direction within the flow lifetime. SEPARATE from `malformed_len_reported_c2s` so
+    /// that the two anomaly classes cannot suppress each other (BC-2.19.025 invariant 4;
+    /// F-172-001; STORY-172). Wired in `on_data` carry-overflow check.
+    pub carry_overflow_reported_c2s: bool,
+    /// One-shot dedup flag for carry-residual-overflow T0814 emission in S→C direction.
+    /// Same semantics as `carry_overflow_reported_c2s` but for S→C direction.
+    /// (BC-2.19.025 invariant 4; F-172-001; STORY-172). Wired in `on_data` carry-overflow check.
+    pub carry_overflow_reported_s2c: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -969,6 +1012,253 @@ pub fn track_ns_desync(
                 None
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// IEC-104 analyzer struct + flow lifecycle (STORY-172 — BC-2.19.025/026/027)
+// ---------------------------------------------------------------------------
+
+/// IEC-104 TCP stream analyzer.
+///
+/// Holds per-flow [`Iec104FlowState`] keyed by [`FlowKey`]. The pure-core parse and
+/// classification free functions (`parse_apci_header`, `parse_asdu`, `classify_frame_format`,
+/// etc.) are NOT methods — they remain free `fn`s for VP-044 Kani amenability
+/// (ADR-013 Decision 8).
+///
+/// ## Subsystem
+/// SS-19; ADR-013 Decision 8 (effectful-shell / pure-core separation).
+///
+/// ## BC anchors
+/// - BC-2.19.025: directional carry buffers bounded at `MAX_IEC104_CARRY_BYTES` = 255
+/// - BC-2.19.026: frame-walk loop processes multiple APDUs per `on_data` call
+/// - BC-2.19.027: `on_flow_close` removes `Iec104FlowState` and discards carry bytes
+pub struct Iec104Analyzer {
+    /// Per-flow IEC-104 analyzer state, keyed by canonicalized TCP 4-tuple.
+    pub flows: HashMap<FlowKey, Iec104FlowState>,
+    /// Accumulated findings from `on_data` calls across all flows.
+    /// Tests inspect this field to assert T0814 emission counts and attributes.
+    /// Mirrors the `Dnp3Analyzer::all_findings` / `EnipAnalyzer::all_findings` pattern.
+    pub all_findings: Vec<Finding>,
+}
+
+impl Default for Iec104Analyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Iec104Analyzer {
+    /// Construct a new `Iec104Analyzer` with an empty flow state map and findings list.
+    pub fn new() -> Self {
+        Self {
+            flows: HashMap::new(),
+            all_findings: Vec::new(),
+        }
+    }
+
+    /// Process a chunk of reassembled TCP stream data for the given flow.
+    ///
+    /// Effectful shell per ADR-013 Decision 8. VP-047 cargo-fuzz target (`fuzz_iec104_parser`).
+    ///
+    /// WALK-FIRST RESIDUAL-BOUND semantics (BC-2.19.025 v1.3, F-172-001, ADR-013 Decision 2):
+    /// No aggregate pre-check on `carry.len() + delivery.len()`. Frame extraction always
+    /// completes before any carry-bound reaction. The only pre-walk check is on the directional
+    /// carry alone: if carry.len() > MAX_IEC104_CARRY_BYTES (adversarial state injection;
+    /// unreachable from conformant traffic), carry is cleared and ONE T0814 emitted per
+    /// direction (dedup flags carry_overflow_reported_{c2s/s2c}; BC-2.19.025 invariants 4–5).
+    /// The delivery is always walked regardless (anti-evasion invariant 2).
+    ///
+    /// Frame-walk loop (BC-2.19.026 / ADR-013 Decision 3):
+    /// - Drain directional carry into working buffer; extend with delivery.
+    /// - Loop: bad-start-byte → advance 1, no finding; malformed-LEN → advance 2,
+    ///   emit T0814 EMIT-WITH-DEDUP on first occurrence per direction (BC-2.19.026
+    ///   invariant 5); valid frame → parse + dispatch + advance LEN+2; insufficient data
+    ///   → stash remaining to carry and return.
+    ///
+    /// BC-2.19.025 / BC-2.19.026 / STORY-172.
+    pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
+        use crate::findings::{Confidence, ThreatCategory, Verdict};
+        let _ = ts;
+
+        // Collect frame-walk findings locally to avoid borrow conflicts between
+        // self.flows (via state) and self.all_findings during the loop.
+        let mut local_findings: Vec<Finding> = Vec::new();
+
+        {
+            let state = self.flows.entry(flow_key).or_default();
+
+            // BC-2.19.025 v1.3 carry-overflow check (F-172-001, WALK-FIRST-RESIDUAL-BOUND):
+            // Check the directional carry alone — NOT the aggregate carry + delivery.
+            // A carry exceeding MAX_IEC104_CARRY_BYTES is adversarial or non-conformant state;
+            // conformant on_data calls always stash ≤ 254 bytes as residual (a 255-byte prefix
+            // is a complete max-size frame and is walked off, not stashed). Clear the carry and
+            // emit ONE T0814 on the first overflow per direction via the carry-overflow dedup
+            // flag (distinct from malformed_len_reported_* per BC-2.19.025 invariant 4).
+            // The delivery is always walked regardless (walk-first anti-evasion clause;
+            // BC-2.19.025 invariant 2; ADR-013 Decision 2).
+            {
+                let (carry, reported) = if direction == Direction::ClientToServer {
+                    (&mut state.carry_c2s, &mut state.carry_overflow_reported_c2s)
+                } else {
+                    (&mut state.carry_s2c, &mut state.carry_overflow_reported_s2c)
+                };
+                if carry.len() > MAX_IEC104_CARRY_BYTES {
+                    carry.clear();
+                    if !*reported {
+                        *reported = true;
+                        local_findings.push(Finding {
+                            category: ThreatCategory::Anomaly,
+                            verdict: Verdict::Possible,
+                            confidence: Confidence::Medium,
+                            summary: format!(
+                                "IEC-104 directional carry residual overflow: carry buffer \
+                                 exceeded MAX_IEC104_CARRY_BYTES={MAX_IEC104_CARRY_BYTES} — \
+                                 adversarial or non-conformant byte sequence; carry cleared \
+                                 and analyzer resyncs on next delivery \
+                                 (T0814; BC-2.19.025 v1.3 F-172-001)"
+                            ),
+                            evidence: vec![format!(
+                                "carry overflow (>{}); direction={:?}; carry cleared",
+                                MAX_IEC104_CARRY_BYTES, direction
+                            )],
+                            mitre_techniques: vec!["T0814".to_string()],
+                            source_ip: None,
+                            timestamp: None,
+                            direction: None,
+                        });
+                    }
+                    // Carry is now cleared; walk proceeds on delivery only (walk-first preserved).
+                }
+            }
+
+            // Build working buffer: drain directional carry first, then append delivery.
+            // BC-2.19.025 invariant 1: carries are never mixed across directions.
+            let mut buf: Vec<u8> = if direction == Direction::ClientToServer {
+                state.carry_c2s.drain(..).collect()
+            } else {
+                state.carry_s2c.drain(..).collect()
+            };
+            buf.extend_from_slice(data);
+
+            // Frame-walk loop (BC-2.19.026 postconditions 1–4; ADR-013 Decision 3).
+            let mut pos = 0;
+            while pos < buf.len() {
+                // Bad start byte: advance 1; no finding; carry NOT cleared (BC-2.19.026
+                // postcondition 4 bad-start-byte arm; ADR-013 Decision 3).
+                if buf[pos] != 0x68 {
+                    pos += 1;
+                    continue;
+                }
+
+                // Valid 0x68 start byte found. Need at least 2 bytes to read LEN.
+                if buf.len() - pos < 2 {
+                    // Only the start byte remains — insufficient to determine LEN.
+                    // Stash as carry and exit.
+                    let remaining = &buf[pos..];
+                    if direction == Direction::ClientToServer {
+                        state.carry_c2s.extend_from_slice(remaining);
+                    } else {
+                        state.carry_s2c.extend_from_slice(remaining);
+                    }
+                    break;
+                }
+
+                let len = buf[pos + 1];
+
+                // Malformed LEN: 0x68 start byte but LEN outside [4, 253].
+                // Advance 2 bytes (skip APCI stub). EMIT-WITH-DEDUP: emit ONE T0814
+                // on the first occurrence per direction; silent resync thereafter.
+                // (BC-2.19.026 invariant 5; ADR-013 Decision 3; SR-172-03.)
+                if !(4u8..=253).contains(&len) {
+                    let reported = if direction == Direction::ClientToServer {
+                        &mut state.malformed_len_reported_c2s
+                    } else {
+                        &mut state.malformed_len_reported_s2c
+                    };
+                    if !*reported {
+                        *reported = true;
+                        local_findings.push(Finding {
+                            category: ThreatCategory::Anomaly,
+                            verdict: Verdict::Possible,
+                            confidence: Confidence::Medium,
+                            summary: format!(
+                                "IEC-104 malformed LEN byte: 0x68 start byte followed by \
+                                 LEN={len:#04x} ({len}) outside valid range [4, 253] — \
+                                 protocol anomaly or adversarial framing attack \
+                                 (T0814; BC-2.19.026 invariant 5)"
+                            ),
+                            evidence: vec![format!(
+                                "LEN={len} not in [4, 253]; start byte=0x68 at buffer offset {pos}"
+                            )],
+                            mitre_techniques: vec!["T0814".to_string()],
+                            source_ip: None,
+                            timestamp: None,
+                            direction: None,
+                        });
+                    }
+                    pos += 2;
+                    continue;
+                }
+
+                // Valid LEN in [4, 253]: check whether the complete frame is available.
+                let frame_len = len as usize + 2;
+                if buf.len() - pos < frame_len {
+                    // Insufficient data: stash remaining bytes into directional carry.
+                    // Residual is always ≤ frame_len − 1 ≤ 254 bytes for conformant traffic.
+                    let remaining = &buf[pos..];
+                    if direction == Direction::ClientToServer {
+                        state.carry_c2s.extend_from_slice(remaining);
+                    } else {
+                        state.carry_s2c.extend_from_slice(remaining);
+                    }
+                    break;
+                }
+
+                // Complete valid frame: parse APCI header and dispatch to per-format handlers.
+                let frame = &buf[pos..pos + frame_len];
+                if let Some(header) = parse_apci_header(frame) {
+                    match classify_frame_format(header.cf1) {
+                        FrameFormat::UFormat => {
+                            if let Some(f) = process_u_frame(state, header.cf1) {
+                                local_findings.push(f);
+                            }
+                        }
+                        FrameFormat::IFormat => {
+                            // ASDU body starts at byte 6 of the frame (after the 6-byte APCI
+                            // header: start + LEN + CF1 + CF2 + CF3 + CF4).
+                            let asdu_body = &frame[6..];
+                            if let Some(asdu) = parse_asdu(asdu_body) {
+                                detect_iec104_threats(&asdu, &mut local_findings);
+                            }
+                            let ns = extract_ns(header.cf1, header.cf2);
+                            if let Some(f) = track_ns_desync(state, ns, direction) {
+                                local_findings.push(f);
+                            }
+                        }
+                        FrameFormat::SFormat => {
+                            // S-format: supervisory-only, no ASDU, no finding emitted.
+                        }
+                    }
+                }
+                pos += frame_len;
+            }
+        }
+
+        self.all_findings.extend(local_findings);
+    }
+
+    /// Remove per-flow state for a closed flow, discarding carry bytes silently.
+    ///
+    /// Postconditions (BC-2.19.027):
+    /// 1. `self.flows.remove(&flow_key)` removes `Iec104FlowState` for the flow.
+    /// 2. `carry_c2s` and `carry_s2c` are dropped (memory freed) as part of state removal.
+    /// 3. No finding is emitted for normal flow close.
+    /// 4. Unknown `flow_key` is a no-op — no panic (BC-2.19.027 postcondition 4).
+    ///
+    /// BC-2.19.027 / STORY-172.
+    pub fn on_flow_close(&mut self, flow_key: FlowKey) {
+        self.flows.remove(&flow_key);
     }
 }
 

@@ -4438,3 +4438,1203 @@ mod story_171 {
         );
     }
 }
+
+// =============================================================================
+// STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
+//
+// Unit tests (AC-172-001..008, EC-001..011) and VP-045 proptest skeletons
+// (AC-172-007).
+//
+// ## Contract coverage
+// - BC-2.19.025: directional carry buffers bounded at MAX_IEC104_CARRY_BYTES = 255
+// - BC-2.19.026: frame-walk loop processes multiple APDUs per on_data call
+// - BC-2.19.027: on_flow_close removes Iec104FlowState and discards carry bytes
+//
+// ## Proptest obligation (VP-045)
+// Harnesses: proptest_vp045_direction_isolation, proptest_vp045_independent_run_equivalence
+// Mirrors VP-033 (ENIP carry isolation), VP-035 (DNP3), VP-037 (Modbus) patterns.
+// =============================================================================
+mod story_172 {
+    use proptest::prelude::*;
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_CARRY_BYTES};
+    use wirerust::findings::{ThreatCategory, Verdict};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    fn flow_key_default() -> FlowKey {
+        FlowKey::new(
+            "127.0.0.1".parse().unwrap(),
+            1234,
+            "127.0.0.2".parse().unwrap(),
+            2404,
+        )
+    }
+
+    // =========================================================================
+    // AC-172-001: carry stash on insufficient data — partial APCI split
+    // BC-2.19.025 postconditions 1–4, invariants 1–2
+    // =========================================================================
+
+    /// AC-172-001 C2S: partial APCI header (3 bytes) stashed into carry_c2s.
+    ///
+    /// A STARTDT U-frame is 6 bytes. Delivering only the first 3 bytes must
+    /// stash them into `carry_c2s`; `carry_s2c` is untouched.
+    ///
+    /// Traces: BC-2.19.025 postconditions 1–2; AC-172-001.
+    #[test]
+    fn test_AC_172_001_carry_stash_c2s_partial_frame() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // 3 bytes of a 6-byte STARTDT frame — insufficient to complete the frame.
+        let partial = [0x68u8, 0x04, 0x07];
+        analyzer.on_data(flow_key.clone(), &partial, 0, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s, partial,
+            "3-byte partial STARTDT must be stashed into carry_c2s (AC-172-001)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "carry_s2c must be untouched by C2S delivery (AC-172-001 directional isolation)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "partial frame stash must not emit any finding (AC-172-001)"
+        );
+    }
+
+    /// AC-172-001 S2C: partial APCI header stashed into carry_s2c; carry_c2s untouched.
+    ///
+    /// Traces: BC-2.19.025 postconditions 1–2; AC-172-001.
+    #[test]
+    fn test_AC_172_001_carry_stash_s2c_partial_frame() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let partial = [0x68u8, 0x04, 0x07];
+        analyzer.on_data(flow_key.clone(), &partial, 0, Direction::ServerToClient);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_s2c, partial,
+            "3-byte partial STARTDT must be stashed into carry_s2c (AC-172-001)"
+        );
+        assert!(
+            state.carry_c2s.is_empty(),
+            "carry_c2s must be untouched by S2C delivery (AC-172-001 directional isolation)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "partial frame stash must not emit any finding"
+        );
+    }
+
+    /// AC-172-001: directional isolation — interleaved C2S and S2C deliveries never mix.
+    ///
+    /// Sends a 3-byte partial C2S and a 4-byte partial S2C. Each directional carry
+    /// must contain only its own bytes; no cross-direction contamination.
+    ///
+    /// Traces: BC-2.19.025 invariant 1; RULING-DNP3-SIBLING-001; AC-172-001.
+    #[test]
+    fn test_AC_172_001_carry_directional_isolation_interleaved() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let c2s_bytes = [0x68u8, 0x04, 0x07];
+        let s2c_bytes = [0x68u8, 0x04, 0x01, 0x00];
+        analyzer.on_data(flow_key.clone(), &c2s_bytes, 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), &s2c_bytes, 0, Direction::ServerToClient);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s, c2s_bytes,
+            "carry_c2s must contain only C2S bytes (BC-2.19.025 invariant 1)"
+        );
+        assert_eq!(
+            state.carry_s2c, s2c_bytes,
+            "carry_s2c must contain only S2C bytes (BC-2.19.025 invariant 1)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-002: BC-2.19.025 v1.2 WALK-FIRST-RESIDUAL-BOUND carry-overflow tests
+    // F-172-001 remediation: replaces PRE-CHECK-DISCARD-ALL canonical vectors
+    // Canonical test vectors from BC-2.19.025 v1.2
+    // =========================================================================
+
+    /// AC-172-002 / Vector (i) — split frame across carry/delivery (legit traffic, no overflow).
+    ///
+    /// BC-2.19.025 v1.2 walk-first semantics: the 200-byte carry + 100-byte delivery (total=300)
+    /// must NOT be discarded by a carry+delivery pre-check. The frame-walk loop consumes the
+    /// complete 255-byte I-frame first, dispatching a T0827 finding; then the 45-byte partial
+    /// frame tail is stashed as residual carry. No T0814 carry-overflow finding is emitted.
+    ///
+    /// Arithmetic: carry(200) + delivery(55+45) = 300. Frame = LEN+2 = 253+2 = 255 ≤ 300 →
+    /// complete. Residual = 300−255 = 45 ≤ 255. No overflow.
+    ///
+    /// Step 1: first on_data delivers the first 200 bytes (exercises the carry-stash path).
+    /// Step 2: second on_data delivers 55 completing bytes + 45-byte partial frame tail.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postconditions 1–2, invariant 2 (walk-first ordering);
+    ///         F-172-001; AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_vector_i_split_frame_c2s_walk_first_no_t0814() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+
+        // Build the 255-byte I-frame with TypeID 105 (C_RP_NA_1 → emits T0827 on dispatch).
+        // Frame layout: [0x68, 0xFD(LEN=253), CF1=0x00(I-frame), CF2, CF3, CF4, ASDU...]
+        // ASDU bytes: type_id=105 at offset 6, VSQ=0x01 at 7, COT=0x06 at 8, orig=0 at 9,
+        //             CASDU=0x01,0x00 at 10-11, IOA=0x01,0x00,0x00 at 12-14, zeros thereafter.
+        let mut frame_255 = vec![0u8; 255];
+        frame_255[0] = 0x68u8; // start byte
+        frame_255[1] = 0xFDu8; // LEN = 253 → frame_total = LEN+2 = 255
+        frame_255[2] = 0x00u8; // CF1 = 0x00 → I-format (bit 0 = 0)
+        frame_255[3] = 0x00u8; // CF2
+        frame_255[4] = 0x00u8; // CF3
+        frame_255[5] = 0x00u8; // CF4
+        frame_255[6] = 105u8; // ASDU type_id = 105 (C_RP_NA_1) → detect_iec104_threats → T0827
+        frame_255[7] = 0x01u8; // VSQ: count=1, SQ=0
+        frame_255[8] = 0x06u8; // COT: cause=6 (activation)
+        frame_255[9] = 0x00u8; // originator = 0
+        frame_255[10] = 0x01u8; // CASDU low
+        frame_255[11] = 0x00u8; // CASDU high
+        frame_255[12] = 0x01u8; // IOA byte 0
+        frame_255[13] = 0x00u8; // IOA byte 1
+        frame_255[14] = 0x00u8; // IOA byte 2
+        // bytes 15-254: remain zero (padding to fill 255-byte frame)
+
+        // Step 1: deliver first 200 bytes of the frame (exercises the carry-stash path).
+        // carry_c2s must hold 200 bytes after this call; no finding emitted.
+        analyzer.on_data(
+            flow_key.clone(),
+            &frame_255[..200],
+            0,
+            Direction::ClientToServer,
+        );
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                200,
+                "Vector (i) step 1: first 200 bytes of 255-byte frame must be stashed into carry_c2s"
+            );
+        }
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "Vector (i) step 1: partial frame stash must emit no finding"
+        );
+
+        // 45-byte partial second frame: [0x68, LEN=100 (frame_total=102), 43 body bytes].
+        // frame_len = 100+2 = 102; only 45 bytes available → incomplete → stashed as residual.
+        let mut partial_frame_45 = vec![0u8; 45];
+        partial_frame_45[0] = 0x68u8;
+        partial_frame_45[1] = 100u8; // LEN=100 → frame_total=102; 45 < 102 → partial
+
+        // Step 2: deliver 55 completing bytes (frame_255[200..255]) + 45-byte partial tail.
+        // Working buf = carry(200) + delivery(55+45) = 300 bytes.
+        // Walk: consume 255-byte frame → T0827; stash 45-byte partial as residual.
+        let mut delivery = frame_255[200..].to_vec(); // 55 bytes completing the 255-byte frame
+        delivery.extend_from_slice(&partial_frame_45); // + 45-byte partial tail
+        assert_eq!(
+            delivery.len(),
+            100,
+            "delivery for step 2 must be exactly 100 bytes"
+        );
+
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
+
+        // Assert: T0827 in findings (frame was dispatched, NOT discarded — walk-first semantics).
+        // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(200)+delivery(100)=300>255 → T0814 emitted,
+        // delivery discarded before frame extraction → no T0827. This assertion FAILS v1.1.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "Vector (i): 255-byte TypeID-105 I-frame must be dispatched and emit T0827 \
+             (BC-2.19.025 v1.2 walk-first: no pre-check-discard-all; F-172-001)"
+        );
+        // Assert: NO T0814 carry-overflow (residual=45 ≤ MAX_IEC104_CARRY_BYTES=255).
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            "Vector (i): conformant split-frame delivery must NOT emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2: overflow guard fires only on residual >255; F-172-001)"
+        );
+        // Assert: carry_c2s holds exactly the 45-byte partial tail.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s.len(),
+            45,
+            "Vector (i): carry_c2s must hold exactly 45-byte residual after walk (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "Vector (i): carry_s2c must be unaffected by C2S delivery (directional isolation)"
+        );
+    }
+
+    /// AC-172-002 / Vector (ii) — single S2C delivery: complete frame plus tail (no prior carry).
+    ///
+    /// BC-2.19.025 v1.2: a 300-byte S2C delivery (0 carry + 300 delivery) must NOT be
+    /// discarded by a pre-check. The frame-walk loop extracts the complete 255-byte I-frame,
+    /// dispatching T0827, and stashes the remaining 45-byte partial frame as residual carry.
+    ///
+    /// Arithmetic: carry(0) + delivery(255+45) = 300. Frame = 255 bytes ≤ 300 → complete.
+    /// Residual = 45 ≤ 255. No overflow.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postconditions 1–2, invariant 2 (walk-first ordering);
+    ///         F-172-001; AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_vector_ii_single_delivery_s2c_walk_first_no_t0814() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+
+        // Same 255-byte I-frame structure as Vector (i).
+        let mut frame_255 = vec![0u8; 255];
+        frame_255[0] = 0x68u8;
+        frame_255[1] = 0xFDu8; // LEN = 253 → frame_total = 255
+        frame_255[2] = 0x00u8; // CF1 = 0x00 → I-format
+        frame_255[3] = 0x00u8;
+        frame_255[4] = 0x00u8;
+        frame_255[5] = 0x00u8;
+        frame_255[6] = 105u8; // type_id = 105 → T0827
+        frame_255[7] = 0x01u8;
+        frame_255[8] = 0x06u8;
+        frame_255[9] = 0x00u8;
+        frame_255[10] = 0x01u8;
+        frame_255[11] = 0x00u8;
+        frame_255[12] = 0x01u8;
+        frame_255[13] = 0x00u8;
+        frame_255[14] = 0x00u8;
+        // bytes 15-254: zeros
+
+        // 45-byte partial second frame: [0x68, LEN=100, 43 body bytes] → frame_total=102 > 45.
+        let mut partial_frame_45 = vec![0u8; 45];
+        partial_frame_45[0] = 0x68u8;
+        partial_frame_45[1] = 100u8; // LEN=100 → frame_total=102; 45 < 102 → partial
+
+        // Single 300-byte delivery: 255-byte complete frame + 45-byte partial tail.
+        let mut delivery = frame_255.clone();
+        delivery.extend_from_slice(&partial_frame_45);
+        assert_eq!(
+            delivery.len(),
+            300,
+            "Vector (ii) delivery must be exactly 300 bytes"
+        );
+
+        // carry_s2c is empty before this call (no prior carry).
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ServerToClient);
+
+        // Assert: T0827 in findings (frame dispatched via walk-first; NOT discarded).
+        // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(0)+delivery(300)=300>255 → T0814, discard.
+        // This assertion FAILS v1.1.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "Vector (ii): S2C 255-byte TypeID-105 frame must be dispatched and emit T0827 \
+             (BC-2.19.025 v1.2 walk-first; F-172-001)"
+        );
+        // Assert: NO T0814 carry-overflow.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            "Vector (ii): conformant single-delivery must NOT emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2 residual bound; F-172-001)"
+        );
+        // Assert: carry_s2c holds exactly the 45-byte residual.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_s2c.len(),
+            45,
+            "Vector (ii): carry_s2c must hold exactly 45-byte residual after walk (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_c2s.is_empty(),
+            "Vector (ii): carry_c2s must be unaffected by S2C delivery (directional isolation)"
+        );
+    }
+
+    /// AC-172-002 / Vector (iii) — defensive adversarial carry-overflow dedup (EC-003/EC-004).
+    ///
+    /// Non-conformant, adversarially-constructed scenario. Tests the dedup guard for T0814
+    /// carry-overflow events (`carry_overflow_reported_c2s` flag; BC-2.19.025 invariant 4).
+    ///
+    /// State injection: set `carry_c2s` directly to 256 bytes (one byte beyond
+    /// MAX_IEC104_CARRY_BYTES=255), then call on_data with empty delivery.
+    ///
+    /// Expected v1.2 behavior:
+    ///   - First overflow event (EC-003): carry cleared; ONE T0814 (Anomaly/Possible/Medium)
+    ///     emitted; `carry_overflow_reported_c2s` set to true.
+    ///   - Second overflow event (EC-004): carry cleared; NO additional T0814
+    ///     (flag suppresses re-emission); `carry_overflow_reported_c2s` stays true.
+    ///   - `carry_overflow_reported_s2c` remains false throughout (EC-005: per-direction
+    ///     independence; C2S overflow must not set S2C dedup flag).
+    ///
+    /// Under PRE-CHECK-DISCARD-ALL (v1.1): carry(256)+delivery(0)=256>255 → T0814 emitted,
+    /// carry RETAINED at 256 bytes (not cleared), flag never set → EC-003 assertions fail.
+    /// Second trip also emits T0814 (no dedup) → EC-004 assertion fails.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postcondition 3, invariants 4–5; F-172-001; EC-003/004/005;
+    ///         AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_vector_iii_defensive_overflow_dedup_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+
+        // Construct 256-byte adversarial carry: one byte beyond MAX_IEC104_CARRY_BYTES=255.
+        // Pattern: [0x68, 0xFD(LEN=253), <254 zero bytes>] = 256 bytes total.
+        // Injected directly — this carry state is unreachable through conformant IEC-104 traffic
+        // (the walk always stashes ≤ 254 bytes). Direct injection tests the defensive guard.
+        let mut overflow_carry = vec![0u8; 256];
+        overflow_carry[0] = 0x68u8;
+        overflow_carry[1] = 0xFDu8; // LEN=253 → frame_total=255; buf only has 256 bytes
+
+        // First overflow event (EC-003): inject 256-byte carry, call on_data with empty delivery.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = overflow_carry.clone();
+        }
+        analyzer.on_data(flow_key.clone(), &[], 0, Direction::ClientToServer);
+
+        // carry_c2s must be CLEARED after overflow — v1.2 clears on overflow (EC-003).
+        // Under v1.1 PRE-CHECK-DISCARD-ALL: carry is RETAINED (256 bytes). Assertion FAILS v1.1.
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                0,
+                "Vector (iii) first trip: carry_c2s must be CLEARED after overflow \
+                 (BC-2.19.025 v1.2 EC-003; v1.1 PRE-CHECK retained carry — now wrong)"
+            );
+            // Dedup flag must be set on first overflow (EC-003).
+            // Under v1.1: flag never wired → remains false. Assertion FAILS v1.1.
+            assert!(
+                state.carry_overflow_reported_c2s,
+                "Vector (iii) first trip: carry_overflow_reported_c2s must be true after \
+                 first overflow (BC-2.19.025 invariant 4; EC-003)"
+            );
+            // S2C flag must remain false — per-direction independence (EC-005).
+            assert!(
+                !state.carry_overflow_reported_s2c,
+                "Vector (iii): carry_overflow_reported_s2c must remain false \
+                 (EC-005: C2S overflow must not affect S2C dedup flag)"
+            );
+        }
+        // Exactly ONE T0814 must be emitted on first overflow.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Vector (iii) first trip: exactly one T0814 carry-overflow finding must be emitted \
+             (BC-2.19.025 v1.2 EC-003)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "Vector (iii) T0814 must have ThreatCategory::Anomaly (BC-2.19.025)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "Vector (iii) T0814 must have Verdict::Possible (BC-2.19.025)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0814"),
+            "Vector (iii) carry-overflow finding must cite T0814 (BC-2.19.025)"
+        );
+
+        // Second overflow event (EC-004): re-inject 256-byte carry, call on_data again.
+        // The dedup flag (carry_overflow_reported_c2s=true) must suppress T0814 re-emission.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = overflow_carry.clone();
+        }
+        analyzer.on_data(flow_key.clone(), &[], 0, Direction::ClientToServer);
+
+        // carry must be cleared again (resync — not a permanent desync latch; EC-004).
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                0,
+                "Vector (iii) second trip: carry_c2s must be cleared again on resync (EC-004)"
+            );
+        }
+        // NO additional T0814 — dedup flag suppresses re-emission (EC-004).
+        // Under v1.1: no dedup → second T0814 emitted → findings.len()==2. Assertion FAILS v1.1.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Vector (iii) second trip: dedup flag must suppress T0814 re-emission — \
+             total findings must remain 1 (BC-2.19.025 invariant 4; EC-004)"
+        );
+    }
+
+    /// AC-172-002 / EC-001 adapted boundary: conformant-maximum partial frame residual (254 bytes)
+    /// is stashed without T0814 (residual ≤ MAX_IEC104_CARRY_BYTES=255).
+    ///
+    /// The maximum achievable conformant partial-frame residual is 254 bytes: a 255-byte frame
+    /// (LEN=253) with only 254 bytes delivered — one byte short of completion.
+    /// Residual = 254 bytes ≤ MAX_IEC104_CARRY_BYTES=255 → the >255 guard does not fire.
+    ///
+    /// Note: residual = 255 bytes is unreachable for conformant IEC-104 traffic by construction
+    /// (a 255-byte prefix with start 0x68 + LEN=253 IS a complete frame; the walk consumes it).
+    /// BC-2.19.025 EC-002 documents this as "conformant traffic: unreachable". This test uses
+    /// the closest achievable value (254 bytes) to pin that the guard threshold is >255, not ≥255.
+    ///
+    /// Traces: BC-2.19.025 v1.2 postcondition 2, invariants 2–3; EC-001/EC-002; AC-172-002.
+    #[test]
+    fn test_BC_2_19_025_v12_ec001_max_conformant_partial_254_no_t0814() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        assert_eq!(
+            MAX_IEC104_CARRY_BYTES, 255,
+            "MAX_IEC104_CARRY_BYTES must be 255 (ADR-013 Decision 2; BC-2.19.025 invariant 3)"
+        );
+
+        // Deliver 254 bytes: first 254 bytes of a 255-byte frame [0x68, 0xFD, 252 zeros].
+        // frame_len = LEN+2 = 253+2 = 255. delivery.len()=254 < frame_len=255 → partial stash.
+        // Residual = 254 bytes ≤ MAX_IEC104_CARRY_BYTES=255 → no overflow, no T0814.
+        let mut partial_254 = vec![0u8; 254];
+        partial_254[0] = 0x68u8;
+        partial_254[1] = 0xFDu8; // LEN=253 → frame_total=255; only 254 bytes → incomplete partial
+
+        analyzer.on_data(flow_key.clone(), &partial_254, 0, Direction::ClientToServer);
+
+        // No T0814 carry-overflow: residual=254 ≤ MAX_IEC104_CARRY_BYTES=255.
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .all(|f| !f.mitre_techniques.iter().any(|t| t == "T0814")),
+            "254-byte conformant partial frame must not emit T0814 carry-overflow \
+             (BC-2.19.025 v1.2 EC-001: overflow guard is >255, not ≥255)"
+        );
+        // carry must hold all 254 bytes (partial stash preserves residual).
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.carry_c2s.len(),
+            254,
+            "254-byte partial frame must be fully stashed into carry_c2s (BC-2.19.025 v1.2)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "carry_s2c must be unaffected by C2S delivery (directional isolation)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-003: frame-walk loop processes all complete APCI frames per on_data
+    // BC-2.19.026 postconditions 1–3
+    // =========================================================================
+
+    /// AC-172-003: two complete STARTDT back-to-back frames both processed in one delivery.
+    ///
+    /// A single delivery containing two concatenated 6-byte STARTDT U-frames must cause
+    /// both frames to be parsed sequentially; no carry residual expected.
+    ///
+    /// Traces: BC-2.19.026 postconditions 1–3; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_multiple_complete_frames_processed_sequentially() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Two complete 6-byte STARTDT U-frames concatenated.
+        let two_frames: Vec<u8> = [
+            0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT-act frame 1
+            0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT-act frame 2
+        ]
+        .to_vec();
+        analyzer.on_data(flow_key.clone(), &two_frames, 0, Direction::ClientToServer);
+        // Both frames processed → no residual carry, and STARTDT-act dispatch effect present.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "two complete frames must leave no carry residual (BC-2.19.026 postcondition 3)"
+        );
+        assert!(
+            state.session_started,
+            "STARTDT-act frames must set session_started=true via on_data dispatch \
+             (BC-2.19.026 PC2; DF-SIBLING-SWEEP-001)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-004: frame-walk advance modes — bad start byte and malformed-LEN
+    // BC-2.19.026 postcondition 4, invariants 1 and 5; EC-005
+    // =========================================================================
+
+    /// AC-172-004 / EC-005: bad start byte (data[pos] != 0x68) → 1-byte silent resync.
+    ///
+    /// A byte with value != 0x68 advances the cursor by 1 with no finding emitted and
+    /// carry NOT cleared. A valid STARTDT frame follows the garbage byte; both should be
+    /// handled correctly.
+    ///
+    /// Traces: BC-2.19.026 postcondition 4 (bad-start-byte arm); AC-172-004; EC-005.
+    #[test]
+    fn test_BC_2_19_026_bad_start_byte_advance_one_no_finding() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // 1 garbage byte (0xAA) followed by a complete 6-byte STARTDT frame.
+        let data: Vec<u8> = [
+            0xAAu8, // bad start byte → advance 1
+            0x68, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT-act (valid frame)
+        ]
+        .to_vec();
+        analyzer.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+        // Bad start byte emits no finding.
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "bad start byte must not emit any finding (BC-2.19.026 postcondition 4 bad-start arm)"
+        );
+        // The valid frame after the bad byte must be processed; no residual carry.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "carry must be empty after bad-start-byte + valid frame (EC-005)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-008: malformed-LEN dedup per direction (BC-2.19.026 invariant 5)
+    // EC-006, EC-007, EC-008
+    // =========================================================================
+
+    /// AC-172-008 / EC-006: first malformed-LEN in C2S → exactly one T0814 + flag set.
+    ///
+    /// A valid 0x68 start byte with LEN=3 (below minimum 4) is malformed. On the FIRST
+    /// occurrence in C2S: cursor advances 2 bytes; exactly ONE T0814 Anomaly/Possible/Medium
+    /// is emitted; `malformed_len_reported_c2s` is set to true.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-172-008; EC-006.
+    #[test]
+    fn test_BC_2_19_026_malformed_len_first_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // LEN=3 is below the minimum of 4 → malformed.
+        let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ClientToServer,
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "first malformed-LEN C2S must emit exactly one T0814 (BC-2.19.026 invariant 5; EC-006)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "malformed-LEN T0814 must have ThreatCategory::Anomaly (BC-2.19.026)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "malformed-LEN T0814 must have Verdict::Possible (BC-2.19.026)"
+        );
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0814"),
+            "malformed-LEN finding must cite T0814 (BC-2.19.026)"
+        );
+        // Dedup flag must be set.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.malformed_len_reported_c2s,
+            "malformed_len_reported_c2s must be true after first C2S malformed-LEN (EC-006)"
+        );
+        assert!(
+            !state.malformed_len_reported_s2c,
+            "malformed_len_reported_s2c must remain false (C2S dedup must not affect S2C)"
+        );
+    }
+
+    /// AC-172-008 / EC-007: second malformed-LEN in same C2S direction → no additional finding.
+    ///
+    /// With `malformed_len_reported_c2s` already set, a second malformed-LEN frame in
+    /// the same C2S direction must advance the cursor silently with no finding emitted.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-172-008; EC-007.
+    #[test]
+    fn test_BC_2_19_026_malformed_len_second_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Pre-set the dedup flag to simulate a flow that already saw one malformed-LEN C2S.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.malformed_len_reported_c2s = true;
+        }
+        let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ClientToServer,
+        );
+        // No additional finding must be emitted (dedup flag was already set).
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "second C2S malformed-LEN must emit no finding (BC-2.19.026 invariant 5 EMIT-WITH-DEDUP; EC-007)"
+        );
+        // Flag remains true (never reset within a flow lifetime).
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.malformed_len_reported_c2s,
+            "malformed_len_reported_c2s must remain true after second C2S malformed-LEN (EC-007)"
+        );
+    }
+
+    /// AC-172-008 / EC-008: first S2C malformed-LEN after C2S flag already set → independent T0814.
+    ///
+    /// C2S and S2C dedup flags are completely independent. After C2S has been flagged, the
+    /// first malformed-LEN in S2C must still emit ONE T0814 and set `malformed_len_reported_s2c`.
+    /// The C2S flag is unchanged.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-172-008; EC-008.
+    #[test]
+    fn test_BC_2_19_026_malformed_len_first_s2c_after_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Pre-set C2S dedup flag (simulates a flow where C2S already saw one malformed-LEN).
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.malformed_len_reported_c2s = true;
+        }
+        // First malformed-LEN in S2C direction.
+        let malformed_data = [0x68u8, 0x03, 0x00, 0x00, 0x00, 0x00];
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_data,
+            0,
+            Direction::ServerToClient,
+        );
+        // Exactly one T0814 must be emitted for the S2C direction independently.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "first S2C malformed-LEN must emit exactly one T0814 independently of C2S flag (EC-008)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(f.category, ThreatCategory::Anomaly, "T0814 must be Anomaly");
+        assert_eq!(f.verdict, Verdict::Possible, "T0814 must be Possible");
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0814"),
+            "S2C malformed-LEN finding must cite T0814 (EC-008)"
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.malformed_len_reported_s2c,
+            "malformed_len_reported_s2c must be true after first S2C malformed-LEN (EC-008)"
+        );
+        assert!(
+            state.malformed_len_reported_c2s,
+            "malformed_len_reported_c2s must remain true and be unaffected by S2C detection (EC-008)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-005: on_data does not panic for any byte sequence (EC-004)
+    // BC-2.19.026 postcondition 5
+    // =========================================================================
+
+    /// AC-172-005 / EC-004: empty data slice must not panic and must not mutate carry.
+    ///
+    /// Delivering an empty slice is a valid call. The frame-walk loop must handle
+    /// zero-length input cleanly: no finding emitted, carry unchanged.
+    ///
+    /// Traces: BC-2.19.026 postcondition 5; AC-172-005; EC-004.
+    #[test]
+    fn test_AC_172_005_empty_data_slice_no_panic_no_finding() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        analyzer.on_data(flow_key.clone(), &[], 0, Direction::ClientToServer);
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "empty delivery must not emit any finding (BC-2.19.026 EC-004)"
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "empty delivery must not alter carry_c2s (EC-004)"
+        );
+        assert!(
+            state.carry_s2c.is_empty(),
+            "empty delivery must not alter carry_s2c (EC-004)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-003 / EC-009: back-to-back frames — three complete frames
+    // BC-2.19.026 postconditions 1–3
+    // =========================================================================
+
+    /// AC-172-003 / EC-009: three complete STARTDT frames back-to-back → all processed.
+    ///
+    /// Traces: BC-2.19.026 postconditions 1–3; AC-172-003; EC-009.
+    #[test]
+    fn test_BC_2_19_026_ec_009_back_to_back_three_frames() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Three complete 6-byte STARTDT U-frames concatenated.
+        let three_frames: Vec<u8> = [
+            0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT frame 1
+            0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT frame 2
+            0x68u8, 0x04, 0x07, 0x00, 0x00, 0x00, // STARTDT frame 3
+        ]
+        .to_vec();
+        analyzer.on_data(
+            flow_key.clone(),
+            &three_frames,
+            0,
+            Direction::ClientToServer,
+        );
+        // All three frames processed → no residual carry, and STARTDT-act dispatch effect present.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "three complete back-to-back frames must leave no carry residual (EC-009)"
+        );
+        assert!(
+            state.session_started,
+            "STARTDT-act frames must set session_started=true via on_data dispatch \
+             (BC-2.19.026 PC2; DF-SIBLING-SWEEP-001)"
+        );
+    }
+
+    // =========================================================================
+    // AC-172-006: on_flow_close removes Iec104FlowState and discards carry bytes
+    // BC-2.19.027 postconditions 1–4, invariants 1–2
+    // =========================================================================
+
+    /// AC-172-006: on_flow_close removes the per-flow state entry.
+    ///
+    /// After `on_flow_close`, `analyzer.flows` must not contain the flow key.
+    /// Calling `on_data` on the same key afterward must yield fresh (default) state.
+    ///
+    /// Traces: BC-2.19.027 postconditions 1–3; AC-172-006.
+    #[test]
+    fn test_BC_2_19_027_on_flow_close_removes_state() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Seed some state so there is something to remove.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.session_started = true;
+            state.carry_c2s = vec![0x68u8, 0x04];
+        }
+        assert!(
+            analyzer.flows.contains_key(&flow_key),
+            "precondition: flow state must exist before on_flow_close"
+        );
+        analyzer.on_flow_close(flow_key.clone());
+        assert!(
+            !analyzer.flows.contains_key(&flow_key),
+            "on_flow_close must remove the flow state from analyzer.flows (BC-2.19.027 postcondition 1)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "on_flow_close must not emit any finding for normal flow close (BC-2.19.027 postcondition 3)"
+        );
+    }
+
+    /// AC-172-006: on_flow_close re-open yields fresh default state.
+    ///
+    /// After closing, a new `on_data` for the same flow key must start with clean
+    /// default state (carry empty, flags false, session_started false).
+    ///
+    /// Traces: BC-2.19.027 postcondition 1; AC-172-006.
+    #[test]
+    fn test_AC_172_006_reopen_flow_yields_fresh_state() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Seed state, close the flow, then open it again.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.session_started = true;
+            state.carry_c2s = vec![0x68u8, 0x04, 0x07, 0x00, 0x00];
+            state.malformed_len_reported_c2s = true;
+        }
+        analyzer.on_flow_close(flow_key.clone());
+        // Re-open with a fresh delivery.
+        let partial = [0x68u8, 0x04, 0x07];
+        analyzer.on_data(flow_key.clone(), &partial, 1, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        // Fresh state: dedup flag must be false (not inherited from closed flow).
+        assert!(
+            !state.malformed_len_reported_c2s,
+            "re-opened flow must have malformed_len_reported_c2s=false (fresh state; AC-172-006)"
+        );
+        assert!(
+            !state.session_started,
+            "re-opened flow must have session_started=false (fresh state; AC-172-006)"
+        );
+    }
+
+    /// AC-172-006 / EC-010: on_flow_close with non-empty carry silently discards carry.
+    ///
+    /// No T0814 or other finding is emitted when carry bytes are present at flow close.
+    ///
+    /// Traces: BC-2.19.027 postcondition 3; AC-172-006; EC-010.
+    #[test]
+    fn test_BC_2_19_027_ec_010_close_with_carry_no_finding() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Pre-populate carry with partial frame bytes.
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = vec![0x68u8, 0x04, 0x07]; // partial STARTDT
+            state.carry_s2c = vec![0x68u8, 0x04]; // partial S2C
+        }
+        analyzer.on_flow_close(flow_key.clone());
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "on_flow_close with non-empty carry must not emit any finding (BC-2.19.027 postcondition 3; EC-010)"
+        );
+        assert!(
+            !analyzer.flows.contains_key(&flow_key),
+            "on_flow_close must remove state even when carry is non-empty (EC-010)"
+        );
+    }
+
+    /// AC-172-006 / EC-011: on_flow_close for unknown flow_key is a no-op.
+    ///
+    /// Calling `on_flow_close` on a flow that was never opened must not panic and
+    /// must not modify any existing state.
+    ///
+    /// Traces: BC-2.19.027 postcondition 4; AC-172-006; EC-011.
+    #[test]
+    fn test_BC_2_19_027_ec_011_close_unknown_flow_key_no_panic() {
+        let mut analyzer = Iec104Analyzer::new();
+        let unknown_key = FlowKey::new(
+            "192.168.1.1".parse().unwrap(),
+            9999,
+            "192.168.1.2".parse().unwrap(),
+            2404,
+        );
+        // Must not panic.
+        analyzer.on_flow_close(unknown_key);
+        assert!(
+            analyzer.flows.is_empty(),
+            "on_flow_close for unknown key must not create any state (BC-2.19.027 postcondition 4; EC-011)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "on_flow_close for unknown key must not emit any finding (EC-011)"
+        );
+    }
+
+    // =========================================================================
+    // VP-045: proptest_vp045_direction_isolation
+    // AC-172-007 (proptest skeleton compiles)
+    // =========================================================================
+
+    proptest! {
+        /// VP-045 proptest skeleton: carry direction isolation (AC-172-007).
+        ///
+        /// Interleaved C2S and S2C deliveries to the same flow must never mix their
+        /// carry buffers. `carry_c2s` must only accumulate bytes from the C2S delivery
+        /// path; `carry_s2c` from S2C only (BC-2.19.025 invariant 1;
+        /// RULING-DNP3-SIBLING-001).
+        ///
+        /// Full proptest execution is in STORY-174. This skeleton establishes the
+        /// harness seam and verifies compilation (AC-172-007).
+        ///
+        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        #[test]
+        fn proptest_vp045_direction_isolation(
+            c2s_data in prop::collection::vec(any::<u8>(), 0..256),
+            s2c_data in prop::collection::vec(any::<u8>(), 0..256),
+        ) {
+            let mut analyzer = Iec104Analyzer::new();
+            let flow_key = FlowKey::new(
+                "127.0.0.1".parse().unwrap(), 1234,
+                "127.0.0.2".parse().unwrap(), 2404,
+            );
+            // Interleaved C2S and S2C deliveries must not mix carries.
+            // carry_c2s must only contain bytes from the c2s_data path;
+            // carry_s2c must only contain bytes from s2c_data path.
+            // (STORY-174 wires the isolation assertion; this skeleton verifies compile.)
+            analyzer.on_data(flow_key.clone(), &c2s_data, 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &s2c_data, 0, Direction::ServerToClient);
+        }
+    }
+
+    proptest! {
+        /// VP-045 proptest skeleton: independent-run equivalence (AC-172-007).
+        ///
+        /// Running on_data with the same data on two separate analyzer instances must
+        /// produce identical per-flow carry state. Verifies that on_data is deterministic
+        /// and carries no hidden cross-flow state (BC-2.19.025 invariant 2).
+        ///
+        /// Full proptest execution is in STORY-174. This skeleton establishes the
+        /// harness seam and verifies compilation (AC-172-007).
+        ///
+        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        #[test]
+        fn proptest_vp045_independent_run_equivalence(
+            data in prop::collection::vec(any::<u8>(), 0..256),
+        ) {
+            let mut analyzer_a = Iec104Analyzer::new();
+            let mut analyzer_b = Iec104Analyzer::new();
+            let flow_key = FlowKey::new(
+                "10.0.0.1".parse().unwrap(), 5000,
+                "10.0.0.2".parse().unwrap(), 2404,
+            );
+            // Two independent analyzer instances with the same input must produce
+            // equivalent per-flow carry state.
+            // (STORY-174 wires the equivalence assertion; this skeleton verifies compile.)
+            analyzer_a.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+            analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.026 PC2: dispatch-effect assertions (F-172-002 remediation)
+    // Verifies that valid-frame dispatch branches produce their documented
+    // state or finding effects when driven entirely through on_data.
+    // =========================================================================
+
+    /// BC-2.19.026 PC2 — STARTDT-act U-frame through on_data sets session_started.
+    ///
+    /// A STARTDT-act U-frame (CF1=0x07) delivered through on_data must set
+    /// `session_started = true` on the flow state. Confirms that the U-format dispatch
+    /// arm (process_u_frame) is wired into the on_data frame-walk loop.
+    ///
+    /// Frame: `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — start, LEN=4, CF1=0x07
+    /// (STARTDT-act, U-format), CF2-CF4=0.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.010 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_startdt_act_sets_session_started() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let startdt_act: &[u8] = &[0x68, 0x04, 0x07, 0x00, 0x00, 0x00];
+        analyzer.on_data(flow_key.clone(), startdt_act, 0, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.session_started,
+            "STARTDT-act through on_data must set session_started=true \
+             (BC-2.19.026 PC2; BC-2.19.010 postcondition 1)"
+        );
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "STARTDT-act must not emit any finding (BC-2.19.010)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — STOPDT-act U-frame after STARTDT-act emits T0881.
+    ///
+    /// A STARTDT-act activates the session; a subsequent STOPDT-act (CF1=0x13) delivered
+    /// through on_data must emit a T0881 finding with Verdict::Possible. Confirms that
+    /// process_u_frame's STOPDT-act arm is reached via the on_data dispatch path.
+    ///
+    /// Delivery sequence:
+    ///   1. `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — STARTDT-act (no finding)
+    ///   2. `[0x68, 0x04, 0x13, 0x00, 0x00, 0x00]` — STOPDT-act (T0881 Possible)
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.011 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_stopdt_act_after_startdt_emits_t0881() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let startdt_act: &[u8] = &[0x68, 0x04, 0x07, 0x00, 0x00, 0x00];
+        let stopdt_act: &[u8] = &[0x68, 0x04, 0x13, 0x00, 0x00, 0x00];
+        analyzer.on_data(flow_key.clone(), startdt_act, 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), stopdt_act, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "STOPDT-act after STARTDT-act must emit exactly one T0881 finding \
+             (BC-2.19.026 PC2; BC-2.19.011 postcondition 1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0881"),
+            "STOPDT-act finding must cite T0881 (BC-2.19.011 postcondition 1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "STOPDT-act after active session must have Verdict::Possible (BC-2.19.011)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — TypeID 105 I-frame through on_data emits T0827.
+    ///
+    /// An I-format frame carrying TypeID=105 (C_RP_NA_1, reset-process) delivered through
+    /// on_data must emit a T0827 "Loss of Control" finding with Verdict::Likely. Confirms
+    /// that the I-format dispatch arm (parse_asdu + detect_iec104_threats) is wired into
+    /// the on_data frame-walk loop.
+    ///
+    /// Frame layout (12 bytes):
+    ///   APCI: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00]` — start, LEN=10,
+    ///         CF1=0x00 (I-format, N(S)=0), CF2-CF4=0.
+    ///   ASDU: `[0x69, 0x01, 0x06, 0x00, 0x01, 0x00]` — TypeID=105(0x69), VSQ=1,
+    ///         COT_cause=6(activation), originator=0, CASDU=1.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.020 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_type105_i_frame_emits_t0827() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let i_frame_type105: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: start, LEN=10, CF1-CF4
+            0x69, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=105, VSQ=1, COT=6, CASDU=1
+        ];
+        analyzer.on_data(
+            flow_key.clone(),
+            i_frame_type105,
+            0,
+            Direction::ClientToServer,
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "TypeID=105 I-frame through on_data must emit T0827 finding \
+             (BC-2.19.026 PC2; BC-2.19.020 postcondition 1)"
+        );
+        let t0827 = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0827"))
+            .unwrap();
+        assert_eq!(
+            t0827.verdict,
+            Verdict::Likely,
+            "T0827 finding from TypeID=105 must have Verdict::Likely (BC-2.19.020)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — TypeID 45 control-command I-frame through on_data emits T1692.001.
+    ///
+    /// An I-format frame carrying TypeID=45 (C_SC_NA_1, single command) delivered through
+    /// on_data must emit a T1692.001 "Unauthorized Command Message" finding. Confirms that
+    /// the detect_iec104_threats switching-command arm (TypeIDs 45-47) is reached via the
+    /// on_data dispatch path.
+    ///
+    /// Frame layout (12 bytes):
+    ///   APCI: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00]` — start, LEN=10, CF1=0x00 (N(S)=0).
+    ///   ASDU: `[0x2D, 0x01, 0x06, 0x00, 0x01, 0x00]` — TypeID=45(0x2D), VSQ=1,
+    ///         COT_cause=6, originator=0, CASDU=1.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.019 postcondition 1; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_type45_control_command_emits_t1692_001() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        let i_frame_type45: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: start, LEN=10, CF1-CF4
+            0x2D, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=45, VSQ=1, COT=6, CASDU=1
+        ];
+        analyzer.on_data(
+            flow_key.clone(),
+            i_frame_type45,
+            0,
+            Direction::ClientToServer,
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=45 I-frame through on_data must emit T1692.001 finding \
+             (BC-2.19.026 PC2; BC-2.19.019 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.026 PC2 — N(S) desync scenario through on_data emits T1692.001.
+    ///
+    /// Two C2S I-frames with a gap of 14 (> k=12) delivered through on_data trigger the
+    /// track_ns_desync path-C branch:
+    ///   frame 1 — N(S)=0  (CF1=0x00): path A, baseline set, no finding
+    ///   frame 2 — N(S)=14 (CF1=0x1C): gap=14 > 12, T1692.001 Possible
+    ///
+    /// N(S) encoding: CF1 = (ns & 0x7F) << 1; CF2 = ns >> 7.
+    ///   N(S)=14 → CF1 = 14 << 1 = 0x1C, CF2 = 0x00.
+    ///
+    /// TypeID=1 (M_SP_NA_1) is used in both frames; it falls in the unhandled 1-127 range
+    /// and emits no finding, isolating the T1692.001 assertion to the desync path.
+    ///
+    /// Traces: BC-2.19.026 PC2; BC-2.19.024 path C; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_ns_desync_via_on_data_emits_t1692_001() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Frame 1: N(S)=0, TypeID=1 (monitoring, no threat finding).
+        let i_frame_ns0: &[u8] = &[
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, // APCI: CF1=0x00 → N(S)=0
+            0x01, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=1 (M_SP_NA_1)
+        ];
+        // Frame 2: N(S)=14, TypeID=1. Gap = 14 > k=12 → T1692.001.
+        let i_frame_ns14: &[u8] = &[
+            0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, // APCI: CF1=0x1C → N(S)=14 (14<<1=28=0x1C)
+            0x01, 0x01, 0x06, 0x00, 0x01, 0x00, // ASDU: TypeID=1 (M_SP_NA_1)
+        ];
+        analyzer.on_data(flow_key.clone(), i_frame_ns0, 0, Direction::ClientToServer);
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "first I-frame establishes baseline (path A) — must not emit any finding \
+             (BC-2.19.024 path A)"
+        );
+        analyzer.on_data(flow_key.clone(), i_frame_ns14, 0, Direction::ClientToServer);
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "N(S) gap of 14 > k=12 through on_data must emit T1692.001 \
+             (BC-2.19.026 PC2; BC-2.19.024 path C)"
+        );
+    }
+
+    /// BC-2.19.026 PC1+PC2 joint — STARTDT-act + TypeID-105 I-frame in one on_data call.
+    ///
+    /// A single on_data delivery containing a STARTDT-act U-frame followed immediately by
+    /// a TypeID=105 I-frame must produce BOTH dispatch effects:
+    ///   - session_started = true  (STARTDT-act processed; BC-2.19.010)
+    ///   - T0827 in all_findings   (TypeID=105 I-frame dispatched; BC-2.19.020)
+    ///
+    /// This pins BC-2.19.026 postconditions 1 and 2 jointly: the frame-walk loop processes
+    /// every complete frame in a single delivery, calling each dispatch branch in sequence.
+    ///
+    /// Delivery (18 bytes):
+    ///   frame 1: `[0x68, 0x04, 0x07, 0x00, 0x00, 0x00]` — STARTDT-act (6 bytes)
+    ///   frame 2: `[0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00]`
+    ///            — I-format TypeID=105 (12 bytes)
+    ///
+    /// Traces: BC-2.19.026 PC1+PC2; BC-2.19.010; BC-2.19.020; AC-172-003.
+    #[test]
+    fn test_BC_2_19_026_pc2_dispatch_multi_frame_startdt_plus_type105_joint_effects() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Concatenation: STARTDT-act (6 bytes) + I-frame TypeID=105 (12 bytes) = 18 bytes total.
+        let combined: &[u8] = &[
+            // Frame 1: STARTDT-act U-frame (6 bytes)
+            0x68, 0x04, 0x07, 0x00, 0x00, 0x00,
+            // Frame 2: I-format TypeID=105 (12 bytes)
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ];
+        analyzer.on_data(flow_key.clone(), combined, 0, Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.session_started,
+            "STARTDT-act in multi-frame delivery must set session_started=true \
+             (BC-2.19.026 PC1+PC2 joint; BC-2.19.010)"
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            "TypeID=105 I-frame in multi-frame delivery must emit T0827 \
+             (BC-2.19.026 PC1+PC2 joint; BC-2.19.020)"
+        );
+    }
+}
