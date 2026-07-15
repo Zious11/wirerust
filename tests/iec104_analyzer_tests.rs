@@ -2275,8 +2275,8 @@ mod story_169 {
 // STORY-170: IEC-104 Control Command Detection
 //
 // Covers BC-2.19.019–022 and BC-2.19.017 [TEST] tagging.
-// All tests in this module MUST FAIL (Red Gate) because detect_iec104_threats
-// is a todo!() stub. They pass after the implementer delivers the TypeID dispatch.
+// All tests GREEN against the delivered detect_iec104_threats TypeID dispatch
+// (STORY-170 strict TDD; authored Red-first).
 //
 // ## Contract coverage
 // - BC-2.19.019 (AC-170-001): TypeIDs 45–47 → T1692.001 Possible only (1 finding);
@@ -2291,8 +2291,8 @@ mod story_169 {
 // Used verbatim from BC-2.19.019–022 and BC-2.19.017 tables.
 //
 // ## Provenance
-// Written Red-first as TDD stubs (STORY-170 strict TDD mode); GREEN after implementer
-// delivers detect_iec104_threats TypeID dispatch table.
+// Written Red-first as TDD stubs (STORY-170 strict TDD mode); GREEN against the
+// delivered detect_iec104_threats TypeID dispatch table (STORY-170).
 // =============================================================================
 mod story_170 {
     use wirerust::analyzer::iec104::{Asdu, detect_iec104_threats};
