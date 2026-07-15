@@ -2270,3 +2270,1205 @@ mod story_169 {
         );
     }
 }
+
+// =============================================================================
+// STORY-170: IEC-104 Control Command Detection
+//
+// Covers BC-2.19.019–022 and BC-2.19.017 [TEST] tagging.
+// All tests GREEN against the delivered detect_iec104_threats TypeID dispatch
+// (STORY-170 strict TDD; authored Red-first).
+//
+// ## Contract coverage
+// - BC-2.19.019 (AC-170-001): TypeIDs 45–47 → T1692.001 Possible only (1 finding);
+//                              TypeIDs 48–51 → T1692.001 + T0836 Possible (2 findings).
+// - BC-2.19.020 (AC-170-002): TypeID 105 → T0827 Likely (1 finding; NOT Possible).
+// - BC-2.19.021 (AC-170-003): TypeIDs 100, 101, 103 → no finding (benign admin commands).
+// - BC-2.19.022 (AC-170-004): TypeID=0 or [128,255] → T0814 Possible Anomaly.
+//   (AC-170-005): TypeIDs in defined-but-unhandled [1,127] → no finding.
+// - BC-2.19.017 (AC-170-007): cot_test=true appends " [TEST]" to every finding summary.
+//
+// ## Canonical test vectors (DF-CANONICAL-FRAME-HOLDOUT-001)
+// Used verbatim from BC-2.19.019–022 and BC-2.19.017 tables.
+//
+// ## Provenance
+// Written Red-first as TDD stubs (STORY-170 strict TDD mode); GREEN against the
+// delivered detect_iec104_threats TypeID dispatch table (STORY-170).
+// =============================================================================
+mod story_170 {
+    use wirerust::analyzer::iec104::{Asdu, detect_iec104_threats};
+    use wirerust::findings::{ThreatCategory, Verdict};
+
+    // -------------------------------------------------------------------------
+    // Test helper: build a minimal Asdu for detect_iec104_threats tests.
+    //
+    // All fields irrelevant to TypeID dispatch are set to sensible defaults.
+    // `type_id` and `cot_test` are the two fields consumed by detect_iec104_threats.
+    // -------------------------------------------------------------------------
+
+    /// Construct a minimal Asdu with a given TypeID and cot_test flag.
+    ///
+    /// Fields not relevant to STORY-170 dispatch logic are set to typical defaults:
+    /// - sq=false, count=1, cot_cause=6 (activation), cot_pn=false, cot_originator=0
+    /// - casdu=1 (RTU address 1), first_ioa=None
+    fn make_asdu(type_id: u8, cot_test: bool) -> Asdu {
+        Asdu {
+            type_id,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test,
+            cot_originator: 0,
+            casdu: 1,
+            first_ioa: None,
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.019: Control Command TypeIDs 45–51 Emit T1692.001;
+    //              Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836
+    // AC-170-001
+    // =========================================================================
+
+    /// BC-2.19.019 canonical vector: TypeID=45 (C_SC_NA_1) → exactly 1 finding.
+    ///
+    /// Canonical vector from BC-2.19.019 table: TypeID=45, CASDU=1 → T1692.001 Possible only.
+    /// Switching command: T1692.001 only; no T0836 (binary control, not parameter write).
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; invariant 1; AC-170-001; EC-001 (BC-019); EC-003 (STORY-170).
+    #[test]
+    fn test_BC_2_19_019_type45_c_sc_na1_emits_exactly_one_finding() {
+        let asdu = make_asdu(45, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=45 (C_SC_NA_1) must emit exactly 1 finding — T1692.001 only, no T0836 \
+             (BC-2.19.019 postconditions 1–2; invariant 2)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=45 emits T1692.001 Possible with Impact category.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; AC-170-001; EC-001 (BC-019); EC-003 (STORY-170).
+    #[test]
+    fn test_BC_2_19_019_type45_emits_t1692001_possible_impact() {
+        let asdu = make_asdu(45, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let f = findings
+            .first()
+            .expect("TypeID=45 must emit at least one finding (BC-2.19.019 postcondition 1)");
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T1692.001"),
+            "TypeID=45 finding must contain \"T1692.001\" in mitre_techniques \
+             (BC-2.19.019 postcondition 1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "TypeID=45 T1692.001 finding must have Verdict::Possible (BC-2.19.019 postcondition 1)"
+        );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Impact,
+            "TypeID=45 T1692.001 finding must have category Impact (BC-2.19.019; ICS command)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=45 does NOT emit T0836.
+    ///
+    /// Invariant 2: switching commands 45–47 emit T1692.001 only — no T0836.
+    ///
+    /// Traces: BC-2.19.019 invariant 2; AC-170-001 (negative); EC-003 (STORY-170).
+    #[test]
+    fn test_BC_2_19_019_type45_does_not_emit_t0836() {
+        let asdu = make_asdu(45, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=45 (switching command) must NOT emit T0836 — T0836 is for set-point/bitstring \
+             only (BC-2.19.019 invariant 2)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=46 (C_DC_NA_1) → exactly 1 finding (T1692.001 only).
+    ///
+    /// Canonical vector from BC-2.19.019 table: TypeID=46 → T1692.001 Possible only.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; invariant 2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_type46_c_dc_na1_emits_t1692001_only() {
+        let asdu = make_asdu(46, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=46 (C_DC_NA_1) must emit exactly 1 finding — T1692.001 only \
+             (BC-2.19.019 invariant 2)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=46 finding must be T1692.001 (BC-2.19.019 postcondition 1)"
+        );
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=46 must NOT emit T0836 (BC-2.19.019 invariant 2)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=47 (C_RC_NA_1) → exactly 1 finding (T1692.001 only).
+    ///
+    /// EC-007 from BC-2.19.019: TypeID=47 (C_RC_NA_1, regulating step) → T1692.001 Possible only.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; invariant 2; AC-170-001; EC-007 (BC-019).
+    #[test]
+    fn test_BC_2_19_019_type47_c_rc_na1_emits_t1692001_only() {
+        let asdu = make_asdu(47, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=47 (C_RC_NA_1, regulating step) must emit exactly 1 finding \
+             (BC-2.19.019 EC-007)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=47 finding must be T1692.001 (BC-2.19.019 postcondition 1)"
+        );
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=47 must NOT emit T0836 (BC-2.19.019 EC-007; invariant 2)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=48 (C_SE_NA_1) → exactly 2 findings.
+    ///
+    /// Set-point normalized value: T1692.001 + T0836, both Possible.
+    /// EC-006 from BC-2.19.019: TypeID=48 → T1692.001 Possible + T0836 Possible.
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001; EC-006 (BC-019).
+    #[test]
+    fn test_BC_2_19_019_type48_c_se_na1_emits_exactly_two_findings() {
+        let asdu = make_asdu(48, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=48 (C_SE_NA_1, set-point normalized) must emit exactly 2 findings: \
+             T1692.001 + T0836 (BC-2.19.019 postconditions 1–2; EC-006)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=48 emits T1692.001 Possible.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; AC-170-001; EC-006 (BC-019).
+    #[test]
+    fn test_BC_2_19_019_type48_emits_t1692001_possible() {
+        let asdu = make_asdu(48, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let has_t1692 = findings
+            .iter()
+            .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"));
+        assert!(
+            has_t1692,
+            "TypeID=48 must emit a T1692.001 finding (BC-2.19.019 postcondition 1)"
+        );
+        let t1692_finding = findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .unwrap();
+        assert_eq!(
+            t1692_finding.verdict,
+            Verdict::Possible,
+            "TypeID=48 T1692.001 finding must have Verdict::Possible (BC-2.19.019 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=48 emits T0836 Possible.
+    ///
+    /// Traces: BC-2.19.019 postcondition 2; AC-170-001; EC-006 (BC-019).
+    #[test]
+    fn test_BC_2_19_019_type48_emits_t0836_possible() {
+        let asdu = make_asdu(48, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let has_t0836 = findings
+            .iter()
+            .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
+        assert!(
+            has_t0836,
+            "TypeID=48 (C_SE_NA_1) must emit a T0836 finding (BC-2.19.019 postcondition 2)"
+        );
+        let t0836_finding = findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .unwrap();
+        assert_eq!(
+            t0836_finding.verdict,
+            Verdict::Possible,
+            "TypeID=48 T0836 finding must have Verdict::Possible (BC-2.19.019 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.019: TypeID=49 (C_SE_NB_1) → exactly 2 findings (T1692.001 + T0836).
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_type49_c_se_nb1_emits_t1692001_and_t0836() {
+        let asdu = make_asdu(49, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=49 (C_SE_NB_1) must emit exactly 2 findings (BC-2.19.019 postconditions 1–2)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=49 must emit T1692.001 (BC-2.19.019 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=49 must emit T0836 (BC-2.19.019 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.019: TypeID=50 (C_SE_NC_1) → exactly 2 findings (T1692.001 + T0836).
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_type50_c_se_nc1_emits_t1692001_and_t0836() {
+        let asdu = make_asdu(50, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=50 (C_SE_NC_1) must emit exactly 2 findings (BC-2.19.019 postconditions 1–2)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=50 must emit T1692.001 (BC-2.19.019 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=50 must emit T0836 (BC-2.19.019 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.019 canonical vector: TypeID=51 (C_BO_NA_1) → exactly 2 findings.
+    ///
+    /// Canonical vector from BC-2.19.019 table row 4: TypeID=51, CASDU=100 → T1692.001 + T0836.
+    /// Bitstring write — same as set-point regarding T0836 emission.
+    /// EC-004 (STORY-170 edge case): TypeID=51 max control — bitstring.
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001; EC-002 (BC-019); EC-004 (STORY-170).
+    #[test]
+    fn test_BC_2_19_019_type51_c_bo_na1_emits_exactly_two_findings_canonical_vector() {
+        let asdu = Asdu {
+            type_id: 51,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test: false,
+            cot_originator: 0,
+            casdu: 100, // canonical vector CASDU=100
+            first_ioa: None,
+        };
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=51 (C_BO_NA_1, bitstring) must emit exactly 2 findings: T1692.001 + T0836 \
+             (BC-2.19.019 canonical vector row 4; EC-004 STORY-170)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=51 must emit T1692.001 (BC-2.19.019 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=51 must emit T0836 (BC-2.19.019 postcondition 2; EC-004 STORY-170)"
+        );
+    }
+
+    /// BC-2.19.019 invariant: switching TypeIDs 45–47 each emit exactly 1 finding (T1692.001).
+    ///
+    /// Parameterized over all three switching command TypeIDs.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; invariant 2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_invariant_switching_types_45_to_47_each_emit_one_finding() {
+        for type_id in [45u8, 46, 47] {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            assert_eq!(
+                findings.len(),
+                1,
+                "TypeID={type_id} (switching command) must emit exactly 1 finding \
+                 (BC-2.19.019 postconditions 1–2; invariant 2)"
+            );
+            assert!(
+                findings[0]
+                    .mitre_techniques
+                    .iter()
+                    .any(|t| t == "T1692.001"),
+                "TypeID={type_id} sole finding must be T1692.001 (BC-2.19.019 postcondition 1)"
+            );
+            assert!(
+                !findings
+                    .iter()
+                    .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+                "TypeID={type_id} must NOT emit T0836 (BC-2.19.019 invariant 2)"
+            );
+        }
+    }
+
+    /// BC-2.19.019 invariant: set-point/bitstring TypeIDs 48–51 each emit exactly 2 findings.
+    ///
+    /// Parameterized over all four set-point/bitstring TypeIDs.
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_invariant_setpoint_types_48_to_51_each_emit_two_findings() {
+        for type_id in [48u8, 49, 50, 51] {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            assert_eq!(
+                findings.len(),
+                2,
+                "TypeID={type_id} (set-point/bitstring) must emit exactly 2 findings: \
+                 T1692.001 + T0836 (BC-2.19.019 postconditions 1–2)"
+            );
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+                "TypeID={type_id} must contain T1692.001 (BC-2.19.019 postcondition 1)"
+            );
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+                "TypeID={type_id} must contain T0836 (BC-2.19.019 postcondition 2)"
+            );
+        }
+    }
+
+    /// BC-2.19.019 invariant: T1692.001 is present for every control TypeID 45–51.
+    ///
+    /// Invariant 1: T1692.001 is emitted for ALL TypeIDs in 45–51 without exception.
+    ///
+    /// Traces: BC-2.19.019 invariant 1; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_invariant_t1692001_present_for_all_types_45_to_51() {
+        for type_id in 45u8..=51 {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+                "TypeID={type_id} must emit T1692.001 — invariant 1 holds for all 45–51 \
+                 (BC-2.19.019 invariant 1)"
+            );
+        }
+    }
+
+    /// BC-2.19.019 invariant: all T1692.001 and T0836 findings have Verdict::Possible.
+    ///
+    /// Verifies that no finding from TypeIDs 45–51 is Likely (not an escalation scenario).
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; AC-170-001.
+    #[test]
+    fn test_BC_2_19_019_invariant_all_findings_have_possible_verdict() {
+        for type_id in 45u8..=51 {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            for f in &findings {
+                assert_eq!(
+                    f.verdict,
+                    Verdict::Possible,
+                    "TypeID={type_id} finding verdict must be Possible — not Likely \
+                     (BC-2.19.019 postconditions 1–2)"
+                );
+            }
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.020: C_RP_NA_1 (TypeID 105) Emits T0827 "Loss of Control" Finding
+    // AC-170-002
+    // =========================================================================
+
+    /// BC-2.19.020 canonical vector: TypeID=105 → exactly 1 finding.
+    ///
+    /// EC-006 (STORY-170): TypeID=105 specifically → T0827 Likely.
+    ///
+    /// Traces: BC-2.19.020 postconditions 1–2; AC-170-002; EC-006 (STORY-170).
+    #[test]
+    fn test_BC_2_19_020_type105_c_rp_na1_emits_exactly_one_finding() {
+        let asdu = make_asdu(105, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=105 (C_RP_NA_1) must emit exactly 1 finding: T0827 only \
+             (BC-2.19.020 postcondition 1; invariant 1)"
+        );
+    }
+
+    /// BC-2.19.020 canonical vector: TypeID=105 emits T0827 Likely.
+    ///
+    /// Canonical vector from BC-2.19.020: TypeID=105 → T0827 Likely.
+    /// Critical: verdict is Likely, NOT Possible (AC-170-002 traces BC-2.19.020 v1.1).
+    ///
+    /// Traces: BC-2.19.020 postcondition 1; AC-170-002; EC-006 (STORY-170).
+    #[test]
+    fn test_BC_2_19_020_type105_emits_t0827_likely_canonical_vector() {
+        let asdu = make_asdu(105, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let f = findings
+            .first()
+            .expect("TypeID=105 must emit a T0827 finding (BC-2.19.020 postcondition 1)");
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0827"),
+            "TypeID=105 finding must contain \"T0827\" in mitre_techniques \
+             (BC-2.19.020 canonical vector)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "TypeID=105 T0827 must have Verdict::Likely — NOT Possible \
+             (BC-2.19.020 postcondition 1; v1.1 correction)"
+        );
+    }
+
+    /// BC-2.19.020 negative: TypeID=105 verdict is Likely, not Possible.
+    ///
+    /// Explicitly guards against the v1.0 bug where T0827 was emitted as Possible.
+    /// The v1.1 correction changed this to Likely (BC-2.19.020 modified note).
+    ///
+    /// Traces: BC-2.19.020 postcondition 1; AC-170-002 (v1.1 confidence correction).
+    #[test]
+    fn test_BC_2_19_020_type105_verdict_is_likely_not_possible() {
+        let asdu = make_asdu(105, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let f = findings
+            .first()
+            .expect("TypeID=105 must emit a finding (BC-2.19.020 postcondition 1)");
+        assert_ne!(
+            f.verdict,
+            Verdict::Possible,
+            "TypeID=105 T0827 must NOT be Possible — it must be Likely \
+             (BC-2.19.020 v1.1 correction; AC-170-002)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "TypeID=105 T0827 must be Verdict::Likely (BC-2.19.020 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.020 invariant 1: TypeID=105 does NOT emit T1692.001.
+    ///
+    /// Reset Process (C_RP) is a session management command, not a parameter change.
+    /// Invariant 1: only T0827 is emitted for TypeID 105.
+    ///
+    /// Traces: BC-2.19.020 invariant 1; AC-170-002 (negative).
+    #[test]
+    fn test_BC_2_19_020_type105_does_not_emit_t1692001() {
+        let asdu = make_asdu(105, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=105 must NOT emit T1692.001 — only T0827 \
+             (BC-2.19.020 invariant 1: reset is session management, not parameter change)"
+        );
+    }
+
+    /// BC-2.19.020: TypeID=105 T0827 finding has Impact category.
+    ///
+    /// "Loss of Control" is an Impact-class technique at ICS level.
+    ///
+    /// Traces: BC-2.19.020 postcondition 1; AC-170-002.
+    #[test]
+    fn test_BC_2_19_020_type105_category_is_impact() {
+        let asdu = make_asdu(105, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        let f = findings
+            .first()
+            .expect("TypeID=105 must emit a finding (BC-2.19.020)");
+        assert_eq!(
+            f.category,
+            ThreatCategory::Impact,
+            "TypeID=105 T0827 finding must have ThreatCategory::Impact (BC-2.19.020)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.021: Interrogation and Clock-Sync Commands (TypeIDs 100, 101, 103)
+    //              Are Logged Without Findings
+    // AC-170-003
+    // =========================================================================
+
+    /// BC-2.19.021 canonical vector: TypeID=100 (C_IC_NA_1) → no finding emitted.
+    ///
+    /// Canonical vector from BC-2.19.021 table: TypeID=100 → none.
+    /// General Interrogation is benign: no security finding.
+    ///
+    /// Traces: BC-2.19.021 postcondition 1; invariant 1; AC-170-003; EC-001 (BC-021).
+    #[test]
+    fn test_BC_2_19_021_type100_c_ic_emits_no_finding_canonical_vector() {
+        let asdu = make_asdu(100, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=100 (C_IC_NA_1 general interrogation) must produce no finding \
+             (BC-2.19.021 postcondition 1; canonical vector)"
+        );
+    }
+
+    /// BC-2.19.021 canonical vector: TypeID=101 (C_CI_NA_1) → no finding emitted.
+    ///
+    /// Canonical vector from BC-2.19.021 table: TypeID=101 → none.
+    /// Counter Interrogation is benign: no security finding.
+    ///
+    /// Traces: BC-2.19.021 postcondition 1; invariant 1; AC-170-003; EC-002 (BC-021).
+    #[test]
+    fn test_BC_2_19_021_type101_c_ci_emits_no_finding_canonical_vector() {
+        let asdu = make_asdu(101, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=101 (C_CI_NA_1 counter interrogation) must produce no finding \
+             (BC-2.19.021 postcondition 1; canonical vector)"
+        );
+    }
+
+    /// BC-2.19.021 canonical vector: TypeID=103 (C_CS_NA_1) → no finding emitted.
+    ///
+    /// Canonical vector from BC-2.19.021 table: TypeID=103 → none.
+    /// Clock Synchronization is benign: no security finding.
+    ///
+    /// Traces: BC-2.19.021 postcondition 1; invariant 1; AC-170-003; EC-003 (BC-021).
+    #[test]
+    fn test_BC_2_19_021_type103_c_cs_emits_no_finding_canonical_vector() {
+        let asdu = make_asdu(103, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=103 (C_CS_NA_1 clock sync) must produce no finding \
+             (BC-2.19.021 postcondition 1; canonical vector)"
+        );
+    }
+
+    /// BC-2.19.021 invariant: all three interrogation/clock-sync TypeIDs produce empty findings.
+    ///
+    /// Parameterized over {100, 101, 103} to verify no-finding invariant holds for all three.
+    /// Critical: this tests the false-positive-prevention that was fixed in STORY-170 v2.0.
+    /// The old (buggy) spec erroneously emitted T0827 for these TypeIDs.
+    ///
+    /// Traces: BC-2.19.021 postconditions 1–3; invariant 1; AC-170-003.
+    #[test]
+    fn test_BC_2_19_021_invariant_all_interrogation_types_emit_no_finding() {
+        for type_id in [100u8, 101, 103] {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            assert!(
+                findings.is_empty(),
+                "TypeID={type_id} (interrogation/clock-sync) must emit no finding — \
+                 benign administrative command (BC-2.19.021 postcondition 1; invariant 1)"
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.022: Reserved or Invalid TypeID Emits T0814 Anomaly
+    // AC-170-004 (TypeID=0 or [128,255]) and AC-170-005 ([1,127] defined unhandled)
+    // =========================================================================
+
+    /// BC-2.19.022 canonical vector: TypeID=0 → T0814 Possible Anomaly.
+    ///
+    /// Canonical vector from BC-2.19.022 table row 1: TypeID=0 → T0814 Possible.
+    /// TypeID=0 is undefined by IEC 60870-5-104. EC-001 (STORY-170) and EC-001 (BC-022).
+    ///
+    /// Traces: BC-2.19.022 precondition 2; postcondition 1; invariant 1; AC-170-004;
+    ///         EC-001 (BC-022); EC-001 (STORY-170).
+    #[test]
+    fn test_BC_2_19_022_type0_undefined_emits_t0814_anomaly_canonical_vector() {
+        let asdu = make_asdu(0, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=0 must emit exactly 1 finding: T0814 Anomaly \
+             (BC-2.19.022 canonical vector; EC-001 BC-022 and STORY-170)"
+        );
+        let f = &findings[0];
+        assert!(
+            f.mitre_techniques.iter().any(|t| t == "T0814"),
+            "TypeID=0 finding must contain \"T0814\" in mitre_techniques \
+             (BC-2.19.022 postcondition 1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "TypeID=0 T0814 must have Verdict::Possible (BC-2.19.022 postcondition 1)"
+        );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "TypeID=0 T0814 must have ThreatCategory::Anomaly (BC-2.19.022 title: 'Anomaly')"
+        );
+    }
+
+    /// BC-2.19.022 canonical vector: TypeID=128 → T0814 Possible.
+    ///
+    /// Canonical vector from BC-2.19.022 table row 2: TypeID=128 → T0814 Possible.
+    /// 128 is the start of the private-use/reserved range.
+    ///
+    /// Traces: BC-2.19.022 precondition 2; postcondition 1; AC-170-004; EC-002 (BC-022).
+    #[test]
+    fn test_BC_2_19_022_type128_emits_t0814_possible_canonical_vector() {
+        let asdu = make_asdu(128, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=128 must emit exactly 1 finding: T0814 Possible \
+             (BC-2.19.022 canonical vector EC-002)"
+        );
+        assert!(
+            findings[0].mitre_techniques.iter().any(|t| t == "T0814"),
+            "TypeID=128 must emit T0814 (BC-2.19.022 canonical vector)"
+        );
+        assert_eq!(
+            findings[0].verdict,
+            Verdict::Possible,
+            "TypeID=128 T0814 must be Possible (BC-2.19.022 postcondition 1)"
+        );
+        assert_eq!(
+            findings[0].category,
+            ThreatCategory::Anomaly,
+            "TypeID=128 T0814 must be Anomaly (BC-2.19.022)"
+        );
+    }
+
+    /// BC-2.19.022 canonical vector: TypeID=255 → T0814 Possible.
+    ///
+    /// Canonical vector from BC-2.19.022 table row 3: TypeID=255 → T0814 Possible.
+    /// Maximum TypeID value — private-use/reserved range.
+    /// EC-008 (STORY-170): TypeID=255 (max, private-use/reserved) → T0814 Possible.
+    ///
+    /// Traces: BC-2.19.022 postcondition 1; AC-170-004; EC-003 (BC-022); EC-008 (STORY-170).
+    #[test]
+    fn test_BC_2_19_022_type255_emits_t0814_possible_canonical_vector() {
+        let asdu = make_asdu(255, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=255 must emit exactly 1 finding: T0814 Possible \
+             (BC-2.19.022 canonical vector EC-003; EC-008 STORY-170)"
+        );
+        assert!(
+            findings[0].mitre_techniques.iter().any(|t| t == "T0814"),
+            "TypeID=255 must emit T0814 (BC-2.19.022 canonical vector)"
+        );
+        assert_eq!(
+            findings[0].verdict,
+            Verdict::Possible,
+            "TypeID=255 T0814 must be Possible (BC-2.19.022 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=200 (mid-range private-use) → T0814 Possible.
+    ///
+    /// Additional reserved TypeID in the middle of the 128–255 range.
+    ///
+    /// Traces: BC-2.19.022 postcondition 1; AC-170-004.
+    #[test]
+    fn test_BC_2_19_022_type200_private_use_emits_t0814_possible() {
+        let asdu = make_asdu(200, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=200 (private-use range) must emit 1 finding: T0814 Possible \
+             (BC-2.19.022 postcondition 1)"
+        );
+        assert!(
+            findings[0].mitre_techniques.iter().any(|t| t == "T0814"),
+            "TypeID=200 must emit T0814 (BC-2.19.022 postcondition 1)"
+        );
+    }
+
+    /// BC-2.19.022 canonical vector: TypeID=44 (max monitoring, defined-but-unhandled) → no finding.
+    ///
+    /// Canonical vector from BC-2.19.022 table row 4: TypeID=44 → no finding (silently logged).
+    /// EC-002 (STORY-170): TypeID=44 (max monitoring, defined-but-unhandled) → no finding.
+    /// TypeID=44 is defined by IEC 60870-5-104 as a monitoring-direction TypeID.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005; EC-004 (BC-022); EC-002 (STORY-170).
+    #[test]
+    fn test_BC_2_19_022_type44_max_monitoring_emits_no_finding_canonical_vector() {
+        let asdu = make_asdu(44, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=44 (max monitoring TypeID, defined-but-unhandled) must produce no finding — \
+             silently logged (BC-2.19.022 canonical vector EC-004; EC-002 STORY-170)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=52 (RESERVED per IEC 60870-5-104, above control range) → no finding.
+    ///
+    /// TypeID=52 is RESERVED in IEC 60870-5-104; it is NOT in the control-command range [45–51].
+    /// Per BC-2.19.022 invariant 1: defined-but-unhandled TypeIDs in [1,127] → silently logged.
+    /// EC-005 (STORY-170): TypeID=52 → no finding.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005; EC-004 (BC-019); EC-005 (STORY-170).
+    #[test]
+    fn test_BC_2_19_022_type52_reserved_above_control_range_emits_no_finding() {
+        let asdu = make_asdu(52, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=52 (RESERVED, above control range 45–51) must produce no finding — \
+             silently logged per BC-2.19.022 invariant 1; EC-005 STORY-170"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=99 (defined range above control, below interrogation) → no finding.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005.
+    #[test]
+    fn test_BC_2_19_022_type99_defined_unhandled_emits_no_finding() {
+        let asdu = make_asdu(99, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=99 (defined-but-unhandled) must produce no finding \
+             (BC-2.19.022 invariant 1; AC-170-005)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=102 (C_RD_NA_1 Read Command, defined but not in any detection set) → no finding.
+    ///
+    /// EC-007 (STORY-170): TypeID=102 (C_RD_NA_1) → no finding; silently logged.
+    /// Also matches BC-2.19.021 invariant 2: TypeID 102 is explicitly NOT in {100,101,103}.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005; EC-004 (BC-021); EC-007 (STORY-170).
+    #[test]
+    fn test_BC_2_19_022_type102_c_rd_not_in_detection_set_emits_no_finding() {
+        let asdu = make_asdu(102, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=102 (C_RD_NA_1, defined but not in detection set) must produce no finding — \
+             silently logged (BC-2.19.022 invariant 1; EC-007 STORY-170)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=104 (defined range, between C_RP and C_IC) → no finding.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005.
+    #[test]
+    fn test_BC_2_19_022_type104_defined_unhandled_emits_no_finding() {
+        let asdu = make_asdu(104, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=104 (defined-but-unhandled, between C_RP and C_IC) must produce no finding \
+             (BC-2.19.022 invariant 1; AC-170-005)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=127 (max defined-but-unhandled in [1,127]) → no finding.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005.
+    #[test]
+    fn test_BC_2_19_022_type127_max_defined_unhandled_emits_no_finding() {
+        let asdu = make_asdu(127, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=127 (maximum defined-but-unhandled value in [1,127]) must produce no finding \
+             (BC-2.19.022 invariant 1; AC-170-005)"
+        );
+    }
+
+    /// BC-2.19.022: TypeID=1 (minimum defined-but-unhandled monitoring TypeID) → no finding.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005.
+    #[test]
+    fn test_BC_2_19_022_type1_minimum_defined_unhandled_emits_no_finding() {
+        let asdu = make_asdu(1, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            findings.is_empty(),
+            "TypeID=1 (minimum defined-but-unhandled monitoring TypeID) must produce no finding \
+             (BC-2.19.022 invariant 1; AC-170-005)"
+        );
+    }
+
+    /// BC-2.19.022 invariant: a representative sample of defined-but-unhandled TypeIDs emit no finding.
+    ///
+    /// Tests {1, 30, 44, 52, 99, 102, 104, 127} — all silently logged with no findings.
+    /// Ensures the silent-log path is exhaustive for a cross-section of the [1,127] range.
+    ///
+    /// Traces: BC-2.19.022 invariant 1; AC-170-005; AC-170-006.
+    #[test]
+    fn test_BC_2_19_022_invariant_silent_range_sample_emits_no_findings() {
+        // Defined-but-unhandled TypeIDs that must produce no finding:
+        // 1–44: monitoring direction; 52–99: above control range;
+        // 102: C_RD (read, not detection set); 104: between C_RP and C_IC; 106–127: future
+        let silent_type_ids: &[u8] = &[1, 30, 44, 52, 99, 102, 104, 106, 127];
+        for &type_id in silent_type_ids {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            assert!(
+                findings.is_empty(),
+                "TypeID={type_id} (defined-but-unhandled in [1,127]) must produce no finding — \
+                 silently logged (BC-2.19.022 invariant 1; AC-170-005)"
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.017: cot_test=true Tags Finding Summaries with " [TEST]"
+    // AC-170-007
+    // =========================================================================
+
+    /// BC-2.19.017 canonical vector: TypeID=45, cot_test=true → summary ends with " [TEST]".
+    ///
+    /// EC-009 (STORY-170): cot_test=true with TypeID=45 (control command test frame) →
+    /// T1692.001 Possible emitted with ` [TEST]` appended to Finding::summary.
+    ///
+    /// Traces: BC-2.19.017 invariant 1; AC-170-007; EC-001 (BC-017); EC-009 (STORY-170).
+    #[test]
+    fn test_BC_2_19_017_cot_test_true_control_command_summary_has_test_tag() {
+        let asdu = make_asdu(45, true);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=45 must emit at least one finding (precondition for [TEST] tagging test)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.contains(" [TEST]"),
+                "TypeID=45 with cot_test=true: finding summary must contain \" [TEST]\" — \
+                 (BC-2.19.017 invariant 1; AC-170-007; EC-009 STORY-170) \
+                 actual summary: {:?}",
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.017 negative: TypeID=45, cot_test=false → summary does NOT contain " [TEST]".
+    ///
+    /// The [TEST] tag must only appear when cot_test=true. Normal operational findings
+    /// must not be polluted with the test marker.
+    ///
+    /// Traces: BC-2.19.017 invariant 1 (contrapositive); AC-170-007 (negative).
+    #[test]
+    fn test_BC_2_19_017_cot_test_false_control_command_summary_has_no_test_tag() {
+        let asdu = make_asdu(45, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        for f in &findings {
+            assert!(
+                !f.summary.contains(" [TEST]"),
+                "TypeID=45 with cot_test=false: finding summary must NOT contain \" [TEST]\" — \
+                 test tag must only appear when cot_test=true \
+                 (BC-2.19.017 invariant 1 contrapositive; AC-170-007) \
+                 actual summary: {:?}",
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.017: TypeID=105 (T0827), cot_test=true → summary contains " [TEST]".
+    ///
+    /// The [TEST] tag applies to ALL finding types, including T0827 Loss of Control.
+    ///
+    /// Traces: BC-2.19.017 invariant 1; AC-170-007.
+    #[test]
+    fn test_BC_2_19_017_cot_test_true_t0827_summary_has_test_tag() {
+        let asdu = make_asdu(105, true);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=105 must emit a T0827 finding (precondition for [TEST] tag test)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.contains(" [TEST]"),
+                "TypeID=105 (T0827) with cot_test=true: finding summary must contain \" [TEST]\" \
+                 (BC-2.19.017 invariant 1; AC-170-007) actual summary: {:?}",
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.017: TypeID=48 (T1692.001 + T0836), cot_test=true → both findings have " [TEST]".
+    ///
+    /// When cot_test=true on a set-point TypeID, BOTH co-emitted findings must be tagged.
+    ///
+    /// Traces: BC-2.19.017 invariant 1; AC-170-007; BC-2.19.019 postcondition 2.
+    #[test]
+    fn test_BC_2_19_017_cot_test_true_setpoint_both_findings_have_test_tag() {
+        let asdu = make_asdu(48, true);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=48 with cot_test=true must still emit 2 findings \
+             (BC-2.19.019 postconditions 1–2; cot_test does not suppress findings)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.contains(" [TEST]"),
+                "TypeID=48 with cot_test=true: ALL findings must have \" [TEST]\" in summary — \
+                 found summary without tag: {:?} (BC-2.19.017 invariant 1; AC-170-007)",
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.017: TypeID=128 (T0814 reserved), cot_test=true → summary contains " [TEST]".
+    ///
+    /// The [TEST] tag applies to T0814 anomaly findings as well.
+    ///
+    /// Traces: BC-2.19.017 invariant 1; AC-170-007; BC-2.19.022 postcondition 1.
+    #[test]
+    fn test_BC_2_19_017_cot_test_true_t0814_reserved_type_summary_has_test_tag() {
+        let asdu = make_asdu(128, true);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=128 must emit a T0814 finding (precondition for [TEST] tag test)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.contains(" [TEST]"),
+                "TypeID=128 (T0814 reserved) with cot_test=true: finding summary must contain \
+                 \" [TEST]\" (BC-2.19.017 invariant 1; AC-170-007) actual summary: {:?}",
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.017 invariant: cot_test=false never produces " [TEST]" in any finding.
+    ///
+    /// Tests a representative cross-section of TypeIDs that emit findings:
+    /// {45 (T1692.001), 48 (T1692.001+T0836), 105 (T0827), 128 (T0814)}.
+    /// For all, cot_test=false → no finding has " [TEST]" in summary.
+    ///
+    /// Traces: BC-2.19.017 invariant 1 (contrapositive); AC-170-007 (negative).
+    #[test]
+    fn test_BC_2_19_017_invariant_cot_test_false_never_adds_test_tag() {
+        let detection_type_ids: &[u8] = &[45, 48, 105, 128];
+        for &type_id in detection_type_ids {
+            let asdu = make_asdu(type_id, false);
+            let mut findings = Vec::new();
+            detect_iec104_threats(&asdu, &mut findings);
+            for f in &findings {
+                assert!(
+                    !f.summary.contains(" [TEST]"),
+                    "TypeID={type_id} with cot_test=false must NOT have \" [TEST]\" in summary — \
+                     found: {:?} (BC-2.19.017 invariant 1 contrapositive; AC-170-007)",
+                    f.summary
+                );
+            }
+        }
+    }
+
+    // =========================================================================
+    // F-170-001: CASDU and first_ioa target-address context in findings
+    // BC-2.19.019 postcondition 3, BC-2.19.020 postcondition 2
+    // =========================================================================
+
+    /// F-170-001: CASDU appears in finding evidence for a control command TypeID.
+    ///
+    /// TypeID=48 (C_SE_NA_1) with casdu=100 → at least one finding.evidence entry
+    /// contains "CASDU=100". Verifies BC-2.19.019 postcondition 3 requirement that
+    /// every control-command finding carries ASDU-layer target-address context.
+    ///
+    /// Traces: BC-2.19.019 postcondition 3; BC-2.19.020 postcondition 2; F-170-001.
+    #[test]
+    fn test_F_170_001_casdu_appears_in_finding_evidence_for_control_type() {
+        let asdu = Asdu {
+            type_id: 48,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test: false,
+            cot_originator: 0,
+            casdu: 100,
+            first_ioa: None,
+        };
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=48 must emit findings (precondition for CASDU evidence check)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.evidence.iter().any(|e| e.contains("CASDU=100"))),
+            "TypeID=48 with casdu=100: at least one finding.evidence entry must contain \
+             \"CASDU=100\" (BC-2.19.019 postcondition 3; F-170-001)"
+        );
+    }
+
+    /// F-170-001: first_ioa appears in finding evidence when asdu.first_ioa is Some.
+    ///
+    /// TypeID=48 with first_ioa=Some(0x1234)=4660 → at least one finding.evidence entry
+    /// contains "first_ioa=4660". Verifies BC-2.19.019 postcondition 3 IOA field.
+    ///
+    /// Traces: BC-2.19.019 postcondition 3; BC-2.19.020 postcondition 2; F-170-001.
+    #[test]
+    fn test_F_170_001_first_ioa_appears_in_finding_evidence_when_some() {
+        let asdu = Asdu {
+            type_id: 48,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test: false,
+            cot_originator: 0,
+            casdu: 1,
+            first_ioa: Some(0x1234), // decimal 4660
+        };
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=48 must emit findings (precondition for first_ioa evidence check)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.evidence.iter().any(|e| e.contains("first_ioa=4660"))),
+            "TypeID=48 with first_ioa=Some(0x1234=4660): at least one finding.evidence entry \
+             must contain \"first_ioa=4660\" (BC-2.19.019 postcondition 3; F-170-001)"
+        );
+    }
+
+    /// BC-2.19.017 start_idx guard: pre-existing findings are NOT re-tagged with [TEST].
+    ///
+    /// Calls detect_iec104_threats with a non-empty findings Vec (pre-populated with a
+    /// dummy Finding), then emits for TypeID=45 with cot_test=true. Asserts that the
+    /// PRE-EXISTING finding is NOT re-tagged with " [TEST]" — only findings pushed
+    /// during this call are tagged. Proves the start_idx shared-accumulator logic
+    /// (STORY-173 path; BC-2.19.017 invariant 1 scoping).
+    ///
+    /// Traces: BC-2.19.017 invariant 1; AC-170-007; start_idx accumulator guard.
+    #[test]
+    fn test_BC_2_19_017_start_idx_guard_preexisting_finding_not_tagged() {
+        use wirerust::findings::{Confidence, Finding};
+
+        let dummy = Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Possible,
+            confidence: Confidence::Low,
+            summary: "pre-existing dummy finding from prior call".to_string(),
+            evidence: vec!["dummy evidence".to_string()],
+            mitre_techniques: vec!["T9999".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        };
+        let mut findings = vec![dummy];
+
+        let asdu = make_asdu(45, true); // cot_test=true → new findings get [TEST]
+        detect_iec104_threats(&asdu, &mut findings);
+
+        // The pre-existing finding (index 0) must NOT be tagged:
+        assert!(
+            !findings[0].summary.contains(" [TEST]"),
+            "pre-existing finding must NOT be tagged with \" [TEST]\" — \
+             start_idx logic must only tag findings emitted by this call \
+             (BC-2.19.017 invariant 1; start_idx accumulator guard)"
+        );
+        // New findings (from index 1 onward) must have [TEST]:
+        assert!(
+            findings.len() > 1,
+            "TypeID=45 with cot_test=true must emit at least one new finding \
+             after the pre-existing one (precondition for new-findings [TEST] check)"
+        );
+        assert!(
+            findings[1..].iter().all(|f| f.summary.contains(" [TEST]")),
+            "all NEW findings emitted by this call must have \" [TEST]\" in summary \
+             (BC-2.19.017 invariant 1; cot_test=true; start_idx accumulator guard)"
+        );
+    }
+}

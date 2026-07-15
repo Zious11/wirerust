@@ -9,6 +9,50 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 control command detection: `detect_iec104_threats` (STORY-170, wave-79,
+  BC-2.19.017/019–022, ADR-013 Decision 8).**
+
+  Implements TypeID dispatch for the IEC-104 passive analyzer in `src/analyzer/iec104.rs`:
+
+  - TypeIDs 45–47 (C_SC_NA_1, C_DC_NA_1, C_RC_NA_1 — switching commands): emit T1692.001
+    "Unauthorized Message: Command Message" with `Verdict::Possible`, `ThreatCategory::Impact`
+    (BC-2.19.019 postcondition 1; invariant 2).
+
+  - TypeIDs 48–51 (C_SE_NA_1, C_SE_NB_1, C_SE_NC_1, C_BO_NA_1 — set-point/bitstring writes):
+    emit T1692.001 Possible AND T0836 "Modify Parameter" Possible — two findings per ASDU
+    (BC-2.19.019 postconditions 1–2).
+
+  - TypeID 105 (C_RP_NA_1 — Reset Process Command): emit T0827 "Loss of Control" with
+    `Verdict::Likely` (BC-2.19.020; v1.1 correction: Likely, not Possible).
+
+  - TypeIDs 100, 101, 103 (C_IC_NA_1, C_CI_NA_1, C_CS_NA_1 — interrogation/clock-sync):
+    no finding emitted — benign administrative commands (BC-2.19.021 postcondition 1).
+
+  - TypeID=0 or TypeID in [128, 255] (undefined/private-use/reserved): emit T0814 "Denial
+    of Service" with `Verdict::Possible`, `ThreatCategory::Anomaly` (BC-2.19.022
+    postcondition 1). TypeIDs in [1, 127] not in any detection set are silently logged
+    with no finding (BC-2.19.022 invariant 1).
+
+  - `cot_test=true` tagging: when `asdu.cot_test == true`, ` [TEST]` is appended to every
+    emitted finding's `summary` field for analyst noise reduction (BC-2.19.017 invariant 1;
+    AC-170-007).
+
+  - **CASDU and first_ioa target-address context in findings (Pass-1 adversarial
+    remediation, F-170-001; BC-2.19.019 postcondition 3; BC-2.19.020 postcondition 2).**
+    Every finding emitted by `detect_iec104_threats` now includes `"CASDU=<value>"` as
+    an evidence entry (always present) and `"first_ioa=<decimal>"` when
+    `asdu.first_ioa` is `Some` — enabling analysts to identify which RTU/IED and IO
+    address was targeted by the control command. Applied to all four finding-emitting
+    arms: TypeIDs 45–47 (T1692.001), 48–51 (T1692.001 + T0836, both findings), 105
+    (T0827), and 0/128–255 (T0814). The `[TEST]` tagging path operates on `summary`
+    only and is unaffected by the evidence additions.
+
+  45 new tests in `tests/iec104_analyzer_tests.rs` (mod `story_170`); combined IEC-104 suite
+  is now 136 tests (story_167: 30, story_168: 34, story_169: 27, story_170: 45).
+  Pass-1 adversarial additions (F-170-001): `test_F_170_001_casdu_appears_in_finding_evidence_for_control_type`,
+  `test_F_170_001_first_ioa_appears_in_finding_evidence_when_some`,
+  `test_BC_2_19_017_start_idx_guard_preexisting_finding_not_tagged`.
+
 - **IEC-104 ASDU DUI header extraction: `parse_asdu` + `Asdu` struct (STORY-169, wave-78,
   BC-2.19.015–018, ADR-013 Decision 8).**
 
