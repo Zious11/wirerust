@@ -50,12 +50,13 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@c93f4f9c67595668add93d3d6895795ce52d8c2d  # stable
+        # Pinned to master, which accepts an explicit `toolchain` input. The
+        # SHA-pinned versioned-branch snapshot used in jira-cli hardcodes its
+        # toolchain (1.85.0) and ignores the input; jira-cli gets away with it
+        # because its rust-toolchain.toml pins channel = stable, but wirerust
+        # carries no rust-toolchain.toml (requires rustc 1.91+).
+        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88  # master
         with:
-          # With a SHA-pinned action ref, dtolnay/rust-toolchain cannot infer
-          # the toolchain from the ref name — pass it explicitly. (jira-cli
-          # gets away without this because its rust-toolchain.toml pins the
-          # channel; wirerust has no rust-toolchain.toml.)
           toolchain: stable
           targets: ${{ matrix.target }}
 
