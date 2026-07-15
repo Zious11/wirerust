@@ -18,23 +18,31 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - `Iec104Analyzer::on_data(flow_key, data, ts, direction)`: effectful shell that
     prepends the directional carry buffer to the delivery, walks the combined buffer
     processing every complete APCI frame, and stashes any incomplete tail back into
-    the directional carry. Carry overflow (carry.len() + data.len() > 255) emits
-    T0814 `Anomaly/Possible/Medium` and retains the prior carry unchanged, discarding
-    the entire delivery (BC-2.19.025 canonical vectors; SEC-001-S168 closure).
-    Malformed-LEN frames (valid 0x68 + LEN outside [4, 253]) advance 2 bytes and emit
-    ONE T0814 on the first occurrence per direction via per-direction dedup flags
-    `malformed_len_reported_c2s` / `malformed_len_reported_s2c` (BC-2.19.026 invariant
-    5; EMIT-WITH-DEDUP). Bad start bytes advance 1 byte with no finding. Complete valid
-    frames are dispatched to `process_u_frame`, `parse_asdu` + `detect_iec104_threats`,
-    or `track_ns_desync` per frame format. VP-047 fuzz target (`fuzz_iec104_parser`).
+    the directional carry. WALK-FIRST-RESIDUAL-BOUND carry-overflow guard (F-172-001):
+    the directional carry alone is checked against MAX_IEC104_CARRY_BYTES=255 (not the
+    aggregate carry+delivery); if carry.len() > 255 (adversarial state injection;
+    unreachable from conformant traffic), the carry is cleared and ONE T0814
+    `Anomaly/Possible/Medium` emitted on the first overflow per direction via
+    per-direction dedup flags `carry_overflow_reported_c2s` /
+    `carry_overflow_reported_s2c` (BC-2.19.025 v1.2 invariants 4–5; SEC-001-S168
+    defense-in-depth). The delivery is always walked regardless — no delivery is ever
+    discarded before frame extraction (anti-evasion per F-172-001 and Ptacek/Newsham
+    1998; BC-2.19.025 invariant 2). Malformed-LEN frames (valid 0x68 + LEN outside
+    [4, 253]) advance 2 bytes and emit ONE T0814 on the first occurrence per direction
+    via per-direction dedup flags `malformed_len_reported_c2s` /
+    `malformed_len_reported_s2c` (BC-2.19.026 invariant 5; EMIT-WITH-DEDUP). Bad start
+    bytes advance 1 byte with no finding. Complete valid frames are dispatched to
+    `process_u_frame`, `parse_asdu` + `detect_iec104_threats`, or `track_ns_desync`
+    per frame format. VP-047 fuzz target (`fuzz_iec104_parser`).
 
   - `Iec104Analyzer::on_flow_close(flow_key)`: removes the `Iec104FlowState` entry
     from the flow map; carry bytes are silently discarded (dropped with the state);
     no finding emitted; unknown flow keys are a no-op (BC-2.19.027).
 
-  - `Iec104FlowState` now fully wired with all 7 fields: `carry_c2s`, `carry_s2c`,
+  - `Iec104FlowState` now fully wired with all 9 fields: `carry_c2s`, `carry_s2c`,
     `session_started`, `last_ns_c2s`, `last_ns_s2c`, `malformed_len_reported_c2s`,
-    `malformed_len_reported_s2c`.
+    `malformed_len_reported_s2c`, `carry_overflow_reported_c2s`,
+    `carry_overflow_reported_s2c`.
 
   - VP-045 proptest skeletons `proptest_vp045_direction_isolation` and
     `proptest_vp045_independent_run_equivalence` in `tests/iec104_analyzer_tests.rs`

@@ -4602,7 +4602,12 @@ mod story_172 {
 
         // Step 1: deliver first 200 bytes of the frame (exercises the carry-stash path).
         // carry_c2s must hold 200 bytes after this call; no finding emitted.
-        analyzer.on_data(flow_key.clone(), &frame_255[..200], 0, Direction::ClientToServer);
+        analyzer.on_data(
+            flow_key.clone(),
+            &frame_255[..200],
+            0,
+            Direction::ClientToServer,
+        );
         {
             let state = analyzer.flows.get(&flow_key).unwrap();
             assert_eq!(
@@ -4627,7 +4632,11 @@ mod story_172 {
         // Walk: consume 255-byte frame → T0827; stash 45-byte partial as residual.
         let mut delivery = frame_255[200..].to_vec(); // 55 bytes completing the 255-byte frame
         delivery.extend_from_slice(&partial_frame_45); // + 45-byte partial tail
-        assert_eq!(delivery.len(), 100, "delivery for step 2 must be exactly 100 bytes");
+        assert_eq!(
+            delivery.len(),
+            100,
+            "delivery for step 2 must be exactly 100 bytes"
+        );
 
         analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
 
@@ -4635,7 +4644,10 @@ mod story_172 {
         // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(200)+delivery(100)=300>255 → T0814 emitted,
         // delivery discarded before frame extraction → no T0827. This assertion FAILS v1.1.
         assert!(
-            analyzer.all_findings.iter().any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
             "Vector (i): 255-byte TypeID-105 I-frame must be dispatched and emit T0827 \
              (BC-2.19.025 v1.2 walk-first: no pre-check-discard-all; F-172-001)"
         );
@@ -4704,7 +4716,11 @@ mod story_172 {
         // Single 300-byte delivery: 255-byte complete frame + 45-byte partial tail.
         let mut delivery = frame_255.clone();
         delivery.extend_from_slice(&partial_frame_45);
-        assert_eq!(delivery.len(), 300, "Vector (ii) delivery must be exactly 300 bytes");
+        assert_eq!(
+            delivery.len(),
+            300,
+            "Vector (ii) delivery must be exactly 300 bytes"
+        );
 
         // carry_s2c is empty before this call (no prior carry).
         analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ServerToClient);
@@ -4713,7 +4729,10 @@ mod story_172 {
         // Under PRE-CHECK-DISCARD-ALL (v1.1): carry(0)+delivery(300)=300>255 → T0814, discard.
         // This assertion FAILS v1.1.
         assert!(
-            analyzer.all_findings.iter().any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
             "Vector (ii): S2C 255-byte TypeID-105 frame must be dispatched and emit T0827 \
              (BC-2.19.025 v1.2 walk-first; F-172-001)"
         );

@@ -171,10 +171,11 @@ pub const MAX_IEC104_CARRY_BYTES: usize = 255;
 
 /// Per-flow state for the IEC-104 passive analyzer (SS-19, ADR-013).
 ///
-/// Seven fields per the SS-19 architecture shard (v1.6). `session_started` and the carry
+/// Nine fields per the SS-19 architecture shard. `session_started` and the carry
 /// buffers are introduced and wired in STORY-168. `last_ns_c2s`/`last_ns_s2c` are declared
 /// and wired in STORY-171 (N(S) desync detection, BC-2.19.024). The two malformed-LEN
-/// per-direction dedup flags are added in STORY-172 (BC-2.19.026 invariant 5).
+/// per-direction dedup flags and the two carry-overflow per-direction dedup flags are
+/// fully wired in STORY-172 (BC-2.19.026 invariant 5; BC-2.19.025 invariants 4–5).
 ///
 /// ## Fields
 /// - `carry_c2s`: reassembly carry buffer for C→S direction; max `MAX_IEC104_CARRY_BYTES`
@@ -225,12 +226,11 @@ pub struct Iec104FlowState {
     /// Set on the first carry-overflow event in C→S; suppresses T0814 re-emission for that
     /// direction within the flow lifetime. SEPARATE from `malformed_len_reported_c2s` so
     /// that the two anomaly classes cannot suppress each other (BC-2.19.025 invariant 4;
-    /// F-172-001; STORY-172). Stub field — wired in F-172-001 remediation implementation.
+    /// F-172-001; STORY-172). Wired in `on_data` carry-overflow check.
     pub carry_overflow_reported_c2s: bool,
     /// One-shot dedup flag for carry-residual-overflow T0814 emission in S→C direction.
     /// Same semantics as `carry_overflow_reported_c2s` but for S→C direction.
-    /// (BC-2.19.025 invariant 4; F-172-001; STORY-172). Stub field — wired in F-172-001
-    /// remediation implementation.
+    /// (BC-2.19.025 invariant 4; F-172-001; STORY-172). Wired in `on_data` carry-overflow check.
     pub carry_overflow_reported_s2c: bool,
 }
 
@@ -1061,10 +1061,16 @@ impl Iec104Analyzer {
     ///
     /// Effectful shell per ADR-013 Decision 8. VP-047 cargo-fuzz target (`fuzz_iec104_parser`).
     ///
+    /// WALK-FIRST RESIDUAL-BOUND semantics (BC-2.19.025 v1.2, F-172-001, ADR-013 Decision 2):
+    /// No aggregate pre-check on `carry.len() + delivery.len()`. Frame extraction always
+    /// completes before any carry-bound reaction. The only pre-walk check is on the directional
+    /// carry alone: if carry.len() > MAX_IEC104_CARRY_BYTES (adversarial state injection;
+    /// unreachable from conformant traffic), carry is cleared and ONE T0814 emitted per
+    /// direction (dedup flags carry_overflow_reported_{c2s/s2c}; BC-2.19.025 invariants 4–5).
+    /// The delivery is always walked regardless (anti-evasion invariant 2).
+    ///
     /// Frame-walk loop (BC-2.19.026 / ADR-013 Decision 3):
-    /// - Pre-check carry overflow before any processing: if carry.len() + data.len() >
-    ///   MAX_IEC104_CARRY_BYTES, retain prior carry unchanged, emit T0814, discard delivery.
-    /// - Drain directional carry into working buffer; extend with data.
+    /// - Drain directional carry into working buffer; extend with delivery.
     /// - Loop: bad-start-byte → advance 1, no finding; malformed-LEN → advance 2,
     ///   emit T0814 EMIT-WITH-DEDUP on first occurrence per direction (BC-2.19.026
     ///   invariant 5); valid frame → parse + dispatch + advance LEN+2; insufficient data
@@ -1075,52 +1081,56 @@ impl Iec104Analyzer {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
         let _ = ts;
 
-        // Ensure the flow state entry exists and read carry length for the overflow
-        // pre-check. The borrow is released at the end of this block so that
-        // self.all_findings can be mutated independently below.
-        let carry_len = {
-            let state = self.flows.entry(flow_key.clone()).or_default();
-            if direction == Direction::ClientToServer {
-                state.carry_c2s.len()
-            } else {
-                state.carry_s2c.len()
-            }
-        };
-
-        // BC-2.19.025 carry-overflow pre-check (canonical vectors EC-002 / EC-003):
-        // if carry.len() + data.len() > MAX, retain prior carry unchanged, emit T0814,
-        // discard the entire delivery. The carry is NOT drained — it keeps its prior bytes.
-        if carry_len + data.len() > MAX_IEC104_CARRY_BYTES {
-            self.all_findings.push(Finding {
-                category: ThreatCategory::Anomaly,
-                verdict: Verdict::Possible,
-                confidence: Confidence::Medium,
-                summary: format!(
-                    "IEC-104 carry buffer overflow: incoming delivery of {} bytes would \
-                     extend carry from {carry_len} to {} bytes, exceeding \
-                     MAX_IEC104_CARRY_BYTES={MAX_IEC104_CARRY_BYTES} — possible \
-                     denial-of-service attack (T0814; BC-2.19.025)",
-                    data.len(),
-                    carry_len + data.len(),
-                ),
-                evidence: vec![format!(
-                    "carry_len={carry_len}, delivery_len={}, max={MAX_IEC104_CARRY_BYTES}",
-                    data.len(),
-                )],
-                mitre_techniques: vec!["T0814".to_string()],
-                source_ip: None,
-                timestamp: None,
-                direction: None,
-            });
-            return;
-        }
-
         // Collect frame-walk findings locally to avoid borrow conflicts between
         // self.flows (via state) and self.all_findings during the loop.
         let mut local_findings: Vec<Finding> = Vec::new();
 
         {
             let state = self.flows.entry(flow_key).or_default();
+
+            // BC-2.19.025 v1.2 carry-overflow check (F-172-001, WALK-FIRST-RESIDUAL-BOUND):
+            // Check the directional carry alone — NOT the aggregate carry + delivery.
+            // A carry exceeding MAX_IEC104_CARRY_BYTES is adversarial or non-conformant state;
+            // conformant on_data calls always stash ≤ 254 bytes as residual (a 255-byte prefix
+            // is a complete max-size frame and is walked off, not stashed). Clear the carry and
+            // emit ONE T0814 on the first overflow per direction via the carry-overflow dedup
+            // flag (distinct from malformed_len_reported_* per BC-2.19.025 invariant 4).
+            // The delivery is always walked regardless (walk-first anti-evasion clause;
+            // BC-2.19.025 invariant 2; ADR-013 Decision 2).
+            {
+                let (carry, reported) = if direction == Direction::ClientToServer {
+                    (&mut state.carry_c2s, &mut state.carry_overflow_reported_c2s)
+                } else {
+                    (&mut state.carry_s2c, &mut state.carry_overflow_reported_s2c)
+                };
+                if carry.len() > MAX_IEC104_CARRY_BYTES {
+                    carry.clear();
+                    if !*reported {
+                        *reported = true;
+                        local_findings.push(Finding {
+                            category: ThreatCategory::Anomaly,
+                            verdict: Verdict::Possible,
+                            confidence: Confidence::Medium,
+                            summary: format!(
+                                "IEC-104 directional carry residual overflow: carry buffer \
+                                 exceeded MAX_IEC104_CARRY_BYTES={MAX_IEC104_CARRY_BYTES} — \
+                                 adversarial or non-conformant byte sequence; carry cleared \
+                                 and analyzer resyncs on next delivery \
+                                 (T0814; BC-2.19.025 v1.2 F-172-001)"
+                            ),
+                            evidence: vec![format!(
+                                "carry overflow (>{}); direction={:?}; carry cleared",
+                                MAX_IEC104_CARRY_BYTES, direction
+                            )],
+                            mitre_techniques: vec!["T0814".to_string()],
+                            source_ip: None,
+                            timestamp: None,
+                            direction: None,
+                        });
+                    }
+                    // Carry is now cleared; walk proceeds on delivery only (walk-first preserved).
+                }
+            }
 
             // Build working buffer: drain directional carry first, then append delivery.
             // BC-2.19.025 invariant 1: carries are never mixed across directions.
@@ -1195,7 +1205,7 @@ impl Iec104Analyzer {
                 let frame_len = len as usize + 2;
                 if buf.len() - pos < frame_len {
                     // Insufficient data: stash remaining bytes into directional carry.
-                    // The pre-check guarantees carry.len() + remaining.len() ≤ MAX.
+                    // Residual is always ≤ frame_len − 1 ≤ 254 bytes for conformant traffic.
                     let remaining = &buf[pos..];
                     if direction == Direction::ClientToServer {
                         state.carry_c2s.extend_from_slice(remaining);
