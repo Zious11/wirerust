@@ -15,6 +15,9 @@
 //! - `Iec104ParseError` — error type skeleton (extended in STORY-168).
 //! - `parse_asdu` — pure-core ASDU header extraction into broken-out `Asdu` fields
 //!   (BC-2.19.015–018; STORY-169); VP-047 fuzz target (no-panic for any input).
+//! - `detect_iec104_threats` — effectful TypeID dispatch; emits T1692.001/T0836/T0827/T0814
+//!   per TypeID range; appends `[TEST]` on `cot_test` frames
+//!   (BC-2.19.017/BC-2.19.019–022; STORY-170).
 //! - VP-044 Kani harness skeleton under `#[cfg(kani)]` (full proof run: STORY-174).
 //!
 //! ## Behavioral contracts
@@ -24,6 +27,11 @@
 //! - BC-2.19.004: `parse_apci_header` returns None for LEN > 253.
 //! - BC-2.19.005: `parse_apci_header` returns Some(ApciHeader) for valid input; CF1–CF4 verbatim.
 //! - BC-2.19.006: `is_valid_iec104_frame` is a lightweight 2-byte post-classification gate.
+//! - BC-2.19.017: COT T-bit (`cot_test`) drives `[TEST]` tagging in findings.
+//! - BC-2.19.019: TypeIDs 45–47 → T1692.001 Possible; TypeIDs 48–51 → T1692.001 + T0836 Possible.
+//! - BC-2.19.020: TypeID 105 (C_RP_NA_1) → T0827 Likely.
+//! - BC-2.19.021: TypeIDs 100, 101, 103 → no finding (trace-logged only).
+//! - BC-2.19.022: TypeID=0 or TypeID in [128, 255] → T0814 Possible.
 //!
 //! ## Architecture compliance (ADR-013 Decision 7 — licensing)
 //! Forbidden dependencies (BANNED — licensing violation):
@@ -597,6 +605,194 @@ pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
         casdu,
         first_ioa,
     })
+}
+
+// ---------------------------------------------------------------------------
+// ASDU threat detection (STORY-170 — BC-2.19.017/019–022; ADR-013 Decision 8)
+// ---------------------------------------------------------------------------
+
+/// Classify an IEC-104 ASDU by TypeID and push security findings into `findings`.
+///
+/// Effectful free function — reads `asdu.type_id` and `asdu.cot_test`; appends zero or
+/// more [`Finding`]s to `findings`. Called by the dispatcher after [`parse_asdu`] returns
+/// `Some(asdu)` on an I-format frame (ADR-013 Decision 8).
+///
+/// ## TypeID dispatch (AC-170-006 — exhaustive, no fallthrough)
+///
+/// | Range / value      | Technique(s)            | Verdict  | BC ref      |
+/// |--------------------|-------------------------|----------|-------------|
+/// | 45–47 (C_SC/DC/RC) | T1692.001               | Possible | BC-2.19.019 |
+/// | 48–51 (C_SE/C_BO)  | T1692.001 + T0836       | Possible | BC-2.19.019 |
+/// | 105 (C_RP_NA_1)    | T0827 Loss of Control   | Likely   | BC-2.19.020 |
+/// | 100, 101, 103      | none (trace-logged)     | —        | BC-2.19.021 |
+/// | 0 or 128–255       | T0814 DoS anomaly       | Possible | BC-2.19.022 |
+/// | 1–127 (unhandled)  | none (silently logged)  | —        | BC-2.19.022 |
+///
+/// When `asdu.cot_test == true`, ` [TEST]` is appended to every emitted finding's
+/// `summary` field (BC-2.19.017 invariant 1; AC-170-007).
+///
+/// ## Purity boundary (ADR-013 Decision 8)
+/// [`parse_asdu`] is pure-core; `detect_iec104_threats` is effectful-shell. Finding
+/// emission must NOT occur inside `parse_asdu`.
+///
+/// ## VP-047 seam
+/// No-panic for all TypeID values is a VP-047 cargo-fuzz property (`fuzz_iec104_parser`).
+/// This function is NOT a VP-044 Kani target.
+pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
+    use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+    let type_id = asdu.type_id;
+    // Record where findings start so we can apply [TEST] tagging only to new entries.
+    let start_idx = findings.len();
+
+    match type_id {
+        // TypeIDs 45–47 (C_SC_NA_1, C_DC_NA_1, C_RC_NA_1): switching commands.
+        // Emit T1692.001 "Unauthorized Message: Command Message" — Possible.
+        // No T0836 emitted: switching commands are binary control, not parameter writes
+        // (BC-2.19.019 postcondition 1; invariant 2; AC-170-001).
+        45..=47 => {
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 control command TypeID={type_id} (C_SC/C_DC/C_RC): \
+                     switching control command observed on passive monitor \
+                     (T1692.001 unauthorized command message; BC-2.19.019)"
+                ),
+                evidence: vec![format!(
+                    "TypeID={type_id} is a switching control command (C_SC/C_DC/C_RC)"
+                )],
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // TypeIDs 48–51 (C_SE_NA_1, C_SE_NB_1, C_SE_NC_1, C_BO_NA_1):
+        // set-point and bitstring write commands.
+        // Emit T1692.001 Possible (command-message indicator for all control TypeIDs)
+        // AND T0836 Possible (parameter/value modification unique to set-point/bitstring).
+        // (BC-2.19.019 postconditions 1–2; AC-170-001).
+        48..=51 => {
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 control command TypeID={type_id} (C_SE/C_BO): \
+                     set-point or bitstring write command observed on passive monitor \
+                     (T1692.001 unauthorized command message; BC-2.19.019)"
+                ),
+                evidence: vec![format!(
+                    "TypeID={type_id} is a set-point/bitstring write command (C_SE_NA/NB/NC or C_BO)"
+                )],
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 parameter modification TypeID={type_id} (C_SE/C_BO): \
+                     set-point or bitstring write modifies ICS control parameters \
+                     (T0836 modify parameter; BC-2.19.019 postcondition 2)"
+                ),
+                evidence: vec![format!(
+                    "TypeID={type_id} is a set-point/bitstring write; parameter modification"
+                )],
+                mitre_techniques: vec!["T0836".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // TypeID 105 (C_RP_NA_1 — Reset Process Command).
+        // Emit T0827 "Loss of Control" — Likely (NOT Possible; BC-2.19.020 v1.1 correction).
+        // Only T0827 is emitted — not T1692.001 (reset is session management, not parameter change).
+        // (BC-2.19.020 postcondition 1; invariant 1; AC-170-002).
+        105 => {
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Medium,
+                summary: "IEC-104 Reset Process command TypeID=105 (C_RP_NA_1): \
+                     potential unauthorized RTU/IED process reset observed; \
+                     adversarial use causes equipment to revert to default state \
+                     (T0827 loss of control; BC-2.19.020)"
+                    .to_string(),
+                evidence: vec!["TypeID=105 (C_RP_NA_1: Reset Process Command)".to_string()],
+                mitre_techniques: vec!["T0827".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // TypeIDs 100 (C_IC_NA_1), 101 (C_CI_NA_1), 103 (C_CS_NA_1):
+        // General Interrogation, Counter Interrogation, Clock Synchronization.
+        // Benign administrative commands — no finding emitted (BC-2.19.021 postcondition 1;
+        // invariant 1; AC-170-003). Logged at trace level by the caller's dispatcher.
+        100 | 101 | 103 => {
+            // No finding: interrogation and clock-sync are benign operational messages
+            // (BC-2.19.021 postcondition 1). This arm is explicit to prevent silent
+            // fallthrough into the reserved-TypeID detection path for adjacent values.
+        }
+
+        // TypeID=0 (undefined per IEC 60870-5-104) or TypeIDs 128–255 (private-use/reserved):
+        // Emit T0814 "Denial of Service" — Possible.
+        // TypeIDs in [1, 127] that are not in the explicit detection sets above are
+        // silently logged (no finding) — they are defined-but-unhandled TypeIDs per
+        // IEC 60870-5-104 and should not produce anomaly findings (BC-2.19.022 invariant 1;
+        // AC-170-004).
+        0 | 128..=255 => {
+            findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 reserved or invalid TypeID={type_id}: \
+                     undefined or private-use TypeID indicates implementation error \
+                     or adversarial protocol probe \
+                     (T0814 denial of service; BC-2.19.022)"
+                ),
+                evidence: vec![format!(
+                    "TypeID={type_id} is {} per IEC 60870-5-104",
+                    if type_id == 0 {
+                        "undefined (TypeID 0 has no assigned meaning)"
+                    } else {
+                        "in the private-use/reserved range [128, 255]"
+                    }
+                )],
+                mitre_techniques: vec!["T0814".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // Defined-but-unhandled TypeIDs in [1, 127] not covered by the arms above:
+        // TypeIDs 1–44 (monitoring direction), 52–99, 102 (C_RD_NA_1), 104, 106–127.
+        // No finding emitted — silently logged (BC-2.19.022 invariant 1; AC-170-005).
+        _ => {
+            // Silently logged: defined TypeID not in any detection set.
+            // No finding emitted (BC-2.19.022 invariant 1).
+        }
+    }
+
+    // BC-2.19.017 invariant 1 (AC-170-007): when cot_test=true, append " [TEST]" to
+    // every finding emitted by this call. Applied to the slice of newly-pushed findings
+    // only — existing entries in `findings` from prior calls are not modified.
+    if asdu.cot_test {
+        for f in &mut findings[start_idx..] {
+            f.summary.push_str(" [TEST]");
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
