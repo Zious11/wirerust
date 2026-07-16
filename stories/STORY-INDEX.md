@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.73"
+version: "3.75"
 status: draft
 producer: story-writer
 timestamp: 2026-07-16T10:33:00Z
@@ -10,6 +10,8 @@ total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
 # v3.73 (2026-07-16): STORY-174 realigned v2.0 (AC-174-008 grep-guard + AC-174-002 non-vacuity; IEC104-FINDING-DIRECTION-001 routed to pre-F5 fix-PR; research-validated D-461). input-hash updated de9d14e→27c86aa (BC-2.19.006 v1.2 input drift resolved). No numeric totals changed.
+# v3.75 (2026-07-16): STORY-174 v2.1→v2.2 (Pass-4 F-174-P4-001 — independent-run determinism re-anchored to VP-045 harness registration). No numeric totals changed.
+# v3.74 (2026-07-16): STORY-174 v2.0→v2.1 (Pass-3 LOW gloss fix — BC-2.19.006 invariant-2 descriptor corrected: purity → consistency with parse_apci_header; BC table title aligned to H1). No numeric totals changed.
 # v3.72 (2026-07-16): STORY-173 DELIVERED (D-458, PR #408 084ff93 squash-merged to develop; wave-82 gate SATISFIED — single-story wave, per-story 3-clean A/B/C re-convergence (17 total passes) == wave-level; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; security PASS; pr-reviewer APPROVE; CI 13/13; demos 9 artifacts/8 ACs scrub PASS). status draft→delivered; stories_delivered 111→112. No numeric totals changed.
 # v3.71 (2026-07-16): STORY-173 per-story adversarial CONVERGED 3-clean (D-457, 14 passes, streak P12/P13/P14); production frozen/clean since P2; all findings remediated; advisory A-12-01 accepted. Status stays draft until PR merged. No numeric totals changed.
 # v3.70 (2026-07-15): STORY-173 BC-realigned v2.0 pre-delivery D-456 (SR-173-01..08 remediated; BC-2.19.028 findings-cap anchor added as AC-173-007; input-hash f3d3673 canonical Python tool; bc active 377→378). 4th F3-DECOMPOSITION-BC-FIDELITY (story-decomposition imprecision; ADR-013/code correct). No numeric story/point totals changed.

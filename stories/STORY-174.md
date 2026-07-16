@@ -2,9 +2,11 @@
 document_type: story
 story_id: STORY-174
 title: "IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants"
-version: "2.0"
+version: "2.2"
 # Realignment: research-validated (story-174-scope-validation.md + story-174-scope-validation-followup.md), human-approved 2026-07-16
 # v2.0 changes: AC-174-008 added (grep-guard extension + baseline scrub); AC-174-002 non-vacuity language added; IEC104-FINDING-DIRECTION-001 routed out-of-scope to pre-F5 fix-PR (research-validated D-461)
+# v2.1: Pass-3 LOW gloss fix — BC-2.19.006 invariant-2 descriptor corrected (purity → consistency with parse_apci_header)
+# v2.2: Pass-4 F-174-P4-001 — independent-run determinism re-anchored to VP-045 harness registration (BC-2.19.025 invariant renumbering)
 epic_id: E-22
 wave: 83
 points: 5
@@ -56,7 +58,7 @@ DNP3, ENIP, and TLS analyzers before the feature gate is opened.
 
 | BC ID | Title | Story Role |
 |-------|-------|-----------|
-| BC-2.19.006 | `is_valid_iec104_frame` / `parse_apci_header` purity | Anchor for VP-044 Kani target |
+| BC-2.19.006 | `is_valid_iec104_frame` Standalone Pure Frame-Validity Predicate | Anchor for VP-044 Kani target |
 | BC-2.19.009 | `classify_frame_format` totality over all 256 u8 CF1 values | Anchor for VP-046 proptest |
 | BC-2.19.025 | Directional carry buffers bounded at 255; isolation invariant | Anchor for VP-045 proptest |
 | BC-2.19.026 | `on_data` no-panic; loop termination | Anchor for VP-047 fuzz target |
@@ -66,7 +68,7 @@ DNP3, ENIP, and TLS analyzers before the feature gate is opened.
 ## Acceptance Criteria
 
 ### AC-174-001: VP-044 Kani proof runs to green — parse_apci_header safety
-**Traces to:** BC-2.19.006 invariant 2 (purity) + BC-2.19.005 postcondition 5 (accept path)
+**Traces to:** BC-2.19.006 invariant 2 (consistency with parse_apci_header) + BC-2.19.005 postcondition 5 (accept path)
 - Given the `verify_parse_apci_header_safety` Kani harness (skeleton from STORY-167)
 - When `cargo kani --harness verify_parse_apci_header_safety` is run
 - Then the proof completes with VERIFICATION SUCCESSFUL
@@ -75,7 +77,7 @@ DNP3, ENIP, and TLS analyzers before the feature gate is opened.
 - ADR-013 Decision 8 scope: `parse_apci_header` only; `on_data` no-panic is VP-047
 
 ### AC-174-002: VP-045 proptest passes — carry direction isolation (non-vacuous)
-**Traces to:** BC-2.19.025 invariant 1 (directional isolation) + BC-2.19.025 invariant 2 (independent-run equivalence)
+**Traces to:** BC-2.19.025 invariant 1 (directional isolation) + BC-2.19.025 VP-045 registered harness — independent-run determinism (see BC-2.19.025 §Verification; no numbered invariant)
 - Given `proptest_vp045_direction_isolation` and `proptest_vp045_independent_run_equivalence`
   (skeletons from STORY-172, currently compile-only seams with no assertions — see F-172-003)
 - When the skeletons are upgraded to asserting harnesses and `cargo test proptest_vp045` is run
@@ -93,7 +95,7 @@ DNP3, ENIP, and TLS analyzers before the feature gate is opened.
   (MAX_IEC104_CARRY_BYTES)
 - **`independent_run_equivalence`:** The property MUST `prop_assert_eq!` the resulting per-flow
   carry state (and/or `frame_count`) of two independent analyzer instances fed identical data
-  (BC-2.19.025 invariant 2) — the skeleton currently compares nothing
+  (BC-2.19.025 VP-045 registered harness — independent-run determinism; see BC-2.19.025 §Verification) — the skeleton currently compares nothing
 - **Reviewer check:** Confirm the strategies exercise interleaving and chunk-splitting; a
   mutation to `on_data`'s direction dispatch MUST cause at least one proptest case to fail
   (ties to AC-174-007 cargo-mutants — a vacuous property kills no mutants)

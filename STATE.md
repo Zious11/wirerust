@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
 status: active
-current_step: "D-461 STORY-174 realigned v2.0 (research-validated, human-approved); wave-83 TDD delivery next. trajectory-tail →0→0→0→0"
+current_step: "D-462 STORY-174 CONVERGED; demo recording (Step 5) next; trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-16T18:44:18Z
-# D-461 STORY-174 realigned v2.0 (research-validated, human-approved) — pipeline IN PROGRESS; feature-iec104 F4; wave-83 TDD delivery next. AC-174-008 grep-guard + AC-174-002 non-vacuity codified; IEC104-FINDING-DIRECTION-001 → pre-F5 fix-PR.
+timestamp: 2026-07-16T22:38:00Z
+# D-462 STORY-174 per-story adversarial CONVERGED 3-clean (P5/P6/P7) — pipeline IN PROGRESS; feature-iec104 F4; demo recording next. F-174-001/002/P4-001 remediated; story v2.2; STORY-INDEX v3.75.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -38,9 +38,9 @@ adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
 # Story tracking
 stories_delivered: 112
-story_index_version: "v3.73"
+story_index_version: "v3.75"
 total_stories: 127
-story_index_note: "127 stories / 83 waves / 765 pts. v3.73 (2026-07-16): STORY-174 realigned v2.0 (D-461, research-validated, human-approved). AC-174-008 grep-guard + AC-174-002 non-vacuity codified; IEC104-FINDING-DIRECTION-001 → pre-F5 fix-PR. See cycles/feature-iec104/ for full F2/F3 history."
+story_index_note: "127 stories / 83 waves / 765 pts. v3.75 (2026-07-16): STORY-174 v2.2 (D-462, F-174-P4-001 fix — BC-2.19.025 invariant-2 anchor e62701f; 8 test + 2 story sites). v3.73: STORY-174 realigned v2.0 (D-461). See cycles/feature-iec104/ for full F2/F3 history."
 # Spec versions (current)
 bc_index_version: "v2.33"
 vp_index_version: "v2.46"
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 286 = 214 (dual-margin form). 286 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 291 = 209 (dual-margin form). 291 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -70,7 +70,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-461 STORY-174 REALIGNED v2.0 (2026-07-16, research-validated, human-approved): AC-174-008 grep-guard codified (PG-REDGREEN-COMMENT-CLEANUP; 3 patterns + 3 baseline stale-header scrubs + CHANGELOG; zero false positives). AC-174-002 amended (F-172-003 VP-045 non-vacuity + interleaved-generator + state-comparison; zero prod code). IEC104-FINDING-DIRECTION-001 routed to pre-F5 fix-PR (fix-pr-delivery; research-validated). STORY-174 input-hash de9d14e→27c86aa. STORY-INDEX v3.73. wave-83 TDD delivery is next.**
+**D-462 STORY-174 CONVERGED 3-clean (2026-07-16, BC-5.39.001): 7 passes; streak P5/P6/P7; final HEAD e62701f; 2600+/0 tests (92 suites). Trajectory P1(1M F-174-001)->P2(1M F-174-002)->P3(NIT)->P4(1M F-174-P4-001)->P5/P6/P7 CLEAN. F-174-001 VP-044 non-vacuity (Kani 82→89 checks); F-174-002 skeleton/CI-claim prose + 8-site sweep; F-174-P4-001 BC-2.19.025 invariant-2 mis-anchor (e62701f 8 test + 2 story sites). Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3. Mutation 117/122=95.9%. Fuzz 1.35M clean. PG-GATE-VOCAB-BLINDSPOT filed. Demo recording (Step 5) next. trajectory-tail →0→0→0→0**
 
 **D-458 base (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes; initial 3-clean P12/P13/P14 (D-457), pre-merge LOW-fix burst (LOW#1/LOW#2/SEC-001; 0bfc977/5325cf2/3ec6ac1), fresh 3-clean A/B/C. IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. trajectory-tail →0→0→0→0**
 
@@ -81,13 +81,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 IN PROGRESS; **wave-82 DELIVERED (D-458); STORY-174 realigned v2.0 (D-461, research-validated); 7 of 8 IEC-104 story-items delivered (STORY-167..173); STORY-174 wave-83 TDD delivery next** |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 IN PROGRESS; **wave-82 DELIVERED (D-458); STORY-174 per-story adversarial CONVERGED 3-clean (D-462, P5/P6/P7); 7 of 8 IEC-104 stories delivered (STORY-167..173); STORY-174 demo recording next** |
 | Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=084ff93 — 7 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
 | Main HEAD | `fedcea4ab17d9b3257c9903636aec0c0fd08f147` |
 | Develop HEAD | `084ff93` — PR #408 STORY-173 squash 2026-07-16; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 |
-| Stories | 112 delivered / 127 total (STORY-INDEX v3.73, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-16 — D-461 STORY-174 realigned v2.0 (research-validated, human-approved). AC-174-008 + AC-174-002 codified; IEC104-FINDING-DIRECTION-001 → pre-F5 fix-PR. trajectory-tail →0→0→0→0 |
+| Stories | 112 delivered / 127 total (STORY-INDEX v3.75, dep-graph v3.9, 765 pts) |
+| **Last Updated** | 2026-07-16 — D-462 STORY-174 per-story adversarial CONVERGED 3-clean (P5/P6/P7). F-174-001/002/P4-001 remediated; story v2.2; STORY-INDEX v3.75. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -113,11 +113,12 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 — F1 (delta-analysis) | DONE/APPROVED (2026-07-14) | 30 new BCs; SS-19; ADR-013; VP-044..047 |
 | feature-iec104 — F2 (spec-evolution) | **APPROVED (D-439) CLOSED** | BC-INDEX v2.28 / VP-INDEX v2.46 / ARCH-INDEX v2.16 / PRD v1.56; Option<u16>; MITRE ics-attack-19.1 confirmed |
 | feature-iec104 — F3 (incremental-stories) | **APPROVED (D-440)** | STORY-167..174 (8 stories/36 pts/waves 76–83); dep-graph v3.9 (137 edges) |
-| feature-iec104 — F4 (delta-implementation) | **IN PROGRESS** | Waves 76–82 DELIVERED (D-441/443/445/447/448/455/458): STORY-167..173 PRs #401-408. **D-461 STORY-174 realigned v2.0 (research-validated); TDD delivery next.** 7/8 stories done. trajectory-tail →0→0→0→0 |
+| feature-iec104 — F4 (delta-implementation) | **IN PROGRESS** | Waves 76–82 DELIVERED (D-441/443/445/447/448/455/458): STORY-167..173 PRs #401-408. **D-462 STORY-174 per-story adversarial CONVERGED 3-clean (P5/P6/P7, BC-5.39.001); demo recording next.** 7/8 stories done. trajectory-tail →0→0→0→0 |
 | feature-iec104 — D-451 spec-remediation burst | **COMPLETE** | SR-172-01 BLOCKING (FlowId→FlowKey); SR-172-02 MEDIUM (carry-overflow discard-all-new); SR-172-03 MEDIUM (malformed-LEN EMIT-WITH-DEDUP, research-validated). 3rd F3-DECOMPOSITION-BC-FIDELITY — CODIFY-NOW. |
 | feature-iec104 — F4 per-story adversary (STORY-172) | **CONVERGED (D-454)** | 6 passes; trajectory →(2H+1L+1N)→1L→1NIT→0→0→0; streak P4/P5/P6 (BC-5.39.001 SATISFIED). F-172-001/002 HIGH remediated D-452; F-172-201 LOW remediated D-453; F-172-301 NIT remediated fec9bfa. Deferred: F-172-003 LOW STORY-174; F-172-004 NIT PG-REDGREEN-SIBLING-SWEEP. |
 | feature-iec104 — F4 per-story adversary (STORY-173) | **CONVERGED (D-457/D-458)** | 17 passes total; initial streak P12/P13/P14 (D-457); pre-merge LOW fix burst (3 LOWs fixed; see next row); fresh 3-clean A/B/C (D-458). IEC104-FINDINGS-CAP-001 RESOLVED. BC-2.19.006 v1.2; BC-INDEX v2.33. |
 | feature-iec104 — STORY-173 pre-merge LOW fix burst | **COMPLETE** | 3 LOWs FIXED pre-merge (human approved all 3): LOW#1 flows_analyzed real cumulative counter (mirrors ENIP; 0bfc977); LOW#2 packets_analyzed valid-APDU frame counter (mirrors DNP3; 5325cf2); SEC-001/A-173-A-01 is_valid_iec104_frame doc overstated gate role + BC-2.19.006 v1.2; BC-INDEX v2.32→v2.33 (3ec6ac1). 2602→2604 tests. Triggered fresh A/B/C re-convergence. |
+| feature-iec104 — F4 per-story adversary (STORY-174) | **CONVERGED (D-462)** | 7 passes; streak P5/P6/P7 (BC-5.39.001 SATISFIED). Trajectory P1(1M)->P2(1M)->P3(NIT)->P4(1M)->P5/P6/P7 CLEAN. F-174-001 VP-044 non-vacuity (Kani 82→89); F-174-002 skeleton/CI-claim prose + 8-site sweep; F-174-P4-001 BC-2.19.025 invariant-2 mis-anchor (e62701f). Story v2.2; STORY-INDEX v3.75. PG-GATE-VOCAB-BLINDSPOT filed. |
 | feature-iec104 — wave-79 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean (P3/P4/P5) on STORY-170 diff == wave-level adversarial; CI 13/13 develop 0bd93f8; D-447 |
 | feature-iec104 — wave-80 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean (P2/P3/P4) on STORY-171 diff == wave-level adversarial; CI 13/13 develop 1a64380; D-448 |
 | feature-iec104 — wave-81 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean (P4/P5/P6) on STORY-172 diff == wave-level adversarial; CI 13/13 develop d64e5fe; D-455 |
@@ -132,6 +133,7 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 F4 per-story (STORY-171) | 4 | →2→0→0→0 | CONVERGED 3-clean (BC-5.39.001) |
 | feature-iec104 F4 per-story (STORY-172) | 6 | →(2H+1L+1N)→1L→1NIT→0→0→0 | CONVERGED 3-clean (BC-5.39.001) streak P4/P5/P6 |
 | feature-iec104 F4 per-story (STORY-173) | 17 (14+3) | →(1H+3doc)→(1M+1N)→NITs→CLEAN(P6)→1N→4N→CLEAN(P9/P10)→1N→CLEAN(P12/P13/P14)→3LOWfix→CLEAN(A/B/C) | CONVERGED 3-clean (BC-5.39.001) re-converged A/B/C post-LOW-fixes (D-458) |
+| feature-iec104 F4 per-story (STORY-174) | 7 | →1M→1M→NIT→1M→0→0→0 | CONVERGED 3-clean streak P5/P6/P7 (BC-5.39.001) D-462 |
 
 ---
 
@@ -139,7 +141,7 @@ maintenance_prior_run: maint-2026-07-09
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | IN PROGRESS — F4 STORY-174 realigned v2.0 (D-461); wave-83 TDD delivery next | develop |
+| feature-iec104 | IN PROGRESS — F4 STORY-174 per-story adversarial CONVERGED (D-462, P5/P6/P7); demo recording (Step 5) next | develop |
 
 ---
 
@@ -147,11 +149,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-462 STORY-174 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 7 passes; streak P5/P6/P7; final HEAD e62701f; 2600+/0 (92 suites). Trajectory P1(1M F-174-001)->P2(1M F-174-002)->P3(NIT)->P4(1M F-174-P4-001)->P5/P6/P7 CLEAN. F-174-001 VP-044 valid→Some facet missing (Kani 82→89 checks; 1071de4); F-174-002 stale skeleton/CI-wiring prose + 8-site sibling sweep (038286a); F-174-P4-001 BC-2.19.025 invariant-2 mis-anchor from v1.3 renumbering (e62701f 8 test + 2 story sites). Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3 every pass. Mutation 117/122=95.9%. Fuzz 1.35M clean. PG-GATE-VOCAB-BLINDSPOT filed. Wave-gate deferred: BC-2.19.006 VP-044 back-ref; STORY-173-region stub phrasing (tests:5890/:5898/:6056/:6109-6113/:6136-6142); mutants-disposition 2.4 wording.** | **CONVERGED (D-462)** | Demo recording next. trajectory-tail →0→0→0→0 |
 | **D-461 STORY-174 pre-delivery realignment COMPLETE (2026-07-16, research-validated, human-approved). DF-VALIDATION-001 research 2 passes (story-174-scope-validation.md + -followup.md; all HIGH confidence): (1) PG-REDGREEN-COMMENT-CLEANUP → AC-174-008 grep-guard (3 patterns + 3 baseline stale-header scrubs + CHANGELOG; zero false positives); (2) F-172-003 VP-045 vacuity → AC-174-002 amended (non-vacuity + interleaved-generator + state-comparison; zero prod code); (3) IEC104-FINDING-DIRECTION-001 VALID-DEFER → pre-F5 fix-PR (fix-pr-delivery; ENIP D-262 PR #331 precedent). STORY-174 v2.0 input-hash de9d14e→27c86aa (resolved BC-2.19.006 v1.2 drift D-458). STORY-INDEX v3.72→v3.73. Points unchanged (5).** | **COMPLETE (D-461)** | wave-83 TDD delivery next. trajectory-tail →0→0→0→0 |
 | **D-458 STORY-173 DELIVERED (2026-07-16). PR #408 084ff93 squash-merged to develop, human-authorized. 17 adversarial passes; initial 3-clean P12/P13/P14 (D-457); pre-merge LOW-fix burst (LOW#1 flows_analyzed + LOW#2 packets_analyzed + SEC-001 is_valid doc/BC-2.19.006 v1.2; 0bfc977/5325cf2/3ec6ac1); fresh 3-clean A/B/C on 3ec6ac1. IEC104-FINDINGS-CAP-001 RESOLVED. CI 13/13. 2604/0. 7/8 IEC-104. stories_delivered 111→112. Wave-82 gate SATISFIED. 5 new process-gaps. BC-INDEX v2.33. STORY-INDEX v3.72. develop=084ff93.** | **DELIVERED (D-458)** | Wave-82 gate SATISFIED. trajectory-tail →0→0→0→0 |
 | **D-457 STORY-173 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 14 passes; streak P12/P13/P14; final HEAD 7b2a73e; 2602/0. Trajectory P1(1H+3doc)→P2(1M+1N)→P3-P5(NITs)→P6 CLEAN→P7(1N)→P8(4N)→P9/P10 CLEAN→P11(1N)→P12/P13/P14 CLEAN. Code FROZEN since P2. Advisory A-12-01 accepted. 4 process-gaps. STORY-INDEX v3.70→v3.71.** | **CONVERGED (D-457)** | Pre-merge LOW-fix burst next (human approved). trajectory-tail →1→0→0→0 |
 | **D-456 STORY-173 pre-delivery AC↔BC fidelity check DRIFT-FOUND (D-456, 2026-07-15). 2 BLOCKING/3 MEDIUM/3 LOW. SR-173-01 BLOCKING (T0881 tactic string); SR-173-02 BLOCKING (IEC104-FINDINGS-CAP-001 uncovered). BC-2.19.028 v1.0 created (MAX_IEC104_FINDINGS=10_000; dropped_findings); BC-INDEX v2.31→v2.32. STORY-173 realigned v2.0 (SR-173-01..08; AC-173-007/008). STORY-INDEX v3.70.** | **COMPLETE (D-456)** | 4th F3-DECOMPOSITION-BC-FIDELITY. trajectory-tail →0→0→0→0 |
-| **D-455 STORY-172 DELIVERED (PR #406 d64e5fe squash-merged to develop, 2026-07-15, human-authorized). Per-story adversarial CONVERGED 3-clean (D-454). Security PASS — SEC-001-S168 carry-bound FULLY MITIGATED. pr-reviewer APPROVE. CI 13/13. Demos 9 artifacts/8 ACs scrub PASS. ADR-0013 committed to develop. develop=d64e5fe (6 unreleased: STORY-167..172); stories_delivered 110→111. Wave-81 gate SATISFIED. STORY-INDEX v3.68→v3.69.** | **DELIVERED (D-455)** | Wave-81 SATISFIED. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -183,6 +185,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-458 | STORY-173 DELIVERED (PR #408 084ff93 squash-merged to develop, 2026-07-16, human-authorized per DF-MERGE-AUTH-CLASSIFIER-001). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 17 total passes; initial 3-clean P12/P13/P14 at 7b2a73e (D-457); pre-merge LOW-fix burst (LOW#1 flows_analyzed + LOW#2 packets_analyzed + SEC-001 is_valid doc/BC-2.19.006 v1.2; commits 0bfc977/5325cf2/3ec6ac1; 2604/0 tests); fresh 3-clean A/B/C re-convergence on 3ec6ac1. IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000; BC-2.19.028 anchor). Security PASS. pr-reviewer APPROVE. CI 13/13. Demos 9 artifacts/8 ACs scrub PASS. Stray commit 105497f (sec001 fix agent to main checkout) discarded. 7th of 8 IEC-104 stories. develop=084ff93 (7 unreleased: STORY-167..173); stories_delivered 111→112. Wave-82 gate SATISFIED. 5 process-gaps filed (PG-DOC-CURRENCY-SWEEP/PG-ADVERSARY-IDLE-NO-REPORT/PG-ADVERSARY-SEVERITY-CALIBRATION/PG-STATE-RECOVERY-SCOPE/PG-VERIFY-ALL-WORKTREES). BC-INDEX v2.33. STORY-INDEX v3.72. | 2026-07-16 |
 | D-460 | Session RESUMED (human-approved, 2026-07-16). Worktree health PASS; develop=084ff93 verified; no story worktrees; only open PR is external #407 (deferred post-wave-83 by human). STORY-174 wave-83 begins with research-agent validation of carry-forward scope items before any story realignment (human-directed). | 2026-07-16 |
 | D-461 | STORY-174 pre-delivery realignment COMPLETE (research-validated, human-approved 2026-07-16). DF-VALIDATION-001 research 2 passes (story-174-scope-validation.md + -followup.md; all HIGH confidence): (1) PG-REDGREEN-COMMENT-CLEANUP VALID-INCLUDE — codified as AC-174-008 extending existing green-doc-tense-gate token list (3 patterns; zero tree-wide false positives; no allowlist change) + scrub of 3 baseline stale headers + CHANGELOG entry; (2) F-172-003 VP-045 vacuity VALID-INCLUDE — AC-174-002 amended with non-vacuity/interleaved-generator/state-comparison requirements (carry fields already pub; zero production code); (3) IEC104-FINDING-DIRECTION-001 VALID-DEFER out of STORY-174 — routed to dedicated pre-F5 fix-PR inside feature-iec104 via fix-pr-delivery (ENIP D-262 PR #331 precedent; PG-W72 holdout sweep near-empty, additive JSON key). STORY-174 v2.0 input-hash de9d14e→27c86aa (also resolved genuine BC-2.19.006 v1.2 input drift from D-458). STORY-INDEX v3.72→v3.73. Points unchanged (5). | 2026-07-16 |
+| D-462 | STORY-174 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 7 passes; streak P5/P6/P7; final HEAD e62701f; base 084ff93; 2600+/0 tests (92 suites). Trajectory P1(1M F-174-001)->P2(1M F-174-002)->P3(NITPICK_ONLY)->P4(1M F-174-P4-001)->P5/P6/P7 CLEAN. F-174-001 MEDIUM VP-044 valid→Some facet missing (Kani 82→89 checks; 1071de4); F-174-002 MEDIUM stale skeleton/false CI-wiring prose + 8-site sibling sweep (038286a); F-174-P4-001 MEDIUM BC-2.19.025 invariant-2 mis-anchor from v1.3 renumbering re-cited to VP-045 harness registration (e62701f 8 test + 2 story sites). Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3 every pass. Mutation 117/122=95.9%. Fuzz 1.35M execs clean. PG-GATE-VOCAB-BLINDSPOT filed (green-doc-tense gate misses "skeleton"/"seam" phrasing; 2 independent obs P2+P4). Demos/PR next. | 2026-07-16 |
 
 ---
 
@@ -237,23 +240,24 @@ maintenance_prior_run: maint-2026-07-09
 | PG-ADVERSARY-SEVERITY-CALIBRATION | Whole-source doc sweeps at late passes (P12) generated advisory findings against code FROZEN since P2. Adversary instances diverging on severity calibration for code that hasn't changed. | cycle-close lessons codification |
 | PG-STATE-RECOVERY-SCOPE | Session-boundary state recovery must verify ALL worktrees and the main develop checkout simultaneously. Omitting the main checkout created the stray-commit 105497f gap (D-458). | cycle-close codification |
 | PG-VERIFY-ALL-WORKTREES | Post-agent verification must span ALL worktrees and the main develop checkout. A fix agent committed to the main develop checkout (not a worktree), creating stray commit 105497f which had to be discarded. | cycle-close codification |
+| PG-GATE-VOCAB-BLINDSPOT | Green-doc-tense gate (AC-174-008) misses "skeleton" and "seam" phrasing (stub-era language surviving into green deliveries). 2 independent adversary observations: P2 Obs-1 + P4 obs on STORY-174. Token list must be extended. | cycle-close codification; extend AC-174-008 token list |
 
 ---
 
 ## Session Resume Checkpoint
 
-**D-461 STORY-174 REALIGNED v2.0 (2026-07-16, research-validated, human-approved): AC-174-008 grep-guard codified (PG-REDGREEN-COMMENT-CLEANUP; 3 patterns + 3 baseline stale-header scrubs + CHANGELOG; zero false positives). AC-174-002 amended (F-172-003 VP-045 vacuity; non-vacuity/interleaved-generator/state-comparison; zero prod code). IEC104-FINDING-DIRECTION-001 routed to pre-F5 fix-PR (fix-pr-delivery; D-461 research-validated). STORY-174 input-hash de9d14e→27c86aa. STORY-INDEX v3.73. wave-83 TDD delivery is next.**
+**D-462 STORY-174 CONVERGED 3-clean (2026-07-16, BC-5.39.001): 7 passes; streak P5/P6/P7; final HEAD e62701f; 2600+/0 tests (92 suites). F-174-001/002/P4-001 all MEDIUM, all remediated. Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3. Mutation 95.9%. Fuzz 1.35M clean. PG-GATE-VOCAB-BLINDSPOT filed. Demo recording (Step 5) next. trajectory-tail →0→0→0→0**
 
 **D-458 base (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes (initial P12/P13/P14 + pre-merge LOW-fix burst + A/B/C re-convergence). IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. trajectory-tail →0→0→0→0**
 
-Prior checkpoint (D-460 SESSION RESUMED, 2026-07-16) archived to `cycles/feature-iec104/session-checkpoints.md`.
+Prior checkpoint (D-461 STORY-174 REALIGNED v2.0, 2026-07-16) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-16. Position: feature-iec104 F4 delta-implementation IN PROGRESS; D-461 STORY-174 realigned v2.0; wave-83 TDD delivery next. develop=084ff93 (7 unreleased). trajectory-tail →0→0→0→0
+- **Date:** 2026-07-16. Position: feature-iec104 F4 delta-implementation IN PROGRESS; D-462 STORY-174 per-story adversarial CONVERGED; demo recording next. develop=084ff93 (7 unreleased). trajectory-tail →0→0→0→0
 - **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `084ff93`. DRIFT-BACKMERGE-SQUASH-001 still applies. 7 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93).
-- **Wave status:** Waves 76–82 DELIVERED (D-441/443/445/447/448/455/458): STORY-167..173. Wave 83 IN PROGRESS: STORY-174 (TDD next). 7 of 8 IEC-104 stories merged to develop.
-- **Remaining delivery sequence:** STORY-174 (wave-83, formal hardening + AC-174-008 grep-guard + AC-174-002 proptest fix + VP-044 Kani + VP-047 Fuzz + cargo-mutants) → pre-F5 fix-PR (IEC104-FINDING-DIRECTION-001, fix-pr-delivery; D-461 research-validated) → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → release cut.
-- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); F-172-003 (VP-045 vacuity codified AC-174-002, D-461 → wave-83 delivery); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); IEC104-FINDING-DIRECTION-001 (→ pre-F5 fix-PR, D-461 research-validated); PG-REDGREEN-COMMENT-CLEANUP (codified AC-174-008 D-461 → wave-83 delivery); PG-VERIFY-ALL-WORKTREES + PG-STATE-RECOVERY-SCOPE + PG-DOC-CURRENCY-SWEEP + PG-ADVERSARY-IDLE-NO-REPORT + PG-ADVERSARY-SEVERITY-CALIBRATION (all → cycle-close codification).
-- **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.73 / dep-graph v3.9 (137 edges).
+- **Wave status:** Waves 76–82 DELIVERED (D-441/443/445/447/448/455/458): STORY-167..173. Wave 83 IN PROGRESS: STORY-174 (adversarial CONVERGED D-462; demo next). 7 of 8 IEC-104 stories merged to develop.
+- **Remaining delivery sequence:** STORY-174 (wave-83, demo recording → push branch → PR lifecycle) → pre-F5 fix-PR (IEC104-FINDING-DIRECTION-001, fix-pr-delivery; D-461 research-validated) → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → release cut.
+- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); IEC104-FINDING-DIRECTION-001 (→ pre-F5 fix-PR, D-461 research-validated); PG-VERIFY-ALL-WORKTREES + PG-STATE-RECOVERY-SCOPE + PG-DOC-CURRENCY-SWEEP + PG-ADVERSARY-IDLE-NO-REPORT + PG-ADVERSARY-SEVERITY-CALIBRATION + PG-GATE-VOCAB-BLINDSPOT (all → cycle-close codification).
+- **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.75 / dep-graph v3.9 (137 edges).
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
@@ -284,3 +288,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | Burst history + lessons (maint-2026-07-06) | `cycles/maint-2026-07-06/burst-log.md` + `cycles/maint-2026-07-06/lessons.md` |
 | Session checkpoints + lessons (maint-2026-07-08) | `cycles/maint-2026-07-08/session-checkpoints.md` + `cycles/maint-2026-07-08/lessons.md` |
 | Wave 82 gate files | `cycles/wave-082/wave-gate/` (gate-summary.md D-458, code-review.md) |
+| STORY-174 per-story convergence report | `cycles/feature-iec104/STORY-174/convergence-report.md` (7 passes, CONVERGED P5/P6/P7, D-462) |
