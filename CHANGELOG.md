@@ -9,6 +9,68 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **IEC-104 dispatcher integration: `DispatchTarget::Iec104`, `--iec104` flag, T0881 catalog
+  entry, port 2404 in `SUPPORTED_PORTS`, and `MAX_IEC104_FINDINGS` cap (STORY-173, wave-82,
+  BC-2.05.012, BC-2.10.010, BC-2.12.025, BC-2.18.003, BC-2.18.004, BC-2.19.028,
+  ADR-013 Decisions 1/9/10).**
+
+  Wires the IEC-104 passive analyzer into the full wirerust pipeline across five subsystems:
+
+  - **Dispatcher wiring (SS-05, AC-173-008):** `StreamDispatcher` gains `iec104:
+    Option<Iec104Analyzer>` field, a 6-parameter `new()`, `set_iec104_analyzer()` setter, and
+    `iec104_analyzer()` / `take_iec104_analyzer()` accessors. `on_data` Iec104 arm routes
+    port-2404 flow data to `Iec104Analyzer::on_data`; `on_flow_close` Iec104 arm forwards
+    to `Iec104Analyzer::on_flow_close`. Early-exit guard extended with `&& self.iec104.is_none()`
+    so `--iec104`-only invocations are not silently dropped (ADR-013 Decision 9 steps 4–5).
+
+  - **MITRE catalog — T0881 six-part atomic (SS-10, AC-173-002):** `SEEDED_TECHNIQUE_IDS`
+    gains `"T0881"` (28→29 entries); `SEEDED_TECHNIQUE_ID_COUNT` bumped to 29; `EMITTED_IDS`
+    updated; `technique_info("T0881")` arm returns `("Service Stop",
+    MitreTactic::IcsInhibitResponseFunction)` (TA0107); `vp007_catalog_drift_guard` and
+    `verify_all_seeded_ids_resolve` pass at count=29 (ADR-013 Decision 10).
+
+  - **CLI flag (SS-12, AC-173-003):** `--iec104` boolean flag added to `CliArgs`; `main.rs`
+    constructs and registers `Iec104Analyzer` when the flag is present (default-off opt-in
+    model per BC-2.12.025).
+
+  - **Protocol catalog (SS-18, AC-173-004/005):** port 2404 added to `SUPPORTED_PORTS`
+    (count 8→9); `supported_protocols()` count 7→8; VP-041 partition proptest verifies
+    supported_protocols() ∪ unsupported_protocols() partitions KNOWN_PROTOCOLS (disjoint,
+    complete coverage) after port 2404 addition.
+
+  - **Findings cap (SS-19, AC-173-007 / BC-2.19.028):** `const MAX_IEC104_FINDINGS: usize =
+    10_000` added to `src/analyzer/iec104.rs`; `Iec104Analyzer` gains `dropped_findings: u64`
+    field; cap enforced at the `on_data` extend step by truncating `local_findings` to the
+    remaining capacity and accumulating the discarded count into `dropped_findings`; surfaced
+    in `summarize()` as detail key `"dropped_findings"`. Mirrors the DNP3/EtherNet/IP
+    `MAX_FINDINGS` pattern (BC-2.15.022 / BC-2.17.022). Per-flow state continues updating
+    regardless of the cap.
+
+  - **Real `flows_analyzed` counter (SS-19, STORY-173 LOW#1 / BC-2.19.028 observability):**
+    `Iec104Analyzer` gains `flows_analyzed: u64` field (initialized 0); `on_flow_close`
+    increments it when `HashMap::remove` returns `Some` (closed-flow count). `summarize()`
+    now computes `detail["flows_analyzed"]` as `self.flows_analyzed + self.flows.len()` —
+    closed flows plus still-open flows — replacing the previous `self.flows.len()`-only
+    value that returned 0 after both flows closed. Mirrors the ENIP `flows_analyzed` and
+    DNP3 `closed_flows_count` patterns.
+
+  - **Real `packets_analyzed` counter (SS-19, STORY-173 LOW#2 / BC-2.19.028 observability):**
+    `Iec104FlowState` gains `frame_count: u64` (initialized 0 via `Default`); incremented
+    once per successful `parse_apci_header` call in the `on_data` frame-walk loop (valid
+    start-byte + LEN in [4,253] + full frame available; bad-start-byte skips and
+    malformed-LEN stubs are not counted). `Iec104Analyzer` gains `total_frames_closed: u64`;
+    `on_flow_close` folds the removed flow's `frame_count` into it. `summarize()` now
+    returns `packets_analyzed = self.total_frames_closed + Σ open-flow.frame_count` —
+    replacing the previous `all_findings.len()` proxy that returned 0 for finding-free
+    frames (e.g. TESTFR-act). Mirrors the DNP3 `total_frames_closed` + open-flow sum pattern.
+
+  - **SEC-001 doc correction (SS-19, STORY-173 SEC-001):** `is_valid_iec104_frame` doc
+    rewritten to accurately describe it as a standalone pure predicate and VP-047 fuzz
+    seam — not wired as a dispatch gate by design. Its equivalent validation is performed
+    inline in the `on_data` frame-walk loop (start-byte check + LEN-range check) per
+    walk-first residual-bound anti-evasion semantics (ADR-013 Decisions 1/2). Module-doc
+    updated to match.
+
 - **IEC-104 carry buffers + frame-walk loop + flow lifecycle (STORY-172, wave-81,
   BC-2.19.025–027, ADR-013 Decision 3).**
 

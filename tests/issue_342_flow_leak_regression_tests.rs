@@ -108,7 +108,7 @@ fn minimal_dnp3_frame() -> Vec<u8> {
 #[test]
 fn test_SEC_005_enip_flow_state_purged_on_dispatcher_flow_close() {
     let enip = EnipAnalyzer::new(50, 5);
-    let mut dispatcher = StreamDispatcher::new(None, None, None, None, Some(enip));
+    let mut dispatcher = StreamDispatcher::new(None, None, None, None, Some(enip), None);
 
     let fk = flow_key(60001, 44818); // port 44818 → DispatchTarget::Enip
 
@@ -166,7 +166,7 @@ fn test_SEC_005_enip_flow_state_bounded_retention_after_n_flows() {
     const N: u16 = 50;
 
     let enip = EnipAnalyzer::new(50, 5);
-    let mut dispatcher = StreamDispatcher::new(None, None, None, None, Some(enip));
+    let mut dispatcher = StreamDispatcher::new(None, None, None, None, Some(enip), None);
 
     for i in 0..N {
         let fk = flow_key(50000 + i, 44818);
@@ -215,7 +215,7 @@ fn test_SEC_005_enip_flow_state_bounded_retention_after_n_flows() {
 #[test]
 fn test_SEC_006_dnp3_flow_state_purged_on_dispatcher_flow_close() {
     let dnp3 = Dnp3Analyzer::new(10);
-    let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
+    let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None, None);
 
     let fk = flow_key(60002, 20000); // port 20000 → DispatchTarget::Dnp3
 
@@ -274,7 +274,7 @@ fn test_SEC_006_dnp3_flow_state_bounded_retention_after_n_flows() {
     const N: u16 = 50;
 
     let dnp3 = Dnp3Analyzer::new(10);
-    let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
+    let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None, None);
 
     for i in 0..N {
         let fk = flow_key(50000 + i, 20000);

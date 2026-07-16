@@ -5638,3 +5638,345 @@ mod story_172 {
         );
     }
 }
+
+// =============================================================================
+// STORY-173: AC-173-007 — IEC-104 Findings Cap (BC-2.19.028)
+// All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
+// =============================================================================
+//
+// Two tests verify findings cap enforcement (now green):
+//   test_BC_2_19_028_findings_cap — cap enforced; extend is truncated
+//   test_BC_2_19_028_cap_maintained_across_multiple_on_data_calls — cap across multiple calls
+//
+// One test is a BOUNDARY GUARD (MAX-1 + 1 = MAX, no truncation needed):
+//   test_BC_2_19_028_boundary_at_max_minus_one_allows_one_more
+
+mod story_173 {
+    #![allow(non_snake_case)]
+
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::AnalysisSummary;
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_FINDINGS};
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            src_port,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            dst_port,
+        )
+    }
+
+    fn dummy_finding() -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Possible,
+            confidence: Confidence::Medium,
+            summary: "prefilled".to_string(),
+            evidence: vec![],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // STOPDT-act U-frame: start=0x68, LEN=4, CF1=0x13, CF2-CF4=0.
+    // With session_started=false → T0881 Verdict::Likely emitted by detect_iec104_threats.
+    fn stopdt_act() -> Vec<u8> {
+        vec![0x68, 0x04, 0x13, 0x00, 0x00, 0x00]
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-007 / BC-2.19.028 PC-2 — FINDINGS CAP PRIMARY INVARIANT
+    // Cap enforced via truncation in on_data extend (line ~1283).
+    // -------------------------------------------------------------------------
+
+    /// AC-173-007 / BC-2.19.028 PC-2 — cap enforced: after pre-filling all_findings to
+    /// MAX_IEC104_FINDINGS and feeding one on_data call that produces a finding,
+    /// all_findings.len() must remain <= MAX and dropped_findings must be > 0.
+    ///
+    /// The cap is wired at the on_data extend step via truncation.
+    /// When extend would exceed MAX, findings are dropped and dropped_findings is incremented.
+    ///
+    /// Traces: BC-2.19.028 PC-2 (primary invariant), PC-5 (dropped counter); AC-173-007.
+    #[test]
+    fn test_BC_2_19_028_findings_cap() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60001, 2404);
+
+        // Pre-fill to MAX via the public all_findings field (BC-2.19.028 Architecture Anchor).
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS];
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_IEC104_FINDINGS,
+            "pre-fill sanity: all_findings must be exactly MAX_IEC104_FINDINGS before on_data"
+        );
+
+        // Feed a STOPDT-act. session_started=false → T0881 Likely finding produced.
+        analyzer.on_data(fk.clone(), &stopdt_act(), 0, Direction::ClientToServer);
+
+        // BC-2.19.028 PC-2: primary invariant — never exceed MAX.
+        assert!(
+            analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
+            "BC-2.19.028 PC-2: all_findings.len() ({}) must not exceed MAX_IEC104_FINDINGS \
+             ({MAX_IEC104_FINDINGS}) after on_data. Cap is not enforced at the extend step \
+             (stub: `self.all_findings.extend(local_findings)` has no truncation).",
+            analyzer.all_findings.len()
+        );
+
+        // BC-2.19.028 PC-5: dropped_findings must count suppressed findings.
+        assert!(
+            analyzer.dropped_findings > 0,
+            "BC-2.19.028 PC-5: dropped_findings must be > 0 when a finding was suppressed \
+             by the cap. Got {} (counter not incremented in stub).",
+            analyzer.dropped_findings
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-007 / BC-2.19.028 EC-001 — BOUNDARY GUARD
+    // Passes unconditionally: pre-fill MAX-1, one finding → exactly MAX (no cap truncation needed).
+    // -------------------------------------------------------------------------
+
+    /// AC-173-007 / BC-2.19.028 EC-001 — boundary: at MAX-1, one more finding fills to MAX.
+    ///
+    /// Pre-fill to MAX-1; one STOPDT-act produces 1 finding → total reaches exactly MAX.
+    /// No cap truncation needed (MAX-1 + 1 == MAX); dropped_findings stays 0.
+    ///
+    /// Verifies boundary behavior: no cap truncation needed at MAX-1 (BC-2.19.028 EC-001).
+    ///
+    /// Traces: BC-2.19.028 EC-001; AC-173-007.
+    #[test]
+    fn test_BC_2_19_028_boundary_at_max_minus_one_allows_one_more() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60002, 2404);
+
+        // Pre-fill to MAX - 1.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS - 1];
+
+        // One STOPDT-act → one finding. Total becomes exactly MAX (no truncation required).
+        analyzer.on_data(fk.clone(), &stopdt_act(), 0, Direction::ClientToServer);
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_IEC104_FINDINGS,
+            "BC-2.19.028 EC-001: at MAX-1, one more finding must fill to exactly \
+             MAX_IEC104_FINDINGS ({}). Got {}.",
+            MAX_IEC104_FINDINGS,
+            analyzer.all_findings.len()
+        );
+        assert_eq!(
+            analyzer.dropped_findings, 0,
+            "BC-2.19.028 EC-001: dropped_findings must remain 0 when within cap. Got {}",
+            analyzer.dropped_findings
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-007 / BC-2.19.028 EC-004 — CAP ACROSS MULTIPLE CALLS
+    // Cap maintains invariant across N sequential calls (now green).
+    // -------------------------------------------------------------------------
+
+    /// AC-173-007 / BC-2.19.028 EC-004 — cap maintained across N sequential on_data calls.
+    ///
+    /// Pre-fill to MAX; then call on_data N times (different flow keys, each producing
+    /// one STOPDT-act finding). With cap → len stays MAX and dropped_findings == N
+    /// (all new findings are dropped to maintain the invariant).
+    ///
+    /// Cap is wired across multiple calls via truncation in the extend step.
+    ///
+    /// Traces: BC-2.19.028 EC-004; AC-173-007.
+    #[test]
+    fn test_BC_2_19_028_cap_maintained_across_multiple_on_data_calls() {
+        const N: usize = 5;
+        let mut analyzer = Iec104Analyzer::new();
+
+        // Pre-fill to cap.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS];
+
+        for i in 0..N {
+            let fk = flow_key(60000 + i as u16, 2404);
+            analyzer.on_data(fk, &stopdt_act(), 0, Direction::ClientToServer);
+        }
+
+        assert!(
+            analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
+            "BC-2.19.028 EC-004: all_findings must stay <= MAX after {} extra on_data calls. \
+             Got {} (cap not enforced).",
+            N,
+            analyzer.all_findings.len()
+        );
+        assert_eq!(
+            analyzer.dropped_findings, N as u64,
+            "BC-2.19.028 EC-004: dropped_findings must equal {N} after {N} suppressed on_data \
+             calls (one finding per call). Got {}.",
+            analyzer.dropped_findings
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-007 / BC-2.19.028 PC-5 / F-173-001 — DROPPED_FINDINGS SURFACED IN SUMMARIZE
+    // summarize() wired to include dropped_findings counter (now green).
+    // -------------------------------------------------------------------------
+
+    /// AC-173-007 / BC-2.19.028 PC-5 — `dropped_findings` counter appears in
+    /// `summarize()` output under detail key `"dropped_findings"` with value > 0 after
+    /// findings are suppressed by the cap.
+    ///
+    /// Drives the analyzer over the cap (mirrors `test_BC_2_19_028_findings_cap` setup),
+    /// then calls `analyzer.summarize()` and asserts `detail["dropped_findings"] > 0`.
+    ///
+    /// The summarize() method is wired to expose the dropped_findings counter.
+    ///
+    /// Traces: BC-2.19.028 PC-5; AC-173-007; F-173-001.
+    #[test]
+    fn test_BC_2_19_028_dropped_findings_surfaced_in_summarize() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60099, 2404);
+
+        // Pre-fill to MAX.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS];
+
+        // Feed one STOPDT-act (session_started=false → T0881 Likely finding produced).
+        // With the cap enforced this finding is discarded; dropped_findings increments to 1.
+        analyzer.on_data(fk.clone(), &stopdt_act(), 0, Direction::ClientToServer);
+
+        // Sanity: dropped_findings must be > 0 for this test to be meaningful.
+        // (On the pre-implementation stub, the todo!() in summarize() was the load-bearing
+        // failure for F-173-001; the cap enforcement was a secondary gap.)
+        assert!(
+            analyzer.dropped_findings > 0,
+            "pre-condition: dropped_findings must be > 0 before calling summarize(); \
+             got {} (cap not enforced or frame produced no finding)",
+            analyzer.dropped_findings
+        );
+
+        // Call summarize() — now fully implemented; must populate the detail map.
+        let summary: AnalysisSummary = analyzer.summarize();
+
+        // BC-2.19.028 PC-5: detail map must contain "dropped_findings" key.
+        assert!(
+            summary.detail.contains_key("dropped_findings"),
+            "BC-2.19.028 PC-5: summarize() detail map must contain key \"dropped_findings\"; \
+             got keys: {:?}",
+            summary.detail.keys().collect::<Vec<_>>()
+        );
+
+        // The value must be > 0 (matches the actual count dropped above).
+        let dropped_val = summary.detail["dropped_findings"]
+            .as_u64()
+            .expect("\"dropped_findings\" detail value must be a JSON u64");
+        assert!(
+            dropped_val > 0,
+            "BC-2.19.028 PC-5: summarize() detail[\"dropped_findings\"] must be > 0 after \
+             findings were suppressed by the cap; got {dropped_val}"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // LOW#1 (STORY-173 pre-merge fix): flows_analyzed must count closed flows
+    //
+    // BC-2.19.028 observability gap: summarize() currently reads self.flows.len()
+    // which drops to 0 after on_flow_close removes entries. The fix adds a
+    // flows_analyzed: u64 accumulator on Iec104Analyzer, incremented in
+    // on_flow_close per removed flow (mirrors EnipAnalyzer pattern, enip.rs ~707).
+    // -------------------------------------------------------------------------
+
+    /// flows_analyzed in summarize() must count flows closed via on_flow_close.
+    ///
+    /// Two distinct flows are driven and closed; summarize().detail["flows_analyzed"]
+    /// must equal 2. The current implementation reads self.flows.len() (= 0 after
+    /// removal), so this assertion fails until a flows_analyzed accumulator is wired
+    /// to on_flow_close.
+    ///
+    /// Traces: BC-2.19.028 observability; STORY-173 LOW#1.
+    #[test]
+    fn test_BC_2_19_028_flows_analyzed_counts_closed_flows() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk1 = flow_key(60201, 2404);
+        let fk2 = flow_key(60202, 2404);
+
+        // TESTFR-act: CF1=0x43, LEN=4 — no finding emitted, session state unchanged.
+        let testfr_act = [0x68u8, 0x04, 0x43, 0x00, 0x00, 0x00];
+
+        analyzer.on_data(fk1.clone(), &testfr_act, 0, Direction::ClientToServer);
+        analyzer.on_data(fk2.clone(), &testfr_act, 0, Direction::ClientToServer);
+
+        // Close both flows. After removal self.flows is empty (len == 0).
+        analyzer.on_flow_close(fk1);
+        analyzer.on_flow_close(fk2);
+
+        let summary = analyzer.summarize();
+
+        let flows_analyzed = summary
+            .detail
+            .get("flows_analyzed")
+            .expect("summarize() detail map must include key \"flows_analyzed\"")
+            .as_u64()
+            .expect("\"flows_analyzed\" detail value must be a JSON u64");
+
+        assert_eq!(
+            flows_analyzed, 2,
+            "flows_analyzed must equal 2 after closing 2 flows; \
+             got {flows_analyzed} (current impl reads self.flows.len() = 0 after removal; \
+             fix: add flows_analyzed: u64 field and increment in on_flow_close)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // LOW#2 (STORY-173 pre-merge fix): packets_analyzed must count parsed APDUs,
+    // not all_findings.len()
+    //
+    // BC-2.19.028 observability gap: summarize() currently returns
+    // all_findings.len() as packets_analyzed. For finding-free frames (e.g.
+    // TESTFR-act) this is 0 even after N frames are parsed. The fix adds a
+    // per-flow frame_count: u64 on Iec104FlowState incremented for every complete
+    // valid parsed APDU in the on_data walk loop, and accumulates a total in
+    // summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
+    // dnp3.rs ~316/1815).
+    // -------------------------------------------------------------------------
+
+    /// packets_analyzed in summarize() must count complete valid parsed APDUs,
+    /// not all_findings.len().
+    ///
+    /// Three TESTFR-act U-frames (no findings) are fed through on_data, followed by
+    /// one bad-start byte (0x00). packets_analyzed must equal 3; the bad-start byte
+    /// must NOT be counted. The current implementation returns all_findings.len()
+    /// (= 0 for finding-free frames), so this assertion fails until a per-frame
+    /// counter is wired to the frame-walk loop.
+    ///
+    /// Traces: BC-2.19.028 observability; STORY-173 LOW#2.
+    #[test]
+    fn test_iec104_packets_analyzed_counts_valid_frames() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60301, 2404);
+
+        // 3 complete TESTFR-act frames (CF1=0x43, LEN=4, 6 bytes each) followed by
+        // one bad-start byte. TESTFR-act produces no finding and leaves session state
+        // unchanged — the cleanest zero-finding frame for this counter test.
+        let mut data: Vec<u8> = Vec::new();
+        for _ in 0..3 {
+            data.extend_from_slice(&[0x68, 0x04, 0x43, 0x00, 0x00, 0x00]);
+        }
+        // Bad-start byte: not 0x68, so the walk loop advances 1 without counting.
+        data.push(0x00);
+
+        analyzer.on_data(fk.clone(), &data, 0, Direction::ClientToServer);
+        analyzer.on_flow_close(fk);
+
+        let summary = analyzer.summarize();
+
+        assert_eq!(
+            summary.packets_analyzed, 3,
+            "packets_analyzed must equal 3 (the three complete valid APDUs parsed); \
+             got {} (current impl reads all_findings.len() = 0 because TESTFR-act emits \
+             no finding; fix: wire a frame counter in the on_data walk loop)",
+            summary.packets_analyzed
+        );
+    }
+}

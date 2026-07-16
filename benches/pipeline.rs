@@ -111,6 +111,7 @@ fn bench_reassembly(c: &mut Criterion) {
                     None,
                     None,
                     None,
+                    None,
                 );
                 for (p, ts) in &parsed {
                     reassembler.process_packet(p, *ts, &mut dispatcher);
