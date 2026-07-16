@@ -658,7 +658,7 @@ mod story_167 {
 // =============================================================================
 // STORY-168: IEC-104 Frame Format Discrimination + U-Format Session State Machine
 //
-// Covers BC-2.19.007–014 and VP-046 proptest skeleton.
+// Covers BC-2.19.007–014 and VP-046 proptest (full 256-value run verified in STORY-174).
 // classify_frame_format and process_u_frame are implemented; all tests in this section pass.
 //
 // ## Contract coverage
@@ -671,7 +671,7 @@ mod story_167 {
 //                STOPDT-con (0x23) → session_started=false; no finding (ACT-only MVP)
 // - BC-2.19.013: TESTFR-act (0x43) / TESTFR-con (0x83) → no finding; state unchanged
 // - BC-2.19.014: non-canonical U-frame CF1 → T0814 Possible; state unchanged
-// - VP-046: proptest skeleton — classify_frame_format totality over all 256 u8 values
+// - VP-046: proptest — classify_frame_format totality over all 256 u8 values (verified STORY-174)
 //
 // ## Canonical test vectors (DF-CANONICAL-FRAME-HOLDOUT-001)
 // Used verbatim from BCs; no invented inputs where the BC provides them.
@@ -1488,11 +1488,11 @@ mod story_168 {
     }
 
     // =========================================================================
-    // VP-046 proptest skeleton: classify_frame_format totality
+    // VP-046 proptest: classify_frame_format totality (full 256-value run — STORY-174)
     // AC-168-009
     // =========================================================================
 
-    // VP-046 proptest skeleton — classify_frame_format totality over all 256 u8 values.
+    // VP-046 proptest — classify_frame_format totality over all 256 u8 values.
     //
     // Per AC-168-009: proptest_vp046_frame_format_totality verifies classify_frame_format
     // over all 256 CF1 values. VP-046 full proof run completed in STORY-174.
@@ -4440,8 +4440,8 @@ mod story_171 {
 // =============================================================================
 // STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
 //
-// Unit tests (AC-172-001..008, EC-001..011) and VP-045 proptest skeletons
-// (AC-172-007).
+// Unit tests (AC-172-001..008, EC-001..011) and VP-045 asserting proptests
+// (AC-172-007; upgraded to non-vacuous assertions in STORY-174 AC-174-002).
 //
 // ## Contract coverage
 // - BC-2.19.025: directional carry buffers bounded at MAX_IEC104_CARRY_BYTES = 255

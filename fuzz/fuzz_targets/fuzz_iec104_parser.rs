@@ -1,4 +1,4 @@
-//! VP-047 fuzz harness skeleton: IEC-104 on_data never panics on arbitrary input.
+//! VP-047 fuzz harness: IEC-104 on_data never panics on arbitrary input.
 //!
 //! `Iec104Analyzer::on_data` is the VP-047 cargo-fuzz target (ADR-013 Decision 8;
 //! BC-2.19.026 postcondition 5). This harness feeds two successive on_data calls on
@@ -13,7 +13,7 @@
 //!     (BC-2.19.026 / ADR-013 Decision 3)
 //!   - VP-047 no-panic obligation for any byte sequence (BC-2.19.026 postcondition 5)
 //!
-//! Full fuzz run is in STORY-174. This skeleton establishes the harness seam.
+//! VP-047 fuzz run completed in STORY-174 (min. 60 s, no crashes; BC-2.19.026 postcondition 5).
 //!
 //! ## Architecture compliance (ADR-013 Decision 7 — licensing)
 //! Forbidden dependencies (BANNED): `iec60870-5`, Wireshark `packet-104.c`, lib60870.
