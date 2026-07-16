@@ -46,6 +46,31 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     `MAX_FINDINGS` pattern (BC-2.15.022 / BC-2.17.022). Per-flow state continues updating
     regardless of the cap.
 
+  - **Real `flows_analyzed` counter (SS-19, STORY-173 LOW#1 / BC-2.19.028 observability):**
+    `Iec104Analyzer` gains `flows_analyzed: u64` field (initialized 0); `on_flow_close`
+    increments it when `HashMap::remove` returns `Some` (closed-flow count). `summarize()`
+    now computes `detail["flows_analyzed"]` as `self.flows_analyzed + self.flows.len()` —
+    closed flows plus still-open flows — replacing the previous `self.flows.len()`-only
+    value that returned 0 after both flows closed. Mirrors the ENIP `flows_analyzed` and
+    DNP3 `closed_flows_count` patterns.
+
+  - **Real `packets_analyzed` counter (SS-19, STORY-173 LOW#2 / BC-2.19.028 observability):**
+    `Iec104FlowState` gains `frame_count: u64` (initialized 0 via `Default`); incremented
+    once per successful `parse_apci_header` call in the `on_data` frame-walk loop (valid
+    start-byte + LEN in [4,253] + full frame available; bad-start-byte skips and
+    malformed-LEN stubs are not counted). `Iec104Analyzer` gains `total_frames_closed: u64`;
+    `on_flow_close` folds the removed flow's `frame_count` into it. `summarize()` now
+    returns `packets_analyzed = self.total_frames_closed + Σ open-flow.frame_count` —
+    replacing the previous `all_findings.len()` proxy that returned 0 for finding-free
+    frames (e.g. TESTFR-act). Mirrors the DNP3 `total_frames_closed` + open-flow sum pattern.
+
+  - **SEC-001 doc correction (SS-19, STORY-173 SEC-001):** `is_valid_iec104_frame` doc
+    rewritten to accurately describe it as a standalone pure predicate and VP-047 fuzz
+    seam — not wired as a dispatch gate by design. Its equivalent validation is performed
+    inline in the `on_data` frame-walk loop (start-byte check + LEN-range check) per
+    walk-first residual-bound anti-evasion semantics (ADR-013 Decisions 1/2). Module-doc
+    updated to match.
+
 - **IEC-104 carry buffers + frame-walk loop + flow lifecycle (STORY-172, wave-81,
   BC-2.19.025–027, ADR-013 Decision 3).**
 

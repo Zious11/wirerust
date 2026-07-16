@@ -10,8 +10,10 @@
 //!
 //! - `parse_apci_header` — 6-byte APCI header parse; None on short/invalid input
 //!   (BC-2.19.001–005); VP-044 Kani target.
-//! - `is_valid_iec104_frame` — post-classification validity gate; 2-byte check
-//!   (BC-2.19.006); VP-047 cargo-fuzz covered.
+//! - `is_valid_iec104_frame` — standalone pure predicate (BC-2.19.006); VP-047
+//!   cargo-fuzz seam. Its equivalent validation is performed inline in the `on_data`
+//!   frame-walk loop (start-byte check + LEN-range check). Not wired as a dispatch
+//!   gate — port-based classification per ADR-013 Decision 1.
 //! - `Iec104ParseError` — error type skeleton (extended in STORY-168).
 //! - `parse_asdu` — pure-core ASDU header extraction into broken-out `Asdu` fields
 //!   (BC-2.19.015–018; STORY-169); VP-047 fuzz target (no-panic for any input).
@@ -247,6 +249,14 @@ pub struct Iec104FlowState {
     /// Same semantics as `carry_overflow_reported_c2s` but for S→C direction.
     /// (BC-2.19.025 invariant 4; F-172-001; STORY-172). Wired in `on_data` carry-overflow check.
     pub carry_overflow_reported_s2c: bool,
+    /// Count of complete valid parsed APDUs seen on this flow (start-byte 0x68 + LEN in
+    /// [4,253] + full frame available). Incremented once per successful `parse_apci_header`
+    /// call in the `on_data` frame-walk loop. Does NOT count bad-start-byte advances,
+    /// malformed-LEN stubs, or carry-stashed partial frames.
+    /// Folded into `Iec104Analyzer::total_frames_closed` by `on_flow_close`;
+    /// summed over open flows by `summarize()` for `packets_analyzed`.
+    /// (BC-2.19.028 observability; STORY-173 LOW#2.)
+    pub frame_count: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -471,7 +481,8 @@ pub fn parse_apci_header(data: &[u8]) -> Option<ApciHeader> {
     })
 }
 
-/// Post-classification validity gate for IEC-104 frames (BC-2.19.006).
+/// Standalone pure predicate: checks whether a byte slice begins with a valid IEC-104
+/// APCI start byte and a LEN byte in the conformant range (BC-2.19.006).
 ///
 /// Returns `true` iff:
 /// - `data.len() >= 2` (can read start byte and LEN)
@@ -480,9 +491,15 @@ pub fn parse_apci_header(data: &[u8]) -> Option<ApciHeader> {
 ///
 /// Returns `false` for empty slice, one-byte slice, wrong start byte, or out-of-range LEN.
 ///
-/// Called on port-2404-dispatched flows as a lightweight guard that compensates for
-/// false-positive port classification, without polluting the `classify()` rule table with
-/// a single-byte content signature (ADR-013 Decision 1).
+/// ## Design note (SEC-001 / ADR-013 Decisions 1, 2, 3)
+/// This function is a **unit-tested and VP-047-fuzz-covered pure predicate**. It is NOT
+/// called in the production `on_data` frame-walk path and MUST NOT be wired there:
+/// the equivalent validation is performed inline in `on_data` — start-byte check and
+/// LEN-range check — as required by the walk-first residual-bound anti-evasion semantics
+/// (BC-2.19.025/BC-2.19.026, F-172-001, ADR-013 Decision 2). Adding a delivery-level
+/// 0x68 pre-gate using this function would re-open the Ptacek/Newsham evasion hole and
+/// break cross-segment carry. Flows reach `on_data` via port-2404-based classification
+/// (ADR-013 Decision 1), not content-level gating.
 ///
 /// ## Consistency guarantee (BC-2.19.006 invariant 2)
 /// Any input for which this returns `true` AND `data.len() >= 6` will produce
@@ -1068,6 +1085,18 @@ pub struct Iec104Analyzer {
     /// (BC-2.19.028 PC-3/PC-4; IEC104-FINDINGS-CAP-001; STORY-173).
     /// Surfaced in `summarize()` as `detail["dropped_findings"]`.
     pub dropped_findings: u64,
+    /// Count of flows removed via `on_flow_close` (i.e., closed flows).
+    ///
+    /// Added to `self.flows.len()` by `summarize()` to compute total `flows_analyzed`
+    /// (closed + still-open). Mirrors `EnipAnalyzer::flows_analyzed` /
+    /// `Dnp3Analyzer::closed_flows_count` pattern. (BC-2.19.028 observability; STORY-173 LOW#1.)
+    pub flows_analyzed: u64,
+    /// Aggregate `frame_count` from flows removed via `on_flow_close`.
+    ///
+    /// Added to the per-open-flow sum by `summarize()` for `packets_analyzed`.
+    /// Mirrors `Dnp3Analyzer::total_frames_closed` pattern.
+    /// (BC-2.19.028 observability; STORY-173 LOW#2.)
+    pub total_frames_closed: u64,
 }
 
 impl Default for Iec104Analyzer {
@@ -1083,6 +1112,8 @@ impl Iec104Analyzer {
             flows: HashMap::new(),
             all_findings: Vec::new(),
             dropped_findings: 0,
+            flows_analyzed: 0,
+            total_frames_closed: 0,
         }
     }
 
@@ -1252,6 +1283,11 @@ impl Iec104Analyzer {
                 // Complete valid frame: parse APCI header and dispatch to per-format handlers.
                 let frame = &buf[pos..pos + frame_len];
                 if let Some(header) = parse_apci_header(frame) {
+                    // Count every successfully parsed APDU (BC-2.19.028 observability;
+                    // STORY-173 LOW#2). Incremented here — after parse_apci_header succeeds
+                    // and before format dispatch — so bad-start-byte skips and malformed-LEN
+                    // stubs are never counted.
+                    state.frame_count = state.frame_count.saturating_add(1);
                     match classify_frame_format(header.cf1) {
                         FrameFormat::UFormat => {
                             if let Some(f) = process_u_frame(state, header.cf1) {
@@ -1295,15 +1331,27 @@ impl Iec104Analyzer {
     /// Aggregates analyzer-level counters into an `AnalysisSummary`. The detail map
     /// MUST include key `"dropped_findings"` (BC-2.19.028 PC-5 / AC-173-007).
     ///
-    /// `packets_analyzed` is set to `all_findings.len()` — the IEC-104 analyzer tracks
-    /// no independent per-frame counter; the retained-findings count is the closest
-    /// available proxy for analysis activity (do not invent a new counter field).
+    /// `flows_analyzed` = closed flows (accumulated in `self.flows_analyzed` by
+    /// `on_flow_close`) + still-open flows (`self.flows.len()`). Mirrors the
+    /// ENIP `flows_analyzed` and DNP3 `closed_flows_count` patterns (STORY-173 LOW#1).
+    ///
+    /// `packets_analyzed` = complete valid parsed APDUs across all closed flows
+    /// (`self.total_frames_closed`) plus the sum of `frame_count` over still-open flows.
+    /// Mirrors the DNP3 `total_frames_closed` + open-flow sum pattern (STORY-173 LOW#2).
     ///
     /// Does NOT emit new findings (no side effects).
     ///
     /// Traces: BC-2.19.028 Postcondition 5; AC-173-007; STORY-173 F-173-001.
     pub fn summarize(&self) -> AnalysisSummary {
         use std::collections::BTreeMap;
+
+        // Closed flows + still-open flows (STORY-173 LOW#1).
+        let flows_analyzed = self.flows_analyzed.saturating_add(self.flows.len() as u64);
+
+        // Closed-flow frame totals + still-open flow frame totals (STORY-173 LOW#2).
+        let packets_analyzed = self
+            .total_frames_closed
+            .saturating_add(self.flows.values().map(|f| f.frame_count).sum::<u64>());
 
         let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
 
@@ -1313,10 +1361,10 @@ impl Iec104Analyzer {
             "dropped_findings".to_string(),
             serde_json::Value::Number(self.dropped_findings.into()),
         );
-        // Observability: number of TCP flows tracked (open at summarize time).
+        // Observability: closed + open flow count (STORY-173 LOW#1).
         detail.insert(
             "flows_analyzed".to_string(),
-            serde_json::Value::Number((self.flows.len() as u64).into()),
+            serde_json::Value::Number(flows_analyzed.into()),
         );
         // Observability: retained findings count (capped at MAX_IEC104_FINDINGS).
         detail.insert(
@@ -1326,7 +1374,7 @@ impl Iec104Analyzer {
 
         AnalysisSummary {
             analyzer_name: "IEC-104".to_string(),
-            packets_analyzed: self.all_findings.len() as u64,
+            packets_analyzed,
             detail,
         }
     }
@@ -1339,9 +1387,16 @@ impl Iec104Analyzer {
     /// 3. No finding is emitted for normal flow close.
     /// 4. Unknown `flow_key` is a no-op — no panic (BC-2.19.027 postcondition 4).
     ///
-    /// BC-2.19.027 / STORY-172.
+    /// On successful removal (postcondition 6 — STORY-173 LOW#1/LOW#2):
+    /// - `self.flows_analyzed` is incremented by 1 (closed-flow count).
+    /// - The flow's `frame_count` is folded into `self.total_frames_closed`.
+    ///
+    /// BC-2.19.027 / STORY-172 / STORY-173.
     pub fn on_flow_close(&mut self, flow_key: FlowKey) {
-        self.flows.remove(&flow_key);
+        if let Some(flow) = self.flows.remove(&flow_key) {
+            self.flows_analyzed = self.flows_analyzed.saturating_add(1);
+            self.total_frames_closed = self.total_frames_closed.saturating_add(flow.frame_count);
+        }
     }
 }
 
