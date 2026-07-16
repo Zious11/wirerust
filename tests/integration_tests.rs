@@ -89,8 +89,8 @@ mod story_152 {
     }
 
     /// BC-2.12.022 Postcondition 3 / EC-002
-    /// `wirerust protocols --supported` output has exactly 7 protocol rows
-    /// (one per `supported_protocols()` entry).
+    /// `wirerust protocols --supported` output has exactly 8 protocol rows
+    /// (one per `supported_protocols()` entry; IEC 60870-5-104 added in STORY-173).
     ///
     /// Row count is derived robustly by matching stdout lines against protocol
     /// names from `supported_protocols()`, not by counting header/footnote lines.
@@ -114,9 +114,9 @@ mod story_152 {
             .filter(|line| supported.iter().any(|p| line.contains(p.name)))
             .count();
         assert_eq!(
-            row_count, 7,
+            row_count, 8,
             "BC-2.12.022 EC-002: `wirerust protocols --supported` must produce exactly \
-             7 protocol rows (== supported_protocols().len()); got {row_count}.\n\
+             8 protocol rows (== supported_protocols().len()); got {row_count}.\n\
              stdout:\n{stdout}"
         );
     }
@@ -675,7 +675,7 @@ mod story_152 {
         let arr = json["protocols"]
             .as_array()
             .expect("'protocols' must be an array");
-        let expected_len = supported_protocols().len(); // == 7
+        let expected_len = supported_protocols().len(); // == 8 (STORY-173: IEC-104 added)
         assert_eq!(
             arr.len(),
             expected_len,

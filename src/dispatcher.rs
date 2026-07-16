@@ -17,7 +17,7 @@
 //! its analyzer for the rest of its lifetime to avoid mid-stream
 //! protocol confusion attacks.
 //!
-//! ## Classification Rule Order (BC-2.14.025 / BC-2.15.021 / BC-2.17.019, INV-2 content-first)
+//! ## Classification Rule Order (BC-2.14.025 / BC-2.15.021 / BC-2.17.019 / BC-2.05.012, INV-2 content-first)
 //!
 //! 1. TLS content signature (`0x16 0x03 ...`, len >= 5) → `DispatchTarget::Tls`
 //! 2. HTTP method token (`GET `, `POST `, etc.) → `DispatchTarget::Http`
@@ -26,13 +26,15 @@
 //! 5. Port 502 → `DispatchTarget::Modbus`  ← Rule 5 (STORY-105, ADR-005)
 //! 6. Port 20000 → `DispatchTarget::Dnp3`  ← Rule 6 (STORY-110, ADR-007)
 //! 7. Port 44818 → `DispatchTarget::Enip`  ← Rule 7 (STORY-131, ADR-010)
-//! 8. No match → `DispatchTarget::None`
+//! 8. Port 2404 → `DispatchTarget::Iec104` ← Rule 8 (STORY-173, ADR-013)
+//! 9. No match → `DispatchTarget::None`
 
 use std::collections::HashMap;
 
 use crate::analyzer::dnp3::Dnp3Analyzer;
 use crate::analyzer::enip::EnipAnalyzer;
 use crate::analyzer::http::HttpAnalyzer;
+use crate::analyzer::iec104::Iec104Analyzer;
 use crate::analyzer::modbus::ModbusAnalyzer;
 use crate::analyzer::tls::TlsAnalyzer;
 use crate::reassembly::flow::FlowKey;
@@ -58,6 +60,8 @@ enum DispatchTarget {
     Dnp3,
     /// Port-44818 EtherNet/IP TCP flows (Rule 7, BC-2.17.019). Added in STORY-131.
     Enip,
+    /// Port-2404 IEC 60870-5-104 TCP flows (Rule 8, BC-2.05.012). Added in STORY-173.
+    Iec104,
     None,
 }
 
@@ -93,6 +97,9 @@ pub struct StreamDispatcher {
     /// EtherNet/IP TCP analyzer (STORY-131, BC-2.17.019). Receives data for all
     /// port-44818 flows that do not match content rules 1–2 or port rules 3–6.
     enip: Option<EnipAnalyzer>,
+    /// IEC 60870-5-104 TCP analyzer (STORY-173, BC-2.05.012). Receives data for all
+    /// port-2404 flows that do not match content rules 1–2 or port rules 3–7.
+    iec104: Option<Iec104Analyzer>,
     unclassified_flows: u64,
     /// Per-(TransportProto, port) counts for TCP flows that close as DispatchTarget::None
     /// (STORY-153, BC-2.05.010 PC-1, ADR-012 Decision 6 Clarification).
@@ -105,7 +112,7 @@ pub struct StreamDispatcher {
 }
 
 impl StreamDispatcher {
-    /// Construct a dispatcher with optional HTTP, TLS, Modbus, DNP3, and ENIP analyzers.
+    /// Construct a dispatcher with optional HTTP, TLS, Modbus, DNP3, ENIP, and IEC-104 analyzers.
     ///
     /// Pass `modbus: Some(analyzer)` to enable port-502 flow routing (STORY-105).
     /// Pass `modbus: None` to leave Modbus disabled (default-off per BC-2.14.023).
@@ -113,12 +120,15 @@ impl StreamDispatcher {
     /// Pass `dnp3: None` to leave DNP3 disabled (default-off per BC-2.15.021).
     /// Pass `enip: Some(analyzer)` to enable port-44818 flow routing (STORY-131).
     /// Pass `enip: None` to leave ENIP disabled (default-off per BC-2.17.020).
+    /// Pass `iec104: Some(analyzer)` to enable port-2404 flow routing (STORY-173).
+    /// Pass `iec104: None` to leave IEC-104 disabled (default-off per BC-2.12.025).
     pub fn new(
         http: Option<HttpAnalyzer>,
         tls: Option<TlsAnalyzer>,
         modbus: Option<ModbusAnalyzer>,
         dnp3: Option<Dnp3Analyzer>,
         enip: Option<EnipAnalyzer>,
+        iec104: Option<Iec104Analyzer>,
     ) -> Self {
         StreamDispatcher {
             routes: HashMap::new(),
@@ -129,6 +139,7 @@ impl StreamDispatcher {
             modbus,
             dnp3,
             enip,
+            iec104,
             unclassified_flows: 0,
             unclassified_port_counts: HashMap::new(),
             coverage_gaps_enabled: false,
@@ -260,6 +271,30 @@ impl StreamDispatcher {
     pub fn set_enip_analyzer(&mut self, analyzer: EnipAnalyzer) {
         self.enip = Some(analyzer);
     }
+
+    /// Returns a reference to the IEC-104 analyzer, if one was configured.
+    ///
+    /// BC-2.05.012: mirrors `enip_analyzer()` shape.
+    pub fn iec104_analyzer(&self) -> Option<&Iec104Analyzer> {
+        self.iec104.as_ref()
+    }
+
+    /// Moves the IEC-104 analyzer out of the dispatcher, consuming the slot.
+    ///
+    /// BC-2.05.012: mirrors `take_enip_analyzer()` — uses `Option::take()`,
+    /// leaving `self.iec104 = None` permanently. After this call, all IEC-104
+    /// dispatch arms are no-ops. Call ONCE, post-`reassembler.finalize()`.
+    pub fn take_iec104_analyzer(&mut self) -> Option<Iec104Analyzer> {
+        self.iec104.take()
+    }
+
+    /// Wires an `Iec104Analyzer` into the dispatcher after construction.
+    ///
+    /// Called from `main.rs` after the analyzer is constructed.
+    /// WIRING-EXEMPT: single field assignment with no branching.
+    pub fn set_iec104_analyzer(&mut self, analyzer: Iec104Analyzer) {
+        self.iec104 = Some(analyzer);
+    }
 }
 
 fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
@@ -326,7 +361,14 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
     if ports.contains(&44818) {
         return DispatchTarget::Enip;
     }
-    // Rule 8: no match.
+    // Rule 8: IEC-104 port (2404 — IANA-assigned, ADR-013 Decision 1). Fires AFTER Rule 7
+    // (ENIP). No content-signature rule for 0x68 (single byte is not a reliable discriminator —
+    // ADR-013 Decision 1). VP-004 oracle obligation: classify_oracle gains the port-2404 → Iec104
+    // arm immediately after the port-44818 → Enip arm (BC-2.05.012, ADR-013 Decision 9 step 2).
+    if ports.contains(&2404) {
+        return DispatchTarget::Iec104;
+    }
+    // Rule 9: no match.
     DispatchTarget::None
 }
 
@@ -339,14 +381,15 @@ impl StreamHandler for StreamDispatcher {
         offset: u64,
         timestamp: u32,
     ) {
-        // BC-2.14.025 §P2 / BC-2.15.021 Inv 4 / BC-2.17.019 Inv 4 early-exit guard:
-        // extended to include enip (STORY-131). Without `self.enip.is_none()`, on_data
-        // silently drops data when only an ENIP analyzer is active.
+        // BC-2.14.025 §P2 / BC-2.15.021 Inv 4 / BC-2.17.019 Inv 4 / BC-2.05.012 early-exit guard:
+        // extended to include iec104 (STORY-173). Without `self.iec104.is_none()`, on_data
+        // silently drops data when only an IEC-104 analyzer is active.
         if self.http.is_none()
             && self.tls.is_none()
             && self.modbus.is_none()
             && self.dnp3.is_none()
             && self.enip.is_none()
+            && self.iec104.is_none()
         {
             return;
         }
@@ -418,6 +461,13 @@ impl StreamHandler for StreamDispatcher {
                     enip.on_data(flow_key.clone(), data, timestamp, direction);
                 }
             }
+            DispatchTarget::Iec104 => {
+                // BC-2.05.012 §P2 / AC-173-008: forward port-2404 flow data to Iec104Analyzer.
+                // Mirrors the ENIP arm (ADR-013 Decision 9 step 5).
+                if let Some(ref mut iec104) = self.iec104 {
+                    iec104.on_data(flow_key.clone(), data, timestamp, direction);
+                }
+            }
             DispatchTarget::None => {}
         }
     }
@@ -461,13 +511,22 @@ impl StreamHandler for StreamDispatcher {
                     enip.on_flow_close(flow_key.clone());
                 }
             }
+            Some(DispatchTarget::Iec104) => {
+                // BC-2.05.012 / AC-173-008: forward flow-close to Iec104Analyzer.
+                // Mirrors the ENIP arm (ADR-013 Decision 9 step 5).
+                let _ = reason;
+                if let Some(ref mut iec104) = self.iec104 {
+                    iec104.on_flow_close(flow_key.clone());
+                }
+            }
             Some(DispatchTarget::None) | None => {
-                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3 + enip.
+                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3 + enip + iec104.
                 if self.http.is_some()
                     || self.tls.is_some()
                     || self.modbus.is_some()
                     || self.dnp3.is_some()
                     || self.enip.is_some()
+                    || self.iec104.is_some()
                 {
                     // REGRESSION WARNING (ADR-012 Decision 6 Clarification EXACT):
                     // unclassified_flows += 1 is gated on the analyzer-present guard ONLY —
@@ -643,11 +702,18 @@ mod kani_proofs {
         // Rule 7: ENIP port fallback (ADR-010 Decision 1 — MUST mirror production exactly).
         // VP-004 oracle obligation: this arm is mandatory per BC-2.17.019 Invariant 3 /
         // STORY-131 VP-004 oracle obligation. Placed AFTER Rule 6 (DNP3) and BEFORE
-        // Rule 8 (None).
+        // Rule 8 (IEC-104).
         if ports.contains(&44818) {
             return DispatchTarget::Enip;
         }
-        // Rule 8: nothing matched.
+        // Rule 8: IEC-104 port fallback (ADR-013 Decision 1 — MUST mirror production exactly).
+        // VP-004 oracle obligation: this arm is mandatory per BC-2.05.012 /
+        // STORY-173 VP-004 oracle obligation (ADR-013 Decision 9 step 3).
+        // Placed AFTER Rule 7 (ENIP) and BEFORE Rule 9 (None).
+        if ports.contains(&2404) {
+            return DispatchTarget::Iec104;
+        }
+        // Rule 9: nothing matched.
         DispatchTarget::None
     }
 
