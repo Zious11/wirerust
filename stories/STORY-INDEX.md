@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.70"
+version: "3.72"
 status: draft
 producer: story-writer
 timestamp: 2026-07-16T10:33:00Z
@@ -9,6 +9,7 @@ total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.72 (2026-07-16): STORY-173 DELIVERED (D-458, PR #408 084ff93 squash-merged to develop; wave-82 gate SATISFIED — single-story wave, per-story 3-clean A/B/C re-convergence (17 total passes) == wave-level; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; security PASS; pr-reviewer APPROVE; CI 13/13; demos 9 artifacts/8 ACs scrub PASS). status draft→delivered; stories_delivered 111→112. No numeric totals changed.
 # v3.71 (2026-07-16): STORY-173 per-story adversarial CONVERGED 3-clean (D-457, 14 passes, streak P12/P13/P14); production frozen/clean since P2; all findings remediated; advisory A-12-01 accepted. Status stays draft until PR merged. No numeric totals changed.
 # v3.70 (2026-07-15): STORY-173 BC-realigned v2.0 pre-delivery D-456 (SR-173-01..08 remediated; BC-2.19.028 findings-cap anchor added as AC-173-007; input-hash f3d3673 canonical Python tool; bc active 377→378). 4th F3-DECOMPOSITION-BC-FIDELITY (story-decomposition imprecision; ADR-013/code correct). No numeric story/point totals changed.
 # v3.69 (2026-07-15): STORY-172 DELIVERED (D-455; PR #406 d64e5fe squash-merged to develop; wave-81 gate SATISFIED — single-story wave, per-story 3-clean == wave-level; SEC-001-S168 carry-bound RESOLVED; ADR-0013 landed on develop; security PASS; pr-reviewer APPROVE; CI 13/13; demos 9 artifacts/8 ACs scrub PASS). status draft→delivered; stories_delivered 110→111. No numeric totals changed.
@@ -306,7 +307,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-170 | IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs | E-22 | 79 | 5 | delivered | STORY-169 |
 | STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | delivered | STORY-168, STORY-170 (file-seq) |
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | delivered (D-455, PR #406 d64e5fe, wave-81) | STORY-170, STORY-171 |
-| STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | draft (v2.0, D-456; BC-realigned pre-delivery; BC-2.19.028 findings-cap anchor added; hash f3d3673) | STORY-172 |
+| STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | delivered (D-458, PR #408 084ff93, wave-82; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; 17 adversarial passes 3-clean A/B/C; 2604/0) | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | draft | STORY-173 |
 
 ---
@@ -517,6 +518,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 79 | STORY-170 | **DELIVERED (D-447, 2026-07-15)** | #404 | 0bd93f8 | 2026-07-15 |
 | 80 | STORY-171 | **DELIVERED (D-448, 2026-07-15)** | #405 | 1a64380 | 2026-07-15 |
 | 81 | STORY-172 | **DELIVERED (D-455, 2026-07-15)** | #406 | d64e5fe | 2026-07-15 |
+| 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
 
 ## Coverage Verification
 
