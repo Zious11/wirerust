@@ -9,12 +9,12 @@ traces_to: ""
 project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
-status: paused
-current_step: "D-459 Session /wrap PAUSED (2026-07-16, human-requested). feature-iec104 F4; 7/8 IEC-104 stories delivered (STORY-167..173); develop=084ff93 (7 unreleased); STORY-174 wave-83 next. Clean story-boundary pause. trajectory-tail →0→0→0→0"
+status: active
+current_step: "D-460 Session RESUMED (2026-07-16, human-approved). feature-iec104 F4; STORY-174 wave-83 starting. Pre-work: research-agent validation of STORY-174 carry-forward scope items (PG-REDGREEN grep-guard, F-172-003 VP-045 vacuity, IEC104-FINDING-DIRECTION-001) per human direction; PR #407 (external fork) triage deferred to post-wave-83. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
-pipeline: PAUSED
-timestamp: 2026-07-16T12:00:00Z
-# D-459 Session /wrap (2026-07-16, human-requested) — pipeline PAUSED at feature-iec104 F4; 7/8 IEC-104 stories delivered (STORY-167..173); develop=084ff93 (7 unreleased); clean story-boundary pause. STORY-174 wave-83 next.
+pipeline: IN PROGRESS
+timestamp: 2026-07-16T14:09:50Z
+# D-460 Session RESUMED (2026-07-16, human-approved) — pipeline IN PROGRESS; feature-iec104 F4; STORY-174 wave-83 starting. Research-agent pre-work in progress. Prior pause: D-459 /wrap PAUSED.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 280 = 220 (dual-margin form). 280 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 285 = 215 (dual-margin form). 285 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -70,7 +70,9 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-458 COMPLETE (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes; initial 3-clean P12/P13/P14 (D-457), pre-merge LOW-fix burst (LOW#1/LOW#2/SEC-001; 0bfc977/5325cf2/3ec6ac1), fresh 3-clean A/B/C. IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. NEXT: STORY-174 (wave-83, formal hardening + VP-045 non-vacuity + PG-REDGREEN grep-guard). trajectory-tail →0→0→0→0**
+**D-460 SESSION RESUMED (2026-07-16, human-approved): STORY-174 wave-83 starting. Research-agent validation of STORY-174 carry-forward scope items (PG-REDGREEN grep-guard, F-172-003 VP-045 vacuity, IEC104-FINDING-DIRECTION-001) per human direction. PR #407 (external fork) deferred post-wave-83.**
+
+**D-458 base (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes; initial 3-clean P12/P13/P14 (D-457), pre-merge LOW-fix burst (LOW#1/LOW#2/SEC-001; 0bfc977/5325cf2/3ec6ac1), fresh 3-clean A/B/C. IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. trajectory-tail →0→0→0→0**
 
 ---
 
@@ -85,7 +87,7 @@ maintenance_prior_run: maint-2026-07-09
 | Develop HEAD | `084ff93` — PR #408 STORY-173 squash 2026-07-16; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 |
 | Stories | 112 delivered / 127 total (STORY-INDEX v3.72, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-16 — D-458 STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 passes; 3-clean A/B/C post-LOWfix; IEC104-FINDINGS-CAP-001 RESOLVED; 2604/0. STORY-INDEX v3.72. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-16 — D-460 SESSION RESUMED (human-approved). STORY-174 wave-83 starting. Research-agent pre-work in progress. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -179,6 +181,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-456 | STORY-173 pre-delivery AC↔BC fidelity check DRIFT-FOUND (2 BLOCKING/3 MEDIUM/3 LOW) — 4th F3-DECOMPOSITION-BC-FIDELITY (story-decomposition imprecision; ADR-013/code were correct). SR-173-01 BLOCKING (T0881 tactic string "impact" → MitreTactic::IcsInhibitResponseFunction, would not compile); SR-173-02 BLOCKING security GAP (IEC104-FINDINGS-CAP-001 uncovered though assigned here). Remediation: product-owner created BC-2.19.028 v1.0 (per-session findings cap MAX_IEC104_FINDINGS=10_000 mirroring DNP3 BC-2.15.022/ENIP BC-2.17.022; dropped_findings counter; anchor PC-2); BC-INDEX v2.31→v2.32. STORY-173 realigned to v2.0 (SR-173-01..08; AC-173-007 cap + AC-173-008 dispatcher wiring; input-hash f3d3673). STORY-INDEX v3.69→v3.70. | 2026-07-15 |
 | D-457 | STORY-173 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 14 passes; streak P12/P13/P14; final HEAD 7b2a73e; 2602/0. Trajectory P1(1H F-173-001 + 3 doc)→P2(1M+1N)→P3/P4/P5(doc-tense NITs)→P6 CLEAN→P7(1N stale protocols.rs cardinality)→P8(4N stale mitre.rs seeded-count)→P9/P10 CLEAN→P11(1N non-discriminating EMITTED_IDS test)→P12/P13/P14 CLEAN. Code FROZEN/CLEAN since P2; post-P2 tail = doc-accuracy + test-cosmetic reviewer-variance. Fix commits 11f695c/366b176/6a3a372/a652464/b4cca90/7462e9c/5363be6/a73a3b9/f6b91f1/7b2a73e; demo 3d22003. Advisory A-12-01 accepted. Process-gaps: PG-DOC-CURRENCY-SWEEP, PG-ADVERSARY-IDLE-NO-REPORT, PG-ADVERSARY-SEVERITY-CALIBRATION, PG-STATE-RECOVERY-SCOPE. STORY-INDEX v3.70→v3.71. | 2026-07-16 |
 | D-458 | STORY-173 DELIVERED (PR #408 084ff93 squash-merged to develop, 2026-07-16, human-authorized per DF-MERGE-AUTH-CLASSIFIER-001). Per-story adversarial CONVERGED 3-clean (BC-5.39.001): 17 total passes; initial 3-clean P12/P13/P14 at 7b2a73e (D-457); pre-merge LOW-fix burst (LOW#1 flows_analyzed + LOW#2 packets_analyzed + SEC-001 is_valid doc/BC-2.19.006 v1.2; commits 0bfc977/5325cf2/3ec6ac1; 2604/0 tests); fresh 3-clean A/B/C re-convergence on 3ec6ac1. IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000; BC-2.19.028 anchor). Security PASS. pr-reviewer APPROVE. CI 13/13. Demos 9 artifacts/8 ACs scrub PASS. Stray commit 105497f (sec001 fix agent to main checkout) discarded. 7th of 8 IEC-104 stories. develop=084ff93 (7 unreleased: STORY-167..173); stories_delivered 111→112. Wave-82 gate SATISFIED. 5 process-gaps filed (PG-DOC-CURRENCY-SWEEP/PG-ADVERSARY-IDLE-NO-REPORT/PG-ADVERSARY-SEVERITY-CALIBRATION/PG-STATE-RECOVERY-SCOPE/PG-VERIFY-ALL-WORKTREES). BC-INDEX v2.33. STORY-INDEX v3.72. | 2026-07-16 |
+| D-460 | Session RESUMED (human-approved, 2026-07-16). Worktree health PASS; develop=084ff93 verified; no story worktrees; only open PR is external #407 (deferred post-wave-83 by human). STORY-174 wave-83 begins with research-agent validation of carry-forward scope items before any story realignment (human-directed). | 2026-07-16 |
 
 ---
 
@@ -238,11 +241,13 @@ maintenance_prior_run: maint-2026-07-09
 
 ## Session Resume Checkpoint
 
-**D-458 COMPLETE (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes (initial P12/P13/P14 + pre-merge LOW-fix burst + A/B/C re-convergence). IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. NEXT: STORY-174 (wave-83). trajectory-tail →0→0→0→0**
+**D-460 SESSION RESUMED (2026-07-16, human-approved): STORY-174 wave-83 starting. Research-agent validation of carry-forward scope items (PG-REDGREEN grep-guard, F-172-003 VP-045 vacuity, IEC104-FINDING-DIRECTION-001) in progress per human direction. PR #407 deferred post-wave-83.**
+
+**Prior — D-458 COMPLETE (2026-07-16): STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED). 17 adversarial passes (initial P12/P13/P14 + pre-merge LOW-fix burst + A/B/C re-convergence). IEC104-FINDINGS-CAP-001 RESOLVED (CWE-400/770; MAX_IEC104_FINDINGS=10_000). 2604/0; develop=084ff93; stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. NEXT: STORY-174 (wave-83). trajectory-tail →0→0→0→0**
 
 Prior checkpoint (D-457 STORY-173 per-story adversarial CONVERGED, 2026-07-16) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-16. Position: feature-iec104 F4 delta-implementation IN PROGRESS; D-458 STORY-173 DELIVERED; develop=084ff93 (7 unreleased). STORY-174 wave-83 next. trajectory-tail →0→0→0→0
+- **Date:** 2026-07-16. Position: feature-iec104 F4 delta-implementation IN PROGRESS; D-460 SESSION RESUMED; STORY-174 wave-83 starting. develop=084ff93 (7 unreleased). trajectory-tail →0→0→0→0
 - **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `084ff93`. DRIFT-BACKMERGE-SQUASH-001 still applies. 7 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93).
 - **Wave status:** Waves 76–82 DELIVERED (D-441/443/445/447/448/455/458): STORY-167..173. Wave 83 IN PROGRESS: STORY-174 (TDD next). 7 of 8 IEC-104 stories merged to develop.
 - **Remaining delivery sequence:** STORY-174 (wave-83, formal hardening + PG-REDGREEN-COMMENT-CLEANUP grep-guard + F-172-003 VP-045 proptest fix + VP-044 Kani + VP-047 Fuzz + cargo-mutants) → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → release cut.
