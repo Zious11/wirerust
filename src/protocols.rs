@@ -75,9 +75,10 @@ pub const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 2404, 443, 8443, 80, 80
 
 /// Static catalog of all known ICS/IT protocols that wirerust is aware of.
 ///
-/// Exactly 30 entries in catalog-declaration order: 7 entries in the supported
-/// block (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP), then 23
-/// entries in the remaining blocks. IEC 60870-5-104 is functionally supported
+/// Exactly 30 entries in catalog-declaration order: 7 entries in the supported block
+/// (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP), plus 1 additional
+/// supported via port-filter (IEC 60870-5-104), then 22 unsupported entries.
+/// IEC 60870-5-104 is functionally supported
 /// (port 2404 in `SUPPORTED_PORTS` since STORY-173; BC-2.18.003 PC-1) but is
 /// physically still in the ICS Tier-1 block below — membership-by-port-filter
 /// pattern: `supported_protocols()` returns it via the port intersection, not by
@@ -475,7 +476,7 @@ pub fn unsupported_protocols() -> Vec<&'static KnownProtocol> {
 //
 //  2. CBMC INTRACTABILITY. The partition is expressed over `Vec<&KnownProtocol>`
 //     with `&'static str` name equality (`supported.contains(&p.name)`, nested
-//     30x7 / 7x23 string comparisons). Modeling heap `Vec` growth plus byte-wise
+//     30x8 / 8x22 string comparisons). Modeling heap `Vec` growth plus byte-wise
 //     `str` memcmp exploded the SAT formula: a trial harness ran CBMC (cadical,
 //     --unwind 64, --object-bits 16) for >12 min of solver time without converging.
 //     Shipping a non-terminating proof harness would violate the repo's
