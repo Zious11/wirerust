@@ -8,11 +8,14 @@ points: 5
 phase: f3
 tdd_mode: strict
 status: draft
-version: "2.0"
+version: "2.1"
 modified:
   - date: 2026-07-15
     actor: sw-agent
     reason: "SR-173-01..08 BC-realignment: technique_info tactic corrected to MitreTactic::IcsInhibitResponseFunction (TA0107); BC-2.19.028 (IEC-104 findings cap) added as AC-173-007 + inputs; dispatcher iec104-field/guard/arm wiring (Decision 9 steps 4-5) added as AC-173-008; SUPPORTED_PORTS count corrected 8→9 / supported_protocols 7→8 (were conflated as 7→8); SEEDED_TECHNIQUE_IDS/SEEDED_TECHNIQUE_ID_COUNT names corrected (story had stale SEEDED_TECHNIQUE_COUNT); vp007_catalog_drift_guard corrected to #[test] not Kani; classify() signature corrected to (data, flow_key); Rule 9 no-match renumber noted; verify_all_seeded_ids_resolve added at count=29."
+  - date: 2026-07-16
+    actor: prose-fix-agent
+    reason: "v2.1 (2026-07-16): F-173-501 prose accuracy — AC-173-005 corrected to KNOWN_PROTOCOLS partition (supported ∪ unsupported) per BC-2.18.004 + VP-041; removed nonexistent UNMONITORED_PORTS reference."
 feature_id: feature-iec104
 subsystems: [SS-05, SS-10, SS-12, SS-18, SS-19]
 target_module: analyzer/iec104
@@ -107,9 +110,8 @@ committed together.
 ### AC-173-005: Protocol catalog partition invariant preserved after adding port 2404
 **Traces to:** BC-2.18.004 postconditions 1–2 and invariant 1 (VP-041 proptest)
 - Given port 2404 added to `SUPPORTED_PORTS`
-- When the partition invariant check runs (VP-041 proptest `proptest_vp041_*`)
-- Then `SUPPORTED_PORTS`, `UNMONITORED_PORTS`, and the unclassified set form a valid partition
-  of the overall port space (no overlaps, no missing coverage for documented ports)
+- When the partition invariant checks run (VP-041 proptest `proptest_vp041_oracle_cross_check` and `proptest_vp041_partition_invariant`)
+- Then `supported_protocols() ∪ unsupported_protocols() == KNOWN_PROTOCOLS` (union completeness: every entry in `KNOWN_PROTOCOLS` appears in exactly one set) and `supported_protocols() ∩ unsupported_protocols() == ∅` (disjoint: no entry appears in both sets); the counting invariant `supported_protocols().len() + unsupported_protocols().len() == KNOWN_PROTOCOLS.len()` holds; adding port 2404 to `SUPPORTED_PORTS` moves the `IEC 60870-5-104` entry from `unsupported_protocols()` to `supported_protocols()` while the partition remains valid (BC-2.18.004 EC-003/EC-007)
 
 ### AC-173-006: VP-004 classifier oracle updated for DispatchTarget::Iec104
 **Traces to:** BC-2.05.012 invariant 1 (VP-004 oracle update — ADR-013 Decision 9)
@@ -244,7 +246,7 @@ landing causes Kani proof failures.
 | EC-002 | BC-2.10.010 | SEEDED count wrong (partial commit) | Kani harness fails — prevents partial delivery |
 | EC-003 | BC-2.12.025 | `--iec104` absent from CLI invocation | No Iec104Analyzer created; port 2404 flows unanalyzed |
 | EC-004 | BC-2.18.003 | SUPPORTED_PORTS check at count=8 before change | After adding 2404, len must be 9 (not 8); regression at protocols_tests.rs:~111 |
-| EC-005 | BC-2.18.004 | Port 2404 accidentally also in UNMONITORED_PORTS | VP-041 partition proptest catches overlap |
+| EC-005 | BC-2.18.004 | `IEC 60870-5-104` entry accidentally appears in both `supported_protocols()` and `unsupported_protocols()` (e.g., port 2404 in `SUPPORTED_PORTS` but entry also returned by `unsupported_protocols()`) | `proptest_vp041_partition_invariant` catches the disjointness violation; `proptest_vp041_oracle_cross_check` catches oracle inconsistency |
 | EC-006 | BC-2.19.028 | `all_findings` reaches `MAX_IEC104_FINDINGS`; subsequent `on_data` produces more findings | `dropped_findings` incremented; `all_findings.len()` stays at cap; no Finding emitted |
 
 ## Token Budget Estimate

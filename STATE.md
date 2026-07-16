@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
 status: in_progress
-current_step: "D-456 STORY-173 pre-delivery fidelity remediation COMPLETE (2026-07-15). DRIFT-FOUND 2 BLOCKING/3 MEDIUM/3 LOW (SR-173-01..08). SR-173-01 BLOCKING: T0881 tactic corrected MitreTactic::IcsInhibitResponseFunction (TA0107). SR-173-02 BLOCKING: IEC104-FINDINGS-CAP-001 gap → BC-2.19.028 v1.0 (MAX_IEC104_FINDINGS=10_000). BC-INDEX v2.32. STORY-173 v2.0 hash f3d3673 (canonical). 4th F3-DECOMPOSITION-BC-FIDELITY (story-decomposition imprecision; ADR-013/code correct). STORY-INDEX v3.70. Next: STORY-173 TDD delivery (wave-82). trajectory-tail →1→0→0→0"
+current_step: "D-457 STORY-173 per-story adversarial CONVERGED 3-clean (BC-5.39.001) 2026-07-16. 14 passes; streak P12/P13/P14; trajectory P1(1H+3doc)→P2(1M+1N)→P3/P4/P5(doc-tense NITs)→P6(CLEAN)→P7(1N stale-cardinality)→P8(4N stale seeded-counts)→P9/P10(CLEAN)→P11(1N non-discriminating test)→P12/P13/P14(CLEAN). Production code FROZEN/CLEAN since P2. Advisory A-12-01 accepted non-blocking. 3 new process-gaps (PG-DOC-CURRENCY-SWEEP/PG-ADVERSARY-IDLE-NO-REPORT/PG-ADVERSARY-SEVERITY-CALIBRATION). STORY-INDEX v3.71. Next: demos → push → PR to develop. trajectory-tail →1→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-16T10:32:00Z
-# D-456 STORY-173 pre-delivery fidelity remediation COMPLETE (2026-07-15). DRIFT-FOUND 2 BLOCKING/3 MEDIUM/3 LOW (SR-173-01..08). BC-2.19.028 v1.0 findings cap created. BC-INDEX v2.32. STORY-173 v2.0 hash f3d3673. 4th F3-DECOMPOSITION-BC-FIDELITY. STORY-INDEX v3.70. Next: STORY-173 TDD delivery (wave-82).
+timestamp: 2026-07-16T22:01:00Z
+# D-457 STORY-173 per-story adversarial CONVERGED 3-clean (BC-5.39.001) 2026-07-16. 14 passes streak P12/P13/P14. All findings remediated; advisory A-12-01 accepted. 3 process-gaps (PG-DOC-CURRENCY-SWEEP/PG-ADVERSARY-IDLE-NO-REPORT/PG-ADVERSARY-SEVERITY-CALIBRATION). STORY-INDEX v3.71. Next: demos → push → PR.
 
 # Release chain (latest)
 released_version: v0.12.1
