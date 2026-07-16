@@ -34,8 +34,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     model per BC-2.12.025).
 
   - **Protocol catalog (SS-18, AC-173-004/005):** port 2404 added to `SUPPORTED_PORTS`
-    (count 8→9); `supported_protocols()` count 7→8; VP-041 partition proptest confirms no
-    overlap with `UNMONITORED_PORTS`.
+    (count 8→9); `supported_protocols()` count 7→8; VP-041 partition proptest verifies
+    supported_protocols() ∪ unsupported_protocols() partitions KNOWN_PROTOCOLS (disjoint,
+    complete coverage) after port 2404 addition.
 
   - **Findings cap (SS-19, AC-173-007 / BC-2.19.028):** `const MAX_IEC104_FINDINGS: usize =
     10_000` added to `src/analyzer/iec104.rs`; `Iec104Analyzer` gains `dropped_findings: u64`
