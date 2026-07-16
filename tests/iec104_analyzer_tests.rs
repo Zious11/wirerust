@@ -659,8 +659,7 @@ mod story_167 {
 // STORY-168: IEC-104 Frame Format Discrimination + U-Format Session State Machine
 //
 // Covers BC-2.19.007–014 and VP-046 proptest skeleton.
-// All tests in this module MUST FAIL (Red Gate) because classify_frame_format
-// and process_u_frame are todo!() stubs. They pass after implementation.
+// classify_frame_format and process_u_frame are implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.007: classify_frame_format returns IFormat when CF1 bit 0 = 0
@@ -1495,8 +1494,8 @@ mod story_168 {
 
     // VP-046 proptest skeleton — classify_frame_format totality over all 256 u8 values.
     //
-    // Per AC-168-009: this skeleton compiles and FAILS Red Gate because classify_frame_format
-    // is a todo!(). Full proptest run (1000+ cases) is in STORY-174 (VP-046 full proof run).
+    // Per AC-168-009: proptest_vp046_frame_format_totality verifies classify_frame_format
+    // over all 256 CF1 values. VP-046 full proof run completed in STORY-174.
     //
     // Per STORY-168 Architecture Compliance: classify_frame_format must be total over all
     // 256 u8 values with no unhandled case and no panic (BC-2.19.009 invariant 1).
@@ -1541,8 +1540,7 @@ mod story_168 {
 // STORY-169: IEC-104 ASDU Header Extraction: parse_asdu / Asdu with Broken-Out DUI Fields
 //
 // Covers BC-2.19.015–018 and all edge cases from the BCs and STORY-169 EC table.
-// All tests in this module MUST FAIL (Red Gate) because parse_asdu is todo!().
-// They pass after implementation.
+// parse_asdu is implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.015: parse_asdu returns None for asdu_body.len() < 6; purity invariant (no panic).
