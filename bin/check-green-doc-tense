@@ -281,6 +281,41 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             re.IGNORECASE,
         ),
     ),
+    # -----------------------------------------------------------------------
+    # Patterns 23-25: added to catch IEC-104 stale Red-Gate phrasings that
+    # slipped through the original gate (PG-REDGREEN-COMMENT-CLEANUP,
+    # PG-REDGREEN-SIBLING-SWEEP, AC-174-008). The existing token list required
+    # exact adjacency; these patterns allow interposed words.
+    # -----------------------------------------------------------------------
+    (
+        # Pattern 23: "All tests <interposed words> MUST FAIL" — catches stale module-
+        # or section-level headers where arbitrary qualifiers like "in this module" or
+        # "in this section" appear between "All tests" and "MUST FAIL". Per-line bounded
+        # because scan_file iterates splitlines() with no DOTALL flag.
+        # Allowlist: "All tests passed their Red Gate phase" (no MUST FAIL);
+        #            "All tests were required to FAIL" (no MUST before FAIL).
+        "All tests … MUST FAIL (stale module-level Red-Gate header with interposed qualifier words; AC-174-008)",
+        re.compile(r"All tests\b.*\bMUST FAIL", re.IGNORECASE),
+    ),
+    (
+        # Pattern 24: "FAIL(S) Red Gate" — catches present/imperative assertions that a
+        # harness or skeleton currently fails the gate (e.g. "FAILS Red Gate" or
+        # "FAIL Red Gate"). The trailing 'S?' matches singular and plural forms.
+        # Allowlist: "failed Red Gate" (past tense — after 'fail' the next char is 'e',
+        #            not whitespace, so \s+ does not match);
+        #            "passed Red Gate" (no FAILS? match).
+        "FAIL(S) Red Gate (current-state assertion that a harness currently fails the gate; AC-174-008)",
+        re.compile(r"FAILS?\s+Red Gate", re.IGNORECASE),
+    ),
+    (
+        # Pattern 25: "are/is todo!() stub(s)" — catches stale headers asserting that
+        # function bodies are currently todo!() stubs (present-tense "are" or "is").
+        # Examples: "are todo!() stubs — they will panic"; "is todo!() stub until STORY-NNN"
+        # Allowlist: "were todo!() stubs" (past tense 'were');
+        #            "originated as todo!() stubs" ('as' not 'are' or 'is').
+        "are/is todo!() stub(s) (present-tense assertion that bodies are currently todo!() stubs; AC-174-008)",
+        re.compile(r"(?:are|is)\s+todo!\(\)\s+stub", re.IGNORECASE),
+    ),
 ]
 
 
