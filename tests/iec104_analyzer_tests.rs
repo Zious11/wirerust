@@ -5330,54 +5330,132 @@ mod story_172 {
 
     // =========================================================================
     // VP-045: proptest_vp045_direction_isolation
-    // AC-172-007 (proptest skeleton compiles)
+    // AC-174-002: upgraded to asserting harnesses (non-vacuous per AC-174-002 amendment)
     // =========================================================================
 
     proptest! {
-        /// VP-045 proptest skeleton: carry direction isolation (AC-172-007).
+        /// VP-045 proptest: carry direction isolation (AC-174-002; BC-2.19.025 invariant 1).
         ///
-        /// Interleaved C2S and S2C deliveries to the same flow must never mix their
-        /// carry buffers. `carry_c2s` must only accumulate bytes from the C2S delivery
-        /// path; `carry_s2c` from S2C only (BC-2.19.025 invariant 1;
-        /// RULING-DNP3-SIBLING-001).
+        /// Verifies that C2S deliveries accumulate residual bytes only in `carry_c2s`
+        /// and S2C deliveries accumulate residual bytes only in `carry_s2c`. Cross-
+        /// direction contamination is detected by comparing the combined interleaved-
+        /// replay carry against isolated C2S-only and S2C-only witness replays.
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Strategy: a generated `Vec` of direction-tagged byte chunks (`(bool, Vec<u8>)`,
+        /// where `true` = C2S) is replayed in generated order with arbitrary chunk
+        /// boundaries. Three analyzer instances receive the same data in different
+        /// subsets: (a) combined receives all chunks with their tagged direction;
+        /// (b) c2s_witness receives only C2S chunks; (c) s2c_witness receives only S2C
+        /// chunks. The combined carry must equal the witnesses, proving neither carry
+        /// buffer is contaminated by the other direction.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Non-vacuity: `prop_assert_eq!` compares carry equality and `prop_assert!`
+        /// checks the 255-byte bound on every proptest case.
+        ///
+        /// Traces: BC-2.19.025 invariants 1 and 3; VP-045; AC-174-002; RULING-DNP3-SIBLING-001.
         #[test]
         fn proptest_vp045_direction_isolation(
-            c2s_data in prop::collection::vec(any::<u8>(), 0..256),
-            s2c_data in prop::collection::vec(any::<u8>(), 0..256),
+            chunks in prop::collection::vec(
+                (any::<bool>(), prop::collection::vec(any::<u8>(), 0..64usize)),
+                0..20usize,
+            ),
         ) {
-            let mut analyzer = Iec104Analyzer::new();
             let flow_key = FlowKey::new(
                 "127.0.0.1".parse().unwrap(), 1234,
                 "127.0.0.2".parse().unwrap(), 2404,
             );
-            // Interleaved C2S and S2C deliveries must not mix carries.
-            // carry_c2s must only contain bytes from the c2s_data path;
-            // carry_s2c must only contain bytes from s2c_data path.
-            // (STORY-174 wires the isolation assertion; this skeleton verifies compile.)
-            analyzer.on_data(flow_key.clone(), &c2s_data, 0, Direction::ClientToServer);
-            analyzer.on_data(flow_key.clone(), &s2c_data, 0, Direction::ServerToClient);
+
+            // combined: receives the full interleaved C2S + S2C sequence.
+            let mut combined = Iec104Analyzer::new();
+            // c2s_witness: receives only the C2S chunks (isolation witness).
+            let mut c2s_witness = Iec104Analyzer::new();
+            // s2c_witness: receives only the S2C chunks (isolation witness).
+            let mut s2c_witness = Iec104Analyzer::new();
+
+            for (is_c2s, data) in &chunks {
+                let dir = if *is_c2s {
+                    Direction::ClientToServer
+                } else {
+                    Direction::ServerToClient
+                };
+                combined.on_data(flow_key.clone(), data, 0, dir);
+                if *is_c2s {
+                    c2s_witness.on_data(flow_key.clone(), data, 0, Direction::ClientToServer);
+                } else {
+                    s2c_witness.on_data(flow_key.clone(), data, 0, Direction::ServerToClient);
+                }
+            }
+
+            let combined_c2s = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let combined_s2c = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+            let witness_c2s = c2s_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let witness_s2c = s2c_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+
+            // Save lengths before consuming the vectors in prop_assert_eq!.
+            let c2s_len = combined_c2s.len();
+            let s2c_len = combined_s2c.len();
+
+            // BC-2.19.025 invariant 1: no cross-direction mixing.
+            prop_assert_eq!(
+                combined_c2s, witness_c2s,
+                "carry_c2s must equal the C2S-only witness replay \
+                 (BC-2.19.025 invariant 1: S2C deliveries must not affect carry_c2s)"
+            );
+            prop_assert_eq!(
+                combined_s2c, witness_s2c,
+                "carry_s2c must equal the S2C-only witness replay \
+                 (BC-2.19.025 invariant 1: C2S deliveries must not affect carry_s2c)"
+            );
+
+            // BC-2.19.025 invariant 3: 255-byte residual cap (defensive guard).
+            prop_assert!(
+                c2s_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_c2s.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                c2s_len,
+                MAX_IEC104_CARRY_BYTES
+            );
+            prop_assert!(
+                s2c_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_s2c.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                s2c_len,
+                MAX_IEC104_CARRY_BYTES
+            );
         }
     }
 
     proptest! {
-        /// VP-045 proptest skeleton: independent-run equivalence (AC-172-007).
+        /// VP-045 proptest: independent-run equivalence (AC-174-002; BC-2.19.025 invariant 2).
         ///
-        /// Running on_data with the same data on two separate analyzer instances must
-        /// produce identical per-flow carry state. Verifies that on_data is deterministic
-        /// and carries no hidden cross-flow state (BC-2.19.025 invariant 2).
+        /// Verifies that two independent `Iec104Analyzer` instances fed identical delivery
+        /// sequences produce identical per-flow carry state and `frame_count`. This guards
+        /// against hidden cross-flow state or non-determinism in `on_data` (BC-2.19.025
+        /// invariant 2; RULING-DNP3-SIBLING-001).
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Non-vacuity: `prop_assert_eq!` compares `carry_c2s`, `carry_s2c`, and
+        /// `frame_count` across the two instances on every proptest case.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Traces: BC-2.19.025 invariant 2; VP-045; AC-174-002.
         #[test]
         fn proptest_vp045_independent_run_equivalence(
-            data in prop::collection::vec(any::<u8>(), 0..256),
+            data in prop::collection::vec(any::<u8>(), 0..256usize),
         ) {
             let mut analyzer_a = Iec104Analyzer::new();
             let mut analyzer_b = Iec104Analyzer::new();
@@ -5385,11 +5463,42 @@ mod story_172 {
                 "10.0.0.1".parse().unwrap(), 5000,
                 "10.0.0.2".parse().unwrap(), 2404,
             );
-            // Two independent analyzer instances with the same input must produce
-            // equivalent per-flow carry state.
-            // (STORY-174 wires the equivalence assertion; this skeleton verifies compile.)
             analyzer_a.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
             analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+
+            let state_a = analyzer_a.flows.get(&flow_key);
+            let state_b = analyzer_b.flows.get(&flow_key);
+
+            match (state_a, state_b) {
+                (None, None) => {
+                    // Both produced no flow state — consistent (empty or no-frame delivery).
+                }
+                (Some(a), Some(b)) => {
+                    // BC-2.19.025 invariant 2: independent runs produce identical carry state.
+                    prop_assert_eq!(
+                        &a.carry_c2s, &b.carry_c2s,
+                        "carry_c2s must be identical across independent analyzer runs \
+                         (BC-2.19.025 invariant 2)"
+                    );
+                    prop_assert_eq!(
+                        &a.carry_s2c, &b.carry_s2c,
+                        "carry_s2c must be identical across independent analyzer runs \
+                         (BC-2.19.025 invariant 2)"
+                    );
+                    prop_assert_eq!(
+                        a.frame_count, b.frame_count,
+                        "frame_count must be identical across independent analyzer runs \
+                         (BC-2.19.025 invariant 2)"
+                    );
+                }
+                _ => {
+                    prop_assert!(
+                        false,
+                        "one analyzer produced flow state and the other did not — \
+                         non-deterministic on_data (BC-2.19.025 invariant 2)"
+                    );
+                }
+            }
         }
     }
 
