@@ -9,12 +9,12 @@ traces_to: ""
 project: wirerust
 mode: steady-state
 phase: "feature-iec104/F4"
-status: in_progress
-current_step: "D-458 STORY-173 DELIVERED (PR #408 084ff93 squash-merged to develop, 2026-07-16, human-authorized). 17 adversarial passes; initial 3-clean P12/P13/P14 at 7b2a73e (D-457), then pre-merge LOW-fix burst (LOW#1 flows_analyzed + LOW#2 packets_analyzed + SEC-001 is_valid doc; 0bfc977/5325cf2/3ec6ac1), then fresh 3-clean A/B/C. IEC104-FINDINGS-CAP-001 RESOLVED. CI 13/13. 2604/0. 7/8 IEC-104. stories_delivered=112. Wave-82 SATISFIED. STORY-INDEX v3.72. BC-INDEX v2.33. develop=084ff93. NEXT: STORY-174 wave-83. trajectory-tail →0→0→0→0"
+status: paused
+current_step: "D-459 Session /wrap PAUSED (2026-07-16, human-requested). feature-iec104 F4; 7/8 IEC-104 stories delivered (STORY-167..173); develop=084ff93 (7 unreleased); STORY-174 wave-83 next. Clean story-boundary pause. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
-pipeline: IN PROGRESS
-timestamp: 2026-07-17T00:02:00Z
-# D-458 STORY-173 DELIVERED (PR #408 084ff93, 2026-07-16). 17 adversarial passes; 3-clean A/B/C post-LOW-fixes. IEC104-FINDINGS-CAP-001 RESOLVED. Wave-82 gate SATISFIED. stories_delivered=112. BC-INDEX v2.33. STORY-INDEX v3.72. NEXT: STORY-174 (wave-83).
+pipeline: PAUSED
+timestamp: 2026-07-16T12:00:00Z
+# D-459 Session /wrap (2026-07-16, human-requested) — pipeline PAUSED at feature-iec104 F4; 7/8 IEC-104 stories delivered (STORY-167..173); develop=084ff93 (7 unreleased); clean story-boundary pause. STORY-174 wave-83 next.
 
 # Release chain (latest)
 released_version: v0.12.1

@@ -755,3 +755,7 @@ Session-end markers for the VSDD factory. Run /session-review to synthesize.
 - Session ended at 2026-07-16T05:04:51Z (awaiting /session-review)
 
 - Session ended at 2026-07-16T10:45:00Z D-458 STORY-173 DELIVERED (PR #408 084ff93, wave-82 SATISFIED; IEC104-FINDINGS-CAP-001 RESOLVED; 17 adversarial passes 3-clean A/B/C; stories_delivered=112; BC-INDEX v2.33; STORY-INDEX v3.72; STATE.md 280 lines; wave-82 gate artifacts committed). (awaiting /session-review)
+- Session ended at 2026-07-16T05:33:22Z (awaiting /session-review)
+- Session ended at 2026-07-16T05:33:30Z (awaiting /session-review)
+- Session ended at 2026-07-16T13:32:59Z (awaiting /session-review)
+- Session ended at 2026-07-16T13:43:06Z (awaiting /session-review)
