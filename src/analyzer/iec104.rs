@@ -1,4 +1,4 @@
-//! IEC 60870-5-104 (IEC-104) pure-core APCI header parser and post-classification validity gate.
+//! IEC 60870-5-104 (IEC-104) pure-core APCI header parser and frame-validity predicates.
 //!
 //! Subsystem SS-19, CAP-19 — `analyzer/iec104.rs` (C-27).
 //!
@@ -28,7 +28,7 @@
 //! - BC-2.19.003: `parse_apci_header` returns None for LEN < 4.
 //! - BC-2.19.004: `parse_apci_header` returns None for LEN > 253.
 //! - BC-2.19.005: `parse_apci_header` returns Some(ApciHeader) for valid input; CF1–CF4 verbatim.
-//! - BC-2.19.006: `is_valid_iec104_frame` is a lightweight 2-byte post-classification gate.
+//! - BC-2.19.006: `is_valid_iec104_frame` is a standalone pure predicate; its validation is mirrored inline in on_data's frame-walk (not wired as a dispatch gate — port-based classification per ADR-013 Decision 1).
 //! - BC-2.19.017: COT T-bit (`cot_test`) drives `[TEST]` tagging in findings.
 //! - BC-2.19.019: TypeIDs 45–47 → T1692.001 Possible; TypeIDs 48–51 → T1692.001 + T0836 Possible.
 //! - BC-2.19.020: TypeID 105 (C_RP_NA_1) → T0827 Likely.
