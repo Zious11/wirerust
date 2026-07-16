@@ -5440,17 +5440,19 @@ mod story_172 {
     }
 
     proptest! {
-        /// VP-045 proptest: independent-run equivalence (AC-174-002; BC-2.19.025 invariant 2).
+        /// VP-045 proptest: independent-run equivalence (AC-174-002; BC-2.19.025 VP-045
+        /// registered harness — independent-run determinism).
         ///
         /// Verifies that two independent `Iec104Analyzer` instances fed identical delivery
         /// sequences produce identical per-flow carry state and `frame_count`. This guards
-        /// against hidden cross-flow state or non-determinism in `on_data` (BC-2.19.025
-        /// invariant 2; RULING-DNP3-SIBLING-001).
+        /// against hidden cross-flow state or non-determinism in `on_data`
+        /// (BC-2.19.025 §Verification / VP-045 registered harness; RULING-DNP3-SIBLING-001).
         ///
         /// Non-vacuity: `prop_assert_eq!` compares `carry_c2s`, `carry_s2c`, and
         /// `frame_count` across the two instances on every proptest case.
         ///
-        /// Traces: BC-2.19.025 invariant 2; VP-045; AC-174-002.
+        /// Traces: BC-2.19.025 VP-045 registered harness (independent-run determinism;
+        /// no numbered invariant — see BC-2.19.025 §Verification); VP-045; AC-174-002.
         #[test]
         fn proptest_vp045_independent_run_equivalence(
             data in prop::collection::vec(any::<u8>(), 0..256usize),
@@ -5472,28 +5474,28 @@ mod story_172 {
                     // Both produced no flow state — consistent (empty or no-frame delivery).
                 }
                 (Some(a), Some(b)) => {
-                    // BC-2.19.025 invariant 2: independent runs produce identical carry state.
+                    // BC-2.19.025 VP-045 registered harness: independent runs produce identical carry state.
                     prop_assert_eq!(
                         &a.carry_c2s, &b.carry_c2s,
                         "carry_c2s must be identical across independent analyzer runs \
-                         (BC-2.19.025 invariant 2)"
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
                     );
                     prop_assert_eq!(
                         &a.carry_s2c, &b.carry_s2c,
                         "carry_s2c must be identical across independent analyzer runs \
-                         (BC-2.19.025 invariant 2)"
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
                     );
                     prop_assert_eq!(
                         a.frame_count, b.frame_count,
                         "frame_count must be identical across independent analyzer runs \
-                         (BC-2.19.025 invariant 2)"
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
                     );
                 }
                 _ => {
                     prop_assert!(
                         false,
                         "one analyzer produced flow state and the other did not — \
-                         non-deterministic on_data (BC-2.19.025 invariant 2)"
+                         non-deterministic on_data (BC-2.19.025 VP-045 registered harness)"
                     );
                 }
             }
