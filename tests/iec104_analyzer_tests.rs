@@ -5644,11 +5644,11 @@ mod story_172 {
 // All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
 // =============================================================================
 //
-// Two tests MUST FAIL on the stub:
-//   test_BC_2_19_028_findings_cap — cap not enforced; extend is unchecked
-//   test_BC_2_19_028_cap_maintained_across_multiple_on_data_calls — same root cause
+// Two tests verify findings cap enforcement (now green):
+//   test_BC_2_19_028_findings_cap — cap enforced; extend is truncated
+//   test_BC_2_19_028_cap_maintained_across_multiple_on_data_calls — cap across multiple calls
 //
-// One test is a BOUNDARY GUARD that already passes (pre-fill MAX-1, add 1 = MAX):
+// One test is a BOUNDARY GUARD (MAX-1 + 1 = MAX, no truncation needed):
 //   test_BC_2_19_028_boundary_at_max_minus_one_allows_one_more
 
 mod story_173 {
@@ -5693,16 +5693,15 @@ mod story_173 {
 
     // -------------------------------------------------------------------------
     // AC-173-007 / BC-2.19.028 PC-2 — FINDINGS CAP PRIMARY INVARIANT
-    // MUST FAIL on stub: on_data extend at line ~1283 is unwired (no truncation).
+    // Cap enforced via truncation in on_data extend (line ~1283).
     // -------------------------------------------------------------------------
 
     /// AC-173-007 / BC-2.19.028 PC-2 — cap enforced: after pre-filling all_findings to
     /// MAX_IEC104_FINDINGS and feeding one on_data call that produces a finding,
     /// all_findings.len() must remain <= MAX and dropped_findings must be > 0.
     ///
-    /// MUST FAIL until cap is wired at the on_data extend step.
-    /// Current stub: `self.all_findings.extend(local_findings)` with no truncation
-    /// → len becomes MAX+1 and dropped_findings stays 0.
+    /// The cap is wired at the on_data extend step via truncation.
+    /// When extend would exceed MAX, findings are dropped and dropped_findings is incremented.
     ///
     /// Traces: BC-2.19.028 PC-2 (primary invariant), PC-5 (dropped counter); AC-173-007.
     #[test]
@@ -5780,16 +5779,16 @@ mod story_173 {
 
     // -------------------------------------------------------------------------
     // AC-173-007 / BC-2.19.028 EC-004 — CAP ACROSS MULTIPLE CALLS
-    // MUST FAIL on stub: each call pushes len past MAX.
+    // Cap maintains invariant across N sequential calls (now green).
     // -------------------------------------------------------------------------
 
     /// AC-173-007 / BC-2.19.028 EC-004 — cap maintained across N sequential on_data calls.
     ///
     /// Pre-fill to MAX; then call on_data N times (different flow keys, each producing
-    /// one STOPDT-act finding). Without the cap → len = MAX+N. With cap → len stays MAX
-    /// and dropped_findings == N.
+    /// one STOPDT-act finding). With cap → len stays MAX and dropped_findings == N
+    /// (all new findings are dropped to maintain the invariant).
     ///
-    /// MUST FAIL until cap is wired.
+    /// Cap is wired across multiple calls via truncation in the extend step.
     ///
     /// Traces: BC-2.19.028 EC-004; AC-173-007.
     #[test]
@@ -5822,17 +5821,17 @@ mod story_173 {
 
     // -------------------------------------------------------------------------
     // AC-173-007 / BC-2.19.028 PC-5 / F-173-001 — DROPPED_FINDINGS SURFACED IN SUMMARIZE
-    // MUST FAIL on stub: Iec104Analyzer::summarize() body is todo!().
+    // summarize() wired to include dropped_findings counter (now green).
     // -------------------------------------------------------------------------
 
-    /// AC-173-007 / BC-2.19.028 PC-5 — `dropped_findings` counter MUST appear in
+    /// AC-173-007 / BC-2.19.028 PC-5 — `dropped_findings` counter appears in
     /// `summarize()` output under detail key `"dropped_findings"` with value > 0 after
     /// findings are suppressed by the cap.
     ///
     /// Drives the analyzer over the cap (mirrors `test_BC_2_19_028_findings_cap` setup),
     /// then calls `analyzer.summarize()` and asserts `detail["dropped_findings"] > 0`.
     ///
-    /// MUST FAIL until `summarize()` is implemented (current body is `todo!()`).
+    /// The summarize() method is wired to expose the dropped_findings counter.
     ///
     /// Traces: BC-2.19.028 PC-5; AC-173-007; F-173-001.
     #[test]

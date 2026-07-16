@@ -2616,14 +2616,14 @@ mod f6_hardening {
 // All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
 // =============================================================================
 //
-// Two tests MUST FAIL on the stub:
-//   test_iec104_only_dispatcher_data_reaches_analyzer — Iec104 on_data arm is NO-OP
-//   test_iec104_only_dispatcher_stopdt_produces_t0881 — same root cause
+// Two tests verify dispatcher wiring to Iec104Analyzer (now green):
+//   test_iec104_only_dispatcher_data_reaches_analyzer — dispatcher forwards STARTDT-act
+//   test_iec104_only_dispatcher_stopdt_produces_t0881 — dispatcher forwards STOPDT-act
 //
-// Two tests are GUARDS that PASS on current stub code:
-//   test_BC_2_05_012_early_exit_guard_includes_iec104 — guard is in stub
+// Three tests are GUARDS that verify safety invariants:
+//   test_BC_2_05_012_early_exit_guard_includes_iec104 — guard prevents early exit
 //   test_iec104_disabled_port_2404_no_panic           — None iec104 doesn't panic
-//   test_iec104_only_guard_unclassified_flows_counted  — guard is in stub
+//   test_iec104_only_guard_unclassified_flows_counted  — guard ensures flow visibility
 
 mod story_173 {
     #![allow(non_snake_case)]
@@ -2655,8 +2655,8 @@ mod story_173 {
     }
 
     // -------------------------------------------------------------------------
-    // AC-173-008 — DISPATCHER WIRING (MUST FAIL on stub)
-    // Iec104 on_data arm is `let _ = (flow_key, data, timestamp, direction);` — no forwarding.
+    // AC-173-008 — DISPATCHER WIRING
+    // Iec104 on_data arm forwards data via iec104.on_data(...) per ADR-013 Decision 9.
     // -------------------------------------------------------------------------
 
     /// AC-173-008 — dispatcher wiring: STARTDT-act on port 2404 must reach Iec104Analyzer.
@@ -2664,8 +2664,8 @@ mod story_173 {
     /// With ONLY iec104 set, feeding a STARTDT-act on port 2404 through the dispatcher
     /// must result in Iec104Analyzer::flows having 1 entry and session_started = true.
     ///
-    /// MUST FAIL until the Iec104 arm in on_data calls `iec104.on_data(...)`.
-    /// Current stub: the arm discards data with `let _ = (flow_key, data, timestamp, direction)`.
+    /// The Iec104 arm in on_data calls `iec104.on_data(...)` to forward the packet.
+    /// This creates a per-flow state and processes the STARTDT-act.
     ///
     /// Traces: AC-173-008; BC-2.05.012 invariant 1; ADR-013 Decision 9 step 5.
     #[test]
@@ -2686,16 +2686,15 @@ mod story_173 {
             .iec104_analyzer()
             .expect("IEC-104 analyzer must be present when configured");
 
-        // FAILS today: on_data Iec104 arm is a no-op → no per-flow state created.
+        // Dispatcher forwards to iec104.on_data(...), which creates per-flow state.
         assert_eq!(
             analyzer.flows.len(),
             1,
             "AC-173-008: Iec104Analyzer::flows must have 1 entry after feeding a STARTDT-act \
-             on port 2404. Got {} entries — Iec104 on_data arm is not forwarding to the analyzer \
-             (stub discards data with `let _ = ...`).",
+             on port 2404. Got {} entries.",
             analyzer.flows.len()
         );
-        // FAILS today: flow entry absent → unwrap would panic; test fails at flows.len() first.
+        // Flow state now exists due to dispatcher forwarding.
         let state = analyzer.flows.get(&fk);
         assert!(
             state.is_some(),
@@ -2712,7 +2711,7 @@ mod story_173 {
     /// With ONLY iec104 set, a STOPDT-act (session_started=false → T0881 Verdict::Likely)
     /// fed through the dispatcher must appear in all_findings.
     ///
-    /// MUST FAIL until the Iec104 arm calls iec104.on_data().
+    /// The Iec104 arm calls iec104.on_data(...) to forward the packet and detect the threat.
     ///
     /// Traces: AC-173-008; BC-2.19.011 (T0881 Likely on stop without prior start).
     #[test]
@@ -2733,12 +2732,12 @@ mod story_173 {
             .iec104_analyzer()
             .expect("IEC-104 analyzer must be present when configured");
 
-        // FAILS today: all_findings is empty because the Iec104 arm never calls on_data.
+        // Dispatcher forwards to iec104.on_data(...), which detects STOPDT without prior STARTDT.
         assert_eq!(
             analyzer.all_findings.len(),
             1,
             "AC-173-008: STOPDT-act through the dispatcher must emit 1 T0881 finding. \
-             Got {} findings — Iec104 on_data arm is not forwarding.",
+             Got {} findings.",
             analyzer.all_findings.len()
         );
         assert!(
