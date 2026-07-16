@@ -2751,13 +2751,13 @@ mod story_173 {
     }
 
     // -------------------------------------------------------------------------
-    // AC-173-001 / AC-173-008 GUARDS (PASS on current stub)
+    // AC-173-001 / AC-173-008 GUARDS
     // -------------------------------------------------------------------------
 
     /// AC-173-001 guard — early-exit guard includes iec104.is_none() so a iec104-only
     /// dispatcher does NOT silently discard data before reaching the match arm.
     ///
-    /// PASSES on current stub (guard is in place; data reaches the (no-op) Iec104 arm).
+    /// Verifies early-exit guard includes iec104.is_none() (data reaches the Iec104 arm).
     /// Validates ADR-013 Decision 9 step 4.
     ///
     /// Traces: AC-173-008; ADR-013 Decision 9 step 4 (early-exit guard).
@@ -2774,7 +2774,7 @@ mod story_173 {
 
     /// AC-173-003 edge (EC-003) — with iec104=None, port-2404 traffic causes no panic.
     ///
-    /// PASSES on current stub.
+    /// Verifies no panic occurs when iec104=None and port-2404 traffic is received.
     ///
     /// Traces: BC-2.12.025 PC-2 (default-off); AC-173-003 EC-003.
     #[test]
@@ -2791,7 +2791,7 @@ mod story_173 {
     /// the guard is false and data is processed. A non-2404 flow → None target →
     /// unclassified_flows incremented in on_flow_close.
     ///
-    /// PASSES on current stub.
+    /// Verifies iec104-only dispatcher counts unclassified flows for non-2404 traffic.
     ///
     /// Traces: AC-173-008 (early-exit guard); BC-2.05.012.
     #[test]

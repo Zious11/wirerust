@@ -730,7 +730,7 @@ fn test_ics_techniques_resolve_authoritative_tactic_ids() {
 // All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
 // =============================================================================
 //
-// All tests in this mod PASS on the stub — T0881 is already declared atomically.
+// All tests in this mod verify T0881 is declared atomically as part of the STORY-173 six-part commit.
 // They serve as regression guards for the six-part atomic commit (ADR-013 Decision 10).
 
 mod story_173 {
@@ -740,7 +740,7 @@ mod story_173 {
 
     // -------------------------------------------------------------------------
     // AC-173-002 / BC-2.10.010 PC-4 — technique_info("T0881") catalog entry
-    // PASSES on stub (T0881 arm already registered atomically).
+    // Verifies T0881 arm registration (registered atomically in STORY-173 six-part commit).
     // -------------------------------------------------------------------------
 
     /// AC-173-002 / BC-2.10.010 — technique_info("T0881") returns correct name and tactic.
@@ -748,7 +748,7 @@ mod story_173 {
     /// T0881 "Service Stop" with tactic IcsInhibitResponseFunction (TA0107) was registered
     /// atomically as part of the STORY-173 six-part T0881 atomic commit (ADR-013 Decision 10).
     ///
-    /// PASSES on current stub.
+    /// Verifies T0881 catalog registration (name and tactic).
     ///
     /// Traces: BC-2.10.010 PC-4; AC-173-002; ADR-013 Decision 10 part 4.
     #[test]
@@ -774,7 +774,7 @@ mod story_173 {
 
     /// AC-173-002 / BC-2.10.010 — T0881 maps to TA0107 via technique_tactic_id.
     ///
-    /// PASSES on current stub.
+    /// Verifies T0881 tactic ID is TA0107.
     ///
     /// Traces: BC-2.10.010 PC-4; AC-173-002.
     #[test]
@@ -792,7 +792,7 @@ mod story_173 {
     /// Regression guard: reads src/mitre.rs to verify the constant.
     /// Mirrors test_BC_2_10_005_seeded_technique_id_count_is_29 in bc_2_09_100_multitag_tests.rs.
     ///
-    /// PASSES on current stub.
+    /// Verifies SEEDED_TECHNIQUE_ID_COUNT is 29.
     ///
     /// Traces: BC-2.10.010 PC-1 (count bump 28→29); AC-173-002; ADR-013 Decision 10 part 2.
     #[test]
@@ -815,7 +815,7 @@ mod story_173 {
 
     /// AC-173-002 / BC-2.10.010 — "T0881" appears in SEEDED_TECHNIQUE_IDS in mitre.rs source.
     ///
-    /// PASSES on current stub.
+    /// Verifies "T0881" appears in SEEDED_TECHNIQUE_IDS.
     ///
     /// Traces: BC-2.10.010 PC-1; AC-173-002; ADR-013 Decision 10 part 1.
     #[test]
@@ -833,7 +833,7 @@ mod story_173 {
 
     /// AC-173-002 / BC-2.10.010 — "T0881" appears in EMITTED_IDS in mitre.rs source.
     ///
-    /// PASSES on current stub.
+    /// Verifies "T0881" appears in EMITTED_IDS.
     ///
     /// Traces: BC-2.10.010 PC-3; AC-173-002; ADR-013 Decision 10 part 3.
     #[test]

@@ -5740,7 +5740,7 @@ mod story_173 {
 
     // -------------------------------------------------------------------------
     // AC-173-007 / BC-2.19.028 EC-001 — BOUNDARY GUARD
-    // PASSES on both stub and wired code: pre-fill MAX-1, one finding → exactly MAX.
+    // Passes unconditionally: pre-fill MAX-1, one finding → exactly MAX (no cap truncation needed).
     // -------------------------------------------------------------------------
 
     /// AC-173-007 / BC-2.19.028 EC-001 — boundary: at MAX-1, one more finding fills to MAX.
@@ -5748,7 +5748,7 @@ mod story_173 {
     /// Pre-fill to MAX-1; one STOPDT-act produces 1 finding → total reaches exactly MAX.
     /// No cap truncation needed (MAX-1 + 1 == MAX); dropped_findings stays 0.
     ///
-    /// PASSES on current stub (no cap enforcement needed at this boundary).
+    /// Verifies boundary behavior: no cap truncation needed at MAX-1 (BC-2.19.028 EC-001).
     ///
     /// Traces: BC-2.19.028 EC-001; AC-173-007.
     #[test]
@@ -5847,8 +5847,8 @@ mod story_173 {
         analyzer.on_data(fk.clone(), &stopdt_act(), 0, Direction::ClientToServer);
 
         // Sanity: dropped_findings must be > 0 for this test to be meaningful.
-        // (This also fails on the pre-cap stub, but the todo!() in summarize() is the
-        // load-bearing failure for F-173-001.)
+        // (On the pre-implementation stub, the todo!() in summarize() was the load-bearing
+        // failure for F-173-001; the cap enforcement was a secondary gap.)
         assert!(
             analyzer.dropped_findings > 0,
             "pre-condition: dropped_findings must be > 0 before calling summarize(); \
@@ -5856,7 +5856,7 @@ mod story_173 {
             analyzer.dropped_findings
         );
 
-        // Call summarize() — this panics via todo!() until the method is implemented.
+        // Call summarize() — now fully implemented; must populate the detail map.
         let summary: AnalysisSummary = analyzer.summarize();
 
         // BC-2.19.028 PC-5: detail map must contain "dropped_findings" key.

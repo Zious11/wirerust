@@ -794,7 +794,7 @@ mod story_151 {
 // All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
 // =============================================================================
 //
-// All tests PASS on the stub — 2404 was added to SUPPORTED_PORTS in the stub.
+// All tests verify AC-173-004 port and protocol registration.
 // They serve as regression guards for AC-173-004.
 
 mod story_173 {
@@ -804,7 +804,7 @@ mod story_173 {
 
     /// AC-173-004 / BC-2.18.003 — SUPPORTED_PORTS contains port 2404.
     ///
-    /// PASSES on stub (2404 added in STORY-173 stub).
+    /// Verifies SUPPORTED_PORTS contains 2404 (added in STORY-173).
     ///
     /// Traces: BC-2.18.003 PC-1; AC-173-004.
     #[test]
@@ -818,7 +818,7 @@ mod story_173 {
 
     /// AC-173-004 / BC-2.18.003 — SUPPORTED_PORTS.len() == 9 after adding port 2404.
     ///
-    /// PASSES on stub.
+    /// Verifies SUPPORTED_PORTS length is 9 after adding port 2404.
     ///
     /// Traces: BC-2.18.003 PC-1; AC-173-004.
     #[test]
@@ -832,7 +832,7 @@ mod story_173 {
 
     /// AC-173-004 / BC-2.18.003 — supported_protocols().len() == 8 after adding IEC-104.
     ///
-    /// PASSES on stub (IEC 60870-5-104 already in KNOWN_PROTOCOLS with canonical_ports=[2404]).
+    /// Verifies supported_protocols() length is 8 after adding IEC 60870-5-104.
     ///
     /// Traces: BC-2.18.003 PC-2; AC-173-004.
     #[test]
@@ -846,7 +846,7 @@ mod story_173 {
 
     /// AC-173-004 / BC-2.18.003 — IEC 60870-5-104 appears in supported_protocols().
     ///
-    /// PASSES on stub.
+    /// Verifies IEC 60870-5-104 appears in supported_protocols().
     ///
     /// Traces: BC-2.18.003 PC-2; AC-173-004.
     #[test]
