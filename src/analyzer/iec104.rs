@@ -1451,11 +1451,17 @@ mod kani_proofs {
         // Explicit None facets (BC-2.19.001–004):
         if len < 6 {
             // BC-2.19.001: input shorter than 6 bytes → None.
-            kani::assert(result.is_none(), "short input must return None (BC-2.19.001)");
+            kani::assert(
+                result.is_none(),
+                "short input must return None (BC-2.19.001)",
+            );
         }
         if len >= 6 && data[0] != 0x68 {
             // BC-2.19.002: start byte ≠ 0x68 → None.
-            kani::assert(result.is_none(), "non-0x68 start must return None (BC-2.19.002)");
+            kani::assert(
+                result.is_none(),
+                "non-0x68 start must return None (BC-2.19.002)",
+            );
         }
         if len >= 6 && data[0] == 0x68 && data[1] < 4 {
             // BC-2.19.003: LEN < 4 → None.
