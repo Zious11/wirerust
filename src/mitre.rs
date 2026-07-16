@@ -316,7 +316,7 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
 // resolves in `technique_info` (both name and tactic Some).
 // Corollary (BC-2.10.006): unknown IDs return None without panicking.
 //
-// The catalogue is a closed-world static match; the seeded set is finite (28)
+// The catalogue is a closed-world static match; the seeded set is finite (29)
 // so the harness enumerates it exhaustively — fully sound, no abstraction.
 //
 // To audit the emitted IDs: `grep -rn 'mitre_techniques: vec!' src/`
@@ -324,7 +324,7 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
 mod kani_proofs {
     use super::*;
 
-    /// All 28 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
+    /// All 29 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
     /// gains/loses an entry, the completeness proof here will diverge from the
     /// table and must be updated in lockstep with the VP.
     const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
@@ -368,7 +368,7 @@ mod kani_proofs {
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
     ///
-    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (28 IDs);
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (29 IDs);
     /// the harness checks every one against the regex-equivalent byte predicate.
     /// No symbolic input is needed — the property is universal over a fixed set,
     /// so enumeration is exhaustive and sound.
@@ -403,7 +403,7 @@ mod kani_proofs {
     /// projections and never panics.
     ///
     /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
-    /// arm is `_ => None`; any string outside the 28 seeded literals takes it.
+    /// arm is `_ => None`; any string outside the 29 seeded literals takes it.
     /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
     /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
     /// this proves the "unknown" branch — not merely a malformed-string reject.
