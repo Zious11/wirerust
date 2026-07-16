@@ -6,13 +6,14 @@
 # manual resolution. One path per line, relative to repo root. Comments (#)
 # and blank lines are ignored.
 #
-# These files carry the ArcavenAE fork's release-ops pipeline (Apple code
-# signing, notarization, Homebrew tap publishing) ported from the
-# fork-friendly release-ops design in ArcavenAE/jira-cli
-# (docs/specs/fork-friendly-release-ops.md there). Upstream
-# (Zious11/wirerust) does not carry these files today; if it ever adopts
-# them in identical form, entries can be pruned. This file lists itself so
-# the fork's list survives upstream template changes.
+# These entries are insurance, not divergence: each file below carries the
+# opt-in release-ops pipeline (Apple code signing, notarization, Homebrew
+# tap publishing, fork sync) in a form offered upstream verbatim, following
+# the fork-friendly release-ops design from the jira-cli project
+# (docs/specs/fork-friendly-release-ops.md there). While the two copies are
+# identical, no conflict can occur; entries can be pruned as upstream
+# adopts them. This file lists itself so the fork's list survives upstream
+# template changes.
 .github/local-workflows.txt
 .github/workflows/sign-and-publish.yml
 .github/workflows/sync-upstream.yml
