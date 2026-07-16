@@ -5877,4 +5877,106 @@ mod story_173 {
              findings were suppressed by the cap; got {dropped_val}"
         );
     }
+
+    // -------------------------------------------------------------------------
+    // LOW#1 (STORY-173 pre-merge fix): flows_analyzed must count closed flows
+    //
+    // BC-2.19.028 observability gap: summarize() currently reads self.flows.len()
+    // which drops to 0 after on_flow_close removes entries. The fix adds a
+    // flows_analyzed: u64 accumulator on Iec104Analyzer, incremented in
+    // on_flow_close per removed flow (mirrors EnipAnalyzer pattern, enip.rs ~707).
+    // -------------------------------------------------------------------------
+
+    /// flows_analyzed in summarize() must count flows closed via on_flow_close.
+    ///
+    /// Two distinct flows are driven and closed; summarize().detail["flows_analyzed"]
+    /// must equal 2. The current implementation reads self.flows.len() (= 0 after
+    /// removal), so this assertion fails until a flows_analyzed accumulator is wired
+    /// to on_flow_close.
+    ///
+    /// Traces: BC-2.19.028 observability; STORY-173 LOW#1.
+    #[test]
+    fn test_BC_2_19_028_flows_analyzed_counts_closed_flows() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk1 = flow_key(60201, 2404);
+        let fk2 = flow_key(60202, 2404);
+
+        // TESTFR-act: CF1=0x43, LEN=4 — no finding emitted, session state unchanged.
+        let testfr_act = [0x68u8, 0x04, 0x43, 0x00, 0x00, 0x00];
+
+        analyzer.on_data(fk1.clone(), &testfr_act, 0, Direction::ClientToServer);
+        analyzer.on_data(fk2.clone(), &testfr_act, 0, Direction::ClientToServer);
+
+        // Close both flows. After removal self.flows is empty (len == 0).
+        analyzer.on_flow_close(fk1);
+        analyzer.on_flow_close(fk2);
+
+        let summary = analyzer.summarize();
+
+        let flows_analyzed = summary
+            .detail
+            .get("flows_analyzed")
+            .expect("summarize() detail map must include key \"flows_analyzed\"")
+            .as_u64()
+            .expect("\"flows_analyzed\" detail value must be a JSON u64");
+
+        assert_eq!(
+            flows_analyzed, 2,
+            "flows_analyzed must equal 2 after closing 2 flows; \
+             got {flows_analyzed} (current impl reads self.flows.len() = 0 after removal; \
+             fix: add flows_analyzed: u64 field and increment in on_flow_close)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // LOW#2 (STORY-173 pre-merge fix): packets_analyzed must count parsed APDUs,
+    // not all_findings.len()
+    //
+    // BC-2.19.028 observability gap: summarize() currently returns
+    // all_findings.len() as packets_analyzed. For finding-free frames (e.g.
+    // TESTFR-act) this is 0 even after N frames are parsed. The fix adds a
+    // per-flow frame_count: u64 on Iec104FlowState incremented for every complete
+    // valid parsed APDU in the on_data walk loop, and accumulates a total in
+    // summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
+    // dnp3.rs ~316/1815).
+    // -------------------------------------------------------------------------
+
+    /// packets_analyzed in summarize() must count complete valid parsed APDUs,
+    /// not all_findings.len().
+    ///
+    /// Three TESTFR-act U-frames (no findings) are fed through on_data, followed by
+    /// one bad-start byte (0x00). packets_analyzed must equal 3; the bad-start byte
+    /// must NOT be counted. The current implementation returns all_findings.len()
+    /// (= 0 for finding-free frames), so this assertion fails until a per-frame
+    /// counter is wired to the frame-walk loop.
+    ///
+    /// Traces: BC-2.19.028 observability; STORY-173 LOW#2.
+    #[test]
+    fn test_iec104_packets_analyzed_counts_valid_frames() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(60301, 2404);
+
+        // 3 complete TESTFR-act frames (CF1=0x43, LEN=4, 6 bytes each) followed by
+        // one bad-start byte. TESTFR-act produces no finding and leaves session state
+        // unchanged — the cleanest zero-finding frame for this counter test.
+        let mut data: Vec<u8> = Vec::new();
+        for _ in 0..3 {
+            data.extend_from_slice(&[0x68, 0x04, 0x43, 0x00, 0x00, 0x00]);
+        }
+        // Bad-start byte: not 0x68, so the walk loop advances 1 without counting.
+        data.push(0x00);
+
+        analyzer.on_data(fk.clone(), &data, 0, Direction::ClientToServer);
+        analyzer.on_flow_close(fk);
+
+        let summary = analyzer.summarize();
+
+        assert_eq!(
+            summary.packets_analyzed, 3,
+            "packets_analyzed must equal 3 (the three complete valid APDUs parsed); \
+             got {} (current impl reads all_findings.len() = 0 because TESTFR-act emits \
+             no finding; fix: wire a frame counter in the on_data walk loop)",
+            summary.packets_analyzed
+        );
+    }
 }
