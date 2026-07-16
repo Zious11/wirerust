@@ -1,0 +1,52 @@
+AC-174-008: Stale Red-Gate comment guard extended + baseline scrubbed
+Commands:
+  (a) python3 bin/test_check_green_doc_tense.py  -> 72 passed
+  (b) python3 bin/check-green-doc-tense          -> PASS 112 files
+Date: 2026-07-16
+
+--- Part (a): Self-test (72 passed, including 6 new AC-174-008 cases) ---
+
+$ python3 bin/test_check_green_doc_tense.py
+
+=== BAD cases (must be flagged) ===
+  PASS  [module-level MUST FAIL header]
+  PASS  [ALL tests must fail header (mixed case)]
+  ...
+  PASS  [AC-174-008 pattern (a): All tests in this module MUST FAIL (interposed words)]
+  PASS  [AC-174-008 pattern (a): All tests in this section MUST FAIL (section header variant)]
+  PASS  [AC-174-008 pattern (b): FAILS Red Gate]
+  PASS  [AC-174-008 pattern (b): FAIL Red Gate (singular form)]
+  PASS  [AC-174-008 pattern (c): are todo!() stubs]
+  PASS  [AC-174-008 pattern (c): are todo!() stub (singular)]
+
+=== GOOD cases (must NOT be flagged) ===
+  PASS  [past-tense: passed their Red Gate phase]
+  ...
+  PASS  [AC-174-008 pattern (a) allowlist: All tests passed (no 'MUST FAIL')]
+  PASS  [AC-174-008 pattern (b) allowlist: failed Red Gate (past tense 'failed', not 'FAILS?')]
+  PASS  [AC-174-008 pattern (c) allowlist: were todo!() stubs (past tense 'were', not 'are')]
+  ...
+
+=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===
+  PASS  [zero-file guard: exits 1 exactly when _collect_rust_files returns [] (AC-158-005)]
+
+=== AC-162-004 _find_repo_root sentinel hermetic tests ===
+  PASS  [_find_repo_root: .factory/ OR-sentinel resolves root (F-W72G-P2-OBS-001)]
+  PASS  [_find_repo_root: .git directory sentinel resolves root]
+  ...
+
+Results: 72 passed, 0 failed.
+
+--- Part (b): Main scan (112 files, PASS) ---
+
+$ python3 bin/check-green-doc-tense
+PASS: no stale RED-phase comment headers found (112 files scanned).
+
+OUTCOME: PASS — 72/72 self-test cases pass (including 6 new AC-174-008 patterns).
+         112 Rust source files scanned tree-wide: 0 false positives. Exit 0.
+Three new patterns added to bin/check-green-doc-tense:
+  (a) All tests\b.*\bMUST FAIL
+  (b) FAILS?\s+Red Gate
+  (c) are\s+todo!\(\)\s+stub
+Stale IEC-104 Red-Gate headers at tests/iec104_analyzer_tests.rs ~L662-663, ~L1498, ~L1544
+scrubbed to GREEN-accurate prose.

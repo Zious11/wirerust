@@ -1,0 +1,68 @@
+AC-174-001: VP-044 Kani verify_parse_apci_header_safety
+Command: cargo kani --harness verify_parse_apci_header_safety
+Date: 2026-07-16
+
+$ cargo kani --harness verify_parse_apci_header_safety
+Kani Rust Verifier 0.67.0 (cargo plugin)
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.43s
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.95s
+Checking harness analyzer::iec104::kani_proofs::verify_parse_apci_header_safety...
+CBMC 6.8.0 (cbmc-6.8.0)
+
+--- Selected RESULTS ---
+
+Check 1: verify_parse_apci_header_safety.assertion.1
+     - Status: SUCCESS
+     - Description: "short input must return None (BC-2.19.001)"
+
+Check 3: verify_parse_apci_header_safety.assertion.3
+     - Status: SUCCESS
+     - Description: "non-0x68 start must return None (BC-2.19.002)"
+
+Check 6: verify_parse_apci_header_safety.assertion.6
+     - Status: SUCCESS
+     - Description: "LEN < 4 must return None (BC-2.19.003)"
+
+Check 9: verify_parse_apci_header_safety.assertion.9
+     - Status: SUCCESS
+     - Description: "LEN > 253 must return None (BC-2.19.004)"
+
+Check 13: verify_parse_apci_header_safety.assertion.13
+     - Status: SUCCESS
+     - Description: "valid input (start=0x68, 4<=LEN<=253) must return Some (BC-2.19.005)"
+
+Check 15: verify_parse_apci_header_safety.assertion.14
+     - Status: SUCCESS
+     - Description: "attempt to add with overflow"
+
+Check 16: verify_parse_apci_header_safety.assertion.15
+     - Status: SUCCESS
+     - Description: "APCI total frame >= 6"
+
+Check 17: verify_parse_apci_header_safety.assertion.16
+     - Status: SUCCESS
+     - Description: "APCI total frame <= 255"
+
+Check 18: verify_parse_apci_header_safety.assertion.17
+     - Status: SUCCESS
+     - Description: "LEN >= 4"
+
+Check 19: verify_parse_apci_header_safety.assertion.18
+     - Status: SUCCESS
+     - Description: "LEN <= 253"
+
+[... 79 additional checks all SUCCESS (bounds checks, pointer dereference safety) ...]
+
+SUMMARY:
+ ** 0 of 89 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 0.25852966s
+
+Manual Harness Summary:
+Complete - 1 successfully verified harnesses, 0 failures, 1 total.
+
+OUTCOME: PASS — 89 checks verified (0 failures).
+Five facets confirmed: len<6→None, start≠0x68→None, LEN<4→None, LEN>253→None, valid→Some.

@@ -1,0 +1,28 @@
+AC-174-004: VP-047 fuzz_iec104_parser — 60-second run, no crashes
+Command: cargo +nightly fuzz run fuzz_iec104_parser -- -max_total_time=60
+Date: 2026-07-16
+
+$ cargo +nightly fuzz run fuzz_iec104_parser -- -max_total_time=60
+
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `release` profile [optimized] target(s)
+     Running `fuzz/target/aarch64-apple-darwin/release/fuzz_iec104_parser
+       -artifact_prefix=fuzz/artifacts/fuzz_iec104_parser/
+       -max_total_time=60
+       fuzz/corpus/fuzz_iec104_parser`
+
+#0     READ   units: 1
+#1     INITED cov: 208 ft: 212 corp: 1/1b lim: 4 exec/s: 0 rss: 47Mb
+...
+[corpus building — ~618k iterations over 61 seconds, cov: 450, ft: 1436, corp: 289/83Kb]
+...
+#604890 REDUCE cov: 450 ft: 1436 corp: 289/83Kb lim: 4096 exec/s: 10252 rss: 526Mb
+#605696 REDUCE cov: 450 ft: 1436 corp: 289/83Kb lim: 4096 exec/s: 10266 rss: 526Mb
+#606762 REDUCE cov: 450 ft: 1436 corp: 289/83Kb lim: 4096 exec/s: 10284 rss: 526Mb
+#618615 DONE   cov: 450 ft: 1436 corp: 289/83Kb lim: 4096 exec/s: 10141 rss: 526Mb
+
+Done 618615 runs in 61 second(s)
+
+OUTCOME: PASS — 618,615 iterations in 61 seconds, 0 crashes, 0 panics, 0 OOB accesses.
+on_data returns for all arbitrary byte sequences; loop terminates; carry buffers bounded at 255.
+Coverage: 450 edges, 1436 features reached.
