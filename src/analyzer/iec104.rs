@@ -1422,26 +1422,57 @@ mod kani_proofs {
     // classify_frame_format totality over all 256 CF1 values is covered by
     // VP-046 (proptest), not Kani.
     //
-    // Properties proved in STORY-174 (full run):
-    //   A — no panic for any symbolic input (implicit: returns without panicking)
-    //   B — total frame length `h.len as usize + 2` is in [6, 255]
-    //   C — `h.len` is in [4, 253]
+    // Properties proved:
+    //   A — no panic for any symbolic input (all 5 facets, BC-2.19.001–005)
+    //   B — when Some: total frame length `h.len as usize + 2` is in [6, 255]
+    //   C — when Some: `h.len` is in [4, 253]
+    //   + explicit None facets: short input, wrong start byte, LEN < 4, LEN > 253
+    //
+    // BOUND RATIONALE (ADR-013 Decision 8):
+    // parse_apci_header reads at most 6 bytes (indices 0–5). Any input longer
+    // than 6 bytes behaves identically to the 6-byte case — the extra bytes are
+    // never accessed. A fixed 6-byte stack array with a symbolic slice length
+    // 0..=6 covers all five BC-2.19.001–005 facets without heap allocation,
+    // making the proof tractable (original heap-vec BOUND=260 was slow).
     #[kani::proof]
     fn verify_parse_apci_header_safety() {
+        // Fixed 6-byte symbolic array — avoids heap allocation. parse_apci_header
+        // reads bytes [0..6] at most; behavior is identical for all inputs ≥ 6.
+        let data: [u8; 6] = kani::any();
+        // Symbolic slice length 0..=6 exercises the short-input path (BC-2.19.001)
+        // and all full-header paths (BC-2.19.002–005).
         let len: usize = kani::any();
-        kani::assume(len <= 260); // BOUND=260 per ADR-013 Decision 8 / BC-2.19.001
-        let mut data = vec![0u8; len];
-        for b in data.iter_mut() {
-            *b = kani::any();
+        kani::assume(len <= 6);
+        let slice: &[u8] = &data[..len];
+
+        // Property A: must not panic for any input.
+        let result = parse_apci_header(slice);
+
+        // Explicit None facets (BC-2.19.001–004):
+        if len < 6 {
+            // BC-2.19.001: input shorter than 6 bytes → None.
+            kani::assert(result.is_none(), "short input must return None (BC-2.19.001)");
         }
-        // Must not panic for any input (Property A):
-        let _ = parse_apci_header(&data);
-        if let Some(h) = parse_apci_header(&data) {
-            // Property B: total frame length is in [6, 255]
+        if len >= 6 && data[0] != 0x68 {
+            // BC-2.19.002: start byte ≠ 0x68 → None.
+            kani::assert(result.is_none(), "non-0x68 start must return None (BC-2.19.002)");
+        }
+        if len >= 6 && data[0] == 0x68 && data[1] < 4 {
+            // BC-2.19.003: LEN < 4 → None.
+            kani::assert(result.is_none(), "LEN < 4 must return None (BC-2.19.003)");
+        }
+        if len >= 6 && data[0] == 0x68 && data[1] > 253 {
+            // BC-2.19.004: LEN > 253 → None.
+            kani::assert(result.is_none(), "LEN > 253 must return None (BC-2.19.004)");
+        }
+
+        // Properties B and C: valid-input postconditions (BC-2.19.005).
+        if let Some(h) = result {
+            // Property B: total frame length is in [6, 255].
             let total = h.len as usize + 2;
             kani::assert(total >= 6, "APCI total frame >= 6");
             kani::assert(total <= 255, "APCI total frame <= 255");
-            // Property C: len field in valid range
+            // Property C: LEN field in valid range.
             kani::assert(h.len >= 4, "LEN >= 4");
             kani::assert(h.len <= 253, "LEN <= 253");
         }
