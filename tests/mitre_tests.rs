@@ -822,10 +822,17 @@ mod story_173 {
     fn test_BC_2_10_010_t0881_in_seeded_ids_source() {
         let src = std::fs::read_to_string("src/mitre.rs")
             .expect("src/mitre.rs must be readable from the worktree root");
-        // Check that the SEEDED_TECHNIQUE_IDS array body (the section after the array open)
-        // contains a "T0881" string literal.
+        // Extract the SEEDED_TECHNIQUE_IDS block to avoid false-positives if T0881
+        // appears elsewhere in the file (e.g., in comments or EMITTED_IDS).
+        let seeded_start = src
+            .find("const SEEDED_TECHNIQUE_IDS: &[&str] = &[")
+            .expect("SEEDED_TECHNIQUE_IDS const must exist in src/mitre.rs");
+        let seeded_block_end = src[seeded_start..]
+            .find("];")
+            .expect("SEEDED_TECHNIQUE_IDS closing bracket must exist");
+        let seeded_block = &src[seeded_start..seeded_start + seeded_block_end + 2];
         assert!(
-            src.contains("\"T0881\""),
+            seeded_block.contains("\"T0881\""),
             "src/mitre.rs must contain a \"T0881\" string literal in SEEDED_TECHNIQUE_IDS \
              (ADR-013 Decision 10 part 1)"
         );
@@ -840,11 +847,17 @@ mod story_173 {
     fn test_BC_2_10_010_t0881_in_emitted_ids_source() {
         let src = std::fs::read_to_string("src/mitre.rs")
             .expect("src/mitre.rs must be readable from the worktree root");
-        // "T0881" must appear in the EMITTED_IDS block.
-        // Both SEEDED_TECHNIQUE_IDS and EMITTED_IDS contain "T0881"; this guard
-        // ensures the emitter side is also present.
+        // Extract the EMITTED_IDS block to avoid false-positives if T0881
+        // appears elsewhere in the file (e.g., in comments or SEEDED_TECHNIQUE_IDS).
+        let emitted_start = src
+            .find("const EMITTED_IDS: &[&str] = &[")
+            .expect("EMITTED_IDS const must exist in src/mitre.rs");
+        let emitted_block_end = src[emitted_start..]
+            .find("];")
+            .expect("EMITTED_IDS closing bracket must exist");
+        let emitted_block = &src[emitted_start..emitted_start + emitted_block_end + 2];
         assert!(
-            src.contains("\"T0881\""),
+            emitted_block.contains("\"T0881\""),
             "src/mitre.rs must contain \"T0881\" in EMITTED_IDS (ADR-013 Decision 10 part 3)"
         );
     }
