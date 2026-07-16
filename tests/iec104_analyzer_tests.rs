@@ -5744,6 +5744,59 @@ mod story_172 {
              (BC-2.19.026 PC1+PC2 joint; BC-2.19.020)"
         );
     }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1220
+    // (replace < with <= in the "need at least 2 bytes to read LEN" guard)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: 2-byte delivery [0x68, invalid_LEN] must emit T0814 immediately.
+    ///
+    /// The frame-walk guard at line 1220 is `if buf.len() - pos < 2` — it stashes only when
+    /// there is fewer than 2 bytes remaining (i.e., the lone start byte with no LEN byte yet).
+    /// When exactly 2 bytes remain `[0x68, invalid_LEN]`, the guard must NOT stash: it must
+    /// proceed to read LEN, detect invalid (LEN=0 ∉ [4,253]), and emit T0814 in the same
+    /// delivery.
+    ///
+    /// Mutation `replace < with <=` would stash instead of processing, delaying T0814 by one
+    /// delivery. This test requires immediate emission.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-174-007 (AC-172-008 extension for 2-byte tail).
+    #[test]
+    fn test_AC_174_007_malformed_len_at_two_byte_tail_emits_t0814_immediately() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Deliver exactly 2 bytes: valid start byte (0x68) + invalid LEN=0 (below minimum 4).
+        // With original `< 2`: buf.len()-pos = 2, NOT < 2 → reads LEN=0, detects invalid,
+        // emits T0814, advances 2 → finding emitted in this delivery.
+        // With mutant `<= 2`: buf.len()-pos = 2, IS <= 2 → stashes 2 bytes, no finding yet.
+        analyzer.on_data(
+            flow_key.clone(),
+            &[0x68u8, 0x00],
+            0,
+            Direction::ClientToServer,
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "2-byte delivery [0x68, 0x00] (invalid LEN=0) must emit T0814 immediately \
+             (BC-2.19.026 invariant 5; AC-174-007 mutant kill for iec104.rs:1220)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T0814"),
+            "malformed-LEN T0814 must be cited (BC-2.19.026 invariant 5)"
+        );
+        // Carry must be empty: the 2 bytes were processed and advanced past.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "carry must be empty after 2-byte malformed-LEN delivery is fully processed \
+             (AC-174-007)"
+        );
+    }
 }
 
 // =============================================================================
@@ -6084,6 +6137,46 @@ mod story_173 {
              got {} (current impl reads all_findings.len() = 0 because TESTFR-act emits \
              no finding; fix: wire a frame counter in the on_data walk loop)",
             summary.packets_analyzed
+        );
+    }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1323
+    // (replace - with + in dropped_findings increment when remaining_cap > 0)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: dropped_findings must reflect exact count when remaining_cap > 0.
+    ///
+    /// The existing cap tests pre-fill to MAX (remaining_cap=0), making `-` vs `+` equivalent
+    /// (both compute 0). This test pre-fills to MAX-2 (remaining_cap=2) and delivers 3 findings,
+    /// requiring exactly 1 to be dropped — distinguishing original `len - cap` from `len + cap`.
+    ///
+    /// With `replace - with +`: dropped_findings would be 3 + 2 = 5 instead of 3 - 2 = 1.
+    ///
+    /// Traces: BC-2.19.028 PC-5; AC-174-007 (AC-173-007 extension for partial-cap scenario).
+    #[test]
+    fn test_AC_174_007_dropped_findings_exact_count_with_partial_cap() {
+        let mut analyzer = Iec104Analyzer::new();
+        // Pre-fill to MAX - 2: remaining_cap = 2.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS - 2];
+        let fk = flow_key(61000, 2404);
+        // Three STOPDT-act frames concatenated: each generates exactly 1 finding.
+        // 3 local_findings > remaining_cap (2) → truncate to 2, drop 1.
+        let three_stopdt: Vec<u8> = stopdt_act()
+            .into_iter()
+            .chain(stopdt_act())
+            .chain(stopdt_act())
+            .collect();
+        analyzer.on_data(fk, &three_stopdt, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.dropped_findings, 1,
+            "exactly 1 finding must be dropped (3 generated, remaining_cap=2); \
+             mutation replace - with + would yield 5 instead (BC-2.19.028 PC-5; AC-174-007)"
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_IEC104_FINDINGS,
+            "all_findings must be exactly at cap after partial truncation (BC-2.19.028 PC-2)"
         );
     }
 }
