@@ -1414,7 +1414,7 @@ impl Iec104Analyzer {
 mod kani_proofs {
     use super::*;
 
-    // VP-044: parse_apci_header arithmetic safety.
+    // VP-044: parse_apci_header arithmetic safety — all five BC-2.19.001–005 facets.
     //
     // SCOPE: this harness covers only parse_apci_header.
     // parse_asdu field extraction, N(S)/N(R) counter tracking, and on_data-loop
@@ -1422,18 +1422,20 @@ mod kani_proofs {
     // classify_frame_format totality over all 256 CF1 values is covered by
     // VP-046 (proptest), not Kani.
     //
-    // Properties proved:
-    //   A — no panic for any symbolic input (all 5 facets, BC-2.19.001–005)
-    //   B — when Some: total frame length `h.len as usize + 2` is in [6, 255]
-    //   C — when Some: `h.len` is in [4, 253]
-    //   + explicit None facets: short input, wrong start byte, LEN < 4, LEN > 253
+    // All five AC-174-001 / BC-2.19.001–005 facets are explicitly asserted:
+    //   Facet 1 (BC-2.19.001): len < 6                          → None (explicit assert)
+    //   Facet 2 (BC-2.19.002): data[0] ≠ 0x68                  → None (explicit assert)
+    //   Facet 3 (BC-2.19.003): LEN (data[1]) < 4                → None (explicit assert)
+    //   Facet 4 (BC-2.19.004): LEN > 253                        → None (explicit assert)
+    //   Facet 5 (BC-2.19.005): len=6, start=0x68, 4≤LEN≤253    → Some (explicit assert)
+    // Additionally: when Some, postcondition fields are in valid ranges (Properties B, C).
     //
-    // BOUND RATIONALE (ADR-013 Decision 8):
-    // parse_apci_header reads at most 6 bytes (indices 0–5). Any input longer
-    // than 6 bytes behaves identically to the 6-byte case — the extra bytes are
-    // never accessed. A fixed 6-byte stack array with a symbolic slice length
-    // 0..=6 covers all five BC-2.19.001–005 facets without heap allocation,
-    // making the proof tractable (original heap-vec BOUND=260 was slow).
+    // BOUND RATIONALE (ADR-013 Decision 8 / AC-174-001 "N ≤ 300" narrowing):
+    // parse_apci_header reads at most 6 bytes (indices 0–5). Any input longer than
+    // 6 bytes behaves identically to the 6-byte case — the extra bytes are never
+    // accessed. A fixed 6-byte stack array with a symbolic slice length 0..=6 is
+    // therefore equivalent to all inputs of length 0..=∞, and covers all five facets
+    // without heap allocation (original heap-vec BOUND=260 was intractable).
     #[kani::proof]
     fn verify_parse_apci_header_safety() {
         // Fixed 6-byte symbolic array — avoids heap allocation. parse_apci_header
@@ -1470,6 +1472,15 @@ mod kani_proofs {
         if len >= 6 && data[0] == 0x68 && data[1] > 253 {
             // BC-2.19.004: LEN > 253 → None.
             kani::assert(result.is_none(), "LEN > 253 must return None (BC-2.19.004)");
+        }
+        // Facet 5 (BC-2.19.005): valid input must return Some (F-174-001).
+        // Guards mirror the implementation's accept path exactly:
+        //   len ≥ 6 && start == 0x68 && 4 ≤ LEN ≤ 253.
+        if len >= 6 && data[0] == 0x68 && data[1] >= 4 && data[1] <= 253 {
+            kani::assert(
+                result.is_some(),
+                "valid input (start=0x68, 4<=LEN<=253) must return Some (BC-2.19.005)",
+            );
         }
 
         // Properties B and C: valid-input postconditions (BC-2.19.005).
