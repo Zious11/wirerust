@@ -1,5 +1,5 @@
 class WirerustRc < Formula
-  desc "Fast PCAP forensics and network triage CLI tool written in Rust (rc ch)"
+  desc "Fast PCAP forensics and network triage CLI (rc)"
   homepage "https://github.com/REPO_PLACEHOLDER"
   version "VERSION_PLACEHOLDER"
   license "MIT"
