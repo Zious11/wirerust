@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.32"
+version: "2.33"
 status: draft
 producer: product-owner
 timestamp: 2026-07-15T00:00:00Z
@@ -20,6 +20,9 @@ traces_to: .factory/specs/prd.md
 >
 > **v2.23 2026-07-13 (feature-iec104 — 27 new BC-2.19.001..027 SS-19 + 3 cross-subsystem new + 2 SS-18 amendments; ARCH-INDEX SS-19 27 BCs; SS-05: 11→12, SS-10: 9→10, SS-12: 24→25, SS-18: 2 amendments; total 348→378 on disk; 347→377 active):**
 > NEW SS-19 (IEC 60870-5-104 Passive Analysis, CAP-19): BC-2.19.001..027 — 27 greenfield BCs covering APCI framing (0x68 start byte validation, LEN range 4–253, carry-incomplete path), post-classification validity gate, I/S/U frame format discrimination (CF1 low-bit rules, VP-046 totality), U-format session state machine (STARTDT, STOPDT-with/without-STARTDT→T0881, TESTFR no-op, non-canonical CF1→T0814/CVE-2026-1773), ASDU parsing (TypeID/VSQ/COT/CASDU/IOA), control-command detection (TypeIDs 45–51→T1692.001 (all); set-point TypeIDs 48–51→+T0836; TypeID 105→T0827, TypeIDs 100/101/103 benign, reserved TypeIDs 0,128–255→T0814), N(S)/N(R) 15-bit extraction + k=12 desync detection→T1692.001, directional carry isolation (VP-045, MAX_IEC104_CARRY_BYTES=255), frame-walk loop (VP-044+VP-047), per-flow teardown. VP anchors: VP-044 (Kani P0), VP-045 (proptest P1), VP-046 (proptest P1), VP-047 (cargo-fuzz P1). NEW cross-subsystem: BC-2.05.012 (Rule 8: TCP/2404→Iec104), BC-2.10.010 (T0881 SEEDED+technique_info+EMITTED, SEEDED count 28→29), BC-2.12.025 (--iec104 flag, included in --all). AMENDED: BC-2.18.003 v1.3→v1.4 (SUPPORTED_PORTS adds 2404, supported entries 7→8), BC-2.18.004 v1.2→v1.3 (EC-003/EC-007 IEC-104 examples). BC count: 348→378 on disk; 347→377 active.
+>
+> **v2.33 2026-07-15 (A-173-A-01 spec-currency correction — BC-2.19.006 v1.1→v1.2: gate framing corrected to standalone pure predicate):**
+> A-173-A-01 adversarial advisory: BC-2.19.006 v1.1→v1.2 — `is_valid_iec104_frame` reframed from "Post-Classification Validity Gate" (was misleadingly titled as a wired production pre-gate called before `parse_apci_header`) to "Standalone Pure Frame-Validity Predicate". The DELIVERED design (SEC-001 + F-172-001 + ADR-013 Decisions 1–3) established that `is_valid_iec104_frame` is NOT wired as a dispatch or caller gate; equivalent start-byte/LEN validation is performed inline in `Iec104Analyzer::on_data`'s frame-walk loop. Wiring it as a pre-gate would re-open the Ptacek/Newsham evasion hole and break cross-segment carry. Changes: title, Description, PC-2 (removed flow-dispatch precondition), PC-3 (corrected from "caller emits anomaly" to "no production caller; inline walk handles equivalent logic"), Invariant-1 ("Gate scope" → "Predicate scope"), Invariant-3 ("False-positive correction" → "Not a production gate"), Traceability and Architecture Anchor rows. PC-1/PC-2 pure-boolean semantics, Invariant-2 parse_apci_header consistency, and EC-001..006 canonical test vectors PRESERVED unchanged. Input-hash recomputed via canonical Python tool (0f692ba). Note: BC-2.19.006 is listed in STORY-172's inputs; STORY-172 was correctly delivered; this is a post-hoc doc-currency fix — STORY-172's stored input-hash is retroactively stale but STORY-172 need not be reopened. No BC count change (379 on disk; 378 active).
 >
 > **v2.32 2026-07-15 (SR-173-02 BLOCKING — BC-2.19.028 new: MAX_IEC104_FINDINGS DoS bound; IEC104-FINDINGS-CAP-001):**
 > NEW BC-2.19.028 v1.0: MAX_IEC104_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth. Anchors fidelity finding SR-173-02 (BLOCKING, CWE-400/770). `MAX_IEC104_FINDINGS = 10_000` (matches DNP3 BC-2.15.022 and EtherNet/IP BC-2.17.022 precedent); per-session scope (Iec104Analyzer::all_findings); cap enforced at on_data extend step (local_findings truncated before merge); `Iec104Analyzer.dropped_findings: u64` counter incremented by count of discarded findings; counter surfaced in summarize() as detail key "dropped_findings"; no Finding emitted on cap event; fn-doc-comment cardinality-bound requirement (IEC104-FINDINGS-CAP-001) mandated on detect_iec104_threats and on_data; one-shot dedup guards NOT set when finding dropped (EC-002). DF-SIBLING-SWEEP-001 consistency record included: SS-15/SS-19 bound value (10,000), scope (per-session), counter field, no-Finding drop, summarize() observability, and guard behavior all verified consistent. Story anchor: STORY-173. BC count: 378→379 on disk; 377→378 active.
@@ -871,7 +874,7 @@ traces_to: .factory/specs/prd.md
 > 27 BCs total; 27 fully written; 0 planned.
 > Feature: feature-iec104 (ADR-013, TCP/2404, IEC 60870-5-104).
 > BC-2.19.001..005: APCI header parse (length-reject, start-byte-reject, LEN-out-of-range, accept path).
-> BC-2.19.006: is_valid_iec104_frame post-classification gate.
+> BC-2.19.006: is_valid_iec104_frame standalone pure frame-validity predicate (v1.2; not a wired production gate).
 > BC-2.19.007..009: I/S/U frame format discrimination (VP-046 totality).
 > BC-2.19.010..014: U-format session state machine (STARTDT, STOPDT, TESTFR, non-canonical CF1).
 > BC-2.19.015..018: ASDU parsing (TypeID/VSQ, COT, CASDU/IOA).
@@ -889,7 +892,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.19.003 | `parse_apci_header` Rejects LEN < 4 with T0814 Finding (Malformed Length) | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.004 | `parse_apci_header` Rejects LEN > 253 with T0814 Finding (Malformed Length) | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.005 | `parse_apci_header` Returns Some(ApciHeader) for Valid 6-byte APCI Input (Happy Path) | P0 | [WRITTEN] | feature-iec104 |
-| BC-2.19.006 | `is_valid_iec104_frame` Post-Classification Validity Gate | P0 | [WRITTEN] | feature-iec104 |
+| BC-2.19.006 | `is_valid_iec104_frame` Standalone Pure Frame-Validity Predicate | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.007 | `classify_frame_format` Returns IFormat When CF1 Bit 0 = 0 | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.008 | `classify_frame_format` Returns SFormat When CF1 Bits 1:0 = 0b01 | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.009 | `classify_frame_format` Totality — UFormat for All Remaining CF1 Values (VP-046) | P0 | [WRITTEN] | feature-iec104 |
