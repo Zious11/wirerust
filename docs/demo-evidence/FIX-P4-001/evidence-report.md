@@ -74,12 +74,12 @@ IEC-104 findings had `direction: None` and the field was omitted from JSON outpu
 
 ```json
 {
-  "category": "Protocol",
-  "verdict": "Anomaly",
-  "confidence": "High",
-  "summary": "IEC-104 N(S) desynchronization",
-  "evidence": ["N(S) gap exceeded threshold"],
-  "mitre_techniques": ["T0881"],
+  "category": "impact",
+  "verdict": "possible",
+  "confidence": "medium",
+  "summary": "IEC-104 N(S) sequence desync: N(S)=5020 prev=5001 gap=19 > k=12 — sequence-number desynchronization detected; possible replay injection or adversarial manipulation (T1692.001 unauthorized command message; BC-2.19.024)",
+  "evidence": ["N(S) gap=19 exceeds k=12 window (current_ns=5020, prev_ns=5001)"],
+  "mitre_techniques": ["T1692.001"],
   "source_ip": "192.168.1.100"
 }
 ```
@@ -88,28 +88,28 @@ IEC-104 findings had `direction: None` and the field was omitted from JSON outpu
 
 IEC-104 findings now carry `direction: Some(Direction)` and the field appears in JSON output:
 
-**ClientToServer Example:**
+**ClientToServer Example (N(S) desync — `track_ns_desync`, BC-2.19.024):**
 ```json
 {
-  "category": "Protocol",
-  "verdict": "Anomaly",
-  "confidence": "High",
-  "summary": "IEC-104 N(S) desynchronization",
-  "evidence": ["N(S) gap exceeded threshold"],
-  "mitre_techniques": ["T0881"],
+  "category": "impact",
+  "verdict": "possible",
+  "confidence": "medium",
+  "summary": "IEC-104 N(S) sequence desync: N(S)=5020 prev=5001 gap=19 > k=12 — sequence-number desynchronization detected; possible replay injection or adversarial manipulation (T1692.001 unauthorized command message; BC-2.19.024)",
+  "evidence": ["N(S) gap=19 exceeds k=12 window (current_ns=5020, prev_ns=5001)"],
+  "mitre_techniques": ["T1692.001"],
   "source_ip": "192.168.1.100",
   "direction": "ClientToServer"
 }
 ```
 
-**ServerToClient Example:**
+**ServerToClient Example (malformed LEN — `on_data` frame-walk, BC-2.19.026):**
 ```json
 {
-  "category": "Protocol",
-  "verdict": "Anomaly",
-  "confidence": "High",
-  "summary": "IEC-104 malformed frame",
-  "evidence": ["Invalid LEN field"],
+  "category": "anomaly",
+  "verdict": "possible",
+  "confidence": "medium",
+  "summary": "IEC-104 malformed LEN byte: 0x68 start byte followed by LEN=0x01 (1) outside valid range [4, 253] — protocol anomaly or adversarial framing attack (T0814; BC-2.19.026 invariant 5)",
+  "evidence": ["LEN=1 not in [4, 253]; start byte=0x68 at buffer offset 0"],
   "mitre_techniques": ["T0814"],
   "source_ip": "192.168.1.50",
   "direction": "ServerToClient"
