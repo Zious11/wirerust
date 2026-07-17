@@ -332,7 +332,11 @@ pub fn classify_frame_format(cf1: u8) -> FrameFormat {
 /// ## Purity boundary (ADR-013 Decision 4)
 /// `classify_frame_format` is pure; `process_u_frame` is effectful. These two functions
 /// MUST remain separate — `classify_frame_format` MUST NOT read or write `Iec104FlowState`.
-pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> {
+pub fn process_u_frame(
+    state: &mut Iec104FlowState,
+    cf1: u8,
+    direction: Direction,
+) -> Option<Finding> {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
     // L1: defensive guard — process_u_frame is only valid for U-format CF1 values
@@ -385,7 +389,7 @@ pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> 
                 mitre_techniques: vec!["T0881".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             })
         }
 
@@ -421,7 +425,7 @@ pub fn process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding> 
             mitre_techniques: vec!["T0814".to_string()],
             source_ip: None,
             timestamp: None,
-            direction: None,
+            direction: Some(direction),
         }),
     }
 }
@@ -720,7 +724,7 @@ pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
 /// The caller (`Iec104Analyzer::on_data`) MUST enforce the cap at the extend step by
 /// truncating `local_findings` before merging into `self.all_findings`
 /// (BC-2.19.028 Invariant 6 / IEC104-FINDINGS-CAP-001).
-pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
+pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction: Direction) {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
     let type_id = asdu.type_id;
@@ -756,7 +760,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                 mitre_techniques: vec!["T1692.001".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             });
         }
 
@@ -797,7 +801,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                 mitre_techniques: vec!["T1692.001".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             });
             findings.push(Finding {
                 category: ThreatCategory::Impact,
@@ -812,7 +816,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                 mitre_techniques: vec!["T0836".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             });
         }
 
@@ -842,7 +846,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                 mitre_techniques: vec!["T0827".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             });
         }
 
@@ -892,7 +896,7 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>) {
                 mitre_techniques: vec!["T0814".to_string()],
                 source_ip: None,
                 timestamp: None,
-                direction: None,
+                direction: Some(direction),
             });
         }
 
@@ -1033,17 +1037,14 @@ pub fn track_ns_desync(
                          possible replay injection or adversarial manipulation \
                          (T1692.001 unauthorized command message; BC-2.19.024)"
                     ),
-                    evidence: vec![
-                        format!(
-                            "N(S) gap={gap} exceeds k=12 window \
-                             (current_ns={current_ns}, prev_ns={prev})"
-                        ),
-                        format!("direction={direction:?}"),
-                    ],
+                    evidence: vec![format!(
+                        "N(S) gap={gap} exceeds k=12 window \
+                         (current_ns={current_ns}, prev_ns={prev})"
+                    )],
                     mitre_techniques: vec!["T1692.001".to_string()],
                     source_ip: None,
                     timestamp: None,
-                    direction: None,
+                    direction: Some(direction),
                 })
             } else {
                 // Path B: gap ≤ k=12 — state updated, no finding (BC-2.19.024 postcondition B).
@@ -1184,13 +1185,13 @@ impl Iec104Analyzer {
                                  (T0814; BC-2.19.025 v1.3 F-172-001)"
                             ),
                             evidence: vec![format!(
-                                "carry overflow (>{}); direction={:?}; carry cleared",
-                                MAX_IEC104_CARRY_BYTES, direction
+                                "carry overflow (>{}); carry cleared",
+                                MAX_IEC104_CARRY_BYTES
                             )],
                             mitre_techniques: vec!["T0814".to_string()],
                             source_ip: None,
                             timestamp: None,
-                            direction: None,
+                            direction: Some(direction),
                         });
                     }
                     // Carry is now cleared; walk proceeds on delivery only (walk-first preserved).
@@ -1259,7 +1260,7 @@ impl Iec104Analyzer {
                             mitre_techniques: vec!["T0814".to_string()],
                             source_ip: None,
                             timestamp: None,
-                            direction: None,
+                            direction: Some(direction),
                         });
                     }
                     pos += 2;
@@ -1290,7 +1291,7 @@ impl Iec104Analyzer {
                     state.frame_count = state.frame_count.saturating_add(1);
                     match classify_frame_format(header.cf1) {
                         FrameFormat::UFormat => {
-                            if let Some(f) = process_u_frame(state, header.cf1) {
+                            if let Some(f) = process_u_frame(state, header.cf1, direction) {
                                 local_findings.push(f);
                             }
                         }
@@ -1299,7 +1300,7 @@ impl Iec104Analyzer {
                             // header: start + LEN + CF1 + CF2 + CF3 + CF4).
                             let asdu_body = &frame[6..];
                             if let Some(asdu) = parse_asdu(asdu_body) {
-                                detect_iec104_threats(&asdu, &mut local_findings);
+                                detect_iec104_threats(&asdu, &mut local_findings, direction);
                             }
                             let ns = extract_ns(header.cf1, header.cf2);
                             if let Some(f) = track_ns_desync(state, ns, direction) {
