@@ -45,6 +45,7 @@
 //! diagrams only. Zero lines are borrowed from any external implementation.
 
 use std::collections::HashMap;
+use std::net::IpAddr;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
@@ -336,6 +337,8 @@ pub fn process_u_frame(
     state: &mut Iec104FlowState,
     cf1: u8,
     direction: Direction,
+    source_ip: Option<IpAddr>,
+    timestamp: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Option<Finding> {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
@@ -387,8 +390,8 @@ pub fn process_u_frame(
                 ),
                 evidence,
                 mitre_techniques: vec!["T0881".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             })
         }
@@ -423,8 +426,8 @@ pub fn process_u_frame(
                  STOPDT-con=0x23, TESTFR-act=0x43, TESTFR-con=0x83}}"
             )],
             mitre_techniques: vec!["T0814".to_string()],
-            source_ip: None,
-            timestamp: None,
+            source_ip,
+            timestamp,
             direction: Some(direction),
         }),
     }
@@ -724,7 +727,13 @@ pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
 /// The caller (`Iec104Analyzer::on_data`) MUST enforce the cap at the extend step by
 /// truncating `local_findings` before merging into `self.all_findings`
 /// (BC-2.19.028 Invariant 6 / IEC104-FINDINGS-CAP-001).
-pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction: Direction) {
+pub fn detect_iec104_threats(
+    asdu: &Asdu,
+    findings: &mut Vec<Finding>,
+    direction: Direction,
+    source_ip: Option<IpAddr>,
+    timestamp: Option<chrono::DateTime<chrono::Utc>>,
+) {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
     let type_id = asdu.type_id;
@@ -758,8 +767,8 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction
                 ),
                 evidence,
                 mitre_techniques: vec!["T1692.001".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             });
         }
@@ -799,8 +808,8 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction
                 ),
                 evidence: ev1,
                 mitre_techniques: vec!["T1692.001".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             });
             findings.push(Finding {
@@ -814,8 +823,8 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction
                 ),
                 evidence: ev2,
                 mitre_techniques: vec!["T0836".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             });
         }
@@ -844,8 +853,8 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction
                     .to_string(),
                 evidence,
                 mitre_techniques: vec!["T0827".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             });
         }
@@ -894,8 +903,8 @@ pub fn detect_iec104_threats(asdu: &Asdu, findings: &mut Vec<Finding>, direction
                 ),
                 evidence,
                 mitre_techniques: vec!["T0814".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip,
+                timestamp,
                 direction: Some(direction),
             });
         }
@@ -993,6 +1002,8 @@ pub fn track_ns_desync(
     state: &mut Iec104FlowState,
     current_ns: u16,
     direction: Direction,
+    source_ip: Option<IpAddr>,
+    timestamp: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Option<Finding> {
     use crate::findings::{Confidence, ThreatCategory, Verdict};
 
@@ -1026,7 +1037,7 @@ pub fn track_ns_desync(
             if gap > 12 {
                 // Path C: gap > k=12 → T1692.001 "Unauthorized Message: Command Message"
                 // with Verdict::Possible (BC-2.19.024 postcondition C1; ADR-013 Decision 6).
-                // source_ip and timestamp left None — enriched in STORY-173.
+                // source_ip and timestamp passed in by the caller (on_data; FIX-F5-001).
                 Some(Finding {
                     category: ThreatCategory::Impact,
                     verdict: Verdict::Possible,
@@ -1042,8 +1053,8 @@ pub fn track_ns_desync(
                          (current_ns={current_ns}, prev_ns={prev})"
                     )],
                     mitre_techniques: vec!["T1692.001".to_string()],
-                    source_ip: None,
-                    timestamp: None,
+                    source_ip,
+                    timestamp,
                     direction: Some(direction),
                 })
             } else {
@@ -1145,7 +1156,19 @@ impl Iec104Analyzer {
     /// is added to `self.dropped_findings`. Per-flow state continues updating regardless.
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
-        let _ = ts;
+
+        // Resolve initiator IP for finding enrichment (BC-2.19.011 PC-3; FIX-F5-001).
+        // IEC-104 server listens on port 2404; the other endpoint is the initiating client.
+        let (client_ip, server_ip) = if flow_key.lower_port() == 2404 {
+            (flow_key.upper_ip(), flow_key.lower_ip())
+        } else {
+            (flow_key.lower_ip(), flow_key.upper_ip())
+        };
+        let source_ip = match direction {
+            Direction::ClientToServer => client_ip,
+            Direction::ServerToClient => server_ip,
+        };
+        let timestamp = chrono::DateTime::from_timestamp(ts as i64, 0);
 
         // Collect frame-walk findings locally to avoid borrow conflicts between
         // self.flows (via state) and self.all_findings during the loop.
@@ -1189,8 +1212,8 @@ impl Iec104Analyzer {
                                 MAX_IEC104_CARRY_BYTES
                             )],
                             mitre_techniques: vec!["T0814".to_string()],
-                            source_ip: None,
-                            timestamp: None,
+                            source_ip: Some(source_ip),
+                            timestamp,
                             direction: Some(direction),
                         });
                     }
@@ -1258,8 +1281,8 @@ impl Iec104Analyzer {
                                 "LEN={len} not in [4, 253]; start byte=0x68 at buffer offset {pos}"
                             )],
                             mitre_techniques: vec!["T0814".to_string()],
-                            source_ip: None,
-                            timestamp: None,
+                            source_ip: Some(source_ip),
+                            timestamp,
                             direction: Some(direction),
                         });
                     }
@@ -1291,7 +1314,9 @@ impl Iec104Analyzer {
                     state.frame_count = state.frame_count.saturating_add(1);
                     match classify_frame_format(header.cf1) {
                         FrameFormat::UFormat => {
-                            if let Some(f) = process_u_frame(state, header.cf1, direction) {
+                            if let Some(f) =
+                                process_u_frame(state, header.cf1, direction, Some(source_ip), timestamp)
+                            {
                                 local_findings.push(f);
                             }
                         }
@@ -1300,10 +1325,18 @@ impl Iec104Analyzer {
                             // header: start + LEN + CF1 + CF2 + CF3 + CF4).
                             let asdu_body = &frame[6..];
                             if let Some(asdu) = parse_asdu(asdu_body) {
-                                detect_iec104_threats(&asdu, &mut local_findings, direction);
+                                detect_iec104_threats(
+                                    &asdu,
+                                    &mut local_findings,
+                                    direction,
+                                    Some(source_ip),
+                                    timestamp,
+                                );
                             }
                             let ns = extract_ns(header.cf1, header.cf2);
-                            if let Some(f) = track_ns_desync(state, ns, direction) {
+                            if let Some(f) =
+                                track_ns_desync(state, ns, direction, Some(source_ip), timestamp)
+                            {
                                 local_findings.push(f);
                             }
                         }

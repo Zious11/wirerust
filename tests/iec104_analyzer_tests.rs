@@ -1003,7 +1003,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false initially"
         );
-        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-act (0x07) must set session_started=true (BC-2.19.010 postcondition 1)"
@@ -1025,7 +1025,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-act when already started must leave session_started=true (BC-2.19.010 invariant 1)"
@@ -1048,7 +1048,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false initially"
         );
-        let finding = process_u_frame(&mut state, 0x0B, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x0B, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-con (0x0B) without prior STARTDT-act must set session_started=true \
@@ -1077,7 +1077,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT-act must set session_started=false (BC-2.19.011 postcondition 1)"
@@ -1113,14 +1113,14 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let stop_finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer);
+        let stop_finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT must set session_started=false"
         );
         assert!(stop_finding.is_some(), "STOPDT must emit a finding");
         // Now STARTDT restarts the session
-        let start_finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer);
+        let start_finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT after STOPDT must set session_started=true"
@@ -1147,7 +1147,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false"
         );
-        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "session_started must remain false after STOPDT without STARTDT \
@@ -1195,7 +1195,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let f_possible = process_u_frame(&mut state_active, 0x13, Direction::ClientToServer)
+        let f_possible = process_u_frame(&mut state_active, 0x13, Direction::ClientToServer, None, None)
             .expect("STOPDT after STARTDT must emit finding");
         assert_eq!(
             f_possible.verdict,
@@ -1205,7 +1205,7 @@ mod story_168 {
 
         // Path 2: no prior STARTDT → Likely
         let mut state_cold = Iec104FlowState::default();
-        let f_likely = process_u_frame(&mut state_cold, 0x13, Direction::ClientToServer)
+        let f_likely = process_u_frame(&mut state_cold, 0x13, Direction::ClientToServer, None, None)
             .expect("STOPDT without STARTDT must emit finding");
         assert_eq!(
             f_likely.verdict,
@@ -1231,7 +1231,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x23, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x23, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT-con (0x23) must set session_started=false (BC-2.19.012 ACT-only MVP)"
@@ -1255,7 +1255,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_013_testfr_act_emits_no_finding_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x43, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x43, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "TESTFR-act (0x43) must not emit a finding (BC-2.19.013 postcondition 1)"
@@ -1270,7 +1270,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_013_testfr_con_emits_no_finding_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x83, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x83, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "TESTFR-con (0x83) must not emit a finding (BC-2.19.013 postcondition 1)"
@@ -1286,12 +1286,12 @@ mod story_168 {
     fn test_BC_2_19_013_invariant_testfr_does_not_modify_session_started() {
         // Case 1: session_started=false — should remain false after TESTFR
         let mut state_cold = Iec104FlowState::default();
-        let _ = process_u_frame(&mut state_cold, 0x43, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_cold, 0x43, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "TESTFR-act must not change session_started from false (BC-2.19.013 postcondition 2)"
         );
-        let _ = process_u_frame(&mut state_cold, 0x83, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_cold, 0x83, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "TESTFR-con must not change session_started from false (BC-2.19.013 postcondition 2)"
@@ -1302,12 +1302,12 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0x43, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_active, 0x43, Direction::ClientToServer, None, None);
         assert!(
             state_active.session_started,
             "TESTFR-act must not change session_started from true (BC-2.19.013 postcondition 2)"
         );
-        let _ = process_u_frame(&mut state_active, 0x83, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_active, 0x83, Direction::ClientToServer, None, None);
         assert!(
             state_active.session_started,
             "TESTFR-con must not change session_started from true (BC-2.19.013 postcondition 2)"
@@ -1327,7 +1327,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x03_emits_t0814_possible() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0x03 must emit T0814 finding (BC-2.19.014 postcondition 1)",
         );
@@ -1356,7 +1356,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0xFF_emits_t0814_possible_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0xFF, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0xFF, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0xFF must emit T0814 finding (BC-2.19.014 canonical vector EC-002)"
         );
@@ -1384,7 +1384,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x0F_emits_t0814_possible_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x0F, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x0F, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0x0F must emit T0814 finding (BC-2.19.014 canonical vector EC-003)"
         );
@@ -1412,7 +1412,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x1B_emits_t0814_possible() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x1B, Direction::ClientToServer);
+        let finding = process_u_frame(&mut state, 0x1B, Direction::ClientToServer, None, None);
         let f = finding.expect("Non-canonical U CF1=0x1B must emit T0814 finding (BC-2.19.014)");
         assert_eq!(f.verdict, Verdict::Possible, "T0814 must be Possible");
         assert_eq!(
@@ -1435,7 +1435,7 @@ mod story_168 {
     fn test_BC_2_19_014_invariant_non_canonical_u_frame_does_not_advance_session_state() {
         // Case 1: session_started=false — must remain false after non-canonical U-frame
         let mut state_cold = Iec104FlowState::default();
-        let _ = process_u_frame(&mut state_cold, 0x0F, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_cold, 0x0F, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "Non-canonical U-frame must not change session_started from false \
@@ -1447,7 +1447,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0xFF, Direction::ClientToServer);
+        let _ = process_u_frame(&mut state_active, 0xFF, Direction::ClientToServer, None, None);
         assert!(
             state_active.session_started,
             "Non-canonical U-frame must not change session_started from true \
@@ -1468,7 +1468,7 @@ mod story_168 {
         let no_finding_cases: &[u8] = &[0x07, 0x0B, 0x43, 0x83, 0x23];
         for &cf1 in no_finding_cases {
             let mut state = Iec104FlowState::default();
-            let finding = process_u_frame(&mut state, cf1, Direction::ClientToServer);
+            let finding = process_u_frame(&mut state, cf1, Direction::ClientToServer, None, None);
             assert!(
                 finding.is_none(),
                 "Canonical CF1=0x{cf1:02X} must not emit any finding (BC-2.19.014 negative)"
@@ -1476,7 +1476,7 @@ mod story_168 {
         }
         // STOPDT-act produces T0881 (not T0814)
         let mut state = Iec104FlowState::default();
-        let f = process_u_frame(&mut state, 0x13, Direction::ClientToServer)
+        let f = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None)
             .expect("STOPDT-act must emit a finding (T0881, not T0814)");
         assert!(
             !f.mitre_techniques.iter().any(|t| t == "T0814"),
@@ -2340,7 +2340,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_c_sc_na1_emits_exactly_one_finding() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2356,7 +2356,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_emits_t1692001_possible_impact() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=45 must emit at least one finding (BC-2.19.019 postcondition 1)");
@@ -2386,7 +2386,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_does_not_emit_t0836() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings
                 .iter()
@@ -2405,7 +2405,7 @@ mod story_170 {
     fn test_BC_2_19_019_type46_c_dc_na1_emits_t1692001_only() {
         let asdu = make_asdu(46, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2436,7 +2436,7 @@ mod story_170 {
     fn test_BC_2_19_019_type47_c_rc_na1_emits_t1692001_only() {
         let asdu = make_asdu(47, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2468,7 +2468,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_c_se_na1_emits_exactly_two_findings() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2484,7 +2484,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_emits_t1692001_possible() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let has_t1692 = findings
             .iter()
             .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"));
@@ -2510,7 +2510,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_emits_t0836_possible() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let has_t0836 = findings
             .iter()
             .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
@@ -2536,7 +2536,7 @@ mod story_170 {
     fn test_BC_2_19_019_type49_c_se_nb1_emits_t1692001_and_t0836() {
         let asdu = make_asdu(49, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2563,7 +2563,7 @@ mod story_170 {
     fn test_BC_2_19_019_type50_c_se_nc1_emits_t1692001_and_t0836() {
         let asdu = make_asdu(50, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2604,7 +2604,7 @@ mod story_170 {
             first_ioa: None,
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2635,7 +2635,7 @@ mod story_170 {
         for type_id in [45u8, 46, 47] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert_eq!(
                 findings.len(),
                 1,
@@ -2668,7 +2668,7 @@ mod story_170 {
         for type_id in [48u8, 49, 50, 51] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert_eq!(
                 findings.len(),
                 2,
@@ -2700,7 +2700,7 @@ mod story_170 {
         for type_id in 45u8..=51 {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings
                     .iter()
@@ -2721,7 +2721,7 @@ mod story_170 {
         for type_id in 45u8..=51 {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             for f in &findings {
                 assert_eq!(
                     f.verdict,
@@ -2747,7 +2747,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_c_rp_na1_emits_exactly_one_finding() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2766,7 +2766,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_emits_t0827_likely_canonical_vector() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a T0827 finding (BC-2.19.020 postcondition 1)");
@@ -2793,7 +2793,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_verdict_is_likely_not_possible() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a finding (BC-2.19.020 postcondition 1)");
@@ -2820,7 +2820,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_does_not_emit_t1692001() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings
                 .iter()
@@ -2839,7 +2839,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_category_is_impact() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a finding (BC-2.19.020)");
@@ -2866,7 +2866,7 @@ mod story_170 {
     fn test_BC_2_19_021_type100_c_ic_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(100, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=100 (C_IC_NA_1 general interrogation) must produce no finding \
@@ -2884,7 +2884,7 @@ mod story_170 {
     fn test_BC_2_19_021_type101_c_ci_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(101, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=101 (C_CI_NA_1 counter interrogation) must produce no finding \
@@ -2902,7 +2902,7 @@ mod story_170 {
     fn test_BC_2_19_021_type103_c_cs_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(103, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=103 (C_CS_NA_1 clock sync) must produce no finding \
@@ -2922,7 +2922,7 @@ mod story_170 {
         for type_id in [100u8, 101, 103] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings.is_empty(),
                 "TypeID={type_id} (interrogation/clock-sync) must emit no finding — \
@@ -2947,7 +2947,7 @@ mod story_170 {
     fn test_BC_2_19_022_type0_undefined_emits_t0814_anomaly_canonical_vector() {
         let asdu = make_asdu(0, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2982,7 +2982,7 @@ mod story_170 {
     fn test_BC_2_19_022_type128_emits_t0814_possible_canonical_vector() {
         let asdu = make_asdu(128, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3016,7 +3016,7 @@ mod story_170 {
     fn test_BC_2_19_022_type255_emits_t0814_possible_canonical_vector() {
         let asdu = make_asdu(255, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3043,7 +3043,7 @@ mod story_170 {
     fn test_BC_2_19_022_type200_private_use_emits_t0814_possible() {
         let asdu = make_asdu(200, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3067,7 +3067,7 @@ mod story_170 {
     fn test_BC_2_19_022_type44_max_monitoring_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(44, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=44 (max monitoring TypeID, defined-but-unhandled) must produce no finding — \
@@ -3086,7 +3086,7 @@ mod story_170 {
     fn test_BC_2_19_022_type52_reserved_above_control_range_emits_no_finding() {
         let asdu = make_asdu(52, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=52 (RESERVED, above control range 45–51) must produce no finding — \
@@ -3101,7 +3101,7 @@ mod story_170 {
     fn test_BC_2_19_022_type99_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(99, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=99 (defined-but-unhandled) must produce no finding \
@@ -3119,7 +3119,7 @@ mod story_170 {
     fn test_BC_2_19_022_type102_c_rd_not_in_detection_set_emits_no_finding() {
         let asdu = make_asdu(102, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=102 (C_RD_NA_1, defined but not in detection set) must produce no finding — \
@@ -3134,7 +3134,7 @@ mod story_170 {
     fn test_BC_2_19_022_type104_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(104, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=104 (defined-but-unhandled, between C_RP and C_IC) must produce no finding \
@@ -3149,7 +3149,7 @@ mod story_170 {
     fn test_BC_2_19_022_type127_max_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(127, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=127 (maximum defined-but-unhandled value in [1,127]) must produce no finding \
@@ -3164,7 +3164,7 @@ mod story_170 {
     fn test_BC_2_19_022_type1_minimum_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(1, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=1 (minimum defined-but-unhandled monitoring TypeID) must produce no finding \
@@ -3187,7 +3187,7 @@ mod story_170 {
         for &type_id in silent_type_ids {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings.is_empty(),
                 "TypeID={type_id} (defined-but-unhandled in [1,127]) must produce no finding — \
@@ -3211,7 +3211,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_control_command_summary_has_test_tag() {
         let asdu = make_asdu(45, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=45 must emit at least one finding (precondition for [TEST] tagging test)"
@@ -3237,7 +3237,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_false_control_command_summary_has_no_test_tag() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         for f in &findings {
             assert!(
                 !f.summary.contains(" [TEST]"),
@@ -3259,7 +3259,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_t0827_summary_has_test_tag() {
         let asdu = make_asdu(105, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=105 must emit a T0827 finding (precondition for [TEST] tag test)"
@@ -3283,7 +3283,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_setpoint_both_findings_have_test_tag() {
         let asdu = make_asdu(48, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -3309,7 +3309,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_t0814_reserved_type_summary_has_test_tag() {
         let asdu = make_asdu(128, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=128 must emit a T0814 finding (precondition for [TEST] tag test)"
@@ -3337,7 +3337,7 @@ mod story_170 {
         for &type_id in detection_type_ids {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             for f in &findings {
                 assert!(
                     !f.summary.contains(" [TEST]"),
@@ -3375,7 +3375,7 @@ mod story_170 {
             first_ioa: None,
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=48 must emit findings (precondition for CASDU evidence check)"
@@ -3409,7 +3409,7 @@ mod story_170 {
             first_ioa: Some(0x1234), // decimal 4660
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=48 must emit findings (precondition for first_ioa evidence check)"
@@ -3450,7 +3450,7 @@ mod story_170 {
         let mut findings = vec![dummy];
 
         let asdu = make_asdu(45, true); // cot_test=true → new findings get [TEST]
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
 
         // The pre-existing finding (index 0) must NOT be tagged:
         assert!(
@@ -3775,7 +3775,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path A (None state): first I-frame with N(S)=0 must return None — \
@@ -3805,7 +3805,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path A mid-capture: N(S)=5000 on first frame must return None — \
@@ -3838,7 +3838,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 0, Direction::ServerToClient);
+        let finding = track_ns_desync(&mut state, 0, Direction::ServerToClient, None, None);
         assert!(
             finding.is_none(),
             "Path A S2C: first I-frame with N(S)=0 must return None \
@@ -3874,7 +3874,7 @@ mod story_171 {
             last_ns_c2s: Some(5000),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B gap=1: no finding expected (BC-2.19.024 postcondition B2; 1 ≤ 12)"
@@ -3899,7 +3899,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 12, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 12, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B EC-003: gap=12 (exactly k=12) must return None — boundary ≤ k is allowed \
@@ -3924,7 +3924,7 @@ mod story_171 {
             last_ns_c2s: Some(100),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 100, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B gap=0 (same N(S) repeated): no finding (BC-2.19.024; gap=0 ≤ 12)"
@@ -3955,7 +3955,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 13, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 13, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C EC-004: gap=13 (k+1) must emit T1692.001 Possible \
              (BC-2.19.024 Path C postcondition 1; EC-004)",
@@ -3990,7 +3990,7 @@ mod story_171 {
             last_ns_c2s: Some(5001),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5020, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C canonical: Some(5001)→5020, gap=19 must emit T1692.001 Possible \
              (BC-2.19.024 canonical table row 4)",
@@ -4042,7 +4042,7 @@ mod story_171 {
             last_ns_c2s: Some(100),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 114, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 114, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C table row 8: Some(100)→114, gap=14 must emit T1692.001 Possible \
              (BC-2.19.024 canonical table row 8)",
@@ -4075,7 +4075,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 32767, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 32767, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C EC-005: prev=0, current=32767 (gap=32767) must emit T1692.001 Possible \
              (BC-2.19.024 EC-005; massive gap indicates replay/desync)",
@@ -4111,7 +4111,7 @@ mod story_171 {
             ..Default::default()
         };
         // gap = 1030 - 1000 = 30 > 12 → Path C finding
-        let f1 = track_ns_desync(&mut state, 1030, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 1030, Direction::ClientToServer, None, None);
         assert!(
             f1.is_some(),
             "gap=30 must emit a finding (Path C precondition)"
@@ -4123,7 +4123,7 @@ mod story_171 {
              (BC-2.19.024 postcondition C3)"
         );
         // Next frame from new baseline: gap=1 → no finding (proves state was updated)
-        let f2 = track_ns_desync(&mut state, 1031, Direction::ClientToServer);
+        let f2 = track_ns_desync(&mut state, 1031, Direction::ClientToServer, None, None);
         assert!(
             f2.is_none(),
             "After state update to Some(1030), gap=1 (1030→1031) must not emit finding \
@@ -4153,7 +4153,7 @@ mod story_171 {
             last_ns_c2s: Some(32767),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 1, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 1, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "AC-171-006: Some(32767)→current=1, 15-bit gap=2 must NOT emit finding \
@@ -4180,7 +4180,7 @@ mod story_171 {
             last_ns_c2s: Some(32767),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "AC-171-006: Some(32767)→0 full wrap, gap=1 (15-bit) must not emit finding \
@@ -4207,7 +4207,7 @@ mod story_171 {
     #[test]
     fn test_BC_2_19_024_ac171_007_c2s_call_updates_c2s_not_s2c() {
         let mut state = Iec104FlowState::default();
-        let _f = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        let _f = track_ns_desync(&mut state, 100, Direction::ClientToServer, None, None);
         assert_eq!(
             state.last_ns_c2s,
             Some(100),
@@ -4229,7 +4229,7 @@ mod story_171 {
     #[test]
     fn test_BC_2_19_024_ac171_007_s2c_call_updates_s2c_not_c2s() {
         let mut state = Iec104FlowState::default();
-        let _f = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        let _f = track_ns_desync(&mut state, 200, Direction::ServerToClient, None, None);
         assert_eq!(
             state.last_ns_s2c,
             Some(200),
@@ -4258,13 +4258,13 @@ mod story_171 {
         let mut state = Iec104FlowState::default();
 
         // Step 1: C2S first frame N(S)=10 → Path A
-        let f1 = track_ns_desync(&mut state, 10, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 10, Direction::ClientToServer, None, None);
         assert!(f1.is_none(), "step 1: C2S N(S)=10 Path A must return None");
         assert_eq!(state.last_ns_c2s, Some(10), "step 1: c2s must be Some(10)");
         assert_eq!(state.last_ns_s2c, None, "step 1: s2c must remain None");
 
         // Step 2: S2C first frame N(S)=200 → Path A
-        let f2 = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        let f2 = track_ns_desync(&mut state, 200, Direction::ServerToClient, None, None);
         assert!(f2.is_none(), "step 2: S2C N(S)=200 Path A must return None");
         assert_eq!(
             state.last_ns_s2c,
@@ -4278,7 +4278,7 @@ mod story_171 {
         );
 
         // Step 3: C2S N(S)=11 → Path B (gap=1)
-        let f3 = track_ns_desync(&mut state, 11, Direction::ClientToServer);
+        let f3 = track_ns_desync(&mut state, 11, Direction::ClientToServer, None, None);
         assert!(
             f3.is_none(),
             "step 3: C2S N(S)=11, gap=1 from Some(10) must return None"
@@ -4295,7 +4295,7 @@ mod story_171 {
         );
 
         // Step 4: S2C N(S)=220 → Path C (gap=20 > 12) → T1692.001 Possible
-        let f4 = track_ns_desync(&mut state, 220, Direction::ServerToClient);
+        let f4 = track_ns_desync(&mut state, 220, Direction::ServerToClient, None, None);
         let f =
             f4.expect("step 4: S2C N(S)=220, gap=20 from Some(200) must emit T1692.001 Possible");
         assert_eq!(
@@ -4347,7 +4347,7 @@ mod story_171 {
             ..Default::default()
         };
         // Backwards gap: (5001.wrapping_sub(5020)) & 0x7FFF = 32749 > 12 → T1692.001 Possible
-        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             finding.is_some(),
             "RETRANSMIT-NS-FALSEPOS-001: backwards N(S) (5001 after 5020) must emit \
@@ -4393,7 +4393,7 @@ mod story_171 {
         let mut state = Iec104FlowState::default();
 
         // Frame 1: mid-capture start, N(S)=5000, state=None → Path A
-        let f1 = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None);
         assert!(
             f1.is_none(),
             "EC-006 frame 1: N(S)=5000, state=None must return None (Path A; mid-capture guard)"
@@ -4405,7 +4405,7 @@ mod story_171 {
         );
 
         // Frame 2: gap=1 from Some(5000) → Path B
-        let f2 = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let f2 = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             f2.is_none(),
             "EC-006 frame 2: N(S)=5001, gap=1 from Some(5000) must return None (Path B)"
@@ -4417,7 +4417,7 @@ mod story_171 {
         );
 
         // Frame 3: gap=19 from Some(5001) → Path C → T1692.001 Possible
-        let f3 = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let f3 = track_ns_desync(&mut state, 5020, Direction::ClientToServer, None, None);
         let f = f3.expect(
             "EC-006 frame 3: N(S)=5020, gap=19 from Some(5001) must emit T1692.001 Possible \
              (Path C; BC-2.19.024 EC-006)",
@@ -6249,9 +6249,9 @@ mod fix_p4_001 {
     fn test_fix_p4_001_track_ns_desync_direction_c2s() {
         let mut state = Iec104FlowState::default();
         // First call establishes baseline (path A, no finding).
-        let _ = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        let _ = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
         // Second call: gap=5000 > k=12 → path C, emits finding.
-        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer)
+        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None)
             .expect("gap=5000 > k=12 must emit a desync finding (FIX-P4-001)");
         assert_eq!(
             finding.direction,
@@ -6267,8 +6267,8 @@ mod fix_p4_001 {
     #[test]
     fn test_fix_p4_001_track_ns_desync_direction_s2c() {
         let mut state = Iec104FlowState::default();
-        let _ = track_ns_desync(&mut state, 0, Direction::ServerToClient);
-        let finding = track_ns_desync(&mut state, 5000, Direction::ServerToClient)
+        let _ = track_ns_desync(&mut state, 0, Direction::ServerToClient, None, None);
+        let finding = track_ns_desync(&mut state, 5000, Direction::ServerToClient, None, None)
             .expect("gap=5000 > k=12 must emit a desync finding (FIX-P4-001)");
         assert_eq!(
             finding.direction,
@@ -6288,7 +6288,7 @@ mod fix_p4_001 {
     #[test]
     fn test_fix_p4_001_process_u_frame_stopdt_direction_c2s() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer)
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None)
             .expect("STOPDT-act must emit T0881 finding (FIX-P4-001)");
         assert_eq!(
             finding.direction,
@@ -6304,7 +6304,7 @@ mod fix_p4_001 {
     #[test]
     fn test_fix_p4_001_process_u_frame_stopdt_direction_s2c() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x13, Direction::ServerToClient)
+        let finding = process_u_frame(&mut state, 0x13, Direction::ServerToClient, None, None)
             .expect("STOPDT-act must emit T0881 finding (FIX-P4-001)");
         assert_eq!(
             finding.direction,
@@ -6321,7 +6321,7 @@ mod fix_p4_001 {
     fn test_fix_p4_001_process_u_frame_noncanonical_direction_c2s() {
         let mut state = Iec104FlowState::default();
         // 0x03 has bits1:0=0b11 (U-format) but is not in the canonical set.
-        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer)
+        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer, None, None)
             .expect("non-canonical U-frame must emit T0814 finding (FIX-P4-001)");
         assert_eq!(
             finding.direction,
@@ -6342,7 +6342,7 @@ mod fix_p4_001 {
     fn test_fix_p4_001_detect_threats_type45_direction_c2s() {
         let asdu = make_asdu(45);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings.first().expect("TypeID=45 must emit finding");
         assert_eq!(
             f.direction,
@@ -6359,7 +6359,7 @@ mod fix_p4_001 {
     fn test_fix_p4_001_detect_threats_type48_direction_s2c() {
         let asdu = make_asdu(48);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ServerToClient);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ServerToClient, None, None);
         assert_eq!(findings.len(), 2, "TypeID=48 must emit 2 findings");
         for (i, f) in findings.iter().enumerate() {
             assert_eq!(
@@ -6378,7 +6378,7 @@ mod fix_p4_001 {
     fn test_fix_p4_001_detect_threats_type105_direction_c2s() {
         let asdu = make_asdu(105);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit T0827 finding");
@@ -6397,7 +6397,7 @@ mod fix_p4_001 {
     fn test_fix_p4_001_detect_threats_type0_direction_c2s() {
         let asdu = make_asdu(0);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings.first().expect("TypeID=0 must emit T0814 finding");
         assert_eq!(
             f.direction,
