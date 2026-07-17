@@ -30,6 +30,11 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   All four captures parse without panics; zero parse_errors on every run. Corpus grows
   from 36 to 40 files; smoke test now verifies 39 pinned entries.
 
+  Companion analyzer-level e2e test added in `tests/iec104_e2e_real_pcaps_tests.rs` (4 tests,
+  modeled on `enip_e2e_real_pcaps_tests.rs`) pinning per-technique finding counts and
+  category/verdict/confidence distributions as regression guards against the IEC-104
+  analyzer pipeline (BC-2.19, STORY-167..174).
+
 ### Fixed
 
 - **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and
