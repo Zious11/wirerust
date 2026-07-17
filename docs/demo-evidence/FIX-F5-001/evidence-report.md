@@ -166,7 +166,7 @@ Direction: ServerToClient
 
 ### Timestamp Source
 
-Each `on_data()` call receives a nanosecond-precision `u64` timestamp. This is converted to `Option<DateTime<Utc>>` and attached to every finding emitted from that call's processing.
+Each `on_data()` call receives a `ts: u32` seconds timestamp from the packet capture dispatcher. This is converted to `Option<DateTime<Utc>>` via `DateTime::from_timestamp(ts as i64, 0)` and attached to every finding emitted from that call's processing.
 
 ### JSON Serialization
 
@@ -194,7 +194,7 @@ This ensures backward compatibility: downstream consumers that don't use these f
 
 - [x] All 10 test cases pass
 - [x] source_ip populated with initiator endpoint IP (flow context)
-- [x] timestamp populated with call-time nanoseconds (converted to DateTime<Utc>)
+- [x] timestamp populated from packet capture `ts: u32` seconds (converted to DateTime<Utc>)
 - [x] Both fields additive (no breaking changes to existing Finding fields)
 - [x] JSON serialization correct (skip_serializing_if on Option types)
 - [x] Both C2S and S2C directions covered
