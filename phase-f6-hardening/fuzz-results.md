@@ -1,9 +1,15 @@
-# Phase F6 — Fuzz Testing Results (Feature #7 — Modbus TCP analyzer)
+# Phase F6 — Fuzz Testing Results (feature-iec104 delta)
 
-**Feature:** Modbus TCP analyzer (issue #7, v0.4.0)
-**develop HEAD:** `68a3306`
-**Date:** 2026-06-09
-**Toolchain:** `cargo +nightly fuzz` (cargo-fuzz / libFuzzer), nightly `rustc 1.97.0-nightly`
+**Feature:** IEC-104 passive analyzer (STORY-167..174)
+**develop HEAD:** `b36b884`
+**Date:** 2026-07-17
+**Toolchain:** `cargo +nightly fuzz` (cargo-fuzz 0.13.1 / libFuzzer)
+**Target:** `fuzz_iec104_parser` (fuzz/fuzz_targets/fuzz_iec104_parser.rs)
+
+Re-run rationale (VP-047): `on_data` was modified by FIX-P4-001 / FIX-F5-001
+enrichment (source_ip/timestamp/direction threaded through the frame-walk and
+threat-detection paths). This run genuinely re-verifies no-panic / loop
+termination / carry-bound on the current emit-site code, not a STORY-174 assumption.
 
 ---
 
@@ -11,62 +17,25 @@
 
 | Metric | Value |
 |--------|-------|
-| Fuzz target | `fuzz_modbus_parse` (NEW — added this phase) |
-| Wall-clock | 301 s (`-max_total_time=300`) |
-| Total executions | **3,716,084** |
-| exec/s (steady state) | ~14,300 |
-| **Crashes / panics / OOM / timeouts** | **0** |
-| Crash artifacts written | none (`fuzz/artifacts/fuzz_modbus_parse/` empty) |
-| Coverage reached | cov 803, ft 3207, corpus 538 entries |
+| Command | `cargo +nightly fuzz run fuzz_iec104_parser -- -max_total_time=300` |
+| Wall-clock | 301 s (DONE) |
+| Total runs | 2,642,251 |
+| exec/s (final) | 8,778 (steady-state ~8,800) |
+| Final coverage | cov: 451, ft: 1398 |
+| Corpus | 345 entries / 92 Kb |
+| RSS | 730 Mb |
+| **Crashes** | **0** |
+| Timeouts / OOMs / leaks | 0 |
+| Artifacts dir | `fuzz/artifacts/fuzz_iec104_parser/` empty (no crash inputs) |
 
-**Verdict: 0 crashes in 5 minutes (3.7M execs). PASS.**
+## VP-047 properties confirmed
 
----
+- **No-panic:** 2.64M inputs through `on_data` (post-enrichment) — 0 panics, 0 aborts.
+- **Loop termination:** run completed cleanly at the 300 s budget; no libFuzzer
+  timeout triggered (frame-walk loop terminates on all inputs).
+- **Carry bound:** no OOM / RSS runaway (steady 730 Mb); carry buffer stays bounded.
 
-## Why a new target was added
+## Verdict
 
-The pre-existing target `fuzz_decode_packet` covers VP-008 (`decoder::decode_packet`) only —
-it never reaches the Modbus parse path. The Modbus analyzer consumes attacker-controlled pcap
-bytes through two surfaces that were previously unfuzzed:
-
-1. `parse_mbap_header(&[u8])` — the pure-core fixed-offset MBAP decoder (VP-022 sub-property A
-   is Kani-proven for `len <= 12`; the fuzzer is an **unbounded** dynamic cross-check).
-2. `ModbusAnalyzer::on_data(...)` — the effectful `StreamHandler` shell: the ADU walk loop,
-   the F-105-001 partial-ADU **carry buffer (260-byte cap)**, the **pending table (256-cap)**,
-   the 3-point validity gate, the desync latch, and the full `process_pdu` detection engine.
-   Kani cannot drive `on_data` (its `HashMap` `RandomState` seed is an FFI the model checker
-   cannot symbolically execute), so fuzzing is the **primary dynamic safety check** for this
-   shell.
-
-## Target design (`fuzz/fuzz_targets/fuzz_modbus_parse.rs`)
-
-For each arbitrary input the harness:
-- calls `parse_mbap_header(data)` over the raw unbounded bytes;
-- splits `data` in half and feeds the two halves as two successive `on_data` calls on the
-  SAME port-502 flow key — deliberately exercising the carry-buffer **cross-segment ADU
-  reassembly** path (a partial ADU straddling a TCP segment boundary);
-- alternates `Direction::ClientToServer` (request-insert path) and `ServerToClient`
-  (response-match / exception-attribution path), with advancing timestamps to drive the
-  time-windowed burst / sustained / exception detectors;
-- feeds the whole buffer a third time to drive duplicate-inflight and pending-cap accounting;
-- calls `on_flow_close(.., CloseReason::Fin)`.
-
-Registered in `fuzz/Cargo.toml` as a `[[bin]]`. Build: `cargo +nightly fuzz build
-fuzz_modbus_parse` — clean.
-
-## Run
-
-```
-cargo +nightly fuzz run fuzz_modbus_parse -- -max_total_time=300
-...
-Done 3716084 runs in 301 second(s)
-```
-
-No `ERROR: libFuzzer`, no `panicked`, no `SUMMARY: ` crash line, no `crash-*` / `oom-*` /
-`timeout-*` artifact. The DoS guards held: the 260-byte carry cap and 256-entry pending cap
-bounded memory; no unbounded growth, no OOB index, no `unwrap()` on attacker bytes fired.
-
-## Existing target (regression)
-
-`fuzz_decode_packet` (VP-008) remains registered and unchanged. Not re-run this phase
-(out of Modbus delta scope; covered by prior phases).
+Fuzz gate: **PASS** — 5-minute minimum satisfied (301 s), 2.64M executions,
+0 crashes on current code b36b884.

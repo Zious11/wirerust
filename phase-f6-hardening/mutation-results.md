@@ -1,11 +1,12 @@
-# Phase F6 — Mutation Testing Results (Feature #7 — Modbus TCP analyzer)
+# Phase F6 — Mutation Testing Results (feature-iec104 delta)
 
-**Feature:** Modbus TCP analyzer (issue #7, v0.4.0)
-**develop HEAD:** `68a3306`
-**Date:** 2026-06-09
-**cargo-mutants version:** installed at `~/.cargo/bin/cargo-mutants`
-**Scope:** `cargo mutants --file src/analyzer/modbus.rs`
-**Criticality:** modbus.rs detection engine is the CRITICAL anti-evasion core → **target ≥ 95% kill**.
+**Feature:** IEC-104 passive analyzer (STORY-167..174)
+**develop HEAD:** `b36b884`
+**Date:** 2026-07-17
+**cargo-mutants version:** 27.0.0 (`~/.cargo/bin/cargo-mutants`)
+**Scope:** `cargo mutants --file src/analyzer/iec104.rs`
+**Threshold:** F6 skill ≥ 90% kill on changed file. STORY-174 baseline was 117/122 = 95.9%;
+emit-site changes (FIX-P4-001 / FIX-F5-001) added mutable lines → 164 mutants now.
 
 ---
 
@@ -13,92 +14,93 @@
 
 | Metric | Value |
 |--------|-------|
-| Mutants generated | 169 |
+| Total mutants | 164 |
 | Unviable (don't compile) | 6 |
-| **Viable mutants** | **163** |
-| Genuinely surviving after fix | **0** |
-| **Effective kill rate (post-fix)** | **100% (163/163)** |
+| Proof-harness mutants (`#[cfg(kani)]`, out of production scope) | 35 |
+| **Production mutants (viable)** | **123** |
+| Production caught | 112 |
+| Production killed by non-termination (timeout) | 6 |
+| Production survivors (all equivalent) | 5 |
+| **Production kill rate** | **118/123 = 95.9%** |
+| Kill rate excluding equivalent mutants | 118/118 = **100%** |
+| Killable (real-gap) survivors | **0** |
 
-**Verdict: 0 surviving viable mutants after the FIX-F6 tests. PASS (≥95% CRITICAL target met).**
+Mutation gate: **PASS** (95.9% ≥ 90%; all 5 survivors proven equivalent; 0 killable gaps).
+Result matches the STORY-174 baseline (95.9%) exactly — the emit-site fixes did not
+introduce any new killable survivors.
 
 ---
 
-## Run methodology and a tooling caveat (read this)
+## Methodology note — first run was invalid (measurement artifact), re-run scoped
 
-Two runs were performed:
+The initial run used `-j4` with cargo-mutants' default full-suite test command
+(`cargo test`, ~2600 tests) and the auto-set 185 s test timeout. On this 16-core
+machine, four concurrent full-suite build+test cycles oversubscribed CPU, so many
+runs exceeded 185 s and were recorded as **TIMEOUT** — including mutants that are
+actually caught. Proof: the `extract_ns >> → <<` mutant was recorded as TIMEOUT in
+the `-j4` run, but when applied manually it fails 4 tests in 0.07 s (clearly CAUGHT).
+Because a genuinely-*missed* mutant's all-passing full-suite run would likewise have
+exceeded 185 s, the `-j4` run's `missed=0` could not be trusted — real survivors
+would be hidden among the 96 timeouts.
 
-1. **Serial baseline** (`--timeout 60`, jobs=1): partially completed; surfaced **5 genuine
-   surviving mutants** as `MISSED` (test suite passed under mutation) before being stopped for
-   speed. This run is authoritative for *survivor identification* because each MISSED mutant
-   was tested in isolation with no CPU contention.
+The run was redone with the test command scoped to the fast, relevant set
+(`-- --lib --test iec104_analyzer_tests`, ~318 tests, ~2 s), `-j4`, `--timeout 60`.
+Each run now completes in seconds, so caught mutants fail fast and only genuine
+non-termination reaches the timeout. This scoped run is the authoritative result
+above. (Scoping is safe for over-reporting: any mutant killable only by an
+out-of-scope test would show as MISSED and be caught in triage — the opposite,
+unsafe direction of the `-j4` artifact.) The invalid run is preserved at
+`mutants.out.j4-invalid/`.
 
-2. **Parallel sweep** (`--jobs 8 --timeout 30`): completed all 169 mutants in 13 min:
-   **35 caught, 128 timeout, 0 missed, 6 unviable** (cargo-mutants exit 3 = "timeouts occurred",
-   NOT "survivors found"; `missed.txt` was empty).
+---
 
-**Caveat — contention-induced false kills:** the 5 mutants the serial run proved to be genuine
-survivors (lines 499, 503×2, 535×2) appeared as `TIMEOUT` (not `MISSED`) in the parallel run.
-Under 8-way CPU contention their fast-passing tests exceeded the tighter 30 s wall clock and
-were recorded as timeouts. **A contention timeout is an ambiguous result, not a kill.** This
-report therefore does NOT count those as caught by the parallel run. Each was instead
-**manually verified** (mutation applied by hand → Modbus suite re-run → result observed).
+## Timeout mutants (6) — genuine non-termination = KILLED
 
-## Confirmed genuine survivors (pre-fix) and disposition
+All 6 are loop-advance operator mutations in `Iec104Analyzer::on_data` that break
+frame-walk termination:
 
-All five live in `ModbusAnalyzer::process_pdu` — the detection/correlation core. Each was
-confirmed by applying the mutation and observing the pre-existing Modbus suite stay GREEN
-(genuine gap, NOT equivalent):
+- `1239:25 += → -=` and `+= → *=` (start-byte / stub advance)
+- `1289:25 += → -=` and `+= → *=` (malformed-LEN advance)
+- `1352:21 += → -=` and `+= → *=` (`pos += frame_len` frame advance)
 
-| Mutant | Mutation | Behaviour the gap allowed | Disposition |
-|--------|----------|---------------------------|-------------|
-| `499:29` | `!=` → `==` | request-path pending-insert guard inverted → real requests never enter `pending`; only (never-occurring) exception-FC requests would | **genuine gap → killing test added** |
-| `503:53` | `+=` → `-=` | `duplicate_inflight_txn` decremented (u64 underflow) instead of incremented | **genuine gap → killing test added** |
-| `503:53` | `+=` → `*=` | `duplicate_inflight_txn` stuck at 0 | **genuine gap → killing test added** |
-| `535:46` | `>` → `==` | T0831 5 s window-expiry boundary flipped → boundary write takes reset branch, T0831 suppressed | **genuine gap → killing test added** |
-| `535:46` | `>` → `>=` | same boundary, inclusive-vs-exclusive off-by-one | **genuine gap → killing test added** |
+Reversing/scaling the position advance makes `while pos < buf.len()` never
+terminate → infinite loop → 60 s timeout. This is detection (the mutation produces
+observable non-termination) and corroborates VP-047's loop-termination property
+(the real code terminated on 2.64M fuzz inputs). Counted as killed.
 
-No equivalent (un-killable) mutants were found among the survivors.
+## Production survivors (5) — all EQUIVALENT
 
-## Fix (FIX-F6 branch `fix/f6-modbus-mutation-gaps`)
+| Site | Mutation | Equivalence rationale |
+|------|----------|-----------------------|
+| `866:9` | delete arm `100 \| 101 \| 103` in `detect_iec104_threats` | TypeIDs 100/101/103 are in [1,127]; deleting the explicit benign arm makes them fall through to the catch-all `_ => {}` (line 915), which also emits no finding. Identical observable behavior. The arm is documentation of intent, not a behavioral branch. |
+| `949:25` | `\| → ^` in `extract_ns` | `((cf1 as u16) >> 1)` occupies bits 0-6; `((cf2 as u16) << 7)` occupies bits 7-14. Operands are bit-disjoint, so OR ≡ XOR for all inputs. |
+| `967:25` | `\| → ^` in `extract_nr` | Same bit-disjoint reasoning as extract_ns. |
+| `1195:32` | `> → >=` on `carry.len() > MAX_IEC104_CARRY_BYTES` (255) | Residual stashed is always `remaining.len() < frame_len ≤ 255`, i.e. ≤ 254 (line 1295); a 255-byte complete frame is walked off, not stashed. So `carry.len()` can never equal 255 at the check via the public `on_data` API — the `>`/`>=` boundary is unreachable. |
+| `1358:33` | `> → >=` on `local_findings.len() > remaining_cap` | At the boundary `len == remaining_cap`: the `>=` branch computes `dropped += (len - remaining_cap) = 0` (no change) and `truncate(remaining_cap)` is a no-op (length already equals cap). Both branches keep all findings with the same drop count — identical observable state. |
 
-Three integration tests added to `tests/modbus_detection_tests.rs`, each driving the real
-`process_pdu` path via the existing `drive()` helper:
+None is killable by any black-box test; no FIX-F6 test is warranted.
 
-- `test_f6_mutation_process_pdu_inserts_nonexception_request_into_pending` — drives a
-  non-exception Read request, asserts the `pending` entry exists. Kills `499:29`.
-- `test_f6_mutation_process_pdu_increments_duplicate_inflight_txn` — drives the same
-  `(txn_id, unit_id)` twice, asserts `duplicate_inflight_txn == 1`. Kills both `503:53` mutants.
-- `test_f6_mutation_t0831_fires_at_exact_window_boundary` — second register write at elapsed
-  == 5 s (the exact window width) must co-tag T0831. Kills both `535:46` mutants. (The
-  pre-existing `window_reset_after_5s` test used elapsed=6, which all three operators agree is
-  expired — it could not distinguish the boundary.)
+## Proof-harness mutants (35 missed) — OUT OF PRODUCTION SCOPE
 
-**Verification (each mutant re-applied by hand against the new tests):**
+35 missed mutants are inside `mod kani_proofs` (lines 1480-1531), gated by
+`#[cfg(kani)]`. Under `cargo test` the `kani` cfg is off, so this module is not
+compiled and mutating it cannot change any test outcome — cargo-mutants records
+them all as MISSED. They mutate proof-harness code, not production logic, and the
+harness itself is verified by Kani (VP-044 `verify_parse_apci_header_safety`:
+VERIFICATION SUCCESSFUL, 0 of 89 failed — see kani-results.md). These are excluded
+from the production kill-rate.
 
-| Mutant | New test verdict under mutation |
-|--------|---------------------------------|
-| `499:29 != → ==` | FAILED (caught) |
-| `503:53 += → -=` | FAILED — `attempt to subtract with overflow` (caught) |
-| `535:46 > → ==` | FAILED (caught) |
-| `535:46 > → >=` | FAILED (caught) |
+Follow-up (non-blocking): configure cargo-mutants to skip `#[cfg(kani)]` blocks
+(e.g. an `exclude_re`/`skip` entry in a `mutants.toml`) so future runs don't
+enumerate proof-harness sites.
 
-All three new tests PASS on unmutated HEAD; full regression in the FIX-F6 worktree:
-**1329 passed, 0 failed** (+3 vs the 1326 baseline). `cargo fmt --check` and
-`cargo clippy -D warnings` clean.
+## Unviable mutants (6)
 
-## On the 128 timeouts
+Return-type replacements that don't typecheck (no `Default`, or wrong shape):
+`classify_frame_format`, `process_u_frame`, `parse_apci_header`, `parse_asdu`,
+`track_ns_desync`, `summarize`. Excluded from denominator per standard practice.
 
-The large timeout count is expected and benign: many mutations of the ADU-walk loop
-comparators / position-advance arithmetic (`while pos < buf.len()`, `pos += adu_len`, the
-length/gate comparisons in `is_valid_modbus_adu`, the `classify_fc` match arms reachable from
-the walk) produce non-terminating or pathologically slow programs. cargo-mutants treats a
-timeout as a detected mutant (the mutation observably broke the program). These are NOT
-survivors. The only mutants whose *passing-test* status had to be resolved manually were the
-5 above.
+## Verdict
 
-## Scope note
-
-Full-file mutation (1340 lines incl. the `#[cfg(kani)] kani_proofs` block) was run. Mutants
-inside the cfg-gated `kani_proofs` module are not exercised by the normal `cargo test` build
-and surface as timeouts/unviable; they are formally covered by the Kani run, not the test
-suite, so they are out of the test-suite kill-rate denominator.
+Mutation gate: **PASS** — production kill rate 95.9% (≥90%), 100% of non-equivalent
+viable production mutants killed, 0 killable survivors, 0 FIX-F6 test gaps.

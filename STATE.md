@@ -8,13 +8,13 @@ input-hash: "[live-state]"
 traces_to: ""
 project: wirerust
 mode: steady-state
-phase: "feature-iec104/F6-pending"
+phase: "feature-iec104/F7-pending"
 status: active
-current_step: "D-468 F5 CONVERGED (5 rounds, NITPICK_ONLY); F6 targeted hardening next. develop=b36b884. trajectory-tail →0→0→0→0"
+current_step: "D-469 F6 hardening PASS; F7 delta convergence next (final human gate). develop=b36b884. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-17T21:00:00Z
-# D-468 F5 CONVERGED (5 rounds, NITPICK_ONLY, 0 CRIT/HIGH/MED). FIX-F5-002/003/004 delivered. F6 next. STORY-INDEX v3.76.
+timestamp: 2026-07-17T23:45:00Z
+# D-469 F6 targeted hardening PASS. Kani/fuzz/mutation/audit/regression all green on post-fix develop b36b884. F7 next. STORY-INDEX v3.76.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,7 +25,7 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-17 — D-468 F5 CONVERGED; develop=b36b884 (STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004, 12 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-17 — D-469 F6 PASS; develop=b36b884 (STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004, 12 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 develop_head: b36b884
 # Cargo.toml version: main=0.12.1; develop=0.12.1 (12 unreleased commits b36b884 STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop b36b884, histories diverge; trees differ by IEC-104 feature code)
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 307 = 193 (dual-margin form). 307 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 310 = 190 (dual-margin form). 310 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -70,9 +70,9 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (PR #412 b356545), FIX-F5-003 (PR #413 9eab53f), FIX-F5-004 (PR #415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 demo-prose mislabel, code correct at iec104.rs:744-748). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next. trajectory-tail →0→0→0→0**
+**D-469 feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed against post-fix develop b36b884 (iec104.rs emit sites changed by FIX-P4-001/FIX-F5-001 — iec104-dependent checks RE-RUN not assumed): Kani VP-044/004/007 all SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/5min/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns/193 deps; regression 2627/0; clippy+fmt clean. semgrep skipped (absent; cargo-audit + per-PR security-reviews cover surface). Info-asymmetry wall honored (F5 findings not consulted). No BLOCKERs. F6 gate PASSED — F7 delta convergence next. trajectory-tail →0→0→0→0**
 
-**D-467 F5 Rounds 2-3 COMPLETE (2026-07-17). R2 code-CONVERGED (0 code findings; 2M docs → FIX-F5-002 PR #412 b356545 merged). R3 F-B1 HIGH (fabricated FIX-P4-001 demo-evidence: Category::Protocol/Verdict::Anomaly non-existent variants; non-compiling demo .rs; wrong MITRE T0881→T1692.001) → FIX-F5-003. Feature CODE/tests CONVERGED since R2. develop=b356545 (11 unreleased). trajectory-tail →0→0→0→0**
+**D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (PR #412 b356545), FIX-F5-003 (PR #413 9eab53f), FIX-F5-004 (PR #415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 demo-prose mislabel, code correct at iec104.rs:744-748). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next. trajectory-tail →0→0→0→0**
 
 ---
 
@@ -81,13 +81,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); **F5 scoped adversarial CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 delivered; F6 targeted hardening next** |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); F5 CONVERGED (D-468); **F6 targeted hardening PASS (D-469): Kani/fuzz/mutation/audit/regression all green on b36b884; F7 delta convergence next** |
 | Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=b36b884 — 12 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
 | Main HEAD | `fedcea4ab17d9b3257c9903636aec0c0fd08f147` |
 | Develop HEAD | `b36b884` — PR #415 FIX-F5-004 squash 2026-07-17; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 |
 | Stories | 113 delivered / 127 total (STORY-INDEX v3.76, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-17 — D-468 F5 CONVERGED (5 rounds, NITPICK_ONLY). trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-17 — D-469 F6 targeted hardening PASS. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -125,11 +125,12 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 — wave-82 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean A/B/C (17 total passes) on STORY-173 diff == wave-level adversarial; CI 13/13 develop 084ff93; D-458 |
 | feature-iec104 — wave-83 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean (P5/P6/P7) on STORY-174 diff == wave-level adversarial; CI 13/13 + post-merge develop CI SUCCESS; D-463 |
 | feature-iec104 — pre-F5 fix-PR (FIX-P4-001) | **DELIVERED (D-464)** | PR #410 7e95f71; IEC104-FINDING-DIRECTION-001 resolved — all 10 IEC-104 emit sites direction: Some(...); 11 direction-assertion tests (mod fix_p4_001); F5 scoped adversarial UNBLOCKED |
-| feature-iec104 — F5 (scoped adversarial) | **CONVERGED (D-468)** | 5 rounds; FIX-F5-001..004 delivered; code frozen since R2 (9c5aa9a); R5 NITPICK_ONLY (0 CRIT/HIGH/MED, 1 LOW non-blocking); BC-completeness 31/31 + canonical-frame 19 byte-exact clean |
 | feature-iec104 — F5 fix batch (FIX-F5-001) | **DELIVERED (D-466)** | PR #411 9c5aa9a; F-01..F-05 resolved; source_ip+timestamp enrichment all 10 emit sites; BC-2.19.011 PC-3 SATISFIED |
 | feature-iec104 — F5 fix batch (FIX-F5-002) | **DELIVERED (D-467)** | PR #412 b356545; F5R2 doc-accuracy fixes: provenance corrected (S-139/S-140 lineage), fabricated T0881 JSON corrected, year 2025→2026, CHANGELOG direction-parity wording |
 | feature-iec104 — F5 fix batch (FIX-F5-003) | **DELIVERED** | PR #413 9eab53f; F-B1 HIGH resolved — FIX-P4-001 demo-evidence ×4 files corrected: real enum variants, real JSON, MITRE T1692.001; CHANGELOG false-correction claim removed |
 | feature-iec104 — F5 fix batch (FIX-F5-004) | **DELIVERED** | PR #415 b36b884; F-B2 MEDIUM resolved — CHANGELOG Example-3 mitre_techniques [] → ["T0814"]; intro "8 function" → "10 total / 8 function" |
+| feature-iec104 — F5 (scoped adversarial) | **CONVERGED (D-468)** | 5 rounds; FIX-F5-001..004 delivered; code frozen since R2 (9c5aa9a); R5 NITPICK_ONLY (0 CRIT/HIGH/MED, 1 LOW non-blocking); BC-completeness 31/31 + canonical-frame 19 byte-exact clean |
+| feature-iec104 — F6 (targeted-hardening) | **PASS (D-469)** | Kani/fuzz/mutation/audit/regression all green; VPs re-run post-fix on b36b884 |
 
 ---
 
@@ -148,7 +149,7 @@ maintenance_prior_run: maint-2026-07-09
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | F5 CONVERGED (D-468) — 5 rounds, NITPICK_ONLY; FIX-F5-001..004 delivered; feature code frozen since R2 (9c5aa9a); F6 targeted hardening next | develop |
+| feature-iec104 | F6 PASS (D-469) — Kani/fuzz/mutation/audit/regression all green on b36b884; F7 delta convergence next | develop |
 
 ---
 
@@ -156,11 +157,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-469 feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed against post-fix develop b36b884 (iec104.rs emit sites changed by FIX-P4-001/FIX-F5-001 — iec104-dependent checks RE-RUN not assumed): Kani VP-044/004/007 all SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/5min/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns/193 deps; regression 2627/0; clippy+fmt clean. semgrep skipped (absent; cargo-audit + per-PR security-reviews cover surface). Info-asymmetry wall honored (F5 findings not consulted). Verifier self-corrected a -j4 mutation false-timeout measurement error, re-ran scoped for authoritative 95.9%. No BLOCKERs. Artifacts .factory/phase-f6-hardening/. F6 gate PASSED — F7 delta convergence next.** | **PASS (D-469)** | Kani/fuzz/mutation/audit/regression all green; No BLOCKERs; F7 next. trajectory-tail →0→0→0→0 |
 | **D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (PR #412 b356545), FIX-F5-003 (PR #413 9eab53f), FIX-F5-004 (PR #415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 demo-prose mislabel, code correct at iec104.rs:744-748). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next.** | **CONVERGED (D-468)** | R5 NITPICK_ONLY; 0 CRIT/HIGH/MED; F6 next. trajectory-tail →0→0→0→0 |
 | **D-467 F5 Rounds 2-3 COMPLETE (2026-07-17). R2 @ 9c5aa9a: all 5 R1 findings verified fixed by FIX-F5-001; 0 code findings; direction→source_ip DNP3-parity-exact (10 emit sites); 10 fix_f5_001 test assertions non-vacuous; 105 callers pass None + assert others — no regressions. 2 MEDIUM doc-accuracy findings: F5R2-01 wrong provenance (STORY-172/173 cited vs real S-139/S-140); F5R2-02 fabricated T0881 JSON (anomaly/high → non-existent enum variants; real: impact/medium/possible). Code CONVERGED since R2. FIX-F5-002 → PR #412 b356545 merged. R3 @ b356545: R2 doc-fixes ALL verified corrected. NEW F-B1 HIGH — FIX-P4-001 demo-evidence (4 files) still fabricated: Category::Protocol + Verdict::Anomaly (non-existent variants); non-compiling demo .rs; wrong MITRE technique (T0881→T1692.001); FIX-F5-002 CHANGELOG falsely claims correction. 3rd fabricated-demo-JSON occurrence → root cause: demo-recorder hand-wrote JSON without deriving from real serialization. Routed to FIX-F5-003 comprehensive sweep. PG-DEMO-JSON-FABRICATION filed. develop=b356545 (11 unreleased). Round 4 after FIX-F5-003 merge.** | **FINDINGS (D-467)** | R2 code-CONVERGED; R3 F-B1 HIGH docs → FIX-F5-003. trajectory-tail →0→0→0→0 |
 | **D-466 FIX-F5-001 DELIVERED (2026-07-17). PR #411 9c5aa9a squash-merged to develop, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER. F5 Round-1 findings ALL RESOLVED: F-01 HIGH BC-2.19.011 PC-3 + F-02/03/04/05 MEDIUM — source_ip+timestamp threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity); BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001 (each asserts source_ip+timestamp per finding family); 9 stale-prose sites scrubbed GREEN + protocols_tests count comment fixed; false forward-ref comment removed; additive JSON keys source_ip/timestamp documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; docs/holdout-expectations-sweep-FIX-F5-001.md). Security PASS 0 findings. pr-reviewer APPROVE (MINOR count-prose + NIT timestamp-type both remediated in-file, orchestrator row-verified per PG-W74). CI 13/13 + post-merge SUCCESS. Demo before/after JSON scrub PASS. develop=9c5aa9a (10 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001). F5 Round 2 next (fresh adversary on fixed files).** | **DELIVERED (D-466)** | F5 Round-1 F-01..F-05 ALL RESOLVED. F5 Round 2 next. trajectory-tail →0→0→0→0 |
 | **D-465 feature-iec104 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ develop 7e95f71 (base fedcea4): BC-set completeness sweep 31/31 PASS (no missing-feature blocker); canonical-frame sweep 19 invariants byte-exact vs IEC 60870-5-104 (no DNP3-DIR-class defect). Findings: F-01 HIGH BC-2.19.011 PC-3 source_ip unmet (untested blind spot); F-02 MEDIUM source_ip/timestamp parity (iec104.rs:1148 let _ = ts); F-03 MEDIUM stale RED-phase prose + 4 unlisted siblings; F-04 MEDIUM false forward-ref iec104.rs:1029; F-05 MEDIUM protocols_tests.rs:208 stale count. All 5 batched → FIX-F5-001 (in progress). MITRE EXECUTION-REQUIRED axis closed via D-439 v19.1 pin. Regression/Security/Kani axes CLEAN. Phase frontmatter → feature-iec104/F5.** | **FINDINGS (D-465)** | 1H+4M → FIX-F5-001. Round 2 after merge. trajectory-tail →0→0→0→5 |
-| **D-464 FIX-P4-001 DELIVERED (2026-07-17). PR #410 7e95f71 squash-merged to develop, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER. fix-pr-delivery flow (D-461 routing, ENIP D-262 PR #331 precedent). IEC104-FINDING-DIRECTION-001 RESOLVED — all 10 IEC-104 emit sites direction: Some(...) (was None); direction threaded into process_u_frame + detect_iec104_threats; redundant direction-in-evidence strings dropped. 11 direction-assertion tests (mod fix_p4_001, red-first TDD). Additive `direction` JSON key documented in CHANGELOG. holdout-expectations sweep COMPLETE (PG-W72; zero IEC-104 holdout scenarios; docs/holdout-expectations-sweep-FIX-P4-001.md). Security review PASS 0 findings. pr-reviewer APPROVE (2 NITs accepted). CI 13/13 + post-merge develop CI SUCCESS. Demo evidence 3 artifacts scrub PASS. develop=7e95f71 (9 unreleased: STORY-167..174 + FIX-P4-001). F5 scoped adversarial UNBLOCKED.** | **DELIVERED (D-464)** | IEC104-FINDING-DIRECTION-001 CLOSED. F5 next. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -199,6 +200,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-466 | FIX-F5-001 DELIVERED (PR #411 9c5aa9a squash-merged to develop, 2026-07-17, human-executed merge). Batches F5 Round-1 findings F-01 HIGH + F-02/03/04/05 MEDIUM: source_ip + timestamp enrichment threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity pattern) — BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001 (each asserts source_ip+timestamp per finding family); 9 stale-prose sites scrubbed GREEN + protocols_tests count comment fixed; false forward-ref comment removed; additive JSON keys source_ip/timestamp documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; docs/holdout-expectations-sweep-FIX-F5-001.md). Security PASS 0 findings. pr-reviewer APPROVE (MINOR count-prose + NIT timestamp-type both remediated in-file, orchestrator row-verified per PG-W74). CI 13/13 + post-merge SUCCESS. Demo before/after JSON scrub PASS. develop=9c5aa9a (10 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001). F5 Round 2 next (fresh adversary on fixed files). | 2026-07-17 |
 | D-467 | F5 scoped adversarial Rounds 2-3 (2026-07-17). R2 @ 9c5aa9a: code CONVERGED (all 5 R1 findings verified fixed by FIX-F5-001; 0 code findings; direction→source_ip DNP3-parity-exact; tests non-vacuous) + 2 MEDIUM doc-accuracy findings (F5R2-01 wrong provenance, F5R2-02 fabricated T0881 JSON) → FIX-F5-002 (PR #412 b356545 merged). R3 @ b356545: R2 doc-fixes verified; NEW F-B1 HIGH — FIX-P4-001 demo-evidence artifacts still fabricated (category 'Protocol'/verdict 'Anomaly'/confidence 'High' — non-existent variants, non-compiling demo .rs, wrong MITRE technique) + FIX-F5-002 CHANGELOG false correction claim. 3rd fabricated-demo-JSON occurrence → root cause demo-recorder hand-writing JSON not deriving from real serde output. Routed to FIX-F5-003 (comprehensive demo-evidence JSON-accuracy sweep across full feature tree, in progress). Feature CODE/tests CONVERGED since R2; F5 gate blocked only on docs accuracy. New process-gap PG-DEMO-JSON-FABRICATION filed. | 2026-07-17 |
 | D-468 | feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (#412 b356545), FIX-F5-003 (#413 9eab53f), FIX-F5-004 (#415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 C_SC_NA_1 described as "monitoring direction" in docs/demo-evidence/FIX-P4-001/evidence-report.md:46 + AC-P4-001-test-results.txt:61 — code correct at iec104.rs:744-748; prose-only, non-blocking). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next. trajectory: findings decayed 5→2→1(HIGH,docs)→1(MEDIUM,docs)→0(1 LOW). | 2026-07-17 |
+| D-469 | feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed against post-fix develop b36b884 (iec104.rs emit sites changed by FIX-P4-001/FIX-F5-001 → iec104-dependent checks RE-RUN not assumed): Kani VP-044/004/007 all SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/5min/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns/193 deps; regression 2627/0; clippy+fmt clean. semgrep skipped (absent; cargo-audit + per-PR security-reviews cover surface). Info-asymmetry wall honored (F5 findings not consulted). Verifier self-corrected a -j4 mutation false-timeout measurement error, re-ran scoped for authoritative 95.9%. No BLOCKERs. Artifacts .factory/phase-f6-hardening/. F6 gate PASSED — F7 delta convergence next. | 2026-07-17 |
 
 ---
 
@@ -260,16 +262,16 @@ maintenance_prior_run: maint-2026-07-09
 
 ## Session Resume Checkpoint
 
-**D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002/003/004 all DELIVERED. R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (IEC104-DEMO-TYPEID45-MISLABEL). Feature code frozen since R2. F6 targeted hardening next. develop=b36b884 (12 unreleased). trajectory-tail →0→0→0→0**
+**D-469 feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed on post-fix develop b36b884: Kani VP-044/004/007 SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns; regression 2627/0; clippy+fmt clean. No BLOCKERs. F6 gate PASSED — F7 delta convergence next (final human gate). trajectory-tail →0→0→0→0**
 
-**D-467 F5 Rounds 2-3 COMPLETE (2026-07-17). R2 code-CONVERGED; R3 F-B1 HIGH → FIX-F5-003 (now delivered). trajectory-tail →0→0→0→0**
+**D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002/003/004 all DELIVERED. R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (IEC104-DEMO-TYPEID45-MISLABEL). Feature code frozen since R2. F6 targeted hardening PASS (D-469). develop=b36b884 (12 unreleased). trajectory-tail →0→0→0→0**
 
-Prior checkpoint (D-467 F5 R2-R3, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
+Prior checkpoint (D-468 F5 CONVERGED, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-17. Position: feature-iec104 F5 CONVERGED (D-468); F6 targeted hardening next. develop=b36b884. trajectory-tail →0→0→0→0
+- **Date:** 2026-07-17. Position: feature-iec104 F6 PASS (D-469); F7 delta convergence next. develop=b36b884. trajectory-tail →0→0→0→0
 - **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `b36b884`. DRIFT-BACKMERGE-SQUASH-001 still applies. 12 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93) + STORY-174 (PR #409 547deba) + FIX-P4-001 (PR #410 7e95f71) + FIX-F5-001 (PR #411 9c5aa9a) + FIX-F5-002 (PR #412 b356545) + FIX-F5-003 (PR #413 9eab53f) + FIX-F5-004 (PR #415 b36b884).
-- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464). F5 CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 all delivered.
-- **Remaining delivery sequence:** F6 targeted hardening (phase-f6-targeted-hardening) → F7 delta convergence → release cut. PR #407 external-fork triage also pending.
+- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464). F5 CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 all delivered. F6 PASS (D-469).
+- **Remaining delivery sequence:** F7 delta convergence (phase-f7-delta-convergence): 5-dimension convergence check on delta + full regression + final human gate → release cut. PR #407 external-fork triage also pending.
 - **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); IEC104-DEMO-TYPEID45-MISLABEL (LOW, non-blocking; docs-currency sweep or cycle-close); PG-DEMO-JSON-FABRICATION (cycle-close + demo-recording skill update); PG-GATE-VOCAB-BLINDSPOT + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (cycle-close); PG-VERIFY-ALL-WORKTREES + PG-STATE-RECOVERY-SCOPE + PG-DOC-CURRENCY-SWEEP + PG-ADVERSARY-IDLE-NO-REPORT + PG-ADVERSARY-SEVERITY-CALIBRATION (all → cycle-close codification).
 - **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.76 / dep-graph v3.9 (137 edges).
 - **Resume command:** `/vsdd-factory:next-step`
@@ -305,3 +307,4 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | Wave 83 gate files | `cycles/wave-083/wave-gate/` (gate-summary.md D-463, code-review.md) |
 | STORY-174 per-story convergence report | `cycles/feature-iec104/STORY-174/convergence-report.md` (7 passes, CONVERGED P5/P6/P7, D-462) |
 | feature-iec104 F5 adversarial reviews | `.factory/phase-f5-adversarial/round-1-review.md` through `round-5-review.md`; `convergence-summary.md` (D-468) |
+| feature-iec104 F6 gate verdict + hardening artifacts | `.factory/phase-f6-hardening/f6-gate-verdict-iec104.md` (D-469 PASS); `kani-results.md`, `fuzz-results.md`, `mutation-results.md`, `security-scan-results.md` |
