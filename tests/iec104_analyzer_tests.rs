@@ -6470,3 +6470,419 @@ mod fix_p4_001 {
         );
     }
 }
+
+// =============================================================================
+// FIX-F5-001: source_ip + timestamp enrichment on all IEC-104 emit sites.
+//
+// ## What this tests
+// Every IEC-104 emit site previously set source_ip: None and timestamp: None.
+// BC-2.19.011 PC-3 requires findings to include the flow's 5-tuple context.
+// These tests assert that source_ip == Some(initiator_ip) and
+// timestamp.is_some() for each finding family, verified end-to-end via
+// on_data (the effectful shell that resolves FlowKey IPs and passes them down).
+//
+// ## Flow setup
+// FlowKey::new("10.0.0.1", 60002, "10.0.0.2", 2404):
+//   lower=(10.0.0.1, 60002), upper=(10.0.0.2, 2404).
+//   lower_port()=60002 ≠ 2404 → (client_ip, server_ip) = (10.0.0.1, 10.0.0.2).
+//   C2S direction: source_ip = 10.0.0.1 (initiator/client).
+//   S2C direction: source_ip = 10.0.0.2 (initiator/server).
+//
+// ## Emit sites covered (10 direct + 2 inline)
+// 1. process_u_frame STOPDT-act T0881 — C2S + S2C (BC-2.19.011 PC-3)
+// 2. on_data carry-overflow T0814
+// 3. on_data malformed-LEN T0814
+// 4. detect_iec104_threats TypeID=45 T1692.001
+// 5. detect_iec104_threats TypeID=48 T1692.001 + T0836
+// 6. detect_iec104_threats TypeID=105 T0827
+// 7. detect_iec104_threats TypeID=0 T0814 (reserved)
+// 8. track_ns_desync T1692.001 (desync path-C)
+// 9. process_u_frame non-canonical U-frame T0814
+//
+// ## Traces: BC-2.19.011 PC-3; FIX-F5-001; sibling parity with DNP3/EnIP
+// =============================================================================
+mod fix_f5_001 {
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_CARRY_BYTES};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    /// Helper: C2S flow where 10.0.0.1:60002 → 10.0.0.2:2404.
+    /// lower=(10.0.0.1, 60002) because 10.0.0.1 < 10.0.0.2 lexicographically.
+    /// lower_port()=60002 ≠ 2404 → client_ip=lower_ip=10.0.0.1.
+    fn fk() -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            60002,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            2404,
+        )
+    }
+
+    fn client_ip() -> IpAddr {
+        "10.0.0.1".parse().unwrap()
+    }
+
+    fn server_ip() -> IpAddr {
+        "10.0.0.2".parse().unwrap()
+    }
+
+    // STOPDT-act frame: start=0x68, LEN=4, CF1=0x13, CF2-CF4=0.
+    fn stopdt_act() -> [u8; 6] {
+        [0x68, 0x04, 0x13, 0x00, 0x00, 0x00]
+    }
+
+    // I-format frame with TypeID=45 (C_SC_NA_1 switching command):
+    //   APCI: start=0x68, LEN=0x0A, CF1=0x00 (N(S)=0), CF2-CF4=0.
+    //   ASDU: TypeID=45(0x2D), VSQ=1, COT_cause=6, orig=0, CASDU=1.
+    fn i_frame_type45() -> [u8; 12] {
+        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // I-format frame with TypeID=48 (C_SE_NA_1 set-point command):
+    //   Emits T1692.001 + T0836 (two findings).
+    fn i_frame_type48() -> [u8; 12] {
+        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // I-format frame with TypeID=105 (C_RP_NA_1 Reset Process Command):
+    //   Emits T0827 Likely.
+    fn i_frame_type105() -> [u8; 12] {
+        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // I-format frame with TypeID=0 (reserved/undefined):
+    //   Emits T0814 Possible.
+    fn i_frame_type0() -> [u8; 12] {
+        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // I-format frame for desync test, N(S)=0:
+    //   CF1=0x00 → N(S) = (0x00 >> 1) | (0x00 << 7) = 0.
+    fn i_frame_ns0() -> [u8; 12] {
+        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // I-format frame for desync test, N(S)=14 (gap=14 > k=12 → T1692.001):
+    //   CF1=0x1C → N(S) = (0x1C >> 1) = 14.
+    fn i_frame_ns14() -> [u8; 12] {
+        [0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00]
+    }
+
+    // Non-canonical U-frame: CF1=0x03 (bits1:0=0b11, not in canonical set).
+    fn non_canonical_u_frame() -> [u8; 6] {
+        [0x68, 0x04, 0x03, 0x00, 0x00, 0x00]
+    }
+
+    // =========================================================================
+    // T0881 STOPDT-act — source_ip + timestamp (BC-2.19.011 PC-3; FIX-F5-001)
+    // Written RED-first: source_ip was None; timestamp was None before this fix.
+    // =========================================================================
+
+    /// STOPDT-act C2S: finding carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Verifies BC-2.19.011 PC-3: the finding includes the flow's address context.
+    /// Initiator direction=ClientToServer → source_ip = client endpoint = 10.0.0.1.
+    ///
+    /// RED before FIX-F5-001: source_ip was None (no enrichment).
+    /// GREEN after: source_ip = Some(10.0.0.1); timestamp.is_some().
+    ///
+    /// Traces: BC-2.19.011 PC-3; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_stopdt_c2s_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &stopdt_act(), 1_000_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+            .expect("STOPDT-act must emit T0881 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "T0881 C2S finding must carry source_ip=Some(10.0.0.1) — \
+             initiator is client endpoint (BC-2.19.011 PC-3; FIX-F5-001); \
+             was None before this fix"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "T0881 C2S finding must carry a non-None timestamp (FIX-F5-001); \
+             was None before this fix"
+        );
+    }
+
+    /// STOPDT-act S2C: finding carries source_ip=Some(server_ip) and timestamp.is_some().
+    ///
+    /// Direction=ServerToClient → source_ip = server endpoint = 10.0.0.2.
+    ///
+    /// Traces: BC-2.19.011 PC-3; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_stopdt_s2c_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &stopdt_act(), 2_000_000, Direction::ServerToClient);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+            .expect("STOPDT-act S2C must emit T0881 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(server_ip()),
+            "T0881 S2C finding must carry source_ip=Some(10.0.0.2) — \
+             initiator is server endpoint in S2C direction (BC-2.19.011 PC-3; FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "T0881 S2C finding must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Carry-overflow T0814 — source_ip + timestamp (FIX-F5-001 inline emit site)
+    // =========================================================================
+
+    /// Carry-overflow T0814 carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Traces: FIX-F5-001 F-01+F-02; on_data carry-overflow emit site.
+    #[test]
+    fn test_fix_f5_001_carry_overflow_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = fk();
+        // Seed the flow.
+        analyzer.on_data(fk.clone(), &[], 0, Direction::ClientToServer);
+        // Overflow C2S carry.
+        {
+            let state = analyzer.flows.get_mut(&fk).unwrap();
+            state.carry_c2s = vec![0xAA; MAX_IEC104_CARRY_BYTES + 1];
+        }
+        // Trigger overflow check.
+        analyzer.on_data(fk.clone(), &[], 500_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("carry-overflow must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "carry-overflow T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "carry-overflow T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Malformed-LEN T0814 — source_ip + timestamp (FIX-F5-001 inline emit site)
+    // =========================================================================
+
+    /// Malformed-LEN T0814 carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Traces: FIX-F5-001 F-01+F-02; on_data malformed-LEN emit site.
+    #[test]
+    fn test_fix_f5_001_malformed_len_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        // 0x68 start byte + LEN=1 (outside [4,253]) → malformed-LEN T0814.
+        let bad_frame: &[u8] = &[0x68, 0x01];
+        analyzer.on_data(fk(), bad_frame, 750_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("malformed-LEN must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "malformed-LEN T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "malformed-LEN T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=45 T1692.001 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=45 (C_SC_NA_1) T1692.001 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.019; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type45_t1692_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &i_frame_type45(), 1_200_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("TypeID=45 must emit T1692.001 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=45 T1692.001 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=45 T1692.001 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=48 T0836 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=48 (C_SE_NA_1) T0836 finding carries source_ip and timestamp.
+    ///
+    /// TypeID=48 emits both T1692.001 and T0836; test specifically asserts T0836.
+    ///
+    /// Traces: BC-2.19.019 PC-2; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type48_t0836_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &i_frame_type48(), 1_400_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .expect("TypeID=48 must emit T0836 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=48 T0836 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=48 T0836 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=105 T0827 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=105 (C_RP_NA_1) T0827 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.020; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type105_t0827_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &i_frame_type105(), 1_600_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0827"))
+            .expect("TypeID=105 must emit T0827 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=105 T0827 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=105 T0827 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=0 T0814 (reserved/undefined) — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=0 (undefined) T0814 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.022; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type0_t0814_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &i_frame_type0(), 1_800_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("TypeID=0 must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=0 T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=0 T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // track_ns_desync T1692.001 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// N(S) desync T1692.001 finding carries source_ip and timestamp.
+    ///
+    /// Two C2S I-frames: N(S)=0 (baseline), then N(S)=14 (gap=14>12 → path-C).
+    /// TypeID=1 (monitoring, no threat finding) isolates the desync finding.
+    ///
+    /// Traces: BC-2.19.024 path-C; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_desync_t1692_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = fk();
+        // Frame 1: N(S)=0, establishes baseline (path A, no finding).
+        analyzer.on_data(fk.clone(), &i_frame_ns0(), 0, Direction::ClientToServer);
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "first I-frame must not emit any finding (path A baseline)"
+        );
+        // Frame 2: N(S)=14, gap=14 > k=12 → T1692.001 path-C.
+        analyzer.on_data(fk, &i_frame_ns14(), 2_500_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("N(S) desync gap=14 must emit T1692.001 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "desync T1692.001 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "desync T1692.001 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Non-canonical U-frame T0814 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// Non-canonical U-frame T0814 carries source_ip and timestamp.
+    ///
+    /// CF1=0x03: bits1:0=0b11 (U-format) but not in canonical set →
+    /// T0814 "CVE-2026-1773 denial-of-service" finding.
+    ///
+    /// Traces: BC-2.19.014; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_noncanonical_u_frame_t0814_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(
+            fk(),
+            &non_canonical_u_frame(),
+            3_000_000,
+            Direction::ClientToServer,
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("non-canonical U-frame must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "non-canonical U-frame T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "non-canonical U-frame T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+}
