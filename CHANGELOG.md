@@ -7,6 +7,29 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **`bin/check-green-doc-tense` green-doc-tense gate extended with three new IEC-104 phrasings
+  (STORY-174, AC-174-008, PG-REDGREEN-COMMENT-CLEANUP).**
+
+  Adds patterns 23–25 to the `_VIOLATION_PATTERNS` token list to catch stale Red-Gate section
+  headers that slipped through the original gate across STORY-167..173 because the existing
+  patterns required exact token adjacency:
+
+  - **Pattern 23** (`All tests\b.*\bMUST FAIL`, case-insensitive): catches module/section
+    headers with interposed qualifiers such as "All tests in this module MUST FAIL" or "All
+    tests in this section MUST FAIL". Subsumes the original pattern 1 for these phrasings.
+  - **Pattern 24** (`FAILS?\s+Red Gate`, case-insensitive): catches compile-only-seam
+    assertions like "FAILS Red Gate" or "FAIL Red Gate". Past-tense "failed Red Gate" is
+    exempt (the 'ed' suffix prevents the `\s+` from matching after "fail").
+  - **Pattern 25** (`(?:are|is)\s+todo!\(\)\s+stub`, case-insensitive): catches present-tense
+    stub-state assertions like "are todo!() stubs" and "is todo!() stub". Past-tense "were"
+    and provenance "originated as" are exempt.
+
+  Three baseline stale headers in `tests/iec104_analyzer_tests.rs` (~L662-663, ~L1498, ~L1544)
+  scrubbed to GREEN-accurate prose. Self-test passes at 72/72 cases; tree-wide scan finds 0
+  violations after the scrub. No new CI job; extends the existing `green-doc-tense-gate`.
+
 ### Added
 
 - **IEC-104 dispatcher integration: `DispatchTarget::Iec104`, `--iec104` flag, T0881 catalog

@@ -205,6 +205,51 @@ BAD_CASES: list[tuple[str, str]] = [
         /// The test exercises the path before the todo!() Stop-detection block runs.
         """,
     ),
+    # ------------------------------------------------------------------
+    # AC-174-008 patterns (a)-(c): IEC-104 stale Red-Gate headers that
+    # slipped through the original gate (PG-REDGREEN-COMMENT-CLEANUP,
+    # PG-REDGREEN-SIBLING-SWEEP). These known-bad cases will FAIL until
+    # bin/check-green-doc-tense is extended with the three new patterns:
+    #   (a) All tests\b.*\bMUST FAIL   (interposed words between tokens)
+    #   (b) FAILS?\s+Red Gate
+    #   (c) are\s+todo!\(\)\s+stub
+    # ------------------------------------------------------------------
+    (
+        "AC-174-008 pattern (a): All tests in this module MUST FAIL (interposed words)",
+        """\
+        // All tests in this module MUST FAIL (Red Gate) because classify_frame_format is a stub.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (a): All tests in this section MUST FAIL (section header variant)",
+        """\
+        //! All tests in this section MUST FAIL because parse_asdu is todo!().
+        """,
+    ),
+    (
+        "AC-174-008 pattern (b): FAILS Red Gate",
+        """\
+        // This skeleton compiles and FAILS Red Gate because the function is a todo!() stub.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (b): FAIL Red Gate (singular form)",
+        """\
+        // Harnesses FAIL Red Gate by design until the implementation phase ships.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (c): are todo!() stubs",
+        """\
+        // All bodies are todo!() stubs — they will panic on any call before implementation.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (c): are todo!() stub (singular)",
+        """\
+        // The harness body is todo!() stub until STORY-174 wires the assertion.
+        """,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -390,6 +435,47 @@ GOOD_CASES: list[tuple[str, str]] = [
         "past-tense: todo!() was replaced — before reaching phrasing (pattern 19 allowlist)",
         """\
         // Before reaching the now-implemented Stop-detection block, the gate short-circuits.
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # AC-174-008 allowlist cases: past-tense provenance prose that must
+    # NOT be flagged by patterns (a), (b), or (c). Proves no regression
+    # against legitimate historical narration after the token extension.
+    # ------------------------------------------------------------------
+    (
+        "AC-174-008 pattern (a) allowlist: All tests passed (no 'MUST FAIL')",
+        """\
+        // All tests in this module passed their Red Gate phase and are now GREEN.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (a) allowlist: All tests were required to FAIL (no 'MUST')",
+        """\
+        // All tests were required to FAIL at the Red Gate stage (STORY-168); all are now GREEN.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (b) allowlist: failed Red Gate (past tense 'failed', not 'FAILS?')",
+        """\
+        // This skeleton originally failed Red Gate as a compile-only seam; now asserting GREEN.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (b) allowlist: passed Red Gate (no FAILS? pattern)",
+        """\
+        // The harness passed Red Gate validation after the implementation shipped in STORY-174.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (c) allowlist: were todo!() stubs (past tense 'were', not 'are')",
+        """\
+        // These function bodies were todo!() stubs before STORY-172 shipped; all now GREEN.
+        """,
+    ),
+    (
+        "AC-174-008 pattern (c) allowlist: originated as todo!() stubs (past-tense provenance)",
+        """\
+        // All harness bodies originated as todo!() stubs; STORY-174 upgraded them to assertions.
         """,
     ),
 ]

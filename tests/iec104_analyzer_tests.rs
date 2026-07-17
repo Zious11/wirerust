@@ -658,9 +658,8 @@ mod story_167 {
 // =============================================================================
 // STORY-168: IEC-104 Frame Format Discrimination + U-Format Session State Machine
 //
-// Covers BC-2.19.007–014 and VP-046 proptest skeleton.
-// All tests in this module MUST FAIL (Red Gate) because classify_frame_format
-// and process_u_frame are todo!() stubs. They pass after implementation.
+// Covers BC-2.19.007–014 and VP-046 proptest (full 256-value run verified in STORY-174).
+// classify_frame_format and process_u_frame are implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.007: classify_frame_format returns IFormat when CF1 bit 0 = 0
@@ -672,7 +671,7 @@ mod story_167 {
 //                STOPDT-con (0x23) → session_started=false; no finding (ACT-only MVP)
 // - BC-2.19.013: TESTFR-act (0x43) / TESTFR-con (0x83) → no finding; state unchanged
 // - BC-2.19.014: non-canonical U-frame CF1 → T0814 Possible; state unchanged
-// - VP-046: proptest skeleton — classify_frame_format totality over all 256 u8 values
+// - VP-046: proptest — classify_frame_format totality over all 256 u8 values (verified STORY-174)
 //
 // ## Canonical test vectors (DF-CANONICAL-FRAME-HOLDOUT-001)
 // Used verbatim from BCs; no invented inputs where the BC provides them.
@@ -1489,14 +1488,14 @@ mod story_168 {
     }
 
     // =========================================================================
-    // VP-046 proptest skeleton: classify_frame_format totality
+    // VP-046 proptest: classify_frame_format totality (full 256-value run — STORY-174)
     // AC-168-009
     // =========================================================================
 
-    // VP-046 proptest skeleton — classify_frame_format totality over all 256 u8 values.
+    // VP-046 proptest — classify_frame_format totality over all 256 u8 values.
     //
-    // Per AC-168-009: this skeleton compiles and FAILS Red Gate because classify_frame_format
-    // is a todo!(). Full proptest run (1000+ cases) is in STORY-174 (VP-046 full proof run).
+    // Per AC-168-009: proptest_vp046_frame_format_totality verifies classify_frame_format
+    // over all 256 CF1 values. VP-046 full proof run completed in STORY-174.
     //
     // Per STORY-168 Architecture Compliance: classify_frame_format must be total over all
     // 256 u8 values with no unhandled case and no panic (BC-2.19.009 invariant 1).
@@ -1541,8 +1540,7 @@ mod story_168 {
 // STORY-169: IEC-104 ASDU Header Extraction: parse_asdu / Asdu with Broken-Out DUI Fields
 //
 // Covers BC-2.19.015–018 and all edge cases from the BCs and STORY-169 EC table.
-// All tests in this module MUST FAIL (Red Gate) because parse_asdu is todo!().
-// They pass after implementation.
+// parse_asdu is implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.015: parse_asdu returns None for asdu_body.len() < 6; purity invariant (no panic).
@@ -4442,8 +4440,8 @@ mod story_171 {
 // =============================================================================
 // STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
 //
-// Unit tests (AC-172-001..008, EC-001..011) and VP-045 proptest skeletons
-// (AC-172-007).
+// Unit tests (AC-172-001..008, EC-001..011) and VP-045 asserting proptests
+// (AC-172-007; upgraded to non-vacuous assertions in STORY-174 AC-174-002).
 //
 // ## Contract coverage
 // - BC-2.19.025: directional carry buffers bounded at MAX_IEC104_CARRY_BYTES = 255
@@ -5330,54 +5328,134 @@ mod story_172 {
 
     // =========================================================================
     // VP-045: proptest_vp045_direction_isolation
-    // AC-172-007 (proptest skeleton compiles)
+    // AC-174-002: upgraded to asserting harnesses (non-vacuous per AC-174-002 amendment)
     // =========================================================================
 
     proptest! {
-        /// VP-045 proptest skeleton: carry direction isolation (AC-172-007).
+        /// VP-045 proptest: carry direction isolation (AC-174-002; BC-2.19.025 invariant 1).
         ///
-        /// Interleaved C2S and S2C deliveries to the same flow must never mix their
-        /// carry buffers. `carry_c2s` must only accumulate bytes from the C2S delivery
-        /// path; `carry_s2c` from S2C only (BC-2.19.025 invariant 1;
-        /// RULING-DNP3-SIBLING-001).
+        /// Verifies that C2S deliveries accumulate residual bytes only in `carry_c2s`
+        /// and S2C deliveries accumulate residual bytes only in `carry_s2c`. Cross-
+        /// direction contamination is detected by comparing the combined interleaved-
+        /// replay carry against isolated C2S-only and S2C-only witness replays.
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Strategy: a generated `Vec` of direction-tagged byte chunks (`(bool, Vec<u8>)`,
+        /// where `true` = C2S) is replayed in generated order with arbitrary chunk
+        /// boundaries. Three analyzer instances receive the same data in different
+        /// subsets: (a) combined receives all chunks with their tagged direction;
+        /// (b) c2s_witness receives only C2S chunks; (c) s2c_witness receives only S2C
+        /// chunks. The combined carry must equal the witnesses, proving neither carry
+        /// buffer is contaminated by the other direction.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Non-vacuity: `prop_assert_eq!` compares carry equality and `prop_assert!`
+        /// checks the 255-byte bound on every proptest case.
+        ///
+        /// Traces: BC-2.19.025 invariants 1 and 3; VP-045; AC-174-002; RULING-DNP3-SIBLING-001.
         #[test]
         fn proptest_vp045_direction_isolation(
-            c2s_data in prop::collection::vec(any::<u8>(), 0..256),
-            s2c_data in prop::collection::vec(any::<u8>(), 0..256),
+            chunks in prop::collection::vec(
+                (any::<bool>(), prop::collection::vec(any::<u8>(), 0..64usize)),
+                0..20usize,
+            ),
         ) {
-            let mut analyzer = Iec104Analyzer::new();
             let flow_key = FlowKey::new(
                 "127.0.0.1".parse().unwrap(), 1234,
                 "127.0.0.2".parse().unwrap(), 2404,
             );
-            // Interleaved C2S and S2C deliveries must not mix carries.
-            // carry_c2s must only contain bytes from the c2s_data path;
-            // carry_s2c must only contain bytes from s2c_data path.
-            // (STORY-174 wires the isolation assertion; this skeleton verifies compile.)
-            analyzer.on_data(flow_key.clone(), &c2s_data, 0, Direction::ClientToServer);
-            analyzer.on_data(flow_key.clone(), &s2c_data, 0, Direction::ServerToClient);
+
+            // combined: receives the full interleaved C2S + S2C sequence.
+            let mut combined = Iec104Analyzer::new();
+            // c2s_witness: receives only the C2S chunks (isolation witness).
+            let mut c2s_witness = Iec104Analyzer::new();
+            // s2c_witness: receives only the S2C chunks (isolation witness).
+            let mut s2c_witness = Iec104Analyzer::new();
+
+            for (is_c2s, data) in &chunks {
+                let dir = if *is_c2s {
+                    Direction::ClientToServer
+                } else {
+                    Direction::ServerToClient
+                };
+                combined.on_data(flow_key.clone(), data, 0, dir);
+                if *is_c2s {
+                    c2s_witness.on_data(flow_key.clone(), data, 0, Direction::ClientToServer);
+                } else {
+                    s2c_witness.on_data(flow_key.clone(), data, 0, Direction::ServerToClient);
+                }
+            }
+
+            let combined_c2s = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let combined_s2c = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+            let witness_c2s = c2s_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let witness_s2c = s2c_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+
+            // Save lengths before consuming the vectors in prop_assert_eq!.
+            let c2s_len = combined_c2s.len();
+            let s2c_len = combined_s2c.len();
+
+            // BC-2.19.025 invariant 1: no cross-direction mixing.
+            prop_assert_eq!(
+                combined_c2s, witness_c2s,
+                "carry_c2s must equal the C2S-only witness replay \
+                 (BC-2.19.025 invariant 1: S2C deliveries must not affect carry_c2s)"
+            );
+            prop_assert_eq!(
+                combined_s2c, witness_s2c,
+                "carry_s2c must equal the S2C-only witness replay \
+                 (BC-2.19.025 invariant 1: C2S deliveries must not affect carry_s2c)"
+            );
+
+            // BC-2.19.025 invariant 3: 255-byte residual cap (defensive guard).
+            prop_assert!(
+                c2s_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_c2s.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                c2s_len,
+                MAX_IEC104_CARRY_BYTES
+            );
+            prop_assert!(
+                s2c_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_s2c.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                s2c_len,
+                MAX_IEC104_CARRY_BYTES
+            );
         }
     }
 
     proptest! {
-        /// VP-045 proptest skeleton: independent-run equivalence (AC-172-007).
+        /// VP-045 proptest: independent-run equivalence (AC-174-002; BC-2.19.025 VP-045
+        /// registered harness — independent-run determinism).
         ///
-        /// Running on_data with the same data on two separate analyzer instances must
-        /// produce identical per-flow carry state. Verifies that on_data is deterministic
-        /// and carries no hidden cross-flow state (BC-2.19.025 invariant 2).
+        /// Verifies that two independent `Iec104Analyzer` instances fed identical delivery
+        /// sequences produce identical per-flow carry state and `frame_count`. This guards
+        /// against hidden cross-flow state or non-determinism in `on_data`
+        /// (BC-2.19.025 §Verification / VP-045 registered harness; RULING-DNP3-SIBLING-001).
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Non-vacuity: `prop_assert_eq!` compares `carry_c2s`, `carry_s2c`, and
+        /// `frame_count` across the two instances on every proptest case.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Traces: BC-2.19.025 VP-045 registered harness (independent-run determinism;
+        /// no numbered invariant — see BC-2.19.025 §Verification); VP-045; AC-174-002.
         #[test]
         fn proptest_vp045_independent_run_equivalence(
-            data in prop::collection::vec(any::<u8>(), 0..256),
+            data in prop::collection::vec(any::<u8>(), 0..256usize),
         ) {
             let mut analyzer_a = Iec104Analyzer::new();
             let mut analyzer_b = Iec104Analyzer::new();
@@ -5385,11 +5463,42 @@ mod story_172 {
                 "10.0.0.1".parse().unwrap(), 5000,
                 "10.0.0.2".parse().unwrap(), 2404,
             );
-            // Two independent analyzer instances with the same input must produce
-            // equivalent per-flow carry state.
-            // (STORY-174 wires the equivalence assertion; this skeleton verifies compile.)
             analyzer_a.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
             analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+
+            let state_a = analyzer_a.flows.get(&flow_key);
+            let state_b = analyzer_b.flows.get(&flow_key);
+
+            match (state_a, state_b) {
+                (None, None) => {
+                    // Both produced no flow state — consistent (empty or no-frame delivery).
+                }
+                (Some(a), Some(b)) => {
+                    // BC-2.19.025 VP-045 registered harness: independent runs produce identical carry state.
+                    prop_assert_eq!(
+                        &a.carry_c2s, &b.carry_c2s,
+                        "carry_c2s must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                    prop_assert_eq!(
+                        &a.carry_s2c, &b.carry_s2c,
+                        "carry_s2c must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                    prop_assert_eq!(
+                        a.frame_count, b.frame_count,
+                        "frame_count must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                }
+                _ => {
+                    prop_assert!(
+                        false,
+                        "one analyzer produced flow state and the other did not — \
+                         non-deterministic on_data (BC-2.19.025 VP-045 registered harness)"
+                    );
+                }
+            }
         }
     }
 
@@ -5635,6 +5744,59 @@ mod story_172 {
                 .any(|f| f.mitre_techniques.iter().any(|t| t == "T0827")),
             "TypeID=105 I-frame in multi-frame delivery must emit T0827 \
              (BC-2.19.026 PC1+PC2 joint; BC-2.19.020)"
+        );
+    }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1220
+    // (replace < with <= in the "need at least 2 bytes to read LEN" guard)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: 2-byte delivery [0x68, invalid_LEN] must emit T0814 immediately.
+    ///
+    /// The frame-walk guard at line 1220 is `if buf.len() - pos < 2` — it stashes only when
+    /// there is fewer than 2 bytes remaining (i.e., the lone start byte with no LEN byte yet).
+    /// When exactly 2 bytes remain `[0x68, invalid_LEN]`, the guard must NOT stash: it must
+    /// proceed to read LEN, detect invalid (LEN=0 ∉ [4,253]), and emit T0814 in the same
+    /// delivery.
+    ///
+    /// Mutation `replace < with <=` would stash instead of processing, delaying T0814 by one
+    /// delivery. This test requires immediate emission.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-174-007 (AC-172-008 extension for 2-byte tail).
+    #[test]
+    fn test_AC_174_007_malformed_len_at_two_byte_tail_emits_t0814_immediately() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Deliver exactly 2 bytes: valid start byte (0x68) + invalid LEN=0 (below minimum 4).
+        // With original `< 2`: buf.len()-pos = 2, NOT < 2 → reads LEN=0, detects invalid,
+        // emits T0814, advances 2 → finding emitted in this delivery.
+        // With mutant `<= 2`: buf.len()-pos = 2, IS <= 2 → stashes 2 bytes, no finding yet.
+        analyzer.on_data(
+            flow_key.clone(),
+            &[0x68u8, 0x00],
+            0,
+            Direction::ClientToServer,
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "2-byte delivery [0x68, 0x00] (invalid LEN=0) must emit T0814 immediately \
+             (BC-2.19.026 invariant 5; AC-174-007 mutant kill for iec104.rs:1220)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T0814"),
+            "malformed-LEN T0814 must be cited (BC-2.19.026 invariant 5)"
+        );
+        // Carry must be empty: the 2 bytes were processed and advanced past.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "carry must be empty after 2-byte malformed-LEN delivery is fully processed \
+             (AC-174-007)"
         );
     }
 }
@@ -5977,6 +6139,46 @@ mod story_173 {
              got {} (current impl reads all_findings.len() = 0 because TESTFR-act emits \
              no finding; fix: wire a frame counter in the on_data walk loop)",
             summary.packets_analyzed
+        );
+    }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1323
+    // (replace - with + in dropped_findings increment when remaining_cap > 0)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: dropped_findings must reflect exact count when remaining_cap > 0.
+    ///
+    /// The existing cap tests pre-fill to MAX (remaining_cap=0), making `-` vs `+` equivalent
+    /// (both compute 0). This test pre-fills to MAX-2 (remaining_cap=2) and delivers 3 findings,
+    /// requiring exactly 1 to be dropped — distinguishing original `len - cap` from `len + cap`.
+    ///
+    /// With `replace - with +`: dropped_findings would be 3 + 2 = 5 instead of 3 - 2 = 1.
+    ///
+    /// Traces: BC-2.19.028 PC-5; AC-174-007 (AC-173-007 extension for partial-cap scenario).
+    #[test]
+    fn test_AC_174_007_dropped_findings_exact_count_with_partial_cap() {
+        let mut analyzer = Iec104Analyzer::new();
+        // Pre-fill to MAX - 2: remaining_cap = 2.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS - 2];
+        let fk = flow_key(61000, 2404);
+        // Three STOPDT-act frames concatenated: each generates exactly 1 finding.
+        // 3 local_findings > remaining_cap (2) → truncate to 2, drop 1.
+        let three_stopdt: Vec<u8> = stopdt_act()
+            .into_iter()
+            .chain(stopdt_act())
+            .chain(stopdt_act())
+            .collect();
+        analyzer.on_data(fk, &three_stopdt, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.dropped_findings, 1,
+            "exactly 1 finding must be dropped (3 generated, remaining_cap=2); \
+             mutation replace - with + would yield 5 instead (BC-2.19.028 PC-5; AC-174-007)"
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_IEC104_FINDINGS,
+            "all_findings must be exactly at cap after partial truncation (BC-2.19.028 PC-2)"
         );
     }
 }
