@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "993166c"
+input-hash: "de47ef5"
 ---
 
 # STORY-168: IEC-104 Frame Format Discrimination + U-Format Session State Machine

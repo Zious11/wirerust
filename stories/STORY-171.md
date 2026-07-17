@@ -25,7 +25,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "4ed11eb"
+input-hash: "9a63fd6"
 ---
 
 # STORY-171: IEC-104 N(S)/N(R) Sequence Tracking: Option<u16> First-Frame Guard + Desync Detection

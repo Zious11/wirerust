@@ -36,7 +36,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "7c3c35c"
+input-hash: "490f9b5"
 ---
 
 # STORY-170: IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs

@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "fb83c87"
+input-hash: "32f0ab7"
 ---
 
 # STORY-167: IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton
