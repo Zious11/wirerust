@@ -9,6 +9,31 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **IEC-104 findings now carry `source_ip` and `timestamp` JSON keys (FIX-F5-001,
+  BC-2.19.011 PC-3).**
+
+  All IEC-104 `Finding` emit sites previously left `source_ip: None` and
+  `timestamp: None`, causing those keys to be absent from IEC-104 JSON output.
+  The fix threads the initiator IP (resolved from the 5-tuple `FlowKey` by
+  direction, mirroring the DNP3/EtherNet/IP house pattern) and the packet
+  timestamp (`ts` parameter) through all 12 `Finding` constructors — 10 via
+  function parameters and 2 inline in `on_data`.
+
+  This is an additive, backward-compatible JSON change: the two keys now appear
+  on IEC-104 findings where they were previously absent. JSON consumers that
+  tolerate unknown keys or use subset/contains assertions are unaffected.
+
+  **Emit sites enriched (10 function + 2 inline = 12 total):**
+  - `process_u_frame`: STOPDT-act T0881 + non-canonical U-frame T0814.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 +
+    T0836, TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001.
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame`, `detect_iec104_threats`, and
+  `track_ns_desync` each gain `source_ip: Option<IpAddr>` and
+  `timestamp: Option<chrono::DateTime<chrono::Utc>>` parameters (callers updated).
+
 - **IEC-104 findings now carry the `direction` JSON key (FIX-P4-001,
   IEC104-FINDING-DIRECTION-001).**
 

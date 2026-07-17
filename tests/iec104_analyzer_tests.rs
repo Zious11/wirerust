@@ -1120,7 +1120,8 @@ mod story_168 {
         );
         assert!(stop_finding.is_some(), "STOPDT must emit a finding");
         // Now STARTDT restarts the session
-        let start_finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
+        let start_finding =
+            process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT after STOPDT must set session_started=true"
@@ -1195,8 +1196,14 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let f_possible = process_u_frame(&mut state_active, 0x13, Direction::ClientToServer, None, None)
-            .expect("STOPDT after STARTDT must emit finding");
+        let f_possible = process_u_frame(
+            &mut state_active,
+            0x13,
+            Direction::ClientToServer,
+            None,
+            None,
+        )
+        .expect("STOPDT after STARTDT must emit finding");
         assert_eq!(
             f_possible.verdict,
             Verdict::Possible,
@@ -1205,8 +1212,9 @@ mod story_168 {
 
         // Path 2: no prior STARTDT → Likely
         let mut state_cold = Iec104FlowState::default();
-        let f_likely = process_u_frame(&mut state_cold, 0x13, Direction::ClientToServer, None, None)
-            .expect("STOPDT without STARTDT must emit finding");
+        let f_likely =
+            process_u_frame(&mut state_cold, 0x13, Direction::ClientToServer, None, None)
+                .expect("STOPDT without STARTDT must emit finding");
         assert_eq!(
             f_likely.verdict,
             Verdict::Likely,
@@ -1302,12 +1310,24 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0x43, Direction::ClientToServer, None, None);
+        let _ = process_u_frame(
+            &mut state_active,
+            0x43,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "TESTFR-act must not change session_started from true (BC-2.19.013 postcondition 2)"
         );
-        let _ = process_u_frame(&mut state_active, 0x83, Direction::ClientToServer, None, None);
+        let _ = process_u_frame(
+            &mut state_active,
+            0x83,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "TESTFR-con must not change session_started from true (BC-2.19.013 postcondition 2)"
@@ -1447,7 +1467,13 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0xFF, Direction::ClientToServer, None, None);
+        let _ = process_u_frame(
+            &mut state_active,
+            0xFF,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "Non-canonical U-frame must not change session_started from true \
@@ -6532,37 +6558,49 @@ mod fix_f5_001 {
     //   APCI: start=0x68, LEN=0x0A, CF1=0x00 (N(S)=0), CF2-CF4=0.
     //   ASDU: TypeID=45(0x2D), VSQ=1, COT_cause=6, orig=0, CASDU=1.
     fn i_frame_type45() -> [u8; 12] {
-        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // I-format frame with TypeID=48 (C_SE_NA_1 set-point command):
     //   Emits T1692.001 + T0836 (two findings).
     fn i_frame_type48() -> [u8; 12] {
-        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // I-format frame with TypeID=105 (C_RP_NA_1 Reset Process Command):
     //   Emits T0827 Likely.
     fn i_frame_type105() -> [u8; 12] {
-        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // I-format frame with TypeID=0 (reserved/undefined):
     //   Emits T0814 Possible.
     fn i_frame_type0() -> [u8; 12] {
-        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // I-format frame for desync test, N(S)=0:
     //   CF1=0x00 → N(S) = (0x00 >> 1) | (0x00 << 7) = 0.
     fn i_frame_ns0() -> [u8; 12] {
-        [0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // I-format frame for desync test, N(S)=14 (gap=14 > k=12 → T1692.001):
     //   CF1=0x1C → N(S) = (0x1C >> 1) = 14.
     fn i_frame_ns14() -> [u8; 12] {
-        [0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00]
+        [
+            0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
     }
 
     // Non-canonical U-frame: CF1=0x03 (bits1:0=0b11, not in canonical set).
@@ -6708,7 +6746,12 @@ mod fix_f5_001 {
     #[test]
     fn test_fix_f5_001_type45_t1692_source_ip_and_timestamp() {
         let mut analyzer = Iec104Analyzer::new();
-        analyzer.on_data(fk(), &i_frame_type45(), 1_200_000, Direction::ClientToServer);
+        analyzer.on_data(
+            fk(),
+            &i_frame_type45(),
+            1_200_000,
+            Direction::ClientToServer,
+        );
         let f = analyzer
             .all_findings
             .iter()
@@ -6737,7 +6780,12 @@ mod fix_f5_001 {
     #[test]
     fn test_fix_f5_001_type48_t0836_source_ip_and_timestamp() {
         let mut analyzer = Iec104Analyzer::new();
-        analyzer.on_data(fk(), &i_frame_type48(), 1_400_000, Direction::ClientToServer);
+        analyzer.on_data(
+            fk(),
+            &i_frame_type48(),
+            1_400_000,
+            Direction::ClientToServer,
+        );
         let f = analyzer
             .all_findings
             .iter()
@@ -6764,7 +6812,12 @@ mod fix_f5_001 {
     #[test]
     fn test_fix_f5_001_type105_t0827_source_ip_and_timestamp() {
         let mut analyzer = Iec104Analyzer::new();
-        analyzer.on_data(fk(), &i_frame_type105(), 1_600_000, Direction::ClientToServer);
+        analyzer.on_data(
+            fk(),
+            &i_frame_type105(),
+            1_600_000,
+            Direction::ClientToServer,
+        );
         let f = analyzer
             .all_findings
             .iter()

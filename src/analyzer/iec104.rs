@@ -1314,9 +1314,13 @@ impl Iec104Analyzer {
                     state.frame_count = state.frame_count.saturating_add(1);
                     match classify_frame_format(header.cf1) {
                         FrameFormat::UFormat => {
-                            if let Some(f) =
-                                process_u_frame(state, header.cf1, direction, Some(source_ip), timestamp)
-                            {
+                            if let Some(f) = process_u_frame(
+                                state,
+                                header.cf1,
+                                direction,
+                                Some(source_ip),
+                                timestamp,
+                            ) {
                                 local_findings.push(f);
                             }
                         }
