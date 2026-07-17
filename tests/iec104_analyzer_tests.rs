@@ -5888,8 +5888,8 @@ mod story_173 {
         assert!(
             analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
             "BC-2.19.028 PC-2: all_findings.len() ({}) must not exceed MAX_IEC104_FINDINGS \
-             ({MAX_IEC104_FINDINGS}) after on_data. Cap is not enforced at the extend step \
-             (stub: `self.all_findings.extend(local_findings)` has no truncation).",
+             ({MAX_IEC104_FINDINGS}) after on_data — cap enforced at the extend step \
+             via truncation before merging local_findings.",
             analyzer.all_findings.len()
         );
 
@@ -5897,7 +5897,7 @@ mod story_173 {
         assert!(
             analyzer.dropped_findings > 0,
             "BC-2.19.028 PC-5: dropped_findings must be > 0 when a finding was suppressed \
-             by the cap. Got {} (counter not incremented in stub).",
+             by the cap. Got {} (counter incremented at extend step).",
             analyzer.dropped_findings
         );
     }
@@ -5971,7 +5971,7 @@ mod story_173 {
         assert!(
             analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
             "BC-2.19.028 EC-004: all_findings must stay <= MAX after {} extra on_data calls. \
-             Got {} (cap not enforced).",
+             Got {} (cap enforced via truncation at extend step).",
             N,
             analyzer.all_findings.len()
         );
@@ -6016,7 +6016,7 @@ mod story_173 {
         assert!(
             analyzer.dropped_findings > 0,
             "pre-condition: dropped_findings must be > 0 before calling summarize(); \
-             got {} (cap not enforced or frame produced no finding)",
+             got {} (cap enforced; finding suppressed above the limit)",
             analyzer.dropped_findings
         );
 
@@ -6045,18 +6045,16 @@ mod story_173 {
     // -------------------------------------------------------------------------
     // LOW#1 (STORY-173 pre-merge fix): flows_analyzed must count closed flows
     //
-    // BC-2.19.028 observability gap: summarize() currently reads self.flows.len()
-    // which drops to 0 after on_flow_close removes entries. The fix adds a
-    // flows_analyzed: u64 accumulator on Iec104Analyzer, incremented in
-    // on_flow_close per removed flow (mirrors EnipAnalyzer pattern, enip.rs ~707).
+    // BC-2.19.028 observability gap closed: summarize() now accumulates closed flows
+    // via a flows_analyzed: u64 counter on Iec104Analyzer (incremented in
+    // on_flow_close per removed flow; mirrors EnipAnalyzer pattern, enip.rs ~707).
     // -------------------------------------------------------------------------
 
     /// flows_analyzed in summarize() must count flows closed via on_flow_close.
     ///
     /// Two distinct flows are driven and closed; summarize().detail["flows_analyzed"]
-    /// must equal 2. The current implementation reads self.flows.len() (= 0 after
-    /// removal), so this assertion fails until a flows_analyzed accumulator is wired
-    /// to on_flow_close.
+    /// must equal 2. Regression guard: the flows_analyzed accumulator is wired to
+    /// on_flow_close and must not regress to reading self.flows.len() (= 0 after removal).
     ///
     /// Traces: BC-2.19.028 observability; STORY-173 LOW#1.
     #[test]
@@ -6096,12 +6094,10 @@ mod story_173 {
     // LOW#2 (STORY-173 pre-merge fix): packets_analyzed must count parsed APDUs,
     // not all_findings.len()
     //
-    // BC-2.19.028 observability gap: summarize() currently returns
-    // all_findings.len() as packets_analyzed. For finding-free frames (e.g.
-    // TESTFR-act) this is 0 even after N frames are parsed. The fix adds a
-    // per-flow frame_count: u64 on Iec104FlowState incremented for every complete
-    // valid parsed APDU in the on_data walk loop, and accumulates a total in
-    // summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
+    // BC-2.19.028 observability gap closed: summarize() now returns the correct
+    // packets_analyzed count via a per-flow frame_count: u64 on Iec104FlowState
+    // incremented for every complete valid APDU in the on_data walk loop, accumulated
+    // in summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
     // dnp3.rs ~316/1815).
     // -------------------------------------------------------------------------
 
@@ -6110,9 +6106,8 @@ mod story_173 {
     ///
     /// Three TESTFR-act U-frames (no findings) are fed through on_data, followed by
     /// one bad-start byte (0x00). packets_analyzed must equal 3; the bad-start byte
-    /// must NOT be counted. The current implementation returns all_findings.len()
-    /// (= 0 for finding-free frames), so this assertion fails until a per-frame
-    /// counter is wired to the frame-walk loop.
+    /// must NOT be counted. Regression guard: the frame_count accumulator is wired to
+    /// the on_data walk loop and must not regress to returning all_findings.len().
     ///
     /// Traces: BC-2.19.028 observability; STORY-173 LOW#2.
     #[test]
