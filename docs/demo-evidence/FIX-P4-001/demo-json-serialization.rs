@@ -6,7 +6,6 @@
 
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reassembly::handler::Direction;
-use chrono::Utc;
 use std::net::{IpAddr, Ipv4Addr};
 
 fn main() {
@@ -66,9 +65,15 @@ fn main() {
     }
     println!();
 
-    // Example 3: Finding without direction (for comparison — e.g., non-stream engine source)
-    // Real emit site: on_data() carry-overflow check in src/analyzer/iec104.rs (BC-2.19.025)
-    let finding_no_dir = Finding {
+    // Example 3: Pre-FIX-F5-001/FIX-P4-001 baseline — carry-overflow finding as it appeared
+    // before enrichment. Before FIX-F5-001 (source_ip/timestamp) and FIX-P4-001 (direction),
+    // all three optional fields were None and their JSON keys were omitted entirely by
+    // #[serde(skip_serializing_if = "Option::is_none")]. This illustrates the historical
+    // baseline JSON shape and the serde skip behavior.
+    // Real emit site: on_data() carry-overflow check in src/analyzer/iec104.rs (BC-2.19.025).
+    // Post-enrichment (current) real output has source_ip: Some(...), timestamp: Some(...),
+    // direction: Some(direction) — see iec104.rs:1215-1217.
+    let finding_pre_enrichment = Finding {
         category: ThreatCategory::Anomaly,
         verdict: Verdict::Possible,
         confidence: Confidence::Medium,
@@ -78,14 +83,14 @@ fn main() {
                   (T0814; BC-2.19.025 v1.3 F-172-001)".to_string(),
         evidence: vec!["carry overflow (>255); carry cleared".to_string()],
         mitre_techniques: vec!["T0814".to_string()],
-        source_ip: None,
-        timestamp: Some(Utc::now()),
-        direction: None, // No direction for this illustration (direction is omitted from JSON)
+        source_ip: None,      // pre-FIX-F5-001: source_ip was None → key absent from JSON
+        timestamp: None,      // pre-FIX-F5-001: timestamp was None → key absent from JSON
+        direction: None,      // pre-FIX-P4-001: direction was None → key absent from JSON
     };
 
-    println!("Example 3: Finding without direction (carry overflow — direction omitted from JSON)");
+    println!("Example 3: Pre-FIX-F5-001/FIX-P4-001 baseline (carry overflow — source_ip/timestamp/direction all absent)");
     println!("--------------------------------------------------------------------------------------");
-    match serde_json::to_string_pretty(&finding_no_dir) {
+    match serde_json::to_string_pretty(&finding_pre_enrichment) {
         Ok(json) => println!("{}", json),
         Err(e) => println!("Serialization error: {}", e),
     }
