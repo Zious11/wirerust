@@ -9,6 +9,43 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Comprehensive demo-evidence JSON accuracy sweep across IEC-104 feature artifacts
+  (FIX-F5-003).**
+
+  Corrects fabricated enum variants and misattributed MITRE techniques found across
+  FIX-P4-001 demo artifacts. No source or test code changed; docs and CHANGELOG only.
+
+  **FIX-P4-001 artifacts corrected (`docs/demo-evidence/FIX-P4-001/`):**
+
+  - `demo-json-serialization.rs`: All three examples used non-existent Rust enum
+    variants (`ThreatCategory::Protocol`, `Verdict::Anomaly`) and incorrect JSON
+    casing (`Confidence::High` → serde gives "High" but real serde output is "high").
+    Additionally, Example 1 attributed T0881 (STOPDT-act) to the N(S) desync finding,
+    which is actually T1692.001 (see `track_ns_desync`, iec104.rs). Fixed to use real
+    variants from real emit sites:
+    - Example 1 (N(S) desync, C2S): `ThreatCategory::Impact`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T1692.001"]`
+    - Example 2 (malformed LEN, S2C): `ThreatCategory::Anomaly`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T0814"]`
+    - Example 3 (carry overflow, no direction): same category/verdict/confidence as
+      Example 2; `mitre_techniques: []`
+    - Corrected `Direction` import path to `wirerust::reassembly::handler::Direction`.
+
+  - `evidence-report.md`: "Before/After" JSON blocks contained the same fabricated
+    "Protocol"/"Anomaly"/"High"/"T0881" values. Replaced with real serde output
+    derived from the actual emit sites: "impact"/"possible"/"medium"/"T1692.001" for
+    the C2S N(S) desync example; "anomaly"/"possible"/"medium"/"T0814" for the S2C
+    malformed-LEN example.
+
+  - `AC-P4-001-test-results.txt`: Inline JSON examples used the same fabricated tokens.
+    Replaced with real field values and annotated with the originating emit function.
+
+  **CHANGELOG correction:** The FIX-F5-002 entry previously claimed it corrected
+  "FIX-F5-001 and FIX-P4-001 evidence artifacts". FIX-F5-002 only corrected FIX-F5-001
+  artifacts (wrong provenance, fabricated JSON, wrong year). FIX-P4-001 artifacts were
+  not touched by FIX-F5-002 and are corrected here by FIX-F5-003. Entry updated to
+  "FIX-F5-001 evidence artifacts only".
+
 - **IEC-104 findings now carry `source_ip` and `timestamp` JSON keys (FIX-F5-001,
   BC-2.19.011 PC-3).**
 
@@ -34,7 +71,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `track_ns_desync` each gain `source_ip: Option<IpAddr>` and
   `timestamp: Option<chrono::DateTime<chrono::Utc>>` parameters (callers updated).
 
-- **Documentation accuracy corrections for FIX-F5-001 and FIX-P4-001 evidence artifacts
+- **Documentation accuracy corrections for FIX-F5-001 evidence artifacts only
   (FIX-F5-002).**
 
   Corrects three categories of inaccuracy introduced during demo-evidence authoring; no
