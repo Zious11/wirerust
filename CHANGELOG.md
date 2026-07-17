@@ -23,7 +23,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   on IEC-104 findings where they were previously absent. JSON consumers that
   tolerate unknown keys or use subset/contains assertions are unaffected.
 
-  **Emit sites enriched (10 function + 2 inline = 12 total):**
+  **Emit sites enriched (8 function + 2 inline = 10 total):**
   - `process_u_frame`: STOPDT-act T0881 + non-canonical U-frame T0814.
   - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 +
     T0836, TypeID 105 T0827, TypeIDs 0/128–255 T0814.
