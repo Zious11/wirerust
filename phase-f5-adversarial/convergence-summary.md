@@ -1,106 +1,96 @@
-# Phase F5 Convergence Summary — Feature #100
+---
+document_type: f5-convergence-summary
+producer: adversary-via-orchestrator
+date: 2026-07-17
+cycle: feature-iec104
+rounds: 5
+develop_head_at_convergence: b36b884
+---
 
-## Review Configuration
+# F5 Scoped Adversarial Convergence Summary — feature-iec104
+
+## Configuration
 
 | Field | Value |
 |-------|-------|
-| Feature | #100 (pcap timestamp → Finding.timestamp) |
-| Stories | STORY-097, STORY-098, STORY-099 |
-| Scope | `afe93a1^..48cbc05` |
-| Review rounds | 3 (Claude primary R1+R2+R3; Gemini 0.44.1 secondary R1 cross-model) |
-| Models | Claude adversary (vsdd-factory:adversary, fresh context) + Gemini 0.44.1 secondary (cross-model, D-023) |
-| Information asymmetry | Preserved — Gemini reviewed 2 slices without seeing Claude findings |
-| develop HEAD at convergence | 256a490 |
+| Cycle | feature-iec104 (IEC 60870-5-104 passive analyzer, E-22) |
+| Scope | feature-iec104 delta: STORY-167..174 + FIX-P4-001 |
+| Base commit | fedcea4 (v0.12.1 release, main HEAD) |
+| Rounds | 5 |
+| develop HEAD at convergence | b36b884 (FIX-F5-004 merged, PR #415) |
+| Feature code frozen since | R2 — 9c5aa9a (FIX-F5-001) |
 
 ---
 
-## Findings by Severity
+## Round-by-Round Trajectory
 
-| Severity | Count | IDs |
-|----------|-------|-----|
-| CRITICAL | 0 | — |
-| HIGH | 1 | ADV-F5-HIGH-001 |
-| MEDIUM | 2 | ADV-F5-MED-001, ADV-F5-MED-002 |
-| LOW | 3 | ADV-F5-LOW-001, ADV-F5-LOW-002, ADV-F5-LOW-003 |
+| Round | Reviewed SHA | Findings | Disposition |
+|-------|-------------|----------|-------------|
+| R1 | 7e95f71 | 1 HIGH (F-01 BC-2.19.011 PC-3 source_ip) + 4 MEDIUM (F-02..F-05 parity/prose) | → FIX-F5-001 (PR #411 9c5aa9a) |
+| R2 | 9c5aa9a | 0 code + 2 MEDIUM doc-accuracy (F5R2-01 provenance, F5R2-02 fabricated T0881 JSON) | Code CONVERGED; → FIX-F5-002 (PR #412 b356545) |
+| R3 | b356545 | 1 HIGH doc-accuracy (F-B1 fabricated FIX-P4-001 demo evidence ×4 files) | → FIX-F5-003 (PR #413 9eab53f) |
+| R4 | 9eab53f | 1 MEDIUM doc-accuracy (F-B2 CHANGELOG Example-3 mitre_techniques [] vs ["T0814"]) | → FIX-F5-004 (PR #415 b36b884) |
+| R5 | b36b884 | 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 prose mislabel, code correct) | NITPICK_ONLY → **CONVERGED** |
 
----
-
-## Novelty Score
-
-| Round | Score | Basis |
-|-------|-------|-------|
-| Round 1 | 1.0 | First combined-delta pass; prior per-PR reviews evaluated stories in isolation, creating the cross-story integration gap that produced ADV-F5-HIGH-001 |
-| Round 1 secondary (Gemini) | 0.0 new source defects | 2 refuted (1 diff-blindness hallucination on HIGH claim; 1 last_ts==0 concern refuted at source); confirmed test-rigor findings |
-| Round 2 | 0.5 | Prior 3 (HIGH-001, MED-001, MED-002) RESOLVED; 2 new MED stale-doc-comment defects found (F-R2-001/002 — propagation shadow of HIGH-001 in test-file doc comments) |
-| Round 3 | 0.0 | All findings resolved; input-hash confirmed MATCH=51/STALE=0; 0 findings; 0 novelty; CONVERGED |
-
----
-
-## Cross-Model Results
-
-| Round | Model | Valid source defects (unique) | Valid test findings | Verdict |
-|-------|-------|------------------------------|---------------------|---------|
-| R1 | Claude adversary | 1 HIGH, 2 MED, 3 LOW | — | NOT-CONVERGED |
-| R1 secondary | Gemini 0.44.1 | 0 (2 refuted: 1 diff-blindness hallucination, 1 last_ts==0 concern refuted at source) | Confirmed all test-rigor findings independently | NOT-CONVERGED |
-| R2 | Claude adversary (fresh) | 0 prior + 2 new MED (F-R2-001/002 stale doc-comment propagation shadow) | — | NOT-CONVERGED |
-| R3 | Claude adversary (fresh, final) | 0 findings; 0 novelty | input-hash MATCH=51/STALE=0 confirmed | CONVERGED |
-
-Round 1 (combined-delta): Both models reached NOT-CONVERGED independently. Gemini added no valid unique source defects but provided strong cross-model confirmation of the test-rigor findings (ADV-F5-LOW-001, ADV-F5-LOW-002, ADV-F5-LOW-003). Classic Gemini diff-blindness (D-023 pattern) detected and refuted on one HIGH claim.
-
-Round 2 (fresh, post D-025 spec-corpus fix): Prior 3 findings (HIGH-001, MED-001, MED-002) all RESOLVED. Adversary found 2 new MED defects (F-R2-001/002): 8 doc-comment lines across 2 test files still republished the now-false BC date-vector claim — propagation shadow of HIGH-001 not caught by the initial DF-SIBLING-SWEEP-001 burst (which swept spec files and live test assertions but not test-file doc comments and inline comments citing canonical vectors). PR #201 (stale-comment sweep) raised and merged to address.
-
-Round 3 (fresh, final): All findings resolved including F-R2-001/002. Input-hash MATCH=51/STALE=0 confirmed. Zero findings. Zero novelty. CONVERGED.
-
----
-
-## Implementation Code Assessment
-
-**SOUND.** The implementation (`handler.rs`, `http.rs`, `tls.rs`, `mod.rs`, `lifecycle.rs`) is correct. All 5 `on_data` implementors updated. `from_timestamp` is total over all `u32` values. Error paths, cap paths, and Kani harnesses are intact. 1,147 tests pass. The feature would converge on the code alone.
-
----
-
-## Blocking Items
-
-All blocking items are in the SPEC/STORY corpus, not the implementation:
-
-### Non-Deferrable
-
-1. **ADV-F5-HIGH-001** — BC-2.09.007 canonical test vector `ts_sec=1_000_000` maps to wrong date `2001-09-08T21:46:40Z` (correct: `1970-01-12T13:46:40Z`). 6-file DF-SIBLING-SWEEP-001 burst required: BC-2.09.007, BC-2.09.006, STORY-098, STORY-099, delta-analysis.md. Recompute input-hashes for STORY-098 and STORY-099 after BC content changes.
-
-### Deferrable (recommended to fix before re-pass)
-
-2. **ADV-F5-MED-001** — STORY-098 AC-003 / Task 9 says "4 anomaly emission sites in mod.rs"; correct count is "3". Body-only change.
-3. **ADV-F5-MED-002** — STORY-099 AC-002 / Task 4 describes a close-flush runtime assertion that does not exist as described; rewrite to accurately describe what is verified (code inspection of `lifecycle.rs:56, 63` + that `on_data` is unreachable for close buffer under contiguous-only flush).
-
-### Optional (test hardening, non-blocking)
-
-4. **ADV-F5-LOW-002** — Strengthen 5 `is_some()` assertions in STORY-098 emission-site tests to `assert_eq!` with exact expected value.
-5. **ADV-F5-LOW-003** — Feed both flows into one analyzer in the VP-021 cross-flow isolation proptest and bind each finding to its source flow.
-6. **ADV-F5-LOW-001** — Add test seam for close-flush path to make `lifecycle.rs:56` runtime-observable.
+Findings trajectory: 5 → 2 → 1 (HIGH, docs) → 1 (MEDIUM, docs) → 0.
 
 ---
 
 ## Fix-PRs Delivered
 
-| PR | Finding(s) | Description | develop HEAD at merge |
-|----|-----------|-------------|----------------------|
-| #200 | ADV-F5-LOW-002 | Test exact-value hardening (5 `is_some()` → `assert_eq!` with exact expected values in STORY-098 emission-site tests) | — |
-| #201 | F-R2-001, F-R2-002 | Stale doc-comment sweep — 8 doc-comment lines across 2 test files republishing false BC date-vector claim; AI review during PR #201 caught 2 extra stale lines not in the original R2 findings | 256a490 |
+| PR | Branch | SHA | Findings | develop HEAD at merge |
+|----|--------|-----|----------|-----------------------|
+| #411 | fix/FIX-F5-001 | 9c5aa9a | F-01..F-05 (1H+4M, code) | 9c5aa9a |
+| #412 | fix/FIX-F5-002 | b356545 | F5R2-01/02 (2M, docs) | b356545 |
+| #413 | fix/FIX-F5-003 | 9eab53f | F-B1 (1H, docs — fabricated FIX-P4-001 demo JSON ×4 files) | 9eab53f |
+| #415 | fix/FIX-F5-004 | b36b884 | F-B2 (1M, docs — CHANGELOG Example-3 mitre_techniques) | b36b884 |
+
+All four PRs human-executed merges (squash) per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER.
 
 ---
 
-## Recommended Next Steps
+## Sweep Results at R5 (develop b36b884)
 
-~~1. Route ADV-F5-HIGH-001 + ADV-F5-MED-001 + ADV-F5-MED-002 spec fixes~~ DONE (D-025)
-~~2. Recompute input-hashes~~ DONE (MATCH=51/STALE=0)
-~~3. Re-run clean adversarial pass~~ DONE (R2 + R3, CONVERGED)
+| Sweep | Result |
+|-------|--------|
+| BC-completeness | 31/31 PASS — all 31 feature-iec104 BCs (BC-2.19.001..031) have test coverage |
+| Canonical-frame | 19/19 byte-exact — all IEC 60870-5-104 invariants undisturbed by fix-PRs |
+| Kani non-vacuity | PASS — VP-044 89 checks (5 facets); VP-045/046 non-vacuous proptests |
+| Fuzz | 1.95M execs, 0 crashes (VP-047) |
+| Mutation score | 117/122 = 95.9% — unchanged from F4 convergence |
 
-**Next phase:** F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`) then F7 delta convergence.
+---
+
+## Root Cause of R3–R5 Tail
+
+The three post-code-convergence rounds (R3, R4, R5) were exclusively documentation-accuracy
+issues. Root cause: **PG-DEMO-JSON-FABRICATION** — the demo-recorder hand-wrote JSON/enum
+values rather than deriving them from actual `cargo run`/`cargo test` serialized output.
+This produced three occurrences: FIX-F5-001 report (R2 F5R2-02), FIX-P4-001 demo-evidence
+×3 artifacts (R3 F-B1), and the FIX-F5-003 CHANGELOG Example-3 (R4 F-B2).
+
+Feature code and tests were sound throughout; all five F4 per-story adversarial convergences
+(STORY-167..174) remained valid.
+
+---
+
+## Carry-Forward (Non-Blocking)
+
+**IEC104-DEMO-TYPEID45-MISLABEL (LOW):** TypeID 45 (C_SC_NA_1, Single Command / control
+command) described as "monitoring direction" in `docs/demo-evidence/FIX-P4-001/
+evidence-report.md:46` and `AC-P4-001-test-results.txt:61`. Production code is correct at
+`iec104.rs:744-748`. Prose-only; non-blocking. Fold into next docs-currency sweep or
+cycle-close.
 
 ---
 
 ## Final Verdict
 
-**CONVERGED**
+**F5 CONVERGED** — feature-iec104 delta at develop `b36b884`.
 
-3-round hybrid adversarial review complete (Claude primary R1+R2+R3; Gemini 0.44.1 cross-model R1 secondary). All HIGH and MED findings resolved. Fix-PRs #200 and #201 merged. Input-hash MATCH=51/STALE=0. Round 3 clean: 0 findings, 0 novelty. develop HEAD at convergence: `256a490`.
+5 rounds. Feature code frozen since R2 (9c5aa9a); R3–R5 tail was documentation-accuracy
+only. BC-completeness 31/31, canonical-frame 19 byte-exact, Kani non-vacuity PASS, fuzz
+1.95M execs 0 crashes, mutants 117/122=95.9%.
+
+**Next phase:** F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`) on the
+feature-iec104 delta, then F7 delta convergence → release cut.
