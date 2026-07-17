@@ -34,6 +34,32 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `track_ns_desync` each gain `source_ip: Option<IpAddr>` and
   `timestamp: Option<chrono::DateTime<chrono::Utc>>` parameters (callers updated).
 
+- **Documentation accuracy corrections for FIX-F5-001 and FIX-P4-001 evidence artifacts
+  (FIX-F5-002).**
+
+  Corrects three categories of inaccuracy introduced during demo-evidence authoring; no
+  source or test code is changed:
+
+  1. **Wrong provenance for sibling source_ip/timestamp enrichment:** The FIX-F5-001
+     evidence report (`docs/demo-evidence/FIX-F5-001/evidence-report.md`) incorrectly
+     cited STORY-172 and STORY-173 as the origin of DNP3/EtherNet/IP source_ip enrichment.
+     Those stories implement IEC-104 carry buffers and the IEC-104 dispatcher respectively;
+     the DNP3/EtherNet/IP house pattern for source_ip+timestamp originates from the
+     S-139/S-140 lineage (PR #328). Corrected to cite S-139/S-140 (PR #328) and to note
+     that IEC-104 additionally populates `direction: Some(direction)`, which DNP3 and
+     EtherNet/IP do not.
+
+  2. **Fabricated JSON in Before/After block:** The evidence-report JSON examples contained
+     incorrect field values (`category: "anomaly"`, `confidence: "high"`, fabricated summary
+     and evidence strings, `direction: "client_to_server"` with wrong casing). Replaced with
+     the actual T0881 STOPDT-act finding values from `src/analyzer/iec104.rs` lines 382–396:
+     `category: "impact"`, `confidence: "medium"`, real summary string,
+     `evidence: ["CF1=0x13 (STOPDT-act)"]`, `direction: "ClientToServer"` (serde default,
+     no `rename_all`).
+
+  3. **Wrong year in example timestamps:** Example timestamps using `2025-07-17` corrected
+     to `2026-07-17`.
+
 - **IEC-104 findings now carry the `direction` JSON key (FIX-P4-001,
   IEC104-FINDING-DIRECTION-001).**
 
@@ -43,9 +69,11 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   backward-compatible JSON change — JSON consumers that tolerate unknown keys or use
   subset/contains assertions are unaffected.
 
-  The fix brings IEC-104 into conformance with the TLS / Modbus / HTTP / DNP3 /
-  EtherNet/IP house pattern where `direction: Some(direction)` is set on every
-  emitted finding.
+  The fix brings IEC-104 direction enrichment into conformance with the TLS / Modbus /
+  HTTP analyzers, which already set `direction: Some(direction)` on every emitted finding.
+  Note: DNP3 and EtherNet/IP analyzers set `direction: None`; IEC-104's direction
+  population therefore exceeds the DNP3/EtherNet/IP baseline (which provides only
+  `source_ip` + `timestamp` parity, not direction).
 
   **Emit sites fixed (10 total):**
   - `process_u_frame`: STOPDT-act T0881 finding + non-canonical U-frame T0814 finding.

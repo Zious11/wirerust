@@ -7,7 +7,9 @@ FIX-F5-001 closes **BC-2.19.011 PC-3** by adding additive `source_ip` and `times
 **Behavior Change:** IEC-104 findings now include network context previously omitted.
 - **Closes:** BC-2.19.011 PC-3 (IEC-104 flow context enrichment)
 - **Traces:** FIX-F5-001 F-01, FIX-F5-001 F-02
-- **Sibling Parity:** DNP3 and EtherNet/IP analyzers already carry this enrichment (STORY-172, STORY-173)
+- **Sibling Parity:** DNP3 and EtherNet/IP analyzers already carry `source_ip` and `timestamp` enrichment
+  (S-139/S-140 lineage, PR #328); IEC-104 additionally populates `direction: Some(direction)`,
+  which DNP3 and EtherNet/IP do not (those analyzers set `direction: None`).
 
 ---
 
@@ -53,7 +55,7 @@ All 10 tests pass, verifying source_ip and timestamp enrichment across 9 distinc
 - **Test:** `test_fix_f5_001_carry_overflow_source_ip_and_timestamp`
 - **Behavior:** T0814 findings on carry buffer overflow now include network context
 - **Before:** `source_ip=None, timestamp=None`
-- **After:** `source_ip=Some(10.0.0.1), timestamp=Some(2025-07-17T...)`
+- **After:** `source_ip=Some(10.0.0.1), timestamp=Some(2026-07-17T...)`
 
 ### AC-3: Malformed Frame Length Detection (T0814)
 - **Test:** `test_fix_f5_001_malformed_len_source_ip_and_timestamp`
@@ -88,21 +90,24 @@ All 10 tests pass, verifying source_ip and timestamp enrichment across 9 distinc
 
 ### Before FIX-F5-001 (source_ip and timestamp omitted)
 
-Typical IEC-104 finding JSON serialization before the fix:
+T0881 STOPDT-act finding JSON before FIX-F5-001 (after FIX-P4-001, so `direction` is already
+present). `category`, `verdict`, `confidence`, `summary`, and `evidence` values match the
+actual `src/analyzer/iec104.rs` emit site (lines 382–396):
 
 ```json
 {
-  "category": "anomaly",
-  "verdict": "likely",
-  "confidence": "high",
-  "summary": "Detected STOPDT activation frame (IEC-104 connection termination)",
-  "evidence": ["Frame type: U-frame", "Control field: 0x13 (STOPDT-act)"],
+  "category": "impact",
+  "verdict": "possible",
+  "confidence": "medium",
+  "summary": "IEC-104 STOPDT-act received: CF1=0x13 — ICS data-transfer service stop request observed (T0881 inhibit-response-function; BC-2.19.011/012)",
+  "evidence": ["CF1=0x13 (STOPDT-act)"],
   "mitre_techniques": ["T0881"],
-  "direction": "client_to_server"
+  "direction": "ClientToServer"
 }
 ```
 
-Notice: No `source_ip`, no `timestamp` in JSON.
+Notice: No `source_ip`, no `timestamp` in JSON (both fields omit when `None` via
+`#[serde(skip_serializing_if = "Option::is_none")]`).
 
 ### After FIX-F5-001 (source_ip and timestamp populated)
 
@@ -110,21 +115,21 @@ With FIX-F5-001, the same finding now serializes as:
 
 ```json
 {
-  "category": "anomaly",
-  "verdict": "likely",
-  "confidence": "high",
-  "summary": "Detected STOPDT activation frame (IEC-104 connection termination)",
-  "evidence": ["Frame type: U-frame", "Control field: 0x13 (STOPDT-act)"],
+  "category": "impact",
+  "verdict": "possible",
+  "confidence": "medium",
+  "summary": "IEC-104 STOPDT-act received: CF1=0x13 — ICS data-transfer service stop request observed (T0881 inhibit-response-function; BC-2.19.011/012)",
+  "evidence": ["CF1=0x13 (STOPDT-act)"],
   "mitre_techniques": ["T0881"],
   "source_ip": "10.0.0.1",
-  "timestamp": "2025-07-17T12:34:56.123456Z",
-  "direction": "client_to_server"
+  "timestamp": "2026-07-17T12:34:56.123456Z",
+  "direction": "ClientToServer"
 }
 ```
 
 Added keys:
 - `"source_ip": "10.0.0.1"` — initiator endpoint IP from flow context
-- `"timestamp": "2025-07-17T12:34:56.123456Z"` — UTC timestamp when finding was detected
+- `"timestamp": "2026-07-17T12:34:56.123456Z"` — UTC timestamp when finding was detected
 
 ---
 
@@ -185,7 +190,7 @@ This ensures backward compatibility: downstream consumers that don't use these f
 | Behavioral Contract | BC-2.19.011 PC-3 |
 | Fix ID | FIX-F5-001 |
 | Feature Flags | FIX-F5-001 F-01 (source_ip enrichment), FIX-F5-001 F-02 (timestamp enrichment) |
-| Sibling Features | STORY-172 (DNP3 carry enrichment), STORY-173 (EtherNet/IP enrichment) |
+| Sibling Features | S-139/S-140 DNP3/EtherNet/IP `source_ip`+`timestamp` house pattern (PR #328); IEC-104 additionally sets `direction` (DNP3/ENIP set `direction: None`) |
 | Test Module | `tests/iec104_analyzer_tests.rs:fix_f5_001` |
 
 ---
