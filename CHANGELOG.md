@@ -9,6 +9,27 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and
+  FIX-F5-001 emit-site count prose (FIX-F5-004, F-B2 from F5 Round-4 adversarial review).**
+
+  Two inaccuracies corrected (CHANGELOG.md only; no source or test code changed):
+
+  1. The FIX-F5-003 entry for Example 3 (carry overflow, pre-enrichment baseline) incorrectly
+     stated `mitre_techniques: []`. The corrected demo artifact
+     (`docs/demo-evidence/FIX-P4-001/demo-json-serialization.rs` line 85) and the real emit
+     site (`src/analyzer/iec104.rs` line 1214) both carry `mitre_techniques: ["T0814"]`.
+     Fixed: `mitre_techniques: []` → `mitre_techniques: ["T0814"]`.
+
+  2. The FIX-F5-001 introductory paragraph stated "all 12 Finding constructors — 10 via
+     function parameters and 2 inline". The Emit sites section in the same entry correctly
+     counts 8 function + 2 inline = 10 total (confirmed against iec104.rs). Fixed: "12" →
+     "10" and "10 via function" → "8 via function".
+
+  Comprehensive cross-check of all other concrete CHANGELOG claims in [Unreleased] against
+  ground truth (iec104.rs emit sites, demo artifacts) found no additional mismatches:
+  category/verdict/confidence/MITRE for all three example findings and DNP3/EtherNet/IP
+  direction:None parity claim all confirmed accurate.
+
 - **Comprehensive demo-evidence JSON accuracy sweep across IEC-104 feature artifacts
   (FIX-F5-003).**
 
@@ -28,7 +49,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     - Example 2 (malformed LEN, S2C): `ThreatCategory::Anomaly`, `Verdict::Possible`,
       `Confidence::Medium`, `mitre_techniques: ["T0814"]`
     - Example 3 (carry overflow, no direction): same category/verdict/confidence as
-      Example 2; `mitre_techniques: []`
+      Example 2; `mitre_techniques: ["T0814"]`
     - Corrected `Direction` import path to `wirerust::reassembly::handler::Direction`.
 
   - `evidence-report.md`: "Before/After" JSON blocks contained the same fabricated
@@ -53,7 +74,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `timestamp: None`, causing those keys to be absent from IEC-104 JSON output.
   The fix threads the initiator IP (resolved from the 5-tuple `FlowKey` by
   direction, mirroring the DNP3/EtherNet/IP house pattern) and the packet
-  timestamp (`ts` parameter) through all 12 `Finding` constructors — 10 via
+  timestamp (`ts` parameter) through all 10 `Finding` constructors — 8 via
   function parameters and 2 inline in `on_data`.
 
   This is an additive, backward-compatible JSON change: the two keys now appear
