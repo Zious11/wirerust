@@ -7,6 +7,32 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **IEC-104 findings now carry the `direction` JSON key (FIX-P4-001,
+  IEC104-FINDING-DIRECTION-001).**
+
+  All IEC-104 `Finding` emit sites previously left `direction: None`, causing the
+  `direction` key to be absent from IEC-104 JSON output (the field uses
+  `#[serde(skip_serializing_if = "Option::is_none")]`). This is an additive,
+  backward-compatible JSON change — JSON consumers that tolerate unknown keys or use
+  subset/contains assertions are unaffected.
+
+  The fix brings IEC-104 into conformance with the TLS / Modbus / HTTP / DNP3 /
+  EtherNet/IP house pattern where `direction: Some(direction)` is set on every
+  emitted finding.
+
+  **Emit sites fixed (10 total):**
+  - `process_u_frame`: STOPDT-act T0881 finding + non-canonical U-frame T0814 finding.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 + T0836,
+    TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001; redundant `format!("direction=…")` evidence
+    line dropped (structured field carries the same information).
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame` and `detect_iec104_threats` each gain a
+  `direction: Direction` parameter (callers updated).
+
 ### Changed
 
 - **`bin/check-green-doc-tense` green-doc-tense gate extended with three new IEC-104 phrasings
