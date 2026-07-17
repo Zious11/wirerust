@@ -77,7 +77,7 @@ fn main() {
                   byte sequence; carry cleared and analyzer resyncs on next delivery \
                   (T0814; BC-2.19.025 v1.3 F-172-001)".to_string(),
         evidence: vec!["carry overflow (>255); carry cleared".to_string()],
-        mitre_techniques: vec![],
+        mitre_techniques: vec!["T0814".to_string()],
         source_ip: None,
         timestamp: Some(Utc::now()),
         direction: None, // No direction for this illustration (direction is omitted from JSON)
