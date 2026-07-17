@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "3.75"
+version: "3.76"
 status: draft
 producer: story-writer
-timestamp: 2026-07-16T10:33:00Z
+timestamp: 2026-07-17T00:44:00Z
 phase: f4
 total_stories: 127
 total_waves: 83
 total_points: 765  # = 765 (+3 STORY-166, wave-TBD); wave-table scheduled: 740 (STORY-166 wave-TBD excluded; incl. STORY-167..174 waves 76-83); epic-table grand total: 765; stories: 127; waves: 83
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
+# v3.76 (2026-07-17): STORY-174 DELIVERED (D-463, PR #409 547deba squash-merged to develop; wave-83 gate SATISFIED — single-story wave, per-story 3-clean P5/P6/P7 == wave-level; CI 13/13 + post-merge develop CI SUCCESS; security APPROVE; pr-reviewer APPROVE; Kani VP-044 89 checks; VP-045/046 non-vacuous proptests; VP-047 1.35M fuzz; cargo-mutants 117/122=95.9%; PG-REDGREEN CODIFIED+DELIVERED; F-172-003 RESOLVED). status draft→delivered; stories_delivered 112→113. No numeric totals changed.
 # v3.73 (2026-07-16): STORY-174 realigned v2.0 (AC-174-008 grep-guard + AC-174-002 non-vacuity; IEC104-FINDING-DIRECTION-001 routed to pre-F5 fix-PR; research-validated D-461). input-hash updated de9d14e→27c86aa (BC-2.19.006 v1.2 input drift resolved). No numeric totals changed.
 # v3.75 (2026-07-16): STORY-174 v2.1→v2.2 (Pass-4 F-174-P4-001 — independent-run determinism re-anchored to VP-045 harness registration). No numeric totals changed.
 # v3.74 (2026-07-16): STORY-174 v2.0→v2.1 (Pass-3 LOW gloss fix — BC-2.19.006 invariant-2 descriptor corrected: purity → consistency with parse_apci_header; BC table title aligned to H1). No numeric totals changed.
@@ -311,7 +312,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-171 | IEC-104 N(S)/N(R) Sequence Tracking: Option\<u16\> First-Frame Guard + Desync Detection | E-22 | 80 | 3 | delivered | STORY-168, STORY-170 (file-seq) |
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | delivered (D-455, PR #406 d64e5fe, wave-81) | STORY-170, STORY-171 |
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | delivered (D-458, PR #408 084ff93, wave-82; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; 17 adversarial passes 3-clean A/B/C; 2604/0) | STORY-172 |
-| STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | draft | STORY-173 |
+| STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | delivered (D-463, PR #409 547deba, wave-83) | STORY-173 |
 
 ---
 
@@ -522,6 +523,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 80 | STORY-171 | **DELIVERED (D-448, 2026-07-15)** | #405 | 1a64380 | 2026-07-15 |
 | 81 | STORY-172 | **DELIVERED (D-455, 2026-07-15)** | #406 | d64e5fe | 2026-07-15 |
 | 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
+| 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 
 ## Coverage Verification
 
