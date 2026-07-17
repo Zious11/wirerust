@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F5"
 status: active
-current_step: "D-465 F5 Round-1 FINDINGS (1H+4M) → FIX-F5-001 implementing; Round 2 after merge. trajectory-tail →0→0→0→5"
+current_step: "D-466 FIX-F5-001 DELIVERED; F5 Round-1 findings all resolved; F5 Round 2 adversary next (converge to no CRITICAL/HIGH + novelty decay). trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-17T12:25:00Z
-# D-465 F5 scoped adversarial OPENED (2026-07-17); Round 1 @ develop 7e95f71: BC-completeness 31/31 PASS; canonical-frame 19 invariants CLEAN; 1H+4M → FIX-F5-001 implementing. STORY-INDEX v3.76.
+timestamp: 2026-07-17T14:30:00Z
+# D-466 FIX-F5-001 DELIVERED (PR #411 9c5aa9a, 2026-07-17); F5 Round-1 F-01..F-05 RESOLVED; F5 Round 2 adversary next. STORY-INDEX v3.76.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,10 +25,10 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-17 — D-464 FIX-P4-001 DELIVERED; develop=7e95f71 (STORY-167+168+169+170+171+172+173+174+FIX-P4-001, 9 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-17 — D-466 FIX-F5-001 DELIVERED; develop=9c5aa9a (STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001, 10 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
-develop_head: 7e95f71
-# Cargo.toml version: main=0.12.1; develop=0.12.1 (9 unreleased commits 7e95f71 STORY-167+168+169+170+171+172+173+174+FIX-P4-001; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 7e95f71, histories diverge; trees differ by IEC-104 feature code)
+develop_head: 9c5aa9a
+# Cargo.toml version: main=0.12.1; develop=0.12.1 (10 unreleased commits 9c5aa9a STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 9c5aa9a, histories diverge; trees differ by IEC-104 feature code)
 cargo_version_main: "0.12.1"
 cargo_version_develop: "0.12.1"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts].
@@ -62,7 +62,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 296 = 204 (dual-margin form). 296 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 301 = 199 (dual-margin form). 301 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -70,9 +70,9 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-465 feature-iec104 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ develop 7e95f71 (base fedcea4): BC-set completeness sweep 31/31 PASS (no missing-feature blocker); canonical-frame sweep 19 invariants byte-exact vs IEC 60870-5-104 (no DNP3-DIR-class defect). Findings 1H+4M: F-01 HIGH BC-2.19.011 PC-3 source_ip unmet (untested blind spot); F-02 MEDIUM source_ip/timestamp parity; F-03 MEDIUM stale RED-phase prose +4 siblings; F-04 MEDIUM false forward-ref iec104.rs:1029; F-05 MEDIUM stale count protocols_tests.rs:208. All 5 batched → FIX-F5-001 (in progress). MITRE EXECUTION-REQUIRED closed via D-439 v19.1 pin. Regression/Security/Kani CLEAN. Phase frontmatter → feature-iec104/F5. trajectory-tail →0→0→0→5**
+**D-466 FIX-F5-001 DELIVERED (2026-07-17). PR #411 9c5aa9a squash-merged to develop, human-executed merge. F5 Round-1 findings F-01..F-05 ALL RESOLVED: source_ip + timestamp enrichment threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity); BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001; 9 stale-prose sites scrubbed GREEN; false forward-ref removed; additive JSON keys source_ip/timestamp in CHANGELOG. CI 13/13 + post-merge SUCCESS. develop=9c5aa9a (10 unreleased). F5 Round 2 adversary next (fresh eyes on fixed files; converge to no CRITICAL/HIGH + novelty decay). trajectory-tail →0→0→0→0**
 
-**D-464 base (2026-07-17): FIX-P4-001 DELIVERED (PR #410 7e95f71, IEC104-FINDING-DIRECTION-001 resolved). F5 UNBLOCKED. trajectory-tail →0→0→0→0**
+**D-465 base (2026-07-17): F5 scoped adversarial OPENED @ 7e95f71. Round 1 BC-completeness 31/31 PASS; canonical-frame 19 invariants CLEAN; 1H+4M findings (F-01..F-05) → FIX-F5-001. trajectory-tail →0→0→0→5**
 
 ---
 
@@ -81,13 +81,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); **F5 scoped adversarial OPENED (D-465): Round 1 @ 7e95f71: BC-completeness 31/31 PASS; 1H+4M → FIX-F5-001 (in progress)** |
-| Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=7e95f71 — 9 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); **F5 scoped adversarial (D-465): Round 1 RESOLVED (F-01..F-05) → FIX-F5-001 DELIVERED (D-466, PR #411 9c5aa9a); F5 Round 2 adversary next** |
+| Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=9c5aa9a — 10 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
 | Main HEAD | `fedcea4ab17d9b3257c9903636aec0c0fd08f147` |
-| Develop HEAD | `7e95f71` — PR #410 FIX-P4-001 squash 2026-07-17; DRIFT-BACKMERGE-SQUASH-001 |
+| Develop HEAD | `9c5aa9a` — PR #411 FIX-F5-001 squash 2026-07-17; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 |
 | Stories | 113 delivered / 127 total (STORY-INDEX v3.76, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-17 — D-465 F5 scoped adversarial OPENED: Round 1 1H+4M → FIX-F5-001 in progress. trajectory-tail →0→0→0→5 |
+| **Last Updated** | 2026-07-17 — D-466 FIX-F5-001 DELIVERED: F5 Round-1 F-01..F-05 RESOLVED; F5 Round 2 adversary next. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -125,7 +125,8 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 — wave-82 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean A/B/C (17 total passes) on STORY-173 diff == wave-level adversarial; CI 13/13 develop 084ff93; D-458 |
 | feature-iec104 — wave-83 gate | DELIVERED & SATISFIED | Single-story wave; per-story 3-clean (P5/P6/P7) on STORY-174 diff == wave-level adversarial; CI 13/13 + post-merge develop CI SUCCESS; D-463 |
 | feature-iec104 — pre-F5 fix-PR (FIX-P4-001) | **DELIVERED (D-464)** | PR #410 7e95f71; IEC104-FINDING-DIRECTION-001 resolved — all 10 IEC-104 emit sites direction: Some(...); 11 direction-assertion tests (mod fix_p4_001); F5 scoped adversarial UNBLOCKED |
-| feature-iec104 — F5 (scoped adversarial) | **OPENED (D-465)** | Round 1 @ 7e95f71: BC-completeness 31/31 PASS; canonical-frame 19 invariants CLEAN; 1H+4M → FIX-F5-001 in progress |
+| feature-iec104 — F5 (scoped adversarial) | **OPENED (D-465); Round 2 pending** | Round 1 @ 7e95f71: BC-completeness 31/31 PASS; canonical-frame 19 invariants CLEAN; 1H+4M → FIX-F5-001 DELIVERED (D-466) |
+| feature-iec104 — F5 fix batch (FIX-F5-001) | **DELIVERED (D-466)** | PR #411 9c5aa9a; F-01..F-05 resolved; source_ip+timestamp enrichment all 10 emit sites; BC-2.19.011 PC-3 SATISFIED |
 
 ---
 
@@ -144,7 +145,7 @@ maintenance_prior_run: maint-2026-07-09
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | F5 scoped adversarial OPENED (D-465) — Round 1: 1H+4M → FIX-F5-001 implementing; Round 2 pending after merge | develop |
+| feature-iec104 | F5 scoped adversarial (D-465) — Round 1 RESOLVED: FIX-F5-001 DELIVERED (D-466, PR #411 9c5aa9a); F5 Round 2 adversary next (converge to no CRITICAL/HIGH + novelty decay) | develop |
 
 ---
 
@@ -152,11 +153,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-466 FIX-F5-001 DELIVERED (2026-07-17). PR #411 9c5aa9a squash-merged to develop, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER. F5 Round-1 findings ALL RESOLVED: F-01 HIGH BC-2.19.011 PC-3 + F-02/03/04/05 MEDIUM — source_ip+timestamp threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity); BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001 (each asserts source_ip+timestamp per finding family); 9 stale-prose sites scrubbed GREEN + protocols_tests count comment fixed; false forward-ref comment removed; additive JSON keys source_ip/timestamp documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; docs/holdout-expectations-sweep-FIX-F5-001.md). Security PASS 0 findings. pr-reviewer APPROVE (MINOR count-prose + NIT timestamp-type both remediated in-file, orchestrator row-verified per PG-W74). CI 13/13 + post-merge SUCCESS. Demo before/after JSON scrub PASS. develop=9c5aa9a (10 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001). F5 Round 2 adversary next (fresh eyes on fixed files).** | **DELIVERED (D-466)** | F5 Round-1 F-01..F-05 ALL RESOLVED. F5 Round 2 next. trajectory-tail →0→0→0→0 |
 | **D-465 feature-iec104 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ develop 7e95f71 (base fedcea4): BC-set completeness sweep 31/31 PASS (no missing-feature blocker); canonical-frame sweep 19 invariants byte-exact vs IEC 60870-5-104 (no DNP3-DIR-class defect). Findings: F-01 HIGH BC-2.19.011 PC-3 source_ip unmet (untested blind spot); F-02 MEDIUM source_ip/timestamp parity (iec104.rs:1148 let _ = ts); F-03 MEDIUM stale RED-phase prose + 4 unlisted siblings; F-04 MEDIUM false forward-ref iec104.rs:1029; F-05 MEDIUM protocols_tests.rs:208 stale count. All 5 batched → FIX-F5-001 (in progress). MITRE EXECUTION-REQUIRED axis closed via D-439 v19.1 pin. Regression/Security/Kani axes CLEAN. Phase frontmatter → feature-iec104/F5.** | **FINDINGS (D-465)** | 1H+4M → FIX-F5-001. Round 2 after merge. trajectory-tail →0→0→0→5 |
 | **D-464 FIX-P4-001 DELIVERED (2026-07-17). PR #410 7e95f71 squash-merged to develop, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER. fix-pr-delivery flow (D-461 routing, ENIP D-262 PR #331 precedent). IEC104-FINDING-DIRECTION-001 RESOLVED — all 10 IEC-104 emit sites direction: Some(...) (was None); direction threaded into process_u_frame + detect_iec104_threats; redundant direction-in-evidence strings dropped. 11 direction-assertion tests (mod fix_p4_001, red-first TDD). Additive `direction` JSON key documented in CHANGELOG. holdout-expectations sweep COMPLETE (PG-W72; zero IEC-104 holdout scenarios; docs/holdout-expectations-sweep-FIX-P4-001.md). Security review PASS 0 findings. pr-reviewer APPROVE (2 NITs accepted). CI 13/13 + post-merge develop CI SUCCESS. Demo evidence 3 artifacts scrub PASS. develop=7e95f71 (9 unreleased: STORY-167..174 + FIX-P4-001). F5 scoped adversarial UNBLOCKED.** | **DELIVERED (D-464)** | IEC104-FINDING-DIRECTION-001 CLOSED. F5 next. trajectory-tail →0→0→0→0 |
 | **D-463 STORY-174 DELIVERED (2026-07-17). PR #409 547deba squash-merged to develop, human-authorized (TWO classifier halts: DF-MERGE-AUTH-CLASSIFIER-001 condition-4 wave-grant-absent + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER harness deny; human-direct in main thread). Per-story adversarial CONVERGED 3-clean D-462 (7 passes P5/P6/P7). Security APPROVE (1 LOW SEC-001 CWE-22 bin path-prefix accepted). pr-reviewer APPROVE (2 NITs). CI 13/13 + post-merge develop CI SUCCESS. Demos 9 artifacts/8 ACs scrub PASS. Kani VP-044 89 checks (5 facets) + VP-004/VP-007 re-run; VP-045/046 non-vacuous proptests (F-172-003 RESOLVED); VP-047 fuzz 1.35M clean; cargo-mutants 117/122=95.9%. PG-REDGREEN-COMMENT-CLEANUP CODIFIED+DELIVERED (AC-174-008, 23-25 token patterns + baseline scrub); PG-REDGREEN-SIBLING-SWEEP RESOLVED. 8th of 8 IEC-104 stories. stories_delivered 112→113. develop=547deba. Wave-83 gate SATISFIED. F4 COMPLETE. PG-MERGE-AUTH-SUBAGENT-CLASSIFIER filed. STORY-INDEX v3.76.** | **DELIVERED (D-463)** | F4 COMPLETE 8/8. trajectory-tail →0→0→0→0 |
 | **D-462 STORY-174 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 7 passes; streak P5/P6/P7; final HEAD e62701f; base 084ff93; 2600+/0 tests (92 suites). Trajectory P1(1M F-174-001)->P2(1M F-174-002)->P3(NITPICK_ONLY)->P4(1M F-174-P4-001)->P5/P6/P7 CLEAN. F-174-001 MEDIUM VP-044 valid→Some facet missing (Kani 82→89 checks; 1071de4); F-174-002 MEDIUM stale skeleton/false CI-wiring prose + 8-site sibling sweep (038286a); F-174-P4-001 MEDIUM BC-2.19.025 invariant-2 mis-anchor from v1.3 renumbering re-cited to VP-045 harness registration (e62701f 8 test + 2 story sites). Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3 every pass. Mutation 117/122=95.9%. Fuzz 1.35M execs clean. PG-GATE-VOCAB-BLINDSPOT filed (green-doc-tense gate misses "skeleton"/"seam" phrasing; 2 independent obs P2+P4). Demos/PR next.** | **CONVERGED (D-462)** | Demo recording next. trajectory-tail →0→0→0→0 |
-| **D-461 STORY-174 pre-delivery realignment COMPLETE (2026-07-16, research-validated, human-approved). DF-VALIDATION-001 research 2 passes (story-174-scope-validation.md + -followup.md; all HIGH confidence): (1) PG-REDGREEN-COMMENT-CLEANUP → AC-174-008 grep-guard (3 patterns + 3 baseline stale-header scrubs + CHANGELOG; zero false positives); (2) F-172-003 VP-045 vacuity → AC-174-002 amended (non-vacuity + interleaved-generator + state-comparison; zero prod code); (3) IEC104-FINDING-DIRECTION-001 VALID-DEFER → pre-F5 fix-PR (fix-pr-delivery; ENIP D-262 PR #331 precedent). STORY-174 v2.0 input-hash de9d14e→27c86aa (resolved BC-2.19.006 v1.2 drift D-458). STORY-INDEX v3.72→v3.73. Points unchanged (5).** | **COMPLETE (D-461)** | wave-83 TDD delivery next. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -189,9 +190,10 @@ maintenance_prior_run: maint-2026-07-09
 | D-460 | Session RESUMED (human-approved, 2026-07-16). Worktree health PASS; develop=084ff93 verified; no story worktrees; only open PR is external #407 (deferred post-wave-83 by human). STORY-174 wave-83 begins with research-agent validation of carry-forward scope items before any story realignment (human-directed). | 2026-07-16 |
 | D-461 | STORY-174 pre-delivery realignment COMPLETE (research-validated, human-approved 2026-07-16). DF-VALIDATION-001 research 2 passes (story-174-scope-validation.md + -followup.md; all HIGH confidence): (1) PG-REDGREEN-COMMENT-CLEANUP VALID-INCLUDE — codified as AC-174-008 extending existing green-doc-tense-gate token list (3 patterns; zero tree-wide false positives; no allowlist change) + scrub of 3 baseline stale headers + CHANGELOG entry; (2) F-172-003 VP-045 vacuity VALID-INCLUDE — AC-174-002 amended with non-vacuity/interleaved-generator/state-comparison requirements (carry fields already pub; zero production code); (3) IEC104-FINDING-DIRECTION-001 VALID-DEFER out of STORY-174 — routed to dedicated pre-F5 fix-PR inside feature-iec104 via fix-pr-delivery (ENIP D-262 PR #331 precedent; PG-W72 holdout sweep near-empty, additive JSON key). STORY-174 v2.0 input-hash de9d14e→27c86aa (also resolved genuine BC-2.19.006 v1.2 input drift from D-458). STORY-INDEX v3.72→v3.73. Points unchanged (5). | 2026-07-16 |
 | D-462 | STORY-174 per-story adversarial CONVERGED 3-clean (BC-5.39.001) (2026-07-16). 7 passes; streak P5/P6/P7; final HEAD e62701f; base 084ff93; 2600+/0 tests (92 suites). Trajectory P1(1M F-174-001)->P2(1M F-174-002)->P3(NITPICK_ONLY)->P4(1M F-174-P4-001)->P5/P6/P7 CLEAN. F-174-001 MEDIUM VP-044 valid→Some facet missing (Kani 82→89 checks; 1071de4); F-174-002 MEDIUM stale skeleton/false CI-wiring prose + 8-site sibling sweep (038286a); F-174-P4-001 MEDIUM BC-2.19.025 invariant-2 mis-anchor from v1.3 renumbering re-cited to VP-045 harness registration (e62701f 8 test + 2 story sites). Story v2.2; STORY-INDEX v3.75. Kani non-vacuity 3/3 every pass. Mutation 117/122=95.9%. Fuzz 1.35M execs clean. PG-GATE-VOCAB-BLINDSPOT filed (green-doc-tense gate misses "skeleton"/"seam" phrasing; 2 independent obs P2+P4). Demos/PR next. | 2026-07-16 |
-| D-463 | STORY-174 DELIVERED (PR #409 547deba squash-merged to develop, 2026-07-17, human-authorized per-PR — human executed merge directly in main thread after TWO classifier halts: DF-MERGE-AUTH-CLASSIFIER-001 condition-4 wave-grant-absent, then PG-MERGE-AUTH-SUBAGENT-CLASSIFIER harness deny of subagent --admin merge on relayed consent; orchestrator-direct attempt also denied on unnamed --admin bypass; bypass tagged per DF-PR-MANAGER-COMPLETE-001(b)). Per-story adversarial CONVERGED 3-clean D-462 (7 passes P5/P6/P7). Security APPROVE (1 LOW SEC-001 CWE-22 bin path-prefix accepted, joins SEC-001-S158 class). pr-reviewer APPROVE (2 NITs accepted). CI 13/13 + post-merge develop CI SUCCESS. Demos 9 artifacts/8 ACs scrub PASS. Kani VP-044 89 checks (5 facets) + VP-004 (440/407/183) + VP-007 (122, SEEDED=29); VP-045/046 non-vacuous proptests (F-172-003 RESOLVED); VP-047 fuzz 1.35M execs clean; cargo-mutants 117/122=95.9%; green-doc-tense gate patterns 23-25 + baseline scrub (PG-REDGREEN-COMMENT-CLEANUP CODIFIED-DELIVERED; PG-REDGREEN-SIBLING-SWEEP RESOLVED). 8th of 8 IEC-104 stories. develop=547deba (8 unreleased: STORY-167..174); stories_delivered 112→113. Wave-83 gate SATISFIED (single-story wave: per-story 3-clean == wave-level on identical diff, per waves 79-82 precedent). F4 delta-implementation COMPLETE. New process-gap: PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (subagent cannot execute --admin merge on relayed consent; resolution path = human-direct in main thread; codify at cycle-close). STORY-INDEX v3.76. | 2026-07-17 |
+| D-463 | STORY-174 DELIVERED (PR #409 547deba squash-merged to develop, 2026-07-17, human-authorized per-PR — human executed merge directly in main thread after TWO classifier halts: DF-MERGE-AUTH-CLASSIFIER-001 condition-4 wave-grant-absent, then PG-MERGE-AUTH-SUBAGENT-CLASSIFIER harness deny of subagent --admin merge on relayed consent; orchestrator-direct attempt also denied on unnamed --admin bypass; bypass tagged per DF-PR-MANAGER-COMPLETE-001(b)). Per-story adversarial CONVERGED 3-clean D-462 (7 passes P5/P6/P7). Security APPROVE (1 LOW SEC-001 CWE-22 bin path-prefix accepted, joins SEC-001-S158 class). pr-reviewer APPROVE (2 NITs accepted). CI 13/13 + post-merge develop CI SUCCESS. Demos 9 artifacts/8 ACs scrub PASS. Kani VP-044 89 checks (5 facets) + VP-004 (440/407/183) + VP-007 (122, SEEDED=29); VP-045/046 non-vacuous proptests (F-172-003 RESOLVED); VP-047 fuzz 1.35M execs clean; cargo-mutants 117/122=95.9%; green-doc-tense gate patterns 23-25 + baseline scrub (PG-REDGREEN-COMMENT-CLEANUP CODIFIED-DELIVERED; PG-REDGREEN-SIBLING-SWEEP RESOLVED). 8th of 8 IEC-104 stories. develop=547deba (8 unreleased: STORY-167..174); stories_delivered 112→113. Wave-83 gate SATISFIED (single-story wave: per-story 3-clean == wave-level on identical diff, per waves 79-82 precedent). F4 delta-implementation COMPLETE. New process-gap: PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (subagent cannot execute --admin merge on relayed human consent; orchestrator-direct attempt also denied on unnamed --admin bypass. Resolution path = human-direct in main thread (per D-463). Codify at cycle-close as AC for E-11 follow-up story. STORY-INDEX v3.76. | 2026-07-17 |
 | D-464 | FIX-P4-001 DELIVERED (PR #410 7e95f71 squash-merged to develop, 2026-07-17, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER). fix-pr-delivery flow (D-461 routing; ENIP D-262 PR #331 precedent). IEC104-FINDING-DIRECTION-001 RESOLVED — all 10 IEC-104 emit sites now direction: Some(...) (was None); direction threaded into process_u_frame + detect_iec104_threats; redundant direction-in-evidence strings dropped; 11 direction-assertion tests (mod fix_p4_001, red-first); additive `direction` JSON key documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; zero IEC-104 holdout scenarios, subset assertions unaffected; docs/holdout-expectations-sweep-FIX-P4-001.md). Security review PASS 0 findings. pr-reviewer APPROVE (2 NITs accepted). CI 13/13 + post-merge develop CI SUCCESS. Demo evidence 3 artifacts scrub PASS. develop=7e95f71 (9 unreleased: STORY-167..174 + FIX-P4-001). F5 scoped adversarial UNBLOCKED. | 2026-07-17 |
 | D-465 | feature-iec104 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ develop 7e95f71: BC-set completeness sweep 31/31 PASS (no missing-feature blocker); canonical-frame sweep 19 invariants byte-exact vs IEC 60870-5-104 (no DNP3-DIR-class defect); findings 1H+4M — F-01 HIGH BC-2.19.011 PC-3 source_ip unmet (untested blind spot) + F-02 source_ip/timestamp parity + F-03 stale prose (+4 new siblings) + F-04 false forward-ref + F-05 stale count. All 5 batched to FIX-F5-001 (in progress). MITRE EXECUTION-REQUIRED axis closed via D-439 v19.1 pin research. Phase frontmatter → feature-iec104/F5. | 2026-07-17 |
+| D-466 | FIX-F5-001 DELIVERED (PR #411 9c5aa9a squash-merged to develop, 2026-07-17, human-executed merge). Batches F5 Round-1 findings F-01 HIGH + F-02/03/04/05 MEDIUM: source_ip + timestamp enrichment threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity pattern) — BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001 (each asserts source_ip+timestamp per finding family); 9 stale-prose sites scrubbed GREEN + protocols_tests count comment fixed; false forward-ref comment removed; additive JSON keys source_ip/timestamp documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; docs/holdout-expectations-sweep-FIX-F5-001.md). Security PASS 0 findings. pr-reviewer APPROVE (MINOR count-prose + NIT timestamp-type both remediated in-file, orchestrator row-verified per PG-W74). CI 13/13 + post-merge SUCCESS. Demo before/after JSON scrub PASS. develop=9c5aa9a (10 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001). F5 Round 2 next (fresh adversary on fixed files). | 2026-07-17 |
 
 ---
 
@@ -218,7 +220,7 @@ maintenance_prior_run: maint-2026-07-09
 | ID | Summary | Source | Target |
 |----|---------|--------|--------|
 | DRIFT-SPRINT-STATE-FIELD-FORM-001 | sprint-state.yaml uses both `merge_sha:` and `merge_commit:` field names inconsistently across wave entries. Vestigial file (STORY-INDEX is authoritative wave registry). | wave-75 gate S-7.02 justified deferral (D-435) | vestigial-file retirement at next housekeeping pass |
-| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) NOT ancestor of develop (7b11b83). Trees ARE identical (5e75fd5) — history-only divergence. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
+| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) NOT ancestor of develop (9c5aa9a). Trees ARE identical (5e75fd5) — history-only divergence. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly). Out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS owner — next TLS maintenance sweep |
 
 ---
@@ -237,6 +239,9 @@ maintenance_prior_run: maint-2026-07-09
 | F3-DECOMPOSITION-BC-FIDELITY | **4 CONFIRMED occurrences: STORY-169** (flat vs broken-out fields; wrong guards) **+ STORY-170** (false-positive T0827; confidence Possible→Likely; reserved-TypeID scope; naming) **+ STORY-172** (FlowId→FlowKey nonexistent; carry-overflow discard-all-new semantics; malformed-LEN PC4 contradiction) **+ STORY-173** (T0881 tactic string "impact" → MitreTactic; compilation blocker). All corrected pre-delivery. **CODIFY-NOW.** Codification: mandatory pre-delivery AC↔BC fidelity check as F3/F4 gate step. Vehicle: cycle-close E-11 follow-up. | Cycle-close codification |
 | IEC104-TIMED-CMD-GAP-001 | (DETECTION GAP, security-relevant, DEFERRED) TypeIDs 58–64 (timed control variants C_SC_TA_1=58 .. C_BO_TA_1=64) fall into detect_iec104_threats `_` silent arm; no T1692.001/T0836 findings emitted. Out of scope per BC-2.19.019. Evasion gap: control commands via timed variants bypass detection. Source: sec-review-170 L-001 (PR #404). DF-VALIDATION-001 required before filing any GitHub issue. | Follow-on detection story (new BC + detection arm for TypeIDs 58–64, or feature-cycle extension) |
 | IEC104-FINDING-DIRECTION-001 | RESOLVED (PR #410, D-464) — CLOSED. All 10 IEC-104 emit sites now direction: Some(...). | CLOSED (D-464, PR #410 7e95f71, 2026-07-17) |
+| F5-ROUND1-F01..F05 | RESOLVED (PR #411, D-466) — CLOSED. F-01 HIGH BC-2.19.011 PC-3 source_ip + F-02/03/04/05 MEDIUM all resolved by FIX-F5-001. BC-2.19.011 PC-3 SATISFIED. | CLOSED (D-466, PR #411 9c5aa9a, 2026-07-17) |
+| F5-DEFERRED-LOW-BC-2.19.006-VP044-BACKREF | LOW (non-blocking): BC-2.19.006 VP-044 back-reference wording review deferred from F5 Round-1 pass. Does not block Round 2. | F5 Round 2 adversary — accept or remediate per severity |
+| F5-DEFERRED-LOW-MUTANTS-DISPOSITION-2.4 | LOW (non-blocking): mutants-disposition section 2.4 wording imprecision deferred from F5 Round-1 pass. Does not block Round 2. | F5 Round 2 adversary — accept or remediate per severity |
 | PG-SPEC-VERSION-CITATION-CURRENCY | Spec-version bumps must include src/ comments and CHANGELOG entries in the citation-currency sweep set (surfaced by F-172-301 NIT, D-454). | cycle-close lessons codification |
 | PG-DOC-CURRENCY-SWEEP | Post-adversarial doc-accuracy drift consumed 12 of 17 STORY-173 passes. A pre-adversarial code-comments/test-header doc sweep would reduce adversarial pass count. | Cycle-close codification |
 | PG-ADVERSARY-IDLE-NO-REPORT | Adversary agents completing CLEAN passes sometimes emitted no report, making CLEAN vs idle indistinguishable. Recurring behavior flagged across multiple STORY-173 passes. | Cycle-close lessons codification |
@@ -250,17 +255,17 @@ maintenance_prior_run: maint-2026-07-09
 
 ## Session Resume Checkpoint
 
-**D-465 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ develop 7e95f71 (base fedcea4): BC-completeness 31/31 PASS; canonical-frame 19 invariants byte-exact CLEAN; 1H+4M findings (F-01..F-05) → FIX-F5-001 implementing. MITRE EXECUTION-REQUIRED closed via D-439. Round 2 pending after FIX-F5-001 merge. trajectory-tail →0→0→0→5**
+**D-466 FIX-F5-001 DELIVERED (2026-07-17). PR #411 9c5aa9a squash-merged to develop, human-executed merge. F5 Round-1 F-01..F-05 ALL RESOLVED. develop=9c5aa9a (10 unreleased). F5 Round 2 adversary next (fresh eyes on fixed files; converge to no CRITICAL/HIGH + novelty decay). trajectory-tail →0→0→0→0**
 
-**D-464 base (2026-07-17): FIX-P4-001 DELIVERED (PR #410 7e95f71, IEC104-FINDING-DIRECTION-001 resolved). develop=7e95f71 (9 unreleased). trajectory-tail →0→0→0→0**
+**D-465 base (2026-07-17): F5 scoped adversarial OPENED @ 7e95f71. Round 1 1H+4M → FIX-F5-001 DELIVERED. trajectory-tail →0→0→0→5**
 
-Prior checkpoint (D-464 FIX-P4-001 DELIVERED, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
+Prior checkpoint (D-465 F5 Round-1 FINDINGS, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-17. Position: feature-iec104 F5 OPENED (D-465); Round 1: 1H+4M → FIX-F5-001 implementing. develop=7e95f71. trajectory-tail →0→0→0→5
-- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `7e95f71`. DRIFT-BACKMERGE-SQUASH-001 still applies. 9 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93) + STORY-174 (PR #409 547deba) + FIX-P4-001 (PR #410 7e95f71).
-- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464, PR #410 7e95f71). F5 OPENED (D-465).
-- **Remaining delivery sequence:** F5 scoped adversarial (OPENED D-465; Round 1 complete: 1H+4M → FIX-F5-001 implementing; Round 2 after merge) → F6 targeted hardening → F7 delta convergence → release cut. PR #407 external-fork triage also pending.
-- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); IEC104-FINDING-DIRECTION-001 CLOSED (D-464, PR #410); PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (cycle-close codification); PG-VERIFY-ALL-WORKTREES + PG-STATE-RECOVERY-SCOPE + PG-DOC-CURRENCY-SWEEP + PG-ADVERSARY-IDLE-NO-REPORT + PG-ADVERSARY-SEVERITY-CALIBRATION + PG-GATE-VOCAB-BLINDSPOT (all → cycle-close codification).
+- **Date:** 2026-07-17. Position: feature-iec104 F5 (D-465 OPENED); Round 1 RESOLVED → FIX-F5-001 DELIVERED (D-466). F5 Round 2 adversary next. develop=9c5aa9a. trajectory-tail →0→0→0→0
+- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `9c5aa9a`. DRIFT-BACKMERGE-SQUASH-001 still applies. 10 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93) + STORY-174 (PR #409 547deba) + FIX-P4-001 (PR #410 7e95f71) + FIX-F5-001 (PR #411 9c5aa9a).
+- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464, PR #410 7e95f71). F5 OPENED (D-465); Round 1 RESOLVED → FIX-F5-001 DELIVERED (D-466, PR #411 9c5aa9a). F5 Round 2 adversary next.
+- **Remaining delivery sequence:** F5 Round 2 adversary (fresh eyes on 9c5aa9a; converge to no CRITICAL/HIGH + novelty decay) → F6 targeted hardening → F7 delta convergence → release cut. PR #407 external-fork triage also pending.
+- **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); F5-ROUND1-F01..F05 CLOSED (D-466); F5-DEFERRED-LOW-BC-2.19.006-VP044-BACKREF (LOW, non-blocking); F5-DEFERRED-LOW-MUTANTS-DISPOSITION-2.4 (LOW, non-blocking); PG-GATE-VOCAB-BLINDSPOT + PG-MERGE-AUTH-SUBAGENT-CLASSIFIER (cycle-close); PG-VERIFY-ALL-WORKTREES + PG-STATE-RECOVERY-SCOPE + PG-DOC-CURRENCY-SWEEP + PG-ADVERSARY-IDLE-NO-REPORT + PG-ADVERSARY-SEVERITY-CALIBRATION (all → cycle-close codification).
 - **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.76 / dep-graph v3.9 (137 edges).
 - **Resume command:** `/vsdd-factory:next-step`
 
