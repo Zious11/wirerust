@@ -10,11 +10,11 @@ project: wirerust
 mode: steady-state
 phase: "feature-iec104/F7-CONVERGED-release-held"
 status: active
-current_step: "D-470 F7 CONVERGED (5/5 dimensions); RELEASE HELD by human; v0.13.0 cut deferred. develop=b36b884 (12 unreleased). trajectory-tail →0→0→0→0"
+current_step: "D-471 E2E IEC-104 coverage merged (PR #416 0b65e8e); develop=0b65e8e (13 unreleased); feature at F7-CONVERGED, v0.13.0 release still HELD. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: IN PROGRESS
-timestamp: 2026-07-18T00:02:00Z
-# D-470 feature-iec104 F7 CONVERGED (5/5 dims, holdout 0.99, release HELD). All dims PASS: Spec novelty LOW; Test 95.9%; Impl 0 HIGH; Verification F6 green; Holdout 0.99 RELEASE-READY. Input-hash STORY-167..172 re-baselined BENIGN. 2 MINOR doc-only (B-001/B-002 deferred cycle-close). STORY-INDEX v3.76.
+timestamp: 2026-07-17T20:15:00Z
+# D-471 E2E IEC-104 coverage merged (PR #416 0b65e8e, 2026-07-17, human-executed). 4 real captures + analyzer-level tests/iec104_e2e_real_pcaps_tests.rs. CI 13/13. develop=0b65e8e (13 unreleased). F7-CONVERGED; release HELD. STORY-INDEX v3.76.
 
 # Release chain (latest)
 released_version: v0.12.1
@@ -25,10 +25,10 @@ release_commit: fedcea4ab17d9b3257c9903636aec0c0fd08f147
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.12.1
 prior_released_version: v0.12.0
 prior_released_at: "2026-07-10"
-# Ground-truth HEADs (updated 2026-07-17 — D-470 F7 CONVERGED; develop=b36b884 (STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004, 12 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
+# Ground-truth HEADs (updated 2026-07-17 — D-471 E2E IEC-104 merged; develop=0b65e8e (STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004+e2e-iec104-fixtures, 13 unreleased); DRIFT-BACKMERGE-SQUASH-001 still applies)
 main_head: fedcea4ab17d9b3257c9903636aec0c0fd08f147
-develop_head: b36b884
-# Cargo.toml version: main=0.12.1; develop=0.12.1 (12 unreleased commits b36b884 STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop b36b884, histories diverge; trees differ by IEC-104 feature code)
+develop_head: 0b65e8e
+# Cargo.toml version: main=0.12.1; develop=0.12.1 (13 unreleased commits 0b65e8e STORY-167+168+169+170+171+172+173+174+FIX-P4-001+FIX-F5-001+FIX-F5-002+FIX-F5-003+FIX-F5-004+e2e-iec104-fixtures; DRIFT-BACKMERGE-SQUASH-001: main fedcea4 not an ancestor of develop 0b65e8e, histories diverge; trees differ by IEC-104 feature code)
 cargo_version_main: "0.12.1"
 cargo_version_develop: "0.12.1"
 # Open worktrees: main checkout [develop] + .factory [factory-artifacts].
@@ -62,13 +62,15 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 317 = 183 (dual-margin form). 317 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 321 = 179 (dual-margin form). 321 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
 # VSDD Pipeline State — wirerust
 
 ## EXACT RESUME POINT
+
+**D-471 E2E IEC-104 coverage merged (2026-07-17). PR #416 0b65e8e squash-merged to develop, human-executed merge. Human-directed post-F7 task. Closed the IEC-104 e2e gap (corpus had zero IEC-104 captures; 4SICS captures confirmed no port-2404 traffic). 4 real captures added to LOCAL-ONLY corpus (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level smoke-test: 105/1/173/147 pins (39 total, 0 mismatch, 0 panic). NEW tests/iec104_e2e_real_pcaps_tests.rs: in-process pipeline, CI-safe self-skip mirroring ENIP test, DF-TEST-NAMESPACE-001 mod wrapper — pins per-technique detection on real traffic: iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic-frame holdout (0.99) with real-world capture validation. CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased). RELEASE HELD (human). Next: v0.13.0 cut when authorized + cycle-close lessons codification. trajectory-tail →0→0→0→0**
 
 **D-470 feature-iec104 F7 CONVERGED (2026-07-17). All 5 dimensions PASS: Spec novelty LOW (F5 R5 NITPICK_ONLY); Test mutation 95.9% (118/123, F6); Impl 0 open HIGH (code frozen R2 9c5aa9a); Verification F6 all-green (Kani 5 harnesses, fuzz 2.64M/0 crashes, audit 0 vulns); Holdout black-box acceptance mean 0.99 RELEASE-READY (holdout-evaluator, info-asymmetry, canonical IEC-104 frames; must-pass #1/#4/#6 all 1.0). Regression 2627/0 CLEAN. Input-hash drift resolved: STORY-167..172 re-baselined BENIGN (consistency audit); STORY-164/165 out-of-scope. Consistency audit 2 MINOR doc-only (B-001/B-002, deferred cycle-close). RELEASE HELD (human direction) — v0.13.0 MINOR cut deferred. F7 human gate: convergence approved, release-cut deferred. trajectory-tail →0→0→0→0**
 
@@ -81,13 +83,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); F5 CONVERGED (D-468); F6 PASS (D-469); **F7 (delta-convergence) CONVERGED (D-470): 5/5 dims PASS; holdout 0.99 RELEASE-READY; RELEASE HELD by human; v0.13.0 cut deferred** |
-| Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=b36b884 — 12 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); F4 COMPLETE + FIX-P4-001 DELIVERED (D-464); F5 CONVERGED (D-468); F6 PASS (D-469); **F7 (delta-convergence) CONVERGED (D-470): 5/5 dims PASS; holdout 0.99 RELEASE-READY; RELEASE HELD by human; v0.13.0 cut deferred; D-471 E2E coverage merged** |
+| Version | 0.12.1 (released 2026-07-13; main=fedcea4; develop=0b65e8e — 13 unreleased commits; DRIFT-BACKMERGE-SQUASH-001) |
 | Main HEAD | `fedcea4ab17d9b3257c9903636aec0c0fd08f147` |
-| Develop HEAD | `b36b884` — PR #415 FIX-F5-004 squash 2026-07-17; DRIFT-BACKMERGE-SQUASH-001 |
+| Develop HEAD | `0b65e8e` — PR #416 E2E IEC-104 fixtures squash 2026-07-17; DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 |
 | Stories | 113 delivered / 127 total (STORY-INDEX v3.76, dep-graph v3.9, 765 pts) |
-| **Last Updated** | 2026-07-17 — D-470 F7 CONVERGED (5/5 dims); RELEASE HELD. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-17 — D-471 E2E IEC-104 coverage merged (PR #416 0b65e8e); develop 13 unreleased. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -132,6 +134,7 @@ maintenance_prior_run: maint-2026-07-09
 | feature-iec104 — F5 (scoped adversarial) | **CONVERGED (D-468)** | 5 rounds; FIX-F5-001..004 delivered; code frozen since R2 (9c5aa9a); R5 NITPICK_ONLY (0 CRIT/HIGH/MED, 1 LOW non-blocking); BC-completeness 31/31 + canonical-frame 19 byte-exact clean |
 | feature-iec104 — F6 (targeted-hardening) | **PASS (D-469)** | Kani/fuzz/mutation/audit/regression all green; VPs re-run post-fix on b36b884 |
 | feature-iec104 — F7 (delta-convergence) | **CONVERGED (D-470)** | 5/5 dims PASS; holdout 0.99 RELEASE-READY; RELEASE HELD by human; v0.13.0 cut deferred |
+| E2E IEC-104 coverage (human-directed, post-F7) | **MERGED (D-471)** | PR #416 0b65e8e; 4 fixtures + analyzer-level real-pcap test |
 
 ---
 
@@ -150,7 +153,7 @@ maintenance_prior_run: maint-2026-07-09
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | F7 CONVERGED (D-470) — 5/5 dims; holdout 0.99; RELEASE HELD; v0.13.0 cut pending human auth | develop |
+| feature-iec104 | F7 CONVERGED (D-470) — 5/5 dims; holdout 0.99; RELEASE HELD; v0.13.0 cut pending human auth; D-471 E2E coverage merged (0b65e8e) | develop |
 
 ---
 
@@ -158,11 +161,11 @@ maintenance_prior_run: maint-2026-07-09
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-471 E2E IEC-104 coverage merged (PR #416 0b65e8e squash-merged to develop, 2026-07-17, human-executed merge). Human-directed post-F7 task. Closed the IEC-104 e2e gap: corpus had zero IEC-104 captures; 4SICS captures confirmed no port-2404 traffic. Added 4 real captures to LOCAL-ONLY corpus (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level corpus smoke-test: 105/1/173/147 pins (39 total, 0 mismatch, 0 panic). NEW tests/iec104_e2e_real_pcaps_tests.rs (in-process pipeline, CI-safe self-skip mirroring ENIP test, DF-TEST-NAMESPACE-001 mod wrapper): pins per-technique detection on real traffic — iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic-frame holdout (0.99) with real-world capture validation. CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased).** | **MERGED (D-471)** | 4 fixtures + analyzer-level real-pcap test; develop=0b65e8e (13 unreleased). trajectory-tail →0→0→0→0 |
 | **D-470 feature-iec104 F7 CONVERGED (2026-07-17). All 5 dimensions PASS: Spec novelty LOW (F5 R5); Test mutation 95.9% (F6); Impl 0 open HIGH; Verification F6 all-green (Kani 5 harnesses, fuzz 2.64M/0 crashes, audit 0 vulns); Holdout black-box acceptance mean 0.99 RELEASE-READY (holdout-evaluator, info-asymmetry, canonical IEC-104 frames; must-pass #1/#4/#6 all 1.0). Regression 2627/0. Input-hash drift resolved: STORY-167..172 re-baselined BENIGN (consistency audit); STORY-164/165 out-of-scope. Consistency audit 2 MINOR doc-only (B-001/B-002, deferred cycle-close). RELEASE HELD (human direction) — v0.13.0 MINOR cut deferred. F7 human gate: convergence approved, release-cut deferred.** | **CONVERGED (D-470)** | 5/5 dims PASS; holdout 0.99; RELEASE HELD; v0.13.0 deferred. trajectory-tail →0→0→0→0 |
 | **D-469 feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed against post-fix develop b36b884 (iec104.rs emit sites changed by FIX-P4-001/FIX-F5-001 — iec104-dependent checks RE-RUN not assumed): Kani VP-044/004/007 all SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/5min/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns/193 deps; regression 2627/0; clippy+fmt clean. semgrep skipped (absent; cargo-audit + per-PR security-reviews cover surface). Info-asymmetry wall honored (F5 findings not consulted). Verifier self-corrected a -j4 mutation false-timeout measurement error, re-ran scoped for authoritative 95.9%. No BLOCKERs. Artifacts .factory/phase-f6-hardening/. F6 gate PASSED — F7 delta convergence next.** | **PASS (D-469)** | Kani/fuzz/mutation/audit/regression all green; No BLOCKERs; F7 next. trajectory-tail →0→0→0→0 |
 | **D-468 feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (PR #412 b356545), FIX-F5-003 (PR #413 9eab53f), FIX-F5-004 (PR #415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 demo-prose mislabel, code correct at iec104.rs:744-748). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next.** | **CONVERGED (D-468)** | R5 NITPICK_ONLY; 0 CRIT/HIGH/MED; F6 next. trajectory-tail →0→0→0→0 |
 | **D-467 F5 Rounds 2-3 COMPLETE (2026-07-17). R2 @ 9c5aa9a: all 5 R1 findings verified fixed by FIX-F5-001; 0 code findings; direction→source_ip DNP3-parity-exact (10 emit sites); 10 fix_f5_001 test assertions non-vacuous; 105 callers pass None + assert others — no regressions. 2 MEDIUM doc-accuracy findings: F5R2-01 wrong provenance (STORY-172/173 cited vs real S-139/S-140); F5R2-02 fabricated T0881 JSON (anomaly/high → non-existent enum variants; real: impact/medium/possible). Code CONVERGED since R2. FIX-F5-002 → PR #412 b356545 merged. R3 @ b356545: R2 doc-fixes ALL verified corrected. NEW F-B1 HIGH — FIX-P4-001 demo-evidence (4 files) still fabricated: Category::Protocol + Verdict::Anomaly (non-existent variants); non-compiling demo .rs; wrong MITRE technique (T0881→T1692.001); FIX-F5-002 CHANGELOG falsely claims correction. 3rd fabricated-demo-JSON occurrence → root cause: demo-recorder hand-wrote JSON without deriving from real serialization. Routed to FIX-F5-003 comprehensive sweep. PG-DEMO-JSON-FABRICATION filed. develop=b356545 (11 unreleased). Round 4 after FIX-F5-003 merge.** | **FINDINGS (D-467)** | R2 code-CONVERGED; R3 F-B1 HIGH docs → FIX-F5-003. trajectory-tail →0→0→0→0 |
-| **D-466 FIX-F5-001 DELIVERED (2026-07-17). PR #411 9c5aa9a squash-merged to develop, human-executed merge per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER. F5 Round-1 findings ALL RESOLVED: F-01 HIGH BC-2.19.011 PC-3 + F-02/03/04/05 MEDIUM — source_ip+timestamp threaded through all 10 IEC-104 emit sites (8 function + 2 inline; DNP3/ENIP house-parity); BC-2.19.011 PC-3 SATISFIED; 10 red-first tests mod fix_f5_001 (each asserts source_ip+timestamp per finding family); 9 stale-prose sites scrubbed GREEN + protocols_tests count comment fixed; false forward-ref comment removed; additive JSON keys source_ip/timestamp documented in CHANGELOG; holdout-expectations sweep COMPLETE (PG-W72; docs/holdout-expectations-sweep-FIX-F5-001.md). Security PASS 0 findings. pr-reviewer APPROVE (MINOR count-prose + NIT timestamp-type both remediated in-file, orchestrator row-verified per PG-W74). CI 13/13 + post-merge SUCCESS. Demo before/after JSON scrub PASS. develop=9c5aa9a (10 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001). F5 Round 2 next (fresh adversary on fixed files).** | **DELIVERED (D-466)** | F5 Round-1 F-01..F-05 ALL RESOLVED. F5 Round 2 next. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -203,6 +206,7 @@ maintenance_prior_run: maint-2026-07-09
 | D-468 | feature-iec104 F5 scoped adversarial CONVERGED (2026-07-17). 5 rounds. FIX-F5-002 (#412 b356545), FIX-F5-003 (#413 9eab53f), FIX-F5-004 (#415 b36b884) all DELIVERED (human-executed merges). R5 NITPICK_ONLY: 0 CRITICAL/HIGH/MEDIUM; 1 LOW non-blocking (TypeID 45 C_SC_NA_1 described as "monitoring direction" in docs/demo-evidence/FIX-P4-001/evidence-report.md:46 + AC-P4-001-test-results.txt:61 — code correct at iec104.rs:744-748; prose-only, non-blocking). Feature code frozen since R2 (9c5aa9a); R3-R5 tail was demo-evidence/CHANGELOG doc-accuracy only (root cause PG-DEMO-JSON-FABRICATION). BC-completeness 31/31 + canonical-frame 19 byte-exact clean. develop=b36b884 (12 unreleased: STORY-167..174 + FIX-P4-001 + FIX-F5-001/002/003/004). F5 gate PASSED — F6 targeted hardening next. trajectory: findings decayed 5→2→1(HIGH,docs)→1(MEDIUM,docs)→0(1 LOW). | 2026-07-17 |
 | D-469 | feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed against post-fix develop b36b884 (iec104.rs emit sites changed by FIX-P4-001/FIX-F5-001 → iec104-dependent checks RE-RUN not assumed): Kani VP-044/004/007 all SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/5min/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns/193 deps; regression 2627/0; clippy+fmt clean. semgrep skipped (absent; cargo-audit + per-PR security-reviews cover surface). Info-asymmetry wall honored (F5 findings not consulted). Verifier self-corrected a -j4 mutation false-timeout measurement error, re-ran scoped for authoritative 95.9%. No BLOCKERs. Artifacts .factory/phase-f6-hardening/. F6 gate PASSED — F7 delta convergence next. | 2026-07-17 |
 | D-470 | feature-iec104 F7 delta convergence CONVERGED (2026-07-17). All 5 dimensions PASS: Spec novelty LOW (F5 R5); Test mutation 95.9% (F6); Impl 0 open HIGH; Verification F6 all-green (Kani 5 harnesses, fuzz 2.64M/0 crashes, audit 0 vulns); Holdout black-box acceptance mean 0.99 RELEASE-READY (holdout-evaluator, info-asymmetry, canonical IEC-104 frames; must-pass #1/#4/#6 all 1.0). Regression 2627/0. Input-hash drift resolved: STORY-167..172 re-baselined BENIGN (consistency audit); STORY-164/165 out-of-scope. Consistency audit 2 MINOR doc-only (B-001/B-002, deferred cycle-close). RELEASE HELD (human direction) — v0.13.0 MINOR cut deferred. F7 human gate: convergence approved, release-cut deferred. | 2026-07-17 |
+| D-471 | E2E IEC-104 coverage merged (PR #416 0b65e8e squash-merged to develop, 2026-07-17, human-executed merge; human-directed task, post-F7). Closed the IEC-104 e2e gap (corpus had zero IEC-104 captures; 4SICS ICS captures confirmed no port-2404 traffic). Added 4 real captures to the LOCAL-ONLY corpus mechanism (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level corpus smoke-test pins (105/1/173/147; full corpus 39 pins 0 mismatch 0 panic). NEW analyzer-level tests/iec104_e2e_real_pcaps_tests.rs (in-process pipeline, CI-safe self-skip mirroring ENIP test, DF-TEST-NAMESPACE-001 mod wrapper): pins per-technique detection on real traffic — iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic-frame holdout (0.99) with real-world capture validation. CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased). | 2026-07-17 |
 
 ---
 
@@ -229,7 +233,7 @@ maintenance_prior_run: maint-2026-07-09
 | ID | Summary | Source | Target |
 |----|---------|--------|--------|
 | DRIFT-SPRINT-STATE-FIELD-FORM-001 | sprint-state.yaml uses both `merge_sha:` and `merge_commit:` field names inconsistently across wave entries. Vestigial file (STORY-INDEX is authoritative wave registry). | wave-75 gate S-7.02 justified deferral (D-435) | vestigial-file retirement at next housekeeping pass |
-| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) NOT ancestor of develop (b36b884). Trees ARE identical for released content — history-only divergence. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
+| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; main (fedcea4) NOT ancestor of develop (0b65e8e). Trees ARE identical for released content — history-only divergence. | v0.12.1 release (D-436, 2026-07-13) | resolve at next release cut |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly). Out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS owner — next TLS maintenance sweep |
 
 ---
@@ -262,21 +266,21 @@ maintenance_prior_run: maint-2026-07-09
 | B-001 | (MINOR, doc-only, non-blocking) PRD RTM entry for BC-2.19.006 carries stale title text; code behavior correct. Surfaced by F7 consistency audit (consistency-audit.md). | Cycle-close spec-doc-currency sweep |
 | B-002 | (MINOR, doc-only, non-blocking) BC-2.19.002 PC-2 references T0814 (superseded by BC-2.19.026 PC-4 for reserved TypeIDs); no code impact. Surfaced by F7 consistency audit. | Cycle-close spec-doc-currency sweep |
 | STORY-164/165 input-hash staleness | STORY-164 and STORY-165 report STALE input-hashes per `bin/compute-input-hash --scan`; pre-feature stories, out of feature-iec104 F7 gate scope. Separate re-baseline pass required. | Separate re-baseline pass (not gating release) |
-| feature-iec104 RELEASE-PENDING | v0.13.0 MINOR cut deferred by human direction (D-470); develop=b36b884 (12 unreleased). Resume via /vsdd-factory:release when authorized. | v0.13.0 release cut — awaiting human authorization |
+| feature-iec104 RELEASE-PENDING | v0.13.0 MINOR cut deferred by human direction (D-470); develop=0b65e8e (13 unreleased). Resume via /vsdd-factory:release when authorized. | v0.13.0 release cut — awaiting human authorization |
 
 ---
 
 ## Session Resume Checkpoint
 
-**D-470 feature-iec104 F7 delta convergence CONVERGED (2026-07-17). All 5 dimensions PASS: Spec novelty LOW (F5 R5 NITPICK_ONLY); Test mutation 95.9% (F6); Impl 0 open HIGH; Verification F6 all-green (Kani 5 harnesses VP-044/045/046/047+VP-004/007, fuzz 2.64M/0 crashes, audit 0 vulns); Holdout black-box acceptance mean 0.99 RELEASE-READY (holdout-evaluator, info-asymmetry, canonical IEC-104 frames; must-pass #1/#4/#6 all 1.0). Regression 2627/0 CLEAN. Input-hash drift resolved: STORY-167..172 re-baselined BENIGN (consistency audit); STORY-164/165 out-of-scope. Consistency audit 2 MINOR doc-only (B-001/B-002, deferred cycle-close). RELEASE HELD (human direction) — v0.13.0 MINOR cut deferred. F7 human gate: convergence approved, release-cut deferred. trajectory-tail →0→0→0→0**
+**D-471 E2E IEC-104 coverage merged (2026-07-17). PR #416 0b65e8e squash-merged to develop, human-executed merge. Human-directed post-F7 task. Closed the IEC-104 e2e gap (corpus had zero IEC-104 captures; 4SICS captures confirmed no port-2404 traffic). 4 real captures added to LOCAL-ONLY corpus (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level smoke-test: 105/1/173/147 pins (39 total, 0 mismatch, 0 panic). NEW tests/iec104_e2e_real_pcaps_tests.rs: in-process pipeline, CI-safe self-skip, DF-TEST-NAMESPACE-001 wrapper — iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic holdout (0.99). CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased). RELEASE HELD (human). trajectory-tail →0→0→0→0**
 
-**D-469 feature-iec104 F6 targeted hardening PASS (2026-07-17). All VPs re-confirmed on post-fix develop b36b884: Kani VP-044/004/007 SUCCESSFUL; VP-045/046 proptest pass; VP-047 fuzz 2.64M runs/0 crashes; cargo-mutants iec104.rs 95.9% (118/123, 0 killable, 5 equivalent-justified); cargo-audit 0 vulns; regression 2627/0; clippy+fmt clean. No BLOCKERs. F6 gate PASSED — F7 delta convergence next. trajectory-tail →0→0→0→0**
+**D-470 feature-iec104 F7 delta convergence CONVERGED (2026-07-17). All 5 dimensions PASS: Spec novelty LOW (F5 R5 NITPICK_ONLY); Test mutation 95.9% (118/123, F6); Impl 0 open HIGH (code frozen R2 9c5aa9a); Verification F6 all-green (Kani 5 harnesses VP-044/045/046/047+VP-004/007, fuzz 2.64M/0 crashes, audit 0 vulns); Holdout black-box acceptance mean 0.99 RELEASE-READY (holdout-evaluator, info-asymmetry, canonical IEC-104 frames; must-pass #1/#4/#6 all 1.0). Regression 2627/0 CLEAN. Input-hash drift resolved: STORY-167..172 re-baselined BENIGN (consistency audit); STORY-164/165 out-of-scope. Consistency audit 2 MINOR doc-only (B-001/B-002, deferred cycle-close). RELEASE HELD (human direction) — v0.13.0 MINOR cut deferred. F7 human gate: convergence approved, release-cut deferred. trajectory-tail →0→0→0→0**
 
-Prior checkpoint (D-469 F6 PASS, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
+Prior checkpoint (D-470 F7 CONVERGED, 2026-07-17) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-17. Position: feature-iec104 F7 CONVERGED (D-470); RELEASE HELD; v0.13.0 cut deferred pending human auth. develop=b36b884. trajectory-tail →0→0→0→0
-- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `b36b884`. DRIFT-BACKMERGE-SQUASH-001 still applies. 12 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93) + STORY-174 (PR #409 547deba) + FIX-P4-001 (PR #410 7e95f71) + FIX-F5-001 (PR #411 9c5aa9a) + FIX-F5-002 (PR #412 b356545) + FIX-F5-003 (PR #413 9eab53f) + FIX-F5-004 (PR #415 b36b884).
-- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464). F5 CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 all delivered. F6 PASS (D-469). F7 CONVERGED (D-470): 5/5 dims PASS; holdout 0.99; RELEASE HELD.
+- **Date:** 2026-07-17. Position: D-471 E2E IEC-104 coverage merged (post-F7); feature at F7-CONVERGED, RELEASE HELD; v0.13.0 cut deferred pending human auth. develop=0b65e8e (13 unreleased). trajectory-tail →0→0→0→0
+- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `0b65e8e`. DRIFT-BACKMERGE-SQUASH-001 still applies. 13 unreleased commits: STORY-167 (PR #401 e65e0d6) + STORY-168 (PR #402 b720fd96) + STORY-169 (PR #403 ac01d9f2) + STORY-170 (PR #404 0bd93f8) + STORY-171 (PR #405 1a64380) + STORY-172 (PR #406 d64e5fe) + STORY-173 (PR #408 084ff93) + STORY-174 (PR #409 547deba) + FIX-P4-001 (PR #410 7e95f71) + FIX-F5-001 (PR #411 9c5aa9a) + FIX-F5-002 (PR #412 b356545) + FIX-F5-003 (PR #413 9eab53f) + FIX-F5-004 (PR #415 b36b884) + e2e-iec104-fixtures (PR #416 0b65e8e).
+- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463): STORY-167..174. Wave-83 SATISFIED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464). F5 CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 all delivered. F6 PASS (D-469). F7 CONVERGED (D-470): 5/5 dims PASS; holdout 0.99; RELEASE HELD. D-471 E2E IEC-104 coverage merged (4 fixtures + analyzer-level real-pcap test).
 - **Remaining delivery sequence:** (release HELD) v0.13.0 MINOR release cut when human authorizes (via /vsdd-factory:release), then cycle-close lessons codification (B-001/B-002/TypeID-45/process-gaps). PR #407 external-fork triage also pending.
 - **Carry-forwards:** ROUTE-BC-DEFER-2026-07-11; ROUTE-W74-DEFERRED; PERF-RERUN-001; SEC-001; STORY-166 (E-11, 3 pts, wave-TBD, hash b56924f); IEC104-TIMED-CMD-GAP-001 (TypeIDs 58–64 detection gap, DF-VALIDATION-001-gated); IEC104-DEMO-TYPEID45-MISLABEL (LOW, non-blocking; docs-currency sweep or cycle-close); B-001/B-002 (MINOR doc-only; cycle-close spec-doc-currency sweep); STORY-164/165 input-hash staleness (separate re-baseline pass); feature-iec104 RELEASE-PENDING; PG-DEMO-JSON-FABRICATION; PG-GATE-VOCAB-BLINDSPOT; PG-MERGE-AUTH-SUBAGENT-CLASSIFIER; PG-VERIFY-ALL-WORKTREES; PG-STATE-RECOVERY-SCOPE; PG-DOC-CURRENCY-SWEEP; PG-ADVERSARY-IDLE-NO-REPORT; PG-ADVERSARY-SEVERITY-CALIBRATION (all → cycle-close codification).
 - **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.76 / dep-graph v3.9 (137 edges).
