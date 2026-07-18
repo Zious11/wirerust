@@ -7,6 +7,34 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **IEC-104 E2E pcap/pcapng corpus fixtures (STORY-167..174 coverage).**
+
+  Four IEC 60870-5-104 real-world captures added to the E2E smoke-test corpus
+  (`bin/fetch-e2e-pcaps` + `tests/fixtures/E2E-PCAPS.md` + pinned expectations in
+  `tests/e2e_corpus_smoke_tests.rs`):
+
+  - `iec104.pcap` (Wireshark Foundation; 10 KB) — canonical IEC-104 reference:
+    U-frames (STARTDT/STOPDT/TESTFR) + I-frame ASDUs + C_IC general interrogation
+    lifecycle. Analyzer produces 66 findings (T1692.001 ×42, T0836 ×24).
+  - `iec104-sq.pcapng` (Wireshark Foundation; 584 B) — native pcapng; SQ-bit ASDU
+    (sequence-of-information-objects encoding). Exercises the pcapng reader with IEC-104.
+    0 findings (benign link-management only).
+  - `iec104-iti-diverse.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 14 KB) — diverse ASDU
+    Type ID mix. Analyzer produces 31 findings (T1692.001 ×21, T0836 ×10).
+  - `iec104-iti-dissect.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 11 KB) — broad Type ID /
+    COT coverage including control commands. Analyzer produces 11 findings
+    (T1692.001 ×9, T0814 ×2).
+
+  All four captures parse without panics; zero parse_errors on every run. Corpus grows
+  from 36 to 40 files; smoke test now verifies 39 pinned entries.
+
+  Companion analyzer-level e2e test added in `tests/iec104_e2e_real_pcaps_tests.rs` (4 tests,
+  modeled on `enip_e2e_real_pcaps_tests.rs`) pinning per-technique finding counts and
+  category/verdict/confidence distributions as regression guards against the IEC-104
+  analyzer pipeline (BC-2.19, STORY-167..174).
+
 ### Fixed
 
 - **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and

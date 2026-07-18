@@ -334,6 +334,60 @@ The actual JSON output has **201 Likely/High (Pattern A: Identity-read requests)
 | `enip_metasploit.pcapng` | `https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_metasploit.pcapng` |
 | `EthernetIP-CIP.pcap` | `https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/EthernetIP-CIP.pcap` |
 
+## IEC 60870-5-104 (IEC-104) captures (STORY-167..174)
+
+Real-world IEC-104 (TCP port 2404) captures used for E2E validation of the IEC-104
+analyzer (SS-19). All are auto-fetchable via `bin/fetch-e2e-pcaps`.
+
+### Sources
+
+Two sources used:
+
+- **Wireshark Foundation SampleCaptures** — canonical reference samples; no per-file license;
+  public samples; not redistributed. Credit: Wireshark Foundation.
+- **ITI/ICS-Security-Tools** (CC-BY-4.0) — `pcaps/IEC60870-5-104/` at
+  `github.com/ITI/ICS-Security-Tools`. Attribution: ICS Security Tools, Illinois Institute
+  of Technology (ITI). License: CC-BY-4.0.
+
+### Captures
+
+| File | Size | sha256 | Source | License | Content summary |
+|------|------|--------|--------|---------|----------------|
+| `iec104.pcap` | 10 KB | `a78aa971adc51e54413a865937f1799ef57118d397cef57ccd93a358ed5b85d6` | Wireshark SampleCaptures | local-use-only | Canonical IEC-104 reference: U-frames (STARTDT/STOPDT/TESTFR) + I-frame ASDUs + C_IC general interrogation (TypeID 100, COT 6 act/7 con/20 inrogen/10 actterm). 105 reader packets. Produces 66 findings: T1692.001 ×42 (control commands) + T0836 ×24 (parameter modification). |
+| `iec104-sq.pcapng` | 584 B | `f855a11326f7aa4f719b1fbb65e5f8dfe3d9d194185a8f5faf5b5dc3cb831227` | Wireshark SampleCaptures | local-use-only | **Native pcapng** (SHB magic `0x0A0D0D0A`); SQ-bit set in ASDU variable-structure qualifier (sequence-of-information-objects encoding). Only native IEC-104 pcapng found on an authoritative source. 1 reader packet; 0 findings (small link-layer exercise). |
+| `iec104-iti-diverse.pcap` | 14 KB | `07b9a0879dc83e420c4cf83b37fb5830d1d8fb5f6ac6edc435896f70b0fc6bc7` | ITI/ICS-Security-Tools | CC-BY-4.0 | IEC-104 diverse-ASDU capture from the same ITI ICS corpus as the ENIP fixtures. 173 reader packets. Produces 31 findings: T1692.001 ×21 + T0836 ×10. |
+| `iec104-iti-dissect.pcap` | 11 KB | `292c18a8765db3b1bcaa9bd0b8455e4e61b8366cc5910a7363b7381eb11441b8` | ITI/ICS-Security-Tools | CC-BY-4.0 | Wireshark-dissector test capture: deliberately broad Type ID / COT coverage including control commands (C_SC/C_DC/C_SE). 147 reader packets. Produces 11 findings: T1692.001 ×9 + T0814 ×2. |
+
+### Analyzer-level outcomes (IEC-104 --iec104 flag)
+
+| File | Findings | Techniques fired | Parse errors |
+|------|----------|-----------------|--------------|
+| `iec104.pcap` | 66 | T0836 ×24, T1692.001 ×42 | 0 |
+| `iec104-sq.pcapng` | 0 | — (benign link-management traffic only) | 0 |
+| `iec104-iti-diverse.pcap` | 31 | T0836 ×10, T1692.001 ×21 | 0 |
+| `iec104-iti-dissect.pcap` | 11 | T0814 ×2, T1692.001 ×9 | 0 |
+
+All four captures parse without panics; zero parse_errors across all.
+
+### Attribution
+
+- **`iec104.pcap`** and **`iec104-sq.pcapng`**: Wireshark Foundation public SampleCaptures
+  collection. No per-file license stated; public samples. Credit: Wireshark Foundation.
+  Not redistributed.
+- **`iec104-iti-diverse.pcap`** and **`iec104-iti-dissect.pcap`**: ITI/ICS-Security-Tools,
+  Illinois Institute of Technology (ITI). License: CC-BY-4.0. Redistributable with
+  attribution. Repo: `https://github.com/ITI/ICS-Security-Tools`, directory
+  `pcaps/IEC60870-5-104/`.
+
+### Direct download URLs (IEC-104 captures)
+
+| File | URL |
+|------|-----|
+| `iec104.pcap` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/iec104.pcap` |
+| `iec104-sq.pcapng` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/IEC104_SQ.pcapng` |
+| `iec104-iti-diverse.pcap` | `https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/IEC60870-5-104/090813_diverse.pcap` |
+| `iec104-iti-dissect.pcap` | `https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/IEC60870-5-104/TestDissectIec104.pcap` |
+
 ## Adding a capture
 
 1. Drop the `.pcap` in `tests/fixtures/local-samples/` (gitignored).

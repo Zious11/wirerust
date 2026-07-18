@@ -118,6 +118,20 @@ const EXPECTED: &[(&str, Expected)] = &[
     ("enip_metasploit.pcapng", Expected::OkCount(1784)),
     // EthernetIP-CIP.pcap (ITI CC-BY-4.0): 8799 ENIP PDUs; 10880 total packets.
     ("EthernetIP-CIP.pcap", Expected::OkCount(10880)),
+    // ── IEC 60870-5-104 captures (STORY-167..174) ─────────────────────────
+    // Packet counts are reader-level (PcapSource::from_file).
+    //
+    // iec104.pcap (Wireshark Foundation; public sample; not redistributed):
+    //   U-frames + I-frame ASDUs + C_IC general interrogation lifecycle. 105 packets.
+    ("iec104.pcap", Expected::OkCount(105)),
+    // iec104-sq.pcapng (Wireshark Foundation; public sample; not redistributed):
+    //   Native pcapng; SQ-bit ASDU. 1 packet.
+    ("iec104-sq.pcapng", Expected::OkCount(1)),
+    // iec104-iti-diverse.pcap (ITI CC-BY-4.0): diverse ASDU Type ID mix. 173 packets.
+    ("iec104-iti-diverse.pcap", Expected::OkCount(173)),
+    // iec104-iti-dissect.pcap (ITI CC-BY-4.0): broad Type ID / COT coverage
+    //   incl. control commands. 147 packets.
+    ("iec104-iti-dissect.pcap", Expected::OkCount(147)),
     // ── Err captures (stable error substring) ─────────────────────────────
     // E-INP-011: multi-IDB link-type conflict (message ends with "(E-INP-011)")
     ("pcapng-example.pcapng", Expected::ErrContains("E-INP-011")),
