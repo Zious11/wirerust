@@ -7,7 +7,60 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-18
+
+IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
+
+### Added
+
+- **IEC-104 E2E pcap/pcapng corpus fixtures (STORY-167..174 coverage).**
+
+  Four IEC 60870-5-104 real-world captures added to the E2E smoke-test corpus
+  (`bin/fetch-e2e-pcaps` + `tests/fixtures/E2E-PCAPS.md` + pinned expectations in
+  `tests/e2e_corpus_smoke_tests.rs`):
+
+  - `iec104.pcap` (Wireshark Foundation; 10 KB) — canonical IEC-104 reference:
+    U-frames (STARTDT/STOPDT/TESTFR) + I-frame ASDUs + C_IC general interrogation
+    lifecycle. Analyzer produces 66 findings (T1692.001 ×42, T0836 ×24).
+  - `iec104-sq.pcapng` (Wireshark Foundation; 584 B) — native pcapng; SQ-bit ASDU
+    (sequence-of-information-objects encoding). Exercises the pcapng reader with IEC-104.
+    0 findings (benign link-management only).
+  - `iec104-iti-diverse.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 14 KB) — diverse ASDU
+    Type ID mix. Analyzer produces 31 findings (T1692.001 ×21, T0836 ×10).
+  - `iec104-iti-dissect.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 11 KB) — broad Type ID /
+    COT coverage including control commands. Analyzer produces 11 findings
+    (T1692.001 ×9, T0814 ×2).
+
+  All four captures parse without panics; zero parse_errors on every run. Corpus grows
+  from 36 to 40 files; smoke test now verifies 39 pinned entries.
+
+  Companion analyzer-level e2e test added in `tests/iec104_e2e_real_pcaps_tests.rs` (4 tests,
+  modeled on `enip_e2e_real_pcaps_tests.rs`) pinning per-technique finding counts and
+  category/verdict/confidence distributions as regression guards against the IEC-104
+  analyzer pipeline (BC-2.19, STORY-167..174).
+
 ### Fixed
+
+- **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and
+  FIX-F5-001 emit-site count prose (FIX-F5-004, F-B2 from F5 Round-4 adversarial review).**
+
+  Two inaccuracies corrected (CHANGELOG.md only; no source or test code changed):
+
+  1. The FIX-F5-003 entry for Example 3 (carry overflow, pre-enrichment baseline) incorrectly
+     stated `mitre_techniques: []`. The corrected demo artifact
+     (`docs/demo-evidence/FIX-P4-001/demo-json-serialization.rs` line 85) and the real emit
+     site (`src/analyzer/iec104.rs` line 1214) both carry `mitre_techniques: ["T0814"]`.
+     Fixed: `mitre_techniques: []` → `mitre_techniques: ["T0814"]`.
+
+  2. The FIX-F5-001 introductory paragraph stated "all 12 Finding constructors — 10 via
+     function parameters and 2 inline". The Emit sites section in the same entry correctly
+     counts 8 function + 2 inline = 10 total (confirmed against iec104.rs). Fixed: "12" →
+     "10" and "10 via function" → "8 via function".
+
+  Comprehensive cross-check of all other concrete CHANGELOG claims in [Unreleased] against
+  ground truth (iec104.rs emit sites, demo artifacts) found no additional mismatches:
+  category/verdict/confidence/MITRE for all three example findings and DNP3/EtherNet/IP
+  direction:None parity claim all confirmed accurate.
 
 - **Comprehensive demo-evidence JSON accuracy sweep across IEC-104 feature artifacts
   (FIX-F5-003).**
@@ -28,7 +81,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     - Example 2 (malformed LEN, S2C): `ThreatCategory::Anomaly`, `Verdict::Possible`,
       `Confidence::Medium`, `mitre_techniques: ["T0814"]`
     - Example 3 (carry overflow, no direction): same category/verdict/confidence as
-      Example 2; `mitre_techniques: []`
+      Example 2; `mitre_techniques: ["T0814"]`
     - Corrected `Direction` import path to `wirerust::reassembly::handler::Direction`.
 
   - `evidence-report.md`: "Before/After" JSON blocks contained the same fabricated
@@ -53,7 +106,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `timestamp: None`, causing those keys to be absent from IEC-104 JSON output.
   The fix threads the initiator IP (resolved from the 5-tuple `FlowKey` by
   direction, mirroring the DNP3/EtherNet/IP house pattern) and the packet
-  timestamp (`ts` parameter) through all 12 `Finding` constructors — 10 via
+  timestamp (`ts` parameter) through all 10 `Finding` constructors — 8 via
   function parameters and 2 inline in `on_data`.
 
   This is an additive, backward-compatible JSON change: the two keys now appear
@@ -1668,7 +1721,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
 [0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5

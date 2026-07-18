@@ -147,6 +147,20 @@ REAL_CAPTURES=(
   # Technology (ITI). CloudShark provenance noted in ITI README.
   # Tests: test_e2e_BC_2_17_ethernet_ip_cip_large_clean_no_panic (CC-BY-4.0).
   "EthernetIP-CIP.pcap|c50b510b3242f94c8aed9a4b6723962f182d04feca8a8dac09a96a135649461d|https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/EthernetIP-CIP.pcap"
+  # --- IEC 60870-5-104 (IEC-104) captures (STORY-167..174; port 2404) ---
+  # Wireshark canonical IEC-104 sample: U-frames (STARTDT/STOPDT/TESTFR) + I-frame
+  # ASDUs + general interrogation (C_IC TypeID 100) lifecycle. TCP 2404.
+  # Credit: Wireshark Foundation; no per-file license; public sample; not redistributed.
+  "iec104.pcap|a78aa971adc51e54413a865937f1799ef57118d397cef57ccd93a358ed5b85d6|https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/iec104.pcap"
+  # Native pcapng: IEC-104 with SQ-bit (sequence-of-IOs) ASDU. Small; exercises
+  # pcapng reader + SQ ASDU path. Credit: Wireshark Foundation; public sample; not redistributed.
+  "iec104-sq.pcapng|f855a11326f7aa4f719b1fbb65e5f8dfe3d9d194185a8f5faf5b5dc3cb831227|https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/IEC104_SQ.pcapng"
+  # ITI diverse-ASDU IEC-104 capture (CC-BY-4.0). Attribution: ICS Security Tools,
+  # Illinois Institute of Technology (ITI).
+  "iec104-iti-diverse.pcap|07b9a0879dc83e420c4cf83b37fb5830d1d8fb5f6ac6edc435896f70b0fc6bc7|https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/IEC60870-5-104/090813_diverse.pcap"
+  # ITI dissector-test IEC-104 capture: broad Type ID / COT coverage incl. control
+  # commands. CC-BY-4.0. Attribution: ICS Security Tools, Illinois Institute of Technology (ITI).
+  "iec104-iti-dissect.pcap|292c18a8765db3b1bcaa9bd0b8455e4e61b8366cc5910a7363b7381eb11441b8|https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/IEC60870-5-104/TestDissectIec104.pcap"
 )
 
 # Link-only captures — NOT auto-fetched. They require manual browser download or are too
