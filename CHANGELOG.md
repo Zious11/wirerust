@@ -7,6 +7,464 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-18
+
+IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
+
+### Added
+
+- **IEC-104 E2E pcap/pcapng corpus fixtures (STORY-167..174 coverage).**
+
+  Four IEC 60870-5-104 real-world captures added to the E2E smoke-test corpus
+  (`bin/fetch-e2e-pcaps` + `tests/fixtures/E2E-PCAPS.md` + pinned expectations in
+  `tests/e2e_corpus_smoke_tests.rs`):
+
+  - `iec104.pcap` (Wireshark Foundation; 10 KB) — canonical IEC-104 reference:
+    U-frames (STARTDT/STOPDT/TESTFR) + I-frame ASDUs + C_IC general interrogation
+    lifecycle. Analyzer produces 66 findings (T1692.001 ×42, T0836 ×24).
+  - `iec104-sq.pcapng` (Wireshark Foundation; 584 B) — native pcapng; SQ-bit ASDU
+    (sequence-of-information-objects encoding). Exercises the pcapng reader with IEC-104.
+    0 findings (benign link-management only).
+  - `iec104-iti-diverse.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 14 KB) — diverse ASDU
+    Type ID mix. Analyzer produces 31 findings (T1692.001 ×21, T0836 ×10).
+  - `iec104-iti-dissect.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 11 KB) — broad Type ID /
+    COT coverage including control commands. Analyzer produces 11 findings
+    (T1692.001 ×9, T0814 ×2).
+
+  All four captures parse without panics; zero parse_errors on every run. Corpus grows
+  from 36 to 40 files; smoke test now verifies 39 pinned entries.
+
+  Companion analyzer-level e2e test added in `tests/iec104_e2e_real_pcaps_tests.rs` (4 tests,
+  modeled on `enip_e2e_real_pcaps_tests.rs`) pinning per-technique finding counts and
+  category/verdict/confidence distributions as regression guards against the IEC-104
+  analyzer pipeline (BC-2.19, STORY-167..174).
+
+### Fixed
+
+- **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and
+  FIX-F5-001 emit-site count prose (FIX-F5-004, F-B2 from F5 Round-4 adversarial review).**
+
+  Two inaccuracies corrected (CHANGELOG.md only; no source or test code changed):
+
+  1. The FIX-F5-003 entry for Example 3 (carry overflow, pre-enrichment baseline) incorrectly
+     stated `mitre_techniques: []`. The corrected demo artifact
+     (`docs/demo-evidence/FIX-P4-001/demo-json-serialization.rs` line 85) and the real emit
+     site (`src/analyzer/iec104.rs` line 1214) both carry `mitre_techniques: ["T0814"]`.
+     Fixed: `mitre_techniques: []` → `mitre_techniques: ["T0814"]`.
+
+  2. The FIX-F5-001 introductory paragraph stated "all 12 Finding constructors — 10 via
+     function parameters and 2 inline". The Emit sites section in the same entry correctly
+     counts 8 function + 2 inline = 10 total (confirmed against iec104.rs). Fixed: "12" →
+     "10" and "10 via function" → "8 via function".
+
+  Comprehensive cross-check of all other concrete CHANGELOG claims in [Unreleased] against
+  ground truth (iec104.rs emit sites, demo artifacts) found no additional mismatches:
+  category/verdict/confidence/MITRE for all three example findings and DNP3/EtherNet/IP
+  direction:None parity claim all confirmed accurate.
+
+- **Comprehensive demo-evidence JSON accuracy sweep across IEC-104 feature artifacts
+  (FIX-F5-003).**
+
+  Corrects fabricated enum variants and misattributed MITRE techniques found across
+  FIX-P4-001 demo artifacts. No source or test code changed; docs and CHANGELOG only.
+
+  **FIX-P4-001 artifacts corrected (`docs/demo-evidence/FIX-P4-001/`):**
+
+  - `demo-json-serialization.rs`: All three examples used non-existent Rust enum
+    variants (`ThreatCategory::Protocol`, `Verdict::Anomaly`) and incorrect JSON
+    casing (`Confidence::High` → serde gives "High" but real serde output is "high").
+    Additionally, Example 1 attributed T0881 (STOPDT-act) to the N(S) desync finding,
+    which is actually T1692.001 (see `track_ns_desync`, iec104.rs). Fixed to use real
+    variants from real emit sites:
+    - Example 1 (N(S) desync, C2S): `ThreatCategory::Impact`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T1692.001"]`
+    - Example 2 (malformed LEN, S2C): `ThreatCategory::Anomaly`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T0814"]`
+    - Example 3 (carry overflow, no direction): same category/verdict/confidence as
+      Example 2; `mitre_techniques: ["T0814"]`
+    - Corrected `Direction` import path to `wirerust::reassembly::handler::Direction`.
+
+  - `evidence-report.md`: "Before/After" JSON blocks contained the same fabricated
+    "Protocol"/"Anomaly"/"High"/"T0881" values. Replaced with real serde output
+    derived from the actual emit sites: "impact"/"possible"/"medium"/"T1692.001" for
+    the C2S N(S) desync example; "anomaly"/"possible"/"medium"/"T0814" for the S2C
+    malformed-LEN example.
+
+  - `AC-P4-001-test-results.txt`: Inline JSON examples used the same fabricated tokens.
+    Replaced with real field values and annotated with the originating emit function.
+
+  **CHANGELOG correction:** The FIX-F5-002 entry previously claimed it corrected
+  "FIX-F5-001 and FIX-P4-001 evidence artifacts". FIX-F5-002 only corrected FIX-F5-001
+  artifacts (wrong provenance, fabricated JSON, wrong year). FIX-P4-001 artifacts were
+  not touched by FIX-F5-002 and are corrected here by FIX-F5-003. Entry updated to
+  "FIX-F5-001 evidence artifacts only".
+
+- **IEC-104 findings now carry `source_ip` and `timestamp` JSON keys (FIX-F5-001,
+  BC-2.19.011 PC-3).**
+
+  All IEC-104 `Finding` emit sites previously left `source_ip: None` and
+  `timestamp: None`, causing those keys to be absent from IEC-104 JSON output.
+  The fix threads the initiator IP (resolved from the 5-tuple `FlowKey` by
+  direction, mirroring the DNP3/EtherNet/IP house pattern) and the packet
+  timestamp (`ts` parameter) through all 10 `Finding` constructors — 8 via
+  function parameters and 2 inline in `on_data`.
+
+  This is an additive, backward-compatible JSON change: the two keys now appear
+  on IEC-104 findings where they were previously absent. JSON consumers that
+  tolerate unknown keys or use subset/contains assertions are unaffected.
+
+  **Emit sites enriched (8 function + 2 inline = 10 total):**
+  - `process_u_frame`: STOPDT-act T0881 + non-canonical U-frame T0814.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 +
+    T0836, TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001.
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame`, `detect_iec104_threats`, and
+  `track_ns_desync` each gain `source_ip: Option<IpAddr>` and
+  `timestamp: Option<chrono::DateTime<chrono::Utc>>` parameters (callers updated).
+
+- **Documentation accuracy corrections for FIX-F5-001 evidence artifacts only
+  (FIX-F5-002).**
+
+  Corrects three categories of inaccuracy introduced during demo-evidence authoring; no
+  source or test code is changed:
+
+  1. **Wrong provenance for sibling source_ip/timestamp enrichment:** The FIX-F5-001
+     evidence report (`docs/demo-evidence/FIX-F5-001/evidence-report.md`) incorrectly
+     cited STORY-172 and STORY-173 as the origin of DNP3/EtherNet/IP source_ip enrichment.
+     Those stories implement IEC-104 carry buffers and the IEC-104 dispatcher respectively;
+     the DNP3/EtherNet/IP house pattern for source_ip+timestamp originates from the
+     S-139/S-140 lineage (PR #328). Corrected to cite S-139/S-140 (PR #328) and to note
+     that IEC-104 additionally populates `direction: Some(direction)`, which DNP3 and
+     EtherNet/IP do not.
+
+  2. **Fabricated JSON in Before/After block:** The evidence-report JSON examples contained
+     incorrect field values (`category: "anomaly"`, `confidence: "high"`, fabricated summary
+     and evidence strings, `direction: "client_to_server"` with wrong casing). Replaced with
+     the actual T0881 STOPDT-act finding values from `src/analyzer/iec104.rs` lines 382–396:
+     `category: "impact"`, `confidence: "medium"`, real summary string,
+     `evidence: ["CF1=0x13 (STOPDT-act)"]`, `direction: "ClientToServer"` (serde default,
+     no `rename_all`).
+
+  3. **Wrong year in example timestamps:** Example timestamps using `2025-07-17` corrected
+     to `2026-07-17`.
+
+- **IEC-104 findings now carry the `direction` JSON key (FIX-P4-001,
+  IEC104-FINDING-DIRECTION-001).**
+
+  All IEC-104 `Finding` emit sites previously left `direction: None`, causing the
+  `direction` key to be absent from IEC-104 JSON output (the field uses
+  `#[serde(skip_serializing_if = "Option::is_none")]`). This is an additive,
+  backward-compatible JSON change — JSON consumers that tolerate unknown keys or use
+  subset/contains assertions are unaffected.
+
+  The fix brings IEC-104 direction enrichment into conformance with the TLS / Modbus /
+  HTTP analyzers, which already set `direction: Some(direction)` on every emitted finding.
+  Note: DNP3 and EtherNet/IP analyzers set `direction: None`; IEC-104's direction
+  population therefore exceeds the DNP3/EtherNet/IP baseline (which provides only
+  `source_ip` + `timestamp` parity, not direction).
+
+  **Emit sites fixed (10 total):**
+  - `process_u_frame`: STOPDT-act T0881 finding + non-canonical U-frame T0814 finding.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 + T0836,
+    TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001; redundant `format!("direction=…")` evidence
+    line dropped (structured field carries the same information).
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame` and `detect_iec104_threats` each gain a
+  `direction: Direction` parameter (callers updated).
+
+### Changed
+
+- **`bin/check-green-doc-tense` green-doc-tense gate extended with three new IEC-104 phrasings
+  (STORY-174, AC-174-008, PG-REDGREEN-COMMENT-CLEANUP).**
+
+  Adds patterns 23–25 to the `_VIOLATION_PATTERNS` token list to catch stale Red-Gate section
+  headers that slipped through the original gate across STORY-167..173 because the existing
+  patterns required exact token adjacency:
+
+  - **Pattern 23** (`All tests\b.*\bMUST FAIL`, case-insensitive): catches module/section
+    headers with interposed qualifiers such as "All tests in this module MUST FAIL" or "All
+    tests in this section MUST FAIL". Subsumes the original pattern 1 for these phrasings.
+  - **Pattern 24** (`FAILS?\s+Red Gate`, case-insensitive): catches compile-only-seam
+    assertions like "FAILS Red Gate" or "FAIL Red Gate". Past-tense "failed Red Gate" is
+    exempt (the 'ed' suffix prevents the `\s+` from matching after "fail").
+  - **Pattern 25** (`(?:are|is)\s+todo!\(\)\s+stub`, case-insensitive): catches present-tense
+    stub-state assertions like "are todo!() stubs" and "is todo!() stub". Past-tense "were"
+    and provenance "originated as" are exempt.
+
+  Three baseline stale headers in `tests/iec104_analyzer_tests.rs` (~L662-663, ~L1498, ~L1544)
+  scrubbed to GREEN-accurate prose. Self-test passes at 72/72 cases; tree-wide scan finds 0
+  violations after the scrub. No new CI job; extends the existing `green-doc-tense-gate`.
+
+### Added
+
+- **IEC-104 dispatcher integration: `DispatchTarget::Iec104`, `--iec104` flag, T0881 catalog
+  entry, port 2404 in `SUPPORTED_PORTS`, and `MAX_IEC104_FINDINGS` cap (STORY-173, wave-82,
+  BC-2.05.012, BC-2.10.010, BC-2.12.025, BC-2.18.003, BC-2.18.004, BC-2.19.028,
+  ADR-013 Decisions 1/9/10).**
+
+  Wires the IEC-104 passive analyzer into the full wirerust pipeline across five subsystems:
+
+  - **Dispatcher wiring (SS-05, AC-173-008):** `StreamDispatcher` gains `iec104:
+    Option<Iec104Analyzer>` field, a 6-parameter `new()`, `set_iec104_analyzer()` setter, and
+    `iec104_analyzer()` / `take_iec104_analyzer()` accessors. `on_data` Iec104 arm routes
+    port-2404 flow data to `Iec104Analyzer::on_data`; `on_flow_close` Iec104 arm forwards
+    to `Iec104Analyzer::on_flow_close`. Early-exit guard extended with `&& self.iec104.is_none()`
+    so `--iec104`-only invocations are not silently dropped (ADR-013 Decision 9 steps 4–5).
+
+  - **MITRE catalog — T0881 six-part atomic (SS-10, AC-173-002):** `SEEDED_TECHNIQUE_IDS`
+    gains `"T0881"` (28→29 entries); `SEEDED_TECHNIQUE_ID_COUNT` bumped to 29; `EMITTED_IDS`
+    updated; `technique_info("T0881")` arm returns `("Service Stop",
+    MitreTactic::IcsInhibitResponseFunction)` (TA0107); `vp007_catalog_drift_guard` and
+    `verify_all_seeded_ids_resolve` pass at count=29 (ADR-013 Decision 10).
+
+  - **CLI flag (SS-12, AC-173-003):** `--iec104` boolean flag added to `CliArgs`; `main.rs`
+    constructs and registers `Iec104Analyzer` when the flag is present (default-off opt-in
+    model per BC-2.12.025).
+
+  - **Protocol catalog (SS-18, AC-173-004/005):** port 2404 added to `SUPPORTED_PORTS`
+    (count 8→9); `supported_protocols()` count 7→8; VP-041 partition proptest verifies
+    supported_protocols() ∪ unsupported_protocols() partitions KNOWN_PROTOCOLS (disjoint,
+    complete coverage) after port 2404 addition.
+
+  - **Findings cap (SS-19, AC-173-007 / BC-2.19.028):** `const MAX_IEC104_FINDINGS: usize =
+    10_000` added to `src/analyzer/iec104.rs`; `Iec104Analyzer` gains `dropped_findings: u64`
+    field; cap enforced at the `on_data` extend step by truncating `local_findings` to the
+    remaining capacity and accumulating the discarded count into `dropped_findings`; surfaced
+    in `summarize()` as detail key `"dropped_findings"`. Mirrors the DNP3/EtherNet/IP
+    `MAX_FINDINGS` pattern (BC-2.15.022 / BC-2.17.022). Per-flow state continues updating
+    regardless of the cap.
+
+  - **Real `flows_analyzed` counter (SS-19, STORY-173 LOW#1 / BC-2.19.028 observability):**
+    `Iec104Analyzer` gains `flows_analyzed: u64` field (initialized 0); `on_flow_close`
+    increments it when `HashMap::remove` returns `Some` (closed-flow count). `summarize()`
+    now computes `detail["flows_analyzed"]` as `self.flows_analyzed + self.flows.len()` —
+    closed flows plus still-open flows — replacing the previous `self.flows.len()`-only
+    value that returned 0 after both flows closed. Mirrors the ENIP `flows_analyzed` and
+    DNP3 `closed_flows_count` patterns.
+
+  - **Real `packets_analyzed` counter (SS-19, STORY-173 LOW#2 / BC-2.19.028 observability):**
+    `Iec104FlowState` gains `frame_count: u64` (initialized 0 via `Default`); incremented
+    once per successful `parse_apci_header` call in the `on_data` frame-walk loop (valid
+    start-byte + LEN in [4,253] + full frame available; bad-start-byte skips and
+    malformed-LEN stubs are not counted). `Iec104Analyzer` gains `total_frames_closed: u64`;
+    `on_flow_close` folds the removed flow's `frame_count` into it. `summarize()` now
+    returns `packets_analyzed = self.total_frames_closed + Σ open-flow.frame_count` —
+    replacing the previous `all_findings.len()` proxy that returned 0 for finding-free
+    frames (e.g. TESTFR-act). Mirrors the DNP3 `total_frames_closed` + open-flow sum pattern.
+
+  - **SEC-001 doc correction (SS-19, STORY-173 SEC-001):** `is_valid_iec104_frame` doc
+    rewritten to accurately describe it as a standalone pure predicate and VP-047 fuzz
+    seam — not wired as a dispatch gate by design. Its equivalent validation is performed
+    inline in the `on_data` frame-walk loop (start-byte check + LEN-range check) per
+    walk-first residual-bound anti-evasion semantics (ADR-013 Decisions 1/2). Module-doc
+    updated to match.
+
+- **IEC-104 carry buffers + frame-walk loop + flow lifecycle (STORY-172, wave-81,
+  BC-2.19.025–027, ADR-013 Decision 3).**
+
+  Implements the outer processing infrastructure for the IEC-104 passive analyzer in
+  `src/analyzer/iec104.rs`:
+
+  - `Iec104Analyzer::on_data(flow_key, data, ts, direction)`: effectful shell that
+    prepends the directional carry buffer to the delivery, walks the combined buffer
+    processing every complete APCI frame, and stashes any incomplete tail back into
+    the directional carry. WALK-FIRST-RESIDUAL-BOUND carry-overflow guard (F-172-001):
+    the directional carry alone is checked against MAX_IEC104_CARRY_BYTES=255 (not the
+    aggregate carry+delivery); if carry.len() > 255 (adversarial state injection;
+    unreachable from conformant traffic), the carry is cleared and ONE T0814
+    `Anomaly/Possible/Medium` emitted on the first overflow per direction via
+    per-direction dedup flags `carry_overflow_reported_c2s` /
+    `carry_overflow_reported_s2c` (BC-2.19.025 v1.3 invariants 4–5; SEC-001-S168
+    defense-in-depth). The delivery is always walked regardless — no delivery is ever
+    discarded before frame extraction (anti-evasion per F-172-001 and Ptacek/Newsham
+    1998; BC-2.19.025 invariant 2). Malformed-LEN frames (valid 0x68 + LEN outside
+    [4, 253]) advance 2 bytes and emit ONE T0814 on the first occurrence per direction
+    via per-direction dedup flags `malformed_len_reported_c2s` /
+    `malformed_len_reported_s2c` (BC-2.19.026 invariant 5; EMIT-WITH-DEDUP). Bad start
+    bytes advance 1 byte with no finding. Complete valid frames are dispatched to
+    `process_u_frame`, `parse_asdu` + `detect_iec104_threats`, or `track_ns_desync`
+    per frame format. VP-047 fuzz target (`fuzz_iec104_parser`).
+
+  - `Iec104Analyzer::on_flow_close(flow_key)`: removes the `Iec104FlowState` entry
+    from the flow map; carry bytes are silently discarded (dropped with the state);
+    no finding emitted; unknown flow keys are a no-op (BC-2.19.027).
+
+  - `Iec104FlowState` now fully wired with all 9 fields: `carry_c2s`, `carry_s2c`,
+    `session_started`, `last_ns_c2s`, `last_ns_s2c`, `malformed_len_reported_c2s`,
+    `malformed_len_reported_s2c`, `carry_overflow_reported_c2s`,
+    `carry_overflow_reported_s2c`.
+
+  - VP-045 proptest skeletons `proptest_vp045_direction_isolation` and
+    `proptest_vp045_independent_run_equivalence` in `tests/iec104_analyzer_tests.rs`
+    verify carry direction isolation (full execution in STORY-174).
+
+- **IEC-104 N(S)/N(R) extraction + `Option<u16>` first-frame-baseline desync detection
+  (STORY-171, wave-80, BC-2.19.023–024, ADR-013 Decision 6).**
+
+  Implements N(S) sequence-number tracking and desynchronization detection in
+  `src/analyzer/iec104.rs`:
+
+  - `extract_ns(cf1, cf2) -> u16`: pure-core free function extracting the 15-bit send
+    sequence number from I-format CF1/CF2 bytes via
+    `((cf1 as u16) >> 1) | ((cf2 as u16) << 7)` — range [0, 32767]
+    (BC-2.19.023 postcondition 1).
+
+  - `extract_nr(cf3, cf4) -> u16`: pure-core free function extracting the 15-bit receive
+    sequence number from I/S-format CF3/CF4 bytes via the symmetric formula.
+    N(R) is transient — not stored in `Iec104FlowState` (BC-2.19.023 postcondition 4).
+
+  - `track_ns_desync(state, current_ns, direction) -> Option<Finding>`: effectful function
+    implementing the three-path `Option<u16>` first-frame guard and k=12 window check:
+    - **Path A** (state `None`): sets `Some(current_ns)` baseline; NO finding unconditionally.
+      Prevents false positives on mid-capture starts where first N(S) is arbitrary
+      (BC-2.19.024 postcondition A; ADR-013 Decision 6 invariant 3).
+    - **Path B** (state `Some(prev)`, 15-bit gap ≤ 12): updates state; no finding
+      (BC-2.19.024 postcondition B).
+    - **Path C** (state `Some(prev)`, 15-bit gap > 12): updates state and emits T1692.001
+      "Unauthorized Message: Command Message" with `Verdict::Possible`,
+      `ThreatCategory::Impact` — sequence desynchronization or replay injection detected
+      (BC-2.19.024 postcondition C).
+    - Gap uses `current_ns.wrapping_sub(prev) & 0x7FFF` — the `& 0x7FFF` mask is
+      mandatory to collapse `wrapping_sub`'s 2^16 wrap to the 15-bit N(S) range
+      (BC-2.19.024 invariant 1).
+    - `Direction::ClientToServer` selects `last_ns_c2s`; `Direction::ServerToClient`
+      selects `last_ns_s2c` — directional fields updated independently (AC-171-007).
+
+- **IEC-104 control command detection: `detect_iec104_threats` (STORY-170, wave-79,
+  BC-2.19.017/019–022, ADR-013 Decision 8).**
+
+  Implements TypeID dispatch for the IEC-104 passive analyzer in `src/analyzer/iec104.rs`:
+
+  - TypeIDs 45–47 (C_SC_NA_1, C_DC_NA_1, C_RC_NA_1 — switching commands): emit T1692.001
+    "Unauthorized Message: Command Message" with `Verdict::Possible`, `ThreatCategory::Impact`
+    (BC-2.19.019 postcondition 1; invariant 2).
+
+  - TypeIDs 48–51 (C_SE_NA_1, C_SE_NB_1, C_SE_NC_1, C_BO_NA_1 — set-point/bitstring writes):
+    emit T1692.001 Possible AND T0836 "Modify Parameter" Possible — two findings per ASDU
+    (BC-2.19.019 postconditions 1–2).
+
+  - TypeID 105 (C_RP_NA_1 — Reset Process Command): emit T0827 "Loss of Control" with
+    `Verdict::Likely` (BC-2.19.020; v1.1 correction: Likely, not Possible).
+
+  - TypeIDs 100, 101, 103 (C_IC_NA_1, C_CI_NA_1, C_CS_NA_1 — interrogation/clock-sync):
+    no finding emitted — benign administrative commands (BC-2.19.021 postcondition 1).
+
+  - TypeID=0 or TypeID in [128, 255] (undefined/private-use/reserved): emit T0814 "Denial
+    of Service" with `Verdict::Possible`, `ThreatCategory::Anomaly` (BC-2.19.022
+    postcondition 1). TypeIDs in [1, 127] not in any detection set are silently logged
+    with no finding (BC-2.19.022 invariant 1).
+
+  - `cot_test=true` tagging: when `asdu.cot_test == true`, ` [TEST]` is appended to every
+    emitted finding's `summary` field for analyst noise reduction (BC-2.19.017 invariant 1;
+    AC-170-007).
+
+  - **CASDU and first_ioa target-address context in findings (Pass-1 adversarial
+    remediation, F-170-001; BC-2.19.019 postcondition 3; BC-2.19.020 postcondition 2).**
+    Every finding emitted by `detect_iec104_threats` now includes `"CASDU=<value>"` as
+    an evidence entry (always present) and `"first_ioa=<decimal>"` when
+    `asdu.first_ioa` is `Some` — enabling analysts to identify which RTU/IED and IO
+    address was targeted by the control command. Applied to all four finding-emitting
+    arms: TypeIDs 45–47 (T1692.001), 48–51 (T1692.001 + T0836, both findings), 105
+    (T0827), and 0/128–255 (T0814). The `[TEST]` tagging path operates on `summary`
+    only and is unaffected by the evidence additions.
+
+  45 new tests in `tests/iec104_analyzer_tests.rs` (mod `story_170`); combined IEC-104 suite
+  is now 136 tests (story_167: 30, story_168: 34, story_169: 27, story_170: 45).
+  Pass-1 adversarial additions (F-170-001): `test_F_170_001_casdu_appears_in_finding_evidence_for_control_type`,
+  `test_F_170_001_first_ioa_appears_in_finding_evidence_when_some`,
+  `test_BC_2_19_017_start_idx_guard_preexisting_finding_not_tagged`.
+
+- **IEC-104 ASDU DUI header extraction: `parse_asdu` + `Asdu` struct (STORY-169, wave-78,
+  BC-2.19.015–018, ADR-013 Decision 8).**
+
+  Adds pure-core ASDU header extraction to `src/analyzer/iec104`:
+
+  - `Asdu` struct with nine broken-out DUI fields: `type_id` (u8), `sq` (bool), `count` (u8),
+    `cot_cause` (u8), `cot_pn` (bool), `cot_test` (bool), `cot_originator` (u8), `casdu` (u16),
+    `first_ioa: Option<u32>`. No packed `vsq: u8` or `cot: u16` fields (ADR-013 Decision 3).
+
+  - `parse_asdu(asdu_body: &[u8]) -> Option<Asdu>`: pure-core free function. Returns `None`
+    when `asdu_body.len() < 6` (6-byte DUI minimum guard; BC-2.19.015; caller emits T0814).
+    On the accept path, extracts all nine fields: TypeID verbatim from byte 0; SQ and count
+    from VSQ byte 1 (BC-2.19.016); COT cause/P-N/T/originator from bytes 2–3 (BC-2.19.017);
+    CASDU as 16-bit LE from bytes 4–5 (BC-2.19.018). `first_ioa` is
+    `Some(24-bit LE zero-extended to u32)` when `count > 0` AND `len >= 9`; `None` otherwise
+    (BC-2.19.018). No panic for any input (VP-047 fuzz seam).
+
+- **IEC-104 frame format discrimination + U-format session state machine (STORY-168, wave-77,
+  BC-2.19.007–014, ADR-013 Decisions 4/5; T0881/T0814 emission).**
+
+  Extends `src/analyzer/iec104` with pure-core frame classification and an effectful U-frame
+  session state machine:
+
+  - `classify_frame_format(cf1: u8) -> FrameFormat`: pure-core free function; total over all
+    256 u8 CF1 values; no panic (BC-2.19.007–009; VP-046 proptest; ADR-013 Decision 4).
+    Classifies by low 2 bits of CF1: bit 0 = 0 → IFormat, bits1:0 = 0b01 → SFormat,
+    bits1:0 = 0b11 → UFormat.
+
+  - `process_u_frame(state: &mut Iec104FlowState, cf1: u8) -> Option<Finding>`: effectful
+    session state machine for STARTDT/STOPDT/TESTFR U-frames (ADR-013 Decision 5;
+    BC-2.19.010–014). Dispatch table:
+    - STARTDT-act (0x07) / STARTDT-con (0x0B): `session_started = true`; no finding.
+      Idempotent (BC-2.19.010).
+    - STOPDT-act (0x13): emits T0881 "Service Stop" `Impact/Possible` (if session active) or
+      `Impact/Likely` (if no prior STARTDT — anomalous stop); sets `session_started = false`
+      (BC-2.19.011/012).
+    - STOPDT-con (0x23): `session_started = false`; no finding (ACT-only MVP; BC-2.19.012).
+    - TESTFR-act (0x43) / TESTFR-con (0x83): no finding; session state unchanged (BC-2.19.013).
+    - Non-canonical U CF1 (any other value with bits1:0 = 0b11): emits T0814 `Anomaly/Possible`
+      (CVE-2026-1773 fail-closed; BC-2.19.014). Session state NOT advanced.
+
+  - `Iec104FlowState::session_started: bool` field: initialized `false` via `Default`;
+    governs T0881 confidence escalation (BC-2.19.010–012).
+
+  - VP-046 proptest skeleton `proptest_vp046_frame_format_totality` exercising all 256 CF1
+    values (AC-168-009; full proof run in STORY-174).
+
+  34 new tests in `tests/iec104_analyzer_tests.rs` (mod story_168) covering all
+  BC-2.19.007–014 postconditions, edge cases, and VP-046 proptest. All 64 IEC-104 tests
+  (30 STORY-167 + 34 STORY-168) pass; no pre-existing regressions.
+
+  **Pass-1 adversarial remediation (STORY-168 wave-77):** T0881 Likely-path finding
+  (STOPDT-act without prior STARTDT) now includes a distinguishing evidence entry
+  "STOPDT received without prior STARTDT on this flow" (BC-2.19.012 postcondition 3).
+  This makes the cold-start anomaly self-describing without requiring session-timeline
+  correlation by the analyst.
+
+- **IEC-104 APCI core parser: `parse_apci_header` pure-core free function + VP-044 Kani
+  skeleton (STORY-167, wave-76, BC-2.19.001–006, ADR-013 Decisions 1/3/8).**
+
+  New `src/analyzer/iec104` module implementing the IEC 60870-5-104 (IEC-104) APCI header
+  parser as a pure-core free function with zero external dependencies (ADR-013 Decision 7
+  licensing constraint — no `iec60870-5`, Wireshark, or lib60870 code):
+
+  - `parse_apci_header(data: &[u8]) -> Option<ApciHeader>`: returns None for input shorter
+    than 6 bytes (BC-2.19.001), start byte ≠ 0x68 (BC-2.19.002), LEN < 4 (BC-2.19.003), or
+    LEN > 253 (BC-2.19.004); returns `Some(ApciHeader)` with CF1–CF4 extracted verbatim from
+    bytes [2..6] for valid input (BC-2.19.005). Overflow-safe: `len + 2` ≤ 255 for all valid
+    LEN values. VP-044 Kani formal verification target (full proof run: STORY-174).
+
+  - `is_valid_iec104_frame(data: &[u8]) -> bool`: lightweight post-classification gate for
+    port-2404-dispatched flows (BC-2.19.006). Returns true iff `data.len() >= 2`,
+    `data[0] == 0x68`, and `4 <= data[1] <= 253`. Consistent with `parse_apci_header`:
+    gate-true ∧ data.len() >= 6 ⟹ parse returns Some (BC-2.19.006 invariant 2).
+
+  - `ApciHeader` struct (`start`, `len`, `cf1`–`cf4`; all `u8`; `#[derive(Debug, Clone,
+    PartialEq, Eq)]`).
+
+  - `Iec104ParseError` error enum skeleton (extended in STORY-168).
+
+  - VP-044 Kani harness skeleton under `#[cfg(kani)]` (ADR-013 Decision 8; full proof:
+    STORY-174).
+
+  30 new tests in `tests/iec104_analyzer_tests.rs` covering all BC-2.19.001–006
+  postconditions, boundary values, and cross-function invariants (no pre-existing test
+  regressions).
+
 ## [0.12.1] - 2026-07-13
 
 ### Added
@@ -1263,7 +1721,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
 [0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5

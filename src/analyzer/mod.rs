@@ -16,6 +16,7 @@ pub mod dnp3;
 pub mod dns;
 pub mod enip;
 pub mod http;
+pub mod iec104;
 pub mod modbus;
 pub mod tls;
 

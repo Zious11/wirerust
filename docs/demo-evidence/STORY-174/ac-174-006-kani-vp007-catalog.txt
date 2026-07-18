@@ -1,0 +1,43 @@
+AC-174-006: VP-007 Kani verify_all_emitted_ids_resolve + cargo test vp007_catalog_drift_guard
+Commands:
+  (a) cargo kani --harness verify_all_emitted_ids_resolve
+  (b) cargo test --lib vp007_catalog_drift_guard
+Date: 2026-07-16
+
+--- Part (a): cargo kani --harness verify_all_emitted_ids_resolve ---
+
+$ cargo kani --harness verify_all_emitted_ids_resolve
+Kani Rust Verifier 0.67.0 (cargo plugin)
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
+Checking harness mitre::kani_proofs::verify_all_emitted_ids_resolve...
+CBMC 6.8.0 (cbmc-6.8.0)
+
+--- Key checks ---
+Check: verify_all_emitted_ids_resolve.assertion — "assertion failed: technique_name(id).is_some()"
+     - Status: SUCCESS
+Check: verify_all_emitted_ids_resolve.assertion — "assertion failed: technique_tactic(id).is_some()"
+     - Status: SUCCESS
+
+SUMMARY:
+ ** 0 of 122 failed (1 unreachable)
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 22.298237s
+
+Manual Harness Summary:
+Complete - 1 successfully verified harnesses, 0 failures, 1 total.
+
+--- Part (b): cargo test --lib vp007_catalog_drift_guard ---
+
+$ cargo test --lib vp007_catalog_drift_guard
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/wirerust-7f05f223b17d260d)
+
+running 1 test
+test mitre::vp007_format_tests::vp007_catalog_drift_guard ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 1.82s
+
+OUTCOME: PASS — T0881 resolves correctly in both Kani and unit-test checks.
+SEEDED count = 29. ADR-013 Decision 10 obligation satisfied.

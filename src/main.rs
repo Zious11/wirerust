@@ -30,6 +30,7 @@ use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::enip::EnipAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
+use wirerust::analyzer::iec104::Iec104Analyzer;
 use wirerust::analyzer::modbus::ModbusAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat, ProtocolFilter};
@@ -121,6 +122,7 @@ fn main() -> Result<()> {
             enip,
             enip_write_burst_threshold,
             enip_error_burst_threshold,
+            iec104,
             coverage_gaps,
         } => {
             run_analyze(
@@ -139,6 +141,7 @@ fn main() -> Result<()> {
                 *enip || *all,
                 *enip_write_burst_threshold,
                 *enip_error_burst_threshold,
+                *iec104 || *all,
                 *mitre,
                 collapse_findings_from_flag(*no_collapse),
                 use_color,
@@ -187,6 +190,7 @@ fn run_analyze(
     enable_enip: bool,
     enip_write_burst_threshold: u32,
     enip_error_burst_threshold: u32,
+    enable_iec104: bool,
     show_mitre_grouping: bool,
     collapse_findings: bool,
     use_color: bool,
@@ -233,11 +237,16 @@ fn run_analyze(
 
     let skip_reassembly = cli.no_reassemble;
 
-    // BC-2.14.023 §P4 / BC-2.17.020 §P1: needs_reassembly includes enable_modbus,
-    // enable_dnp3, and enable_enip so that any ICS analyzer alone activates the
+    // BC-2.14.023 §P4 / BC-2.17.020 §P1 / BC-2.12.025: needs_reassembly includes enable_modbus,
+    // enable_dnp3, enable_enip, and enable_iec104 so that any ICS analyzer alone activates the
     // reassembly engine.
-    let needs_reassembly =
-        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3 || enable_enip;
+    let needs_reassembly = cli.reassemble
+        || enable_http
+        || enable_tls
+        || enable_modbus
+        || enable_dnp3
+        || enable_enip
+        || enable_iec104;
 
     if (enable_http || enable_tls) && skip_reassembly {
         eprintln!(
@@ -261,6 +270,10 @@ fn run_analyze(
     // BC-2.17.020 §P2: warn and omit ENIP when reassembly disabled.
     if enable_enip && skip_reassembly {
         eprintln!("--enip requires TCP reassembly; ENIP analysis disabled");
+    }
+    // BC-2.12.025: warn and omit IEC-104 when reassembly disabled.
+    if enable_iec104 && skip_reassembly {
+        eprintln!("--iec104 requires TCP reassembly; IEC-104 analysis disabled");
     }
 
     let mut reassembler = if needs_reassembly && !skip_reassembly {
@@ -338,6 +351,14 @@ fn run_analyze(
         None
     };
 
+    // BC-2.12.025: construct Iec104Analyzer only when enabled AND reassembly is on.
+    // Dispatcher forwarding arm is wired (dispatcher.rs:464-470; STORY-173).
+    let iec104_analyzer: Option<Iec104Analyzer> = if enable_iec104 && !skip_reassembly {
+        Some(Iec104Analyzer::new())
+    } else {
+        None
+    };
+
     // AC-154-002: apply .with_coverage_gaps() builder (STORY-153 pattern).
     // All existing StreamDispatcher::new() call sites remain untouched (no blast radius).
     let mut dispatcher = StreamDispatcher::new(
@@ -346,6 +367,7 @@ fn run_analyze(
         modbus_analyzer,
         dnp3_analyzer,
         enip_analyzer,
+        iec104_analyzer,
     )
     .with_coverage_gaps(coverage_gaps);
 
@@ -510,6 +532,13 @@ fn run_analyze(
     if let Some(enip) = dispatcher.take_enip_analyzer() {
         all_findings.extend(enip.all_findings.iter().cloned());
         analyzer_summaries.push(enip.summarize());
+    }
+
+    // BC-2.19.028 / AC-173-007: post-finalize — collect IEC-104 findings and summary.
+    // Mirrors take_enip_analyzer() / take_dnp3_analyzer() pattern (ADR-013 Decision 9).
+    if let Some(iec104) = dispatcher.take_iec104_analyzer() {
+        all_findings.extend(iec104.all_findings.iter().cloned());
+        analyzer_summaries.push(iec104.summarize());
     }
 
     // STORY-113: ARP post-capture summary (BC-2.16.011 PC7/8; AC-016).
@@ -1464,7 +1493,7 @@ mod f6_hardening {
     #[test]
     fn f6_collect_all_gaps_preserves_tcp_count() {
         let mut dispatcher =
-            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
                 .with_coverage_gaps(true);
         // 10.0.0.1 is the lower IP → lower_port=50000, upper_port=40000;
         // min(50000, 40000) = 40000 is the recorded service-port key.

@@ -1,0 +1,17 @@
+AC-174-003: VP-046 proptest_vp046 classify_frame_format totality
+Command: cargo test --test iec104_analyzer_tests proptest_vp046
+Date: 2026-07-16
+
+$ cargo test --test iec104_analyzer_tests proptest_vp046
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/iec104_analyzer_tests.rs (target/debug/deps/iec104_analyzer_tests-70fabb01cb3ba763)
+
+running 1 test
+test story_168::proptest_vp046_frame_format_totality ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 199 filtered out; finished in 0.01s
+
+OUTCOME: PASS — 1 harness passed.
+Exhaustive sweep over all 256 u8 CF1 values verified:
+  bit0=0 → IFormat; bits1:0=0b01 → SFormat; bits1:0=0b11 → UFormat.
+No CF1 value unhandled; no panic for any u8.

@@ -105,14 +105,17 @@ mod story_151 {
     // Traces to: BC-2.18.003 v1.3 PC-3, Invariant 1; ADR-012 Decision 5
     // -----------------------------------------------------------------------
 
-    /// REGRESSION-GUARD: Verifies `SUPPORTED_PORTS` contains exactly 8 port values —
-    /// 502, 20000, 44818, 443, 8443, 80, 8080, 53. Fails if a port is added or removed.
+    /// REGRESSION-GUARD: Verifies `SUPPORTED_PORTS` contains exactly 9 port values —
+    /// 502, 20000, 44818, 2404, 443, 8443, 80, 8080, 53.
+    /// Port 2404 (IEC 60870-5-104) was added in STORY-173 (BC-2.18.003).
+    /// Fails if a port is added or removed.
     #[test]
     fn test_BC_2_18_003_supported_ports_len() {
         assert_eq!(
             SUPPORTED_PORTS.len(),
-            8,
-            "SUPPORTED_PORTS must contain exactly 8 actively-dissected ports"
+            9,
+            "SUPPORTED_PORTS must contain exactly 9 actively-dissected ports \
+             (502, 20000, 44818, 2404, 443, 8443, 80, 8080, 53 — port 2404 added in STORY-173)"
         );
     }
 
@@ -202,7 +205,7 @@ mod story_151 {
         assert_eq!(
             KNOWN_PROTOCOLS.len(),
             30,
-            "KNOWN_PROTOCOLS must contain exactly 30 entries (7 supported + 23 unsupported)"
+            "KNOWN_PROTOCOLS must contain exactly 30 entries (8 supported + 22 unsupported)"
         );
     }
 
@@ -555,16 +558,18 @@ mod story_151 {
     // Traces to: BC-2.18.003 v1.3 PC-1, PC-3, Invariant 3; ADR-012 Decision 5
     // -----------------------------------------------------------------------
 
-    /// REGRESSION-GUARD: Verifies `supported_protocols()` returns exactly 7 entries.
+    /// REGRESSION-GUARD: Verifies `supported_protocols()` returns exactly 8 entries.
+    /// IEC 60870-5-104 was added as a supported protocol in STORY-173 (BC-2.18.003).
     /// Fails if a port is added to or removed from `SUPPORTED_PORTS`, or if the ARP
     /// special case is dropped.
     #[test]
     fn test_BC_2_18_003_supported_protocols_len() {
         assert_eq!(
             supported_protocols().len(),
-            7,
-            "supported_protocols() must return exactly 7 entries: \
-             Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP"
+            8,
+            "supported_protocols() must return exactly 8 entries: \
+             Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP, IEC 60870-5-104 \
+             (IEC 60870-5-104 added in STORY-173)"
         );
     }
 
@@ -781,5 +786,76 @@ mod story_151 {
                 );
             }
         }
+    }
+}
+
+// =============================================================================
+// STORY-173: AC-173-004 — SUPPORTED_PORTS includes port 2404 (BC-2.18.003)
+// All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
+// =============================================================================
+//
+// All tests verify AC-173-004 port and protocol registration.
+// They serve as regression guards for AC-173-004.
+
+mod story_173 {
+    #![allow(non_snake_case)]
+
+    use wirerust::protocols::{SUPPORTED_PORTS, supported_protocols};
+
+    /// AC-173-004 / BC-2.18.003 — SUPPORTED_PORTS contains port 2404.
+    ///
+    /// Verifies SUPPORTED_PORTS contains 2404 (added in STORY-173).
+    ///
+    /// Traces: BC-2.18.003 PC-1; AC-173-004.
+    #[test]
+    fn test_BC_2_18_003_supported_ports_contains_2404() {
+        assert!(
+            SUPPORTED_PORTS.contains(&2404),
+            "SUPPORTED_PORTS must contain 2404 (IEC 60870-5-104, IANA-assigned TCP port) — \
+             added in STORY-173 (BC-2.18.003 PC-1)"
+        );
+    }
+
+    /// AC-173-004 / BC-2.18.003 — SUPPORTED_PORTS.len() == 9 after adding port 2404.
+    ///
+    /// Verifies SUPPORTED_PORTS length is 9 after adding port 2404.
+    ///
+    /// Traces: BC-2.18.003 PC-1; AC-173-004.
+    #[test]
+    fn test_BC_2_18_003_supported_ports_len_is_9() {
+        assert_eq!(
+            SUPPORTED_PORTS.len(),
+            9,
+            "SUPPORTED_PORTS must have exactly 9 entries after STORY-173 adds port 2404"
+        );
+    }
+
+    /// AC-173-004 / BC-2.18.003 — supported_protocols().len() == 8 after adding IEC-104.
+    ///
+    /// Verifies supported_protocols() length is 8 after adding IEC 60870-5-104.
+    ///
+    /// Traces: BC-2.18.003 PC-2; AC-173-004.
+    #[test]
+    fn test_BC_2_18_003_supported_protocols_len_is_8() {
+        assert_eq!(
+            supported_protocols().len(),
+            8,
+            "supported_protocols() must return 8 entries after STORY-173 adds IEC 60870-5-104"
+        );
+    }
+
+    /// AC-173-004 / BC-2.18.003 — IEC 60870-5-104 appears in supported_protocols().
+    ///
+    /// Verifies IEC 60870-5-104 appears in supported_protocols().
+    ///
+    /// Traces: BC-2.18.003 PC-2; AC-173-004.
+    #[test]
+    fn test_BC_2_18_003_iec104_in_supported_protocols() {
+        let supported = supported_protocols();
+        assert!(
+            supported.iter().any(|p| p.name.contains("60870-5-104")),
+            "supported_protocols() must contain an IEC 60870-5-104 entry after STORY-173 \
+             adds port 2404 to SUPPORTED_PORTS"
+        );
     }
 }

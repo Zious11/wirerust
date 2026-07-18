@@ -1,0 +1,18 @@
+AC-174-002: VP-045 proptest_vp045 carry direction isolation (non-vacuous)
+Command: cargo test --test iec104_analyzer_tests proptest_vp045
+Date: 2026-07-16
+
+$ cargo test --test iec104_analyzer_tests proptest_vp045
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s
+     Running tests/iec104_analyzer_tests.rs (target/debug/deps/iec104_analyzer_tests-70fabb01cb3ba763)
+
+running 2 tests
+test story_172::proptest_vp045_independent_run_equivalence ... ok
+test story_172::proptest_vp045_direction_isolation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 198 filtered out; finished in 0.05s
+
+OUTCOME: PASS — 2 harnesses passed.
+Both asserting harnesses verified (non-vacuous: prop_assert! on post-on_data state).
+  - proptest_vp045_direction_isolation: interleaved C2S/S2C chunks; carry_c2s/carry_s2c isolation + <=255 bound confirmed.
+  - proptest_vp045_independent_run_equivalence: two independent Iec104Analyzer instances fed identical data produce equivalent per-flow state.

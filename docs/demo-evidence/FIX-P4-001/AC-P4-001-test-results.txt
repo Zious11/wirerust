@@ -1,0 +1,109 @@
+================================================================================
+FIX-P4-001: IEC-104 Direction Field Test Results
+================================================================================
+
+Test: cargo test --test iec104_analyzer_tests fix_p4_001
+Date: 2026-07-16
+Status: ALL PASSED
+
+================================================================================
+Test Output
+================================================================================
+
+$ cargo test --test iec104_analyzer_tests fix_p4_001 2>&1
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running tests/iec104_analyzer_tests.rs (target/debug/deps/iec104_analyzer_tests-70fabb01cb3ba763)
+
+running 11 tests
+test fix_p4_001::test_fix_p4_001_detect_threats_type0_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_detect_threats_type48_direction_s2c ... ok
+test fix_p4_001::test_fix_p4_001_detect_threats_type105_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_detect_threats_type45_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_process_u_frame_noncanonical_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_process_u_frame_stopdt_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_on_data_malformed_len_direction_s2c ... ok
+test fix_p4_001::test_fix_p4_001_on_data_carry_overflow_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_process_u_frame_stopdt_direction_s2c ... ok
+test fix_p4_001::test_fix_p4_001_track_ns_desync_direction_c2s ... ok
+test fix_p4_001::test_fix_p4_001_track_ns_desync_direction_s2c ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 200 filtered out; finished in 0.00s
+
+================================================================================
+Coverage Summary
+================================================================================
+
+Tests verify that the direction field is populated across all IEC-104 finding
+emission sites:
+
+1. test_fix_p4_001_track_ns_desync_direction_c2s
+   - Verifies: track_ns_desync emits finding with direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+2. test_fix_p4_001_track_ns_desync_direction_s2c
+   - Verifies: track_ns_desync emits finding with direction=Some(ServerToClient)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+3. test_fix_p4_001_process_u_frame_stopdt_direction_c2s
+   - Verifies: process_u_frame STOPDT-act emits direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001 (emit site :388)
+
+4. test_fix_p4_001_process_u_frame_stopdt_direction_s2c
+   - Verifies: process_u_frame STOPDT-act emits direction=Some(ServerToClient)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001 (emit site :388)
+
+5. test_fix_p4_001_process_u_frame_noncanonical_direction_c2s
+   - Verifies: Non-canonical U-frame emits direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001 (emit site :424)
+
+6. test_fix_p4_001_detect_threats_type45_direction_c2s
+   - Verifies: Type 45 (monitoring direction) TypeID emits direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+7. test_fix_p4_001_detect_threats_type48_direction_s2c
+   - Verifies: Type 48 emits direction=Some(ServerToClient)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+8. test_fix_p4_001_detect_threats_type105_direction_c2s
+   - Verifies: Type 105 emits direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+9. test_fix_p4_001_detect_threats_type0_direction_c2s
+   - Verifies: Type 0 (invalid ASDU) emits direction=Some(ClientToServer)
+   - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+10. test_fix_p4_001_on_data_carry_overflow_direction_c2s
+    - Verifies: Carry overflow (MAX_IEC104_CARRY_BYTES exceeded) emits direction=Some(ClientToServer)
+    - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+11. test_fix_p4_001_on_data_malformed_len_direction_s2c
+    - Verifies: Malformed IEC-104 frame LEN field emits direction=Some(ServerToClient)
+    - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
+
+================================================================================
+JSON Surface Change Demonstration
+================================================================================
+
+Before FIX-P4-001:
+Finding { direction: None } serializes to JSON without the "direction" key
+(skipped due to #[serde(skip_serializing_if = "Option::is_none")])
+
+Example: {"category":"impact","verdict":"possible","confidence":"medium",...}
+(N(S) desync finding: ThreatCategory::Impact, Verdict::Possible, Confidence::Medium, mitre_techniques:["T1692.001"])
+
+After FIX-P4-001:
+Finding { direction: Some(Direction::ClientToServer) } serializes to JSON with "direction" key
+
+Example C2S: {"category":"impact","verdict":"possible","confidence":"medium",...,"direction":"ClientToServer"}
+(N(S) desync finding — track_ns_desync; real emit: src/analyzer/iec104.rs)
+
+Example S2C: {"category":"anomaly","verdict":"possible","confidence":"medium",...,"direction":"ServerToClient"}
+(malformed LEN finding — on_data frame-walk; real emit: src/analyzer/iec104.rs)
+
+This additive key allows JSON consumers to:
+- Distinguish client-side anomalies from server-side responses for the same flow
+- Implement per-direction filtering and analysis pipelines
+- Correlate findings with directional stream analysis (LESSON-P2.08)
+
+================================================================================

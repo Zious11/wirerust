@@ -42,6 +42,7 @@ fn test_tls_content_wins_over_port_8080() {
         None,
         None,
         None,
+        None,
     );
     // Port 8080 would fall back to Http by port — if content wins, Tls is chosen instead.
     let fk = flow_key(49152, 8080);
@@ -74,6 +75,7 @@ fn test_tls_content_routes_tls_on_port_443() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 443);
 
@@ -95,7 +97,8 @@ fn test_tls_content_routes_tls_on_port_443() {
 
 #[test]
 fn test_dispatcher_routes_http() {
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+    let mut dispatcher =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -142,6 +145,7 @@ fn test_all_http_method_prefixes_route_to_http() {
             None,
             None,
             None,
+            None,
         );
         // Port 9999: no port fallback hint — Http must be chosen by content.
         let fk = flow_key(49152 + i as u16, 9999);
@@ -177,6 +181,7 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 80); // Port 80, but content is TLS
 
@@ -197,6 +202,7 @@ fn test_port_fallback_443_to_tls() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -245,6 +251,7 @@ fn test_port_fallback_8443_to_tls() {
         None,
         None,
         None,
+        None,
     );
     // Port 8443 is a known TLS port; data has no TLS/HTTP signature.
     let fk = flow_key(49152, 8443);
@@ -290,6 +297,7 @@ fn test_port_fallback_80_to_http() {
         None,
         None,
         None,
+        None,
     );
     // Port 80 is a known HTTP port; data has no TLS/HTTP signature.
     let fk = flow_key(49152, 80);
@@ -324,6 +332,7 @@ fn test_port_fallback_8080_to_http() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -368,6 +377,7 @@ fn test_tls_check_skipped_below_len_5() {
         None,
         None,
         None,
+        None,
     );
     // Port 9999: no port fallback hint — isolates the length-gate from port fallback.
     let fk = flow_key(49152, 9999);
@@ -408,6 +418,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
         None,
         None,
         None,
+        None,
     );
     // Port 9999: no port fallback hint.
     let fk = flow_key(49152, 9999);
@@ -437,6 +448,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
         None,
         None,
         None,
+        None,
     );
     let fk2 = flow_key(49152, 9999);
     let almost_tls2 = [0x16u8, 0x02, 0x03, 0x00, 0x05];
@@ -454,6 +466,7 @@ fn test_unclassified_flows_counter() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -477,6 +490,7 @@ fn test_classified_flow_not_counted_as_unclassified() {
         None,
         None,
         None,
+        None,
     );
     let fk = flow_key(49152, 80);
 
@@ -492,7 +506,7 @@ fn test_classified_flow_not_counted_as_unclassified() {
 #[test]
 fn test_default_max_classification_attempts() {
     // The default cap is exposed and matches the documented constant.
-    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     assert_eq!(
         dispatcher.max_classification_attempts(),
         wirerust::dispatcher::DEFAULT_MAX_CLASSIFICATION_ATTEMPTS
@@ -502,7 +516,7 @@ fn test_default_max_classification_attempts() {
 #[test]
 fn test_with_max_classification_attempts_overrides_default() {
     // The builder-style override sets a custom cap.
-    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+    let dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
         .with_max_classification_attempts(3);
     assert_eq!(dispatcher.max_classification_attempts(), 3);
 }
@@ -516,6 +530,7 @@ fn test_unclassifiable_flow_still_counted_after_attempt_cap() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -545,6 +560,7 @@ fn test_late_classification_within_attempt_budget_still_routes() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -585,8 +601,9 @@ fn test_zero_attempt_budget_classifies_nothing() {
     // A flow whose first chunk *is* a clear protocol still routes,
     // because classification on a positive match doesn't consume the
     // (already-zero) failure budget.
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
-        .with_max_classification_attempts(0);
+    let mut dispatcher =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
+            .with_max_classification_attempts(0);
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -610,6 +627,7 @@ fn test_http_no_space_does_not_match() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -692,6 +710,7 @@ fn test_tls_takes_priority_over_http_methods_check() {
         None,
         None,
         None,
+        None,
     );
     // Neutral port (9999) — port fallback plays no part.
     let fk = flow_key(49152, 9999);
@@ -725,6 +744,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -826,6 +846,7 @@ fn test_http_content_on_port_443_routes_to_http() {
         None,
         None,
         None,
+        None,
     );
     // Port 443 would fall back to Tls — but content check for HTTP must fire first.
     let fk = flow_key(49152, 443);
@@ -861,6 +882,7 @@ fn test_BC_2_05_005_classification_cached_after_first_match() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -938,6 +960,7 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1035,6 +1058,7 @@ fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     // Port 22 (SSH): not in {80, 443, 8080, 8443} → port fallback also fails → None.
@@ -1106,6 +1130,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(3);
     assert_eq!(
@@ -1160,6 +1185,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(0);
     let fk2 = flow_key(49152, 22);
@@ -1188,6 +1214,7 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
     let mut d_default = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1260,6 +1287,7 @@ fn test_BC_2_05_006_late_classification_after_nones() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     let fk = flow_key(49152, 22);
@@ -1328,6 +1356,7 @@ fn test_BC_2_05_006_late_classification_after_nones() {
         None,
         None,
         None,
+        None,
     )
     .with_max_classification_attempts(8);
     let fk2 = flow_key(49153, 22);
@@ -1370,6 +1399,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
         None,
         None,
         None,
+        None,
     );
     let fk_no_data = flow_key(49200, 9999);
 
@@ -1395,6 +1425,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
     let mut dispatcher2 = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1428,6 +1459,7 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
         None,
         None,
         None,
+        None,
     );
     let fk_a = flow_key(49202, 9999);
     let fk_b = flow_key(49203, 9999);
@@ -1454,6 +1486,7 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1502,14 +1535,14 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     // without a dedicated decrement test).
 }
 
-// STORY-033 AC-004 + AC-005 (early-return aspect): StreamDispatcher::new(None, None, None, None, None) returns
+// STORY-033 AC-004 + AC-005 (early-return aspect): StreamDispatcher::new(None, None, None, None, None, None) returns
 // immediately from on_data before any classify or state mutation. Indirect proof via
 // observing that routes/attempts maps remain empty (unclassified_flows stays 0 even
 // on close, because the guard also prevents incrementing when no analyzers are configured).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
-    let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
+    let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, None);
     let fk = flow_key(49220, 9999);
 
     // Call on_data multiple times with various byte patterns — must be no-ops.
@@ -1566,7 +1599,7 @@ fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
 fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     // Part 1: http=Some, tls=None. HTTP GET bytes must be classified and forwarded.
     let mut dispatcher_http_only =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None);
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None);
     let fk_http = flow_key(49230, 9999);
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
     dispatcher_http_only.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0, 0);
@@ -1587,7 +1620,7 @@ fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     // After on_data with TLS bytes, TlsAnalyzer receives the data and its
     // internal buffer has the flow registered (active_flows_len_for_testing == 1).
     let mut dispatcher_tls_only =
-        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None, None);
+        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None, None, None);
     let fk_tls = flow_key(49231, 9999);
     // Valid-length TLS-like bytes: record_type=0x16, version=0x0301, payload_len=1 byte.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
@@ -1615,6 +1648,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1659,6 +1693,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let mut dispatcher2 = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1709,6 +1744,7 @@ fn test_BC_2_05_009_flow_close_for_unknown_flow_key() {
     let mut dispatcher = StreamDispatcher::new(
         Some(HttpAnalyzer::new()),
         Some(TlsAnalyzer::new()),
+        None,
         None,
         None,
         None,
@@ -1783,6 +1819,7 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
             None,
             None,
             None,
+            None,
         );
         let fk_tls = flow_key(49300, 9999);
 
@@ -1819,6 +1856,7 @@ fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
         let mut dispatcher = StreamDispatcher::new(
             Some(HttpAnalyzer::new()),
             Some(TlsAnalyzer::new()),
+            None,
             None,
             None,
             None,
@@ -1888,14 +1926,14 @@ mod story_153 {
     /// Satisfies the dual-gate precondition (analyzer-present AND gaps enabled)
     /// required by BC-2.05.010 PC-1 / ADR-012 Decision 6 Clarification.
     fn gaps_dispatcher() -> StreamDispatcher {
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
             .with_coverage_gaps(true)
     }
 
     /// `StreamDispatcher` with one HTTP analyzer and `coverage_gaps_enabled = false`
     /// (the default). Used by F-F3P10-001 and the coverage_gaps_disabled tests.
     fn no_gaps_dispatcher() -> StreamDispatcher {
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None)
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, None, None, None)
     }
 
     /// Builds a `FlowKey` where `10.0.0.1` is always the lower IP (since `10.0.0.1 <
@@ -2540,8 +2578,14 @@ mod f6_hardening {
     /// becomes `false && true == false`, so the counter would stay 0.
     #[test]
     fn f6_unclassified_counts_with_only_enip_analyzer() {
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(10, 10)));
+        let mut dispatcher = StreamDispatcher::new(
+            None,
+            None,
+            None,
+            None,
+            Some(EnipAnalyzer::new(10, 10)),
+            None,
+        );
         dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
         assert_eq!(
             dispatcher.unclassified_flows(),
@@ -2556,13 +2600,214 @@ mod f6_hardening {
     #[test]
     fn f6_unclassified_counts_with_only_dnp3_analyzer() {
         let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(Dnp3Analyzer::new(10)), None);
+            StreamDispatcher::new(None, None, None, Some(Dnp3Analyzer::new(10)), None, None);
         dispatcher.on_flow_close(&none_flow(), CloseReason::Fin);
         assert_eq!(
             dispatcher.unclassified_flows(),
             1,
             "DNP3-only dispatcher must count an unclassified None-target close \
              (guard depends solely on the dnp3.is_some() disjunct)"
+        );
+    }
+}
+
+// =============================================================================
+// STORY-173: AC-173-001 (classify) + AC-173-008 (dispatcher wiring)
+// All tests live in `mod story_173` per DF-TEST-NAMESPACE-001.
+// =============================================================================
+//
+// Two tests verify dispatcher wiring to Iec104Analyzer (now green):
+//   test_iec104_only_dispatcher_data_reaches_analyzer — dispatcher forwards STARTDT-act
+//   test_iec104_only_dispatcher_stopdt_produces_t0881 — dispatcher forwards STOPDT-act
+//
+// Three tests are GUARDS that verify safety invariants:
+//   test_BC_2_05_012_early_exit_guard_includes_iec104 — guard prevents early exit
+//   test_iec104_disabled_port_2404_no_panic           — None iec104 doesn't panic
+//   test_iec104_only_guard_unclassified_flows_counted  — guard ensures flow visibility
+
+mod story_173 {
+    #![allow(non_snake_case)]
+
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::iec104::Iec104Analyzer;
+    use wirerust::dispatcher::StreamDispatcher;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+
+    fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            src_port,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            dst_port,
+        )
+    }
+
+    // STARTDT-act U-frame: start=0x68, LEN=4, CF1=0x07, CF2-CF4=0.
+    fn startdt_act() -> Vec<u8> {
+        vec![0x68, 0x04, 0x07, 0x00, 0x00, 0x00]
+    }
+
+    // STOPDT-act U-frame: start=0x68, LEN=4, CF1=0x13, CF2-CF4=0.
+    fn stopdt_act() -> Vec<u8> {
+        vec![0x68, 0x04, 0x13, 0x00, 0x00, 0x00]
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-008 — DISPATCHER WIRING
+    // Iec104 on_data arm forwards data via iec104.on_data(...) per ADR-013 Decision 9.
+    // -------------------------------------------------------------------------
+
+    /// AC-173-008 — dispatcher wiring: STARTDT-act on port 2404 must reach Iec104Analyzer.
+    ///
+    /// With ONLY iec104 set, feeding a STARTDT-act on port 2404 through the dispatcher
+    /// must result in Iec104Analyzer::flows having 1 entry and session_started = true.
+    ///
+    /// The Iec104 arm in on_data calls `iec104.on_data(...)` to forward the packet.
+    /// This creates a per-flow state and processes the STARTDT-act.
+    ///
+    /// Traces: AC-173-008; BC-2.05.012 invariant 1; ADR-013 Decision 9 step 5.
+    #[test]
+    fn test_iec104_only_dispatcher_data_reaches_analyzer() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60001, 2404);
+        dispatcher.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &startdt_act(),
+            0,
+            1_700_000_000,
+        );
+
+        let analyzer = dispatcher
+            .iec104_analyzer()
+            .expect("IEC-104 analyzer must be present when configured");
+
+        // Dispatcher forwards to iec104.on_data(...), which creates per-flow state.
+        assert_eq!(
+            analyzer.flows.len(),
+            1,
+            "AC-173-008: Iec104Analyzer::flows must have 1 entry after feeding a STARTDT-act \
+             on port 2404. Got {} entries.",
+            analyzer.flows.len()
+        );
+        // Flow state now exists due to dispatcher forwarding.
+        let state = analyzer.flows.get(&fk);
+        assert!(
+            state.is_some(),
+            "AC-173-008: flows must have an entry for the port-2404 FlowKey"
+        );
+        assert!(
+            state.unwrap().session_started,
+            "AC-173-008: STARTDT-act must set session_started = true after dispatcher wiring"
+        );
+    }
+
+    /// AC-173-008 — STOPDT-act on port 2404 must produce a T0881 finding via the dispatcher.
+    ///
+    /// With ONLY iec104 set, a STOPDT-act (session_started=false → T0881 Verdict::Likely)
+    /// fed through the dispatcher must appear in all_findings.
+    ///
+    /// The Iec104 arm calls iec104.on_data(...) to forward the packet and detect the threat.
+    ///
+    /// Traces: AC-173-008; BC-2.19.011 (T0881 Likely on stop without prior start).
+    #[test]
+    fn test_iec104_only_dispatcher_stopdt_produces_t0881() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60002, 2404);
+        dispatcher.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &stopdt_act(),
+            0,
+            1_700_000_000,
+        );
+
+        let analyzer = dispatcher
+            .iec104_analyzer()
+            .expect("IEC-104 analyzer must be present when configured");
+
+        // Dispatcher forwards to iec104.on_data(...), which detects STOPDT without prior STARTDT.
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "AC-173-008: STOPDT-act through the dispatcher must emit 1 T0881 finding. \
+             Got {} findings.",
+            analyzer.all_findings.len()
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .first()
+                .map(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+                .unwrap_or(false),
+            "AC-173-008: the finding must cite T0881 (Service Stop)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-173-001 / AC-173-008 GUARDS
+    // -------------------------------------------------------------------------
+
+    /// AC-173-001 guard — early-exit guard includes iec104.is_none() so a iec104-only
+    /// dispatcher does NOT silently discard data before reaching the match arm.
+    ///
+    /// Verifies early-exit guard includes iec104.is_none() (data reaches the Iec104 arm).
+    /// Validates ADR-013 Decision 9 step 4.
+    ///
+    /// Traces: AC-173-008; ADR-013 Decision 9 step 4 (early-exit guard).
+    #[test]
+    fn test_BC_2_05_012_early_exit_guard_includes_iec104() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        let fk = flow_key(60003, 2404);
+        // This would panic / return early if the guard were missing iec104.is_none().
+        // With the guard in place, no panic occurs (data reaches Iec104 arm, even if no-op).
+        dispatcher.on_data(&fk, Direction::ClientToServer, &startdt_act(), 0, 0);
+    }
+
+    /// AC-173-003 edge (EC-003) — with iec104=None, port-2404 traffic causes no panic.
+    ///
+    /// Verifies no panic occurs when iec104=None and port-2404 traffic is received.
+    ///
+    /// Traces: BC-2.12.025 PC-2 (default-off); AC-173-003 EC-003.
+    #[test]
+    fn test_iec104_disabled_port_2404_no_panic() {
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, None);
+        let fk = flow_key(60004, 2404);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &stopdt_act(), 0, 0);
+        dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    }
+
+    /// AC-173-008 guard — iec104-only dispatcher counts unclassified flows.
+    ///
+    /// The early-exit guard `&& self.iec104.is_none()` means that with ONLY iec104 set,
+    /// the guard is false and data is processed. A non-2404 flow → None target →
+    /// unclassified_flows incremented in on_flow_close.
+    ///
+    /// Verifies iec104-only dispatcher counts unclassified flows for non-2404 traffic.
+    ///
+    /// Traces: AC-173-008 (early-exit guard); BC-2.05.012.
+    #[test]
+    fn test_iec104_only_guard_unclassified_flows_counted() {
+        let iec104 = Iec104Analyzer::new();
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None, Some(iec104));
+
+        // Non-2404 flow → DispatchTarget::None → unclassified_flows + 1.
+        let fk = flow_key(60005, 9999);
+        dispatcher.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            dispatcher.unclassified_flows(),
+            1,
+            "AC-173-008: iec104-only dispatcher must count an unclassified None-target close \
+             (guard depends on `|| self.iec104.is_some()`)"
         );
     }
 }

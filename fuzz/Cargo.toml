@@ -64,3 +64,10 @@ path = "fuzz_targets/fuzz_coverage_gap_classify.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_iec104_parser"
+path = "fuzz_targets/fuzz_iec104_parser.rs"
+test = false
+doc = false
+bench = false

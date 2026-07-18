@@ -1,0 +1,33 @@
+AC-174-005: VP-004 Kani verify_content_first_precedence_exhaustive (dispatcher oracle with Iec104)
+Command: cargo kani --harness verify_content_first_precedence_exhaustive
+Date: 2026-07-16
+
+$ cargo kani --harness verify_content_first_precedence_exhaustive
+Kani Rust Verifier 0.67.0 (cargo plugin)
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.12s
+   Compiling wirerust v0.12.1 (<repo>)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
+Checking harness dispatcher::kani_proofs::verify_content_first_precedence_exhaustive...
+CBMC 6.8.0 (cbmc-6.8.0)
+
+--- Key RESULTS ---
+
+Check 25: verify_content_first_precedence_exhaustive.assertion.1
+     - Status: SUCCESS
+     - Description: "assertion failed: got == want"
+     - Location: src/dispatcher.rs:741:9
+
+[... all 440 checks verified including Rule 8 Iec104 port-content classification ...]
+
+SUMMARY:
+ ** 0 of 440 failed (10 unreachable)
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 2.6929889s
+
+Manual Harness Summary:
+Complete - 1 successfully verified harnesses, 0 failures, 1 total.
+
+OUTCOME: PASS — 440 checks verified (0 failures, 10 unreachable).
+DispatchTarget::Iec104 Rule 8 arm is covered. ADR-013 Decision 9 obligation satisfied.

@@ -561,12 +561,13 @@ mod dispatch {
             None,
             None,
             Some(EnipAnalyzer::new(write_burst, error_burst)),
+            None,
         )
     }
 
     /// Build a dispatcher with NO analyzers (ENIP disabled path).
     fn dispatcher_no_enip() -> StreamDispatcher {
-        StreamDispatcher::new(None, None, None, None, None)
+        StreamDispatcher::new(None, None, None, None, None, None)
     }
 
     /// Minimal valid ENIP RegisterSession payload (command=0x0065, LE, rest zeros).
@@ -663,6 +664,7 @@ mod dispatch {
             None,
             Some(Dnp3Analyzer::new(10)),
             Some(EnipAnalyzer::new(50, 5)),
+            None,
         );
         let payload = enip_register_session_payload();
         // Port 20000 → Rule 6 (DNP3). DNP3 on_data is implemented; no panic.
@@ -873,7 +875,7 @@ mod dispatch {
         } else {
             None // WARNING emitted by main.rs eprintln!; not verifiable in unit test
         };
-        let mut d = StreamDispatcher::new(None, None, None, None, enip_opt);
+        let mut d = StreamDispatcher::new(None, None, None, None, enip_opt, None);
         let key = FlowKey::new(make_ip(7), 22222, make_ip(8), 44818);
         let payload = enip_register_session_payload();
         // Must NOT panic: early-exit guard fires (enip is None).

@@ -110,7 +110,7 @@ mod enip_e2e_real_pcaps {
         // EnipAnalyzer::new(write_burst_threshold, error_burst_threshold).
         // Use the same defaults as the CLI: write_burst=50, error_burst=5.
         let mut dispatcher =
-            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(50, 5)));
+            StreamDispatcher::new(None, None, None, None, Some(EnipAnalyzer::new(50, 5)), None);
 
         for raw in &source.packets {
             if let Ok(DecodedFrame::Ip(parsed)) = decode_packet(&raw.data, source.datalink) {
