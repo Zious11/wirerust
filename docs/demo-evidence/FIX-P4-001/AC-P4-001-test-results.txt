@@ -58,7 +58,7 @@ emission sites:
    - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001 (emit site :424)
 
 6. test_fix_p4_001_detect_threats_type45_direction_c2s
-   - Verifies: Type 45 (monitoring direction) TypeID emits direction=Some(ClientToServer)
+   - Verifies: Type 45 (control direction, C_SC_NA_1) TypeID emits direction=Some(ClientToServer)
    - Trace: IEC104-FINDING-DIRECTION-001; FIX-P4-001
 
 7. test_fix_p4_001_detect_threats_type48_direction_s2c
