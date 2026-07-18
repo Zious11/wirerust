@@ -4,6 +4,17 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-18 (replaced by D-472 PR #407 security-triage checkpoint)
+
+**D-471 E2E IEC-104 coverage merged (2026-07-17). PR #416 0b65e8e squash-merged to develop, human-executed merge. Human-directed post-F7 task. Closed the IEC-104 e2e gap (corpus had zero IEC-104 captures; 4SICS captures confirmed no port-2404 traffic). 4 real captures added to LOCAL-ONLY corpus (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level smoke-test: 105/1/173/147 pins (39 total, 0 mismatch, 0 panic). NEW tests/iec104_e2e_real_pcaps_tests.rs: in-process pipeline, CI-safe self-skip, DF-TEST-NAMESPACE-001 wrapper — iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic holdout (0.99). CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased). RELEASE HELD (human). trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-17. Position: feature-iec104 F7-CONVERGED; E2E IEC-104 gap closed (PR #416); RELEASE HELD; v0.13.0 cut deferred pending human auth. trajectory-tail →0→0→0→0.
+- **Ground truth:** main = `fedcea4ab17d9b3257c9903636aec0c0fd08f147`; develop = `0b65e8e`. DRIFT-BACKMERGE-SQUASH-001 still applies. 13 unreleased commits: STORY-167..174 + FIX-P4-001 + FIX-F5-001..004 + e2e-iec104-fixtures (PR #416 0b65e8e).
+- **Wave status:** Waves 76–83 DELIVERED (D-441/443/445/447/448/455/458/463). F4 COMPLETE. FIX-P4-001 (D-464). F5 CONVERGED (D-468). F6 PASS (D-469). F7 CONVERGED (D-470): 5/5 dims PASS; holdout 0.99; RELEASE HELD. E2E coverage merged (PR #416).
+- **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.76 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-15 (replaced by D-448 STORY-171 DELIVERED — PAUSE)
 
 **STORY-170 DELIVERED (D-447, 2026-07-15). develop=0bd93f8; stories_delivered=109; STORY-INDEX v3.63. PG-REDGREEN-COMMENT-CLEANUP 3x READY-TO-CODIFY. NEXT: STORY-171 (wave-80, N(S)/N(R) tracking; pre-delivery AC↔BC fidelity check recommended first).**
