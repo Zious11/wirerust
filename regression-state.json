@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-16T22:01:08Z","command":"cargo test --all-targets 2>&1 | grep -E \"test result:|FAILED\" | head -10 && cargo clippy --all-targets -- -D warnings 2>&1 | tail -3"}
+{"status":"pass","timestamp":"2026-07-17T23:07:27Z","command":"cargo test --release --test iec104_e2e_real_pcaps_tests -- --nocapture 2>&1"}

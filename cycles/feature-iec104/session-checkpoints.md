@@ -4,6 +4,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-18 (replaced by D-474 session-wrap checkpoint)
+
+**D-473 v0.13.0 RELEASED (2026-07-18). IEC-104 feature (feature-iec104 F1→F7 CONVERGED: F5 5-round, F6 hardening PASS, F7 5/5 dims holdout 0.99) + E2E coverage. Release PR #417 release/0.13.0→main merged 67a06b6 (human --merge). DRIFT-BACKMERGE-SQUASH-001 conflict (3 metadata files, [0.12.1] byte-identical, 0 source conflicts) resolved via main→release merge (9706be7). Tag v0.13.0 (object 03f35e4f); release.yml 29656299919 SUCCESS; GitHub Release 4 assets. Back-merge PR #418 main→develop SQUASH → af3ecbd. release/0.13.0 deleted. DRIFT-BACKMERGE-SQUASH-001 knowingly retained (squash pattern). trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-18. Position: D-473 v0.13.0 RELEASED. main=67a06b6, develop=af3ecbd, both 0.13.0. DRIFT-BACKMERGE-SQUASH-001 retained (squash back-merge pattern). trajectory-tail →0→0→0→0
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `af3ecbdccb73f2ea91fc639290e2ba52ed62e6b7` (0.13.0 back-merged); DRIFT-BACKMERGE-SQUASH-001 still applies (main non-ancestor of develop; trees reconciled at v0.13.0).
+- **Wave status:** Waves 76–83 DELIVERED. F4 COMPLETE. FIX-P4-001 DELIVERED (D-464). F5 CONVERGED (D-468): 5 rounds, NITPICK_ONLY; FIX-F5-001..004 all delivered. F6 PASS (D-469). F7 CONVERGED (D-470): 5/5 dims PASS; holdout 0.99. D-471 E2E IEC-104 coverage merged. D-472 PR #407 triaged SAFE-WITH-CHANGES DEFERRED. D-473 v0.13.0 RELEASED.
+- **Remaining delivery sequence:** cycle-close lessons codification (B-001/B-002/TypeID-45/process-gaps) — optional, no blocking items. PR #407 security-triaged SAFE-WITH-CHANGES DEFERRED — governance decision pending (no re-triage needed). STORY-166 queued for next wave.
+- **Spec versions:** BC-INDEX v2.33 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.56 / STORY-INDEX v3.76 / dep-graph v3.9 (137 edges).
+
+---
+
 ## Checkpoint archived 2026-07-18 (replaced by D-472 PR #407 security-triage checkpoint)
 
 **D-471 E2E IEC-104 coverage merged (2026-07-17). PR #416 0b65e8e squash-merged to develop, human-executed merge. Human-directed post-F7 task. Closed the IEC-104 e2e gap (corpus had zero IEC-104 captures; 4SICS captures confirmed no port-2404 traffic). 4 real captures added to LOCAL-ONLY corpus (gitignored; sha256-pinned in bin/fetch-e2e-pcaps): iec104.pcap + IEC104_SQ.pcapng (Wireshark, local-use credit), 090813_diverse.pcap + TestDissectIec104.pcap (ITI CC-BY-4.0). Reader-level smoke-test: 105/1/173/147 pins (39 total, 0 mismatch, 0 panic). NEW tests/iec104_e2e_real_pcaps_tests.rs: in-process pipeline, CI-safe self-skip, DF-TEST-NAMESPACE-001 wrapper — iec104.pcap T0836×24+T1692.001×42=66; iti-diverse T0836×10+T1692.001×21=31; iti-dissect T0814×2+T1692.001×9=11; sq.pcapng 0 benign; all dropped_findings=0, 0 parse_errors. Complements STORY-174 synthetic holdout (0.99). CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e (13 unreleased). RELEASE HELD (human). trajectory-tail →0→0→0→0**
