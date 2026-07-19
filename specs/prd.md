@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.56"
+version: "1.57"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -2269,11 +2269,11 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
 | BC-2.19.001 | `parse_apci_header` Returns None for Input Shorter Than 6 Bytes | P0 | feature-iec104 |
-| BC-2.19.002 | `parse_apci_header` Returns None and Emits Anomaly When Start Byte ≠ 0x68 | P0 | feature-iec104 |
+| BC-2.19.002 | `parse_apci_header` Returns None for Start Byte ≠ 0x68 | P0 | feature-iec104 |
 | BC-2.19.003 | `parse_apci_header` Rejects LEN < 4 with T0814 Finding (Malformed Length) | P0 | feature-iec104 |
 | BC-2.19.004 | `parse_apci_header` Rejects LEN > 253 with T0814 Finding (Malformed Length) | P0 | feature-iec104 |
 | BC-2.19.005 | `parse_apci_header` Returns Some(ApciHeader) for Valid 6-byte APCI Input (Happy Path) | P0 | feature-iec104 |
-| BC-2.19.006 | `is_valid_iec104_frame` Post-Classification Validity Gate | P0 | feature-iec104 |
+| BC-2.19.006 | `is_valid_iec104_frame` Standalone Pure Frame-Validity Predicate | P0 | feature-iec104 |
 
 #### 2.19.B Frame Format Discrimination (Group B — SS-19)
 

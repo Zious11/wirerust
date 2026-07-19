@@ -33,3 +33,65 @@ Finding fixed: IEC104-FINDING-DIRECTION-001
 - **[NIT]** Six of ten sites are tested single-direction only. Since `direction` is a pure pass-through with no branching, and both directions are proven at `track_ns_desync` and `process_u_frame` STOPDT, coverage is adequate — not a real gap.
 
 No BLOCKING or MINOR findings. Recommend merge.
+
+---
+
+# PR Review — #419 `docs: correct TypeID 45 C_SC_NA_1 direction label in FIX-P4-001 demo evidence`
+
+**Verdict: APPROVE** — no blocking findings.
+Branch: `docs/iec104-typeid45-direction-fix` → base `develop`. Follow-up prose
+correction to the demo evidence delivered in #410 (this file's review above).
+
+## Scope
+2-line prose diff (+2 / -2) across exactly two files, both under
+`docs/demo-evidence/FIX-P4-001/`:
+- `docs/demo-evidence/FIX-P4-001/evidence-report.md` (line 46)
+- `docs/demo-evidence/FIX-P4-001/AC-P4-001-test-results.txt` (line 61)
+
+No `src/`, `Cargo.toml`, or `bin/` files touched. Semantic PR title (`docs:`)
+valid. No behavior change, no test change, no new dependencies.
+
+## Checklist results
+
+**1. Correctness against code ground truth — CONFIRMED.**
+`src/analyzer/iec104.rs:743-748` — the `match type_id` arm `45..=47 =>` is
+commented "TypeIDs 45–47 (C_SC_NA_1, C_DC_NA_1, C_RC_NA_1): switching commands"
+and emits `IEC-104 control command` findings (T1692.001). TypeID 45 is handled
+purely as a control command and never appears in a monitoring-direction branch.
+The complementary arm at `iec104.rs:913` documents "TypeIDs 1–44 (monitoring
+direction)…", independently confirming 45 is outside the monitoring range.
+IEC 60870-5 classifies C_SC_NA_1 (single command) as a control-direction ASDU.
+The prior label "Monitoring direction" was factually wrong; the new
+"Control direction (C_SC_NA_1)" is correct. Cited anchor (744-748) is accurate.
+
+**2. Completeness sweep — no missed instances.**
+Grepped the entire `docs/demo-evidence/FIX-P4-001/` set (`evidence-report.md`,
+`AC-P4-001-test-results.txt`, `demo-json-serialization.rs`) for
+"monitoring direction" / TypeID 45 / C_SC_NA. Only two "monitoring direction"
+occurrences existed, both referencing TypeID 45 — both fixed by this diff. The
+remaining TypeID 45 mention (`evidence-report.md:156`, "Types 0, 45, 48, 105 …
+in both directions") is a correct aggregate statement, not a direction label,
+correctly untouched. `demo-json-serialization.rs` carries no TypeID 45 direction
+label. No mislabel escaped the fix.
+
+**3. PR description accuracy — CONFIRMED.**
+Cited line numbers match the diff hunks exactly. "No CHANGELOG entry required"
+is correct — AC-158-001 / PG-W71-CHANGELOG excludes `docs/`. "Sibling sweep:
+STORY-170 … TypeIDs 1–44 (monitoring direction)" is substantiated by
+`iec104.rs:913`. "No test-evidence table" is honest and
+PG-W74-PRDESC-ROW-VERIFY-compliant — no fabricated rows; CI green is the sole
+gate, appropriate for a prose-only change.
+
+**4. Demo evidence — N/A.** This PR corrects existing demo-evidence prose; no
+behavior to record.
+
+**5-8. Commit quality / diff size / missing changes / dependencies — PASS.**
+4-line diff, far under the 500-line flag; correction complete across the file
+set; no upstream dependencies.
+
+## Findings
+None at any severity (BLOCKING / WARNING / NIT). The correction is accurate,
+complete, and the PR description matches the diff. Verified: the prose
+correction reflects code ground truth at `iec104.rs:743-748`, no other instance
+of the same mislabel remains in the FIX-P4-001 file set, and every factual claim
+in the PR description checks out. Recommend merge.

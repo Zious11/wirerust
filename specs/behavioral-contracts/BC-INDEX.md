@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.33"
+version: "2.34"
 status: draft
 producer: product-owner
 timestamp: 2026-07-15T00:00:00Z
@@ -20,6 +20,9 @@ traces_to: .factory/specs/prd.md
 >
 > **v2.23 2026-07-13 (feature-iec104 — 27 new BC-2.19.001..027 SS-19 + 3 cross-subsystem new + 2 SS-18 amendments; ARCH-INDEX SS-19 27 BCs; SS-05: 11→12, SS-10: 9→10, SS-12: 24→25, SS-18: 2 amendments; total 348→378 on disk; 347→377 active):**
 > NEW SS-19 (IEC 60870-5-104 Passive Analysis, CAP-19): BC-2.19.001..027 — 27 greenfield BCs covering APCI framing (0x68 start byte validation, LEN range 4–253, carry-incomplete path), post-classification validity gate, I/S/U frame format discrimination (CF1 low-bit rules, VP-046 totality), U-format session state machine (STARTDT, STOPDT-with/without-STARTDT→T0881, TESTFR no-op, non-canonical CF1→T0814/CVE-2026-1773), ASDU parsing (TypeID/VSQ/COT/CASDU/IOA), control-command detection (TypeIDs 45–51→T1692.001 (all); set-point TypeIDs 48–51→+T0836; TypeID 105→T0827, TypeIDs 100/101/103 benign, reserved TypeIDs 0,128–255→T0814), N(S)/N(R) 15-bit extraction + k=12 desync detection→T1692.001, directional carry isolation (VP-045, MAX_IEC104_CARRY_BYTES=255), frame-walk loop (VP-044+VP-047), per-flow teardown. VP anchors: VP-044 (Kani P0), VP-045 (proptest P1), VP-046 (proptest P1), VP-047 (cargo-fuzz P1). NEW cross-subsystem: BC-2.05.012 (Rule 8: TCP/2404→Iec104), BC-2.10.010 (T0881 SEEDED+technique_info+EMITTED, SEEDED count 28→29), BC-2.12.025 (--iec104 flag, included in --all). AMENDED: BC-2.18.003 v1.3→v1.4 (SUPPORTED_PORTS adds 2404, supported entries 7→8), BC-2.18.004 v1.2→v1.3 (EC-003/EC-007 IEC-104 examples). BC count: 348→378 on disk; 347→377 active.
+>
+> **v2.34 2026-07-18 (D-470-B-002 title cascade — BC-2.19.002 H1 title corrected; BC-INDEX row + PRD §2.19.A RTM row updated):**
+> D-470-B-002 title cascade: BC-2.19.002 v1.3 H1 title corrected from "Returns None and Emits Anomaly When Start Byte ≠ 0x68" to "Returns None for Start Byte ≠ 0x68" — the "Emits Anomaly" claim was superseded by v1.3 body corrections (PC-2, Architecture Anchor, Description, test vectors, MITRE Techniques all corrected to reflect no T0814 emission for bad-start-byte path per BC-2.19.026 PC-4 and delivered code in Iec104Analyzer::on_data). BC-INDEX row and PRD §2.19.A RTM row updated to match. No BC count change (379 on disk; 378 active). No code change.
 >
 > **v2.33 2026-07-15 (A-173-A-01 spec-currency correction — BC-2.19.006 v1.1→v1.2: gate framing corrected to standalone pure predicate):**
 > A-173-A-01 adversarial advisory: BC-2.19.006 v1.1→v1.2 — `is_valid_iec104_frame` reframed from "Post-Classification Validity Gate" (was misleadingly titled as a wired production pre-gate called before `parse_apci_header`) to "Standalone Pure Frame-Validity Predicate". The DELIVERED design (SEC-001 + F-172-001 + ADR-013 Decisions 1–3) established that `is_valid_iec104_frame` is NOT wired as a dispatch or caller gate; equivalent start-byte/LEN validation is performed inline in `Iec104Analyzer::on_data`'s frame-walk loop. Wiring it as a pre-gate would re-open the Ptacek/Newsham evasion hole and break cross-segment carry. Changes: title, Description, PC-2 (removed flow-dispatch precondition), PC-3 (corrected from "caller emits anomaly" to "no production caller; inline walk handles equivalent logic"), Invariant-1 ("Gate scope" → "Predicate scope"), Invariant-3 ("False-positive correction" → "Not a production gate"), Traceability and Architecture Anchor rows. PC-1/PC-2 pure-boolean semantics, Invariant-2 parse_apci_header consistency, and EC-001..006 canonical test vectors PRESERVED unchanged. Input-hash recomputed via canonical Python tool (0f692ba). Note: BC-2.19.006 is listed in STORY-172's inputs; STORY-172 was correctly delivered; this is a post-hoc doc-currency fix — STORY-172's stored input-hash is retroactively stale but STORY-172 need not be reopened. No BC count change (379 on disk; 378 active).
@@ -888,7 +891,7 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.19.001 | `parse_apci_header` Returns None for Input Shorter Than 6 Bytes | P0 | [WRITTEN] | feature-iec104 |
-| BC-2.19.002 | `parse_apci_header` Returns None and Emits Anomaly When Start Byte ≠ 0x68 | P0 | [WRITTEN] | feature-iec104 |
+| BC-2.19.002 | `parse_apci_header` Returns None for Start Byte ≠ 0x68 | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.003 | `parse_apci_header` Rejects LEN < 4 with T0814 Finding (Malformed Length) | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.004 | `parse_apci_header` Rejects LEN > 253 with T0814 Finding (Malformed Length) | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.005 | `parse_apci_header` Returns Some(ApciHeader) for Valid 6-byte APCI Input (Happy Path) | P0 | [WRITTEN] | feature-iec104 |

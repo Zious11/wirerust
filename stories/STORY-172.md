@@ -38,7 +38,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "68352b5"
+input-hash: "47ed0fc"
 ---
 
 # STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle

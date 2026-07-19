@@ -3,6 +3,7 @@ document_type: story
 story_id: STORY-167
 title: "IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton"
 epic_id: E-22
+version: "1.1"
 wave: 76
 points: 5
 phase: f3
@@ -33,7 +34,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "32f0ab7"
+input-hash: "1fa8980"
 ---
 
 # STORY-167: IEC-104 APCI Core Parser: parse_apci_header Pure-Core Free Function + VP-044 Kani Skeleton
@@ -55,7 +56,7 @@ correctly extracts CF1–CF4 from valid 6-byte APCI headers.
 | BC-2.19.003 | `parse_apci_header` Returns None for LEN < 4 | Core reject path (lower bound) |
 | BC-2.19.004 | `parse_apci_header` Returns None for LEN > 253 | Core reject path (upper bound) |
 | BC-2.19.005 | `parse_apci_header` Returns Some(ApciHeader) for Valid Input | Accept path + CF1–CF4 extraction |
-| BC-2.19.006 | `is_valid_iec104_frame` Post-Classification Validity Gate | Lightweight validity gate (2-byte check) |
+| BC-2.19.006 | `is_valid_iec104_frame` Standalone Pure Frame-Validity Predicate | Standalone pure predicate (2-byte check; not a production dispatch gate) |
 
 ## Acceptance Criteria
 
@@ -92,7 +93,7 @@ correctly extracts CF1–CF4 from valid 6-byte APCI headers.
 - `len` (LEN field) is in `[4, 253]`; `len + 2` (total frame bytes) is in `[6, 255]` — no overflow
 - CF1–CF4 are copied verbatim; bytes beyond index 5 are not accessed by this function
 
-### AC-167-006: `is_valid_iec104_frame` post-classification validity gate
+### AC-167-006: `is_valid_iec104_frame` standalone pure frame-validity predicate
 **Traces to:** BC-2.19.006 postconditions 1–3 and invariant 3
 - Given a `&[u8]` slice from a port-2404-dispatched flow
 - When `is_valid_iec104_frame(data)` is called
@@ -243,3 +244,10 @@ The following crates MUST NOT appear in `src/analyzer/iec104.rs` or any file it 
 
 Build enforcement: if any of these crate names appear in `Cargo.toml` after this story,
 the build MUST fail at the license-check step. Original implementation only.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-07-18 | story-writer | Doc-currency: AC-167-006 title + BC table entry updated to match BC-2.19.006 v1.2 H1 title "Standalone Pure Frame-Validity Predicate" (was "post-classification validity gate" — stale framing predating BC v1.2 re-classification). No semantic AC content changed. |
+| 1.0 | 2026-07-14 | story-writer | Initial authorship — APCI core parser, parse_apci_header, is_valid_iec104_frame, VP-044 Kani skeleton, ACs 001–007. |
