@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-179
 epic_id: E-11
 version: "1.0"
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-07-18T00:00:00Z
 phase: f7
@@ -30,13 +30,13 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a30d524"
+input-hash: "66d7adb"
 ---
 
 # STORY-179: Feature-IEC104 Cycle-Close: Session Recovery and Multi-Worktree Verification
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** superseded
 **Wave:** TBD
 **Points:** 2
 **Priority:** P3
@@ -238,6 +238,24 @@ No develop PR required (factory-artifacts only).
 - **CLAUDE.md reference row:** Both new docs (`session-recovery-protocol.md` and the
   delivery-doc-currency-protocol.md amendment) MUST be reflected in CLAUDE.md Project
   References table.
+
+## Disposition
+
+**Status:** superseded — routed upstream 2026-07-19
+
+Both ACs address session-boundary recovery and post-agent verification scope — these are
+engine-level behaviors governing how the orchestrator inspects worktrees across all
+vsdd-factory projects. The stray-commit `105497f` incident (D-458) was a wirerust execution
+incident, but the protocol change (expanding verification scope to include the main develop
+checkout alongside all worktrees) is an engine orchestrator discipline, not a wirerust-specific
+file change.
+
+| AC | Upstream Disposition |
+|----|---------------------|
+| AC-179-001 (session-recovery-protocol.md multi-location scope) | drbothen/vsdd-factory#655 evidence comment, 2026-07-19 |
+| AC-179-002 (post-agent verification scope rule) | drbothen/vsdd-factory#655 evidence comment, 2026-07-19 |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
 
 ## Changelog
 

@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-178
 epic_id: E-11
 version: "1.0"
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-07-18T00:00:00Z
 phase: f7
@@ -31,13 +31,13 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a30d524"
+input-hash: "66d7adb"
 ---
 
 # STORY-178: Feature-IEC104 Cycle-Close: Pre-Delivery Spec Fidelity Gate
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** superseded
 **Wave:** TBD
 **Points:** 3
 **Priority:** P3
@@ -275,6 +275,28 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No new `bi
 - **DF-VALIDATION-001 gate:** All gaps are feature-iec104 in-process execution findings.
   DF-VALIDATION-001-exempt per the in-process exemption.
 - **No behavioral contract required:** E-11 convention.
+
+## Disposition
+
+**Status:** superseded — partially routed upstream 2026-07-19; product-local ACs absorbed by STORY-176
+
+AC-178-001 and AC-178-002 are engine-level (the pre-delivery fidelity check and
+citation-currency sweep are orchestrator/agent-prompt behaviors, not wirerust file changes).
+AC-178-003 and AC-178-004 are product-local and have been absorbed into STORY-176
+(re-scoped as the feature-iec104 cycle-close consolidation survivor).
+
+| AC | Disposition |
+|----|-------------|
+| AC-178-001 (pre-delivery AC↔BC fidelity check gate) | Engine → drbothen/vsdd-factory#305 evidence comment, 2026-07-19 |
+| AC-178-002 (spec-version citation currency sweep) | Engine → drbothen/vsdd-factory#396 evidence comment, 2026-07-19 |
+| AC-178-003 (input-hash post-delivery re-baseline checklist) | Product-local → absorbed by STORY-176 AC-176-002 |
+| AC-178-004 (.gitignore mutants.out* glob) | Product-local → absorbed by STORY-176 AC-176-003 |
+
+Note: drbothen/vsdd-factory#690 (validate-count-propagation E-11→11 tokenizer
+false-positive) was filed upstream 2026-07-19 as a new separate issue; it relates to
+tooling hygiene observations in this cycle but does not map to a specific STORY-178 AC.
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
 
 ## Changelog
 

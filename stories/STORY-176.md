@@ -2,14 +2,14 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "1.0"
+version: "2.0"
 status: draft
 producer: story-writer
-timestamp: 2026-07-18T00:00:00Z
+timestamp: 2026-07-19T00:00:00Z
 phase: f7
 level: feature
 cycle: feature-iec104
-points: 3
+points: 2
 priority: P3
 depends_on: []
 blocks: []
@@ -28,32 +28,31 @@ traces_to:
   - .factory/cycles/feature-iec104/convergence-trajectory.md
   - .factory/maintenance/delivery-doc-currency-protocol.md
   - .github/workflows/ci.yml
+  - .gitignore
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a30d524"
+input-hash: "66d7adb"
 ---
 
-# STORY-176: Feature-IEC104 Cycle-Close: Gate Vocabulary + Pre-Adversarial Doc Accuracy
+# STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
 
 **Epic:** E-11 (Tooling and Self-Improvement)
 **Status:** draft
 **Wave:** TBD
-**Points:** 3
+**Points:** 2
 **Priority:** P3
 
 ## Narrative
 
 - **As a** spec-steward, adversary reviewer, and future contributor on the wirerust project
-- **I want** three complementary process improvements codified: (1) the green-doc-tense gate
-  extended to catch stub-era vocabulary ("skeleton", "seam") that survives into green
-  deliveries, (2) a pre-adversarial code-comment and test-header doc sweep added to the
-  delivery protocol to prevent doc-accuracy drift from consuming adversarial pass budget,
-  and (3) severity calibration guidance added for adversary findings against code that has
-  been frozen since earlier passes
-- **So that** the residual adversarial pass count is driven by genuine behavioral findings
-  rather than doc-drift findings that could have been caught in a pre-adversarial sweep,
-  and so that adversary instances converge on consistent severity ratings for frozen code
+- **I want** two product-local tooling improvements codified: (1) the green-doc-tense CI gate
+  extended with stub-era vocabulary tokens `skeleton` and `seam`, and (2) minor housekeeping
+  items applied to the repo — an input-hash post-delivery re-baseline reminder in the delivery
+  protocol and a `mutants.out*/` glob added to `.gitignore`
+- **So that** stub-era wording is caught by CI before adversarial review, the delivery
+  checklist includes the hash re-baseline step, and mutation-testing residue no longer lands
+  untracked in the repo root
 
 ## Behavioral Contracts
 
@@ -78,35 +77,33 @@ the story spec itself) and P4 finding (stale seam commentary in test headers). B
 remediated in STORY-174 delivery, but the gate did not catch them automatically because
 the token list was not extended.
 
-### PG-DOC-CURRENCY-SWEEP — missing pre-adversarial doc sweep step
-
-STORY-173 required 17 adversarial passes to converge (14 passes over two adversary
-instances + 3 convergence-check passes). Post-analysis showed that 12 of the 17 passes
-were driven by doc-accuracy findings (stale comments, test header prose referring to
-earlier spec versions, outdated inline documentation) rather than behavioral findings.
-The feature code was CONVERGED by Pass 2; the remaining 15 passes corrected documentation.
-
-A mandatory pre-adversarial doc sweep step — checking code comments and test headers for
-currency with the current BC and story spec — would have caught these before the adversary
-session, reducing the adversarial pass budget to the behavioral-finding tail only.
-
-### PG-ADVERSARY-SEVERITY-CALIBRATION — inconsistent severity on frozen code
-
-During late adversarial passes on STORY-173 (passes P9–P14), two adversary instances
-disagreed on the severity of findings against production code that had been frozen since
-Pass 2 (i.e., unchanged through all subsequent passes). One instance rated unchanged
-code findings as MEDIUM; another rated equivalent findings as LOW or advisory. This
-divergence consumed reconciliation overhead and introduced ambiguity about whether the
-pass was genuinely CLEAN or had been under-reported.
-
-Guidance is needed: findings against code frozen since a named earlier pass should be
-rated at most LOW (advisory) unless the code change would affect observable behavior
-of the current HEAD. Prior pass convergence on that code establishes a baseline; a new
-instance finding the same code "wrong" is re-assessing prior accepted findings, which
-should be surfaced as LOW or advisory, not as MEDIUM blockers.
-
-These are feature-iec104 cycle-execution findings — DF-VALIDATION-001-exempt per the
+This is a feature-iec104 cycle-execution finding — DF-VALIDATION-001-exempt per the
 in-process exemption.
+
+### Input-hash self-referential drift (absorbed from STORY-178 AC-178-003)
+
+Stories whose `inputs:` list includes the same spec files that get modified during their
+delivery will have a stale `input-hash` immediately after delivery. This is expected and
+correct behavior (the hash detects drift), but the post-delivery re-baseline step is not
+documented as a standard checklist item. Observed on STORY-164/165 (re-baselined 2026-07-18).
+
+### .gitignore lacks `mutants.out*/` glob (absorbed from STORY-178 AC-178-004)
+
+`.gitignore` covers `mutants-f6*/` (F6 targeted hardening runs) but not the default
+`mutants.out/` and `mutants.out.j4-invalid/` directories produced by standard `cargo
+mutants` runs. Both directories land as untracked files in the repo root after mutation
+testing sessions (confirmed in current `git status`). The pattern `mutants.out*/` covers
+both.
+
+## Disposition (engine ACs from v1.0 routed upstream)
+
+The following ACs from STORY-176 v1.0 were engine-level and routed to the vsdd-factory
+engine repo 2026-07-19:
+
+| AC (v1.0) | Description | Upstream |
+|-----------|-------------|----------|
+| AC-176-002 (pre-adversarial doc sweep step) | Engine: delivery-protocol prompt behavior | drbothen/vsdd-factory#682 |
+| AC-176-003 (adversary severity calibration guidance) | Engine: adversary agent prompt calibration | drbothen/vsdd-factory#686 |
 
 ## Acceptance Criteria
 
@@ -126,12 +123,13 @@ is extended with two additional token patterns: `skeleton` and `seam`.
     not by weakening the pattern.
 
 (c) **CHANGELOG obligation:** The AC-176-001 develop PR modifies `.github/workflows/ci.yml`
-    (`ci.yml` is excluded from the CHANGELOG trigger set per AC-158-001; no CHANGELOG entry
-    required unless `src/` or `bin/` changes are included in the same PR).
+    (`ci.yml` is excluded from the CHANGELOG trigger set per AC-158-001; no CHANGELOG
+    entry required unless `src/` or `bin/` changes are included in the same PR).
 
 (d) **Develop PR:** This AC requires a develop-branch PR touching `ci.yml`. The PR MUST
     pass CI including the green-doc-tense gate itself (confirming the extended patterns
-    produce zero false positives on the current tree).
+    produce zero false positives on the current tree). AC-176-001 SHOULD be batched with
+    AC-176-003 in a single develop PR.
 
 Verification:
 ```bash
@@ -144,75 +142,58 @@ grep -rn --include="*.rs" "\bskeleton\b\|\bseam\b" src/ tests/
 # Must emit empty output (or only lines with # green-doc-tense-gate: allow)
 ```
 
-### AC-176-002 (traces to PG-DOC-CURRENCY-SWEEP — pre-adversarial doc sweep in delivery protocol)
+### AC-176-002 (minor — input-hash post-delivery re-baseline checklist step)
 
-`.factory/maintenance/delivery-doc-currency-protocol.md` is extended with a mandatory
-pre-adversarial code-comment and test-header doc sweep step. The new step MUST:
+`.factory/maintenance/delivery-doc-currency-protocol.md` is extended with a post-delivery
+input-hash re-baseline reminder. The reminder MUST state:
 
-(a) **Placement:** Appear as a named step before the "dispatch adversary" instruction,
-    after implementation is complete and all CI is green.
-
-(b) **Scope:** Require a sweep of `src/` inline comments and `tests/` test-function
-    docstrings/headers for references to:
-    - Prior story spec versions (e.g., "see BC-2.19.006 v1.1" when v1.2 is current)
-    - Stale function names or field names from earlier BC versions
-    - "todo" / "fixme" / "TODO" comments left from the implementation pass (these are
-      red-gate artifacts and must be resolved before adversarial dispatch)
-    - Any comment or docstring that references an AC, BC, or implementation detail
-      that changed during the BC-realignment phase
-
-(c) **Verification:** The sweep is complete when no stale cross-references are found.
-    The implementer records "doc sweep: PASS" (or lists the items corrected) in the
-    session checkpoint before dispatching the adversary.
-
-(d) **Evidence rationale (PG-DOC-CURRENCY-SWEEP):** 12 of 17 STORY-173 adversarial
-    passes were consumed on doc-drift corrections that a pre-adversarial sweep would have
-    caught. A 1–2 hour manual sweep before adversarial dispatch saves 10+ adversarial
-    passes.
+- Stories whose `inputs:` list includes spec files that were amended during the delivery
+  wave will have a stale `input-hash` immediately after delivery. This is expected behavior
+  (the hash correctly detects drift).
+- Post-delivery re-baseline step: run `bin/compute-input-hash --write
+  .factory/stories/STORY-NNN.md` for the delivered story immediately after wave close.
+- The re-baseline is NOT optional — a STALE hash on a just-delivered story that modified
+  its own spec inputs must be resolved before the next wave's plan gate.
+- Reference: observed on STORY-164/165 (re-baselined 2026-07-18); also applicable to any
+  story in the E-22 or E-11 series that traces to actively-revised spec documents.
 
 Verification:
 ```bash
-grep -n "pre-adversarial\|doc sweep\|PG-DOC-CURRENCY" \
+grep -n "re-baseline\|input-hash.*post\|post-delivery.*hash" \
   .factory/maintenance/delivery-doc-currency-protocol.md
-# Must emit non-empty output containing the new step
+# Must emit non-empty output
 ```
 
-### AC-176-003 (traces to PG-ADVERSARY-SEVERITY-CALIBRATION — severity calibration guidance)
+### AC-176-003 (minor — .gitignore mutants.out* glob)
 
-A severity calibration note is added to `.factory/maintenance/delivery-doc-currency-protocol.md`
-(or a new maintenance doc if more appropriate) covering adversary severity ratings for
-findings against code frozen since a named earlier pass. The note MUST state:
+`.gitignore` is updated with a `mutants.out*/` glob pattern. The change MUST:
 
-(a) **Frozen-code baseline:** If production code at a given HEAD has been UNCHANGED since
-    a named earlier pass (e.g., "code frozen since Pass 2"), findings against that code
-    from a fresh adversary instance must acknowledge the prior pass baseline. A fresh
-    instance re-assessing the same frozen code is performing a retrospective review, not
-    a forward scan for new regressions.
+(a) **Pattern:** Add `mutants.out*/` to `.gitignore` under the existing cargo-mutants
+    section (near `mutants-f6*/`). The `*` wildcard covers `mutants.out/`,
+    `mutants.out.j4-invalid/`, and any future variant of the default output directory.
 
-(b) **Severity ceiling:** Findings against frozen code MUST be rated at most LOW unless
-    the finding identifies an observable behavioral regression at current HEAD. If the
-    behavior has been unchanged since the freeze point, MEDIUM+ severity is not
-    appropriate — the finding would have been equally valid to report in the prior pass
-    (when it was accepted or deferred by the earlier adversary instance).
+(b) **Develop PR:** This change touches `.gitignore` in the project root. It is committed
+    on the develop branch (no CHANGELOG entry required — `.gitignore` is not in the
+    AC-158-001 trigger set). AC-176-003 SHOULD be batched with AC-176-001 in a single
+    develop PR.
 
-(c) **Wording:** The adversary MUST note when a finding targets frozen-since-pass-N code
-    (e.g., "code frozen since Pass 2; LOW advisory"). The reviewer can accept or defer
-    LOW advisories without blocking convergence.
+(c) **Effect:** After this change, `git status` shows no untracked `mutants.out*/`
+    entries after a standard `cargo mutants` run.
 
 Verification:
 ```bash
-grep -n "frozen.*pass\|severity.*calibration\|PG-ADVERSARY-SEVERITY" \
-  .factory/maintenance/delivery-doc-currency-protocol.md
-# Must emit non-empty output containing the calibration guidance
+grep "mutants.out" .gitignore
+# Must emit: mutants.out*/
+# (in addition to existing mutants-f6*/)
 ```
 
 ## Architecture Mapping
 
 | Component | File | Branch |
 |-----------|------|--------|
-| Green-doc-tense gate token extension | `.github/workflows/ci.yml` (amend) | develop |
-| Pre-adversarial doc sweep step | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | factory-artifacts |
-| Adversary severity calibration guidance | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | factory-artifacts |
+| Green-doc-tense gate skeleton/seam token extension | `.github/workflows/ci.yml` (amend) | develop |
+| Input-hash post-delivery re-baseline reminder | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | factory-artifacts |
+| mutants.out* glob | `.gitignore` (amend) | develop |
 
 No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` changes.
 
@@ -222,36 +203,36 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` 
 |----|-------------|-------------------|
 | EC-001 | `skeleton` appears in a comment legitimately (e.g., describing architecture) | The `# green-doc-tense-gate: allow` allowlist mechanism handles this; implementer must verify zero false positives before merging the ci.yml PR |
 | EC-002 | Story spec (`.factory/`) files contain "skeleton" / "seam" | Gate applies to `src/` and `tests/` only; spec files are not gated |
-| EC-003 | Code frozen since Pass N has a genuine behavioral bug not caught in Pass N | Severity may be MEDIUM+ if the adversary can demonstrate observable behavioral regression at current HEAD; the frozen-code ceiling does not apply to genuinely new findings |
+| EC-003 | Story inputs do not include any spec file revised during delivery | No stale hash after delivery; AC-176-002 note applies but no action required |
+| EC-004 | mutants.out* directory exists with important results the implementer wants to keep | .gitignore suppresses tracking but does not delete files; results remain on disk and are simply not staged |
 
 ## Tasks
 
 1. **Extend green-doc-tense gate (AC-176-001):** Run zero-false-positive check on
    current tree, then extend ci.yml token list with `skeleton` and `seam` patterns.
-   Open develop PR.
+   Batch with AC-176-003 in one develop PR (no CHANGELOG entry required).
 
-2. **Extend delivery-doc-currency-protocol.md (AC-176-002):** Add pre-adversarial doc
-   sweep step before adversary dispatch instruction. Factory-artifacts branch commit.
+2. **Update .gitignore (AC-176-003):** Add `mutants.out*/` glob under cargo-mutants
+   section. Batch with AC-176-001 in the same develop PR.
 
-3. **Add severity calibration guidance (AC-176-003):** Add frozen-code severity ceiling
-   note to delivery-doc-currency-protocol.md. Factory-artifacts branch commit.
+3. **Extend delivery-doc-currency-protocol.md (AC-176-002):** Add input-hash
+   post-delivery re-baseline reminder. Factory-artifacts branch commit.
 
-4. **Register in STORY-INDEX.md:** Add STORY-176 row (draft, E-11, wave-TBD).
-   Factory-artifacts branch commit.
+4. **Register in STORY-INDEX.md:** Update STORY-176 row (v2.0, draft, E-11, wave-TBD,
+   2 pts). Factory-artifacts branch commit.
 
-> **Note for implementer:** AC-176-001 (ci.yml change) requires a develop PR. AC-176-002
-> and AC-176-003 are factory-artifacts branch commits. The ci.yml PR does NOT require a
-> CHANGELOG entry (ci.yml is excluded from the AC-158-001 trigger set).
+> **Note for implementer:** Tasks 1 and 2 (ci.yml and .gitignore) are develop-branch
+> changes that can be batched in one PR (no CHANGELOG entry required for either).
+> Task 3 is a factory-artifacts branch commit.
 
 ## Previous Story Intelligence
 
 - **AC-174-008 (STORY-174, wave-83):** Established the green-doc-tense gate and its
-  allowlist mechanism. This story extends the token list — the same ci.yml job and
-  the same allowlist pattern apply. Implementer should read AC-174-008 before writing
-  the ci.yml change to ensure the extension follows the same pattern.
+  allowlist mechanism. AC-176-001 extends the same ci.yml job with two more tokens —
+  read AC-174-008 before writing the ci.yml change to match the existing pattern.
 - **STORY-165 AC-165-003 (wave-75):** Established `delivery-doc-currency-protocol.md`
   as the canonical delivery sweep document. STORY-176 amends the same document with
-  two additional steps.
+  the input-hash re-baseline reminder (AC-176-002).
 
 ## Architecture Compliance Rules
 
@@ -262,20 +243,21 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` 
 
 ## Notes
 
-- **S-7.02 disposition:** Creating this story at draft status codifies three
-  feature-iec104 cycle-execution process gaps: PG-GATE-VOCAB-BLINDSPOT (2 independent
-  adversary observations, STORY-174 P2+P4), PG-DOC-CURRENCY-SWEEP (12 of 17 STORY-173
-  passes doc-accuracy), PG-ADVERSARY-SEVERITY-CALIBRATION (STORY-173 late-pass severity
-  divergence).
-- **DF-VALIDATION-001 gate:** All three gaps are feature-iec104 in-process execution
-  findings. DF-VALIDATION-001-exempt per the in-process exemption (same pattern as
-  STORY-165/166 Notes).
+- **S-7.02 disposition:** STORY-176 v2.0 (re-scoped 2026-07-19) is the wirerust-local
+  survivor of the feature-iec104 cycle-close E-11 burst. The engine-routed ACs from
+  v1.0 (pre-adversarial doc sweep → drbothen/vsdd-factory#682; severity calibration →
+  drbothen/vsdd-factory#686) are tracked upstream. The two absorbed ACs (AC-176-002
+  from STORY-178 AC-178-003; AC-176-003 from STORY-178 AC-178-004) are product-local
+  housekeeping items with zero Rust source impact.
+- **DF-VALIDATION-001 gate:** PG-GATE-VOCAB-BLINDSPOT is a feature-iec104 in-process
+  execution finding. DF-VALIDATION-001-exempt per the in-process exemption.
 - **No behavioral contract required:** E-11 convention.
-- **Develop/factory split:** AC-176-001 (ci.yml) → develop PR; AC-176-002/003
-  (delivery-doc-currency-protocol.md amendments) → factory-artifacts branch commits.
+- **Develop PR:** Both ci.yml and .gitignore changes (Tasks 1 and 2) can be batched in
+  a single develop PR. Neither requires a CHANGELOG entry.
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.0 | 2026-07-19 | story-writer | Re-scoped upstream 2026-07-19: ACs-176-002/003 (pre-adversarial doc sweep / severity calibration) routed to drbothen/vsdd-factory#682/#686. Absorbed STORY-178 AC-178-003 (input-hash re-baseline) → AC-176-002 and STORY-178 AC-178-004 (.gitignore mutants.out*) → AC-176-003. Points 3→2. |
 | 1.0 | 2026-07-18 | story-writer | Initial authorship — feature-iec104 cycle-close S-7.02: PG-GATE-VOCAB-BLINDSPOT (AC-176-001 green-doc-tense gate skeleton/seam extension) + PG-DOC-CURRENCY-SWEEP (AC-176-002 pre-adversarial doc sweep step) + PG-ADVERSARY-SEVERITY-CALIBRATION (AC-176-003 frozen-code severity ceiling guidance). |

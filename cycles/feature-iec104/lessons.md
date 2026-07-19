@@ -167,3 +167,27 @@ per-worktree `git status`; (3) recovery protocol MUST name the expected SHA at e
 HEAD and verify it matches before declaring a session clean.
 
 **Tags:** `codified`, `state-recovery-scope`, `verify-all-worktrees`, `stray-commit`, `multi-worktree`
+
+---
+
+## D-477 Note — Codification Vehicle Change (2026-07-19)
+
+**Context:** After D-475 cycle-close, the human redirected process-gap codification from the local
+wirerust E-11 stories (STORY-175..179) to the upstream engine repository (drbothen/vsdd-factory).
+
+**Status of lessons above:** All 5 lessons retain `[codified]` status. The lessons themselves are
+unchanged — only the delivery vehicle changed from local story files to upstream issues/comments.
+
+**Vehicle mapping (original local story → upstream vehicle):**
+
+| Local story (superseded) | Upstream vehicle |
+|--------------------------|-----------------|
+| STORY-175 (demo-JSON fabrication) | drbothen/vsdd-factory #494 (evidence comment, redacted) |
+| STORY-177 (merge-auth + idle-no-report) | drbothen/vsdd-factory #461 (evidence comment, redacted); #457 confirmed duplicate, no-action |
+| STORY-178 (F3 decomposition fidelity, spec-version currency, gitignore) | drbothen/vsdd-factory #686/#682/#305/#396 (evidence comments, redacted) |
+| STORY-179 (session-boundary state recovery) | drbothen/vsdd-factory #655 (evidence comment, redacted) |
+| STORY-176 (gate vocab, doc sweep, adversary calibration) | LOCAL SURVIVOR — re-scoped as STORY-176 v2.0 "Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps" (2 pts, wave-TBD); product-local ACs only |
+| (new upstream issue) | drbothen/vsdd-factory #690 NEW — validate-count-propagation E-11→"11" tokenizer false-positive (body redacted post-hoc) |
+| STORY-166 | PRODUCT-LOCAL, no-action (engine ACs already upstream at #638/#635 since wave-75) |
+
+**Tags:** `d-477`, `upstream-routing`, `vehicle-change`, `codified`

@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-175
 epic_id: E-11
 version: "1.0"
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-07-18T00:00:00Z
 phase: f7
@@ -31,13 +31,13 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a30d524"
+input-hash: "66d7adb"
 ---
 
 # STORY-175: Feature-IEC104 Cycle-Close: Demo Evidence JSON Accuracy Protocol
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** superseded
 **Wave:** TBD
 **Points:** 2
 **Priority:** P3
@@ -204,6 +204,23 @@ correctness) rather than path scrub (host-path removal). The two mandates are co
 - **Predecessor chain:** STORY-175 follows the E-11 S-7.02 pattern: STORY-163 → wave-73;
   STORY-164 → wave-74; STORY-165 → wave-75; STORY-166 → wave-75; STORY-175 →
   feature-iec104 cycle-close.
+
+## Disposition
+
+**Status:** superseded — routed upstream 2026-07-19
+
+All ACs in this story address the demo-evidence JSON fabrication process gap
+(PG-DEMO-JSON-FABRICATION). The root cause is in the vsdd-factory engine's demo-recorder
+agent, which produces JSON by hand-reasoning rather than from real program output. Codifying
+project-side mandates in wirerust `.factory/maintenance/` files is superseded by the
+upstream engine fix.
+
+| AC | Upstream Disposition |
+|----|---------------------|
+| AC-175-001 (demo-evidence-scrub-gate JSON Accuracy Mandate) | drbothen/vsdd-factory#494 evidence comment, 2026-07-19 |
+| AC-175-002 (delivery-doc-currency Step 3 note) | drbothen/vsdd-factory#494 evidence comment, 2026-07-19 |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
 
 ## Changelog
 

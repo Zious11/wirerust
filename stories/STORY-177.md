@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-177
 epic_id: E-11
 version: "1.0"
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-07-18T00:00:00Z
 phase: f7
@@ -30,13 +30,13 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a30d524"
+input-hash: "66d7adb"
 ---
 
 # STORY-177: Feature-IEC104 Cycle-Close: Agent Dispatch and Reporting Discipline
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** superseded
 **Wave:** TBD
 **Points:** 2
 **Priority:** P3
@@ -235,6 +235,22 @@ No develop PR required for either AC (factory-artifacts only).
 - **CLAUDE.md reference row:** The new `agent-reporting-discipline.md` maintenance doc
   MUST be added to the CLAUDE.md Project References table (same pattern as
   `pr-manager-merge-auth-guidance.md` and other maintenance docs listed there).
+
+## Disposition
+
+**Status:** superseded — routed upstream 2026-07-19
+
+Both ACs address engine-level agent dispatch discipline. The merge-authorization guidance
+lives in the vsdd-factory plugin's orchestrator prompts and hooks; the report-before-idle
+rule likewise governs engine-level agent behavior across all projects. Neither fix lands
+in wirerust repository files.
+
+| AC | Upstream Disposition |
+|----|---------------------|
+| AC-177-001 (merge-auth guidance D-463 update) | drbothen/vsdd-factory#461 evidence comment, 2026-07-19 |
+| AC-177-002 (agent-generic report-before-idle rule) | Confirmed duplicate of drbothen/vsdd-factory#457; no new issue filed, 2026-07-19 |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
 
 ## Changelog
 
