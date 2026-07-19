@@ -2,7 +2,7 @@
 //! Repo-Local Mutation-Testing Defaults: `.cargo/mutants.toml` Timeout Floor
 //! + CLAUDE.md Guidance.
 //!
-//! Covers AC-147-001..004 (v2.2). Deliberately dependency-free: rather than
+//! Covers AC-147-001..004 (v2.3). Deliberately dependency-free: rather than
 //! pulling in a `toml` dev-dependency for a handful of key lookups, this file
 //! uses a minimal line-oriented parser sufficient to answer "does
 //! `.cargo/mutants.toml` set a generous `minimum_test_timeout` floor without
@@ -18,7 +18,7 @@
 //! survivors. See drbothen/vsdd-factory#654 for the upstream engine-default
 //! tracking issue.
 //!
-//! Execution-evidence correction (STORY-147 v2.2, F-S147P1-002/-004/-005):
+//! Execution-evidence correction (STORY-147 v2.3, F-S147P1-002/-004/-005):
 //! cargo-mutants reads ONLY `.cargo/mutants.toml` by default — a repo-root
 //! `mutants.toml` and a `Cargo.toml [package.metadata.mutants]` table are
 //! both silently ignored, not alternate read locations. `jobs` is not a
@@ -81,7 +81,7 @@ fn parse_key_value(line: &str) -> Option<(String, String)> {
 }
 
 /// The path cargo-mutants actually reads a config file from by default —
-/// and, per STORY-147 v2.2 / F-S147P1-002/-004, the ONLY such path. A
+/// and, per STORY-147 v2.3 / F-S147P1-002/-004, the ONLY such path. A
 /// repo-root `mutants.toml` and a `Cargo.toml [package.metadata.mutants]`
 /// table are both silently ignored by cargo-mutants and are deliberately
 /// NOT checked anywhere in this file (see
@@ -135,16 +135,32 @@ fn timeout_floor_present(config: &MutantsConfig) -> bool {
     config.minimum_test_timeout.is_some() || config.timeout_multiplier.is_some()
 }
 
-/// F-S147P2-001: the complete, authoritative set of top-level keys accepted
-/// by cargo-mutants v27.1.0's `Config` struct (`src/config.rs`), which is
-/// `#[serde(deny_unknown_fields)]`. Pinned to v27.1.0 — re-derive from
-/// upstream `src/config.rs` before bumping the pinned cargo-mutants version.
+/// F-S147P3-001: the complete, EXECUTION-VERIFIED set of top-level keys
+/// accepted by the locally installed cargo-mutants v27.0.0's `Config` struct
+/// parser (`#[serde(deny_unknown_fields)]`). Pinned to v27.0.0 and verified
+/// by direct probes against the installed binary (`.cargo/mutants.toml`
+/// probes, strict parser, 2026-07-19), cross-referenced with v27.1.0
+/// `src/config.rs` research:
+///   - `test_tool = "cargo"` — ACCEPTED by the installed binary. A valid
+///     `Config` key that was MISSING from the prior allowlist (a false-red
+///     vector: a legitimate `test_tool` line would have been wrongly flagged
+///     as unrecognized).
+///   - `common = 1` and `[common]` (both forms) — REJECTED by the installed
+///     binary as an unknown field. The prior allowlist's `common` entry was
+///     spurious for v27.0.0 (a false-green vector: an actually-fatal unknown
+///     key would have been silently accepted as valid). `common` appeared in
+///     main-branch v27.1.0 `src/config.rs` research and may be internal or
+///     introduced in a newer release — do not re-add it without re-probing
+///     the installed binary.
+///
 /// A `jobs` key is deliberately absent from this list: `jobs` is CLI/env-only
 /// (`--jobs`, `CARGO_MUTANTS_JOBS`), never a `Config` struct field. Any
 /// top-level key in `.cargo/mutants.toml` that is not in this list would
 /// cause `deny_unknown_fields` to fatally abort every `cargo mutants` run at
-/// config-load time, before a single mutant is even generated.
-const MUTANTS_TOML_V27_1_0_ALLOWED_KEYS: &[&str] = &[
+/// config-load time, before a single mutant is even generated. Re-derive (by
+/// re-probing the installed binary, not by re-reading upstream source alone)
+/// before bumping the pinned cargo-mutants version.
+const MUTANTS_TOML_V27_ALLOWED_KEYS: &[&str] = &[
     "additional_cargo_args",
     "additional_cargo_test_args",
     "all_features",
@@ -166,9 +182,9 @@ const MUTANTS_TOML_V27_1_0_ALLOWED_KEYS: &[&str] = &[
     "skip_calls",
     "skip_calls_defaults",
     "test_package",
+    "test_tool",
     "test_workspace",
     "timeout_multiplier",
-    "common",
 ];
 
 /// Every top-level `key = value` line found in `content`, in file order.
@@ -283,19 +299,23 @@ fn test_AC_147_002_config_content_valid_and_no_decoy_present() {
 }
 
 // ---------------------------------------------------------------------------
-// F-S147P2-001: `.cargo/mutants.toml` contains ONLY keys recognized by
-// cargo-mutants v27.1.0's `#[serde(deny_unknown_fields)]` `Config` struct.
-// This test is the AC-147-002 anchor for that "no other unrecognized key"
-// clause: the earlier "only check for `jobs`" logic caught the one
-// concretely-known-bad key but would silently pass ANY other unrecognized
-// key (e.g. a typo like `minumum_test_timeout`, or a plausible-sounding but
-// nonexistent field) — each of which is equally fatal: `deny_unknown_fields`
-// aborts every `cargo mutants` run with a parse error before any mutant
-// testing occurs. This test replaces "absence of one bad key" with
-// "membership in the full allowlist" as the guard.
+// F-S147P2-001 / F-S147P3-001: `.cargo/mutants.toml` contains ONLY keys
+// recognized by the locally installed cargo-mutants v27.0.0's
+// `#[serde(deny_unknown_fields)]` `Config` struct parser (execution-verified
+// by direct probes against the installed binary, 2026-07-19 — see the
+// allowlist provenance comment above for the `test_tool`/`common` divergence
+// findings). This test is the AC-147-002 anchor for that "no other
+// unrecognized key" clause: the earlier "only check for `jobs`" logic caught
+// the one concretely-known-bad key but would silently pass ANY other
+// unrecognized key (e.g. a typo like `minumum_test_timeout`, or a
+// plausible-sounding but nonexistent field) — each of which is equally
+// fatal: `deny_unknown_fields` aborts every `cargo mutants` run with a parse
+// error before any mutant testing occurs. This test replaces "absence of one
+// bad key" with "membership in the execution-verified allowlist" as the
+// guard.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_AC_147_002_config_keys_are_all_in_v27_1_0_allowlist() {
+fn test_AC_147_002_config_keys_are_all_in_v27_allowlist() {
     let path = dot_cargo_mutants_toml_path();
     let content = read_if_exists(&path);
 
@@ -307,16 +327,16 @@ fn test_AC_147_002_config_keys_are_all_in_v27_1_0_allowlist() {
     let content = content.unwrap_or_default();
     let unrecognized: Vec<String> = top_level_keys(&content)
         .into_iter()
-        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .filter(|k| !MUTANTS_TOML_V27_ALLOWED_KEYS.contains(&k.as_str()))
         .collect();
 
     assert!(
         unrecognized.is_empty(),
-        "F-S147P2-001: `.cargo/mutants.toml` contains key(s) {unrecognized:?} not recognized by \
-         cargo-mutants v27.1.0's `Config` struct (allowlist pinned to v27.1.0 `src/config.rs`, \
-         `#[serde(deny_unknown_fields)]`). An unrecognized key would FATALLY ABORT every \
-         `cargo mutants` run at config-load time — not merely fail to configure something. \
-         Allowed keys: {MUTANTS_TOML_V27_1_0_ALLOWED_KEYS:?}."
+        "F-S147P2-001/F-S147P3-001: `.cargo/mutants.toml` contains key(s) {unrecognized:?} not \
+         recognized by the installed cargo-mutants v27.0.0's `Config` struct \
+         (execution-verified allowlist, `#[serde(deny_unknown_fields)]`). An unrecognized key \
+         would FATALLY ABORT every `cargo mutants` run at config-load time — not merely fail to \
+         configure something. Allowed keys: {MUTANTS_TOML_V27_ALLOWED_KEYS:?}."
     );
 
     // Distinct explicit `jobs` check kept alongside the allowlist check: this
@@ -412,7 +432,7 @@ fn test_AC_147_003_claude_md_has_mutation_testing_section() {
 // AC-147-004 (self-audit): after this story ships, a developer running
 // `cargo mutants` from a fresh checkout will not silently receive a
 // false-clean result due to load-induced timeouts. Conjunction of the two
-// REAL defenses per v2.2: first line of defense — the `.cargo/mutants.toml`
+// REAL defenses per v2.3: first line of defense — the `.cargo/mutants.toml`
 // timeout floor (machine-enforced, no `jobs` key, `minimum_test_timeout >=
 // 300`); second line of defense — the CLAUDE.md note (human-facing guidance
 // against explicit high `--jobs`). This test only verifies the mechanical
@@ -493,20 +513,20 @@ fn test_F_S147P2_002_unquoted_minimum_test_timeout_still_parses() {
 }
 
 /// F-S147P2-001 regression guard: an unrecognized key (neither a real
-/// v27.1.0 `Config` field nor `jobs`) must be flagged by the allowlist scan.
+/// v27.0.0 `Config` field nor `jobs`) must be flagged by the allowlist scan.
 /// The prior "only check for `jobs`" logic would have silently missed this.
 #[test]
 fn test_F_S147P2_001_allowlist_scan_flags_unrecognized_key() {
     let synthetic = "minimum_test_timeout = 300\nbogus_typo_field = true\n";
     let unrecognized: Vec<String> = top_level_keys(synthetic)
         .into_iter()
-        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .filter(|k| !MUTANTS_TOML_V27_ALLOWED_KEYS.contains(&k.as_str()))
         .collect();
     assert_eq!(
         unrecognized,
         vec!["bogus_typo_field".to_string()],
         "F-S147P2-001: the allowlist scan did not flag a synthetic unrecognized key \
-         (`bogus_typo_field`) that is neither `jobs` nor a real v27.1.0 `Config` field."
+         (`bogus_typo_field`) that is neither `jobs` nor a real v27.0.0 `Config` field."
     );
 }
 
@@ -514,18 +534,18 @@ fn test_F_S147P2_001_allowlist_scan_flags_unrecognized_key() {
 /// accepted as recognized (i.e. the allowlist scan has no false positives
 /// against its own reference list).
 #[test]
-fn test_F_S147P2_001_allowlist_scan_accepts_all_pinned_v27_1_0_keys() {
-    let synthetic: String = MUTANTS_TOML_V27_1_0_ALLOWED_KEYS
+fn test_F_S147P2_001_allowlist_scan_accepts_all_pinned_v27_0_0_keys() {
+    let synthetic: String = MUTANTS_TOML_V27_ALLOWED_KEYS
         .iter()
         .map(|k| format!("{k} = true\n"))
         .collect();
     let unrecognized: Vec<String> = top_level_keys(&synthetic)
         .into_iter()
-        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .filter(|k| !MUTANTS_TOML_V27_ALLOWED_KEYS.contains(&k.as_str()))
         .collect();
     assert!(
         unrecognized.is_empty(),
-        "F-S147P2-001: the allowlist scan false-flagged pinned v27.1.0 key(s) {unrecognized:?} \
+        "F-S147P2-001: the allowlist scan false-flagged pinned v27.0.0 key(s) {unrecognized:?} \
          as unrecognized."
     );
 }
