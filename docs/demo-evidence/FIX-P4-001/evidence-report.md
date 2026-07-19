@@ -43,7 +43,7 @@ All 11 tests verify that the `direction` field is populated correctly across the
 | `test_fix_p4_001_process_u_frame_stopdt_direction_c2s` | `process_u_frame()` (STOPDT-act) | STOPDT with ClientToServer |
 | `test_fix_p4_001_process_u_frame_stopdt_direction_s2c` | `process_u_frame()` (STOPDT-act) | STOPDT with ServerToClient |
 | `test_fix_p4_001_process_u_frame_noncanonical_direction_c2s` | `process_u_frame()` (non-canonical) | Non-canonical U-frame with ClientToServer |
-| `test_fix_p4_001_detect_threats_type45_direction_c2s` | `detect_threats()` (TypeID 45) | Monitoring direction with ClientToServer |
+| `test_fix_p4_001_detect_threats_type45_direction_c2s` | `detect_threats()` (TypeID 45) | Control direction (C_SC_NA_1) with ClientToServer |
 | `test_fix_p4_001_detect_threats_type48_direction_s2c` | `detect_threats()` (TypeID 48) | ASDU type with ServerToClient |
 | `test_fix_p4_001_detect_threats_type105_direction_c2s` | `detect_threats()` (TypeID 105) | ASDU type with ClientToServer |
 | `test_fix_p4_001_detect_threats_type0_direction_c2s` | `detect_threats()` (TypeID 0 invalid) | Invalid ASDU with ClientToServer |
