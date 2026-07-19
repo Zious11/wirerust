@@ -1,4 +1,0 @@
-# Low-parallelism default. See PG-MUTANTS-JOBS-001: `--jobs 8` pegged all
-# cores with infinite-loop mutants, inflating other mutants' wall-clock past
-# the auto-timeout and producing a false "0 missed" result.
-jobs = 1
