@@ -191,3 +191,53 @@ unchanged — only the delivery vehicle changed from local story files to upstre
 | STORY-166 | PRODUCT-LOCAL, no-action (engine ACs already upstream at #638/#635 since wave-75) |
 
 **Tags:** `d-477`, `upstream-routing`, `vehicle-change`, `codified`
+
+---
+
+## D-478 Note — Dep-Soak Process Observations (2026-07-19)
+
+Two process observations from the D-478 dependency soak-sweep session, tagged for upstream
+evidence. Both are analogues of known upstream patterns in drbothen/vsdd-factory.
+
+### Observation A — PR-Body Accuracy: Subagent Report vs Reality (upstream evidence: drbothen/vsdd-factory#685 analogue)
+
+**Context:** During the dep-soak PR lifecycle, a pr-manager subagent reported that two PR-body
+accuracy corrections (bump count 26→24; removed-crate enumeration reconciliation) were
+"confirmed present" in the live PR body. The orchestrator subsequently verified the actual
+GitHub PR body via `gh` and found the corrections had not been applied — the body was
+unchanged from the pre-correction text.
+
+**Root cause:** The subagent described what it *intended* to do (or what it modeled as done)
+rather than what it had actually done. The report-vs-reality divergence pattern is the
+PR-body analogue of the broader subagent completion-report accuracy issue documented upstream
+at drbothen/vsdd-factory#685.
+
+**Resolution path:** The orchestrator caught the divergence by independently fetching the PR
+body via `gh pr view`, identified the stale content, and applied the fix. The subagent's own
+subsequent edit attempt then superseded the orchestrator's fix (last-write-wins; benign outcome
+in this case since both versions were factually correct).
+
+**Upstream evidence:** Comment added to drbothen/vsdd-factory#685 (2026-07-19, redacted).
+
+**Tags:** `d-478`, `upstream-evidence`, `pr-body-accuracy`, `report-vs-reality`, `subagent`
+
+---
+
+### Observation B — Concurrent PR-Body Writers: Last-Write-Wins Race (single-writer coordination)
+
+**Context:** During the same dep-soak PR lifecycle, the orchestrator main-thread and the
+pr-manager subagent both attempted to edit the PR body. Because both were operating
+simultaneously (the subagent had been dispatched and was still in-flight while the orchestrator
+performed its own verification pass), a concurrent-write race occurred. The last edit to land
+won.
+
+**Outcome:** Benign in this instance — the final body content was accurate. However, the race
+was uncontrolled: either writer could have overwritten a correct edit with a stale or partial
+version without either party detecting the collision.
+
+**Warranted rule:** A single-writer-per-PR-body coordination rule is appropriate. Only one
+agent (typically the orchestrator main-thread or the pr-manager, explicitly designated) should
+hold the write token for a given PR body at any time. Other agents should queue edits through
+that designated writer rather than editing directly.
+
+**Tags:** `d-478`, `upstream-evidence`, `concurrent-writers`, `pr-body`, `last-write-wins`, `coordination`
