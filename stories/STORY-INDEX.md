@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.79"
+version: "3.80"
 status: draft
 producer: story-writer
 timestamp: 2026-07-19T00:00:00Z
@@ -8,6 +8,7 @@ phase: f4
 total_stories: 132
 total_waves: 84
 total_points: 775  # = 775; wave-table scheduled: 747 (STORY-091/121/143/155 wave-TBD + STORY-148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; v3.79)
+# v3.80 (2026-07-19): STORY-147 title cell updated to "Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance" — title-only cascade from STORY-147 v2.1→v2.2 spec-route remediation (Step 4.5 adversarial findings F-S147P1-002/-004/-005, CONFIRMED by execution evidence: cargo-mutants reads only `.cargo/mutants.toml`, not repo-root `mutants.toml`/Cargo.toml metadata; `jobs` is not a valid config key). No points/status/wave/epic change; numeric totals unchanged from v3.79.
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
 # v3.79 (2026-07-19): E-11 upstream re-scope burst #2 (human-approved, per e11-stale-draft-disposition-plan.md, D-477 precedent): STORY-091 status draft→superseded (OBSOLETE disposition, not upstream-routed — verification core delivered by bin/validate-citations STORY-164 + STORY-166 symbol-at-line assertion; residual --scan discovery layer represented upstream by drbothen/vsdd-factory#622/#603/#396 family; human-approved no-filing 2026-07-19); STORY-121 status draft→superseded (routed drbothen/vsdd-factory#582 evidence comment, x-ref #396); STORY-143 status draft→superseded (routed drbothen/vsdd-factory#695 NEW issue filed, x-ref #580); STORY-155 status draft→superseded (routed drbothen/vsdd-factory#290 evidence comment — near-exact duplicate confirmation, x-ref #600). STORY-147 re-scoped v1.0→v2.0 SPLIT survivor "Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance" (product half retained locally; engine half — mutation-skill safe-parallelism default — routed drbothen/vsdd-factory#654 evidence comment; pts 3→2). Wave-84 OPENED: STORY-166 + STORY-176 + STORY-147v2 assigned (wave TBD→84, status draft→ready; plan gate approved by human 2026-07-19; mini-wave = 7 pts, all product-local).
 # ARITHMETIC (v3.79): supersession of STORY-091/121/143/155 does NOT remove their points from totals (D-477/v3.78 convention: supersession alone does not change totals; only re-scope point deltas do) — these four stay wave-TBD, excluded from wave-table-scheduled, contributing their unchanged points (5+3+3+3=14) to the exclusion sum only. STORY-147 re-scope delta: 3→2 (-1 pt), applied economy-wide: total_points 776→775. Wave-84 opening moves STORY-147(2)+STORY-166(3)+STORY-176(2)=7 pts from the wave-TBD exclusion sum into wave-table-scheduled: 740+7=747. New exclusion sum (still wave-TBD/superseded): STORY-091(5)+STORY-121(3)+STORY-143(3)+STORY-148(5,superseded)+STORY-155(3)+STORY-175(2,superseded)+STORY-177(2,superseded)+STORY-178(3,superseded)+STORY-179(2,superseded)=28. Check: wave-table-scheduled(747)+exclusion-sum(28)=775=total_points. E-11 epic total: 67→66 (only STORY-147's -1 delta; supersession-only changes do not touch epic points per convention). total_waves: 83→84 (wave-84 opened). total_stories: 132 (unchanged, no story added/removed).
@@ -240,7 +241,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-091 | Anchor-Validation Tooling — bin/validate-anchors | E-11 | ~ | 5 | superseded | — |
 | STORY-121 | F1/F2 Story-Input Analysis Docs — Mandatory Numeric Self-Audit + Consuming-Surface Sweep Checklist | E-11 | ~ | 3 | superseded | — |
 | STORY-143 | Harden Release Changelog Step: Full Prev-Tag..HEAD Range Enumeration | E-11 | ~ | 3 | superseded | — |
-| STORY-147 | Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance | E-11 | 84 | 2 | ready | — |
+| STORY-147 | Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance | E-11 | 84 | 2 | ready | — |
 | STORY-149 | TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture | E-11 | 70 | 5 | merged | — |
 | STORY-150 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run | E-11 | 71 | 5 | merged | — |
 | STORY-155 | Auto-update STORY-INDEX status draft→merged on story PR merge | E-11 | ~ | 3 | superseded | — |

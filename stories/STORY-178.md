@@ -31,7 +31,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "8bb8b12"
+input-hash: "5e46852"
 ---
 
 # STORY-178: Feature-IEC104 Cycle-Close: Pre-Delivery Spec Fidelity Gate

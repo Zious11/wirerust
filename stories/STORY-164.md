@@ -37,7 +37,7 @@ inputs:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/docs-writer-dispatch-guidance.md
-input-hash: "bf69095"
+input-hash: "a73562f"
 ---
 
 # STORY-164: Wave-73 cycle-closing: status-vocabulary legend, citation preflight validator, changelog-gate content assertion, guidance-doc reference row, BREAKING-change holdout-sweep obligation

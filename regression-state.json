@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-19T19:58:33Z","command":"cargo test --all-targets 2>&1 | tail -60"}
+{"status":"pass","timestamp":"2026-07-19T23:54:15Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-147\necho \"jobs = 1\" >> .cargo/mutants.toml\ncargo test --test repo_mutation_config_tests 2>&1 | tee /tmp/fail_out.txt | wc -l\ngit checkout -- /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-147/.cargo/mutants.toml\ncat /tmp/fail_out.txt"}

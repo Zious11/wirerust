@@ -81,6 +81,17 @@ the worktree, 2026-07-19:
 **RED GATE: PASSED** — correctly red. All 4 new tests fail with
 substantive, AC-traceable assertion messages; no pre-existing test broke.
 
+> **Title updated v2.2 (F-S147P1-002 correction, 2026-07-19).** STORY-147's title
+> and config-deliverable text above (repo-root `mutants.toml` / `jobs = 1`) reflect
+> the v2.1 spec as it stood when this Red Gate log was written and are a HISTORICAL
+> record of that state — not rewritten here. The story was subsequently corrected to
+> v2.2 "Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor +
+> CLAUDE.md Guidance" per Step 4.5 adversarial findings F-S147P1-002/-004/-005
+> (CONFIRMED by execution evidence): cargo-mutants reads only `.cargo/mutants.toml`,
+> and `jobs` is not a valid config key. See `.factory/stories/STORY-147.md` v2.2
+> Changelog for the corrected ground truth. Implementer: build against STORY-147.md
+> v2.2, not the v2.1 text quoted above.
+
 ## Hand-Off to Implementer
 
 - Stories ready for implementation: STORY-147

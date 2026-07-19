@@ -1,0 +1,105 @@
+{
+  "story": "STORY-147",
+  "wave": 84,
+  "cycle": "wave-084",
+  "head_reviewed": "7ff84f56",
+  "worktree_base": "49255464",
+  "delivery_mode": "story-worktree",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "clean_streak": ["P6", "P7", "P8"],
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 2,
+      "finding_ids": ["F-S147P1-001", "F-S147P1-002", "F-S147P1-003", "F-S147P1-004", "F-S147P1-005"],
+      "code_tip": "d466f538",
+      "notes": "2 HIGH + 3 MEDIUM. Headline: F-S147P1-002 (HIGH, corroborated by F-S147P1-004/-005) caught a placebo config — the v2.1 Goal/AC described a repo-root mutants.toml with a jobs=1 key that cargo-mutants never reads (only .cargo/mutants.toml is read by default) and jobs is not a valid Config field (deny_unknown_fields; would abort every run with a fatal parse error). Confirmed by execution probes against the installed cargo-mutants 27.0.0 plus 27.1.0 docs/source research. Pivoted design to a .cargo/mutants.toml timeout-floor (minimum_test_timeout>=300, optional timeout_multiplier) instead of a parallelism default."
+    },
+    {
+      "pass": 2,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S147P2-001", "F-S147P2-002"],
+      "code_tip": "2c802e73",
+      "notes": "1 MEDIUM + 1 LOW. Part A (P1 fix verification): 5/5 VERIFIED-FIXED."
+    },
+    {
+      "pass": 3,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "code_tip": "b1b50750",
+      "notes": "3 LOW nits (key-allowlist probe corrected -common +test_tool against strict-parser evidence). Part A (P2 fix verification): 2/2 VERIFIED-FIXED."
+    },
+    {
+      "pass": 4,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S147P4-001", "F-S147P4-002"],
+      "code_tip": "e198a725",
+      "notes": "2 MEDIUM (inline story-version anchors in doc comments = durable anti-drift risk; dropped in favor of finding-based naming). Part A (P3 fix verification): 3/3 VERIFIED-FIXED."
+    },
+    {
+      "pass": 5,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S147P5-001", "F-S147P5-002"],
+      "code_tip": "8ba2247b",
+      "notes": "1 MEDIUM + 1 LOW. Part A (P4 fix verification): 2/2 VERIFIED-FIXED (one accepted as-scoped)."
+    },
+    {
+      "pass": 6,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "code_tip": "7ff84f56",
+      "notes": "2 LOW nits. Clean-streak begins (1 of 3). Part A (P5 fix verification): 2/2 VERIFIED-FIXED."
+    },
+    {
+      "pass": 7,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "code_tip": "7ff84f56",
+      "notes": "1 LOW nit; code tip unchanged (no code churn since P6). Clean-streak (2 of 3). Part A (P6 fix verification): 2/2 CONFIRMED."
+    },
+    {
+      "pass": 8,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "code_tip": "7ff84f56",
+      "notes": "1 LOW nit; code tip unchanged (no code churn since P6). Clean-streak closes (3 of 3): P6/P7/P8 all NITPICK_ONLY. BC-5.39.001 SATISFIED. Part A (P7 fix verification): 1/1 RESOLVED-CONFIRMED. Convergence declared."
+    }
+  ],
+  "carried_findings": [
+    {
+      "id": "F-S147P8-001",
+      "severity": "LOW",
+      "category": "documentation",
+      "summary": "Scan-helper prose collapses timeout_multiplier and build_timeout_multiplier into a single referenced field name. Documentation-only; unexercised by any test or runtime path. Non-blocking; carried for gate ratification.",
+      "source": "F-S147P8-001 adversary Pass 8"
+    },
+    {
+      "id": "PG-STALE-INLINE-VERSION-MARKER",
+      "severity": "LOW",
+      "category": "process-gap",
+      "summary": "Stale inline story-version anchors in doc comments recurred 3+ times across this convergence (root cause of F-S147P4-001). Human directive: durable fix routed upstream (vehicle change), not a local story amendment.",
+      "source": "F-S147P4-001 + recurrence pattern across passes"
+    },
+    {
+      "id": "PG-HASH-HOOK-DIVERGENCE",
+      "severity": "LOW",
+      "category": "process-gap",
+      "summary": "Reconfirmed throughout this cycle: the plugin validate-input-hash hook's bash MD5 (via $(cat) newline-stripping) diverges from the canonical bin/compute-input-hash Python tool. Advisory-only per CLAUDE.md; produced recurring noise across all 8 passes with no actionable content.",
+      "source": "advisory hook noise, all 8 passes"
+    }
+  ],
+  "process_notes": [
+    "Pass-1 F-S147P1-002 was the pivotal finding: it caught a placebo config (repo-root mutants.toml with an invalid jobs key) that cargo-mutants silently never reads, corroborated by execution probes against installed cargo-mutants 27.0.0 plus 27.1.0 docs/source research. The story design pivoted from a parallelism default to a .cargo/mutants.toml minimum_test_timeout=300 timeout floor.",
+    "STORY-147 title updated v2.1->v2.2 to reflect the corrected config surface ('.cargo/mutants.toml Timeout Floor' replacing 'mutants.toml (jobs=1)'); spec continued evolving v2.2->v2.8 across passes 2-8 (key-allowlist correction P3, anti-drift doc-comment cleanup P4, residual polish P5-P8). STORY-INDEX v3.79->v3.80 (title-cell cascade only; no points/status/wave/epic change).",
+    "All substantive findings (F-S147P1-001..005, F-S147P2-001/002, F-S147P4-001/002, F-S147P5-001/002) were adversary-verified fixed in their respective Part A verification chains before the next pass opened.",
+    "Worktree: .worktrees/STORY-147, branch feature/STORY-147-mutation-testing-defaults, base 49255464 (develop).",
+    "Step 5 (demo evidence) dispatched following convergence declaration."
+  ],
+  "convergence_date": "2026-07-19"
+}
