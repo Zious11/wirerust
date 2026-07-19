@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "2.0"
-status: draft
+version: "2.1"
+status: ready
 producer: story-writer
 timestamp: 2026-07-19T00:00:00Z
 phase: f7
@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: .github/workflows/
 subsystems: []
 estimated_days: 1
-wave: "TBD"
+wave: "84"
 traces_to:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
@@ -32,14 +32,14 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "66d7adb"
+input-hash: "62d13e0"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** TBD
+**Status:** ready
+**Wave:** 84
 **Points:** 2
 **Priority:** P3
 
@@ -259,5 +259,6 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` 
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.1 | 2026-07-19 | story-writer | Wave-84 opening: wave TBD→84, status draft→ready (plan gate approved by human, 2026-07-19; mini-wave composition 166+176+147v2 = 7 pts, all product-local). No AC content change. |
 | 2.0 | 2026-07-19 | story-writer | Re-scoped upstream 2026-07-19: ACs-176-002/003 (pre-adversarial doc sweep / severity calibration) routed to drbothen/vsdd-factory#682/#686. Absorbed STORY-178 AC-178-003 (input-hash re-baseline) → AC-176-002 and STORY-178 AC-178-004 (.gitignore mutants.out*) → AC-176-003. Points 3→2. |
 | 1.0 | 2026-07-18 | story-writer | Initial authorship — feature-iec104 cycle-close S-7.02: PG-GATE-VOCAB-BLINDSPOT (AC-176-001 green-doc-tense gate skeleton/seam extension) + PG-DOC-CURRENCY-SWEEP (AC-176-002 pre-adversarial doc sweep step) + PG-ADVERSARY-SEVERITY-CALIBRATION (AC-176-003 frozen-code severity ceiling guidance). |

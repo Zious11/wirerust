@@ -2,15 +2,17 @@
 document_type: story
 story_id: STORY-091
 epic_id: E-11
-version: "1.1"
-status: draft
+version: "1.2"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
 phase: 5
+level: feature
 inputs: []
 input-hash: "d41d8cd"
-# BC status: pending PO authorship — behavioral_contracts is empty; story must remain
-# status: draft until PO authors and anchors canonical BC-S.SS.NNN contracts for this story.
+# BC status: superseded 2026-07-19 (OBSOLETE disposition) — BC authorship no longer
+# required; verification core delivered by bin/validate-citations (STORY-164) and
+# STORY-166. See Disposition section.
 traces_to:
   - .factory/STATE.md
 points: 5
@@ -18,6 +20,8 @@ depends_on: []
 blocks: []
 behavioral_contracts: []
 verification_properties: []
+assumption_validations: []
+risk_mitigations: []
 priority: P1
 cycle: v0.1.0-greenfield-spec
 wave: ~
@@ -159,7 +163,7 @@ The policy entry references PROCESS-GAP-P5-001 and this story ID.
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | Citation inside a YAML `|` block scalar | Regex still matches; tool does not skip multi-line values |
+| EC-001 | Citation inside a YAML `\|` block scalar | Regex still matches; tool does not skip multi-line values |
 | EC-002 | Citation in a Markdown code fence (` ```rust `) | Tool detects and reports it; no filtering of code-fence context (conservative — better to report than miss) |
 | EC-003 | Citation with a line range where start > end (e.g., `src/foo.rs:55-42`) | Report `INVALID-RANGE` row; do not crash |
 | EC-004 | Same citation appears in multiple spec files | Each occurrence is reported as its own row; shared STALE anchor is caught N times |
@@ -268,3 +272,39 @@ immediately recognizable as part of the same tooling family.
 | `bin/test_validate_anchors.py` | **create** | Self-test companion script |
 | `.factory/policies.yaml` | **modify** | Add `ANCHOR-VALIDATION-001` governance policy entry |
 | `CLAUDE.md` | **modify** | Add `bin/validate-anchors` to "Project References" table and note phase-gate usage |
+
+## Disposition
+
+**Status:** superseded — OBSOLETE, no upstream filing 2026-07-19.
+
+STORY-091's verification core (line-in-bounds anchor checking, MATCH/STALE/MISSING
+verdicts, repo-root resolution) is already delivered product-locally by
+`bin/validate-citations` (STORY-164, wave-74). STORY-166's `path:line:anchor` grammar
+(AC-166-001) goes further — it asserts a named symbol exists at the cited line, which
+STORY-091 explicitly did not attempt (EC-006: a blank cited line still returns MATCH).
+The tooling direction has already surpassed this story's scope.
+
+| STORY-091 AC | Disposition |
+|---------------|-------------|
+| AC-002 MATCH valid single-line anchor | Delivered by `bin/validate-citations` — `PASS` on in-range line |
+| AC-003 MATCH valid range anchor | Delivered — range endpoints both checked ≤ line count |
+| AC-004 STALE out-of-bounds line | Delivered — `LINE OUT OF RANGE: path:N (file has M lines)` |
+| AC-005 MISSING file-not-found | Delivered — `FILE NOT FOUND: path` |
+| EC-003 start>end invalid range | Delivered — `INVALID RANGE: path:N-M (start > end)` |
+| AC-009 repo-root resolution | Delivered — identical `find_repo_root()` algorithm (WIRERUST_REPO_ROOT → walk up for `.factory/`) |
+| (symbol-at-line assertion, beyond AC-091 scope) | Surpassed by STORY-166 AC-166-001 `path:line:anchor` grammar |
+| AC-001/AC-006/AC-007/AC-008 (`--scan` corpus-discovery layer) | Residual engine-shaped remnant; already represented by drbothen/vsdd-factory#622 (source-line citation baseline), #603 (cited-artifact resolution preflight), #396 (full citation-corpus sweep on BC/ADR bump) family. No new filing — human-approved no-filing 2026-07-19 per `.factory/planning/e11-stale-draft-disposition-plan.md`. |
+
+**DF-VALIDATION-001 attestation:** validated against `bin/validate-citations` source,
+STORY-091 ACs, STORY-166 frontmatter/narrative, and the upstream citation-family issues
+(#622/#603/#396). Verdict: OBSOLETE; no issue created; no duplicate filed.
+
+This story file is retained on disk for traceability. No further wirerust delivery
+expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-07-19 | story-writer | Status draft→superseded (OBSOLETE disposition, not upstream-routed) — verification core delivered by `bin/validate-citations` (STORY-164, wave-74); symbol-at-line assertion surpassed by STORY-166 AC-166-001. Residual `--scan` discovery layer already represented upstream (drbothen/vsdd-factory#622/#603/#396 family); human-approved no-filing 2026-07-19 per E-11 stale-draft disposition plan. Template-conformance fields (`level`, `assumption_validations`, `risk_mitigations`) added; EC-001 pipe-escape fix. |
+| 1.1 | 2026-06-08 | story-writer | (prior history, not itemized here.) |

@@ -2,15 +2,16 @@
 document_type: story
 story_id: STORY-121
 epic_id: E-11
-version: "1.0"
-status: draft
+version: "1.1"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
 phase: 3
+level: feature
 inputs: []
 input-hash: "d41d8cd"
-# BC status: pending PO authorship — behavioral_contracts is empty; story must remain
-# status: draft until PO authors and anchors canonical BC-S.SS.NNN contracts for this story.
+# BC status: superseded 2026-07-19 — engine-level process codification routed
+# upstream. BC authorship no longer required. See Disposition section.
 traces_to:
   - .factory/STATE.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
@@ -19,6 +20,8 @@ depends_on: []
 blocks: []
 behavioral_contracts: []
 verification_properties: []
+assumption_validations: []
+risk_mitigations: []
 priority: P2
 cycle: process-improvement
 wave: ~
@@ -160,6 +163,17 @@ understand the failure mode concretely rather than abstractly.
 | EC-004 | Multiple BCs are bumped in a single fix-burst | The AC-002 checklist applies to each bumped BC; a single sweep pass covering all BC-bump consequences at once satisfies the "single atomic burst" requirement |
 | EC-005 | The consuming story has already been delivered (status: completed) | Stale version-stamps in completed stories are recorded as ACCEPTED DRIFT in STATE.md (see D-088 precedent); the sweep applies only to in-flight (draft/ready) stories |
 
+## Purity Classification
+
+| Component | Classification | Justification |
+|-----------|---------------|----------------|
+| `F3-CONVERGENCE-002` policy entry | Documentation | `.factory/policies.yaml` configuration entry; no code |
+| F3 dispatch checklist item | Documentation | Orchestrator runbook / VSDD workflow prose |
+| `## Numeric Self-Audit` section template | Documentation | Process-gate authoring guidance; no code |
+
+This story delivers no Rust or Python source — it is a governance/process artifact
+only (see E-11 tooling-only boundary in Architecture Compliance Rules).
+
 ## Token Budget Estimate (MANDATORY)
 
 | Context Source | Estimated Tokens |
@@ -228,3 +242,34 @@ entries only._
 | `.factory/policies.yaml` | **modify** | Add `F3-CONVERGENCE-002` policy entry (AC-003) |
 | `.factory/process/f3-dispatch-checklist.md` | **create** (if no F3 template exists) | Pre-dispatch checklist with numeric self-audit gate and consuming-surface sweep (AC-004) |
 | `.factory/process/f1-f2-authoring-guide.md` | **create** (if no authoring guide exists) | `## Numeric Self-Audit` section template and reconciliation table format (AC-004) |
+
+## Disposition
+
+**Status:** superseded — routed upstream 2026-07-19.
+
+`target_module: .factory/process` — every deliverable in this story (F3-CONVERGENCE-002
+policy entry, F3 dispatch-template checklist item, F1/F2 authoring-guide numeric
+self-audit section) is agent-process artifact work governing the VSDD F3 decomposition
+workflow generically, with zero wirerust product surface. This is squarely ENGINE-shaped
+work and belongs upstream, not in wirerust's E-11 backlog.
+
+| AC | Upstream Disposition |
+|----|----------------------|
+| AC-001 (F1/F2 numeric self-audit gate) | drbothen/vsdd-factory#582 evidence comment, 2026-07-19 |
+| AC-002 (post-fix-burst consuming-surface sweep) | drbothen/vsdd-factory#582 evidence comment, 2026-07-19 (cross-ref #396) |
+| AC-003 (`F3-CONVERGENCE-002` policy entry) | drbothen/vsdd-factory#582 evidence comment, 2026-07-19 |
+| AC-004 (F3 dispatch template update) | drbothen/vsdd-factory#582 evidence comment, 2026-07-19 |
+| AC-005 (exemplar documentation) | drbothen/vsdd-factory#582 evidence comment, 2026-07-19 |
+
+**Evidence:** https://github.com/drbothen/vsdd-factory/issues/582#issuecomment-5016995736
+(posted 2026-07-19), cross-referencing #396 (citation-corpus-sweep-on-BC-bump facet).
+
+This story file is retained on disk for traceability. No further wirerust delivery
+expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-07-19 | story-writer | Status draft→superseded — engine-level process codification (F1/F2 numeric self-audit gate + post-fix-burst consuming-surface sweep) routed upstream via drbothen/vsdd-factory#582 evidence comment, x-ref #396. Template-conformance fields (`level`, `assumption_validations`, `risk_mitigations`, Purity Classification section) added. |
+| 1.0 | 2026-06-18 | story-writer | Initial authorship — D-099/D-100/D-101 process-gap codification (F1/F2 numeric self-audit + consuming-surface sweep checklist). |

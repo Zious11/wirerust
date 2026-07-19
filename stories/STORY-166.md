@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-166
 epic_id: E-11
-version: "1.1"
-status: draft
+version: "1.2"
+status: ready
 producer: story-writer
 timestamp: 2026-07-13T00:00:00Z
 phase: f7
@@ -22,7 +22,7 @@ tdd_mode: strict
 target_module: bin/
 subsystems: []
 estimated_days: 1
-wave: "TBD"
+wave: "84"
 traces_to:
   - .factory/cycles/wave-75/process-gap-ledger.md
   - .factory/research/pg-validation-wave-75.md
@@ -41,8 +41,8 @@ input-hash: "b56924f"
 # STORY-166: Wave-75 cycle-closing: citation symbol-at-line assertion, demo-evidence scrub scope extension (project half)
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** TBD
+**Status:** ready
+**Wave:** 84
 **Points:** 3
 **Priority:** P3
 
@@ -507,5 +507,6 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.2 | 2026-07-19 | story-writer | Wave-84 opening: wave TBD→84, status draft→ready (plan gate approved by human, 2026-07-19; mini-wave composition 166+176+147v2 = 7 pts, all product-local). No AC content change. |
 | 1.1 | 2026-07-13 | story-writer | Human-directed engine/project re-scoping: AC-166-002 → drbothen/vsdd-factory#638, AC-166-004 → drbothen/vsdd-factory#635 (moved to engine); AC-166-003 narrowed to wirerust scrub-gate scope (engine half → drbothen/vsdd-factory#636); PG-HASH-HOOK-DIVERGENCE tracked as drbothen/vsdd-factory#637. Points 5→3. |
 | 1.0 | 2026-07-13 | story-writer | Initial authorship — wave-75 process-gap codifications: PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP (AC-166-001 citation symbol-at-line assertion + ROUTE-W74-DEFERRED housekeeping), PG-W75-FINDING-ID-DUAL-SCHEME (AC-166-002 finding-ID naming policy + bin/lint-cycle-artifact G-less regex flag), PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE (AC-166-003 extended scrub scope), PG-W75-MIDGATE-STREAK-PERSISTENCE (AC-166-004 incremental pass records). S-7.02 wave-75 cycle-close. bin/validate-citations preflight: PASS on 14-entry anchor list (2026-07-13). Research report pg-validation-wave-75.md line-19 fix applied (F-W75G-P2-001). |

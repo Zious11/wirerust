@@ -18,6 +18,21 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-19 (replaced by D-480 E-11 disposition burst checkpoint)
+
+**D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 (exhaustive) delivered; feature-iec104 CLOSED; v0.13.0 RELEASED; dep-soak PR #420 merged. No in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-19. Position: steady-state, pipeline PAUSED post-D-478 (v0.13.0 released; feature-iec104 CLOSED; dep-soak delivered).
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `492554642c7d4a3251df128789fd5f149fd2b0a7` (D-478 dep-soak PR #420); factory-artifacts = this wrap commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no story worktrees, no adversarial loop, no sub-agents abandoned mid-step.
+- **Pending human decisions:** (a) PR #407 governance (triage preserved at `planning/pr-407-security-triage.md` — do NOT re-run); (b) E-11 local mini-wave scheduling: STORY-166 (3 pts) + STORY-176 v2.0 (2 pts), wave-TBD; (c) STORY-INDEX-IN-INPUTS-CHURN structural decision (remove STORY-INDEX.md from STORY-164/165 inputs?).
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked bumps eligible 2026-07-21..27); harden-runner v2.20.0 Dependabot re-pin watch (~48h from 2026-07-19, manual re-pin SHA `bf7454d06d71f1098171f2acdf0cd4708d7b5920` if absent).
+- **Advisory noted this wrap:** CLAUDE_AUTOCOMPACT_PCT_OVERRIDE missing from settings.json (recommend "70" per ADR-026 §D5) — operator decision, not auto-applied.
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.78 / dep-graph v3.9 (137 edges).
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-480 E-11 disposition burst (wave-84 OPENED; STORY-INDEX v3.79).
+
+---
+
 ## Checkpoint archived 2026-07-18 (replaced by D-474 session-wrap checkpoint)
 
 **D-473 v0.13.0 RELEASED (2026-07-18). IEC-104 feature (feature-iec104 F1→F7 CONVERGED: F5 5-round, F6 hardening PASS, F7 5/5 dims holdout 0.99) + E2E coverage. Release PR #417 release/0.13.0→main merged 67a06b6 (human --merge). DRIFT-BACKMERGE-SQUASH-001 conflict (3 metadata files, [0.12.1] byte-identical, 0 source conflicts) resolved via main→release merge (9706be7). Tag v0.13.0 (object 03f35e4f); release.yml 29656299919 SUCCESS; GitHub Release 4 assets. Back-merge PR #418 main→develop SQUASH → af3ecbd. release/0.13.0 deleted. DRIFT-BACKMERGE-SQUASH-001 knowingly retained (squash pattern). trajectory-tail →0→0→0→0**

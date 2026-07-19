@@ -1,22 +1,24 @@
 ---
 document_type: story
 id: STORY-147
-title: "Harden Mutation-Testing Defaults: mutants.toml Low-Parallelism + CLAUDE.md Guidance"
+title: "Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance"
 epic: E-11
-wave: "~"
-points: 3
-status: draft
+wave: "84"
+points: 2
+status: ready
+version: "2.0"
+# BC status: E-11 convention — governance/config-only story; no BCs authored.
 depends_on: []
 input-hash: d41d8cd
 inputs: []
 ---
 
-# STORY-147 — Harden Mutation-Testing Defaults: mutants.toml Low-Parallelism + CLAUDE.md Guidance
+# STORY-147 — Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
-**Wave:** TBD
-**Points:** 3
+**Status:** ready
+**Wave:** 84
+**Points:** 2
 
 ## Background
 
@@ -70,27 +72,56 @@ AC-147-003: `CLAUDE.md` contains a "Mutation testing" note (within "Build & Test
       increase),
   (b) explains why high `--jobs` is unsafe on this suite (infinite-loop mutants
       inflate wall-clock past auto-timeout → false "0 missed"),
-  (c) references PG-MUTANTS-JOBS-001 and the fix-tls-clienthello-frag F6 cycle.
+  (c) references PG-MUTANTS-JOBS-001 and the fix-tls-clienthello-frag F6 cycle,
+  (d) references drbothen/vsdd-factory#654 as the upstream engine-default tracking
+      issue (informational pointer only — no wirerust action required for the
+      mutation-testing skill's own default; see Disposition).
 
 AC-147-004: A self-audit confirms that after this story ships, a developer running
   `cargo mutants` from a fresh checkout will not silently receive a false-clean
-  result due to load-induced timeouts (i.e., the config-file default is the first
-  line of defense; the CLAUDE.md note is the second).
+  result due to load-induced timeouts (i.e., the repo-root config-file default is
+  the first line of defense; the CLAUDE.md note is the second). This self-audit is
+  wirerust-local only — it does not depend on or require any change to the
+  mutation-testing skill / formal-verifier agent default (engine-level, tracked
+  separately per Disposition).
 
 ## Notes
 
 - This is a configuration and documentation story. The `mutants.toml` addition is
   ≤ 5 lines; the `CLAUDE.md` note is ≤ 10 lines. No Rust source changes required.
-- Wave assignment is TBD — schedule at v0.12.0 planning along with STORY-091,
-  STORY-121, and STORY-143 (all E-11, wave-TBD tooling stories).
+- Wave 84 (opened 2026-07-19, plan gate approved by human): STORY-147 v2.0 +
+  STORY-166 + STORY-176, 7 pts total, all product-local.
 - Source process-gap: PG-MUTANTS-JOBS-001 (STATE.md open items, D-314, 2026-07-01),
   cycle fix-tls-clienthello-frag F6.
-- Precedent: STORY-143 (release-changelog enumeration hardening, D-301, 2026-06-29)
-  — same E-11 pattern: a cycle process-gap follow-up encoding a lesson into project
-  tooling/docs.
-- S-7.02 disposition: this story's creation at draft status closes the
-  PG-MUTANTS-JOBS-001 open item in STATE.md for S-7.02 cycle-close purposes.
+- Precedent: STORY-143 (release-changelog enumeration hardening, D-301, 2026-06-29,
+  now superseded — routed upstream per drbothen/vsdd-factory#695) — same E-11
+  pattern: a cycle process-gap follow-up encoding a lesson into project tooling/docs.
+- S-7.02 disposition: this story's creation at draft status closed the
+  PG-MUTANTS-JOBS-001 open item in STATE.md for S-7.02 cycle-close purposes; the
+  v2.0 re-scope (2026-07-19) retains that closure for the product-local half only.
+
+## Disposition
+
+**Status:** ready (v2.0) — SPLIT disposition; product half retained locally,
+engine half routed upstream 2026-07-19.
+
+The human-approved E-11 stale-draft disposition plan
+(`.factory/planning/e11-stale-draft-disposition-plan.md`) confirmed via a
+delivered-by-drift check on the current tree (no `mutants.toml`, no
+`[package.metadata.mutants]` table, no "Mutation testing" note in `CLAUDE.md`) that
+the product half of this story is genuinely undelivered, and split the story:
+
+| Half | Disposition |
+|------|-------------|
+| Product (RETAIN LOCALLY, v2.0, this story — wirerust repo files only) | `mutants.toml` (jobs=1) at wirerust repo root + `CLAUDE.md` "Mutation testing" note + self-audit (AC-147-001..004). Points re-scoped 3→2 (engine-skill-default work removed from scope). |
+| Engine (mutation-testing skill safe-parallelism default, all VSDD projects) | Routed upstream via drbothen/vsdd-factory#654 evidence comment (posted 2026-07-19): confirming field data — `cargo mutants --jobs 8` reported false "0 missed", hiding two real survivors at tls.rs:950:59/tls.rs:1030:67, surfaced only by a `--jobs 1` re-run (plus eleven more real gaps subsequently closed). |
+
+This story delivers the product half only. No further wirerust delivery expected for
+the engine half.
 
 ## Changelog
 
-- 2026-07-08 (state-manager): Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash).
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 2.0 | 2026-07-19 | story-writer | SPLIT re-scope (human-approved E-11 stale-draft disposition plan): retitled to "Repo-Local Mutation-Testing Defaults" to reflect wirerust-local-only scope; points 3→2 (engine-skill-default work removed); AC-147-003(d) + AC-147-004 clarified as product-local-only; engine half (mutation-skill safe-parallelism default) routed upstream via drbothen/vsdd-factory#654 evidence comment. Wave TBD→84, status draft→ready (plan gate approved by human, mini-wave 166+176+147v2 = 7 pts). |
+| 1.0 | 2026-07-08 | state-manager | Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash). |

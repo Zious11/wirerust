@@ -5,7 +5,8 @@ title: "Auto-update STORY-INDEX status draft→merged on story PR merge"
 epic: E-11
 wave: "~"
 points: 3
-status: draft
+status: superseded
+version: "1.1"
 depends_on: []
 input-hash: d41d8cd
 inputs: []
@@ -14,7 +15,7 @@ inputs: []
 # STORY-155 — Auto-update STORY-INDEX status draft→merged on story PR merge
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** superseded
 **Wave:** TBD
 **Points:** 3
 
@@ -96,6 +97,32 @@ AC-155-003: The post-merge STORY-INDEX update is idempotent: applying it to an
 - No behavioral contract required: E-11 convention (see epics.md E-11 note:
   "BCs: none authored yet — status: draft; pending PO authorship").
 
+## Disposition
+
+**Status:** superseded — routed upstream 2026-07-19.
+
+STORY-INDEX is a `.factory/` artifact (factory-artifacts branch); the per-story-delivery
+flow (pr-manager post-merge / state-manager cycle-state-update) is an engine agent
+workflow. Automating the post-merge status flip idempotently is pure factory index
+automation that applies to every VSDD project, not just wirerust.
+
+| AC | Upstream Disposition |
+|----|----------------------|
+| AC-155-001 (post-merge status flip + PR#/SHA stamp) | drbothen/vsdd-factory#290 evidence comment, 2026-07-19 (near-exact duplicate confirmation) |
+| AC-155-002 (fresh consistency audit finds zero drift) | drbothen/vsdd-factory#290 evidence comment, 2026-07-19 |
+| AC-155-003 (idempotent post-merge update) | drbothen/vsdd-factory#290 evidence comment, 2026-07-19 (additive requirement beyond #290's title) |
+
+**Refutation of an earlier orchestrator note:** #672 (hash wrong-from-birth) and #314
+(input-hash frontmatter feedback loop) are input-hash issues, unrelated to STORY-INDEX
+status automation — they are NOT the correct duplicate target. **#290** is the near-exact
+match. Cross-ref #600 (partial index-sweep failure mode).
+
+This story file is retained on disk for traceability. No further wirerust delivery
+expected.
+
 ## Changelog
 
-- 2026-07-08 (state-manager): Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash).
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-07-19 | story-writer | Status draft→superseded — engine-level STORY-INDEX post-merge status automation routed upstream via drbothen/vsdd-factory#290 evidence comment (near-exact duplicate confirmation), x-ref #600. Refutes prior #672/#314 dupe-target note (those are input-hash issues, not index-status automation). |
+| 1.0 | 2026-07-08 | state-manager | Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash). |
