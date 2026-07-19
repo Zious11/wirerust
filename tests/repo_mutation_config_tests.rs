@@ -285,7 +285,8 @@ fn test_AC_147_002_config_content_valid_and_no_decoy_present() {
 // ---------------------------------------------------------------------------
 // F-S147P2-001: `.cargo/mutants.toml` contains ONLY keys recognized by
 // cargo-mutants v27.1.0's `#[serde(deny_unknown_fields)]` `Config` struct.
-// The prior "only check for `jobs`" logic (AC-147-002) caught the one
+// This test is the AC-147-002 anchor for that "no other unrecognized key"
+// clause: the earlier "only check for `jobs`" logic caught the one
 // concretely-known-bad key but would silently pass ANY other unrecognized
 // key (e.g. a typo like `minumum_test_timeout`, or a plausible-sounding but
 // nonexistent field) — each of which is equally fatal: `deny_unknown_fields`
@@ -294,7 +295,7 @@ fn test_AC_147_002_config_content_valid_and_no_decoy_present() {
 // "membership in the full allowlist" as the guard.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_AC_147_005_config_keys_are_all_in_v27_1_0_allowlist() {
+fn test_AC_147_002_config_keys_are_all_in_v27_1_0_allowlist() {
     let path = dot_cargo_mutants_toml_path();
     let content = read_if_exists(&path);
 
