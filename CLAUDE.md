@@ -30,6 +30,16 @@ cargo fmt --check           # CI gate
 
 CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 100`, field-init and try shorthand.
 
+### Mutation testing
+
+Run at low parallelism: `cargo mutants --jobs 1` (a repo-root `mutants.toml`
+now defaults `jobs = 1`, so bare `cargo mutants` is also safe). High `--jobs`
+is unsafe here — infinite-loop mutants peg all cores, inflating other
+mutants' wall-clock past the auto-timeout and producing a false "0 missed"
+result (PG-MUTANTS-JOBS-001, fix-tls-clienthello-frag F6, 2026-07-01).
+Upstream engine-default tracking: drbothen/vsdd-factory#654 (informational
+only).
+
 ## Git Workflow
 
 - **Default branch is `develop`** (git-flow). Branch from `develop`; PRs target `develop`. `main` exists but is the release/stable branch.
