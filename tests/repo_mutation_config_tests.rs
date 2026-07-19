@@ -114,7 +114,10 @@ fn scan_low_parallelism(body: &str) -> LowParallelismSignal {
             }
         }
     }
-    LowParallelismSignal { jobs, timeout_seconds }
+    LowParallelismSignal {
+        jobs,
+        timeout_seconds,
+    }
 }
 
 /// One candidate location cargo-mutants is documented to read config from,
@@ -137,8 +140,14 @@ fn candidate_locations() -> Vec<ConfigCandidate> {
         .map(str::to_string);
 
     vec![
-        ConfigCandidate { location: "mutants.toml (repo root)", body: repo_root_mutants_toml },
-        ConfigCandidate { location: ".cargo/mutants.toml", body: dot_cargo_mutants_toml },
+        ConfigCandidate {
+            location: "mutants.toml (repo root)",
+            body: repo_root_mutants_toml,
+        },
+        ConfigCandidate {
+            location: ".cargo/mutants.toml",
+            body: dot_cargo_mutants_toml,
+        },
         ConfigCandidate {
             location: "Cargo.toml [package.metadata.mutants]",
             body: cargo_toml_metadata,
@@ -181,7 +190,10 @@ fn test_AC_147_001_low_parallelism_mutation_config_exists() {
          [package.metadata.mutants] table in Cargo.toml, containing either \
          `jobs = <=2` or an explicit generous per-mutant timeout (>= 300s). \
          None of the checked locations exist yet on this tree (checked: {:?}).",
-        candidate_locations().iter().map(|c| c.location).collect::<Vec<_>>()
+        candidate_locations()
+            .iter()
+            .map(|c| c.location)
+            .collect::<Vec<_>>()
     );
 }
 
@@ -195,8 +207,11 @@ fn test_AC_147_001_low_parallelism_mutation_config_exists() {
 // ---------------------------------------------------------------------------
 #[test]
 fn test_AC_147_002_low_parallelism_value_active_at_cargo_mutants_read_location() {
-    const READABLE_LOCATIONS: &[&str] =
-        &["mutants.toml (repo root)", ".cargo/mutants.toml", "Cargo.toml [package.metadata.mutants]"];
+    const READABLE_LOCATIONS: &[&str] = &[
+        "mutants.toml (repo root)",
+        ".cargo/mutants.toml",
+        "Cargo.toml [package.metadata.mutants]",
+    ];
 
     let found = find_active_low_parallelism_config();
     match found {
@@ -207,7 +222,8 @@ fn test_AC_147_002_low_parallelism_value_active_at_cargo_mutants_read_location()
                  one of the locations cargo-mutants documents reading config from: {READABLE_LOCATIONS:?}"
             );
             assert!(
-                signal.jobs.is_some_and(|j| j <= 2) || signal.timeout_seconds.is_some_and(|t| t >= 300),
+                signal.jobs.is_some_and(|j| j <= 2)
+                    || signal.timeout_seconds.is_some_and(|t| t >= 300),
                 "AC-147-002: config at '{location}' was located but the parsed value is not \
                  actually active (jobs={:?}, timeout_seconds={:?}) — expected jobs <= 2 or \
                  timeout_seconds >= 300",
@@ -236,8 +252,7 @@ fn test_AC_147_002_low_parallelism_value_active_at_cargo_mutants_read_location()
 // ---------------------------------------------------------------------------
 #[test]
 fn test_AC_147_003_claude_md_has_mutation_testing_section() {
-    let claude_md = read_if_exists(&repo_root().join("CLAUDE.md"))
-        .unwrap_or_default();
+    let claude_md = read_if_exists(&repo_root().join("CLAUDE.md")).unwrap_or_default();
 
     assert!(
         claude_md.contains("Mutation testing"),
@@ -281,8 +296,8 @@ fn test_AC_147_004_both_defenses_present_simultaneously() {
     let config_defense = find_active_low_parallelism_config().is_some();
 
     let claude_md = read_if_exists(&repo_root().join("CLAUDE.md")).unwrap_or_default();
-    let doc_defense = claude_md.contains("Mutation testing")
-        && claude_md.contains("PG-MUTANTS-JOBS-001");
+    let doc_defense =
+        claude_md.contains("Mutation testing") && claude_md.contains("PG-MUTANTS-JOBS-001");
 
     assert!(
         config_defense,
