@@ -4,6 +4,20 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-19 (replaced by D-479 session-wrap checkpoint)
+
+**D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 squash-merged to develop 492554642c7d. STORY-176 v2.0 + STORY-166 only remaining E-11 local undelivered. Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-19. Position: D-478 dep-soak COMPLETE; develop=492554642c7d4a3251df128789fd5f149fd2b0a7. Pipeline ACTIVE.
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `492554642c7d4a3251df128789fd5f149fd2b0a7` (D-478 dep-soak PR #420). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no story worktrees, no adversarial loop active.
+- **Open items (not blocking):** (a) PR #407 governance decision (SAFE-WITH-CHANGES, DEFERRED — triage at `.factory/planning/pr-407-security-triage.md`, do NOT re-run security review); (b) STORY-166 (E-11, 3 pts, wave-TBD); (c) STORY-176 v2.0 (E-11, 2 pts, wave-TBD, local gate + tooling hygiene sweeps).
+- **Pending human decisions:** PR #407 disposition; wave scheduling for STORY-166 + STORY-176 v2.0; SCORECARD_ENABLED enablement (see SCORECARD-ENABLEMENT-RUNBOOK carry-forward); structural fix for STORY-INDEX-IN-INPUTS-CHURN (remove STORY-INDEX.md from affected story inputs lists); DEP-SOAK-FOLLOWUP-2026-07-27 (next soak sweep on/after 2026-07-27).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.78 / dep-graph v3.9 (137 edges).
+- **Resume command:** `/vsdd-factory:next-step` (reads STATE.md, continues from checkpoint). Pipeline ACTIVE — ready for next wave scheduling or PR triage.
+
+---
+
 ## Checkpoint archived 2026-07-18 (replaced by D-474 session-wrap checkpoint)
 
 **D-473 v0.13.0 RELEASED (2026-07-18). IEC-104 feature (feature-iec104 F1→F7 CONVERGED: F5 5-round, F6 hardening PASS, F7 5/5 dims holdout 0.99) + E2E coverage. Release PR #417 release/0.13.0→main merged 67a06b6 (human --merge). DRIFT-BACKMERGE-SQUASH-001 conflict (3 metadata files, [0.12.1] byte-identical, 0 source conflicts) resolved via main→release merge (9706be7). Tag v0.13.0 (object 03f35e4f); release.yml 29656299919 SUCCESS; GitHub Release 4 assets. Back-merge PR #418 main→develop SQUASH → af3ecbd. release/0.13.0 deleted. DRIFT-BACKMERGE-SQUASH-001 knowingly retained (squash pattern). trajectory-tail →0→0→0→0**

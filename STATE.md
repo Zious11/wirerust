@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 squash-merged to develop 492554642c7d (human-executed 2026-07-19T18:01:50Z; per-PR explicit human instruction per DF-MERGE-AUTH-CLASSIFIER-001, D-417 precedent); 24 version-pair changes / 26 version movements; 18 obsolete WASM-tooling crate versions removed (getrandom@0.4 resolution change; deps 193→175); cargo audit 0 advisories + deny 4/4 clean. DEP-SOAK-FOLLOWUP-2026-07-27 carry-forward added. Pipeline ACTIVE. trajectory-tail →0→0→0→0"
+current_step: "D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 delivered (feature-iec104 CLOSED; v0.13.0 released; dep-soak PR #420 merged to develop 492554642c7d). No in-flight work. Pipeline PAUSED. Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
-pipeline: ACTIVE
-timestamp: 2026-07-19T18:38:00Z
+pipeline: PAUSED
+timestamp: 2026-07-19T19:05:08Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 268 = 232 (dual-margin form). 268 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 270 = 230 (dual-margin form). 270 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 "build(deps): soaked dependency bumps 2026-07-19" squash-merged to develop 492554642c7d (human-executed, 2026-07-19T18:01:50Z). 24 version-pair changes / 26 version movements; 18 obsolete WASM-tooling crates removed; 193→175 deps; cargo audit 0 advisories + deny 4/4 clean. STORY-176 v2.0 + STORY-166 only remaining E-11 local undelivered. Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0**
+**D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 delivered; feature-iec104 CLOSED (D-475); v0.13.0 RELEASED (D-473); dep-soak PR #420 merged (D-478). No in-flight work. Pipeline PAUSED. Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0**
 
 ---
 
@@ -74,7 +74,7 @@ maintenance_prior_run: maint-2026-07-09
 | Develop HEAD | `492554642c7d4a3251df128789fd5f149fd2b0a7` — D-478 dep-soak PR #420 squash-merged (2026-07-19); DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 |
 | Stories | 113 delivered / 132 total (STORY-INDEX v3.78, dep-graph v3.9, 776 pts) |
-| **Last Updated** | 2026-07-19 — D-478 dep-soak PR #420 merged. develop=49255464. Pipeline ACTIVE. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-19 — D-479 session wrap. Pipeline PAUSED post-D-478 dep-soak. develop=49255464. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -131,11 +131,11 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 delivered (feature-iec104 CLOSED; v0.13.0 released; dep-soak PR #420 merged). No in-flight work. Pipeline PAUSED. Resume: /vsdd-factory:next-step.** | **PAUSED (D-479)** | steady-state post-dep-soak. trajectory-tail →0→0→0→0 |
 | **D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 "build(deps): soaked dependency bumps 2026-07-19" squash-merged to develop 492554642c7d4a3251df128789fd5f149fd2b0a7 (human-executed, 2026-07-19T18:01:50Z; per-PR explicit human instruction per DF-MERGE-AUTH-CLASSIFIER-001, D-417 precedent). Lockfile-only: 24 distinct version-pair changes / 26 version movements (hashbrown 2→1 consolidation; etherparse 0.20.3 direct dep; libc/log/memchr/indexmap/zerocopy et al., all soaked ≥8d per D-417 protocol); 18 obsolete WASM-tooling crate versions removed (getrandom@0.4 resolution change; deps 193→175). cargo audit 0 advisories + deny 4/4 clean. pr-reviewer APPROVE, PG-W74 row-verify 4/4. CI 13/13. DEP-SOAK-FOLLOWUP-2026-07-27 carry-forward added (17 deferred + 4 blocked candidates; next sweep on/after 2026-07-27).** | **DELIVERED (D-478)** | develop=492554642c7d. trajectory-tail →0→0→0→0 |
 | **D-477 UPSTREAM-ROUTING (2026-07-19). DF-VALIDATION-001 research pass: 465 upstream drbothen/vsdd-factory issues scanned, 33 bodies read (planning/upstream-codification-filing-plan.md incl. REDACTED section). Filed NEW upstream issue #690 (validate-count-propagation E-11→"11" tokenizer false-positive; body redacted post-hoc) + 7 redacted evidence comments on #494/#461/#686/#682/#305/#655/#396. 2 confirmed duplicates no-action (#457, #637). STORY-175/177/178/179 → superseded (files retained, Disposition sections cite upstream URLs). STORY-176 v2.0 → local product survivor "Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps" (2 pts, 3 ACs). STORY-166 classified PRODUCT-LOCAL no-action (engine ACs already upstream). STORY-INDEX v3.78 (132 / 776 pts; E-11 68→67). STORY-164/165 re-baselined BENIGN (3rd in 2 days). NOTE: planning/vsdd-factory-upstream-issues.md rode along in D-476 commit d4d690b6 (provenance: github-ops issue dump for this effort — D-476 commit anomaly).** | **COMPLETE (D-477)** | STORY-INDEX v3.78. trajectory-tail →0→0→0→0 |
 | **D-476 PR #414 ADOPTED (2026-07-19). ArcavenAE ci/scorecard-guard squash-merged to develop fcd57dcb (human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES (report: .factory/planning/pr-414-security-triage.md); F1 CWE-494 RESOLVED-CLEAN (all 4 SHA↔tag MATCH via GitHub API; harden-runner v2.19.4 NOT AFFECTED by any advisory). CI 13/13 SUCCESS incl. action-pin-gate. Workflow inert until SCORECARD_ENABLED=true set. PR #407 governance OPEN/UNAFFECTED (disjoint files, no overlap). SCORECARD-ENABLEMENT-RUNBOOK carry-forward added; PR-414-FORK-SCORECARD CLOSED.** | **ADOPTED (D-476)** | develop=fcd57dc. trajectory-tail →0→0→0→0 |
 | **D-475 feature-iec104 CYCLE-CLOSE (2026-07-18). S-7.02 checklist SATISFIED: 9 process-gaps codified into 5 draft stories STORY-175..179 (E-11 epic, 12 pts; STORY-INDEX v3.77); B-001/B-002 doc nits FIXED (PRD v1.57, BC-2.19.002 v1.3 + title cascade, BC-INDEX v2.34); STORY-167 v1.1 AC propagation; IEC104-DEMO-TYPEID45-MISLABEL DELIVERED via docs PR #419 82ad2edd12ad1f9dad61a03a4760d4112d45ccc2 squash-merged to develop (human-executed merge; pr-reviewer APPROVE 0 findings; CI 13/13; step-8 halt per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER, human-direct merge — pattern reconfirmed); STORY-164/165 input-hashes re-baselined BENIGN (canonical tool; 132/0 scan); DRIFT-SPRINT-STATE-FIELD-FORM-001 pre-resolved (sprint-state.yaml already absent); mutants.out residue deleted. feature-iec104 declared CLOSED. Pipeline ACTIVE (resumed from D-474 pause).** | **CLOSED (D-475)** | S-7.02 SATISFIED. lessons.md written. All codified PGs removed from carry-forwards. Open: PR #407 governance, PR #414 triage, STORY-166 + STORY-175..179 wave-TBD. trajectory-tail →0→0→0→0 |
-| **D-474 SESSION WRAP (2026-07-18). Human-requested pipeline pause at clean milestone. v0.13.0 RELEASED (feature-iec104 F1→F7 CONVERGED + shipped). All session PRs (#409-418) merged. No in-flight work. Pipeline PAUSED by human direction.** | **PAUSED (D-474)** | Clean stop post-v0.13.0. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -163,6 +163,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | D-476 | PR #414 ADOPTED (2026-07-19). ArcavenAE fork ci/scorecard-guard squash-merged to develop (fcd57dcbd8b13074ffb57086f5f179dc30f1d026; human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES (triage: .factory/planning/pr-414-security-triage.md; F1 CWE-494 RESOLVED-CLEAN: all 4 SHA↔tag mappings MATCH via GitHub API, harden-runner v2.19.4 NOT AFFECTED by any advisory — dated section appended to triage file 2026-07-19). CI 13/13 SUCCESS incl. action-pin-gate. Adds .github/workflows/scorecards.yml; workflow inert until SCORECARD_ENABLED=true set. F2 (CWE-200) and enablement runbook noted in SCORECARD-ENABLEMENT-RUNBOOK carry-forward. PR #407 governance OPEN/UNAFFECTED (disjoint files, no overlap verified). NOTE: planning/vsdd-factory-upstream-issues.md rode along in this commit (d4d690b6); provenance = the github-ops issue dump prepared for the D-477 upstream-routing effort. | 2026-07-19 |
 | D-477 | UPSTREAM-ROUTING (2026-07-19). E-11 process-gap codification redirected from local wirerust stories (STORY-175..179) to upstream drbothen/vsdd-factory. DF-VALIDATION-001 research pass: 465 issues scanned, 33 bodies read (planning/upstream-codification-filing-plan.md incl. REDACTED section — human chose identifier-redacted publication). Filed NEW upstream issue #690 (validate-count-propagation E-11→"11" tokenizer false-positive; body redacted post-hoc) + 7 redacted evidence comments on #494/#461/#686/#682/#305/#655/#396. 2 confirmed duplicates no-action (#457, #637). STORY-175/177/178/179 → superseded (files retained, Disposition sections cite upstream URLs). STORY-176 v2.0 → local product survivor "Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps" (2 pts, 3 ACs: skeleton/seam gate tokens, input-hash post-delivery re-baseline protocol note, .gitignore mutants.out* glob). STORY-166 classified PRODUCT-LOCAL no-action (engine ACs already upstream at #638/#635 since wave-75). STORY-INDEX v3.78 (132 stories / 776 pts; E-11 68→67; wave TOTAL 120/740 unchanged). STORY-164/165 input-hashes re-baselined BENIGN (canonical tool; 132/0 scan; 3rd re-baseline in 2 days — STORY-INDEX-IN-INPUTS-CHURN drift item filed). | 2026-07-19 |
 | D-478 | DEP-SOAK DELIVERED (2026-07-19). PR #420 "build(deps): soaked dependency bumps 2026-07-19" squash-merged to develop 492554642c7d4a3251df128789fd5f149fd2b0a7 (human-executed, 2026-07-19T18:01:50Z; per-PR explicit human instruction per DF-MERGE-AUTH-CLASSIFIER-001, D-417 precedent). Lockfile-only: 24 distinct version-pair changes / 26 version movements (hashbrown 2→1 consolidation; etherparse 0.20.3 direct dep; libc/log/memchr/indexmap/zerocopy et al., all soaked ≥8d per D-417 protocol); 18 obsolete WASM-tooling crate versions removed (getrandom@0.4 resolution change; deps 193→175). cargo audit 0 advisories + deny 4/4 clean. pr-reviewer APPROVE, PG-W74 row-verify 4/4. CI 13/13. Deferred: 17 not-yet-soaked candidates (eligible 2026-07-21..27: serde/clap/regex/syn/anyhow/etc.) + 4 soaked-but-blocked (js-sys/wasm-bindgen/web-sys via futures-* 0.3.33; shlex via cc 1.3.0). DEP-SOAK-FOLLOWUP-2026-07-27 carry-forward added. | 2026-07-19 |
+| D-479 | SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 delivered in this session: feature-iec104 CYCLE-CLOSE (D-475); PR #414 adopted (D-476); upstream-routing (D-477); dep-soak PR #420 merged (D-478). No in-flight work; no story worktrees; no adversarial loop; no abandoned sub-agents. Pipeline PAUSED by human direction. Pending human decisions: PR #407 governance; E-11 mini-wave scheduling (STORY-166 + STORY-176 v2.0); STORY-INDEX-IN-INPUTS-CHURN structural decision. DEP-SOAK-FOLLOWUP-2026-07-27 and SCORECARD-ENABLEMENT-RUNBOOK carry-forwards active. | 2026-07-19 |
 
 ---
 
@@ -215,17 +216,18 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 ## Session Resume Checkpoint
 
-**D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 squash-merged to develop 492554642c7d. STORY-176 v2.0 + STORY-166 only remaining E-11 local undelivered. Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0**
+**D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 delivered; feature-iec104 CLOSED; v0.13.0 RELEASED; dep-soak PR #420 merged. No in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0**
 
 Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-19. Position: D-478 dep-soak COMPLETE; develop=492554642c7d4a3251df128789fd5f149fd2b0a7. Pipeline ACTIVE.
-- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `492554642c7d4a3251df128789fd5f149fd2b0a7` (D-478 dep-soak PR #420). DRIFT-BACKMERGE-SQUASH-001 still applies.
-- **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no story worktrees, no adversarial loop active.
-- **Open items (not blocking):** (a) PR #407 governance decision (SAFE-WITH-CHANGES, DEFERRED — triage at `.factory/planning/pr-407-security-triage.md`, do NOT re-run security review); (b) STORY-166 (E-11, 3 pts, wave-TBD); (c) STORY-176 v2.0 (E-11, 2 pts, wave-TBD, local gate + tooling hygiene sweeps).
-- **Pending human decisions:** PR #407 disposition; wave scheduling for STORY-166 + STORY-176 v2.0; SCORECARD_ENABLED enablement (see SCORECARD-ENABLEMENT-RUNBOOK carry-forward); structural fix for STORY-INDEX-IN-INPUTS-CHURN (remove STORY-INDEX.md from affected story inputs lists); DEP-SOAK-FOLLOWUP-2026-07-27 (next soak sweep on/after 2026-07-27).
+- **Date:** 2026-07-19. Position: steady-state, pipeline PAUSED post-D-478 (v0.13.0 released; feature-iec104 CLOSED; dep-soak delivered).
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `492554642c7d4a3251df128789fd5f149fd2b0a7` (D-478 dep-soak PR #420); factory-artifacts = this wrap commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no story worktrees, no adversarial loop, no sub-agents abandoned mid-step.
+- **Pending human decisions:** (a) PR #407 governance (triage preserved at `planning/pr-407-security-triage.md` — do NOT re-run); (b) E-11 local mini-wave scheduling: STORY-166 (3 pts) + STORY-176 v2.0 (2 pts), wave-TBD; (c) STORY-INDEX-IN-INPUTS-CHURN structural decision (remove STORY-INDEX.md from STORY-164/165 inputs?).
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked bumps eligible 2026-07-21..27); harden-runner v2.20.0 Dependabot re-pin watch (~48h from 2026-07-19, manual re-pin SHA `bf7454d06d71f1098171f2acdf0cd4708d7b5920` if absent).
+- **Advisory noted this wrap:** CLAUDE_AUTOCOMPACT_PCT_OVERRIDE missing from settings.json (recommend "70" per ADR-026 §D5) — operator decision, not auto-applied.
 - **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.78 / dep-graph v3.9 (137 edges).
-- **Resume command:** `/vsdd-factory:next-step` (reads STATE.md, continues from checkpoint). Pipeline ACTIVE — ready for next wave scheduling or PR triage.
+- **Resume command:** `/vsdd-factory:next-step`.
 
 ---
 
@@ -250,7 +252,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | feature-iec104 F2 convergence report | `cycles/feature-iec104/adversarial/f2-convergence-report.md` (12 passes, CONVERGED P10/P11/P12, D-438) |
 | feature-iec104 F2 gate review (first-frame guard) | `cycles/feature-iec104/adversarial/f2-first-frame-guard-review.md` (CLEAN; 2 LOW applied; D-439) |
 | feature-iec104 MITRE pin confirmation | `cycles/feature-iec104/research/f2-mitre-pin-confirmation.md` (8 techniques CONFIRMED-AT-v19.1; D-439) |
-| Session checkpoints (feature-iec104, all prior) | `cycles/feature-iec104/session-checkpoints.md` (waves 76–83 era + D-471 E2E + D-472 PR #407 + D-473 v0.13.0 RELEASED + D-474 SESSION WRAP + D-475 CYCLE-CLOSE + D-476 PR#414 + D-477 upstream-routing + D-478 dep-soak checkpoints) |
+| Session checkpoints (feature-iec104, all prior) | `cycles/feature-iec104/session-checkpoints.md` (waves 76–83 era + D-471 E2E + D-472 PR #407 + D-473 v0.13.0 RELEASED + D-474 SESSION WRAP + D-475 CYCLE-CLOSE + D-476 PR#414 + D-477 upstream-routing + D-478 dep-soak + D-479 session-wrap checkpoints) |
 | Wave 75 gate files | `cycles/wave-75/wave-gate/` (gate-summary.md D-435, code-review.md, findings.md) |
 | Wave 75 lessons + process-gap ledger | `cycles/wave-75/lessons.md` + `cycles/wave-75/process-gap-ledger.md` |
 | Wave 74 gate files | `cycles/wave-74/wave-gate/` (gate-summary.md D-432) |
