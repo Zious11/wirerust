@@ -49,14 +49,24 @@ fn read_if_exists(path: &Path) -> Option<String> {
     fs::read_to_string(path).ok()
 }
 
-/// Strip a trailing `# comment` from a TOML-ish value, then trim whitespace
-/// and a single layer of surrounding quotes.
+/// Strip a trailing `# comment` from a TOML-ish value, then trim whitespace.
+///
+/// F-S147P2-002: this deliberately does NOT strip surrounding quotes. A
+/// quoted value like `minimum_test_timeout = "300"` is a TOML *string*, not
+/// an *integer* — cargo-mutants' `Config` struct types `minimum_test_timeout`
+/// as an integer field, so a quoted `"300"` is a TOML type error the real
+/// TOML parser rejects at config-load time, not a valid alternate spelling.
+/// If this helper silently stripped the quotes, `"300".parse::<u64>()` would
+/// succeed and the test would wrongly treat a broken config as valid. Numeric
+/// keys (`minimum_test_timeout`, `timeout_multiplier`,
+/// `build_timeout_multiplier`) MUST fail to parse when quoted; only
+/// comments/whitespace are stripped here.
 fn clean_value(raw: &str) -> String {
     let without_comment = match raw.find('#') {
         Some(idx) => &raw[..idx],
         None => raw,
     };
-    without_comment.trim().trim_matches('"').to_string()
+    without_comment.trim().to_string()
 }
 
 /// Parse a single `key = value` line (TOML-ish, not a full parser). Returns
@@ -123,6 +133,57 @@ fn scan_mutants_config(content: &str) -> MutantsConfig {
 /// pairing alongside `minimum_test_timeout`.
 fn timeout_floor_present(config: &MutantsConfig) -> bool {
     config.minimum_test_timeout.is_some() || config.timeout_multiplier.is_some()
+}
+
+/// F-S147P2-001: the complete, authoritative set of top-level keys accepted
+/// by cargo-mutants v27.1.0's `Config` struct (`src/config.rs`), which is
+/// `#[serde(deny_unknown_fields)]`. Pinned to v27.1.0 — re-derive from
+/// upstream `src/config.rs` before bumping the pinned cargo-mutants version.
+/// A `jobs` key is deliberately absent from this list: `jobs` is CLI/env-only
+/// (`--jobs`, `CARGO_MUTANTS_JOBS`), never a `Config` struct field. Any
+/// top-level key in `.cargo/mutants.toml` that is not in this list would
+/// cause `deny_unknown_fields` to fatally abort every `cargo mutants` run at
+/// config-load time, before a single mutant is even generated.
+const MUTANTS_TOML_V27_1_0_ALLOWED_KEYS: &[&str] = &[
+    "additional_cargo_args",
+    "additional_cargo_test_args",
+    "all_features",
+    "build_timeout_multiplier",
+    "cap_lints",
+    "copy_vcs",
+    "copy_target",
+    "error_values",
+    "examine_globs",
+    "examine_re",
+    "exclude_globs",
+    "exclude_re",
+    "gitignore",
+    "features",
+    "minimum_test_timeout",
+    "no_default_features",
+    "output",
+    "profile",
+    "skip_calls",
+    "skip_calls_defaults",
+    "test_package",
+    "test_workspace",
+    "timeout_multiplier",
+    "common",
+];
+
+/// Every top-level `key = value` line found in `content`, in file order.
+/// Section headers (`[...]`), blank lines, and comment-only lines are
+/// excluded by `parse_key_value`. Keys nested under a `[table]` header are
+/// NOT distinguished from top-level keys by this line-oriented scan — see
+/// the module doc comment for why a full TOML parser is deliberately not
+/// used here; `.cargo/mutants.toml` as delivered has no `[table]` sections,
+/// so this is not a false-negative risk in practice.
+fn top_level_keys(content: &str) -> Vec<String> {
+    content
+        .lines()
+        .filter_map(parse_key_value)
+        .map(|(key, _value)| key)
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -222,6 +283,55 @@ fn test_AC_147_002_config_content_valid_and_no_decoy_present() {
 }
 
 // ---------------------------------------------------------------------------
+// F-S147P2-001: `.cargo/mutants.toml` contains ONLY keys recognized by
+// cargo-mutants v27.1.0's `#[serde(deny_unknown_fields)]` `Config` struct.
+// The prior "only check for `jobs`" logic (AC-147-002) caught the one
+// concretely-known-bad key but would silently pass ANY other unrecognized
+// key (e.g. a typo like `minumum_test_timeout`, or a plausible-sounding but
+// nonexistent field) — each of which is equally fatal: `deny_unknown_fields`
+// aborts every `cargo mutants` run with a parse error before any mutant
+// testing occurs. This test replaces "absence of one bad key" with
+// "membership in the full allowlist" as the guard.
+// ---------------------------------------------------------------------------
+#[test]
+fn test_AC_147_005_config_keys_are_all_in_v27_1_0_allowlist() {
+    let path = dot_cargo_mutants_toml_path();
+    let content = read_if_exists(&path);
+
+    assert!(
+        content.is_some(),
+        "F-S147P2-001: `.cargo/mutants.toml` does not exist at {path:?}."
+    );
+
+    let content = content.unwrap_or_default();
+    let unrecognized: Vec<String> = top_level_keys(&content)
+        .into_iter()
+        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .collect();
+
+    assert!(
+        unrecognized.is_empty(),
+        "F-S147P2-001: `.cargo/mutants.toml` contains key(s) {unrecognized:?} not recognized by \
+         cargo-mutants v27.1.0's `Config` struct (allowlist pinned to v27.1.0 `src/config.rs`, \
+         `#[serde(deny_unknown_fields)]`). An unrecognized key would FATALLY ABORT every \
+         `cargo mutants` run at config-load time — not merely fail to configure something. \
+         Allowed keys: {MUTANTS_TOML_V27_1_0_ALLOWED_KEYS:?}."
+    );
+
+    // Distinct explicit `jobs` check kept alongside the allowlist check: this
+    // gives a clearer, more specific failure message for the one concretely
+    // known historical incident (PG-MUTANTS-JOBS-001) than the generic
+    // allowlist-membership message above would on its own.
+    let config = scan_mutants_config(&content);
+    assert!(
+        !config.has_jobs_key,
+        "F-S147P2-001: `.cargo/mutants.toml` contains a `jobs` key. `jobs` is NOT a valid \
+         `Config` field — it is CLI/env-only (`--jobs`, `CARGO_MUTANTS_JOBS`). This would abort \
+         EVERY `cargo mutants` run with a FATAL parse error under `deny_unknown_fields`."
+    );
+}
+
+// ---------------------------------------------------------------------------
 // AC-147-003: CLAUDE.md contains a "Mutation testing" note covering:
 //   (a) recommended invocation stays low-parallelism (bare `cargo mutants`,
 //       already serial by default, or explicit `--jobs 1` /
@@ -256,11 +366,24 @@ fn test_AC_147_003_claude_md_has_mutation_testing_section() {
         "AC-147-003(a): CLAUDE.md does not state that bare `cargo mutants` is already serial \
          by default."
     );
+    // Tightened per Pass-2 test-strength observation: the original
+    // `lower.contains("timeout")` disjunct was a tautology against this
+    // file's own content, because `minimum_test_timeout` (asserted a few
+    // lines below as AC-147-003(e)'s marker) always contains the substring
+    // "timeout" — so this assertion could never actually fail on its own,
+    // regardless of whether the rationale was explained at all. Requiring
+    // "0 missed" AND an explicit causal-mechanism marker
+    // ("infinite-loop" or "wall-clock") ties the assertion to the actual
+    // rationale prose instead of a substring that is present for unrelated
+    // reasons.
     assert!(
-        lower.contains("false") && (lower.contains("0 missed") || lower.contains("timeout")),
+        lower.contains("false")
+            && lower.contains("0 missed")
+            && (lower.contains("infinite-loop") || lower.contains("wall-clock")),
         "AC-147-003(b): CLAUDE.md does not explain the rationale — infinite-loop mutants \
          inflating wall-clock past the auto-timeout threshold, producing a false \"0 missed\" \
-         result."
+         result. Expected \"false\" + \"0 missed\" + (\"infinite-loop\" or \"wall-clock\") all \
+         present."
     );
     assert!(
         claude_md.contains("PG-MUTANTS-JOBS-001"),
@@ -325,5 +448,83 @@ fn test_AC_147_004_both_real_defenses_present_simultaneously() {
          defenses in place simultaneously (config_defense={config_defense}, \
          doc_defense={doc_defense}), so `cargo mutants` run bare could still silently produce \
          a false \"0 missed\" result under load."
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Scanner self-checks (Pass-2 guard-hardening). These exercise
+// `clean_value`/`parse_key_value`/`scan_mutants_config`/`top_level_keys`
+// directly against synthetic in-memory TOML-ish strings — NOT against the
+// repo's real `.cargo/mutants.toml` — so they prove the guards themselves
+// actually discriminate good from bad input, rather than merely happening to
+// pass against a currently-correct file.
+// ---------------------------------------------------------------------------
+
+/// F-S147P2-002 regression guard: a quoted numeric value is a TOML *string*,
+/// which cargo-mutants' `Config` struct (typed `minimum_test_timeout: usize`)
+/// rejects as a type error. If `clean_value` stripped quotes before numeric
+/// parsing, this synthetic `"300"` would wrongly parse as `Some(300)`.
+#[test]
+fn test_F_S147P2_002_quoted_minimum_test_timeout_does_not_parse_as_valid() {
+    let synthetic = "minimum_test_timeout = \"300\"\n";
+    let config = scan_mutants_config(synthetic);
+    assert!(
+        config.minimum_test_timeout.is_none(),
+        "F-S147P2-002: `minimum_test_timeout = \"300\"` (a quoted TOML string) parsed as a \
+         valid integer timeout ({:?}) — `clean_value` must not strip quotes before numeric \
+         parsing, since a quoted numeric is a TOML type error cargo-mutants rejects.",
+        config.minimum_test_timeout
+    );
+}
+
+/// Companion positive case: the same key, unquoted, must still parse — this
+/// guards against a fix that over-corrects by breaking the happy path too.
+#[test]
+fn test_F_S147P2_002_unquoted_minimum_test_timeout_still_parses() {
+    let synthetic = "minimum_test_timeout = 300\n";
+    let config = scan_mutants_config(synthetic);
+    assert_eq!(
+        config.minimum_test_timeout,
+        Some(300),
+        "F-S147P2-002 regression: an unquoted `minimum_test_timeout = 300` must still parse as \
+         `Some(300)` — quote-strictness must not break the valid, unquoted form."
+    );
+}
+
+/// F-S147P2-001 regression guard: an unrecognized key (neither a real
+/// v27.1.0 `Config` field nor `jobs`) must be flagged by the allowlist scan.
+/// The prior "only check for `jobs`" logic would have silently missed this.
+#[test]
+fn test_F_S147P2_001_allowlist_scan_flags_unrecognized_key() {
+    let synthetic = "minimum_test_timeout = 300\nbogus_typo_field = true\n";
+    let unrecognized: Vec<String> = top_level_keys(synthetic)
+        .into_iter()
+        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .collect();
+    assert_eq!(
+        unrecognized,
+        vec!["bogus_typo_field".to_string()],
+        "F-S147P2-001: the allowlist scan did not flag a synthetic unrecognized key \
+         (`bogus_typo_field`) that is neither `jobs` nor a real v27.1.0 `Config` field."
+    );
+}
+
+/// Companion positive case: every key in the pinned allowlist itself must be
+/// accepted as recognized (i.e. the allowlist scan has no false positives
+/// against its own reference list).
+#[test]
+fn test_F_S147P2_001_allowlist_scan_accepts_all_pinned_v27_1_0_keys() {
+    let synthetic: String = MUTANTS_TOML_V27_1_0_ALLOWED_KEYS
+        .iter()
+        .map(|k| format!("{k} = true\n"))
+        .collect();
+    let unrecognized: Vec<String> = top_level_keys(&synthetic)
+        .into_iter()
+        .filter(|k| !MUTANTS_TOML_V27_1_0_ALLOWED_KEYS.contains(&k.as_str()))
+        .collect();
+    assert!(
+        unrecognized.is_empty(),
+        "F-S147P2-001: the allowlist scan false-flagged pinned v27.1.0 key(s) {unrecognized:?} \
+         as unrecognized."
     );
 }
