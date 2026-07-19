@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "D-475 feature-iec104 CYCLE-CLOSE (2026-07-18). S-7.02 SATISFIED: 9 process-gaps codified into 5 draft stories STORY-175..179 (E-11 epic, 12 pts; STORY-INDEX v3.77); B-001/B-002 doc nits FIXED (PRD v1.57, BC-2.19.002 v1.3 + title cascade, BC-INDEX v2.34); STORY-167 v1.1 AC propagation; IEC104-DEMO-TYPEID45-MISLABEL DELIVERED via docs PR #419 82ad2ed develop; STORY-164/165 input-hashes re-baselined BENIGN (132/0 scan); DRIFT-SPRINT-STATE-FIELD-FORM-001 pre-resolved; mutants.out residue deleted. feature-iec104 CLOSED. Pipeline ACTIVE. trajectory-tail →0→0→0→0"
+current_step: "D-476 PR #414 ADOPTED (2026-07-19). ArcavenAE scorecard-guard squash-merged to develop (fcd57dcb; human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES; F1 CWE-494 RESOLVED-CLEAN (all 4 SHA↔tag MATCH; harden-runner v2.19.4 NOT AFFECTED); CI 13/13 incl. action-pin-gate. Workflow inert until SCORECARD_ENABLED set. PR-414-FORK-SCORECARD CLOSED/ADOPTED. SCORECARD-ENABLEMENT-RUNBOOK carry-forward added. PR #407 governance OPEN (disjoint files). Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0"
 current_cycle: "feature-iec104"
 pipeline: ACTIVE
-timestamp: 2026-07-19T00:57:13Z
+timestamp: 2026-07-19T02:05:00Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -23,7 +23,7 @@ release_url: https://github.com/Zious11/wirerust/releases/tag/v0.13.0
 prior_released_version: v0.12.1
 prior_released_at: "2026-07-13"
 main_head: 67a06b6f82654d2af79d023b15ac56ab03182ffd
-develop_head: 82ad2edd12ad1f9dad61a03a4760d4112d45ccc2
+develop_head: fcd57dcbd8b13074ffb57086f5f179dc30f1d026
 cargo_version_main: "0.13.0"
 cargo_version_develop: "0.13.0"
 bootstrapped: 2026-05-19T16:56:48Z
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 262 = 238 (dual-margin form). 262 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 263 = 237 (dual-margin form). 263 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-475 feature-iec104 CYCLE-CLOSE (2026-07-18). S-7.02 SATISFIED: 9 process-gaps → STORY-175..179. B-001/B-002 FIXED. PR #419 82ad2ed merged. Pipeline ACTIVE (resumed). Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0**
+**D-476 PR #414 ADOPTED (2026-07-19). Scorecard-guard squash-merged to develop (fcd57dcb; human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES; F1 RESOLVED-CLEAN; CI 13/13 incl. action-pin-gate. Workflow inert until SCORECARD_ENABLED set. Pipeline ACTIVE (steady-state). Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0**
 
 ---
 
@@ -69,12 +69,12 @@ maintenance_prior_run: maint-2026-07-09
 |-------|-------|
 | Project | wirerust |
 | Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED, 9 PGs → STORY-175..179 (12 pts), B-001/B-002 FIXED (PRD v1.57 + BC-2.19.002 v1.3), PR #419 82ad2ed merged. Pipeline ACTIVE.** |
-| Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=82ad2ed — DRIFT-BACKMERGE-SQUASH-001 retained; trees reconciled at v0.13.0) |
+| Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=fcd57dc — D-476 PR #414 scorecard-guard adopted (2026-07-19); DRIFT-BACKMERGE-SQUASH-001 retained; trees reconciled at v0.13.0) |
 | Main HEAD | `67a06b6f82654d2af79d023b15ac56ab03182ffd` |
-| Develop HEAD | `82ad2edd12ad1f9dad61a03a4760d4112d45ccc2` — docs PR #419 (IEC104-DEMO-TYPEID45-MISLABEL fix); DRIFT-BACKMERGE-SQUASH-001 |
+| Develop HEAD | `fcd57dcbd8b13074ffb57086f5f179dc30f1d026` — D-476 PR #414 scorecard-guard adopted (2026-07-19); DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 |
 | Stories | 113 delivered / 132 total (STORY-INDEX v3.77, dep-graph v3.9, 777 pts) |
-| **Last Updated** | 2026-07-18 — D-475 feature-iec104 CYCLE-CLOSE. S-7.02 SATISFIED. Pipeline ACTIVE. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-19 — D-476 PR #414 scorecard-guard ADOPTED. Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -123,7 +123,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → STORY-175..179; B-001/B-002 FIXED; PR #419 82ad2ed; Pipeline ACTIVE | develop (82ad2ed) |
+| feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → STORY-175..179; B-001/B-002 FIXED; PR #419 82ad2ed; Pipeline ACTIVE | develop (fcd57dc) |
 
 ---
 
@@ -131,11 +131,11 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **D-476 PR #414 ADOPTED (2026-07-19). ArcavenAE ci/scorecard-guard squash-merged to develop fcd57dcb (human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES (report: .factory/planning/pr-414-security-triage.md); F1 CWE-494 RESOLVED-CLEAN (all 4 SHA↔tag MATCH via GitHub API; harden-runner v2.19.4 NOT AFFECTED by any advisory). CI 13/13 SUCCESS incl. action-pin-gate. Workflow inert until SCORECARD_ENABLED=true set. PR #407 governance OPEN/UNAFFECTED (disjoint files, no overlap). SCORECARD-ENABLEMENT-RUNBOOK carry-forward added; PR-414-FORK-SCORECARD CLOSED.** | **ADOPTED (D-476)** | develop=fcd57dc. trajectory-tail →0→0→0→0 |
 | **D-475 feature-iec104 CYCLE-CLOSE (2026-07-18). S-7.02 checklist SATISFIED: 9 process-gaps codified into 5 draft stories STORY-175..179 (E-11 epic, 12 pts; STORY-INDEX v3.77); B-001/B-002 doc nits FIXED (PRD v1.57, BC-2.19.002 v1.3 + title cascade, BC-INDEX v2.34); STORY-167 v1.1 AC propagation; IEC104-DEMO-TYPEID45-MISLABEL DELIVERED via docs PR #419 82ad2edd12ad1f9dad61a03a4760d4112d45ccc2 squash-merged to develop (human-executed merge; pr-reviewer APPROVE 0 findings; CI 13/13; step-8 halt per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER, human-direct merge — pattern reconfirmed); STORY-164/165 input-hashes re-baselined BENIGN (canonical tool; 132/0 scan); DRIFT-SPRINT-STATE-FIELD-FORM-001 pre-resolved (sprint-state.yaml already absent); mutants.out residue deleted. feature-iec104 declared CLOSED. Pipeline ACTIVE (resumed from D-474 pause).** | **CLOSED (D-475)** | S-7.02 SATISFIED. lessons.md written. All codified PGs removed from carry-forwards. Open: PR #407 governance, PR #414 triage, STORY-166 + STORY-175..179 wave-TBD. trajectory-tail →0→0→0→0 |
 | **D-474 SESSION WRAP (2026-07-18). Human-requested pipeline pause at clean milestone. v0.13.0 RELEASED (feature-iec104 F1→F7 CONVERGED + shipped). All session PRs (#409-418) merged. No in-flight work. Pipeline PAUSED by human direction.** | **PAUSED (D-474)** | Clean stop post-v0.13.0. trajectory-tail →0→0→0→0 |
 | **D-473 v0.13.0 RELEASED (2026-07-18). Release PR #417 release/0.13.0→main merged 67a06b6 (human --merge). Tag v0.13.0 (object 03f35e4f); release.yml SUCCESS; GitHub Release published + 4 platform binaries. Back-merge PR #418 SQUASH → develop af3ecbd. 13 commits released. DRIFT-BACKMERGE-SQUASH-001 retained.** | **RELEASED (D-473)** | main=67a06b6, develop=af3ecbd, both 0.13.0. trajectory-tail →0→0→0→0 |
 | **D-472 PR #407 (external fork ArcavenAE/wirerust) security-triaged (2026-07-18): SAFE-WITH-CHANGES, 0 blocking vulns. 3 required-if-adopted changes. DEFERRED by human — PR left OPEN; governance question unresolved. Triage: .factory/planning/pr-407-security-triage.md.** | **TRIAGED SAFE-WITH-CHANGES (D-472)** | PR left OPEN, DEFERRED by human. trajectory-tail →0→0→0→0 |
-| **D-471 E2E IEC-104 coverage merged (PR #416 0b65e8e squash-merged to develop, 2026-07-17, human-executed merge). Added 4 real captures to LOCAL-ONLY corpus + NEW tests/iec104_e2e_real_pcaps_tests.rs. CI 13/13. iec104_analyzer_tests 221/0. develop=0b65e8e.** | **MERGED (D-471)** | 4 fixtures + analyzer-level real-pcap test. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -160,6 +160,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | D-473 | v0.13.0 RELEASED (2026-07-18). Release PR #417 67a06b6 main; tag v0.13.0; GH release 4 assets; back-merge #418 af3ecbd develop. 13 commits released. DRIFT-BACKMERGE-SQUASH-001 retained. | 2026-07-18 |
 | D-474 | SESSION WRAP (2026-07-18). Human-requested pipeline pause at clean milestone post-v0.13.0 release. All session PRs (#409-418) merged. No in-flight work. Factory artifacts committed to factory-artifacts. Pipeline PAUSED. | 2026-07-18 |
 | D-475 | feature-iec104 CYCLE-CLOSE (2026-07-18). S-7.02 checklist SATISFIED: 9 process-gaps codified into 5 draft stories STORY-175..179 (E-11 epic, 12 pts; STORY-INDEX v3.77); B-001/B-002 doc nits FIXED (PRD v1.57, BC-2.19.002 v1.3 + title cascade, BC-INDEX v2.34); STORY-167 v1.1 AC propagation; IEC104-DEMO-TYPEID45-MISLABEL DELIVERED via docs PR #419 82ad2edd12ad1f9dad61a03a4760d4112d45ccc2 squash-merged to develop (human-executed merge; pr-reviewer APPROVE 0 findings; CI 13/13; step-8 halt per PG-MERGE-AUTH-SUBAGENT-CLASSIFIER, human-direct merge — pattern reconfirmed); STORY-164/165 input-hashes re-baselined BENIGN (canonical tool; 132/0 scan); DRIFT-SPRINT-STATE-FIELD-FORM-001 pre-resolved (sprint-state.yaml already absent); mutants.out residue deleted. develop FF to 82ad2edd12ad1f9dad61a03a4760d4112d45ccc2. feature-iec104 declared CLOSED. Pipeline ACTIVE (resumed from D-474 pause). | 2026-07-18 |
+| D-476 | PR #414 ADOPTED (2026-07-19). ArcavenAE fork ci/scorecard-guard squash-merged to develop (fcd57dcbd8b13074ffb57086f5f179dc30f1d026; human-executed 2026-07-19T01:54:40Z). Security-triaged SAFE-WITH-CHANGES (triage: .factory/planning/pr-414-security-triage.md; F1 CWE-494 RESOLVED-CLEAN: all 4 SHA↔tag mappings MATCH via GitHub API, harden-runner v2.19.4 NOT AFFECTED by any advisory — dated section appended to triage file 2026-07-19). CI 13/13 SUCCESS incl. action-pin-gate. Adds .github/workflows/scorecards.yml; workflow inert until SCORECARD_ENABLED=true set. F2 (CWE-200) and enablement runbook noted in SCORECARD-ENABLEMENT-RUNBOOK carry-forward. PR #407 governance OPEN/UNAFFECTED (disjoint files, no overlap verified). | 2026-07-19 |
 
 ---
 
@@ -185,7 +186,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | ID | Summary | Source | Target |
 |----|---------|--------|--------|
-| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; v0.13.0 cut re-encountered this drift resolved-forward. Back-merge #418 also squash-merged per human choice. main (67a06b6) NOT ancestor of develop (82ad2ed). Trees ARE identical for released content — history-only divergence. DRIFT PERSISTS. | v0.12.1 release (D-436, 2026-07-13); re-encountered v0.13.0 (D-473, 2026-07-18) | resolve at a future release via true-merge back-merge if desired (human deferred; squash pattern retained D-473) |
+| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; v0.13.0 cut re-encountered this drift resolved-forward. Back-merge #418 also squash-merged per human choice. main (67a06b6) NOT ancestor of develop (fcd57dc). Trees ARE identical for released content — history-only divergence. DRIFT PERSISTS. | v0.12.1 release (D-436, 2026-07-13); re-encountered v0.13.0 (D-473, 2026-07-18) | resolve at a future release via true-merge back-merge if desired (human deferred; squash pattern retained D-473) |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly). Out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS owner — next TLS maintenance sweep |
 
 ---
@@ -203,21 +204,21 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | SEC-001-S158 / SEC-002-S158 | CWE-22 LOW advisories in `bin/lint-cycle-artifact` (deferred until mandatory CI wiring). DF-VALIDATION-001-gated. | bin/lint-cycle-artifact CI wiring |
 | IEC104-TIMED-CMD-GAP-001 | (DETECTION GAP, security-relevant, DEFERRED) TypeIDs 58–64 (timed control variants) fall into detect_iec104_threats `_` silent arm; no T1692.001/T0836 findings emitted. Evasion gap. DF-VALIDATION-001 required before filing any GitHub issue. | Follow-on detection story (new BC + detection arm) |
 | PR-407-FORK-RELEASE-OPS | External ArcavenAE PR #407 security-triaged SAFE-WITH-CHANGES (D-472; triage at .factory/planning/pr-407-security-triage.md); DEFERRED — governance decision pending. Resume without re-running security review. | Governance decision when authorized |
-| PR-414-FORK-SCORECARD | External ArcavenAE PR #414 (scorecard workflow behind SCORECARD_ENABLED repo var, opened 2026-07-17) requires security triage before any disposition; not yet triaged. | Security triage before any disposition |
+| SCORECARD-ENABLEMENT-RUNBOOK | Before setting SCORECARD_ENABLED=true: document that publish_results:true publishes security-posture data to OpenSSF public API (F2, CWE-200, LOW); optional harden-runner bump v2.19.4→v2.20.0 via Dependabot. PR #414 ADOPTED (D-476). | Whenever scorecard is enabled |
 
 ---
 
 ## Session Resume Checkpoint
 
-**D-475 feature-iec104 CYCLE-CLOSE (2026-07-18). feature-iec104 CLOSED. Pipeline ACTIVE. trajectory-tail →0→0→0→0**
+**D-476 PR #414 ADOPTED (2026-07-19). Pipeline ACTIVE (steady-state). trajectory-tail →0→0→0→0**
 
-Prior checkpoint (D-474 SESSION WRAP, 2026-07-18) archived to `cycles/feature-iec104/session-checkpoints.md`.
+Prior checkpoint (D-475 feature-iec104 CYCLE-CLOSE, 2026-07-18) archived to `cycles/feature-iec104/session-checkpoints.md`.
 
-- **Date:** 2026-07-18. Position: feature-iec104 CYCLE-CLOSE (D-475); S-7.02 SATISFIED; pipeline ACTIVE (resumed from D-474 pause). main=67a06b6 (v0.13.0), develop=82ad2ed (PR #419 docs fix). DRIFT-BACKMERGE-SQUASH-001 retained.
-- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `82ad2edd12ad1f9dad61a03a4760d4112d45ccc2` (PR #419 squash-merged, IEC104-DEMO-TYPEID45-MISLABEL fix). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **Date:** 2026-07-19. Position: D-476 PR #414 ADOPTED; scorecard-guard workflow merged to develop (fcd57dcb); pipeline ACTIVE (steady-state). main=67a06b6 (v0.13.0), develop=fcd57dc. DRIFT-BACKMERGE-SQUASH-001 retained.
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `fcd57dcbd8b13074ffb57086f5f179dc30f1d026` (D-476 PR #414 scorecard-guard; human squash-merge 2026-07-19T01:54:40Z). DRIFT-BACKMERGE-SQUASH-001 still applies.
 - **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no story worktrees, no adversarial loop active.
-- **Open items (not blocking):** (a) PR #407 governance decision (SAFE-WITH-CHANGES, DEFERRED — triage at `.factory/planning/pr-407-security-triage.md`, do NOT re-run security review); (b) PR #414 security triage (ArcavenAE scorecard workflow, not yet triaged); (c) STORY-166 (E-11, 3 pts, wave-TBD) still drafted/undelivered; (d) STORY-175..179 (5 draft stories, E-11 epic, 12 pts, wave-TBD) awaiting wave scheduling.
-- **Pending human decisions:** PR #407 disposition; PR #414 security triage authorization; wave scheduling for STORY-166 + STORY-175..179.
+- **Open items (not blocking):** (a) PR #407 governance decision (SAFE-WITH-CHANGES, DEFERRED — triage at `.factory/planning/pr-407-security-triage.md`, do NOT re-run security review); (b) STORY-166 (E-11, 3 pts, wave-TBD) still drafted/undelivered; (c) STORY-175..179 (5 draft stories, E-11 epic, 12 pts, wave-TBD) awaiting wave scheduling.
+- **Pending human decisions:** PR #407 disposition; wave scheduling for STORY-166 + STORY-175..179; SCORECARD_ENABLED enablement (see SCORECARD-ENABLEMENT-RUNBOOK carry-forward).
 - **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.77 / dep-graph v3.9 (137 edges).
 - **Resume command:** `/vsdd-factory:next-step` (reads STATE.md, continues from checkpoint). Pipeline ACTIVE — ready for next wave scheduling or PR triage.
 
@@ -244,7 +245,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | feature-iec104 F2 convergence report | `cycles/feature-iec104/adversarial/f2-convergence-report.md` (12 passes, CONVERGED P10/P11/P12, D-438) |
 | feature-iec104 F2 gate review (first-frame guard) | `cycles/feature-iec104/adversarial/f2-first-frame-guard-review.md` (CLEAN; 2 LOW applied; D-439) |
 | feature-iec104 MITRE pin confirmation | `cycles/feature-iec104/research/f2-mitre-pin-confirmation.md` (8 techniques CONFIRMED-AT-v19.1; D-439) |
-| Session checkpoints (feature-iec104, all prior) | `cycles/feature-iec104/session-checkpoints.md` (waves 76–83 era + D-471 E2E + D-472 PR #407 + D-473 v0.13.0 RELEASED + D-474 SESSION WRAP checkpoints) |
+| Session checkpoints (feature-iec104, all prior) | `cycles/feature-iec104/session-checkpoints.md` (waves 76–83 era + D-471 E2E + D-472 PR #407 + D-473 v0.13.0 RELEASED + D-474 SESSION WRAP + D-475 CYCLE-CLOSE checkpoints) |
 | Wave 75 gate files | `cycles/wave-75/wave-gate/` (gate-summary.md D-435, code-review.md, findings.md) |
 | Wave 75 lessons + process-gap ledger | `cycles/wave-75/lessons.md` + `cycles/wave-75/process-gap-ledger.md` |
 | Wave 74 gate files | `cycles/wave-74/wave-gate/` (gate-summary.md D-432) |
