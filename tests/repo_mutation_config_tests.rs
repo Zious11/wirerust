@@ -34,7 +34,9 @@
 //! Test naming uses the AC-based pattern `test_AC_147_NNN_<assertion>()`,
 //! matching the repo-wide `test_BC_S_SS_NNN_...` convention (uppercase
 //! `AC`/BC segments). This is a deliberate deviation from Rust's snake_case
-//! convention — see `tests/bc_2_01_story001_tests.rs` for precedent.
+//! convention — see `tests/bc_2_01_story001_tests.rs` for precedent; scanner
+//! self-check tests use the finding-based `test_F_S147PN_NNN_<assertion>()`
+//! variant.
 #![allow(non_snake_case)]
 
 use std::fs;
