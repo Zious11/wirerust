@@ -7,6 +7,198 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-18
+
+IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
+
+### Added
+
+- **IEC-104 E2E pcap/pcapng corpus fixtures (STORY-167..174 coverage).**
+
+  Four IEC 60870-5-104 real-world captures added to the E2E smoke-test corpus
+  (`bin/fetch-e2e-pcaps` + `tests/fixtures/E2E-PCAPS.md` + pinned expectations in
+  `tests/e2e_corpus_smoke_tests.rs`):
+
+  - `iec104.pcap` (Wireshark Foundation; 10 KB) — canonical IEC-104 reference:
+    U-frames (STARTDT/STOPDT/TESTFR) + I-frame ASDUs + C_IC general interrogation
+    lifecycle. Analyzer produces 66 findings (T1692.001 ×42, T0836 ×24).
+  - `iec104-sq.pcapng` (Wireshark Foundation; 584 B) — native pcapng; SQ-bit ASDU
+    (sequence-of-information-objects encoding). Exercises the pcapng reader with IEC-104.
+    0 findings (benign link-management only).
+  - `iec104-iti-diverse.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 14 KB) — diverse ASDU
+    Type ID mix. Analyzer produces 31 findings (T1692.001 ×21, T0836 ×10).
+  - `iec104-iti-dissect.pcap` (ITI/ICS-Security-Tools, CC-BY-4.0; 11 KB) — broad Type ID /
+    COT coverage including control commands. Analyzer produces 11 findings
+    (T1692.001 ×9, T0814 ×2).
+
+  All four captures parse without panics; zero parse_errors on every run. Corpus grows
+  from 36 to 40 files; smoke test now verifies 39 pinned entries.
+
+  Companion analyzer-level e2e test added in `tests/iec104_e2e_real_pcaps_tests.rs` (4 tests,
+  modeled on `enip_e2e_real_pcaps_tests.rs`) pinning per-technique finding counts and
+  category/verdict/confidence distributions as regression guards against the IEC-104
+  analyzer pipeline (BC-2.19, STORY-167..174).
+
+### Fixed
+
+- **CHANGELOG accuracy corrections: carry-overflow Example 3 `mitre_techniques` and
+  FIX-F5-001 emit-site count prose (FIX-F5-004, F-B2 from F5 Round-4 adversarial review).**
+
+  Two inaccuracies corrected (CHANGELOG.md only; no source or test code changed):
+
+  1. The FIX-F5-003 entry for Example 3 (carry overflow, pre-enrichment baseline) incorrectly
+     stated `mitre_techniques: []`. The corrected demo artifact
+     (`docs/demo-evidence/FIX-P4-001/demo-json-serialization.rs` line 85) and the real emit
+     site (`src/analyzer/iec104.rs` line 1214) both carry `mitre_techniques: ["T0814"]`.
+     Fixed: `mitre_techniques: []` → `mitre_techniques: ["T0814"]`.
+
+  2. The FIX-F5-001 introductory paragraph stated "all 12 Finding constructors — 10 via
+     function parameters and 2 inline". The Emit sites section in the same entry correctly
+     counts 8 function + 2 inline = 10 total (confirmed against iec104.rs). Fixed: "12" →
+     "10" and "10 via function" → "8 via function".
+
+  Comprehensive cross-check of all other concrete CHANGELOG claims in [Unreleased] against
+  ground truth (iec104.rs emit sites, demo artifacts) found no additional mismatches:
+  category/verdict/confidence/MITRE for all three example findings and DNP3/EtherNet/IP
+  direction:None parity claim all confirmed accurate.
+
+- **Comprehensive demo-evidence JSON accuracy sweep across IEC-104 feature artifacts
+  (FIX-F5-003).**
+
+  Corrects fabricated enum variants and misattributed MITRE techniques found across
+  FIX-P4-001 demo artifacts. No source or test code changed; docs and CHANGELOG only.
+
+  **FIX-P4-001 artifacts corrected (`docs/demo-evidence/FIX-P4-001/`):**
+
+  - `demo-json-serialization.rs`: All three examples used non-existent Rust enum
+    variants (`ThreatCategory::Protocol`, `Verdict::Anomaly`) and incorrect JSON
+    casing (`Confidence::High` → serde gives "High" but real serde output is "high").
+    Additionally, Example 1 attributed T0881 (STOPDT-act) to the N(S) desync finding,
+    which is actually T1692.001 (see `track_ns_desync`, iec104.rs). Fixed to use real
+    variants from real emit sites:
+    - Example 1 (N(S) desync, C2S): `ThreatCategory::Impact`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T1692.001"]`
+    - Example 2 (malformed LEN, S2C): `ThreatCategory::Anomaly`, `Verdict::Possible`,
+      `Confidence::Medium`, `mitre_techniques: ["T0814"]`
+    - Example 3 (carry overflow, no direction): same category/verdict/confidence as
+      Example 2; `mitre_techniques: ["T0814"]`
+    - Corrected `Direction` import path to `wirerust::reassembly::handler::Direction`.
+
+  - `evidence-report.md`: "Before/After" JSON blocks contained the same fabricated
+    "Protocol"/"Anomaly"/"High"/"T0881" values. Replaced with real serde output
+    derived from the actual emit sites: "impact"/"possible"/"medium"/"T1692.001" for
+    the C2S N(S) desync example; "anomaly"/"possible"/"medium"/"T0814" for the S2C
+    malformed-LEN example.
+
+  - `AC-P4-001-test-results.txt`: Inline JSON examples used the same fabricated tokens.
+    Replaced with real field values and annotated with the originating emit function.
+
+  **CHANGELOG correction:** The FIX-F5-002 entry previously claimed it corrected
+  "FIX-F5-001 and FIX-P4-001 evidence artifacts". FIX-F5-002 only corrected FIX-F5-001
+  artifacts (wrong provenance, fabricated JSON, wrong year). FIX-P4-001 artifacts were
+  not touched by FIX-F5-002 and are corrected here by FIX-F5-003. Entry updated to
+  "FIX-F5-001 evidence artifacts only".
+
+- **IEC-104 findings now carry `source_ip` and `timestamp` JSON keys (FIX-F5-001,
+  BC-2.19.011 PC-3).**
+
+  All IEC-104 `Finding` emit sites previously left `source_ip: None` and
+  `timestamp: None`, causing those keys to be absent from IEC-104 JSON output.
+  The fix threads the initiator IP (resolved from the 5-tuple `FlowKey` by
+  direction, mirroring the DNP3/EtherNet/IP house pattern) and the packet
+  timestamp (`ts` parameter) through all 10 `Finding` constructors — 8 via
+  function parameters and 2 inline in `on_data`.
+
+  This is an additive, backward-compatible JSON change: the two keys now appear
+  on IEC-104 findings where they were previously absent. JSON consumers that
+  tolerate unknown keys or use subset/contains assertions are unaffected.
+
+  **Emit sites enriched (8 function + 2 inline = 10 total):**
+  - `process_u_frame`: STOPDT-act T0881 + non-canonical U-frame T0814.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 +
+    T0836, TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001.
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame`, `detect_iec104_threats`, and
+  `track_ns_desync` each gain `source_ip: Option<IpAddr>` and
+  `timestamp: Option<chrono::DateTime<chrono::Utc>>` parameters (callers updated).
+
+- **Documentation accuracy corrections for FIX-F5-001 evidence artifacts only
+  (FIX-F5-002).**
+
+  Corrects three categories of inaccuracy introduced during demo-evidence authoring; no
+  source or test code is changed:
+
+  1. **Wrong provenance for sibling source_ip/timestamp enrichment:** The FIX-F5-001
+     evidence report (`docs/demo-evidence/FIX-F5-001/evidence-report.md`) incorrectly
+     cited STORY-172 and STORY-173 as the origin of DNP3/EtherNet/IP source_ip enrichment.
+     Those stories implement IEC-104 carry buffers and the IEC-104 dispatcher respectively;
+     the DNP3/EtherNet/IP house pattern for source_ip+timestamp originates from the
+     S-139/S-140 lineage (PR #328). Corrected to cite S-139/S-140 (PR #328) and to note
+     that IEC-104 additionally populates `direction: Some(direction)`, which DNP3 and
+     EtherNet/IP do not.
+
+  2. **Fabricated JSON in Before/After block:** The evidence-report JSON examples contained
+     incorrect field values (`category: "anomaly"`, `confidence: "high"`, fabricated summary
+     and evidence strings, `direction: "client_to_server"` with wrong casing). Replaced with
+     the actual T0881 STOPDT-act finding values from `src/analyzer/iec104.rs` lines 382–396:
+     `category: "impact"`, `confidence: "medium"`, real summary string,
+     `evidence: ["CF1=0x13 (STOPDT-act)"]`, `direction: "ClientToServer"` (serde default,
+     no `rename_all`).
+
+  3. **Wrong year in example timestamps:** Example timestamps using `2025-07-17` corrected
+     to `2026-07-17`.
+
+- **IEC-104 findings now carry the `direction` JSON key (FIX-P4-001,
+  IEC104-FINDING-DIRECTION-001).**
+
+  All IEC-104 `Finding` emit sites previously left `direction: None`, causing the
+  `direction` key to be absent from IEC-104 JSON output (the field uses
+  `#[serde(skip_serializing_if = "Option::is_none")]`). This is an additive,
+  backward-compatible JSON change — JSON consumers that tolerate unknown keys or use
+  subset/contains assertions are unaffected.
+
+  The fix brings IEC-104 direction enrichment into conformance with the TLS / Modbus /
+  HTTP analyzers, which already set `direction: Some(direction)` on every emitted finding.
+  Note: DNP3 and EtherNet/IP analyzers set `direction: None`; IEC-104's direction
+  population therefore exceeds the DNP3/EtherNet/IP baseline (which provides only
+  `source_ip` + `timestamp` parity, not direction).
+
+  **Emit sites fixed (10 total):**
+  - `process_u_frame`: STOPDT-act T0881 finding + non-canonical U-frame T0814 finding.
+  - `detect_iec104_threats`: TypeIDs 45–47 T1692.001, TypeIDs 48–51 T1692.001 + T0836,
+    TypeID 105 T0827, TypeIDs 0/128–255 T0814.
+  - `track_ns_desync`: N(S) desync T1692.001; redundant `format!("direction=…")` evidence
+    line dropped (structured field carries the same information).
+  - `on_data` inline: carry-overflow T0814 + malformed-LEN T0814.
+
+  **Signature changes:** `process_u_frame` and `detect_iec104_threats` each gain a
+  `direction: Direction` parameter (callers updated).
+
+### Changed
+
+- **`bin/check-green-doc-tense` green-doc-tense gate extended with three new IEC-104 phrasings
+  (STORY-174, AC-174-008, PG-REDGREEN-COMMENT-CLEANUP).**
+
+  Adds patterns 23–25 to the `_VIOLATION_PATTERNS` token list to catch stale Red-Gate section
+  headers that slipped through the original gate across STORY-167..173 because the existing
+  patterns required exact token adjacency:
+
+  - **Pattern 23** (`All tests\b.*\bMUST FAIL`, case-insensitive): catches module/section
+    headers with interposed qualifiers such as "All tests in this module MUST FAIL" or "All
+    tests in this section MUST FAIL". Subsumes the original pattern 1 for these phrasings.
+  - **Pattern 24** (`FAILS?\s+Red Gate`, case-insensitive): catches compile-only-seam
+    assertions like "FAILS Red Gate" or "FAIL Red Gate". Past-tense "failed Red Gate" is
+    exempt (the 'ed' suffix prevents the `\s+` from matching after "fail").
+  - **Pattern 25** (`(?:are|is)\s+todo!\(\)\s+stub`, case-insensitive): catches present-tense
+    stub-state assertions like "are todo!() stubs" and "is todo!() stub". Past-tense "were"
+    and provenance "originated as" are exempt.
+
+  Three baseline stale headers in `tests/iec104_analyzer_tests.rs` (~L662-663, ~L1498, ~L1544)
+  scrubbed to GREEN-accurate prose. Self-test passes at 72/72 cases; tree-wide scan finds 0
+  violations after the scrub. No new CI job; extends the existing `green-doc-tense-gate`.
+
 ### Added
 
 - **IEC-104 dispatcher integration: `DispatchTarget::Iec104`, `--iec104` flag, T0881 catalog
@@ -1529,7 +1721,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
 [0.11.5]: https://github.com/Zious11/wirerust/compare/v0.11.4...v0.11.5

@@ -1,0 +1,35 @@
+AC-174-007: cargo-mutants sweep — mutation score >= 80%
+Evidence: target/mutants-disposition.md summary + targeted tests
+Date: 2026-07-16
+
+--- Summary from target/mutants-disposition.md ---
+
+| Category                                         | Count  |
+|--------------------------------------------------|--------|
+| Total mutants generated                          | 156    |
+| Caught (killed by tests)                         | 117    |
+| Missed — #[cfg(kani)] module (acceptable)        | 28     |
+| Missed — production code (acceptable survivors)  | 5      |
+| Unviable (do not compile)                        | 6      |
+| Production kill rate (117 / 122 in-scope)        | 95.9%  |
+
+Requirement: >= 80% kill rate. Status: PASS.
+
+--- Targeted tests for previously surviving mutants ---
+
+$ cargo test --test iec104_analyzer_tests test_AC_174_007
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/iec104_analyzer_tests.rs (target/debug/deps/iec104_analyzer_tests-70fabb01cb3ba763)
+
+running 2 tests
+test story_172::test_AC_174_007_malformed_len_at_two_byte_tail_emits_t0814_immediately ... ok
+test story_173::test_AC_174_007_dropped_findings_exact_count_with_partial_cap ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 198 filtered out; finished in 0.00s
+
+OUTCOME: PASS — 95.9% kill rate (>= 80% requirement). 2 targeted tests kill previously surviving mutants.
+Surviving production mutants (5): documented as acceptable equivalents in target/mutants-disposition.md.
+  - 2 equivalent bit-OR/XOR in non-overlapping bit ranges (extract_ns, extract_nr)
+  - 1 unreachable boundary value in carry guard
+  - 1 equivalent truncate no-op at boundary
+  - 1 TypeID arm with no behavioral difference (TypeIDs 100/101/103 fall-through)

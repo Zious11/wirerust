@@ -658,9 +658,8 @@ mod story_167 {
 // =============================================================================
 // STORY-168: IEC-104 Frame Format Discrimination + U-Format Session State Machine
 //
-// Covers BC-2.19.007–014 and VP-046 proptest skeleton.
-// All tests in this module MUST FAIL (Red Gate) because classify_frame_format
-// and process_u_frame are todo!() stubs. They pass after implementation.
+// Covers BC-2.19.007–014 and VP-046 proptest (full 256-value run verified in STORY-174).
+// classify_frame_format and process_u_frame are implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.007: classify_frame_format returns IFormat when CF1 bit 0 = 0
@@ -672,7 +671,7 @@ mod story_167 {
 //                STOPDT-con (0x23) → session_started=false; no finding (ACT-only MVP)
 // - BC-2.19.013: TESTFR-act (0x43) / TESTFR-con (0x83) → no finding; state unchanged
 // - BC-2.19.014: non-canonical U-frame CF1 → T0814 Possible; state unchanged
-// - VP-046: proptest skeleton — classify_frame_format totality over all 256 u8 values
+// - VP-046: proptest — classify_frame_format totality over all 256 u8 values (verified STORY-174)
 //
 // ## Canonical test vectors (DF-CANONICAL-FRAME-HOLDOUT-001)
 // Used verbatim from BCs; no invented inputs where the BC provides them.
@@ -686,6 +685,7 @@ mod story_168 {
         FrameFormat, Iec104FlowState, classify_frame_format, process_u_frame,
     };
     use wirerust::findings::{ThreatCategory, Verdict};
+    use wirerust::reassembly::handler::Direction;
 
     // =========================================================================
     // BC-2.19.007: classify_frame_format returns IFormat when CF1 bit 0 = 0
@@ -1003,7 +1003,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false initially"
         );
-        let finding = process_u_frame(&mut state, 0x07);
+        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-act (0x07) must set session_started=true (BC-2.19.010 postcondition 1)"
@@ -1025,7 +1025,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x07);
+        let finding = process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-act when already started must leave session_started=true (BC-2.19.010 invariant 1)"
@@ -1048,7 +1048,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false initially"
         );
-        let finding = process_u_frame(&mut state, 0x0B);
+        let finding = process_u_frame(&mut state, 0x0B, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT-con (0x0B) without prior STARTDT-act must set session_started=true \
@@ -1077,7 +1077,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x13);
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT-act must set session_started=false (BC-2.19.011 postcondition 1)"
@@ -1113,14 +1113,15 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let stop_finding = process_u_frame(&mut state, 0x13);
+        let stop_finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT must set session_started=false"
         );
         assert!(stop_finding.is_some(), "STOPDT must emit a finding");
         // Now STARTDT restarts the session
-        let start_finding = process_u_frame(&mut state, 0x07);
+        let start_finding =
+            process_u_frame(&mut state, 0x07, Direction::ClientToServer, None, None);
         assert!(
             state.session_started,
             "STARTDT after STOPDT must set session_started=true"
@@ -1147,7 +1148,7 @@ mod story_168 {
             !state.session_started,
             "precondition: session_started must be false"
         );
-        let finding = process_u_frame(&mut state, 0x13);
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "session_started must remain false after STOPDT without STARTDT \
@@ -1195,8 +1196,14 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let f_possible = process_u_frame(&mut state_active, 0x13)
-            .expect("STOPDT after STARTDT must emit finding");
+        let f_possible = process_u_frame(
+            &mut state_active,
+            0x13,
+            Direction::ClientToServer,
+            None,
+            None,
+        )
+        .expect("STOPDT after STARTDT must emit finding");
         assert_eq!(
             f_possible.verdict,
             Verdict::Possible,
@@ -1205,8 +1212,9 @@ mod story_168 {
 
         // Path 2: no prior STARTDT → Likely
         let mut state_cold = Iec104FlowState::default();
-        let f_likely = process_u_frame(&mut state_cold, 0x13)
-            .expect("STOPDT without STARTDT must emit finding");
+        let f_likely =
+            process_u_frame(&mut state_cold, 0x13, Direction::ClientToServer, None, None)
+                .expect("STOPDT without STARTDT must emit finding");
         assert_eq!(
             f_likely.verdict,
             Verdict::Likely,
@@ -1231,7 +1239,7 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let finding = process_u_frame(&mut state, 0x23);
+        let finding = process_u_frame(&mut state, 0x23, Direction::ClientToServer, None, None);
         assert!(
             !state.session_started,
             "STOPDT-con (0x23) must set session_started=false (BC-2.19.012 ACT-only MVP)"
@@ -1255,7 +1263,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_013_testfr_act_emits_no_finding_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x43);
+        let finding = process_u_frame(&mut state, 0x43, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "TESTFR-act (0x43) must not emit a finding (BC-2.19.013 postcondition 1)"
@@ -1270,7 +1278,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_013_testfr_con_emits_no_finding_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x83);
+        let finding = process_u_frame(&mut state, 0x83, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "TESTFR-con (0x83) must not emit a finding (BC-2.19.013 postcondition 1)"
@@ -1286,12 +1294,12 @@ mod story_168 {
     fn test_BC_2_19_013_invariant_testfr_does_not_modify_session_started() {
         // Case 1: session_started=false — should remain false after TESTFR
         let mut state_cold = Iec104FlowState::default();
-        let _ = process_u_frame(&mut state_cold, 0x43);
+        let _ = process_u_frame(&mut state_cold, 0x43, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "TESTFR-act must not change session_started from false (BC-2.19.013 postcondition 2)"
         );
-        let _ = process_u_frame(&mut state_cold, 0x83);
+        let _ = process_u_frame(&mut state_cold, 0x83, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "TESTFR-con must not change session_started from false (BC-2.19.013 postcondition 2)"
@@ -1302,12 +1310,24 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0x43);
+        let _ = process_u_frame(
+            &mut state_active,
+            0x43,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "TESTFR-act must not change session_started from true (BC-2.19.013 postcondition 2)"
         );
-        let _ = process_u_frame(&mut state_active, 0x83);
+        let _ = process_u_frame(
+            &mut state_active,
+            0x83,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "TESTFR-con must not change session_started from true (BC-2.19.013 postcondition 2)"
@@ -1327,7 +1347,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x03_emits_t0814_possible() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x03);
+        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0x03 must emit T0814 finding (BC-2.19.014 postcondition 1)",
         );
@@ -1356,7 +1376,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0xFF_emits_t0814_possible_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0xFF);
+        let finding = process_u_frame(&mut state, 0xFF, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0xFF must emit T0814 finding (BC-2.19.014 canonical vector EC-002)"
         );
@@ -1384,7 +1404,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x0F_emits_t0814_possible_canonical_vector() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x0F);
+        let finding = process_u_frame(&mut state, 0x0F, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Non-canonical U CF1=0x0F must emit T0814 finding (BC-2.19.014 canonical vector EC-003)"
         );
@@ -1412,7 +1432,7 @@ mod story_168 {
     #[test]
     fn test_BC_2_19_014_non_canonical_cf1_0x1B_emits_t0814_possible() {
         let mut state = Iec104FlowState::default();
-        let finding = process_u_frame(&mut state, 0x1B);
+        let finding = process_u_frame(&mut state, 0x1B, Direction::ClientToServer, None, None);
         let f = finding.expect("Non-canonical U CF1=0x1B must emit T0814 finding (BC-2.19.014)");
         assert_eq!(f.verdict, Verdict::Possible, "T0814 must be Possible");
         assert_eq!(
@@ -1435,7 +1455,7 @@ mod story_168 {
     fn test_BC_2_19_014_invariant_non_canonical_u_frame_does_not_advance_session_state() {
         // Case 1: session_started=false — must remain false after non-canonical U-frame
         let mut state_cold = Iec104FlowState::default();
-        let _ = process_u_frame(&mut state_cold, 0x0F);
+        let _ = process_u_frame(&mut state_cold, 0x0F, Direction::ClientToServer, None, None);
         assert!(
             !state_cold.session_started,
             "Non-canonical U-frame must not change session_started from false \
@@ -1447,7 +1467,13 @@ mod story_168 {
             session_started: true,
             ..Default::default()
         };
-        let _ = process_u_frame(&mut state_active, 0xFF);
+        let _ = process_u_frame(
+            &mut state_active,
+            0xFF,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
         assert!(
             state_active.session_started,
             "Non-canonical U-frame must not change session_started from true \
@@ -1468,7 +1494,7 @@ mod story_168 {
         let no_finding_cases: &[u8] = &[0x07, 0x0B, 0x43, 0x83, 0x23];
         for &cf1 in no_finding_cases {
             let mut state = Iec104FlowState::default();
-            let finding = process_u_frame(&mut state, cf1);
+            let finding = process_u_frame(&mut state, cf1, Direction::ClientToServer, None, None);
             assert!(
                 finding.is_none(),
                 "Canonical CF1=0x{cf1:02X} must not emit any finding (BC-2.19.014 negative)"
@@ -1476,7 +1502,7 @@ mod story_168 {
         }
         // STOPDT-act produces T0881 (not T0814)
         let mut state = Iec104FlowState::default();
-        let f = process_u_frame(&mut state, 0x13)
+        let f = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None)
             .expect("STOPDT-act must emit a finding (T0881, not T0814)");
         assert!(
             !f.mitre_techniques.iter().any(|t| t == "T0814"),
@@ -1489,14 +1515,14 @@ mod story_168 {
     }
 
     // =========================================================================
-    // VP-046 proptest skeleton: classify_frame_format totality
+    // VP-046 proptest: classify_frame_format totality (full 256-value run — STORY-174)
     // AC-168-009
     // =========================================================================
 
-    // VP-046 proptest skeleton — classify_frame_format totality over all 256 u8 values.
+    // VP-046 proptest — classify_frame_format totality over all 256 u8 values.
     //
-    // Per AC-168-009: this skeleton compiles and FAILS Red Gate because classify_frame_format
-    // is a todo!(). Full proptest run (1000+ cases) is in STORY-174 (VP-046 full proof run).
+    // Per AC-168-009: proptest_vp046_frame_format_totality verifies classify_frame_format
+    // over all 256 CF1 values. VP-046 full proof run completed in STORY-174.
     //
     // Per STORY-168 Architecture Compliance: classify_frame_format must be total over all
     // 256 u8 values with no unhandled case and no panic (BC-2.19.009 invariant 1).
@@ -1541,8 +1567,7 @@ mod story_168 {
 // STORY-169: IEC-104 ASDU Header Extraction: parse_asdu / Asdu with Broken-Out DUI Fields
 //
 // Covers BC-2.19.015–018 and all edge cases from the BCs and STORY-169 EC table.
-// All tests in this module MUST FAIL (Red Gate) because parse_asdu is todo!().
-// They pass after implementation.
+// parse_asdu is implemented; all tests in this section pass.
 //
 // ## Contract coverage
 // - BC-2.19.015: parse_asdu returns None for asdu_body.len() < 6; purity invariant (no panic).
@@ -2297,6 +2322,7 @@ mod story_169 {
 mod story_170 {
     use wirerust::analyzer::iec104::{Asdu, detect_iec104_threats};
     use wirerust::findings::{ThreatCategory, Verdict};
+    use wirerust::reassembly::handler::Direction;
 
     // -------------------------------------------------------------------------
     // Test helper: build a minimal Asdu for detect_iec104_threats tests.
@@ -2340,7 +2366,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_c_sc_na1_emits_exactly_one_finding() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2356,7 +2382,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_emits_t1692001_possible_impact() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=45 must emit at least one finding (BC-2.19.019 postcondition 1)");
@@ -2386,7 +2412,7 @@ mod story_170 {
     fn test_BC_2_19_019_type45_does_not_emit_t0836() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings
                 .iter()
@@ -2405,7 +2431,7 @@ mod story_170 {
     fn test_BC_2_19_019_type46_c_dc_na1_emits_t1692001_only() {
         let asdu = make_asdu(46, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2436,7 +2462,7 @@ mod story_170 {
     fn test_BC_2_19_019_type47_c_rc_na1_emits_t1692001_only() {
         let asdu = make_asdu(47, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2468,7 +2494,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_c_se_na1_emits_exactly_two_findings() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2484,7 +2510,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_emits_t1692001_possible() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let has_t1692 = findings
             .iter()
             .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"));
@@ -2510,7 +2536,7 @@ mod story_170 {
     fn test_BC_2_19_019_type48_emits_t0836_possible() {
         let asdu = make_asdu(48, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let has_t0836 = findings
             .iter()
             .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
@@ -2536,7 +2562,7 @@ mod story_170 {
     fn test_BC_2_19_019_type49_c_se_nb1_emits_t1692001_and_t0836() {
         let asdu = make_asdu(49, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2563,7 +2589,7 @@ mod story_170 {
     fn test_BC_2_19_019_type50_c_se_nc1_emits_t1692001_and_t0836() {
         let asdu = make_asdu(50, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2604,7 +2630,7 @@ mod story_170 {
             first_ioa: None,
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -2635,7 +2661,7 @@ mod story_170 {
         for type_id in [45u8, 46, 47] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert_eq!(
                 findings.len(),
                 1,
@@ -2668,7 +2694,7 @@ mod story_170 {
         for type_id in [48u8, 49, 50, 51] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert_eq!(
                 findings.len(),
                 2,
@@ -2700,7 +2726,7 @@ mod story_170 {
         for type_id in 45u8..=51 {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings
                     .iter()
@@ -2721,7 +2747,7 @@ mod story_170 {
         for type_id in 45u8..=51 {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             for f in &findings {
                 assert_eq!(
                     f.verdict,
@@ -2747,7 +2773,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_c_rp_na1_emits_exactly_one_finding() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2766,7 +2792,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_emits_t0827_likely_canonical_vector() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a T0827 finding (BC-2.19.020 postcondition 1)");
@@ -2793,7 +2819,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_verdict_is_likely_not_possible() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a finding (BC-2.19.020 postcondition 1)");
@@ -2820,7 +2846,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_does_not_emit_t1692001() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings
                 .iter()
@@ -2839,7 +2865,7 @@ mod story_170 {
     fn test_BC_2_19_020_type105_category_is_impact() {
         let asdu = make_asdu(105, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         let f = findings
             .first()
             .expect("TypeID=105 must emit a finding (BC-2.19.020)");
@@ -2866,7 +2892,7 @@ mod story_170 {
     fn test_BC_2_19_021_type100_c_ic_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(100, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=100 (C_IC_NA_1 general interrogation) must produce no finding \
@@ -2884,7 +2910,7 @@ mod story_170 {
     fn test_BC_2_19_021_type101_c_ci_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(101, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=101 (C_CI_NA_1 counter interrogation) must produce no finding \
@@ -2902,7 +2928,7 @@ mod story_170 {
     fn test_BC_2_19_021_type103_c_cs_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(103, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=103 (C_CS_NA_1 clock sync) must produce no finding \
@@ -2922,7 +2948,7 @@ mod story_170 {
         for type_id in [100u8, 101, 103] {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings.is_empty(),
                 "TypeID={type_id} (interrogation/clock-sync) must emit no finding — \
@@ -2947,7 +2973,7 @@ mod story_170 {
     fn test_BC_2_19_022_type0_undefined_emits_t0814_anomaly_canonical_vector() {
         let asdu = make_asdu(0, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -2982,7 +3008,7 @@ mod story_170 {
     fn test_BC_2_19_022_type128_emits_t0814_possible_canonical_vector() {
         let asdu = make_asdu(128, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3016,7 +3042,7 @@ mod story_170 {
     fn test_BC_2_19_022_type255_emits_t0814_possible_canonical_vector() {
         let asdu = make_asdu(255, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3043,7 +3069,7 @@ mod story_170 {
     fn test_BC_2_19_022_type200_private_use_emits_t0814_possible() {
         let asdu = make_asdu(200, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             1,
@@ -3067,7 +3093,7 @@ mod story_170 {
     fn test_BC_2_19_022_type44_max_monitoring_emits_no_finding_canonical_vector() {
         let asdu = make_asdu(44, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=44 (max monitoring TypeID, defined-but-unhandled) must produce no finding — \
@@ -3086,7 +3112,7 @@ mod story_170 {
     fn test_BC_2_19_022_type52_reserved_above_control_range_emits_no_finding() {
         let asdu = make_asdu(52, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=52 (RESERVED, above control range 45–51) must produce no finding — \
@@ -3101,7 +3127,7 @@ mod story_170 {
     fn test_BC_2_19_022_type99_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(99, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=99 (defined-but-unhandled) must produce no finding \
@@ -3119,7 +3145,7 @@ mod story_170 {
     fn test_BC_2_19_022_type102_c_rd_not_in_detection_set_emits_no_finding() {
         let asdu = make_asdu(102, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=102 (C_RD_NA_1, defined but not in detection set) must produce no finding — \
@@ -3134,7 +3160,7 @@ mod story_170 {
     fn test_BC_2_19_022_type104_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(104, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=104 (defined-but-unhandled, between C_RP and C_IC) must produce no finding \
@@ -3149,7 +3175,7 @@ mod story_170 {
     fn test_BC_2_19_022_type127_max_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(127, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=127 (maximum defined-but-unhandled value in [1,127]) must produce no finding \
@@ -3164,7 +3190,7 @@ mod story_170 {
     fn test_BC_2_19_022_type1_minimum_defined_unhandled_emits_no_finding() {
         let asdu = make_asdu(1, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             findings.is_empty(),
             "TypeID=1 (minimum defined-but-unhandled monitoring TypeID) must produce no finding \
@@ -3187,7 +3213,7 @@ mod story_170 {
         for &type_id in silent_type_ids {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             assert!(
                 findings.is_empty(),
                 "TypeID={type_id} (defined-but-unhandled in [1,127]) must produce no finding — \
@@ -3211,7 +3237,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_control_command_summary_has_test_tag() {
         let asdu = make_asdu(45, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=45 must emit at least one finding (precondition for [TEST] tagging test)"
@@ -3237,7 +3263,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_false_control_command_summary_has_no_test_tag() {
         let asdu = make_asdu(45, false);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         for f in &findings {
             assert!(
                 !f.summary.contains(" [TEST]"),
@@ -3259,7 +3285,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_t0827_summary_has_test_tag() {
         let asdu = make_asdu(105, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=105 must emit a T0827 finding (precondition for [TEST] tag test)"
@@ -3283,7 +3309,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_setpoint_both_findings_have_test_tag() {
         let asdu = make_asdu(48, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert_eq!(
             findings.len(),
             2,
@@ -3309,7 +3335,7 @@ mod story_170 {
     fn test_BC_2_19_017_cot_test_true_t0814_reserved_type_summary_has_test_tag() {
         let asdu = make_asdu(128, true);
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=128 must emit a T0814 finding (precondition for [TEST] tag test)"
@@ -3337,7 +3363,7 @@ mod story_170 {
         for &type_id in detection_type_ids {
             let asdu = make_asdu(type_id, false);
             let mut findings = Vec::new();
-            detect_iec104_threats(&asdu, &mut findings);
+            detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
             for f in &findings {
                 assert!(
                     !f.summary.contains(" [TEST]"),
@@ -3375,7 +3401,7 @@ mod story_170 {
             first_ioa: None,
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=48 must emit findings (precondition for CASDU evidence check)"
@@ -3409,7 +3435,7 @@ mod story_170 {
             first_ioa: Some(0x1234), // decimal 4660
         };
         let mut findings = Vec::new();
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
         assert!(
             !findings.is_empty(),
             "TypeID=48 must emit findings (precondition for first_ioa evidence check)"
@@ -3450,7 +3476,7 @@ mod story_170 {
         let mut findings = vec![dummy];
 
         let asdu = make_asdu(45, true); // cot_test=true → new findings get [TEST]
-        detect_iec104_threats(&asdu, &mut findings);
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
 
         // The pre-existing finding (index 0) must NOT be tagged:
         assert!(
@@ -3775,7 +3801,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path A (None state): first I-frame with N(S)=0 must return None — \
@@ -3805,7 +3831,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path A mid-capture: N(S)=5000 on first frame must return None — \
@@ -3838,7 +3864,7 @@ mod story_171 {
             state.last_ns_c2s, None,
             "precondition: last_ns_c2s must be None"
         );
-        let finding = track_ns_desync(&mut state, 0, Direction::ServerToClient);
+        let finding = track_ns_desync(&mut state, 0, Direction::ServerToClient, None, None);
         assert!(
             finding.is_none(),
             "Path A S2C: first I-frame with N(S)=0 must return None \
@@ -3874,7 +3900,7 @@ mod story_171 {
             last_ns_c2s: Some(5000),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B gap=1: no finding expected (BC-2.19.024 postcondition B2; 1 ≤ 12)"
@@ -3899,7 +3925,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 12, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 12, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B EC-003: gap=12 (exactly k=12) must return None — boundary ≤ k is allowed \
@@ -3924,7 +3950,7 @@ mod story_171 {
             last_ns_c2s: Some(100),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 100, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "Path B gap=0 (same N(S) repeated): no finding (BC-2.19.024; gap=0 ≤ 12)"
@@ -3955,7 +3981,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 13, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 13, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C EC-004: gap=13 (k+1) must emit T1692.001 Possible \
              (BC-2.19.024 Path C postcondition 1; EC-004)",
@@ -3990,7 +4016,7 @@ mod story_171 {
             last_ns_c2s: Some(5001),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5020, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C canonical: Some(5001)→5020, gap=19 must emit T1692.001 Possible \
              (BC-2.19.024 canonical table row 4)",
@@ -4042,7 +4068,7 @@ mod story_171 {
             last_ns_c2s: Some(100),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 114, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 114, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C table row 8: Some(100)→114, gap=14 must emit T1692.001 Possible \
              (BC-2.19.024 canonical table row 8)",
@@ -4075,7 +4101,7 @@ mod story_171 {
             last_ns_c2s: Some(0),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 32767, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 32767, Direction::ClientToServer, None, None);
         let f = finding.expect(
             "Path C EC-005: prev=0, current=32767 (gap=32767) must emit T1692.001 Possible \
              (BC-2.19.024 EC-005; massive gap indicates replay/desync)",
@@ -4111,7 +4137,7 @@ mod story_171 {
             ..Default::default()
         };
         // gap = 1030 - 1000 = 30 > 12 → Path C finding
-        let f1 = track_ns_desync(&mut state, 1030, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 1030, Direction::ClientToServer, None, None);
         assert!(
             f1.is_some(),
             "gap=30 must emit a finding (Path C precondition)"
@@ -4123,7 +4149,7 @@ mod story_171 {
              (BC-2.19.024 postcondition C3)"
         );
         // Next frame from new baseline: gap=1 → no finding (proves state was updated)
-        let f2 = track_ns_desync(&mut state, 1031, Direction::ClientToServer);
+        let f2 = track_ns_desync(&mut state, 1031, Direction::ClientToServer, None, None);
         assert!(
             f2.is_none(),
             "After state update to Some(1030), gap=1 (1030→1031) must not emit finding \
@@ -4153,7 +4179,7 @@ mod story_171 {
             last_ns_c2s: Some(32767),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 1, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 1, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "AC-171-006: Some(32767)→current=1, 15-bit gap=2 must NOT emit finding \
@@ -4180,7 +4206,7 @@ mod story_171 {
             last_ns_c2s: Some(32767),
             ..Default::default()
         };
-        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
         assert!(
             finding.is_none(),
             "AC-171-006: Some(32767)→0 full wrap, gap=1 (15-bit) must not emit finding \
@@ -4207,7 +4233,7 @@ mod story_171 {
     #[test]
     fn test_BC_2_19_024_ac171_007_c2s_call_updates_c2s_not_s2c() {
         let mut state = Iec104FlowState::default();
-        let _f = track_ns_desync(&mut state, 100, Direction::ClientToServer);
+        let _f = track_ns_desync(&mut state, 100, Direction::ClientToServer, None, None);
         assert_eq!(
             state.last_ns_c2s,
             Some(100),
@@ -4229,7 +4255,7 @@ mod story_171 {
     #[test]
     fn test_BC_2_19_024_ac171_007_s2c_call_updates_s2c_not_c2s() {
         let mut state = Iec104FlowState::default();
-        let _f = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        let _f = track_ns_desync(&mut state, 200, Direction::ServerToClient, None, None);
         assert_eq!(
             state.last_ns_s2c,
             Some(200),
@@ -4258,13 +4284,13 @@ mod story_171 {
         let mut state = Iec104FlowState::default();
 
         // Step 1: C2S first frame N(S)=10 → Path A
-        let f1 = track_ns_desync(&mut state, 10, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 10, Direction::ClientToServer, None, None);
         assert!(f1.is_none(), "step 1: C2S N(S)=10 Path A must return None");
         assert_eq!(state.last_ns_c2s, Some(10), "step 1: c2s must be Some(10)");
         assert_eq!(state.last_ns_s2c, None, "step 1: s2c must remain None");
 
         // Step 2: S2C first frame N(S)=200 → Path A
-        let f2 = track_ns_desync(&mut state, 200, Direction::ServerToClient);
+        let f2 = track_ns_desync(&mut state, 200, Direction::ServerToClient, None, None);
         assert!(f2.is_none(), "step 2: S2C N(S)=200 Path A must return None");
         assert_eq!(
             state.last_ns_s2c,
@@ -4278,7 +4304,7 @@ mod story_171 {
         );
 
         // Step 3: C2S N(S)=11 → Path B (gap=1)
-        let f3 = track_ns_desync(&mut state, 11, Direction::ClientToServer);
+        let f3 = track_ns_desync(&mut state, 11, Direction::ClientToServer, None, None);
         assert!(
             f3.is_none(),
             "step 3: C2S N(S)=11, gap=1 from Some(10) must return None"
@@ -4295,7 +4321,7 @@ mod story_171 {
         );
 
         // Step 4: S2C N(S)=220 → Path C (gap=20 > 12) → T1692.001 Possible
-        let f4 = track_ns_desync(&mut state, 220, Direction::ServerToClient);
+        let f4 = track_ns_desync(&mut state, 220, Direction::ServerToClient, None, None);
         let f =
             f4.expect("step 4: S2C N(S)=220, gap=20 from Some(200) must emit T1692.001 Possible");
         assert_eq!(
@@ -4347,7 +4373,7 @@ mod story_171 {
             ..Default::default()
         };
         // Backwards gap: (5001.wrapping_sub(5020)) & 0x7FFF = 32749 > 12 → T1692.001 Possible
-        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let finding = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             finding.is_some(),
             "RETRANSMIT-NS-FALSEPOS-001: backwards N(S) (5001 after 5020) must emit \
@@ -4393,7 +4419,7 @@ mod story_171 {
         let mut state = Iec104FlowState::default();
 
         // Frame 1: mid-capture start, N(S)=5000, state=None → Path A
-        let f1 = track_ns_desync(&mut state, 5000, Direction::ClientToServer);
+        let f1 = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None);
         assert!(
             f1.is_none(),
             "EC-006 frame 1: N(S)=5000, state=None must return None (Path A; mid-capture guard)"
@@ -4405,7 +4431,7 @@ mod story_171 {
         );
 
         // Frame 2: gap=1 from Some(5000) → Path B
-        let f2 = track_ns_desync(&mut state, 5001, Direction::ClientToServer);
+        let f2 = track_ns_desync(&mut state, 5001, Direction::ClientToServer, None, None);
         assert!(
             f2.is_none(),
             "EC-006 frame 2: N(S)=5001, gap=1 from Some(5000) must return None (Path B)"
@@ -4417,7 +4443,7 @@ mod story_171 {
         );
 
         // Frame 3: gap=19 from Some(5001) → Path C → T1692.001 Possible
-        let f3 = track_ns_desync(&mut state, 5020, Direction::ClientToServer);
+        let f3 = track_ns_desync(&mut state, 5020, Direction::ClientToServer, None, None);
         let f = f3.expect(
             "EC-006 frame 3: N(S)=5020, gap=19 from Some(5001) must emit T1692.001 Possible \
              (Path C; BC-2.19.024 EC-006)",
@@ -4442,8 +4468,8 @@ mod story_171 {
 // =============================================================================
 // STORY-172: IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle
 //
-// Unit tests (AC-172-001..008, EC-001..011) and VP-045 proptest skeletons
-// (AC-172-007).
+// Unit tests (AC-172-001..008, EC-001..011) and VP-045 asserting proptests
+// (AC-172-007; upgraded to non-vacuous assertions in STORY-174 AC-174-002).
 //
 // ## Contract coverage
 // - BC-2.19.025: directional carry buffers bounded at MAX_IEC104_CARRY_BYTES = 255
@@ -5330,54 +5356,134 @@ mod story_172 {
 
     // =========================================================================
     // VP-045: proptest_vp045_direction_isolation
-    // AC-172-007 (proptest skeleton compiles)
+    // AC-174-002: upgraded to asserting harnesses (non-vacuous per AC-174-002 amendment)
     // =========================================================================
 
     proptest! {
-        /// VP-045 proptest skeleton: carry direction isolation (AC-172-007).
+        /// VP-045 proptest: carry direction isolation (AC-174-002; BC-2.19.025 invariant 1).
         ///
-        /// Interleaved C2S and S2C deliveries to the same flow must never mix their
-        /// carry buffers. `carry_c2s` must only accumulate bytes from the C2S delivery
-        /// path; `carry_s2c` from S2C only (BC-2.19.025 invariant 1;
-        /// RULING-DNP3-SIBLING-001).
+        /// Verifies that C2S deliveries accumulate residual bytes only in `carry_c2s`
+        /// and S2C deliveries accumulate residual bytes only in `carry_s2c`. Cross-
+        /// direction contamination is detected by comparing the combined interleaved-
+        /// replay carry against isolated C2S-only and S2C-only witness replays.
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Strategy: a generated `Vec` of direction-tagged byte chunks (`(bool, Vec<u8>)`,
+        /// where `true` = C2S) is replayed in generated order with arbitrary chunk
+        /// boundaries. Three analyzer instances receive the same data in different
+        /// subsets: (a) combined receives all chunks with their tagged direction;
+        /// (b) c2s_witness receives only C2S chunks; (c) s2c_witness receives only S2C
+        /// chunks. The combined carry must equal the witnesses, proving neither carry
+        /// buffer is contaminated by the other direction.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Non-vacuity: `prop_assert_eq!` compares carry equality and `prop_assert!`
+        /// checks the 255-byte bound on every proptest case.
+        ///
+        /// Traces: BC-2.19.025 invariants 1 and 3; VP-045; AC-174-002; RULING-DNP3-SIBLING-001.
         #[test]
         fn proptest_vp045_direction_isolation(
-            c2s_data in prop::collection::vec(any::<u8>(), 0..256),
-            s2c_data in prop::collection::vec(any::<u8>(), 0..256),
+            chunks in prop::collection::vec(
+                (any::<bool>(), prop::collection::vec(any::<u8>(), 0..64usize)),
+                0..20usize,
+            ),
         ) {
-            let mut analyzer = Iec104Analyzer::new();
             let flow_key = FlowKey::new(
                 "127.0.0.1".parse().unwrap(), 1234,
                 "127.0.0.2".parse().unwrap(), 2404,
             );
-            // Interleaved C2S and S2C deliveries must not mix carries.
-            // carry_c2s must only contain bytes from the c2s_data path;
-            // carry_s2c must only contain bytes from s2c_data path.
-            // (STORY-174 wires the isolation assertion; this skeleton verifies compile.)
-            analyzer.on_data(flow_key.clone(), &c2s_data, 0, Direction::ClientToServer);
-            analyzer.on_data(flow_key.clone(), &s2c_data, 0, Direction::ServerToClient);
+
+            // combined: receives the full interleaved C2S + S2C sequence.
+            let mut combined = Iec104Analyzer::new();
+            // c2s_witness: receives only the C2S chunks (isolation witness).
+            let mut c2s_witness = Iec104Analyzer::new();
+            // s2c_witness: receives only the S2C chunks (isolation witness).
+            let mut s2c_witness = Iec104Analyzer::new();
+
+            for (is_c2s, data) in &chunks {
+                let dir = if *is_c2s {
+                    Direction::ClientToServer
+                } else {
+                    Direction::ServerToClient
+                };
+                combined.on_data(flow_key.clone(), data, 0, dir);
+                if *is_c2s {
+                    c2s_witness.on_data(flow_key.clone(), data, 0, Direction::ClientToServer);
+                } else {
+                    s2c_witness.on_data(flow_key.clone(), data, 0, Direction::ServerToClient);
+                }
+            }
+
+            let combined_c2s = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let combined_s2c = combined
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+            let witness_c2s = c2s_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_c2s.clone())
+                .unwrap_or_default();
+            let witness_s2c = s2c_witness
+                .flows
+                .get(&flow_key)
+                .map(|s| s.carry_s2c.clone())
+                .unwrap_or_default();
+
+            // Save lengths before consuming the vectors in prop_assert_eq!.
+            let c2s_len = combined_c2s.len();
+            let s2c_len = combined_s2c.len();
+
+            // BC-2.19.025 invariant 1: no cross-direction mixing.
+            prop_assert_eq!(
+                combined_c2s, witness_c2s,
+                "carry_c2s must equal the C2S-only witness replay \
+                 (BC-2.19.025 invariant 1: S2C deliveries must not affect carry_c2s)"
+            );
+            prop_assert_eq!(
+                combined_s2c, witness_s2c,
+                "carry_s2c must equal the S2C-only witness replay \
+                 (BC-2.19.025 invariant 1: C2S deliveries must not affect carry_s2c)"
+            );
+
+            // BC-2.19.025 invariant 3: 255-byte residual cap (defensive guard).
+            prop_assert!(
+                c2s_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_c2s.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                c2s_len,
+                MAX_IEC104_CARRY_BYTES
+            );
+            prop_assert!(
+                s2c_len <= MAX_IEC104_CARRY_BYTES,
+                "carry_s2c.len()={} must be bounded at MAX_IEC104_CARRY_BYTES={} \
+                 (BC-2.19.025 invariant 3)",
+                s2c_len,
+                MAX_IEC104_CARRY_BYTES
+            );
         }
     }
 
     proptest! {
-        /// VP-045 proptest skeleton: independent-run equivalence (AC-172-007).
+        /// VP-045 proptest: independent-run equivalence (AC-174-002; BC-2.19.025 VP-045
+        /// registered harness — independent-run determinism).
         ///
-        /// Running on_data with the same data on two separate analyzer instances must
-        /// produce identical per-flow carry state. Verifies that on_data is deterministic
-        /// and carries no hidden cross-flow state (BC-2.19.025 invariant 2).
+        /// Verifies that two independent `Iec104Analyzer` instances fed identical delivery
+        /// sequences produce identical per-flow carry state and `frame_count`. This guards
+        /// against hidden cross-flow state or non-determinism in `on_data`
+        /// (BC-2.19.025 §Verification / VP-045 registered harness; RULING-DNP3-SIBLING-001).
         ///
-        /// Full proptest execution is in STORY-174. This skeleton establishes the
-        /// harness seam and verifies compilation (AC-172-007).
+        /// Non-vacuity: `prop_assert_eq!` compares `carry_c2s`, `carry_s2c`, and
+        /// `frame_count` across the two instances on every proptest case.
         ///
-        /// Traces: BC-2.19.025; VP-045; AC-172-007.
+        /// Traces: BC-2.19.025 VP-045 registered harness (independent-run determinism;
+        /// no numbered invariant — see BC-2.19.025 §Verification); VP-045; AC-174-002.
         #[test]
         fn proptest_vp045_independent_run_equivalence(
-            data in prop::collection::vec(any::<u8>(), 0..256),
+            data in prop::collection::vec(any::<u8>(), 0..256usize),
         ) {
             let mut analyzer_a = Iec104Analyzer::new();
             let mut analyzer_b = Iec104Analyzer::new();
@@ -5385,11 +5491,42 @@ mod story_172 {
                 "10.0.0.1".parse().unwrap(), 5000,
                 "10.0.0.2".parse().unwrap(), 2404,
             );
-            // Two independent analyzer instances with the same input must produce
-            // equivalent per-flow carry state.
-            // (STORY-174 wires the equivalence assertion; this skeleton verifies compile.)
             analyzer_a.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
             analyzer_b.on_data(flow_key.clone(), &data, 0, Direction::ClientToServer);
+
+            let state_a = analyzer_a.flows.get(&flow_key);
+            let state_b = analyzer_b.flows.get(&flow_key);
+
+            match (state_a, state_b) {
+                (None, None) => {
+                    // Both produced no flow state — consistent (empty or no-frame delivery).
+                }
+                (Some(a), Some(b)) => {
+                    // BC-2.19.025 VP-045 registered harness: independent runs produce identical carry state.
+                    prop_assert_eq!(
+                        &a.carry_c2s, &b.carry_c2s,
+                        "carry_c2s must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                    prop_assert_eq!(
+                        &a.carry_s2c, &b.carry_s2c,
+                        "carry_s2c must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                    prop_assert_eq!(
+                        a.frame_count, b.frame_count,
+                        "frame_count must be identical across independent analyzer runs \
+                         (BC-2.19.025 VP-045 registered harness — independent-run determinism)"
+                    );
+                }
+                _ => {
+                    prop_assert!(
+                        false,
+                        "one analyzer produced flow state and the other did not — \
+                         non-deterministic on_data (BC-2.19.025 VP-045 registered harness)"
+                    );
+                }
+            }
         }
     }
 
@@ -5637,6 +5774,59 @@ mod story_172 {
              (BC-2.19.026 PC1+PC2 joint; BC-2.19.020)"
         );
     }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1220
+    // (replace < with <= in the "need at least 2 bytes to read LEN" guard)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: 2-byte delivery [0x68, invalid_LEN] must emit T0814 immediately.
+    ///
+    /// The frame-walk guard at line 1220 is `if buf.len() - pos < 2` — it stashes only when
+    /// there is fewer than 2 bytes remaining (i.e., the lone start byte with no LEN byte yet).
+    /// When exactly 2 bytes remain `[0x68, invalid_LEN]`, the guard must NOT stash: it must
+    /// proceed to read LEN, detect invalid (LEN=0 ∉ [4,253]), and emit T0814 in the same
+    /// delivery.
+    ///
+    /// Mutation `replace < with <=` would stash instead of processing, delaying T0814 by one
+    /// delivery. This test requires immediate emission.
+    ///
+    /// Traces: BC-2.19.026 invariant 5; AC-174-007 (AC-172-008 extension for 2-byte tail).
+    #[test]
+    fn test_AC_174_007_malformed_len_at_two_byte_tail_emits_t0814_immediately() {
+        let mut analyzer = Iec104Analyzer::new();
+        let flow_key = flow_key_default();
+        // Deliver exactly 2 bytes: valid start byte (0x68) + invalid LEN=0 (below minimum 4).
+        // With original `< 2`: buf.len()-pos = 2, NOT < 2 → reads LEN=0, detects invalid,
+        // emits T0814, advances 2 → finding emitted in this delivery.
+        // With mutant `<= 2`: buf.len()-pos = 2, IS <= 2 → stashes 2 bytes, no finding yet.
+        analyzer.on_data(
+            flow_key.clone(),
+            &[0x68u8, 0x00],
+            0,
+            Direction::ClientToServer,
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "2-byte delivery [0x68, 0x00] (invalid LEN=0) must emit T0814 immediately \
+             (BC-2.19.026 invariant 5; AC-174-007 mutant kill for iec104.rs:1220)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T0814"),
+            "malformed-LEN T0814 must be cited (BC-2.19.026 invariant 5)"
+        );
+        // Carry must be empty: the 2 bytes were processed and advanced past.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "carry must be empty after 2-byte malformed-LEN delivery is fully processed \
+             (AC-174-007)"
+        );
+    }
 }
 
 // =============================================================================
@@ -5724,8 +5914,8 @@ mod story_173 {
         assert!(
             analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
             "BC-2.19.028 PC-2: all_findings.len() ({}) must not exceed MAX_IEC104_FINDINGS \
-             ({MAX_IEC104_FINDINGS}) after on_data. Cap is not enforced at the extend step \
-             (stub: `self.all_findings.extend(local_findings)` has no truncation).",
+             ({MAX_IEC104_FINDINGS}) after on_data — cap enforced at the extend step \
+             via truncation before merging local_findings.",
             analyzer.all_findings.len()
         );
 
@@ -5733,7 +5923,7 @@ mod story_173 {
         assert!(
             analyzer.dropped_findings > 0,
             "BC-2.19.028 PC-5: dropped_findings must be > 0 when a finding was suppressed \
-             by the cap. Got {} (counter not incremented in stub).",
+             by the cap. Got {} (counter incremented at extend step).",
             analyzer.dropped_findings
         );
     }
@@ -5807,7 +5997,7 @@ mod story_173 {
         assert!(
             analyzer.all_findings.len() <= MAX_IEC104_FINDINGS,
             "BC-2.19.028 EC-004: all_findings must stay <= MAX after {} extra on_data calls. \
-             Got {} (cap not enforced).",
+             Got {} (cap enforced via truncation at extend step).",
             N,
             analyzer.all_findings.len()
         );
@@ -5852,7 +6042,7 @@ mod story_173 {
         assert!(
             analyzer.dropped_findings > 0,
             "pre-condition: dropped_findings must be > 0 before calling summarize(); \
-             got {} (cap not enforced or frame produced no finding)",
+             got {} (cap enforced; finding suppressed above the limit)",
             analyzer.dropped_findings
         );
 
@@ -5881,18 +6071,16 @@ mod story_173 {
     // -------------------------------------------------------------------------
     // LOW#1 (STORY-173 pre-merge fix): flows_analyzed must count closed flows
     //
-    // BC-2.19.028 observability gap: summarize() currently reads self.flows.len()
-    // which drops to 0 after on_flow_close removes entries. The fix adds a
-    // flows_analyzed: u64 accumulator on Iec104Analyzer, incremented in
-    // on_flow_close per removed flow (mirrors EnipAnalyzer pattern, enip.rs ~707).
+    // BC-2.19.028 observability gap closed: summarize() now accumulates closed flows
+    // via a flows_analyzed: u64 counter on Iec104Analyzer (incremented in
+    // on_flow_close per removed flow; mirrors EnipAnalyzer pattern, enip.rs ~707).
     // -------------------------------------------------------------------------
 
     /// flows_analyzed in summarize() must count flows closed via on_flow_close.
     ///
     /// Two distinct flows are driven and closed; summarize().detail["flows_analyzed"]
-    /// must equal 2. The current implementation reads self.flows.len() (= 0 after
-    /// removal), so this assertion fails until a flows_analyzed accumulator is wired
-    /// to on_flow_close.
+    /// must equal 2. Regression guard: the flows_analyzed accumulator is wired to
+    /// on_flow_close and must not regress to reading self.flows.len() (= 0 after removal).
     ///
     /// Traces: BC-2.19.028 observability; STORY-173 LOW#1.
     #[test]
@@ -5932,12 +6120,10 @@ mod story_173 {
     // LOW#2 (STORY-173 pre-merge fix): packets_analyzed must count parsed APDUs,
     // not all_findings.len()
     //
-    // BC-2.19.028 observability gap: summarize() currently returns
-    // all_findings.len() as packets_analyzed. For finding-free frames (e.g.
-    // TESTFR-act) this is 0 even after N frames are parsed. The fix adds a
-    // per-flow frame_count: u64 on Iec104FlowState incremented for every complete
-    // valid parsed APDU in the on_data walk loop, and accumulates a total in
-    // summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
+    // BC-2.19.028 observability gap closed: summarize() now returns the correct
+    // packets_analyzed count via a per-flow frame_count: u64 on Iec104FlowState
+    // incremented for every complete valid APDU in the on_data walk loop, accumulated
+    // in summarize() (mirrors DNP3 closed_flows_count + per-flow frame_count pattern,
     // dnp3.rs ~316/1815).
     // -------------------------------------------------------------------------
 
@@ -5946,9 +6132,8 @@ mod story_173 {
     ///
     /// Three TESTFR-act U-frames (no findings) are fed through on_data, followed by
     /// one bad-start byte (0x00). packets_analyzed must equal 3; the bad-start byte
-    /// must NOT be counted. The current implementation returns all_findings.len()
-    /// (= 0 for finding-free frames), so this assertion fails until a per-frame
-    /// counter is wired to the frame-walk loop.
+    /// must NOT be counted. Regression guard: the frame_count accumulator is wired to
+    /// the on_data walk loop and must not regress to returning all_findings.len().
     ///
     /// Traces: BC-2.19.028 observability; STORY-173 LOW#2.
     #[test]
@@ -5977,6 +6162,775 @@ mod story_173 {
              got {} (current impl reads all_findings.len() = 0 because TESTFR-act emits \
              no finding; fix: wire a frame counter in the on_data walk loop)",
             summary.packets_analyzed
+        );
+    }
+
+    // =========================================================================
+    // AC-174-007: targeted test for cargo-mutants survivor at iec104.rs:1323
+    // (replace - with + in dropped_findings increment when remaining_cap > 0)
+    // =========================================================================
+
+    /// AC-174-007 mutant kill: dropped_findings must reflect exact count when remaining_cap > 0.
+    ///
+    /// The existing cap tests pre-fill to MAX (remaining_cap=0), making `-` vs `+` equivalent
+    /// (both compute 0). This test pre-fills to MAX-2 (remaining_cap=2) and delivers 3 findings,
+    /// requiring exactly 1 to be dropped — distinguishing original `len - cap` from `len + cap`.
+    ///
+    /// With `replace - with +`: dropped_findings would be 3 + 2 = 5 instead of 3 - 2 = 1.
+    ///
+    /// Traces: BC-2.19.028 PC-5; AC-174-007 (AC-173-007 extension for partial-cap scenario).
+    #[test]
+    fn test_AC_174_007_dropped_findings_exact_count_with_partial_cap() {
+        let mut analyzer = Iec104Analyzer::new();
+        // Pre-fill to MAX - 2: remaining_cap = 2.
+        analyzer.all_findings = vec![dummy_finding(); MAX_IEC104_FINDINGS - 2];
+        let fk = flow_key(61000, 2404);
+        // Three STOPDT-act frames concatenated: each generates exactly 1 finding.
+        // 3 local_findings > remaining_cap (2) → truncate to 2, drop 1.
+        let three_stopdt: Vec<u8> = stopdt_act()
+            .into_iter()
+            .chain(stopdt_act())
+            .chain(stopdt_act())
+            .collect();
+        analyzer.on_data(fk, &three_stopdt, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.dropped_findings, 1,
+            "exactly 1 finding must be dropped (3 generated, remaining_cap=2); \
+             mutation replace - with + would yield 5 instead (BC-2.19.028 PC-5; AC-174-007)"
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_IEC104_FINDINGS,
+            "all_findings must be exactly at cap after partial truncation (BC-2.19.028 PC-2)"
+        );
+    }
+}
+
+// =============================================================================
+// FIX-P4-001: IEC104-FINDING-DIRECTION-001 — populate direction on all IEC-104
+// emitted Findings to match the TLS/Modbus/HTTP/DNP3/ENIP house pattern.
+//
+// ## What this tests
+// Every IEC-104 emit site previously set `direction: None` even when `direction`
+// was known at the call site. These tests assert the structured field is now
+// `Some(direction)` for each finding type.
+//
+// ## Emit sites covered
+// 1. track_ns_desync (:1046) — C2S desync + S2C desync
+// 2. process_u_frame STOPDT-act (:388) + non-canonical U-frame (:424)
+// 3. detect_iec104_threats TypeIDs 45-47 T1692.001 (:759),
+//    TypeIDs 48-51 T1692.001 (:800) + T0836 (:815),
+//    TypeID 105 T0827 (:845), TypeIDs 0/128-255 T0814 (:895)
+// 4. on_data carry-overflow T0814 (:1193) + malformed-LEN T0814 (:1262)
+//
+// ## Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001; PG-W72-BREAKING-HOLDOUT-SWEEP
+// =============================================================================
+mod fix_p4_001 {
+    use wirerust::analyzer::iec104::{
+        Asdu, Iec104Analyzer, Iec104FlowState, MAX_IEC104_CARRY_BYTES, detect_iec104_threats,
+        process_u_frame, track_ns_desync,
+    };
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse().unwrap(),
+            src_port,
+            "10.0.0.2".parse().unwrap(),
+            dst_port,
+        )
+    }
+
+    fn make_asdu(type_id: u8) -> Asdu {
+        Asdu {
+            type_id,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test: false,
+            cot_originator: 0,
+            casdu: 1,
+            first_ioa: None,
+        }
+    }
+
+    // =========================================================================
+    // track_ns_desync — direction field populated (IEC104-FINDING-DIRECTION-001)
+    // =========================================================================
+
+    /// track_ns_desync emits finding with direction=Some(ClientToServer) on C2S desync.
+    ///
+    /// RED: current code sets direction: None.
+    /// GREEN: fix sets direction: Some(Direction::ClientToServer).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001.
+    #[test]
+    fn test_fix_p4_001_track_ns_desync_direction_c2s() {
+        let mut state = Iec104FlowState::default();
+        // First call establishes baseline (path A, no finding).
+        let _ = track_ns_desync(&mut state, 0, Direction::ClientToServer, None, None);
+        // Second call: gap=5000 > k=12 → path C, emits finding.
+        let finding = track_ns_desync(&mut state, 5000, Direction::ClientToServer, None, None)
+            .expect("gap=5000 > k=12 must emit a desync finding (FIX-P4-001)");
+        assert_eq!(
+            finding.direction,
+            Some(Direction::ClientToServer),
+            "track_ns_desync C2S finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; was None before FIX-P4-001)"
+        );
+    }
+
+    /// track_ns_desync emits finding with direction=Some(ServerToClient) on S2C desync.
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001.
+    #[test]
+    fn test_fix_p4_001_track_ns_desync_direction_s2c() {
+        let mut state = Iec104FlowState::default();
+        let _ = track_ns_desync(&mut state, 0, Direction::ServerToClient, None, None);
+        let finding = track_ns_desync(&mut state, 5000, Direction::ServerToClient, None, None)
+            .expect("gap=5000 > k=12 must emit a desync finding (FIX-P4-001)");
+        assert_eq!(
+            finding.direction,
+            Some(Direction::ServerToClient),
+            "track_ns_desync S2C finding must carry direction=Some(ServerToClient) \
+             (IEC104-FINDING-DIRECTION-001; was None before FIX-P4-001)"
+        );
+    }
+
+    // =========================================================================
+    // process_u_frame — direction field populated (IEC104-FINDING-DIRECTION-001)
+    // =========================================================================
+
+    /// process_u_frame STOPDT-act emits Finding with direction=Some(ClientToServer).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :388.
+    #[test]
+    fn test_fix_p4_001_process_u_frame_stopdt_direction_c2s() {
+        let mut state = Iec104FlowState::default();
+        let finding = process_u_frame(&mut state, 0x13, Direction::ClientToServer, None, None)
+            .expect("STOPDT-act must emit T0881 finding (FIX-P4-001)");
+        assert_eq!(
+            finding.direction,
+            Some(Direction::ClientToServer),
+            "process_u_frame STOPDT-act finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; emit site :388)"
+        );
+    }
+
+    /// process_u_frame STOPDT-act emits Finding with direction=Some(ServerToClient).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :388.
+    #[test]
+    fn test_fix_p4_001_process_u_frame_stopdt_direction_s2c() {
+        let mut state = Iec104FlowState::default();
+        let finding = process_u_frame(&mut state, 0x13, Direction::ServerToClient, None, None)
+            .expect("STOPDT-act must emit T0881 finding (FIX-P4-001)");
+        assert_eq!(
+            finding.direction,
+            Some(Direction::ServerToClient),
+            "process_u_frame STOPDT-act finding must carry direction=Some(ServerToClient) \
+             (IEC104-FINDING-DIRECTION-001; emit site :388)"
+        );
+    }
+
+    /// process_u_frame non-canonical U-frame emits Finding with direction populated.
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :424.
+    #[test]
+    fn test_fix_p4_001_process_u_frame_noncanonical_direction_c2s() {
+        let mut state = Iec104FlowState::default();
+        // 0x03 has bits1:0=0b11 (U-format) but is not in the canonical set.
+        let finding = process_u_frame(&mut state, 0x03, Direction::ClientToServer, None, None)
+            .expect("non-canonical U-frame must emit T0814 finding (FIX-P4-001)");
+        assert_eq!(
+            finding.direction,
+            Some(Direction::ClientToServer),
+            "process_u_frame non-canonical U-frame finding must carry \
+             direction=Some(ClientToServer) (IEC104-FINDING-DIRECTION-001; emit site :424)"
+        );
+    }
+
+    // =========================================================================
+    // detect_iec104_threats — direction field populated (IEC104-FINDING-DIRECTION-001)
+    // =========================================================================
+
+    /// TypeID=45 (C_SC_NA_1) T1692.001 finding carries direction=Some(ClientToServer).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :759.
+    #[test]
+    fn test_fix_p4_001_detect_threats_type45_direction_c2s() {
+        let asdu = make_asdu(45);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        let f = findings.first().expect("TypeID=45 must emit finding");
+        assert_eq!(
+            f.direction,
+            Some(Direction::ClientToServer),
+            "TypeID=45 T1692.001 finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; emit site :759)"
+        );
+    }
+
+    /// TypeID=48 (C_SE_NA_1) emits two findings — both carry direction=Some(ServerToClient).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit sites :800 + :815.
+    #[test]
+    fn test_fix_p4_001_detect_threats_type48_direction_s2c() {
+        let asdu = make_asdu(48);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ServerToClient, None, None);
+        assert_eq!(findings.len(), 2, "TypeID=48 must emit 2 findings");
+        for (i, f) in findings.iter().enumerate() {
+            assert_eq!(
+                f.direction,
+                Some(Direction::ServerToClient),
+                "TypeID=48 finding[{i}] must carry direction=Some(ServerToClient) \
+                 (IEC104-FINDING-DIRECTION-001; emit sites :800/:815)"
+            );
+        }
+    }
+
+    /// TypeID=105 (C_RP_NA_1) T0827 finding carries direction=Some(ClientToServer).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :845.
+    #[test]
+    fn test_fix_p4_001_detect_threats_type105_direction_c2s() {
+        let asdu = make_asdu(105);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        let f = findings
+            .first()
+            .expect("TypeID=105 must emit T0827 finding");
+        assert_eq!(
+            f.direction,
+            Some(Direction::ClientToServer),
+            "TypeID=105 T0827 finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; emit site :845)"
+        );
+    }
+
+    /// TypeID=0 T0814 finding carries direction=Some(ClientToServer).
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :895.
+    #[test]
+    fn test_fix_p4_001_detect_threats_type0_direction_c2s() {
+        let asdu = make_asdu(0);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        let f = findings.first().expect("TypeID=0 must emit T0814 finding");
+        assert_eq!(
+            f.direction,
+            Some(Direction::ClientToServer),
+            "TypeID=0 T0814 finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; emit site :895)"
+        );
+    }
+
+    // =========================================================================
+    // on_data inline emit sites — direction field populated
+    // (:1193 carry-overflow T0814; :1262 malformed-LEN T0814)
+    // =========================================================================
+
+    /// on_data carry-overflow finding carries direction=Some(ClientToServer).
+    ///
+    /// Inject an oversized carry into the C2S buffer directly (>MAX_IEC104_CARRY_BYTES),
+    /// then call on_data — the overflow check fires and emits a T0814 finding.
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :1193.
+    #[test]
+    fn test_fix_p4_001_on_data_carry_overflow_direction_c2s() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(50000, 2404);
+        // Seed the flow so we can directly manipulate its carry buffer.
+        analyzer.on_data(fk.clone(), &[], 0, Direction::ClientToServer);
+        // Overflow the C2S carry: inject MAX+1 bytes.
+        {
+            let state = analyzer.flows.get_mut(&fk).unwrap();
+            state.carry_c2s = vec![0xAA; MAX_IEC104_CARRY_BYTES + 1];
+        }
+        // Trigger the overflow check by delivering any data in C2S direction.
+        analyzer.on_data(fk.clone(), &[], 0, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("carry-overflow must emit T0814 finding (FIX-P4-001)");
+        assert_eq!(
+            f.direction,
+            Some(Direction::ClientToServer),
+            "carry-overflow T0814 finding must carry direction=Some(ClientToServer) \
+             (IEC104-FINDING-DIRECTION-001; emit site :1193)"
+        );
+    }
+
+    /// on_data malformed-LEN finding carries direction=Some(ServerToClient).
+    ///
+    /// Deliver a byte sequence with a valid 0x68 start byte followed by LEN=1
+    /// (outside [4, 253]) in the S2C direction.
+    ///
+    /// Traces: IEC104-FINDING-DIRECTION-001; FIX-P4-001 emit site :1262.
+    #[test]
+    fn test_fix_p4_001_on_data_malformed_len_direction_s2c() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = flow_key(50001, 2404);
+        // 0x68 = IEC-104 start byte; 0x01 = LEN=1, outside [4, 253] → malformed
+        let bad_frame: &[u8] = &[0x68, 0x01];
+        analyzer.on_data(fk.clone(), bad_frame, 0, Direction::ServerToClient);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("malformed-LEN must emit T0814 finding (FIX-P4-001)");
+        assert_eq!(
+            f.direction,
+            Some(Direction::ServerToClient),
+            "malformed-LEN T0814 finding must carry direction=Some(ServerToClient) \
+             (IEC104-FINDING-DIRECTION-001; emit site :1262)"
+        );
+    }
+}
+
+// =============================================================================
+// FIX-F5-001: source_ip + timestamp enrichment on all IEC-104 emit sites.
+//
+// ## What this tests
+// Every IEC-104 emit site previously set source_ip: None and timestamp: None.
+// BC-2.19.011 PC-3 requires findings to include the flow's 5-tuple context.
+// These tests assert that source_ip == Some(initiator_ip) and
+// timestamp.is_some() for each finding family, verified end-to-end via
+// on_data (the effectful shell that resolves FlowKey IPs and passes them down).
+//
+// ## Flow setup
+// FlowKey::new("10.0.0.1", 60002, "10.0.0.2", 2404):
+//   lower=(10.0.0.1, 60002), upper=(10.0.0.2, 2404).
+//   lower_port()=60002 ≠ 2404 → (client_ip, server_ip) = (10.0.0.1, 10.0.0.2).
+//   C2S direction: source_ip = 10.0.0.1 (initiator/client).
+//   S2C direction: source_ip = 10.0.0.2 (initiator/server).
+//
+// ## Emit sites covered (10 direct + 2 inline)
+// 1. process_u_frame STOPDT-act T0881 — C2S + S2C (BC-2.19.011 PC-3)
+// 2. on_data carry-overflow T0814
+// 3. on_data malformed-LEN T0814
+// 4. detect_iec104_threats TypeID=45 T1692.001
+// 5. detect_iec104_threats TypeID=48 T1692.001 + T0836
+// 6. detect_iec104_threats TypeID=105 T0827
+// 7. detect_iec104_threats TypeID=0 T0814 (reserved)
+// 8. track_ns_desync T1692.001 (desync path-C)
+// 9. process_u_frame non-canonical U-frame T0814
+//
+// ## Traces: BC-2.19.011 PC-3; FIX-F5-001; sibling parity with DNP3/EnIP
+// =============================================================================
+mod fix_f5_001 {
+    use std::net::IpAddr;
+
+    use wirerust::analyzer::iec104::{Iec104Analyzer, MAX_IEC104_CARRY_BYTES};
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    /// Helper: C2S flow where 10.0.0.1:60002 → 10.0.0.2:2404.
+    /// lower=(10.0.0.1, 60002) because 10.0.0.1 < 10.0.0.2 lexicographically.
+    /// lower_port()=60002 ≠ 2404 → client_ip=lower_ip=10.0.0.1.
+    fn fk() -> FlowKey {
+        FlowKey::new(
+            "10.0.0.1".parse::<IpAddr>().unwrap(),
+            60002,
+            "10.0.0.2".parse::<IpAddr>().unwrap(),
+            2404,
+        )
+    }
+
+    fn client_ip() -> IpAddr {
+        "10.0.0.1".parse().unwrap()
+    }
+
+    fn server_ip() -> IpAddr {
+        "10.0.0.2".parse().unwrap()
+    }
+
+    // STOPDT-act frame: start=0x68, LEN=4, CF1=0x13, CF2-CF4=0.
+    fn stopdt_act() -> [u8; 6] {
+        [0x68, 0x04, 0x13, 0x00, 0x00, 0x00]
+    }
+
+    // I-format frame with TypeID=45 (C_SC_NA_1 switching command):
+    //   APCI: start=0x68, LEN=0x0A, CF1=0x00 (N(S)=0), CF2-CF4=0.
+    //   ASDU: TypeID=45(0x2D), VSQ=1, COT_cause=6, orig=0, CASDU=1.
+    fn i_frame_type45() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // I-format frame with TypeID=48 (C_SE_NA_1 set-point command):
+    //   Emits T1692.001 + T0836 (two findings).
+    fn i_frame_type48() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // I-format frame with TypeID=105 (C_RP_NA_1 Reset Process Command):
+    //   Emits T0827 Likely.
+    fn i_frame_type105() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x69, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // I-format frame with TypeID=0 (reserved/undefined):
+    //   Emits T0814 Possible.
+    fn i_frame_type0() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // I-format frame for desync test, N(S)=0:
+    //   CF1=0x00 → N(S) = (0x00 >> 1) | (0x00 << 7) = 0.
+    fn i_frame_ns0() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // I-format frame for desync test, N(S)=14 (gap=14 > k=12 → T1692.001):
+    //   CF1=0x1C → N(S) = (0x1C >> 1) = 14.
+    fn i_frame_ns14() -> [u8; 12] {
+        [
+            0x68, 0x0A, 0x1C, 0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x01, 0x00,
+        ]
+    }
+
+    // Non-canonical U-frame: CF1=0x03 (bits1:0=0b11, not in canonical set).
+    fn non_canonical_u_frame() -> [u8; 6] {
+        [0x68, 0x04, 0x03, 0x00, 0x00, 0x00]
+    }
+
+    // =========================================================================
+    // T0881 STOPDT-act — source_ip + timestamp (BC-2.19.011 PC-3; FIX-F5-001)
+    // Written RED-first: source_ip was None; timestamp was None before this fix.
+    // =========================================================================
+
+    /// STOPDT-act C2S: finding carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Verifies BC-2.19.011 PC-3: the finding includes the flow's address context.
+    /// Initiator direction=ClientToServer → source_ip = client endpoint = 10.0.0.1.
+    ///
+    /// RED before FIX-F5-001: source_ip was None (no enrichment).
+    /// GREEN after: source_ip = Some(10.0.0.1); timestamp.is_some().
+    ///
+    /// Traces: BC-2.19.011 PC-3; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_stopdt_c2s_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &stopdt_act(), 1_000_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+            .expect("STOPDT-act must emit T0881 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "T0881 C2S finding must carry source_ip=Some(10.0.0.1) — \
+             initiator is client endpoint (BC-2.19.011 PC-3; FIX-F5-001); \
+             was None before this fix"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "T0881 C2S finding must carry a non-None timestamp (FIX-F5-001); \
+             was None before this fix"
+        );
+    }
+
+    /// STOPDT-act S2C: finding carries source_ip=Some(server_ip) and timestamp.is_some().
+    ///
+    /// Direction=ServerToClient → source_ip = server endpoint = 10.0.0.2.
+    ///
+    /// Traces: BC-2.19.011 PC-3; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_stopdt_s2c_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &stopdt_act(), 2_000_000, Direction::ServerToClient);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0881"))
+            .expect("STOPDT-act S2C must emit T0881 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(server_ip()),
+            "T0881 S2C finding must carry source_ip=Some(10.0.0.2) — \
+             initiator is server endpoint in S2C direction (BC-2.19.011 PC-3; FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "T0881 S2C finding must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Carry-overflow T0814 — source_ip + timestamp (FIX-F5-001 inline emit site)
+    // =========================================================================
+
+    /// Carry-overflow T0814 carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Traces: FIX-F5-001 F-01+F-02; on_data carry-overflow emit site.
+    #[test]
+    fn test_fix_f5_001_carry_overflow_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = fk();
+        // Seed the flow.
+        analyzer.on_data(fk.clone(), &[], 0, Direction::ClientToServer);
+        // Overflow C2S carry.
+        {
+            let state = analyzer.flows.get_mut(&fk).unwrap();
+            state.carry_c2s = vec![0xAA; MAX_IEC104_CARRY_BYTES + 1];
+        }
+        // Trigger overflow check.
+        analyzer.on_data(fk.clone(), &[], 500_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("carry-overflow must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "carry-overflow T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "carry-overflow T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Malformed-LEN T0814 — source_ip + timestamp (FIX-F5-001 inline emit site)
+    // =========================================================================
+
+    /// Malformed-LEN T0814 carries source_ip=Some(client_ip) and timestamp.is_some().
+    ///
+    /// Traces: FIX-F5-001 F-01+F-02; on_data malformed-LEN emit site.
+    #[test]
+    fn test_fix_f5_001_malformed_len_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        // 0x68 start byte + LEN=1 (outside [4,253]) → malformed-LEN T0814.
+        let bad_frame: &[u8] = &[0x68, 0x01];
+        analyzer.on_data(fk(), bad_frame, 750_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("malformed-LEN must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "malformed-LEN T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "malformed-LEN T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=45 T1692.001 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=45 (C_SC_NA_1) T1692.001 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.019; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type45_t1692_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(
+            fk(),
+            &i_frame_type45(),
+            1_200_000,
+            Direction::ClientToServer,
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("TypeID=45 must emit T1692.001 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=45 T1692.001 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=45 T1692.001 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=48 T0836 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=48 (C_SE_NA_1) T0836 finding carries source_ip and timestamp.
+    ///
+    /// TypeID=48 emits both T1692.001 and T0836; test specifically asserts T0836.
+    ///
+    /// Traces: BC-2.19.019 PC-2; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type48_t0836_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(
+            fk(),
+            &i_frame_type48(),
+            1_400_000,
+            Direction::ClientToServer,
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .expect("TypeID=48 must emit T0836 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=48 T0836 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=48 T0836 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=105 T0827 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=105 (C_RP_NA_1) T0827 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.020; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type105_t0827_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(
+            fk(),
+            &i_frame_type105(),
+            1_600_000,
+            Direction::ClientToServer,
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0827"))
+            .expect("TypeID=105 must emit T0827 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=105 T0827 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=105 T0827 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // TypeID=0 T0814 (reserved/undefined) — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// TypeID=0 (undefined) T0814 finding carries source_ip and timestamp.
+    ///
+    /// Traces: BC-2.19.022; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_type0_t0814_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(fk(), &i_frame_type0(), 1_800_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("TypeID=0 must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "TypeID=0 T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "TypeID=0 T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // track_ns_desync T1692.001 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// N(S) desync T1692.001 finding carries source_ip and timestamp.
+    ///
+    /// Two C2S I-frames: N(S)=0 (baseline), then N(S)=14 (gap=14>12 → path-C).
+    /// TypeID=1 (monitoring, no threat finding) isolates the desync finding.
+    ///
+    /// Traces: BC-2.19.024 path-C; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_desync_t1692_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        let fk = fk();
+        // Frame 1: N(S)=0, establishes baseline (path A, no finding).
+        analyzer.on_data(fk.clone(), &i_frame_ns0(), 0, Direction::ClientToServer);
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "first I-frame must not emit any finding (path A baseline)"
+        );
+        // Frame 2: N(S)=14, gap=14 > k=12 → T1692.001 path-C.
+        analyzer.on_data(fk, &i_frame_ns14(), 2_500_000, Direction::ClientToServer);
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("N(S) desync gap=14 must emit T1692.001 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "desync T1692.001 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "desync T1692.001 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+
+    // =========================================================================
+    // Non-canonical U-frame T0814 — source_ip + timestamp (FIX-F5-001)
+    // =========================================================================
+
+    /// Non-canonical U-frame T0814 carries source_ip and timestamp.
+    ///
+    /// CF1=0x03: bits1:0=0b11 (U-format) but not in canonical set →
+    /// T0814 "CVE-2026-1773 denial-of-service" finding.
+    ///
+    /// Traces: BC-2.19.014; FIX-F5-001 F-01+F-02.
+    #[test]
+    fn test_fix_f5_001_noncanonical_u_frame_t0814_source_ip_and_timestamp() {
+        let mut analyzer = Iec104Analyzer::new();
+        analyzer.on_data(
+            fk(),
+            &non_canonical_u_frame(),
+            3_000_000,
+            Direction::ClientToServer,
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"))
+            .expect("non-canonical U-frame must emit T0814 finding (FIX-F5-001)");
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip()),
+            "non-canonical U-frame T0814 must carry source_ip=Some(10.0.0.1) (FIX-F5-001)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "non-canonical U-frame T0814 must carry a non-None timestamp (FIX-F5-001)"
         );
     }
 }

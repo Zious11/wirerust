@@ -205,7 +205,7 @@ mod story_151 {
         assert_eq!(
             KNOWN_PROTOCOLS.len(),
             30,
-            "KNOWN_PROTOCOLS must contain exactly 30 entries (7 supported + 23 unsupported)"
+            "KNOWN_PROTOCOLS must contain exactly 30 entries (8 supported + 22 unsupported)"
         );
     }
 
