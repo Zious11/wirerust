@@ -2,7 +2,8 @@
 //! Repo-Local Mutation-Testing Defaults: `.cargo/mutants.toml` Timeout Floor
 //! + CLAUDE.md Guidance.
 //!
-//! Covers AC-147-001..004 (v2.3). Deliberately dependency-free: rather than
+//! Covers AC-147-001..004 (see STORY-147.md Changelog for revision history).
+//! Deliberately dependency-free: rather than
 //! pulling in a `toml` dev-dependency for a handful of key lookups, this file
 //! uses a minimal line-oriented parser sufficient to answer "does
 //! `.cargo/mutants.toml` set a generous `minimum_test_timeout` floor without
@@ -18,7 +19,7 @@
 //! survivors. See drbothen/vsdd-factory#654 for the upstream engine-default
 //! tracking issue.
 //!
-//! Execution-evidence correction (STORY-147 v2.3, F-S147P1-002/-004/-005):
+//! Execution-evidence correction (STORY-147 Background, F-S147P1-002/-004/-005):
 //! cargo-mutants reads ONLY `.cargo/mutants.toml` by default — a repo-root
 //! `mutants.toml` and a `Cargo.toml [package.metadata.mutants]` table are
 //! both silently ignored, not alternate read locations. `jobs` is not a
@@ -81,7 +82,7 @@ fn parse_key_value(line: &str) -> Option<(String, String)> {
 }
 
 /// The path cargo-mutants actually reads a config file from by default —
-/// and, per STORY-147 v2.3 / F-S147P1-002/-004, the ONLY such path. A
+/// and, per STORY-147 / F-S147P1-002/-004, the ONLY such path. A
 /// repo-root `mutants.toml` and a `Cargo.toml [package.metadata.mutants]`
 /// table are both silently ignored by cargo-mutants and are deliberately
 /// NOT checked anywhere in this file (see
@@ -432,7 +433,7 @@ fn test_AC_147_003_claude_md_has_mutation_testing_section() {
 // AC-147-004 (self-audit): after this story ships, a developer running
 // `cargo mutants` from a fresh checkout will not silently receive a
 // false-clean result due to load-induced timeouts. Conjunction of the two
-// REAL defenses per v2.3: first line of defense — the `.cargo/mutants.toml`
+// REAL defenses per STORY-147: first line of defense — the `.cargo/mutants.toml`
 // timeout floor (machine-enforced, no `jobs` key, `minimum_test_timeout >=
 // 300`); second line of defense — the CLAUDE.md note (human-facing guidance
 // against explicit high `--jobs`). This test only verifies the mechanical
