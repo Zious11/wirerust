@@ -6,7 +6,7 @@ epic: E-11
 wave: "84"
 points: 2
 status: ready
-version: "2.0"
+version: "2.1"
 # BC status: E-11 convention — governance/config-only story; no BCs authored.
 depends_on: []
 input-hash: d41d8cd
@@ -100,6 +100,17 @@ AC-147-004: A self-audit confirms that after this story ships, a developer runni
   PG-MUTANTS-JOBS-001 open item in STATE.md for S-7.02 cycle-close purposes; the
   v2.0 re-scope (2026-07-19) retains that closure for the product-local half only.
 
+## Token Budget Estimate
+
+| Component | Estimated tokens |
+|-----------|-----------------|
+| Story spec (this file) | ~1.0 k |
+| `mutants.toml` (new file, <=5 lines) | ~0.1 k |
+| `CLAUDE.md` (Build & Test section context, amendment target) | ~0.5 k |
+| **Total** | **~1.6 k** |
+
+Well within context window. No story split required.
+
 ## Disposition
 
 **Status:** ready (v2.0) — SPLIT disposition; product half retained locally,
@@ -123,5 +134,6 @@ the engine half.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.1 | 2026-07-19 | story-writer | Remediation: added missing "Token Budget Estimate" section (per-story-delivery.md Token Budget Check). No AC or scope content change. |
 | 2.0 | 2026-07-19 | story-writer | SPLIT re-scope (human-approved E-11 stale-draft disposition plan): retitled to "Repo-Local Mutation-Testing Defaults" to reflect wirerust-local-only scope; points 3→2 (engine-skill-default work removed); AC-147-003(d) + AC-147-004 clarified as product-local-only; engine half (mutation-skill safe-parallelism default) routed upstream via drbothen/vsdd-factory#654 evidence comment. Wave TBD→84, status draft→ready (plan gate approved by human, mini-wave 166+176+147v2 = 7 pts). |
 | 1.0 | 2026-07-08 | state-manager | Added `document_type: story` and `input-hash: d41d8cd` for scanner compatibility (STORY-157 TASK F; `inputs: []` → canonical empty-inputs hash). |

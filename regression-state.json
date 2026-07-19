@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-19T16:40:04Z","command":"cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/dep-soak-sweep && cargo test --all-targets 2>&1 | tail -30"}
+{"status":"pass","timestamp":"2026-07-19T19:58:33Z","command":"cargo test --all-targets 2>&1 | tail -60"}

@@ -875,3 +875,40 @@ stories:
     merge_commit: fa646ed
     merged_date: "2026-07-13"
     gate_closed_date: "2026-07-13"
+
+  # ---------------------------------------------------------------------------
+  # Wave 84 — STORY-147 (2 pts) + STORY-166 (3 pts) + STORY-176 (2 pts)
+  # (E-11 mini-wave; D-480 wave-84 OPENED 2026-07-19, plan gate approved by human).
+  # No dependency edges among the three stories. All product-local (v1.2/v2.1/v2.0
+  # promoted draft→ready at open; STORY-147 subsequently re-scoped to v2.1, STORY-176
+  # to v2.2 — Token Budget Estimate remediation, no AC/scope change).
+  # Housekeeping burst (2026-07-19): entries registered here for the first time
+  # (schema fields per file header: status, wave, branch, worktree, blocked_by).
+  # STORY-147 delivery has started: worktree .worktrees/STORY-147 created on branch
+  # feature/STORY-147-mutation-testing-defaults (base 49255464), Step 2 (stubs)
+  # dispatched. "in-progress" is not a value used elsewhere in this file's status
+  # vocabulary (only done/completed appear); per the pending/blocked convention
+  # documented in the file header, status is left `pending` with branch/worktree
+  # populated to reflect the in-flight dispatch. STORY-166/STORY-176 not yet started.
+  # ---------------------------------------------------------------------------
+
+  STORY-147:
+    status: pending  # delivery in-flight (worktree created, Step 2 stubs dispatched) — see note above; "in-progress" not in this file's status vocabulary
+    wave: 84
+    branch: feature/STORY-147-mutation-testing-defaults
+    worktree: .worktrees/STORY-147
+    blocked_by: []
+
+  STORY-166:
+    status: pending
+    wave: 84
+    branch: null
+    worktree: null
+    blocked_by: []
+
+  STORY-176:
+    status: pending
+    wave: 84
+    branch: null
+    worktree: null
+    blocked_by: []
