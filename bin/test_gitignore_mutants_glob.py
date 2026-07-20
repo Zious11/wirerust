@@ -9,7 +9,7 @@ These are NOT covered by the existing mutants-f6*/ glob.
 
 Run: python3 bin/test_gitignore_mutants_glob.py
 
-Red Gate: FAILS until .gitignore is updated with mutants.out*/ (AC-176-003).
+Red Gate provenance: FAILED until .gitignore was updated with mutants.out*/ (AC-176-003, STORY-176).
 """
 
 import subprocess
