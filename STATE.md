@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "Wave-84 in progress: STORY-147 DELIVERED (D-481); next STORY-166 per-story delivery (await human go); trajectory-tail →0→0→0→0"
+current_step: "Wave-84 in progress: STORY-147 DELIVERED (D-481); STORY-166 Step-4.5 adversary CONVERGED P8/P9/P10 (10 passes); Step 5 demo evidence dispatched; code tip 55b39152; spec v1.3; trajectory-tail →0→0→0→0"
 current_cycle: "wave-084"
 pipeline: ACTIVE
-timestamp: 2026-07-20T03:06:00Z
+timestamp: 2026-07-20T06:00:05Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**STORY-147 DELIVERED (2026-07-20, D-481). PR #421 squash-merged to develop f0cb7374e51ed486cf72ef3ca1694be24169815a (human-executed merge, 2026-07-20T02:40:53Z, explicit per-PR authorization; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Feature branch feature/STORY-147-mutation-testing-defaults deleted (remote + local); worktree .worktrees/STORY-147 removed. CI 13/13 (Semantic PR check recovered after a GitHub-declared Minor Service Outage delayed it ~2h). Dual pr-reviewer APPROVE; security CLEAN. Step-4.5 adversary CONVERGED P6/P7/P8 (8 passes; Pass-1 F-S147P1-002 caught a placebo config — repo-root `mutants.toml`/`jobs` key silently never read by cargo-mutants; execution-verified pivot to `.cargo/mutants.toml` `minimum_test_timeout=300`); spec v2.1→v2.8. STORY-INDEX v3.80→v3.81 (status ready→delivered; wave-84 Delivery Progress row 1/3 DELIVERED). stories_delivered 113→114. Evidence artifacts at `.factory/code-delivery/STORY-147/` (committed f2b5dcfe). Process-gaps ledgered for cycle-close: stale-inline-version-marker recurrence, sub-agent message-routing breakage (relay-through-orchestrator workaround; also caused security-review.md artifact backfill f2b5dcfe), burst-log template understatement. Wave-84 IN PROGRESS: STORY-166 and STORY-176 remain ready, un-started, no dependency edges among the three. Resume: STORY-166 per-story delivery next (await human go). trajectory-tail →0→0→0→0**
+**STORY-166 Step-4.5 adversary CONVERGED P8/P9/P10 (2026-07-20, 10 passes; BC-5.39.001 SATISFIED). Code frozen at tip `55b39152` since Pass 4; Passes 5-10 all governance-prose/doc-only (zero further source-code churn). Pass-7 headline finding F-S166P7-001 [process-gap] caught a Pass-3-era fix regression in `demo-evidence-scrub-gate.md`'s CI-guard example (grep exits 2 on missing `.factory/` path even when leaks ARE found in docs/, producing a false-green); orchestrator-probe execution-verified; fixed with a path-guarded loop, factory-artifacts commit `eef569c9`. Factory-doc track fixes: F-S166P3-001, F-S166P4-002 (commit `9fa2072e`), F-S166P7-001 (commit `eef569c9`). Spec v1.2→v1.3 (Pass-4 currency fixes: Previous-Story-Intelligence points claim aligned to v1.1 3-pt re-estimate F-S166P4-001; stale draft-status self-reference dropped F-S166P4-003). 6 non-blocking LOW residuals carried for gate ratification (F-S166P6-001 lone-CR line-model divergence; F-S166P8-001 colon-in-anchor/\S+-greediness edge; F-S166P8-002 pre-existing harness empty-list latent, STORY-164/165 era; Background line-anchor staleness deferred to wave-84 gate currency sweep; line-33 base-command carve-out; ">= 25" floor phrasing). Details: `cycles/wave-084/STORY-166/convergence-report.md` + `adversary-convergence-state.json`. Step 5 demo evidence dispatched. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20) remains wave-84 1/3 DELIVERED; STORY-176 remains ready, un-started; no dependency edges among the three. Resume: STORY-166 Step 5 demo evidence in-flight. trajectory-tail →0→0→0→0**
 
 ---
 

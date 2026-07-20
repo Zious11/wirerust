@@ -1,0 +1,156 @@
+{
+  "story": "STORY-166",
+  "wave": 84,
+  "cycle": "wave-084",
+  "head_reviewed": "55b39152",
+  "worktree_base": "49255464",
+  "delivery_mode": "story-worktree",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "clean_streak": ["P8", "P9", "P10"],
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "6c297fe5",
+      "notes": "3 LOW nits; fixed. No MEDIUM/HIGH/CRITICAL. First pass clean of substantive findings."
+    },
+    {
+      "pass": 2,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P2-001", "F-S166P2-002"],
+      "code_tip": "3510032c",
+      "notes": "1 MEDIUM + 1 LOW. CHANGELOG full test enumeration; drop driftable line anchors from T27 docstring; T25 tense fix."
+    },
+    {
+      "pass": 3,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P3-001", "F-S166P3-002", "F-S166P3-003"],
+      "code_tip": "55b39152",
+      "notes": "1 MEDIUM + 2 LOW. F-S166P3-001 (MEDIUM) tightened T23 count assertion to exact PASS line. Part A (P2 fix verification): 2/2 VERIFIED-FIXED."
+    },
+    {
+      "pass": 4,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P4-001", "F-S166P4-002", "F-S166P4-003"],
+      "code_tip": "55b39152",
+      "notes": "2 MEDIUM + 1 LOW. F-S166P4-001: Previous-Story-Intelligence points claim aligned to the v1.1 3-pt re-estimate. F-S166P4-002: scrub-gate trigger predicates harmonized with extended scope (governance-doc fix, factory-artifacts commit 9fa2072e). F-S166P4-003: stale draft-status self-reference dropped. Code tip unchanged from P3 (55b39152) — all P4 findings governance-prose/doc, no source-code churn. Part A (P3 fix verification): 3/3 VERIFIED-FIXED."
+    },
+    {
+      "pass": 5,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "55b39152",
+      "notes": "0 findings. Code tip unchanged (55b39152, frozen since P4). Part A (P4 fix verification): 3/3 VERIFIED-FIXED."
+    },
+    {
+      "pass": 6,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P6-001"],
+      "code_tip": "55b39152",
+      "notes": "1 LOW nit (F-S166P6-001: lone-CR line-model divergence — untested/undocumented edge, non-blocking). Code tip unchanged."
+    },
+    {
+      "pass": 7,
+      "verdict": "FAIL_FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P7-001"],
+      "code_tip": "55b39152",
+      "notes": "1 MEDIUM [process-gap] F-S166P7-001: scrub-doc CI-guard example's exit-2 false-green — a Pass-3-era fix regression; grep exits 2 on the missing .factory/ path even when leaks ARE found in docs/. Orchestrator-probe execution-verified. Fixed with path-guarded loop, factory-artifacts commit eef569c9. Governance-doc CI examples not validated against develop/factory-artifacts branch topology — upstream vehicle per human directive. Code tip unchanged (governance-doc fix, no source-code churn)."
+    },
+    {
+      "pass": 8,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": ["F-S166P8-001", "F-S166P8-002"],
+      "code_tip": "55b39152",
+      "notes": "2 LOW nits carried. F-S166P8-001: colon-in-anchor + \\S+-greediness siblings (untested/undocumented edge). F-S166P8-002: pre-existing harness empty-list latent behavior, STORY-164/165 era. Clean-streak begins (1 of 3). Part A (P7 fix verification): 1/1 VERIFIED-FIXED (execution-confirmed)."
+    },
+    {
+      "pass": 9,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "55b39152",
+      "notes": "0 new findings. Clean-streak (2 of 3). Part A (P8 fix verification): carried LOWs confirmed non-blocking, no fix required (documented residuals)."
+    },
+    {
+      "pass": 10,
+      "verdict": "PASS_NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "55b39152",
+      "notes": "0 findings. Clean-streak closes (3 of 3): P8/P9/P10 all NITPICK_ONLY. BC-5.39.001 SATISFIED. Convergence declared."
+    }
+  ],
+  "non_blocking_residuals": [
+    {
+      "id": "F-S166P6-001",
+      "severity": "LOW",
+      "category": "edge-case",
+      "summary": "Lone-CR line-model divergence — untested/undocumented edge in the line-counting model. Non-blocking; carried for gate ratification.",
+      "source": "F-S166P6-001 adversary Pass 6"
+    },
+    {
+      "id": "F-S166P8-001",
+      "severity": "LOW",
+      "category": "edge-case",
+      "summary": "Colon-in-anchor + \\S+-greediness siblings — untested/undocumented edge in the anchor-parsing regex. Non-blocking; carried for gate ratification.",
+      "source": "F-S166P8-001 adversary Pass 8"
+    },
+    {
+      "id": "F-S166P8-002",
+      "severity": "LOW",
+      "category": "latent-defect",
+      "summary": "Pre-existing harness empty-list latent behavior, dating to the STORY-164/165 era. Not introduced by STORY-166; carried for gate ratification.",
+      "source": "F-S166P8-002 adversary Pass 8"
+    },
+    {
+      "id": "BACKGROUND-LINE-ANCHOR-STALENESS",
+      "severity": "LOW",
+      "category": "documentation",
+      "summary": "Background section line-anchor staleness. Deferred to the wave-84 gate currency sweep.",
+      "source": "adversary passes, documentation review"
+    },
+    {
+      "id": "LINE-33-BASE-COMMAND-CARVEOUT",
+      "severity": "LOW",
+      "category": "documentation",
+      "summary": "Line-33 base-command carve-out. Documented, non-blocking.",
+      "source": "adversary passes, documentation review"
+    },
+    {
+      "id": "FLOOR-PHRASING-GE-25",
+      "severity": "LOW",
+      "category": "documentation",
+      "summary": "\">= 25\" floor phrasing — non-blocking prose nit.",
+      "source": "adversary passes, documentation review"
+    }
+  ],
+  "process_gaps_for_cycle_close": [
+    {
+      "id": "F-S166P7-001",
+      "category": "process-gap",
+      "summary": "Governance-doc CI examples not validated against develop/factory-artifacts branch topology (scrub-gate CI-guard exit-2 false-green regression). Upstream vehicle per human directive.",
+      "source": "F-S166P7-001 adversary Pass 7"
+    }
+  ],
+  "process_notes": [
+    "Pass-1 through Pass-2 closed out residual doc/test-enumeration findings; code tip advanced 6c297fe5 -> 3510032c -> 55b39152 during Pass-2/Pass-3.",
+    "Code frozen at 55b39152 since Pass 4 — all Pass 5 through Pass 10 findings were governance-prose/doc-only, with zero source-code churn.",
+    "Pass-7 headline finding F-S166P7-001 caught a Pass-3-era fix regression in the demo-evidence-scrub-gate.md CI-guard example: the grep-based guard exits 2 on a missing .factory/ path even when leaks ARE present in docs/, producing a false-green. Orchestrator-probe execution-verified; fixed with a path-guarded loop in factory-artifacts commit eef569c9787fba7d29e8dfe7be6cbbe0e9ce434e.",
+    "Factory-doc track fixes across the cycle: F-S166P3-001 (T23 count assertion), F-S166P4-002 (scrub-gate trigger predicate harmonization, factory-artifacts commit 9fa2072e), F-S166P7-001 (CI-guard false-green fix, factory-artifacts commit eef569c9).",
+    "Story spec evolved v1.2 -> v1.3 across the convergence (Pass-4 currency fixes: Previous-Story-Intelligence points claim aligned to v1.1 3-pt re-estimate F-S166P4-001; stale draft-status self-reference dropped F-S166P4-003).",
+    "Worktree: .worktrees/STORY-166, branch feature/STORY-166-citation-symbol-anchor, base 49255464 (develop).",
+    "Step 5 (demo evidence) dispatched following convergence declaration."
+  ],
+  "convergence_date": "2026-07-20"
+}

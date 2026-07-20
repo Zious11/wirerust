@@ -32,7 +32,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "05a6249"
+input-hash: "4aef9c8"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps

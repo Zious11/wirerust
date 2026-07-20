@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-20T00:30:28Z","command":"cargo test --test repo_mutation_config_tests 2>&1 | tail -40"}
+{"status":"pass","timestamp":"2026-07-20T04:46:37Z","command":"cargo test --all-targets 2>&1 | grep -iE \"FAILED|error\\[|panicked\" | head -30; echo \"grep done, exit=$?\""}
