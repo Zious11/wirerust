@@ -46,6 +46,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   Zero false positives verified on 114 tracked Rust files. Self-test:
   91 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
 
+- **`.gitignore mutants.out*/ glob + bin/test_gitignore_mutants_glob.py regression guard
+  (STORY-176, AC-176-003, wave-84).**
+
+  `.gitignore` gains `mutants.out*/` under the cargo-mutants section, covering the
+  default cargo-mutants output dirs `mutants.out/` and `mutants.out.j4-invalid/`
+  (complements the existing `mutants-f6*/` glob). A new self-test
+  `bin/test_gitignore_mutants_glob.py` asserts both dirs are git-ignored via 2
+  `git check-ignore` assertions. The self-test is wired into CI's `bin-selftest`
+  job and was green on merge.
+
 - **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
   (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**
 
