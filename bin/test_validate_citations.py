@@ -33,6 +33,12 @@ Test coverage (AC-164-002(d) + edge cases):
   T21  F-S164P8-001: citation to an existing directory → NOT A FILE, exit 1, no traceback
   T22  F-S164P8-001: unreadable cited target (chmod 000) → UNREADABLE, exit 1, no traceback
         (skipped with note when os.access reports readable, e.g. running as root)
+  T23  AC-166-001(a)-(b): path:line:anchor with anchor present on the cited
+        line → exit 0 (also folds in EC-002 regex-special-char anchor)
+  T24  AC-166-001(c): path:line:anchor with anchor absent from the cited
+        line → SYMBOL NOT AT LINE failure class, exit 1
+  T25  AC-166-001(d): bare path:line citation on the same fixture still
+        passes — backward-compatibility control
 """
 
 import subprocess
@@ -604,6 +610,89 @@ def test_T22_unreadable_target_file() -> None:
     print(f"  [PASS] T22 unreadable target → UNREADABLE, exit 1: exit={result.returncode}")
 
 
+def test_T23_anchor_present_passes() -> None:
+    """T23 (AC-166-001(a)-(b)): a path:line:anchor citation where the anchor
+    IS present on the cited line exits 0 (PASS).
+
+    Also folds in EC-002 (anchor field containing regex-special characters,
+    e.g. 'arr[0]') as a second citation against the same fixture file: the
+    tool MUST re.escape() the anchor before pattern-matching so '[' and ']'
+    are treated as literal characters rather than a regex character class.
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+        b"\n"
+        b"value = arr[0] + 1  # uses arr[0]\n"
+    )
+    citations = (
+        "mod.py:2:some_function\n"  # def <anchor> present at line 2
+        "mod.py:5:arr[0]\n"  # EC-002: regex-special anchor, substring match at line 5
+    )
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 0, f"T23: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T23: expected PASS in stdout, got {out!r}"
+    assert "2" in out, f"T23: expected count 2 in stdout, got {out!r}"
+    print(
+        "  [PASS] T23 anchor present (+ EC-002 regex-special anchor): "
+        f"exit={rc}, out={out.strip()!r}"
+    )
+
+
+def test_T24_anchor_absent_symbol_not_at_line() -> None:
+    """T24 (AC-166-001(c)): a path:line:anchor citation where the anchor is
+    NOT present on the cited line exits 1 with the SYMBOL NOT AT LINE
+    failure class, per the exact message shape in AC-166-001(c):
+    'SYMBOL NOT AT LINE: path:line (expected anchor '<anchor>', found '<line-text>')'.
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+    )
+    citations = "mod.py:2:nonexistent_function\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 1, f"T24: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "SYMBOL NOT AT LINE:" in combined, (
+        f"T24: expected 'SYMBOL NOT AT LINE:' failure-class prefix in output, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    assert "mod.py:2" in combined, (
+        f"T24: expected cited path:line 'mod.py:2' in message, got {combined!r}"
+    )
+    assert "nonexistent_function" in combined, (
+        f"T24: expected expected-anchor 'nonexistent_function' in message, got {combined!r}"
+    )
+    assert "def some_function():" in combined, (
+        f"T24: expected found-line-text 'def some_function():' in message, got {combined!r}"
+    )
+    print(f"  [PASS] T24 anchor absent -> SYMBOL NOT AT LINE, exit 1: exit={rc}")
+
+
+def test_T25_bare_citation_still_passes() -> None:
+    """T25 (AC-166-001(d)): a bare path:line citation (no anchor field) on
+    the same fixture file still exits 0 -- backward-compatibility control.
+
+    NOTE: this is a control, not a Red Gate probe. Bare path:line citations
+    are handled by pre-existing (pre-AC-166-001) code and are expected to
+    PASS even before the anchor-grammar extension is implemented. Its
+    presence in the Red Gate run confirms the anchor-grammar work has not
+    regressed pre-existing behavior, per AC-166-001(d).
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+    )
+    citations = "mod.py:2\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 0, f"T25: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T25: expected PASS in stdout, got {out!r}"
+    print(f"  [PASS] T25 bare citation backward-compat control: exit={rc}, out={out.strip()!r}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -632,6 +721,9 @@ def main() -> None:
         test_T20_non_utf8_stdin_exits_2,
         test_T21_directory_target_not_a_file,
         test_T22_unreadable_target_file,
+        test_T23_anchor_present_passes,
+        test_T24_anchor_absent_symbol_not_at_line,
+        test_T25_bare_citation_still_passes,
     ]
     passed = 0
     failed = 0
