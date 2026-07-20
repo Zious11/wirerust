@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-166
 epic_id: E-11
-version: "1.2"
+version: "1.3"
 status: ready
 producer: story-writer
 timestamp: 2026-07-13T00:00:00Z
@@ -379,8 +379,10 @@ STORY-165, which immediately precede this story:
 
 - **STORY-165 (wave-75, E-11, 3 pts) — pure-governance precedent:** STORY-165 delivered
   four governance-only ACs (CI wiring, mandate doc, currency protocol, audit-first rule)
-  at 3 points. STORY-166 is heavier (5 pts) because AC-166-001 requires real Python code
-  changes and tests in `bin/`, unlike STORY-165 which added no new bin/ code.
+  at 3 points. STORY-166 is also 3 pts (re-estimated from 5 at the v1.1 engine/project
+  re-scope), but AC-166-001 carries more implementation weight than STORY-165's
+  pure-governance ACs — real Python code changes and tests in `bin/`, unlike STORY-165
+  which added no new bin/ code.
 
 - **STORY-164 (wave-74, E-11, 4 pts) — bin/ tool delivery precedent:** STORY-164 created
   two new tools (`bin/validate-citations` and `bin/changelog-gate-check`) plus their test
@@ -462,7 +464,7 @@ Well within context window. No story split required.
   DF-VALIDATION-001-exempt per the in-process exemption (same pattern as STORY-165 Notes,
   STORY-164 Notes, STORY-163 Notes, STORY-162 Notes). The W6 gate observation
   (AC-166-004) moved to engine (drbothen/vsdd-factory#635).
-- **S-7.02 disposition:** Creating this story at draft status codifies one research-validated
+- **S-7.02 disposition:** Creating this story codifies one research-validated
   wave-75 process-gap finding (PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP, AC-166-001) plus one
   in-process gate observation (PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE W7, AC-166-003, project half).
   PG-W75-FINDING-ID-DUAL-SCHEME moved to engine (drbothen/vsdd-factory#638);
@@ -507,6 +509,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-07-20 | story-writer | Pass-4 currency fixes: Previous-Story-Intelligence points claim aligned to the v1.1 3-pt re-estimate (F-S166P4-001); stale draft-status self-reference dropped (F-S166P4-003). |
 | 1.2 | 2026-07-19 | story-writer | Wave-84 opening: wave TBD→84, status draft→ready (plan gate approved by human, 2026-07-19; mini-wave composition 166+176+147v2 = 7 pts, all product-local). No AC content change. |
 | 1.1 | 2026-07-13 | story-writer | Human-directed engine/project re-scoping: AC-166-002 → drbothen/vsdd-factory#638, AC-166-004 → drbothen/vsdd-factory#635 (moved to engine); AC-166-003 narrowed to wirerust scrub-gate scope (engine half → drbothen/vsdd-factory#636); PG-HASH-HOOK-DIVERGENCE tracked as drbothen/vsdd-factory#637. Points 5→3. |
 | 1.0 | 2026-07-13 | story-writer | Initial authorship — wave-75 process-gap codifications: PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP (AC-166-001 citation symbol-at-line assertion + ROUTE-W74-DEFERRED housekeeping), PG-W75-FINDING-ID-DUAL-SCHEME (AC-166-002 finding-ID naming policy + bin/lint-cycle-artifact G-less regex flag), PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE (AC-166-003 extended scrub scope), PG-W75-MIDGATE-STREAK-PERSISTENCE (AC-166-004 incremental pass records). S-7.02 wave-75 cycle-close. bin/validate-citations preflight: PASS on 14-entry anchor list (2026-07-13). Research report pg-validation-wave-75.md line-19 fix applied (F-W75G-P2-001). |

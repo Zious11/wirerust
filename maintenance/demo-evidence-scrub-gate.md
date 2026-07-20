@@ -23,7 +23,7 @@ to prevent reintroduction.
 ## Demo-Evidence Path-Scrub Gate (MANDATORY)
 
 Every demo-recording session MUST include this gate before any `git push` or PR
-creation that includes files under `docs/demo-evidence/`.
+creation that includes files under `docs/demo-evidence/` or `.factory/demo-evidence/`.
 
 ### Gate Command
 
@@ -77,8 +77,8 @@ to scrub bulk occurrences, then verify the grep returns zero results.
 - **Before every demo-evidence push:** run the gate command and confirm zero results.
 - **After any VHS recording or Playwright session** that captures CLI or browser output:
   paths leak from prompt strings, error messages, and shell output.
-- **Before opening any PR** that modifies `docs/demo-evidence/`: include gate output
-  in the PR description or demo-evidence report.
+- **Before opening any PR** that modifies `docs/demo-evidence/` or `.factory/demo-evidence/`:
+  include gate output in the PR description or demo-evidence report.
 
 ### Optional CI Guard
 
@@ -102,7 +102,7 @@ present in committed demo evidence, preventing reintroduction at CI time.
 
 | Date | Change | Reference |
 |------|--------|-----------|
-| 2026-07-20 | CI-guard example aligned with the extended mandatory gate — tilde + `.factory` tree propagation; sibling-sweep gap from the AC-166-003 edit. | F-S166P3-001 |
+| 2026-07-20 | CI-guard example aligned with the extended mandatory gate — tilde + `.factory` tree propagation; sibling-sweep gap from the AC-166-003 edit (F-S166P3-001). Follow-up same-day sweep: the two TRIGGER-PREDICATE loci (mandatory-gate lead-in and "When to Run" PR-opening rule) still scoped to `docs/` only after the F-S166P3-001 command-body extension — harmonized to name both `docs/demo-evidence/` and `.factory/demo-evidence/`. The new-captures-only baseline exemption (92 pre-existing files, 163 host-path occurrences as of wave-75 close) still governs. | F-S166P3-001 / F-S166P4-002 |
 | 2026-07-19 | Extended gate scope to `.factory/demo-evidence/` for NEW captures (both trees now covered by the gate command). 92 pre-existing files (163 host-path occurrences as of wave-75 close, 2026-07-13) documented as a baseline exempt from retroactive remediation. | PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE / STORY-166 AC-166-003 |
 | 2026-07-09 | Extended scrub pattern to also reject tilde-form home paths (`~/`) in tape/evidence text files. Root cause: SEC-W72-001 LOW — STORY-159 demo tapes contained `~/Documents/GITHUB/wirerust` which bypassed the original `/Users/` + `/home/` gate. Fixed via PR #391. | SEC-W72-001 / PR #391 |
 | 2026-07-08 | Initial gate document authored (STORY-157 AC-157-002, PG-W70-DEMO-SCRUB). | STORY-157 |
