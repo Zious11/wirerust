@@ -195,3 +195,25 @@ the story-writer validation pass (DF-VALIDATION-001 research-agent) would
 catch fabricated mechanism references before Step 2.
 
 ---
+
+## PG-W84-010 — gate scan Rust-only blind spot for bin/*.py prose
+
+**Class:** Gate scope gap / self-policing blind spot
+**Caught by:** STORY-176 Step-4.5 adversarial pass 1 (F-S176P1-007, 2026-07-20)
+**Severity:** LOW (coverage gap in a low-traffic surface; no security impact)
+**Vehicle:** Product-local (bin/check-green-doc-tense scope expansion) — DF-VALIDATION-001 required before filing as GitHub issue
+
+`bin/check-green-doc-tense` scans only Rust source files (`*.rs`). This means the
+gate cannot police its own Python test harness (`bin/test_check_green_doc_tense.py`)
+for stale RED-phase prose. F-S176P1-003 stale prose resided precisely in the
+Python test file — a gap that was only caught by the adversary, not by the gate
+itself running on the test-file surface.
+
+**Root cause:** The story's scope was defined as Rust-source gating; extending the
+scan to bin/*.py was out of STORY-176 scope. A follow-on story or maintenance item
+should extend the scan glob to cover the Python harness.
+
+**Out of story scope for STORY-176 delivery.** DF-VALIDATION-001 research-agent
+validation required before filing as a GitHub issue (product-local).
+
+---

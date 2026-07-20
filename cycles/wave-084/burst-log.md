@@ -320,3 +320,43 @@ remediation burst row addition (D-484, 2026-07-20).
 ---
 
 <!-- Repeat for each burst. Maintain chronological order. -->
+
+---
+
+## Burst — STORY-176 Step-4.5 Pass-2 Convergence Tracking (2026-07-20)
+
+**Type:** state-burst (adversarial convergence update)
+**Dispatched by:** orchestrator
+**Code tip at burst:** `b583c4b4` (STORY-176 worktree feature/STORY-176-cycle-close-hygiene)
+
+### Summary
+
+Pass 2 adversarial review classified FINDINGS. Fresh adversary reviewed HEAD `08fc7d88`.
+
+**Part A — Pass-1 fix verification:** All pass-1 fixes VERIFIED-FIXED (F-S176P1-001/002/003/005/006/008). F-S176P1-004 ACCEPTED not re-litigated. F-S176P1-007 LEDGERED not re-raised.
+
+**Part B — New findings (1 MEDIUM / 2 LOW actionable + 2 observations):**
+- F-S176P2-001 MEDIUM: stale CHANGELOG self-test count (89 vs actual 91; pass-1 fixture add caused count drift) → FIXED `b583c4b4` (count synced to 91, sibling sweep clean)
+- F-S176P2-002 LOW: no regression-guard fixture for pattern-26 trailing-`\b` → FIXED `b583c4b4` (GOOD fixture added)
+- F-S176P2-003 LOW: pattern-29 lookahead over/under-shoot on inflected objects → ACCEPTED (adversary verdict: informational; zero current-tree matches; AC zero-FP holds)
+- Obs-1 LOW: "exposes a compile-only seam" evasion → ACCEPTED (consistent with F-S176P1-004 verb-narrowing disposition)
+- Obs-2 LOW: duplicate GOOD-fixture payload across pattern-c/d allowlists → ACCEPTED (harmless, distinct rationale documented)
+
+**Post-fix orchestrator verification (b583c4b4):** self-test 91/0 exit 0; gate PASS 114 files; gitignore test 2/0; CHANGELOG count matches actual.
+
+### Files Updated in This Burst
+
+- `.factory/cycles/wave-084/STORY-176/FINDINGS.md` — pass 2 section written (replaces DISPATCHED placeholder)
+- `.factory/cycles/wave-084/STORY-176/adversary-convergence-state.json` — pass 2 entry added; head_reviewed → b583c4b4
+- `.factory/STATE.md` — current_step, EXACT RESUME POINT, top CPS row, Session Resume Checkpoint updated
+- `.factory/cycles/wave-084/session-checkpoints.md` — pass-1 checkpoint archived
+- `.factory/cycles/wave-084/burst-log.md` — this entry
+
+### Convergence State After This Burst
+
+- passes: 2 (both FINDINGS)
+- consecutive_clean: 0
+- converged: false
+- bc_5_39_001: PENDING (need 3-clean streak)
+- Pass 3 dispatched.
+

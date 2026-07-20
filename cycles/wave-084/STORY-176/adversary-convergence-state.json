@@ -1,0 +1,54 @@
+{
+  "story": "STORY-176",
+  "wave": 84,
+  "cycle": "wave-084",
+  "head_reviewed": "b583c4b4",
+  "worktree_base": "fa9be701",
+  "delivery_mode": "story-worktree",
+  "converged": false,
+  "bc_5_39_001": "PENDING",
+  "consecutive_clean": 0,
+  "clean_streak": [],
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "FINDINGS",
+      "high_critical": 0,
+      "finding_ids": [
+        "F-S176P1-001",
+        "F-S176P1-002",
+        "F-S176P1-003",
+        "F-S176P1-004",
+        "F-S176P1-005",
+        "F-S176P1-006",
+        "F-S176P1-007",
+        "F-S176P1-008"
+      ],
+      "code_tip": "056afabe",
+      "notes": "3 MEDIUM + 5 LOW. No HIGH/CRITICAL. All 8 findings routed and resolved before pass 2 dispatch: F-S176P1-001 FIXED 61f6db4c (pattern-29 bare phrase re-narrowed with negative lookahead) + fixture 08fc7d88; F-S176P1-002 FIXED 61f6db4c (pattern-26 trailing \\b anchor added); F-S176P1-003 FIXED 08fc7d88 (stale RED-phase prose at 3 loci in bin test files incl. STORY-174 sibling — past-tense reframe; DF-SIBLING-SWEEP verified; fixture payloads retained); F-S176P1-004 ACCEPTED (pattern (c) subsumes are/is; AC-permitted narrowing; disposition for gate ratification); F-S176P1-005 FIXED 61f6db4c (docstring tokens 23-25 gap; 1..29 fully enumerated); F-S176P1-006 FIXED 08fc7d88 (label-blind self-test assertions for patterns 26-29 → expected-label assertions); F-S176P1-007 LEDGERED PG-W84-010 (gate scan Rust-only blind spot for bin/*.py prose; out of story scope); F-S176P1-008 FIXED story v2.4 (Disposition-table AC-ID reuse footnote; input-hash re-baselined 8dc205a canonical)."
+    },
+    {
+      "pass": 2,
+      "verdict": "FINDINGS",
+      "high_critical": 0,
+      "finding_ids": [
+        "F-S176P2-001",
+        "F-S176P2-002",
+        "F-S176P2-003",
+        "Obs-1",
+        "Obs-2"
+      ],
+      "code_tip": "08fc7d88",
+      "notes": "Fresh adversary. Part A: all P1 fixes VERIFIED-FIXED (F-S176P1-001/002/003/005/006/008); F-S176P1-004 ACCEPTED not re-litigated; F-S176P1-007 LEDGERED not re-raised. Part B: F-S176P2-001 MEDIUM stale CHANGELOG self-test count (89 vs actual 91; S-7.01 partial-fix propagation from pass-1 fixture add) → FIXED b583c4b4 (count synced to 91, sibling sweep clean); F-S176P2-002 LOW no regression-guard fixture for pattern-26 trailing-\\b → FIXED b583c4b4 (GOOD fixture '// harness skeleton compiled cleanly in STORY-NNN' added); F-S176P2-003 LOW pattern-29 lookahead over/under-shoot on inflected objects ('wired its/their' FP-latent, 'wired the same way' FN-latent) → ACCEPTED (adversary's own verdict: informational, zero current-tree matches, AC zero-FP holds, no fix required for convergence); Obs-1 LOW 'exposes a compile-only seam' evasion → ACCEPTED (consistent with F-S176P1-004 accepted verb-narrowing disposition); Obs-2 LOW duplicate GOOD-fixture payload across pattern-c/d allowlists → ACCEPTED (harmless, each documents distinct rationale). Post-fix verified: self-test 91/0 exit 0, gate PASS 114 files, gitignore test 2/0, CHANGELOG count matches actual."
+    }
+  ],
+  "carried_findings": [],
+  "process_notes": [
+    "Pass 1 code tip reviewed: 056afabe (Steps 1-4 delivery HEAD). All 3 MEDIUM findings required code fixes (61f6db4c, 08fc7d88); all LOW fixable findings resolved; F-S176P1-004 accepted as AC-permitted narrowing; F-S176P1-007 ledgered as PG-W84-010 (out of story scope).",
+    "Story spec advanced v2.3→v2.4 during pass-1 remediation to address F-S176P1-008 AC-ID reuse. Input-hash re-baselined to 8dc205a (canonical Python tool bin/compute-input-hash).",
+    "DF-SIBLING-SWEEP executed for F-S176P1-003: all bin/*.py test files scanned; only 3 loci contained stale RED-phase prose; STORY-174 sibling affected and fixed in 08fc7d88.",
+    "Worktree: .worktrees/STORY-176, branch feature/STORY-176-cycle-close-hygiene, base fa9be701 (develop).",
+    "Pass 2 dispatched following all P1 fix verification by orchestrator.",
+    "Pass 2 code tip reviewed: 08fc7d88. Fresh adversary. All P1 fixes VERIFIED-FIXED. New findings: 1 MEDIUM (F-S176P2-001 CHANGELOG count stale 89→91) + 2 LOW (F-S176P2-002 missing regression-guard fixture for pattern-26 \\b + F-S176P2-003 ACCEPTED informational) + 2 observations (both ACCEPTED). Both actionable findings FIXED b583c4b4. passes_clean: 0 (both passes classified FINDINGS). consecutive_clean: 0. Pass 3 dispatched."
+  ]
+}

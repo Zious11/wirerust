@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "2.3"
+version: "2.4"
 status: ready
 producer: story-writer
 timestamp: 2026-07-20T00:00:00Z
@@ -33,7 +33,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "7f8ff02"
+input-hash: "8dc205a"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
@@ -135,6 +135,13 @@ engine repo 2026-07-19:
 |-----------|-------------|----------|
 | AC-176-002 (pre-adversarial doc sweep step) | Engine: delivery-protocol prompt behavior | drbothen/vsdd-factory#682 |
 | AC-176-003 (adversary severity calibration guidance) | Engine: adversary agent prompt calibration | drbothen/vsdd-factory#686 |
+
+> **AC-ID renumbering note (v2.0):** The "AC (v1.0)" IDs in the table above refer to the
+> **retired v1.0 numbering**. At v2.0 the story was re-scoped and the AC IDs were reassigned.
+> The live `AC-176-002` (input-hash post-delivery re-baseline reminder, absorbed from STORY-178
+> AC-178-003) and `AC-176-003` (`.gitignore mutants.out*/` glob, absorbed from STORY-178
+> AC-178-004) are **unrelated absorbed ACs** — they are entirely different acceptance criteria,
+> not updated versions of the engine-routed items above.
 
 ## Acceptance Criteria
 
@@ -349,6 +356,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.4 | 2026-07-20 | story-writer | F-S176P1-008: Disposition-table AC-ID renumbering footnote; clarification only, no AC content change. |
 | 2.3 | 2026-07-20 | story-writer | Spec-route remediation per planning/story-176-ac001-validation.md: corrected AC-176-001 locus to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; replaced bare-word tokens with four phrase-level zero-FP patterns; deleted fabricated # green-doc-tense-gate: allow allowlist claim; corrected CHANGELOG obligation (bin/ IS in trigger set, entry required); fixed verification commands; updated Architecture Mapping, Edge Cases, Tasks, Token Budget, Notes, Previous Story Intelligence, Architecture Compliance Rules, target_module frontmatter, and Background (v2.3 correction note + P4-seam provenance attribution note). No points/status/wave change (2 pts, ready, wave 84). |
 | 2.2 | 2026-07-19 | story-writer | Remediation: added missing "Token Budget Estimate" section (per-story-delivery.md Token Budget Check). No AC or scope content change. |
 | 2.1 | 2026-07-19 | story-writer | Wave-84 opening: wave TBD→84, status draft→ready (plan gate approved by human, 2026-07-19; mini-wave composition 166+176+147v2 = 7 pts, all product-local). No AC content change. |

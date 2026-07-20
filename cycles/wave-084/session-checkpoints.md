@@ -88,4 +88,36 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-1 burst checkpoint)
+
+**STORY-176 Steps 1-2 complete; spec-route remediation v2.2→v2.3 done (research-validated per planning/story-176-ac001-validation.md); Red Gate (Step 3) next. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.3 delivery Steps 1-2 complete; Red Gate (Step 3) next.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = this burst commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.3 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-2 done; Red Gate (Step 3) next. No open factory PRs, no adversarial loop active.
+- **NEXT STEP:** STORY-176 Step 3 (Red Gate — failing tests); then Steps 4-9 (TDD implementation, adversarial convergence, demo, PR lifecycle, cleanup, state update).
+- **Pending human decisions:** (a) PR #407 governance (external; triage preserved at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix — BOTH clusters: STORY-INDEX.md-in-inputs (164/165, ~7 re-baselines) AND STATE.md-in-inputs (175..179, ~5 re-baselines).
+- **Wave-84 cycle-close process-gap ledger (upstream vehicles per human directive, DF-VALIDATION-001 research required before filing):** stale-inline-version-marker recurrence (3+); sub-agent message-routing breakage (relay-through-orchestrator workaround; security-review.md backfill on #421); burst-log template understatement; STATE.md write-path hook friction; validate-pr-review-posted hook false-positive on self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR; governance-doc CI examples unvalidated against branch topology (F-S166P7-001, fixed locally); R-426-001 PR-description commit-count drift. **NEW (this burst): AC-176-001 fabricated nonexistent allowlist mechanism + wrong gate locus in v1.0/v2.0 story AC; spec-drift class "AC cites nonexistent mechanism"; caught by Step-2 stub-architect pre-condition probe (filed: cycles/wave-084/process-gap-ledger.md).**
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 deferred to maintenance sweep).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.83 / dep-graph v3.9.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by STORY-176 Step-4.5 pass-1 burst checkpoint.
+
+---
+
+<!-- Repeat for each archived checkpoint. Maintain chronological order. -->
+
+---
+
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-2 burst checkpoint)
+
+**STORY-176 Steps 1-2 complete; spec-route remediation v2.2→v2.3 done (research-validated per planning/story-176-ac001-validation.md); Red Gate (Step 3) next. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.3 delivery Steps 1-2 complete; Red Gate (Step 3) next.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = pass-1 burst commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.3 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-2 done; Red Gate (Step 3) next. No open factory PRs, no adversarial loop active.
+- **NEXT STEP:** STORY-176 Step 3 (Red Gate — failing tests); then Steps 4-9 (TDD implementation, adversarial convergence, demo, PR lifecycle, cleanup, state update).
+- **Superseded by:** STORY-176 Step-4.5 pass-2 burst checkpoint (2026-07-20).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
