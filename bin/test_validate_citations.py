@@ -33,8 +33,21 @@ Test coverage (AC-164-002(d) + edge cases):
   T21  F-S164P8-001: citation to an existing directory → NOT A FILE, exit 1, no traceback
   T22  F-S164P8-001: unreadable cited target (chmod 000) → UNREADABLE, exit 1, no traceback
         (skipped with note when os.access reports readable, e.g. running as root)
+  T23  AC-166-001(a)-(b): path:line:anchor with anchor present on the cited
+        line → exit 0 (also folds in EC-002 regex-special-char anchor)
+  T24  AC-166-001(c): path:line:anchor with anchor absent from the cited
+        line → SYMBOL NOT AT LINE failure class, exit 1
+  T25  AC-166-001(d): bare path:line citation on the same fixture still
+        passes — backward-compatibility control
+  T26  EC-003: range citation `path:start-end:anchor` asserts the anchor
+        against the START line only -- anchor-on-start-but-not-later passes,
+        anchor-absent-on-start-but-present-on-a-later-line fails
+  T27  AC-166-001(c): SYMBOL NOT AT LINE message truncates the found
+        line-text to <=80 chars (plain text[:80] slice, no ellipsis)
 """
 
+import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -46,35 +59,13 @@ TOOL = Path(__file__).resolve().parent / "validate-citations"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _run(citations_content: str, extra_args: list[str] | None = None) -> tuple[int, str, str]:
-    """
-    Write citations_content to a temp file, invoke the tool with that file,
-    and return (returncode, stdout, stderr).
-    """
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".txt", delete=False, encoding="utf-8"
-    ) as f:
-        f.write(citations_content)
-        citations_path = f.name
-
-    with tempfile.TemporaryDirectory() as tmp:
-        env_override: dict[str, str] = {"WIRERUST_REPO_ROOT": tmp}
-        import os
-        env = {**os.environ, **env_override}
-
-        cmd = [sys.executable, str(TOOL), citations_path] + (extra_args or [])
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-
-    # Clean up
-    Path(citations_path).unlink(missing_ok=True)
-
-    return result.returncode, result.stdout, result.stderr
+#
+# ROUTE-W74 MINOR-1: the previous _run() helper (single-file-only invocation,
+# with a temp citations file separate from the WIRERUST_REPO_ROOT temp dir)
+# was dead code -- every test uses _run_with_real_files() instead, which
+# creates cited files inside the same temp dir used as the repo root. Removed
+# rather than documented: _run_with_real_files() supersedes it entirely and
+# no test exercises the separate-temp-dir shape.
 
 
 def _run_with_real_files(
@@ -87,8 +78,6 @@ def _run_with_real_files(
 
     real_files: {relative_path: file_contents_bytes}
     """
-    import os
-
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         # Create the files inside the temp dir
@@ -222,7 +211,6 @@ def test_T08_invalid_range_start_gt_end() -> None:
 
 def test_T09_bad_argument_exits_2() -> None:
     """T09: Passing a nonexistent citations file as argument exits 2 (usage error)."""
-    import os
     with tempfile.TemporaryDirectory() as tmp:
         env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
         nonexistent = "/absolutely/does/not/exist/citations.txt"
@@ -390,9 +378,6 @@ def test_T17_parent_escape_rejected() -> None:
 
 def test_T18_non_utf8_citations_file_exits_2() -> None:
     """T18 (F-S164P2-004): Non-UTF-8 citations file exits 2 with error message, not traceback."""
-    import os
-    import tempfile
-
     # Write bytes that are not valid UTF-8
     invalid_bytes = b"\xff\xfeThis is not valid UTF-8\n"
     with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
@@ -429,10 +414,6 @@ def test_T19_unreadable_citations_file_exits_2() -> None:
     If the process runs as root (where chmod 000 is still readable), the test
     skips with a printed note rather than giving a false pass or false fail.
     """
-    import os
-    import stat
-    import tempfile
-
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as f:
@@ -486,9 +467,6 @@ def test_T20_non_utf8_stdin_exits_2() -> None:
     reads sys.stdin.buffer and decodes explicitly, so the same error path as
     the file-argument branch applies (stderr message + exit 2).
     """
-    import os
-    import tempfile
-
     invalid_utf8 = b"\xff\xfe invalid bytes"
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -518,15 +496,12 @@ def test_T21_directory_target_not_a_file() -> None:
     unguarded count_lines() call would raise IsADirectoryError. The fix adds
     an is_file() check that produces a clean NOT A FILE diagnostic instead.
     """
-    import os
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
         # Create a subdirectory inside the repo root to cite.
         subdir = Path(tmp) / "docs"
         subdir.mkdir()
         # Write citations file citing the directory as if it were a file.
-        citations = f"docs:1\n"
+        citations = "docs:1\n"
         env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
         result = subprocess.run(
             [sys.executable, str(TOOL), "-"],
@@ -556,10 +531,6 @@ def test_T22_unreadable_target_file() -> None:
     If the process runs as root (where chmod 000 is still readable), the test
     skips with a printed note rather than giving a false pass or false fail.
     """
-    import os
-    import stat
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
         # Create a real file in the temp root, then lock it down.
         target = Path(tmp) / "locked.txt"
@@ -604,6 +575,186 @@ def test_T22_unreadable_target_file() -> None:
     print(f"  [PASS] T22 unreadable target → UNREADABLE, exit 1: exit={result.returncode}")
 
 
+def test_T23_anchor_present_passes() -> None:
+    """T23 (AC-166-001(a)-(b)): a path:line:anchor citation where the anchor
+    IS present on the cited line exits 0 (PASS).
+
+    Also folds in EC-002 (anchor field containing regex-special characters,
+    e.g. 'arr[0]') as a second citation against the same fixture file: the
+    tool MUST re.escape() the anchor before pattern-matching so '[' and ']'
+    are treated as literal characters rather than a regex character class.
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+        b"\n"
+        b"value = arr[0] + 1  # uses arr[0]\n"
+    )
+    citations = (
+        "mod.py:2:some_function\n"  # def <anchor> present at line 2
+        "mod.py:5:arr[0]\n"  # EC-002: regex-special anchor, substring match at line 5
+    )
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 0, f"T23: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T23: expected PASS in stdout, got {out!r}"
+    assert "PASS: 2 citations verified" in out, (
+        f"T23: expected exact 'PASS: 2 citations verified' line, got {out!r}"
+    )
+    print(
+        "  [PASS] T23 anchor present (+ EC-002 regex-special anchor): "
+        f"exit={rc}, out={out.strip()!r}"
+    )
+
+
+def test_T24_anchor_absent_symbol_not_at_line() -> None:
+    """T24 (AC-166-001(c)): a path:line:anchor citation where the anchor is
+    NOT present on the cited line exits 1 with the SYMBOL NOT AT LINE
+    failure class, per the exact message shape in AC-166-001(c):
+    'SYMBOL NOT AT LINE: path:line (expected anchor '<anchor>', found '<line-text>')'.
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+    )
+    citations = "mod.py:2:nonexistent_function\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 1, f"T24: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "SYMBOL NOT AT LINE:" in combined, (
+        f"T24: expected 'SYMBOL NOT AT LINE:' failure-class prefix in output, "
+        f"got stdout={out!r} stderr={err!r}"
+    )
+    assert "mod.py:2" in combined, (
+        f"T24: expected cited path:line 'mod.py:2' in message, got {combined!r}"
+    )
+    assert "nonexistent_function" in combined, (
+        f"T24: expected expected-anchor 'nonexistent_function' in message, got {combined!r}"
+    )
+    assert "def some_function():" in combined, (
+        f"T24: expected found-line-text 'def some_function():' in message, got {combined!r}"
+    )
+    print(f"  [PASS] T24 anchor absent -> SYMBOL NOT AT LINE, exit 1: exit={rc}")
+
+
+def test_T25_bare_citation_still_passes() -> None:
+    """T25 (AC-166-001(d)): a bare path:line citation (no anchor field) on
+    the same fixture file still exits 0 -- backward-compatibility control.
+
+    NOTE: this is a control, not a Red Gate probe. Bare path:line citations
+    are handled by pre-existing (pre-AC-166-001) code and served as the
+    backward-compat control during the Red Gate run (passed both before and
+    after the anchor-grammar extension landed), confirming the anchor-grammar
+    work did not regress pre-existing behavior, per AC-166-001(d).
+    """
+    file_content = (
+        b"# header comment\n"
+        b"def some_function():\n"
+        b"    return 1\n"
+    )
+    citations = "mod.py:2\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 0, f"T25: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    assert "PASS" in out, f"T25: expected PASS in stdout, got {out!r}"
+    print(f"  [PASS] T25 bare citation backward-compat control: exit={rc}, out={out.strip()!r}")
+
+
+def test_T26_range_citation_anchor_asserts_start_line_only() -> None:
+    """T26 (EC-003): for a range citation `path:start-end:anchor`, the anchor
+    assertion applies ONLY to the range's start line -- the end line is
+    bounds-checked only, never anchor-checked. This test proves both
+    directions of that semantic:
+      (a) anchor present on the start line, absent from a later line in the
+          same range -> PASS (exit 0), because only the start line matters.
+      (b) anchor absent from the start line, but present on a LATER line
+          within the range -> FAIL (exit 1, SYMBOL NOT AT LINE), proving a
+          later-line match does NOT satisfy the assertion.
+    """
+    file_content = (
+        b"# header comment\n"       # line 1
+        b"def some_function():\n"   # line 2 -- anchor present here
+        b"    return 1\n"           # line 3 -- anchor absent here
+        b"def some_function():\n"   # line 4 -- anchor present here (later line)
+        b"    pass\n"                # line 5
+    )
+
+    # (a) start line (2) has the anchor; later line (3) in the range does not.
+    citations_pass = "mod.py:2-3:some_function\n"
+    rc, out, err = _run_with_real_files(citations_pass, {"mod.py": file_content})
+    assert rc == 0, (
+        f"T26a: expected exit 0 (anchor present on start line satisfies the "
+        f"range assertion regardless of later lines), got {rc}\n"
+        f"stdout={out!r}\nstderr={err!r}"
+    )
+    assert "PASS" in out, f"T26a: expected PASS in stdout, got {out!r}"
+
+    # (b) start line (3) lacks the anchor; a later line (4) in the range has it.
+    citations_fail = "mod.py:3-4:some_function\n"
+    rc2, out2, err2 = _run_with_real_files(citations_fail, {"mod.py": file_content})
+    assert rc2 == 1, (
+        f"T26b: expected exit 1 (a match on a later line does not satisfy "
+        f"the start-line-only anchor assertion), got {rc2}\n"
+        f"stdout={out2!r}\nstderr={err2!r}"
+    )
+    combined2 = out2 + err2
+    assert "SYMBOL NOT AT LINE" in combined2, (
+        f"T26b: expected SYMBOL NOT AT LINE in output, got {combined2!r}"
+    )
+    assert "mod.py:3" in combined2, (
+        f"T26b: expected the failure to cite the start line 'mod.py:3' "
+        f"(not the end line), got {combined2!r}"
+    )
+    print(
+        "  [PASS] T26 range anchor asserts start-line-only: "
+        f"a_exit={rc}, b_exit={rc2}"
+    )
+
+
+def test_T27_symbol_failure_message_truncates_long_line() -> None:
+    """T27 (AC-166-001(c) truncation): the cited line's text embedded in a
+    SYMBOL NOT AT LINE failure message is truncated to at most 80 chars.
+
+    Per bin/validate-citations (see `_truncate_for_message`:
+    `return text[:limit]`), truncation is a plain slice with NO ellipsis
+    or other marker appended -- this test asserts that exact observed
+    behavior rather than assuming an ellipsis convention.
+    """
+    long_line = "x" * 150  # far exceeds the 80-char truncation limit
+    file_content = (
+        b"# header comment\n"          # line 1
+        + (long_line.encode() + b"\n")  # line 2 -- long line, anchor absent
+        + b"    pass\n"                 # line 3
+    )
+    citations = "mod.py:2:nonexistent_symbol\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 1, f"T27: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "SYMBOL NOT AT LINE" in combined, (
+        f"T27: expected SYMBOL NOT AT LINE in output, got {combined!r}"
+    )
+
+    # Extract the found '<line-text>' portion of the message.
+    marker = "found '"
+    start_idx = combined.index(marker) + len(marker)
+    end_idx = combined.index("')", start_idx)
+    found_text = combined[start_idx:end_idx]
+
+    assert len(found_text) <= 80, (
+        f"T27: expected truncated line text to be <=80 chars, got "
+        f"{len(found_text)} chars: {found_text!r}"
+    )
+    assert found_text == "x" * 80, (
+        f"T27: expected exact plain-slice truncation ('x'*80, no ellipsis, "
+        f"per _truncate_for_message's text[:limit] implementation), "
+        f"got {found_text!r}"
+    )
+    print(
+        "  [PASS] T27 long-line SYMBOL NOT AT LINE message truncated to "
+        f"<=80 chars: exit={rc}, found_len={len(found_text)}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -632,6 +783,11 @@ def main() -> None:
         test_T20_non_utf8_stdin_exits_2,
         test_T21_directory_target_not_a_file,
         test_T22_unreadable_target_file,
+        test_T23_anchor_present_passes,
+        test_T24_anchor_absent_symbol_not_at_line,
+        test_T25_bare_citation_still_passes,
+        test_T26_range_citation_anchor_asserts_start_line_only,
+        test_T27_symbol_failure_message_truncates_long_line,
     ]
     passed = 0
     failed = 0

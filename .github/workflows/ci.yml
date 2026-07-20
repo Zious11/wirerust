@@ -463,9 +463,12 @@ jobs:
 
   # AC-165-001 / PG-W74-CI-BIN-SELFTEST: run Python self-test suites for bin/ gate scripts.
   #
-  # STORY-164 (wave-74) delivered bin/test_validate_citations.py (22 tests) and
-  # bin/test_changelog_gate_content.py (10 tests) without CI wiring. This job closes that gap
+  # STORY-164 (wave-74) delivered bin/test_validate_citations.py and
+  # bin/test_changelog_gate_content.py without CI wiring. This job closes that gap
   # following the green-doc-tense-gate structural pattern (STORY-162 AC-162-002).
+  # W75 NIT-1: step names are count-free -- suite sizes grow over time and a
+  # hardcoded count would silently stale (same rationale as the
+  # green-doc-tense-gate job above).
   bin-selftest:
     name: Bin selftest suite (test_validate_citations + test_changelog_gate_content)
     runs-on: ubuntu-latest
@@ -474,9 +477,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Run bin/test_validate_citations.py (22 tests)
+      - name: Run bin/test_validate_citations.py
         run: python3 bin/test_validate_citations.py
-      - name: Run bin/test_changelog_gate_content.py (10 tests)
+      - name: Run bin/test_changelog_gate_content.py
         run: python3 bin/test_changelog_gate_content.py
 
   # AC-158-001 / PG-W71-CHANGELOG: enforce CHANGELOG entry for production-code PRs.

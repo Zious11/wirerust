@@ -7,6 +7,43 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
+  (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**
+
+  The citation grammar gains an optional third `:anchor` field --
+  `path:line:anchor` or `path:line-line:anchor` (a range's anchor applies to
+  the start line only). When present, the tool reads the cited line and
+  asserts the anchor token appears -- either as a `def`/`async def`/`fn`/
+  `class` declaration prefix, or (minimal acceptable form) as a bare
+  substring. The anchor is `re.escape()`'d before matching, so regex-special
+  characters (e.g. `arr[0]`) are treated literally. On mismatch, the tool
+  exits 1 with a new failure class: `SYMBOL NOT AT LINE: path:line (expected
+  anchor '<anchor>', found '<line-text>')`, where `<line-text>` is the cited
+  line's stripped content truncated to 80 characters. Bare `path:line` and
+  `path:line-line` citations are unchanged -- fully backward compatible.
+  stdlib `re` only, no ctags or other external binary dependency. Self-tested
+  by `bin/test_validate_citations.py` (five tests, T23–T27, added to the
+  existing 22 tests).
+
+### Changed
+
+- **ROUTE-W74-DEFERRED bin/ tooling housekeeping (STORY-166, AC-166-001(g)).**
+  Removed the dead `_run()` helper from `bin/test_validate_citations.py`
+  (superseded by `_run_with_real_files()`, never called); moved inline
+  `os`/`stat`/`tempfile` imports from individual test bodies to module-level
+  imports; removed an unnecessary `f`-prefix on a placeholder-free string
+  literal in `test_T21_directory_target_not_a_file`; documented
+  `parse_line()`'s regex-mismatch `None` return path. No behavior change.
+
+- **CI: `bin-selftest` step names are count-free (W75 NIT-1, ratified by
+  STORY-166 AC-166-001(g)).** Removed the hardcoded `(22 tests)` / `(10
+  tests)` parentheticals from the `bin-selftest` job's comment and step names
+  in `.github/workflows/ci.yml` -- they silently stale as the suites grow.
+  Follows the same count-free step-naming pattern already used by the
+  `green-doc-tense-gate` job.
+
 ## [0.13.0] - 2026-07-18
 
 IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
