@@ -6,8 +6,8 @@ cycle: wave-084
 version: "1.0"
 status: in-progress
 producer: state-manager
-timestamp: 2026-07-20T21:30:00Z
-pass_count: 2
+timestamp: 2026-07-20T22:15:00Z
+pass_count: 3
 converged: false
 ---
 
@@ -245,10 +245,92 @@ even though the fixture string is the same. No test coverage gap.
 
 ---
 
-## Pass 3 — DISPATCHED (2026-07-20)
+## Pass 3 — 2026-07-20 | Classification: FINDINGS | Code Tip Reviewed: b583c4b4
 
-Pass 3 adversary dispatched. Pending verdict. Part A will verify P2 fixes:
-F-S176P2-001/002 (code/doc).
+**Adversary:** Fresh (no prior-pass context). NOTE: First pass-3 dispatch died mid-stream
+on API "Response stalled" error after attestation only — no findings produced. A fresh
+pass-3 adversary was re-dispatched and completed. This record documents the re-dispatched
+(successful) adversary.
+
+**Ops note (infrastructure transient):** First pass-3 adversary stalled mid-stream on API
+"Response stalled" error after attestation only. No findings were produced before the stall.
+A fresh adversary was re-dispatched immediately. The re-dispatch is the pass-3 record. No
+process gap — infrastructure transient; retry succeeded.
+
+**Code tip reviewed:** `b583c4b4`
+**Fixes committed through:** spec-only (story v2.5/a90c4b4); code tip UNCHANGED (`b583c4b4`)
+
+### Part A — Pass-1 and Pass-2 Fix Verification
+
+Independent count reconciliation: 40 BAD + 45 GOOD + 6 hermetic = 91 confirmed.
+
+| Finding | Status |
+|---------|--------|
+| F-S176P1-001 | VERIFIED-FIXED |
+| F-S176P1-002 | VERIFIED-FIXED |
+| F-S176P1-003 | VERIFIED-FIXED |
+| F-S176P1-004 | ACCEPTED — not re-litigated |
+| F-S176P1-005 | VERIFIED-FIXED |
+| F-S176P1-006 | VERIFIED-FIXED |
+| F-S176P1-007 | LEDGERED — not re-raised |
+| F-S176P1-008 | VERIFIED-FIXED |
+| F-S176P2-001 | VERIFIED-FIXED |
+| F-S176P2-002 | VERIFIED-FIXED |
+| F-S176P2-003 | ACCEPTED — not re-litigated |
+| Obs-1 | ACCEPTED — not re-litigated |
+| Obs-2 | ACCEPTED — not re-litigated |
+
+All 8 pass-1 and 2 pass-2 fixable findings VERIFIED-FIXED.
+
+### Part B — New Findings
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| F-S176P3-001 | MEDIUM | spec coherence | FIXED | story v2.5 (a90c4b4) |
+| Obs-A | INFO | pattern logic | ACCEPTED | analogous to accepted F-S176P2-003 |
+| Obs-B | INFO | verification breadth | ACCEPTED | residue of accepted F-S176P1-004 |
+
+**1 MEDIUM (spec-route → story v2.5). 2 informational observations ACCEPTED.
+HIGH/CRITICAL: 0. No code changes — code tip b583c4b4 UNCHANGED.**
+
+---
+
+### Finding Details
+
+#### F-S176P3-001 — MEDIUM — bin/test_gitignore_mutants_glob.py absent from story Architecture Mapping and traces_to
+
+The new tracked deliverable `bin/test_gitignore_mutants_glob.py` (added during Steps 1–4
+delivery) was absent from the story's Architecture Mapping section and `traces_to` list —
+a strict-TDD coherence gap.
+
+**Disposition:** FIXED
+**Fix:** Story v2.5 (deliverable-map rows added, AC-176-003 regression-guard note added;
+DF-SIBLING-SWEEP 5/5 develop files + factory doc verified PRESENT, no phantom ci.yml
+entries added; input-hash re-baselined a90c4b4 canonical via `bin/compute-input-hash`,
+orchestrator-verified).
+
+---
+
+#### Obs-A — INFO — pattern-28 leading-boundary latency
+
+Pattern-28 exhibits leading-boundary latency on certain match sequences, analogous to the
+accepted F-S176P2-003 informational observation (pattern-29 lookahead over/under-shoot).
+Zero current-tree impact confirmed.
+
+**Disposition:** ACCEPTED
+**Rationale:** Faithful to spec; analogous to accepted F-S176P2-003. No fix required for
+convergence.
+
+---
+
+#### Obs-B — INFO — verification-command breadth conservative-and-sound
+
+The verification command breadth is conservative-and-sound, consistent with the residue of
+accepted F-S176P1-004 (pattern-scope narrowing). Zero coverage gap identified.
+
+**Disposition:** ACCEPTED
+**Rationale:** Conservative-and-sound residue of accepted F-S176P1-004. AC constraints
+satisfied. No fix required for convergence.
 
 ---
 

@@ -40,6 +40,14 @@
       ],
       "code_tip": "08fc7d88",
       "notes": "Fresh adversary. Part A: all P1 fixes VERIFIED-FIXED (F-S176P1-001/002/003/005/006/008); F-S176P1-004 ACCEPTED not re-litigated; F-S176P1-007 LEDGERED not re-raised. Part B: F-S176P2-001 MEDIUM stale CHANGELOG self-test count (89 vs actual 91; S-7.01 partial-fix propagation from pass-1 fixture add) → FIXED b583c4b4 (count synced to 91, sibling sweep clean); F-S176P2-002 LOW no regression-guard fixture for pattern-26 trailing-\\b → FIXED b583c4b4 (GOOD fixture '// harness skeleton compiled cleanly in STORY-NNN' added); F-S176P2-003 LOW pattern-29 lookahead over/under-shoot on inflected objects ('wired its/their' FP-latent, 'wired the same way' FN-latent) → ACCEPTED (adversary's own verdict: informational, zero current-tree matches, AC zero-FP holds, no fix required for convergence); Obs-1 LOW 'exposes a compile-only seam' evasion → ACCEPTED (consistent with F-S176P1-004 accepted verb-narrowing disposition); Obs-2 LOW duplicate GOOD-fixture payload across pattern-c/d allowlists → ACCEPTED (harmless, each documents distinct rationale). Post-fix verified: self-test 91/0 exit 0, gate PASS 114 files, gitignore test 2/0, CHANGELOG count matches actual."
+    },
+    {
+      "pass": 3,
+      "verdict": "FINDINGS",
+      "high_critical": 0,
+      "finding_ids": ["F-S176P3-001", "Obs-A", "Obs-B"],
+      "code_tip": "b583c4b4",
+      "notes": "Fresh adversary (re-dispatched; first pass-3 died mid-stream on API stall after attestation only — no findings produced; infrastructure transient). Part A: all 8 pass-1 + 2 pass-2 fixable findings VERIFIED-FIXED; independent count reconciliation 40 BAD + 45 GOOD + 6 hermetic = 91 confirmed. Part B: F-S176P3-001 MEDIUM bin/test_gitignore_mutants_glob.py absent from story Architecture Mapping + traces_to (strict-TDD coherence gap) → FIXED story v2.5 (deliverable-map rows added, AC-176-003 regression-guard note, DF-SIBLING-SWEEP 5/5 develop files + factory doc verified PRESENT, no phantom ci.yml entries; input-hash re-baselined a90c4b4 canonical, orchestrator-verified). Obs-A INFO pattern-28 leading-boundary latency → ACCEPTED (faithful-to-spec, analogous to accepted F-S176P2-003). Obs-B INFO verification-command breadth conservative-and-sound → ACCEPTED (residue of accepted F-S176P1-004). Code tip UNCHANGED b583c4b4 (spec-only fix; no code commit)."
     }
   ],
   "carried_findings": [],
@@ -49,6 +57,8 @@
     "DF-SIBLING-SWEEP executed for F-S176P1-003: all bin/*.py test files scanned; only 3 loci contained stale RED-phase prose; STORY-174 sibling affected and fixed in 08fc7d88.",
     "Worktree: .worktrees/STORY-176, branch feature/STORY-176-cycle-close-hygiene, base fa9be701 (develop).",
     "Pass 2 dispatched following all P1 fix verification by orchestrator.",
-    "Pass 2 code tip reviewed: 08fc7d88. Fresh adversary. All P1 fixes VERIFIED-FIXED. New findings: 1 MEDIUM (F-S176P2-001 CHANGELOG count stale 89→91) + 2 LOW (F-S176P2-002 missing regression-guard fixture for pattern-26 \\b + F-S176P2-003 ACCEPTED informational) + 2 observations (both ACCEPTED). Both actionable findings FIXED b583c4b4. passes_clean: 0 (both passes classified FINDINGS). consecutive_clean: 0. Pass 3 dispatched."
+    "Pass 2 code tip reviewed: 08fc7d88. Fresh adversary. All P1 fixes VERIFIED-FIXED. New findings: 1 MEDIUM (F-S176P2-001 CHANGELOG count stale 89→91) + 2 LOW (F-S176P2-002 missing regression-guard fixture for pattern-26 \\b + F-S176P2-003 ACCEPTED informational) + 2 observations (both ACCEPTED). Both actionable findings FIXED b583c4b4. passes_clean: 0 (both passes classified FINDINGS). consecutive_clean: 0. Pass 3 dispatched.",
+    "Pass 3 ops note (infrastructure transient): first pass-3 dispatch died mid-stream on API 'Response stalled' error after attestation only — no findings produced. A fresh pass-3 adversary was re-dispatched immediately and completed successfully. No process gap.",
+    "Pass 3 code tip reviewed: b583c4b4 (UNCHANGED — pass-3 finding was spec-only). Fresh adversary (re-dispatched). Part A: all 8 pass-1 + 2 pass-2 fixable findings VERIFIED-FIXED; independent count reconciliation 40 BAD + 45 GOOD + 6 hermetic = 91 confirmed. Part B: F-S176P3-001 MEDIUM bin/test_gitignore_mutants_glob.py absent from story Architecture Mapping + traces_to (strict-TDD coherence gap) → FIXED story v2.5 (deliverable-map rows added, AC-176-003 regression-guard note, DF-SIBLING-SWEEP 5/5 develop files + factory doc verified PRESENT, no phantom ci.yml entries; input-hash re-baselined a90c4b4 canonical, orchestrator-verified). Obs-A INFO pattern-28 leading-boundary latency → ACCEPTED (faithful-to-spec, analogous to accepted F-S176P2-003). Obs-B INFO verification-command breadth conservative-and-sound → ACCEPTED (residue of accepted F-S176P1-004). Code tip UNCHANGED b583c4b4. consecutive_clean: 0. Pass 4 dispatched."
   ]
 }

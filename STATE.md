@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "D-484: STORY-176 Step-4.5 pass 2 FINDINGS (1 MED/2 LOW + 2 obs) — pass-1 fixes all VERIFIED-FIXED; new findings fixed b583c4b4 or ACCEPTED; pass 3 dispatched; code tip b583c4b4. trajectory-tail →0→0→0→0"
+current_step: "D-484: STORY-176 Step-4.5 pass 3 FINDINGS (1 MED spec-route → story v2.5; 2 informational accepted); all code-level findings exhausted, code tip b583c4b4 unchanged since pass 2; pass 4 dispatched; streak 0/3. trajectory-tail →0→0→0→0"
 current_cycle: "wave-084"
 pipeline: ACTIVE
-timestamp: 2026-07-20T21:36:00Z
+timestamp: 2026-07-20T22:20:00Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 295 = 205 (dual-margin form). 295 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 295 = 205 (dual-margin form). ~295 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -68,7 +68,7 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED, 9 PGs → STORY-175..179 (12 pts), B-001/B-002 FIXED (PRD v1.57 + BC-2.19.002 v1.3), PR #419 82ad2ed merged. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded (upstream-routed or OBSOLETE); STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374, 2026-07-20). D-482: STORY-166 DELIVERED (PR #426 fa9be701, 2026-07-20) — wave-84 2/3 DELIVERED; STORY-176 remains ready. D-484: STORY-176 v2.2→v2.3 spec-route remediation complete (Steps 1-2 done); Red Gate next.** |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED, 9 PGs → STORY-175..179 (12 pts), B-001/B-002 FIXED (PRD v1.57 + BC-2.19.002 v1.3), PR #419 82ad2ed merged. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded (upstream-routed or OBSOLETE); STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374, 2026-07-20). D-482: STORY-166 DELIVERED (PR #426 fa9be701, 2026-07-20) — wave-84 2/3 DELIVERED; STORY-176 remains ready. D-484: STORY-176 v2.4 Steps 1-4 complete (spec-route remediation v2.3, Steps 1-4 done); Step-4.5 adversarial convergence: pass 1 FINDINGS (3M/5L all fixed), pass 2 FINDINGS (1M/2L+2obs all resolved), pass 3 dispatched.** |
 | Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=fa9be701 — D-482 STORY-166 PR #426 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 retained) |
 | Main HEAD | `67a06b6f82654d2af79d023b15ac56ab03182ffd` |
 | Develop HEAD | `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` — D-482 STORY-166 PR #426 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 |
@@ -109,7 +109,7 @@ maintenance_prior_run: maint-2026-07-09
 | E2E IEC-104 coverage (human-directed, post-F7) | **MERGED (D-471)** | PR #416 0b65e8e; 4 fixtures + analyzer-level real-pcap test |
 | v0.13.0 RELEASED | RELEASED 2026-07-18 | PR #417 67a06b6 main + tag v0.13.0 + GH release 4 assets; back-merge #418; IEC-104 F1-F7 |
 | **feature-iec104 cycle-close (S-7.02)** | **CLOSED (D-475)** | 9 PGs → STORY-175..179 (12 pts, E-11 epic); B-001/B-002 FIXED; PR #419 82ad2ed; STORY-INDEX v3.77; 132 stories / 777 pts. **D-477 annotation: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream drbothen/vsdd-factory issues/comments per D-477 (D-475 history preserved — vehicle changed, not rewritten); STORY-176 v2.0 local survivor (2 pts).** |
-| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **OPENED (D-480); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484)** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges among the three stories. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass Step-4.5 adversary CONVERGED P6/P7/P8; dual pr-reviewer APPROVE; security CLEAN; CI 13/13). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13). STORY-176 v2.2→v2.3 spec-route remediation complete (D-484, 2026-07-20; Steps 1-2 done, research-validated per planning/story-176-ac001-validation.md; Red Gate Step 3 next). |
+| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **OPENED (D-480); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484)** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges among the three stories. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass Step-4.5 adversary CONVERGED P6/P7/P8; dual pr-reviewer APPROVE; security CLEAN; CI 13/13). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13). STORY-176 v2.4 Steps 1-4 complete (D-484, 2026-07-20; spec-route remediation v2.3, research-validated per planning/story-176-ac001-validation.md); Step-4.5 adversarial convergence: pass 1 FINDINGS (3M/5L, all routed+fixed 61f6db4c/08fc7d88/story v2.4/PG-W84-010), pass 2 FINDINGS (1M/2L+2obs, all resolved b583c4b4), pass 3 dispatched. |
 
 ---
 
@@ -125,7 +125,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | Cycle | Status | Branch |
 |-------|--------|--------|
 | feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → upstream drbothen/vsdd-factory per D-477 (STORY-175/177/178/179 superseded); STORY-176 v2.0 + STORY-166 local survivors; B-001/B-002 FIXED; Pipeline RESUMED (D-484) | develop (fa9be701) |
-| wave-084 (E-11 mini-wave) | **OPENED (D-480, 2026-07-19); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484, 2026-07-20)** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 v2.2→v2.3 spec-route remediation complete (D-484; Steps 1-2 done; Red Gate Step 3 next); 7 pts, all product-local; plan gate approved (human); no dependency edges among the three stories | develop (fa9be701, D-482 STORY-166 merge) |
+| wave-084 (E-11 mini-wave) | **OPENED (D-480, 2026-07-19); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484, 2026-07-20)** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 v2.4 Steps 1-4 complete (D-484); Step-4.5 adversarial convergence in progress — pass 1 FINDINGS done + all fixed, pass 2 FINDINGS done + all resolved (b583c4b4), pass 3 dispatched; 7 pts, all product-local; plan gate approved (human); no dependency edges among the three stories | develop (fa9be701, D-482 STORY-166 merge) |
 
 ---
 
@@ -230,7 +230,7 @@ Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and
 - **In-flight work:** STORY-176 v2.4 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 2 FINDINGS resolved; pass 3 dispatched; awaiting pass 3 verdict. No open factory PRs.
 - **NEXT STEP:** STORY-176 Step-4.5 pass 3 adversarial verdict — if CLEAN start clean streak (need 3 consecutive); if FINDINGS fix and dispatch pass 4.
 - **Pending human decisions:** (a) PR #407 governance (external; triage preserved at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix — BOTH clusters: STORY-INDEX.md-in-inputs (164/165, ~7 re-baselines) AND STATE.md-in-inputs (175..179, ~5 re-baselines).
-- **Wave-84 cycle-close process-gap ledger (upstream vehicles per human directive, DF-VALIDATION-001 research required before filing):** stale-inline-version-marker recurrence (3+); sub-agent message-routing breakage (relay-through-orchestrator workaround; security-review.md backfill on #421); burst-log template understatement; STATE.md write-path hook friction; validate-pr-review-posted hook false-positive on self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR; governance-doc CI examples unvalidated against branch topology (F-S166P7-001, fixed locally); R-426-001 PR-description commit-count drift; AC-176-001 fabricated nonexistent allowlist mechanism + wrong gate locus (spec-drift class "AC cites nonexistent mechanism"; filed: cycles/wave-084/process-gap-ledger.md).
+- **Wave-84 cycle-close process-gap ledger (upstream vehicles per human directive, DF-VALIDATION-001 research required before filing):** stale-inline-version-marker recurrence (3+); sub-agent message-routing breakage (relay-through-orchestrator workaround; security-review.md backfill on #421); burst-log template understatement; STATE.md write-path hook friction; validate-pr-review-posted hook false-positive on self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR; governance-doc CI examples unvalidated against branch topology (F-S166P7-001, fixed locally); R-426-001 PR-description commit-count drift; AC-176-001 fabricated nonexistent allowlist mechanism + wrong gate locus (spec-drift class "AC cites nonexistent mechanism"; filed: cycles/wave-084/process-gap-ledger.md). **NEW (this burst): F-S176P1-007 gate scan Rust-only blind spot for bin/*.py prose (PG-W84-010 filed; out of story scope).**
 - **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 deferred to maintenance sweep).
 - **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.83 / dep-graph v3.9.
 - **Resume command:** `/vsdd-factory:next-step`.

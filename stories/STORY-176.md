@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "2.4"
+version: "2.6"
 status: ready
 producer: story-writer
 timestamp: 2026-07-20T00:00:00Z
@@ -29,11 +29,14 @@ traces_to:
   - .factory/maintenance/delivery-doc-currency-protocol.md
   - bin/check-green-doc-tense
   - bin/test_check_green_doc_tense.py
+  - bin/test_gitignore_mutants_glob.py
   - .gitignore
+  - CHANGELOG.md
+  - .github/workflows/ci.yml
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "8dc205a"
+input-hash: "a90c4b4"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
@@ -243,6 +246,13 @@ grep -n "re-baseline\|input-hash.*post\|post-delivery.*hash" \
 (c) **Effect:** After this change, `git status` shows no untracked `mutants.out*/`
     entries after a standard `cargo mutants` run.
 
+This AC is regression-guarded by `bin/test_gitignore_mutants_glob.py` (new file, develop
+branch), which contains 2 `git check-ignore` assertions verifying the glob covers both
+`mutants.out/` and `mutants.out.j4-invalid/`. This test file is added test-first per
+`tdd_mode: strict`. The regression guard is CI-enforced: `bin/test_gitignore_mutants_glob.py`
+is wired into the existing `bin-selftest` job in `.github/workflows/ci.yml` (one new `run:`
+step added; no SHA-pin changes, no `green-doc-tense-gate` job changes).
+
 Verification:
 ```bash
 grep "mutants.out" .gitignore
@@ -259,10 +269,13 @@ grep "mutants.out" .gitignore
 | CHANGELOG entry for gate extension | `CHANGELOG.md` (amend) | develop |
 | Input-hash post-delivery re-baseline reminder | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | factory-artifacts |
 | mutants.out* glob | `.gitignore` (amend) | develop |
+| mutants.out* glob regression guard | `bin/test_gitignore_mutants_glob.py` (new) | develop |
+| AC-176-003 regression-guard CI wiring | `.github/workflows/ci.yml` (bin-selftest job, amend) | develop |
 
 No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. `bin/` changes are
-CI tooling only (no production code). `ci.yml` is NOT modified — it only invokes
-`bin/check-green-doc-tense` and need not be edited for this story.
+CI tooling only (no production code). `ci.yml` SHA pins and the `green-doc-tense-gate` job
+are NOT modified; the ONLY `ci.yml` change is the bin-selftest step addition for AC-176-003
+(wiring `bin/test_gitignore_mutants_glob.py` into the existing `bin-selftest` job).
 
 ## Edge Cases
 
@@ -286,7 +299,10 @@ CI tooling only (no production code). `ci.yml` is NOT modified — it only invok
    trigger changelog-gate per AC-158-001).
 
 2. **Update .gitignore (AC-176-003):** Add `mutants.out*/` glob under cargo-mutants
-   section. Batch with AC-176-001 in the same develop PR.
+   section. Batch with AC-176-001 in the same develop PR. Add
+   `bin/test_gitignore_mutants_glob.py` (new file) with 2 `git check-ignore` assertions
+   confirming the glob covers `mutants.out/` and `mutants.out.j4-invalid/`; this test
+   file is added test-first per `tdd_mode: strict` before the `.gitignore` change.
 
 3. **Extend delivery-doc-currency-protocol.md (AC-176-002):** Add input-hash
    post-delivery re-baseline reminder. Factory-artifacts branch commit.
@@ -313,10 +329,12 @@ CI tooling only (no production code). `ci.yml` is NOT modified — it only invok
 
 ## Architecture Compliance Rules
 
-- **ci.yml must not be modified:** ci.yml only invokes `python3 bin/check-green-doc-tense`
-  and its self-test. No new grep commands or token lists belong in ci.yml. The action
-  SHA-pin policy (CLAUDE.md §CI / Supply Chain) remains a standing constraint on any
-  ci.yml modifications but does not apply here — ci.yml is not touched by this story.
+- **ci.yml scoped edit only:** The ONLY `ci.yml` change for this story is one new `run:`
+  step in the existing `bin-selftest` job to wire `bin/test_gitignore_mutants_glob.py`
+  (AC-176-003 regression guard). `ci.yml` SHA pins and the `green-doc-tense-gate` job are
+  NOT modified. No new grep commands or token lists belong in `ci.yml`. The action SHA-pin
+  policy (CLAUDE.md §CI / Supply Chain) applies to any `ci.yml` additions — the bin-selftest
+  step uses only a `run:` step (no new `uses:` action refs), so no new SHA pin is required.
 - **Zero false positives required:** The phrase-level patterns MUST be verified against
   the current tree (run `python3 bin/check-green-doc-tense` → exit 0) before the develop
   PR is merged. Bare-word `skeleton`/`seam` tokens are explicitly rejected: ~91 legitimate
@@ -356,6 +374,8 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.6 | 2026-07-20 | story-writer | F-S176P4-001/-002/-003: AC-176-003 regression guard CI-wired (bin-selftest step; scoped ci.yml edit documented); traces_to completed (CHANGELOG.md + ci.yml); stale v2.3 Task-4 token dropped. No AC semantic change beyond guard-enforcement locus. |
+| 2.5 | 2026-07-20 | story-writer | F-S176P3-001: added bin/test_gitignore_mutants_glob.py to Architecture Mapping + traces_to + AC-176-003 regression-guard note; deliverable-map completeness sweep (5/5 develop files + factory doc verified). No AC semantic change. |
 | 2.4 | 2026-07-20 | story-writer | F-S176P1-008: Disposition-table AC-ID renumbering footnote; clarification only, no AC content change. |
 | 2.3 | 2026-07-20 | story-writer | Spec-route remediation per planning/story-176-ac001-validation.md: corrected AC-176-001 locus to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; replaced bare-word tokens with four phrase-level zero-FP patterns; deleted fabricated # green-doc-tense-gate: allow allowlist claim; corrected CHANGELOG obligation (bin/ IS in trigger set, entry required); fixed verification commands; updated Architecture Mapping, Edge Cases, Tasks, Token Budget, Notes, Previous Story Intelligence, Architecture Compliance Rules, target_module frontmatter, and Background (v2.3 correction note + P4-seam provenance attribution note). No points/status/wave change (2 pts, ready, wave 84). |
 | 2.2 | 2026-07-19 | story-writer | Remediation: added missing "Token Budget Estimate" section (per-story-delivery.md Token Budget Check). No AC or scope content change. |
