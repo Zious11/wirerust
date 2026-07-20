@@ -117,4 +117,54 @@ out by the D-481 STORY-147 DELIVERED row addition.
 
 ---
 
+## Burst: D-479 row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-482
+STORY-166 DELIVERED bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the D-482 STORY-166 DELIVERED row addition,
+not a spec-evolution or code-delivery burst in its own right. (STORY-166's
+per-story TDD delivery — 10-pass Step-4.5 adversary CONVERGED P8/P9/P10, dual
+reviewer APPROVE, security CLEAN, CI 13/13 first-try — is recorded separately in
+`cycles/wave-084/STORY-166/convergence-report.md`,
+`cycles/wave-084/STORY-166/adversary-convergence-state.json`, and
+`.factory/code-delivery/STORY-166/`.)
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the D-482 STORY-166 DELIVERED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **D-479 SESSION WRAP (2026-07-19). Human-requested pause at clean milestone post-D-478 dep-soak. Sessions D-475..D-478 (exhaustive) delivered (feature-iec104 CLOSED; v0.13.0 released; dep-soak PR #420 merged). No in-flight work. Pipeline PAUSED. Resume: /vsdd-factory:next-step.** | **PAUSED (D-479)** | steady-state post-dep-soak. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable. This
+archival step performs no compilation or test execution; the underlying
+STORY-166 code changes were gated separately during Steps 1-8 (per-story
+delivery pipeline).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only this
+.md archival artifact plus STATE.md bookkeeping.
+
+**Dim-6 Attestation:** N/A — no source code changes on develop branch made by
+this archival step itself. Burst commits exclusively to factory-artifacts
+branch. (develop advanced separately via PR #426 human-executed merge.)
+
+**Dim-7 Attestation:** N/A — no test suite changes made by this archival step.
+Factory artifact integrity verified via state-burst Single-Commit Protocol
+(TD-VSDD-053).
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-479 row) rolled
+out by the D-482 STORY-166 DELIVERED row addition.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
