@@ -24,8 +24,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   line's stripped content truncated to 80 characters. Bare `path:line` and
   `path:line-line` citations are unchanged -- fully backward compatible.
   stdlib `re` only, no ctags or other external binary dependency. Self-tested
-  by `bin/test_validate_citations.py` (T23/T24/T25 added to the existing 22
-  tests).
+  by `bin/test_validate_citations.py` (five tests, T23–T27, added to the
+  existing 22 tests).
 
 ### Changed
 

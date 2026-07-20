@@ -641,10 +641,10 @@ def test_T25_bare_citation_still_passes() -> None:
     the same fixture file still exits 0 -- backward-compatibility control.
 
     NOTE: this is a control, not a Red Gate probe. Bare path:line citations
-    are handled by pre-existing (pre-AC-166-001) code and are expected to
-    PASS even before the anchor-grammar extension is implemented. Its
-    presence in the Red Gate run confirms the anchor-grammar work has not
-    regressed pre-existing behavior, per AC-166-001(d).
+    are handled by pre-existing (pre-AC-166-001) code and served as the
+    backward-compat control during the Red Gate run (passed both before and
+    after the anchor-grammar extension landed), confirming the anchor-grammar
+    work did not regress pre-existing behavior, per AC-166-001(d).
     """
     file_content = (
         b"# header comment\n"
@@ -713,11 +713,10 @@ def test_T27_symbol_failure_message_truncates_long_line() -> None:
     """T27 (AC-166-001(c) truncation): the cited line's text embedded in a
     SYMBOL NOT AT LINE failure message is truncated to at most 80 chars.
 
-    Per bin/validate-citations's `_truncate_for_message()` (lines 185-187 at
-    the time this test was written: `return text[:limit]`), truncation is a
-    plain slice with NO ellipsis or other marker appended -- this test
-    asserts that exact observed behavior rather than assuming an ellipsis
-    convention.
+    Per bin/validate-citations (see `_truncate_for_message`:
+    `return text[:limit]`), truncation is a plain slice with NO ellipsis
+    or other marker appended -- this test asserts that exact observed
+    behavior rather than assuming an ellipsis convention.
     """
     long_line = "x" * 150  # far exceeds the 80-char truncation limit
     file_content = (
