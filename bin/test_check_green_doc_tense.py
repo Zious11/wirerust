@@ -250,6 +250,64 @@ BAD_CASES: list[tuple[str, str]] = [
         // The harness body is todo!() stub until STORY-174 wires the assertion.
         """,
     ),
+    # ------------------------------------------------------------------
+    # AC-176-001 patterns (a)-(d): phrase-level stub-era vocabulary for
+    # skeleton/seam compile-only assertions and CI-wiring-incomplete prose
+    # (PG-GATE-VOCAB-BLINDSPOT). These known-bad cases will FAIL until
+    # bin/check-green-doc-tense is extended with four new phrase patterns:
+    #   (a) skeleton\s+compiles?        — "harness skeleton compiles" stub-era
+    #   (b) compile-only\s+seams?       — "compile-only seam(s)" present-tense
+    #   (c) (?:are|is)\s+(?:currently\s+)?compile-only — present-tense compile-only claim
+    #   (d) \buntil\b[^\n]*\bwired\b    — "fails until wired" CI-wiring prose
+    # ------------------------------------------------------------------
+    (
+        "AC-176-001 pattern (a): harness skeleton compiles only (stub-era compile-only header)",
+        """\
+        // harness skeleton compiles only — wiring deferred to STORY-176
+        """,
+    ),
+    (
+        "AC-176-001 pattern (a): VP-044 Kani skeleton compiles, no assertions (stub-era header)",
+        """\
+        // VP-044 Kani skeleton compiles — no proof assertions added yet
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b): compile-only seams module header (present-tense stub assertion)",
+        """\
+        // this module exposes compile-only seams — assertions pending in STORY-174
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b): harness is a compile-only seam (present-tense stub label)",
+        """\
+        // harness body is a compile-only seam during red-gate phase
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c): are currently compile-only (present-tense no-assertions claim)",
+        """\
+        // all harness bodies are currently compile-only — no real assertions
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c): is compile-only (present-tense stub-boundary claim, no 'currently')",
+        """\
+        // this function is compile-only at the red-gate boundary
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d): fails until wired (CI-wiring incomplete prose)",
+        """\
+        // CI test fails until the IEC-104 handler is wired
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d): returns early until STORY-NNN is wired (CI-wiring incomplete prose)",
+        """\
+        // function returns early until STORY-176 is wired
+        """,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -476,6 +534,66 @@ GOOD_CASES: list[tuple[str, str]] = [
         "AC-174-008 pattern (c) allowlist: originated as todo!() stubs (past-tense provenance)",
         """\
         // All harness bodies originated as todo!() stubs; STORY-174 upgraded them to assertions.
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # AC-176-001 allowlist cases: past-tense provenance and legitimate
+    # architectural uses of skeleton/seam vocabulary that must NOT be
+    # flagged by patterns (a)-(d). Proves zero false positives on the
+    # common forms named in the STORY-176 spec.
+    # ------------------------------------------------------------------
+    (
+        "AC-176-001 pattern (a) allowlist: skeleton originated (past-tense provenance, no 'compiles')",
+        """\
+        // Harness skeleton originated in STORY-167
+        """,
+    ),
+    (
+        "AC-176-001 pattern (a) allowlist: bare skeleton label (architectural reference, no 'compiles')",
+        """\
+        // VP-024 Sub-D skeleton
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: Test seam accessors (architectural idiom, no 'compile-only' prefix)",
+        """\
+        // Test seam accessors provide injection points for testing
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: VP-047 seam (bare seam reference, no 'compile-only')",
+        """\
+        // VP-047 seam exercised per architecture diagram
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: UDP gap-key seam (bare seam reference, no 'compile-only')",
+        """\
+        // UDP gap-key seam validated in STORY-147
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c) allowlist: was compile-only (past tense 'was', not 'are'/'is')",
+        """\
+        // was compile-only until STORY-153 wired it
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c) allowlist: compile-only checks passed (no 'are'/'is' before 'compile-only')",
+        """\
+        // compile-only checks passed for the test infrastructure
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d) allowlist: STORY-NNN wired the handler (past-tense 'wired', no preceding 'until')",
+        """\
+        // STORY-153 wired the handler — all assertions now GREEN
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d) allowlist: was compile-only until STORY-NNN wired it (past-tense 'until...wired' context)",
+        """\
+        // was compile-only until STORY-153 wired it
         """,
     ),
 ]
