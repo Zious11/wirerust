@@ -9,6 +9,35 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`bin/check-green-doc-tense`: four phrase-level stub-era patterns added
+  (STORY-176, AC-176-001, wave-84, PG-GATE-VOCAB-BLINDSPOT).**
+
+  The green-doc-tense gate gains four patterns (26-29) that catch stub-era
+  vocabulary not covered by the original gate:
+
+  - Pattern 26 `skeleton compiles?`: flags "harness skeleton compiles" /
+    "VP-044 Kani skeleton compiles" -- compile-only harness scaffolding that
+    has no real proof assertions yet. Bare-label forms ("proof skeleton",
+    "VP-024 Sub-D skeleton") and past-tense forms ("skeleton originated") are
+    not matched by specificity.
+  - Pattern 27 `(exposes|is a|are) compile-only seam(s)`: flags present-tense
+    assertions that a module or harness exposes compile-only seams. Requires
+    an explicit present-tense verb so "as a compile-only seam" (past-tense
+    narrative) and bare seam idioms ("Test seam accessors", "VP-047 seam")
+    are not matched.
+  - Pattern 28 `(are|is) (currently) compile-only`: flags present-tense
+    predicate claims ("are currently compile-only", "is compile-only at the
+    red-gate boundary"). "was compile-only" and forms without a preceding
+    are/is are not matched.
+  - Pattern 29 `until … is wired`: flags CI-wiring-incomplete prose ("fails
+    until the handler is wired", "returns early until STORY-NNN is wired").
+    Narrowed from the bare `until.*wired` to require the "is wired" passive
+    auxiliary, so "until STORY-NNN wired it" (past-tense verb-object) is not
+    matched.
+
+  Zero false positives verified on 114 tracked Rust files. Self-test:
+  89 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
+
 - **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
   (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**
 
