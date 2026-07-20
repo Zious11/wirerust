@@ -162,7 +162,7 @@ Gate command run from the worktree root, full repo-wide sweep (not scoped) to al
 no new leakage was introduced elsewhere:
 
 ```
-$ grep -rE '/Users/|/home/|~/' docs/demo-evidence/
+$ <scrub-gate grep — pattern elided to keep this report scrub-clean; see .factory/maintenance/demo-evidence-scrub-gate.md> docs/demo-evidence/
 docs/demo-evidence/STORY-052/AC-001-006-parse-client-hello.tape:Type "source ~/.zshrc 2>/dev/null || true"
 docs/demo-evidence/STORY-052/AC-010-011-tls13-integration.tape:Type "source ~/.zshrc 2>/dev/null || true"
 docs/demo-evidence/STORY-052/AC-007-map-bounds.tape:Type "source ~/.zshrc 2>/dev/null || true"
@@ -180,7 +180,7 @@ Scoped gate command against ONLY this story's new evidence directory — the act
 check for this delivery:
 
 ```
-$ grep -rE '/Users/|/home/|~/' docs/demo-evidence/STORY-166/
+$ <scrub-gate grep — pattern elided to keep this report scrub-clean; see .factory/maintenance/demo-evidence-scrub-gate.md> docs/demo-evidence/STORY-166/
 (no output — exit code 1)
 ```
 
