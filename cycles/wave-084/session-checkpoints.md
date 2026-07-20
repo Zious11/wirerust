@@ -74,4 +74,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Steps 1-2 spec-route remediation checkpoint)
+
+**SESSION RESUMED (2026-07-20, D-484). Worktree health PASS; develop=fa9be701 verified; no story worktrees. Human decisions: STORY-176 v2.2 per-story delivery next (wave-84 3/3); Dependabot #422-425 DEFERRED to DEP-SOAK-FOLLOWUP-2026-07-27; PR #407 governance unchanged. Pipeline ACTIVE. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; pipeline ACTIVE; STORY-176 delivery next.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = D-484 resume commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE at resume (STORY-176 delivery not yet started at checkpoint moment). No open factory PRs, no adversarial loop active.
+- **Pending human decisions:** (a) PR #407 governance (external; triage preserved at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix — both clusters: STORY-INDEX.md-in-inputs (164/165) AND STATE.md-in-inputs (175..179).
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 satisfies re-pin watch; deferred to maintenance sweep).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.82 / dep-graph v3.9.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by STORY-176 Steps 1-2 spec-route remediation checkpoint (D-484, STORY-INDEX v3.83).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

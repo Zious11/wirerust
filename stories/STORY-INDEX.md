@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "3.82"
+version: "3.83"
 status: draft
 producer: story-writer
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-20T17:30:00Z
 phase: f4
 total_stories: 132
 total_waves: 84
 total_points: 775  # = 775; wave-table scheduled: 747 (STORY-091/121/143/155 wave-TBD + STORY-148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; v3.79)
+# v3.83 (2026-07-20): STORY-176 spec-route remediation v2.2→v2.3 (research-validated per planning/story-176-ac001-validation.md; AC-176-001 substantially INVALID as written — HIGH confidence; motivation PG-GATE-VOCAB-BLINDSPOT VALID; product-local, no upstream filing; locus corrected to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; four phrase-level zero-FP patterns; fabricated allowlist claim deleted; CHANGELOG obligation corrected to REQUIRED; input-hash 41176f4→7f8ff02 canonical tool; no pts/status/wave/title change). [process-gap: story-writer fabricated nonexistent allowlist mechanism + wrong gate locus in v1.0/v2.0 story AC; spec-drift class "AC cites nonexistent mechanism"; caught by Step-2 stub-architect pre-condition probe; filed: cycles/wave-084/process-gap-ledger.md].
 # v3.82 (2026-07-20): STORY-166 DELIVERED (D-482, PR #426 fa9be701 squash-merged to develop, human-executed merge 2026-07-20T14:33:12Z under orchestrator merge gate, DF-MERGE-AUTH-CLASSIFIER-001 satisfied); status ready→delivered; wave-84 Delivery Progress row updated (2/3 DELIVERED — STORY-147 ✓, STORY-166 ✓; STORY-176 remains ready). Per-story Step-4.5 adversarial CONVERGED P8/P9/P10 (10 passes); dual reviewer APPROVE (self-authored PR — COMMENTED review event + pr-review.md artifact = review of record); security CLEAN (fuzz-verified); CI 13/13 first-try (CHANGELOG gate exercised + passed). stories_delivered 114→115. No numeric points/story/wave totals changed (status transition only).
 # v3.81 (2026-07-20): STORY-147 DELIVERED (D-481, PR #421 f0cb7374 squash-merged to develop, human-executed merge 2026-07-20T02:40:53Z under explicit per-PR authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied); status ready→delivered; wave-84 Delivery Progress row updated (1/3 DELIVERED — STORY-166/STORY-176 remain ready). Per-story Step-4.5 adversarial CONVERGED 8 passes streak P6/P7/P8 (BC-5.39.001 SATISFIED); dual pr-reviewer APPROVE; security CLEAN; CI 13/13 (Semantic PR recovered after GitHub-declared Minor Service Outage). stories_delivered 113→114. No numeric points/story/wave totals changed (status transition only).
 # v3.80 (2026-07-19): STORY-147 title cell updated to "Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance" — title-only cascade from STORY-147 v2.1→v2.2 spec-route remediation (Step 4.5 adversarial findings F-S147P1-002/-004/-005, CONFIRMED by execution evidence: cargo-mutants reads only `.cargo/mutants.toml`, not repo-root `mutants.toml`/Cargo.toml metadata; `jobs` is not a valid config key). No points/status/wave/epic change; numeric totals unchanged from v3.79.

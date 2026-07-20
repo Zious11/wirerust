@@ -262,4 +262,61 @@ row) rolled out by the D-484 SESSION RESUMED row addition.
 
 ---
 
+## Burst: STORY-147 Step-4.5 adversarial-convergence row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-484
+STORY-176 spec-route remediation bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the STORY-176 spec-route remediation row
+addition, not a spec-evolution or code-delivery burst in its own right. (The
+STORY-147 Step-4.5 adversarial convergence itself — 8 passes, CONVERGED
+P6/P7/P8 — is recorded separately in
+`cycles/wave-084/STORY-147/adversary-convergence-state.json` and
+`cycles/wave-084/STORY-147/convergence-report.md`.)
+
+**Files touched (Dim-1): 5 unique files**
+
+- .factory/STATE.md (burst + CPS update + timestamp advance)
+- .factory/stories/STORY-INDEX.md (v3.82→v3.83, spec-route remediation v2.2→v2.3 note)
+- .factory/cycles/wave-084/burst-log.md (this file)
+- .factory/cycles/wave-084/session-checkpoints.md (D-484 SESSION RESUMED checkpoint archived)
+- .factory/cycles/wave-084/process-gap-ledger.md (created: AC-176-001 process-gap candidate)
+
+**Codifications:** None — archival + state bookkeeping burst for STORY-176
+spec-route remediation (Steps 1-2 complete; AC-176-001 v2.2→v2.3;
+research-validated per planning/story-176-ac001-validation.md;
+STORY-INDEX v3.82→v3.83; process-gap ledgered).
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the STORY-176 spec-route remediation row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **STORY-147 Step-4.5 adversarial review CONVERGED (2026-07-19). 8 passes; clean streak P6/P7/P8 (BC-5.39.001 SATISFIED); final code tip 7ff84f56 (unchanged P6→P8, doc/comment-only fixes). Pass-1 F-S147P1-002 (HIGH, corroborated by F-S147P1-004/-005) caught a placebo config: repo-root `mutants.toml` `jobs=1` is silently never read by cargo-mutants (only `.cargo/mutants.toml` is read by default) and `jobs` is not a valid Config field (deny_unknown_fields — would abort every run); confirmed by execution probes against installed cargo-mutants 27.0.0 plus 27.1.0 docs/source research. Pivoted design to a `.cargo/mutants.toml` `minimum_test_timeout=300` timeout floor. Story retitled v2.1→v2.2 (".cargo/mutants.toml Timeout Floor"); spec evolved v2.1→v2.8 across 8 passes (STORY-INDEX v3.79→v3.80, title-cascade only, no pts/status change). All substantive findings adversary-verified fixed in Part A chains; 1 non-blocking LOW residual (F-S147P8-001, doc-only) carried for gate ratification. Details: cycles/wave-084/STORY-147/convergence-report.md + adversary-convergence-state.json. Step 5 demo evidence dispatched.** | **CONVERGED (Step-4.5)** | STORY-147 v2.8; STORY-INDEX v3.80. Resume: STORY-147 Step 5 demo evidence in-flight. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable. This
+archival step performs no compilation or test execution; the underlying
+STORY-176 spec-route remediation was validated via research-agent
+(planning/story-176-ac001-validation.md).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only .md
+archival artifacts plus STATE.md and STORY-INDEX.md bookkeeping.
+
+**Dim-6 Attestation:** N/A — no source code changes on develop branch made by
+this archival step itself. Burst commits exclusively to factory-artifacts
+branch.
+
+**Dim-7 Attestation:** N/A — no test suite changes made by this archival step.
+Factory artifact integrity verified via state-burst Single-Commit Protocol
+(TD-VSDD-053).
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (STORY-147
+Step-4.5 adversarial-convergence row) rolled out by the STORY-176 spec-route
+remediation burst row addition (D-484, 2026-07-20).
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

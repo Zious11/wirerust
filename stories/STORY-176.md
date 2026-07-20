@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "2.2"
+version: "2.3"
 status: ready
 producer: story-writer
-timestamp: 2026-07-19T00:00:00Z
+timestamp: 2026-07-20T00:00:00Z
 phase: f7
 level: feature
 cycle: feature-iec104
@@ -19,7 +19,7 @@ verification_properties: []
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-target_module: .github/workflows/
+target_module: bin/
 subsystems: []
 estimated_days: 1
 wave: "84"
@@ -27,12 +27,13 @@ traces_to:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
   - .factory/maintenance/delivery-doc-currency-protocol.md
-  - .github/workflows/ci.yml
+  - bin/check-green-doc-tense
+  - bin/test_check_green_doc_tense.py
   - .gitignore
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "41176f4"
+input-hash: "7f8ff02"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
@@ -47,9 +48,10 @@ input-hash: "41176f4"
 
 - **As a** spec-steward, adversary reviewer, and future contributor on the wirerust project
 - **I want** two product-local tooling improvements codified: (1) the green-doc-tense CI gate
-  extended with stub-era vocabulary tokens `skeleton` and `seam`, and (2) minor housekeeping
-  items applied to the repo — an input-hash post-delivery re-baseline reminder in the delivery
-  protocol and a `mutants.out*/` glob added to `.gitignore`
+  extended with phrase-level patterns for stub-era vocabulary (`skeleton`/`seam` compile-only
+  assertions), and (2) minor housekeeping items applied to the repo — an input-hash
+  post-delivery re-baseline reminder in the delivery protocol and a `mutants.out*/` glob
+  added to `.gitignore`
 - **So that** stub-era wording is caught by CI before adversarial review, the delivery
   checklist includes the hash re-baseline step, and mutation-testing residue no longer lands
   untracked in the repo root
@@ -62,23 +64,52 @@ _(none — E-11 convention: governance-only story; no BCs authored; no Rust sour
 
 ### PG-GATE-VOCAB-BLINDSPOT — green-doc-tense gate misses stub-era vocabulary
 
-`AC-174-008` (STORY-174) extended the green-doc-tense gate (`.github/workflows/ci.yml`)
-with token patterns that should not appear in delivered ("green") code. The existing token
-list catches common stale-TODO and red-gate phrasing but misses stub-era vocabulary:
+`AC-174-008` (STORY-174) extended the green-doc-tense gate (`bin/check-green-doc-tense`)
+with phrase-level patterns that should not appear in delivered ("green") code. The existing
+pattern list catches common stale-TODO and red-gate phrasing but misses stub-era vocabulary:
 
 - `"skeleton"` — used during VP-044 Kani harness scaffolding ("harness skeleton compiles")
   and in test scaffolding comments; stub-era wording that should not survive into a fully
-  implemented story
-- `"seam"` — used in test-seam discussions ("write seam accessor", "test seam") during
-  red-gate phase; likewise should not appear in green-state deliveries
+  implemented story. Bare-word `skeleton` is also used for legitimate past-tense provenance
+  (`"error type skeleton (extended in STORY-168)"`, `"proof skeleton"`, `"VP-024 Sub-D
+  skeleton"`) — these must NOT be gated; only present-tense compile-only assertions are in
+  scope.
+- `"seam"` — used in compile-only seam discussions during red-gate phase (`"compile-only
+  seam"`, `"are currently compile-only seams"`); likewise should not appear as present-tense
+  claims in green-state deliveries. Bare-word `seam` is a first-class codebase idiom for
+  test-seam / verification-seam patterns (`VP-047 seam`, `Test seam accessors`, `UDP gap-key
+  seam`) — these must NOT be gated; only phrase-level stub-state assertions are in scope.
 
 Two independent adversary observations on STORY-174: P2 Obs-1 (stale skeleton prose in
-the story spec itself) and P4 finding (stale seam commentary in test headers). Both were
-remediated in STORY-174 delivery, but the gate did not catch them automatically because
-the token list was not extended.
+the story spec itself) and a seam commentary observation (see convergence-report.md F-174-002
+Pass-2 / PG-GATE-VOCAB-BLINDSPOT in lessons.md D-462). Both were remediated in STORY-174
+delivery, but the gate did not catch them automatically because the pattern list was not
+extended.
 
 This is a feature-iec104 cycle-execution finding — DF-VALIDATION-001-exempt per the
 in-process exemption.
+
+**v2.3 correction note:** The original AC-176-001 (v2.2) described the gate locus as
+"`.github/workflows/ci.yml`", bare-word token patterns (`\bskeleton\b` / `\bseam\b`),
+and an inline `# green-doc-tense-gate: allow` allowlist mechanism. All three claims were
+invalidated by the DF-VALIDATION-001 research pass
+(`planning/story-176-ac001-validation.md`, 2026-07-20): the gate lives in
+`bin/check-green-doc-tense` (ci.yml only invokes the tool), bare tokens produce ~91
+legitimate matches, and no inline allowlist mechanism exists. This v2.3 corrects the
+locus, replaces bare-word tokens with four phrase-level zero-FP patterns, removes the
+fabricated allowlist claim, and corrects the CHANGELOG obligation (`bin/` IS in the
+AC-158-001 changelog-gate trigger set — entry required).
+
+**P4-seam provenance attribution note:** STORY-176 §Background (v2.2) described the two
+STORY-174 adversary findings as "P2 Obs-1 (stale skeleton prose in the story spec itself)
+and P4 finding (stale seam commentary in test headers)." The validation report found this
+attribution **INCONCLUSIVE** (MEDIUM confidence): the convergence-report's actual P4
+finding (F-174-P4-001) is a BC-2.19.025 invariant-2 mis-anchor, not seam commentary. The
+seam observation is corroborated in lessons.md (D-462) and the convergence-report Pass-2
+finding (F-174-002), but the exact per-pass label is ambiguous across artifacts. Verbatim
+flagged lines were scrubbed by commit 038286a and are not recoverable.
+PG-GATE-VOCAB-BLINDSPOT remains the motivating pattern gap regardless of the precise
+per-pass attribution.
 
 ### Input-hash self-referential drift (absorbed from STORY-178 AC-178-003)
 
@@ -107,39 +138,64 @@ engine repo 2026-07-19:
 
 ## Acceptance Criteria
 
-### AC-176-001 (traces to PG-GATE-VOCAB-BLINDSPOT — extend green-doc-tense gate token list)
+### AC-176-001 (traces to PG-GATE-VOCAB-BLINDSPOT — extend green-doc-tense gate pattern list)
 
-The green-doc-tense gate (`ci.yml` job `green-doc-tense-gate`, implemented per AC-174-008)
-is extended with two additional token patterns: `skeleton` and `seam`.
+The green-doc-tense gate (`bin/check-green-doc-tense`, extended per AC-174-008) is
+extended with phrase-level patterns for stub-era vocabulary (`skeleton`/`seam` as
+compile-only or wiring-incomplete present-tense assertions). `ci.yml` is NOT modified —
+it only invokes the tool.
 
-(a) **New grep patterns:** The gate's grep command is extended to include `\bskeleton\b`
-    and `\bseam\b` (or equivalent patterns matching these as word tokens) in the token
-    list applied to `src/` and `tests/` Rust source files.
+- Given the existing `green-doc-tense-gate` missed stub-era vocabulary during STORY-174
+  delivery (skeleton/seam adversary findings; see Background §PG-GATE-VOCAB-BLINDSPOT)
+- When `bin/check-green-doc-tense` `_VIOLATION_PATTERNS` list is extended with four
+  phrase-level, case-insensitive, comment-line-matched patterns:
+  (a) `skeleton\s+compiles?` — catches "harness skeleton compiles" (stub-era: it only
+      compiles, no real proof/assertions); past-tense forms (`skeleton originated`,
+      `proof skeleton`) are not matched by specificity
+  (b) `compile-only\s+seams?` — catches "compile-only seam(s)" present-tense assertions
+      (stale once upgraded per AC-174-002); `test seam`, `Test seam accessors`,
+      `VP-047 seam` are not matched by specificity
+  (c) `(?:are|is)\s+(?:currently\s+)?compile-only` — catches "are currently compile-only
+      seams with no assertions" style present-tense claims
+  (d) `\buntil\b[^\n]*\bwired\b` — catches "fails until wired" CI-wiring prose
 
-(b) **Zero false positives:** Before extending the pattern list, the implementer MUST
-    run the new patterns against the current `src/` and `tests/` tree and confirm zero
-    matches. If any pre-existing legitimate uses exist, they MUST be handled with the
-    same `# green-doc-tense-gate: allow` allowlist mechanism established by AC-174-008,
-    not by weakening the pattern.
+  The implementer MAY refine the regex spelling (e.g., case flags, anchoring), but MUST
+  maintain: (i) phrase-level patterns, not bare word tokens; (ii) comment-line-only
+  matching (consistent with existing engine); (iii) zero false positives on the current
+  tree confirmed before merge; (iv) known-bad + known-good fixture pairs added for each
+  new pattern.
 
-(c) **CHANGELOG obligation:** The AC-176-001 develop PR modifies `.github/workflows/ci.yml`
-    (`ci.yml` is excluded from the CHANGELOG trigger set per AC-158-001; no CHANGELOG
-    entry required unless `src/` or `bin/` changes are included in the same PR).
+- And the **allowlist** is pattern specificity, NOT inline annotations. There is no
+  `# green-doc-tense-gate: allow` mechanism in this gate. If any pre-existing use matches
+  the chosen regex spelling, the implementer MUST narrow the pattern, not add an annotation.
 
-(d) **Develop PR:** This AC requires a develop-branch PR touching `ci.yml`. The PR MUST
-    pass CI including the green-doc-tense gate itself (confirming the extended patterns
-    produce zero false positives on the current tree). AC-176-001 SHOULD be batched with
-    AC-176-003 in a single develop PR.
+- And corresponding known-bad + known-good fixture pairs are added to
+  `bin/test_check_green_doc_tense.py` for each of the four new patterns (fixture structure
+  at `bin/test_check_green_doc_tense.py:51+`); the self-test MUST pass, proving no
+  regression against existing patterns
+
+- And a CHANGELOG `[Unreleased]` entry records the gate extension (`bin/` is in the
+  AC-158-001 changelog-gate trigger set — entry REQUIRED, same precedent as AC-174-008)
+
+- Then `python3 bin/check-green-doc-tense` and `python3 bin/test_check_green_doc_tense.py`
+  both exit 0
 
 Verification:
 ```bash
-# Confirm new patterns are in ci.yml
-grep -n "skeleton\|seam" .github/workflows/ci.yml
-# Must emit non-empty output referencing the green-doc-tense-gate job
+# Confirm new patterns are in bin/check-green-doc-tense _VIOLATION_PATTERNS
+grep -n "skeleton.*compiles\|compile.only.*seam\|currently.*compile.only\|until.*wired" \
+  bin/check-green-doc-tense
+# Must emit non-empty output
 
-# Confirm zero false positives in current tree
-grep -rn --include="*.rs" "\bskeleton\b\|\bseam\b" src/ tests/
-# Must emit empty output (or only lines with # green-doc-tense-gate: allow)
+# Confirm gate and self-test both pass
+python3 bin/check-green-doc-tense          # must exit 0 (zero false positives tree-wide)
+python3 bin/test_check_green_doc_tense.py  # must exit 0 (including new fixtures)
+
+# Confirm zero false positives for new phrase patterns against current scan set
+# (run before merge to satisfy zero-FP requirement)
+git ls-files -- 'tests/*.rs' 'src/**/*.rs' | xargs grep -lE \
+  "skeleton[[:space:]]+compiles?|compile-only[[:space:]]+seams?|(are|is)[[:space:]]+(currently[[:space:]]+)?compile-only|until.*wired"
+# Must emit empty output
 ```
 
 ### AC-176-002 (minor — input-hash post-delivery re-baseline checklist step)
@@ -191,26 +247,36 @@ grep "mutants.out" .gitignore
 
 | Component | File | Branch |
 |-----------|------|--------|
-| Green-doc-tense gate skeleton/seam token extension | `.github/workflows/ci.yml` (amend) | develop |
+| Green-doc-tense gate phrase-pattern extension | `bin/check-green-doc-tense` (amend) | develop |
+| Green-doc-tense gate self-test fixtures | `bin/test_check_green_doc_tense.py` (amend) | develop |
+| CHANGELOG entry for gate extension | `CHANGELOG.md` (amend) | develop |
 | Input-hash post-delivery re-baseline reminder | `.factory/maintenance/delivery-doc-currency-protocol.md` (amend) | factory-artifacts |
 | mutants.out* glob | `.gitignore` (amend) | develop |
 
-No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` changes.
+No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. `bin/` changes are
+CI tooling only (no production code). `ci.yml` is NOT modified — it only invokes
+`bin/check-green-doc-tense` and need not be edited for this story.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `skeleton` appears in a comment legitimately (e.g., describing architecture) | The `# green-doc-tense-gate: allow` allowlist mechanism handles this; implementer must verify zero false positives before merging the ci.yml PR |
-| EC-002 | Story spec (`.factory/`) files contain "skeleton" / "seam" | Gate applies to `src/` and `tests/` only; spec files are not gated |
+| EC-001 | A `skeleton` or `seam` use in a comment is legitimate (e.g., `"proof skeleton"`, `"Test seam accessors"`, `"VP-047 seam"`) | The allowlist mechanism is pattern specificity — phrase patterns are designed to exclude past-tense provenance and architectural uses. The implementer MUST verify the chosen regex produces zero false positives against the current scan set before merging, NOT add an inline annotation |
+| EC-002 | Story spec (`.factory/`) files contain "skeleton" / "seam" | Gate scan set is `src/**/*.rs` and `tests/*.rs` only (per `bin/check-green-doc-tense` scan-set logic); spec files are outside the scan set by construction |
 | EC-003 | Story inputs do not include any spec file revised during delivery | No stale hash after delivery; AC-176-002 note applies but no action required |
 | EC-004 | mutants.out* directory exists with important results the implementer wants to keep | .gitignore suppresses tracking but does not delete files; results remain on disk and are simply not staged |
 
 ## Tasks
 
 1. **Extend green-doc-tense gate (AC-176-001):** Run zero-false-positive check on
-   current tree, then extend ci.yml token list with `skeleton` and `seam` patterns.
-   Batch with AC-176-003 in one develop PR (no CHANGELOG entry required).
+   the current tree for each phrase pattern (verify empty output from `git ls-files` pipe).
+   Extend `bin/check-green-doc-tense` `_VIOLATION_PATTERNS` with the four phrase-level
+   patterns (a)-(d). Add known-bad + known-good fixture pairs to
+   `bin/test_check_green_doc_tense.py` for each new pattern. Add `[Unreleased]`
+   CHANGELOG entry. Run `python3 bin/check-green-doc-tense` and
+   `python3 bin/test_check_green_doc_tense.py` to confirm both exit 0.
+   Batch with AC-176-003 in one develop PR (CHANGELOG entry REQUIRED — `bin/` changes
+   trigger changelog-gate per AC-158-001).
 
 2. **Update .gitignore (AC-176-003):** Add `mutants.out*/` glob under cargo-mutants
    section. Batch with AC-176-001 in the same develop PR.
@@ -218,38 +284,48 @@ No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. No `bin/` 
 3. **Extend delivery-doc-currency-protocol.md (AC-176-002):** Add input-hash
    post-delivery re-baseline reminder. Factory-artifacts branch commit.
 
-4. **Register in STORY-INDEX.md:** Update STORY-176 row (v2.0, draft, E-11, wave-TBD,
+4. **Register in STORY-INDEX.md:** Update STORY-176 row (v2.3, ready, E-11, wave-84,
    2 pts). Factory-artifacts branch commit.
 
-> **Note for implementer:** Tasks 1 and 2 (ci.yml and .gitignore) are develop-branch
-> changes that can be batched in one PR (no CHANGELOG entry required for either).
-> Task 3 is a factory-artifacts branch commit.
+> **Note for implementer:** Tasks 1 and 2 (`bin/check-green-doc-tense` /
+> `bin/test_check_green_doc_tense.py` and `.gitignore`) are develop-branch changes that
+> can be batched in one PR. Task 1 (AC-176-001) REQUIRES a CHANGELOG entry (`bin/`
+> changes trigger the changelog-gate per AC-158-001). Task 2 (AC-176-003, `.gitignore`)
+> does NOT require a CHANGELOG entry. Task 3 is a factory-artifacts branch commit.
 
 ## Previous Story Intelligence
 
-- **AC-174-008 (STORY-174, wave-83):** Established the green-doc-tense gate and its
-  allowlist mechanism. AC-176-001 extends the same ci.yml job with two more tokens —
-  read AC-174-008 before writing the ci.yml change to match the existing pattern.
+- **AC-174-008 (STORY-174, wave-83):** Established `bin/check-green-doc-tense` and its
+  phrase-level pattern engine. AC-176-001 extends the same `_VIOLATION_PATTERNS` list
+  with four new phrase patterns — read AC-174-008 before writing the
+  `bin/check-green-doc-tense` change to match the existing pattern style, comment-line
+  anchoring, and fixture structure in `bin/test_check_green_doc_tense.py`.
 - **STORY-165 AC-165-003 (wave-75):** Established `delivery-doc-currency-protocol.md`
   as the canonical delivery sweep document. STORY-176 amends the same document with
   the input-hash re-baseline reminder (AC-176-002).
 
 ## Architecture Compliance Rules
 
-- **ci.yml action SHA pins:** The ci.yml amendment MUST NOT change any `uses:` action
-  SHA pins. Only the token list in the green-doc-tense-gate step changes.
-- **Zero false positives required:** The `skeleton`/`seam` patterns must be verified
-  against the current tree before the ci.yml PR is merged.
+- **ci.yml must not be modified:** ci.yml only invokes `python3 bin/check-green-doc-tense`
+  and its self-test. No new grep commands or token lists belong in ci.yml. The action
+  SHA-pin policy (CLAUDE.md §CI / Supply Chain) remains a standing constraint on any
+  ci.yml modifications but does not apply here — ci.yml is not touched by this story.
+- **Zero false positives required:** The phrase-level patterns MUST be verified against
+  the current tree (run `python3 bin/check-green-doc-tense` → exit 0) before the develop
+  PR is merged. Bare-word `skeleton`/`seam` tokens are explicitly rejected: ~91 legitimate
+  matches in the current tree (see `planning/story-176-ac001-validation.md` §Task 3).
 
 ## Token Budget Estimate
 
 | Component | Estimated tokens |
 |-----------|-----------------|
-| Story spec (this file) | ~2.0 k |
-| `.github/workflows/ci.yml` (green-doc-tense-gate job section, amendment target) | ~1.0 k |
+| Story spec (this file) | ~2.5 k |
+| `bin/check-green-doc-tense` (amendment target, _VIOLATION_PATTERNS extension) | ~3.0 k |
+| `bin/test_check_green_doc_tense.py` (amendment target, new fixture pairs) | ~2.0 k |
+| `CHANGELOG.md` (amendment target, Unreleased entry) | ~0.2 k |
 | `delivery-doc-currency-protocol.md` (amendment target) | ~1.0 k |
 | `.gitignore` (full file, <=15 lines) | ~0.1 k |
-| **Total** | **~4.1 k** |
+| **Total** | **~8.8 k** |
 
 Well within context window. No story split required.
 
@@ -264,13 +340,16 @@ Well within context window. No story split required.
 - **DF-VALIDATION-001 gate:** PG-GATE-VOCAB-BLINDSPOT is a feature-iec104 in-process
   execution finding. DF-VALIDATION-001-exempt per the in-process exemption.
 - **No behavioral contract required:** E-11 convention.
-- **Develop PR:** Both ci.yml and .gitignore changes (Tasks 1 and 2) can be batched in
-  a single develop PR. Neither requires a CHANGELOG entry.
+- **Develop PR:** `bin/check-green-doc-tense`/`bin/test_check_green_doc_tense.py` and
+  `.gitignore` changes (Tasks 1 and 2) can be batched in a single develop PR. Task 1
+  (AC-176-001) requires a CHANGELOG entry (`bin/` is in the AC-158-001 trigger set).
+  Task 2 (AC-176-003, `.gitignore`) does not require a CHANGELOG entry.
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.3 | 2026-07-20 | story-writer | Spec-route remediation per planning/story-176-ac001-validation.md: corrected AC-176-001 locus to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; replaced bare-word tokens with four phrase-level zero-FP patterns; deleted fabricated # green-doc-tense-gate: allow allowlist claim; corrected CHANGELOG obligation (bin/ IS in trigger set, entry required); fixed verification commands; updated Architecture Mapping, Edge Cases, Tasks, Token Budget, Notes, Previous Story Intelligence, Architecture Compliance Rules, target_module frontmatter, and Background (v2.3 correction note + P4-seam provenance attribution note). No points/status/wave change (2 pts, ready, wave 84). |
 | 2.2 | 2026-07-19 | story-writer | Remediation: added missing "Token Budget Estimate" section (per-story-delivery.md Token Budget Check). No AC or scope content change. |
 | 2.1 | 2026-07-19 | story-writer | Wave-84 opening: wave TBD→84, status draft→ready (plan gate approved by human, 2026-07-19; mini-wave composition 166+176+147v2 = 7 pts, all product-local). No AC content change. |
 | 2.0 | 2026-07-19 | story-writer | Re-scoped upstream 2026-07-19: ACs-176-002/003 (pre-adversarial doc sweep / severity calibration) routed to drbothen/vsdd-factory#682/#686. Absorbed STORY-178 AC-178-003 (input-hash re-baseline) → AC-176-002 and STORY-178 AC-178-004 (.gitignore mutants.out*) → AC-176-003. Points 3→2. |
