@@ -67,4 +67,54 @@ out by the STORY-147 Step-4.5 convergence row addition.
 
 ---
 
+## Burst: D-478 row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-481
+STORY-147 DELIVERED bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the D-481 STORY-147 DELIVERED row addition,
+not a spec-evolution or code-delivery burst in its own right. (STORY-147's
+per-story TDD delivery — 8-pass Step-4.5 adversary CONVERGED P6/P7/P8, dual
+pr-reviewer APPROVE, security CLEAN, CI 13/13 — is recorded separately in
+`cycles/wave-084/STORY-147/convergence-report.md`,
+`cycles/wave-084/STORY-147/adversary-convergence-state.json`, and
+`.factory/code-delivery/STORY-147/`.)
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the D-481 STORY-147 DELIVERED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **D-478 DEP-SOAK DELIVERED (2026-07-19). PR #420 "build(deps): soaked dependency bumps 2026-07-19" squash-merged to develop 492554642c7d4a3251df128789fd5f149fd2b0a7 (human-executed, 2026-07-19T18:01:50Z; per-PR explicit human instruction per DF-MERGE-AUTH-CLASSIFIER-001, D-417 precedent). Lockfile-only: 24 distinct version-pair changes / 26 version movements (hashbrown 2→1 consolidation; etherparse 0.20.3 direct dep; libc/log/memchr/indexmap/zerocopy et al., all soaked ≥8d per D-417 protocol); 18 obsolete WASM-tooling crate versions removed (getrandom@0.4 resolution change; deps 193→175). cargo audit 0 advisories + deny 4/4 clean. pr-reviewer APPROVE, PG-W74 row-verify 4/4. CI 13/13. DEP-SOAK-FOLLOWUP-2026-07-27 carry-forward added (17 deferred + 4 blocked candidates; next sweep on/after 2026-07-27).** | **DELIVERED (D-478)** | develop=492554642c7d. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable. This
+archival step performs no compilation or test execution; the underlying
+STORY-147 code changes were gated separately during Steps 1-8 (per-story
+delivery pipeline).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only this
+.md archival artifact plus STATE.md bookkeeping.
+
+**Dim-6 Attestation:** N/A — no source code changes on develop branch made by
+this archival step itself. Burst commits exclusively to factory-artifacts
+branch. (develop advanced separately via PR #421 human-executed merge.)
+
+**Dim-7 Attestation:** N/A — no test suite changes made by this archival step.
+Factory artifact integrity verified via state-burst Single-Commit Protocol
+(TD-VSDD-053).
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-478 row) rolled
+out by the D-481 STORY-147 DELIVERED row addition.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

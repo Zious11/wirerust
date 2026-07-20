@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.80"
+version: "3.81"
 status: draft
 producer: story-writer
 timestamp: 2026-07-19T00:00:00Z
@@ -8,6 +8,7 @@ phase: f4
 total_stories: 132
 total_waves: 84
 total_points: 775  # = 775; wave-table scheduled: 747 (STORY-091/121/143/155 wave-TBD + STORY-148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; v3.79)
+# v3.81 (2026-07-20): STORY-147 DELIVERED (D-481, PR #421 f0cb7374 squash-merged to develop, human-executed merge 2026-07-20T02:40:53Z under explicit per-PR authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied); status ready→delivered; wave-84 Delivery Progress row updated (1/3 DELIVERED — STORY-166/STORY-176 remain ready). Per-story Step-4.5 adversarial CONVERGED 8 passes streak P6/P7/P8 (BC-5.39.001 SATISFIED); dual pr-reviewer APPROVE; security CLEAN; CI 13/13 (Semantic PR recovered after GitHub-declared Minor Service Outage). stories_delivered 113→114. No numeric points/story/wave totals changed (status transition only).
 # v3.80 (2026-07-19): STORY-147 title cell updated to "Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance" — title-only cascade from STORY-147 v2.1→v2.2 spec-route remediation (Step 4.5 adversarial findings F-S147P1-002/-004/-005, CONFIRMED by execution evidence: cargo-mutants reads only `.cargo/mutants.toml`, not repo-root `mutants.toml`/Cargo.toml metadata; `jobs` is not a valid config key). No points/status/wave/epic change; numeric totals unchanged from v3.79.
 # ARITHMETIC: STORY-151=8 pts (E-21 protocols.rs catalog + VP-041, wave 67); STORY-152=8 pts (E-21 protocols CLI subcommand + renderer, wave 68); STORY-153=8 pts (E-21 dispatcher unclassified_port_counts + UDP decode-loop, wave 67); STORY-154=8 pts (E-21 --coverage-gaps + CoverageGapsSummary, wave 69); total_points: 659+8+8+8+8=691; wave-table scheduled: 630+32=662; epic-table: 659+32=691; total_stories: 103+4=107; total_waves: 66+3=69.
 # v3.79 (2026-07-19): E-11 upstream re-scope burst #2 (human-approved, per e11-stale-draft-disposition-plan.md, D-477 precedent): STORY-091 status draft→superseded (OBSOLETE disposition, not upstream-routed — verification core delivered by bin/validate-citations STORY-164 + STORY-166 symbol-at-line assertion; residual --scan discovery layer represented upstream by drbothen/vsdd-factory#622/#603/#396 family; human-approved no-filing 2026-07-19); STORY-121 status draft→superseded (routed drbothen/vsdd-factory#582 evidence comment, x-ref #396); STORY-143 status draft→superseded (routed drbothen/vsdd-factory#695 NEW issue filed, x-ref #580); STORY-155 status draft→superseded (routed drbothen/vsdd-factory#290 evidence comment — near-exact duplicate confirmation, x-ref #600). STORY-147 re-scoped v1.0→v2.0 SPLIT survivor "Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance" (product half retained locally; engine half — mutation-skill safe-parallelism default — routed drbothen/vsdd-factory#654 evidence comment; pts 3→2). Wave-84 OPENED: STORY-166 + STORY-176 + STORY-147v2 assigned (wave TBD→84, status draft→ready; plan gate approved by human 2026-07-19; mini-wave = 7 pts, all product-local).
@@ -241,7 +242,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-091 | Anchor-Validation Tooling — bin/validate-anchors | E-11 | ~ | 5 | superseded | — |
 | STORY-121 | F1/F2 Story-Input Analysis Docs — Mandatory Numeric Self-Audit + Consuming-Surface Sweep Checklist | E-11 | ~ | 3 | superseded | — |
 | STORY-143 | Harden Release Changelog Step: Full Prev-Tag..HEAD Range Enumeration | E-11 | ~ | 3 | superseded | — |
-| STORY-147 | Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance | E-11 | 84 | 2 | ready | — |
+| STORY-147 | Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance | E-11 | 84 | 2 | delivered | — |
 | STORY-149 | TLS Carry-Path Performance Recovery + Fragmented-Handshake Benchmark Fixture | E-11 | 70 | 5 | merged | — |
 | STORY-150 | TLS Drain-Loop DRY Refactor (TLS-DRAIN-DUP-001) with Mandatory Kani VP-039 + Mutation Re-run | E-11 | 71 | 5 | merged | — |
 | STORY-155 | Auto-update STORY-INDEX status draft→merged on story PR merge | E-11 | ~ | 3 | superseded | — |
@@ -534,7 +535,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 81 | STORY-172 | **DELIVERED (D-455, 2026-07-15)** | #406 | d64e5fe | 2026-07-15 |
 | 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
-| 84 | STORY-166, STORY-176, STORY-147 | **IN PROGRESS** | — | — | — |
+| 84 | STORY-166, STORY-176, STORY-147 | **IN PROGRESS (1/3 DELIVERED)** | #421 (STORY-147) | f0cb7374 | 2026-07-20 |
 
 ## Coverage Verification
 

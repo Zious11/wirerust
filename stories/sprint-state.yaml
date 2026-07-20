@@ -893,11 +893,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-147:
-    status: pending  # delivery in-flight (worktree created, Step 2 stubs dispatched) — see note above; "in-progress" not in this file's status vocabulary
+    status: done  # DELIVERED: PR #421 f0cb7374 squash-merged to develop 2026-07-20 (D-481)
     wave: 84
-    branch: feature/STORY-147-mutation-testing-defaults
-    worktree: .worktrees/STORY-147
+    branch: null  # squash-merged; worktree cleaned
+    worktree: null
     blocked_by: []
+    pr: 421
+    merge_commit: f0cb7374
+    merged_date: "2026-07-20"
 
   STORY-166:
     status: pending
