@@ -576,6 +576,12 @@ GOOD_CASES: list[tuple[str, str]] = [
         """,
     ),
     (
+        "AC-176-001 pattern (a) allowlist: exoskeleton compiles (leading-\\b excludes prefix form; CR-005)",
+        """\
+        // exoskeleton compiles — real hardware acceleration
+        """,
+    ),
+    (
         "AC-176-001 pattern (b) allowlist: Test seam accessors (architectural idiom, no 'compile-only' prefix)",
         """\
         // Test seam accessors provide injection points for testing
@@ -615,6 +621,12 @@ GOOD_CASES: list[tuple[str, str]] = [
         "AC-176-001 pattern (d) allowlist: was compile-only until STORY-NNN wired it (past-tense 'until...wired' context)",
         """\
         // was compile-only until STORY-153 wired it
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d) allowlist: until STORY-NNN wired the handler (negative lookahead on 'the' suppresses match; CR-002)",
+        """\
+        // was compile-only until STORY-153 wired the handler
         """,
     ),
 ]

@@ -31,11 +31,17 @@ def _find_repo_root() -> Path:
 
 def check_ignored(repo_root: Path, path: str) -> bool:
     """Return True if `git check-ignore -q <path>` exits 0 (path is ignored)."""
-    result = subprocess.run(
-        ["git", "check-ignore", "-q", path],
-        cwd=repo_root,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", path],
+            cwd=repo_root,
+            capture_output=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        raise AssertionError(
+            f"git check-ignore timed out after 30 s for path {path!r}"
+        )
     return result.returncode == 0
 
 

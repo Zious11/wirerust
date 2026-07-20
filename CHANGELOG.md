@@ -46,7 +46,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   Zero false positives verified on 114 tracked Rust files. Self-test:
   91 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
 
-- **`.gitignore mutants.out*/ glob + bin/test_gitignore_mutants_glob.py regression guard
+- **`.gitignore` `mutants.out*/` glob + `bin/test_gitignore_mutants_glob.py` regression guard
   (STORY-176, AC-176-003, wave-84).**
 
   `.gitignore` gains `mutants.out*/` under the cargo-mutants section, covering the
@@ -73,6 +73,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   stdlib `re` only, no ctags or other external binary dependency. Self-tested
   by `bin/test_validate_citations.py` (five tests, T23–T27, added to the
   existing 22 tests).
+
+### Fixed
+
+- **`bin/check-green-doc-tense` pattern leading-`\b` tightening + test coverage +
+  subprocess timeout (wave-84 gate code-review CR-002/CR-005/CR-006/SEC-003).**
+
+  Gate-hardening fixes applied after wave-84 code review:
+  pattern 26 (`\bskeleton compiles?\b`) gains a leading word boundary so
+  "exoskeleton compiles" is no longer a false-positive; pattern 28
+  (`\b(?:are|is) … compile-only`) gains a leading word boundary for
+  consistency; two new GOOD test cases cover these boundaries
+  (exoskeleton false-positive + "until wired the handler" negative-lookahead
+  exercise); `bin/test_gitignore_mutants_glob.py`'s `git check-ignore` call
+  gains `timeout=30` with a clear `AssertionError` on timeout (SEC-003).
 
 ### Changed
 
