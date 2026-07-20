@@ -54,19 +54,32 @@ The following patterns are matched against COMMENT LINES ONLY
                                           any todo!() block (e.g. "fires before any todo!() block")
  22. todo!() (Stop|Reset|.*-detection) block — docstring naming a specific detection block as todo!()
                                           (e.g. "todo!() Stop-detection block", "todo!() Reset block")
- 26. skeleton compiles?           — "harness skeleton compiles" stub-era compile-only assertion;
+ 23. All tests … MUST FAIL        — stale module/section header with arbitrary qualifier words
+                                    between "All tests" and "MUST FAIL" (e.g. "All tests in this
+                                    module MUST FAIL"); extends pattern 1 with interposed words;
+                                    AC-174-008
+ 24. FAIL(S) Red Gate             — current-state assertion that a harness/skeleton currently fails
+                                    the gate ("FAILS Red Gate", "FAIL Red Gate"); past-tense
+                                    "failed Red Gate" not matched (trailing 'e' breaks the \\s+ gap
+                                    between FAILS? and Red); AC-174-008
+ 25. are/is todo!() stub(s)       — present-tense "are" or "is" immediately before "todo!() stub";
+                                    "were todo!() stubs" (past tense 'were') and "originated as
+                                    todo!() stubs" ('as' not 'are'/'is') are not matched; AC-174-008
+ 26. skeleton compiles?\b         — "harness skeleton compiles" stub-era compile-only assertion;
                                     bare-label forms ("proof skeleton", "VP-024 Sub-D skeleton")
-                                    and past-tense forms ("skeleton originated") are not matched
-                                    by specificity (no "compiles" after skeleton)
+                                    have no "compiles"; past-tense "skeleton compiled" is now
+                                    excluded by the trailing \b word boundary after compiles?
  27. (exposes|is a|are) compile-only seam(s) — present-tense verb before "compile-only seam(s)";
                                     "as a compile-only seam" (past-tense narrative context with
                                     "as" not "exposes/is a/are") is not matched by specificity
  28. (are|is) (currently) compile-only — present-tense compile-only predicate claim; "was compile-only"
                                     (past tense 'was') and "compile-only checks passed" (no
                                     are/is before compile-only) are not matched by specificity
- 29. until … is wired             — "fails/returns until … is wired" CI-wiring-incomplete prose;
-                                    "wired it" / "wired the handler" past-tense verb-object forms
-                                    are not matched because they lack the "is wired" auxiliary
+ 29. until … wired                — "fails/returns until … wired" or "until … is wired" CI-wiring-
+                                    incomplete prose; bare "until wired" is now caught in addition
+                                    to "until … is wired"; "wired it" / "wired the handler"
+                                    verb-object forms excluded by negative lookahead on object
+                                    pronouns/articles (it, the, a, that, this, them)
 
 All patterns are anchored to comment lines (leading // or //!) to avoid
 false-positives inside doc-test code blocks or inside string literals.
@@ -78,7 +91,7 @@ requires an unambiguous current-state assertion ("MUST FAIL", "are designed
 to FAIL", "stub-only bodies", "stubs only", "are RED until", etc.) that
 cannot appear in past-tense provenance narration.
 
-Pattern-specific allowlist notes (patterns 12-22):
+Pattern-specific allowlist notes (patterns 12-29):
   12. "RED — stubs only": The dash+phrase combination is specific to stub-phase
       headers. Past-tense equivalents use "originated as stubs" or "were stubs".
       Allowlisted: "originated as Red-Gate stubs", "(was RED)", patterns without
@@ -115,11 +128,31 @@ Pattern-specific allowlist notes (patterns 12-22):
       Allowlisted: "the todo!() Stop-detection block was replaced", "originated as
       todo!() stubs" — past-tense or provenance framing. NOT flagged: prose using
       past tense like "the todo!() was replaced" or "originated as todo!() stubs".
-  26. "skeleton compiles?": The "compiles" qualifier is the distinguishing stub-era
-      signal. Bare-label architectural references ("proof skeleton", "VP-024 Sub-D
-      skeleton") and past-tense provenance ("skeleton originated in STORY-NNN") omit
-      "compiles" entirely and are not matched.
-      Allowlisted: "skeleton originated", "VP-024 Sub-D skeleton" — no "compiles".
+  23. "All tests … MUST FAIL": The interposed-word variant of pattern 1. Catches
+      stale module/section headers where qualifiers like "in this module" or "in
+      this section" appear between "All tests" and "MUST FAIL". Per-line bounded
+      (no DOTALL flag); cannot span line breaks.
+      Allowlisted: "All tests passed their Red Gate phase" (no MUST FAIL);
+                   "All tests were required to FAIL" (no MUST immediately before FAIL).
+  24. "FAIL(S) Red Gate": Present/imperative assertion that something currently
+      fails the gate. The 'S?' matches "FAIL" and "FAILS". Past-tense "failed Red
+      Gate" is not matched because "failed" has an 'e' after 'fail', so \\s+Red
+      requires whitespace immediately after FAILS? — "failedRed" never matches.
+      Allowlisted: "failed Red Gate" (past tense); "passed Red Gate" (different verb).
+  25. "are/is todo!() stub(s)": Present-tense "are" or "is" directly before
+      "todo!() stub" asserts function bodies are currently stubs. Past-tense "were"
+      and the preposition "as" (in "originated as todo!() stubs") do not match the
+      alternation (?:are|is).
+      Allowlisted: "were todo!() stubs" (past tense 'were');
+                   "originated as todo!() stubs" ('as' not 'are'/'is').
+  26. "skeleton compiles?\b": The "compiles" qualifier is the distinguishing stub-era
+      signal. The trailing \b word boundary after compiles? now also excludes the
+      past-tense form "skeleton compiled" (because "compiled" continues with 'd',
+      a word character, so \b does not match inside it). Bare-label architectural
+      references ("proof skeleton", "VP-024 Sub-D skeleton") and past-tense
+      provenance ("skeleton originated in STORY-NNN") omit "compiles" entirely.
+      Allowlisted: "skeleton originated", "VP-024 Sub-D skeleton" — no "compiles";
+                   "skeleton compiled" — past tense, excluded by \b.
   27. "(exposes|is a|are) compile-only seam(s)": Requires an explicit present-tense
       verb (exposes, is a, are) before "compile-only seam". This excludes "as a
       compile-only seam" (past-tense narrative using "as") and all bare-seam idioms
@@ -131,11 +164,15 @@ Pattern-specific allowlist notes (patterns 12-22):
       compile-only" and noun-phrase-initial forms like "compile-only checks passed"
       where no are/is precedes the token.
       Allowlisted: "was compile-only" (past tense 'was'), "compile-only checks passed".
-  29. "until … is wired": The pattern requires "is wired" (present-state passive) on the
-      same line after "until". Past-tense verb-object forms like "until STORY-NNN wired
-      it" use "wired" as a past-tense main verb taking an object, not "is wired", and
-      are therefore not matched.
-      Allowlisted: "was compile-only until STORY-NNN wired it" — "wired it" not "is wired".
+  29. "until … wired": The pattern requires "wired" after "until" on the same line.
+      Bare "until wired" (no auxiliary) and passive "until … is wired" are both
+      matched. Past-tense verb-object forms are excluded by a negative lookahead:
+      after matching \bwired\b, if the immediately following token is one of the
+      object pronouns/articles (it, the, a, that, this, them), the match is rejected.
+      This excludes "wired it" and "wired the handler" (past-tense main-verb forms)
+      without excluding "wired" used as a past participle in a passive clause.
+      Allowlisted: "was compile-only until STORY-NNN wired it" — negative lookahead
+      on "it" prevents the match; "wired the handler" — negative lookahead on "the".
 
 The following commonly-seen "Red Gate" phrases are intentionally NOT in the
 token list because they describe historical provenance, not current state:
@@ -358,14 +395,17 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # and are intentionally excluded from scope.
     # -----------------------------------------------------------------------
     (
-        # Pattern 26: "skeleton compiles?" — stub-era compile-only header where a Kani
+        # Pattern 26: "skeleton compiles?\b" — stub-era compile-only header where a Kani
         # harness skeleton or test scaffold compiles but has no real proof assertions.
+        # The trailing \b word boundary excludes the past-tense form "skeleton compiled"
+        # (the 'd' in "compiled" is a word character so \b does not fire inside it).
         # Examples: "harness skeleton compiles only — wiring deferred to STORY-176"
         #           "VP-044 Kani skeleton compiles — no proof assertions added yet"
         # Allowlist: "skeleton originated", "VP-024 Sub-D skeleton" — no "compiles";
-        #            "proof skeleton" — bare label without compile-only assertion.
+        #            "proof skeleton" — bare label without compile-only assertion;
+        #            "skeleton compiled" — past tense, excluded by \b.
         "skeleton compiles? (stub-era compile-only assertion; AC-176-001 pattern a)",
-        re.compile(r"skeleton\s+compiles?", re.IGNORECASE),
+        re.compile(r"skeleton\s+compiles?\b", re.IGNORECASE),
     ),
     (
         # Pattern 27: "(exposes|is a|are) compile-only seam(s)" — present-tense verb
@@ -389,14 +429,19 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         re.compile(r"(?:are|is)\s+(?:currently\s+)?compile-only", re.IGNORECASE),
     ),
     (
-        # Pattern 29: "until … is wired" — CI-wiring-incomplete prose stating a test or
-        # function fails/returns early until a handler or integration is wired in.
-        # Examples: "CI test fails until the IEC-104 handler is wired"
+        # Pattern 29: "until … wired" — CI-wiring-incomplete prose stating a test or
+        # function fails/returns early until a handler or integration is wired.
+        # Matches bare "until wired" (no auxiliary) AND "until … is wired".
+        # The negative lookahead (?!\s+(?:it|the|a|that|this|them)\b) excludes
+        # past-tense verb-object forms like "wired it" and "wired the handler".
+        # Examples: "CI test fails until wired"
+        #           "CI test fails until the IEC-104 handler is wired"
         #           "function returns early until STORY-176 is wired"
-        # Allowlist: "was compile-only until STORY-NNN wired it" — "wired it" uses
-        #            past-tense main verb with object, not the "is wired" passive auxiliary.
-        "until … is wired (CI-wiring-incomplete stub-era prose; AC-176-001 pattern d)",
-        re.compile(r"\buntil\b.*\bis\s+wired\b", re.IGNORECASE),
+        #           "disabled until the handler is wired"
+        # Allowlist: "was compile-only until STORY-NNN wired it" — negative lookahead
+        #            on "it" prevents match; "wired the handler" — lookahead on "the".
+        "until … wired (CI-wiring-incomplete stub-era prose; AC-176-001 pattern d)",
+        re.compile(r"\buntil\b.*\bwired\b(?!\s+(?:it|the|a|that|this|them)\b)", re.IGNORECASE),
     ),
 ]
 
