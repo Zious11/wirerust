@@ -65,16 +65,19 @@ The following patterns are matched against COMMENT LINES ONLY
  25. are/is todo!() stub(s)       — present-tense "are" or "is" immediately before "todo!() stub";
                                     "were todo!() stubs" (past tense 'were') and "originated as
                                     todo!() stubs" ('as' not 'are'/'is') are not matched; AC-174-008
- 26. skeleton compiles?\b         — "harness skeleton compiles" stub-era compile-only assertion;
-                                    bare-label forms ("proof skeleton", "VP-024 Sub-D skeleton")
-                                    have no "compiles"; past-tense "skeleton compiled" is now
-                                    excluded by the trailing \b word boundary after compiles?
+ 26. \bskeleton compiles?\b        — "harness skeleton compiles" stub-era compile-only assertion;
+                                    leading \b excludes prefix forms ("exoskeleton compiles",
+                                    "microskeleton compiles"); bare-label forms ("proof skeleton",
+                                    "VP-024 Sub-D skeleton") have no "compiles"; past-tense
+                                    "skeleton compiled" is excluded by the trailing \b word
+                                    boundary after compiles?
  27. (exposes|is a|are) compile-only seam(s) — present-tense verb before "compile-only seam(s)";
                                     "as a compile-only seam" (past-tense narrative context with
                                     "as" not "exposes/is a/are") is not matched by specificity
- 28. (are|is) (currently) compile-only — present-tense compile-only predicate claim; "was compile-only"
-                                    (past tense 'was') and "compile-only checks passed" (no
-                                    are/is before compile-only) are not matched by specificity
+ 28. \b(are|is) (currently) compile-only — present-tense compile-only predicate claim; leading
+                                    \b prevents mid-word matches; "was compile-only" (past tense
+                                    'was') and "compile-only checks passed" (no are/is before
+                                    compile-only) are not matched by specificity
  29. until … wired                — "fails/returns until … wired" or "until … is wired" CI-wiring-
                                     incomplete prose; bare "until wired" is now caught in addition
                                     to "until … is wired"; "wired it" / "wired the handler"
@@ -145,24 +148,28 @@ Pattern-specific allowlist notes (patterns 12-29):
       alternation (?:are|is).
       Allowlisted: "were todo!() stubs" (past tense 'were');
                    "originated as todo!() stubs" ('as' not 'are'/'is').
-  26. "skeleton compiles?\b": The "compiles" qualifier is the distinguishing stub-era
-      signal. The trailing \b word boundary after compiles? now also excludes the
-      past-tense form "skeleton compiled" (because "compiled" continues with 'd',
+  26. "\bskeleton compiles?\b": The leading \b word boundary excludes strings where
+      "skeleton" is a non-word-boundary suffix (e.g. "exoskeleton compiles",
+      "microskeleton compiles"). The "compiles" qualifier is the distinguishing
+      stub-era signal. The trailing \b word boundary after compiles? also excludes
+      the past-tense form "skeleton compiled" (because "compiled" continues with 'd',
       a word character, so \b does not match inside it). Bare-label architectural
       references ("proof skeleton", "VP-024 Sub-D skeleton") and past-tense
       provenance ("skeleton originated in STORY-NNN") omit "compiles" entirely.
       Allowlisted: "skeleton originated", "VP-024 Sub-D skeleton" — no "compiles";
-                   "skeleton compiled" — past tense, excluded by \b.
+                   "skeleton compiled" — past tense, excluded by \b;
+                   "exoskeleton compiles" — leading \b, excluded.
   27. "(exposes|is a|are) compile-only seam(s)": Requires an explicit present-tense
       verb (exposes, is a, are) before "compile-only seam". This excludes "as a
       compile-only seam" (past-tense narrative using "as") and all bare-seam idioms
       ("Test seam accessors", "VP-047 seam", "UDP gap-key seam") that omit "compile-only".
       Allowlisted: "as a compile-only seam", "Test seam accessors", "VP-047 seam",
       "UDP gap-key seam" — different verb/preposition or no "compile-only" prefix.
-  28. "(are|is) (currently) compile-only": Present-tense "are" or "is" directly before
-      "compile-only" (optionally with "currently" interposed). Excludes past-tense "was
-      compile-only" and noun-phrase-initial forms like "compile-only checks passed"
-      where no are/is precedes the token.
+  28. "\b(are|is) (currently) compile-only": The leading \b word boundary prevents
+      mid-word matches. Present-tense "are" or "is" directly before "compile-only"
+      (optionally with "currently" interposed). Excludes past-tense "was compile-only"
+      and noun-phrase-initial forms like "compile-only checks passed" where no are/is
+      precedes the token.
       Allowlisted: "was compile-only" (past tense 'was'), "compile-only checks passed".
   29. "until … wired": The pattern requires "wired" after "until" on the same line.
       Bare "until wired" (no auxiliary) and passive "until … is wired" are both
@@ -395,17 +402,20 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # and are intentionally excluded from scope.
     # -----------------------------------------------------------------------
     (
-        # Pattern 26: "skeleton compiles?\b" — stub-era compile-only header where a Kani
+        # Pattern 26: "\bskeleton compiles?\b" — stub-era compile-only header where a Kani
         # harness skeleton or test scaffold compiles but has no real proof assertions.
+        # The leading \b word boundary excludes prefix forms ("exoskeleton compiles",
+        # "microskeleton compiles") where "skeleton" is not a word-initial token.
         # The trailing \b word boundary excludes the past-tense form "skeleton compiled"
         # (the 'd' in "compiled" is a word character so \b does not fire inside it).
         # Examples: "harness skeleton compiles only — wiring deferred to STORY-176"
         #           "VP-044 Kani skeleton compiles — no proof assertions added yet"
         # Allowlist: "skeleton originated", "VP-024 Sub-D skeleton" — no "compiles";
         #            "proof skeleton" — bare label without compile-only assertion;
-        #            "skeleton compiled" — past tense, excluded by \b.
+        #            "skeleton compiled" — past tense, excluded by \b;
+        #            "exoskeleton compiles" — leading \b, excluded.
         "skeleton compiles? (stub-era compile-only assertion; AC-176-001 pattern a)",
-        re.compile(r"skeleton\s+compiles?\b", re.IGNORECASE),
+        re.compile(r"\bskeleton\s+compiles?\b", re.IGNORECASE),
     ),
     (
         # Pattern 27: "(exposes|is a|are) compile-only seam(s)" — present-tense verb
@@ -419,14 +429,15 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         re.compile(r"\b(?:exposes?|is\s+a|are)\s+compile-only\s+seams?", re.IGNORECASE),
     ),
     (
-        # Pattern 28: "(are|is) (currently) compile-only" — present-tense predicate
+        # Pattern 28: "\b(are|is) (currently) compile-only" — present-tense predicate
         # asserting code bodies are compile-only, optionally with "currently".
+        # The leading \b word boundary prevents mid-word false-positives.
         # Examples: "all harness bodies are currently compile-only — no real assertions"
         #           "this function is compile-only at the red-gate boundary"
         # Allowlist: "was compile-only" (past tense 'was' — not 'are'/'is');
         #            "compile-only checks passed" (no are/is before compile-only).
         "(are|is) (currently) compile-only (present-tense compile-only predicate; AC-176-001 pattern c)",
-        re.compile(r"(?:are|is)\s+(?:currently\s+)?compile-only", re.IGNORECASE),
+        re.compile(r"\b(?:are|is)\s+(?:currently\s+)?compile-only", re.IGNORECASE),
     ),
     (
         # Pattern 29: "until … wired" — CI-wiring-incomplete prose stating a test or
