@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-176
 epic_id: E-11
-version: "2.6"
+version: "2.7"
 status: ready
 producer: story-writer
 timestamp: 2026-07-20T00:00:00Z
@@ -36,7 +36,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "a90c4b4"
+input-hash: "6ec8772"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
@@ -273,9 +273,13 @@ grep "mutants.out" .gitignore
 | AC-176-003 regression-guard CI wiring | `.github/workflows/ci.yml` (bin-selftest job, amend) | develop |
 
 No Rust source files in `src/`, no `tests/`, no `Cargo.toml` changes. `bin/` changes are
-CI tooling only (no production code). `ci.yml` SHA pins and the `green-doc-tense-gate` job
-are NOT modified; the ONLY `ci.yml` change is the bin-selftest step addition for AC-176-003
-(wiring `bin/test_gitignore_mutants_glob.py` into the existing `bin-selftest` job).
+CI tooling only (no production code). `ci.yml` SHA pins are NOT modified (18/18 verified
+identical). Commit ea4bcd8e delivered three `ci.yml` edits: (1) one new `run:` step in the
+`bin-selftest` job to wire `bin/test_gitignore_mutants_glob.py` (AC-176-003 regression guard);
+(2) `bin-selftest` job name de-enumerated to count-free "Bin selftest suites" (W75 NIT-1
+count-free discipline); (3) the COMMENT block above the `green-doc-tense-gate` job reworded
+count-free (stale "10 known-bad/14 known-good" claim removed). The `green-doc-tense-gate`
+job's steps and name are untouched; only its leading comment was changed.
 
 ## Edge Cases
 
@@ -307,7 +311,7 @@ are NOT modified; the ONLY `ci.yml` change is the bin-selftest step addition for
 3. **Extend delivery-doc-currency-protocol.md (AC-176-002):** Add input-hash
    post-delivery re-baseline reminder. Factory-artifacts branch commit.
 
-4. **Register in STORY-INDEX.md:** Update STORY-176 row (v2.3, ready, E-11, wave-84,
+4. **Register in STORY-INDEX.md:** Update STORY-176 row (ready, E-11, wave-84,
    2 pts). Factory-artifacts branch commit.
 
 > **Note for implementer:** Tasks 1 and 2 (`bin/check-green-doc-tense` /
@@ -329,12 +333,20 @@ are NOT modified; the ONLY `ci.yml` change is the bin-selftest step addition for
 
 ## Architecture Compliance Rules
 
-- **ci.yml scoped edit only:** The ONLY `ci.yml` change for this story is one new `run:`
-  step in the existing `bin-selftest` job to wire `bin/test_gitignore_mutants_glob.py`
-  (AC-176-003 regression guard). `ci.yml` SHA pins and the `green-doc-tense-gate` job are
-  NOT modified. No new grep commands or token lists belong in `ci.yml`. The action SHA-pin
-  policy (CLAUDE.md §CI / Supply Chain) applies to any `ci.yml` additions — the bin-selftest
-  step uses only a `run:` step (no new `uses:` action refs), so no new SHA pin is required.
+- **ci.yml scoped edits (three total, commit ea4bcd8e):** (1) one new `run:` step in the
+  `bin-selftest` job to wire `bin/test_gitignore_mutants_glob.py` (AC-176-003 regression
+  guard); (2) `bin-selftest` job name de-enumerated to count-free "Bin selftest suites"
+  (W75 NIT-1 count-free discipline); (3) the COMMENT block above the `green-doc-tense-gate`
+  job reworded count-free (stale "10 known-bad/14 known-good" claim removed). The
+  `green-doc-tense-gate` job's steps and name are untouched — only its leading comment was
+  changed. `ci.yml` SHA pins are NOT modified (18/18 verified identical). No new grep
+  commands or token lists belong in `ci.yml`. The action SHA-pin policy
+  (CLAUDE.md §CI / Supply Chain) applies to any `ci.yml` additions — the bin-selftest step
+  uses only a `run:` step (no new `uses:` action refs), so no new SHA pin is required.
+- **Branch-protection rename check (F-S176P5-002 RESOLVED-CLEAN, execution-verified
+  2026-07-20):** Neither the classic develop branch protection (11 required-status contexts)
+  nor the develop ruleset (Test/Clippy/Format) references the `bin-selftest` job name.
+  Renaming the job to "Bin selftest suites" orphans no protected branch requirement.
 - **Zero false positives required:** The phrase-level patterns MUST be verified against
   the current tree (run `python3 bin/check-green-doc-tense` → exit 0) before the develop
   PR is merged. Bare-word `skeleton`/`seam` tokens are explicitly rejected: ~91 legitimate
@@ -350,7 +362,9 @@ are NOT modified; the ONLY `ci.yml` change is the bin-selftest step addition for
 | `CHANGELOG.md` (amendment target, Unreleased entry) | ~0.2 k |
 | `delivery-doc-currency-protocol.md` (amendment target) | ~1.0 k |
 | `.gitignore` (full file, <=15 lines) | ~0.1 k |
-| **Total** | **~8.8 k** |
+| `bin/test_gitignore_mutants_glob.py` (new file, git check-ignore assertions) | ~0.3 k |
+| `.github/workflows/ci.yml` (bin-selftest job section only) | ~0.5 k |
+| **Total** | **~9.6 k** |
 
 Well within context window. No story split required.
 
@@ -374,6 +388,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.7 | 2026-07-20 | story-writer | F-S176P5-001: ci.yml scoping statements corrected to enumerate all three delivered edits (step add, job-name de-enumeration, gate-comment count-free reword); F-S176P5-002 branch-protection rename check recorded RESOLVED-CLEAN. No AC semantic change. |
 | 2.6 | 2026-07-20 | story-writer | F-S176P4-001/-002/-003: AC-176-003 regression guard CI-wired (bin-selftest step; scoped ci.yml edit documented); traces_to completed (CHANGELOG.md + ci.yml); stale v2.3 Task-4 token dropped. No AC semantic change beyond guard-enforcement locus. |
 | 2.5 | 2026-07-20 | story-writer | F-S176P3-001: added bin/test_gitignore_mutants_glob.py to Architecture Mapping + traces_to + AC-176-003 regression-guard note; deliverable-map completeness sweep (5/5 develop files + factory doc verified). No AC semantic change. |
 | 2.4 | 2026-07-20 | story-writer | F-S176P1-008: Disposition-table AC-ID renumbering footnote; clarification only, no AC content change. |
