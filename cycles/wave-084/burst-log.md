@@ -360,3 +360,176 @@ Pass 2 adversarial review classified FINDINGS. Fresh adversary reviewed HEAD `08
 - bc_5_39_001: PENDING (need 3-clean streak)
 - Pass 3 dispatched.
 
+---
+
+## Burst — STORY-176 Step-4.5 Pass-3 + Pass-4 Convergence Tracking (2026-07-20)
+
+**Type:** state-burst (adversarial convergence update — two passes combined)
+**Dispatched by:** orchestrator
+**Code tip at burst start:** `b583c4b4` (STORY-176 worktree feature/STORY-176-cycle-close-hygiene)
+**Code tip at burst end:** `ea4bcd8e`
+
+### Summary
+
+Pass 3 adversarial review classified FINDINGS (spec-only route). Pass 4 adversarial review
+classified FINDINGS (1 code/CI fix + 2 spec-route fixes; all resolved).
+
+**Pass 3 — Fresh adversary (re-dispatched; first dispatch stalled on API mid-stream after attestation — infrastructure transient, no process gap). Part A:** All pass-1 and pass-2 fixable findings VERIFIED-FIXED; independent count reconciliation 40 BAD + 45 GOOD + 6 hermetic = 91. **Part B (1 MEDIUM spec-route / 2 INFO obs):**
+- F-S176P3-001 MEDIUM: `bin/test_gitignore_mutants_glob.py` absent from story Architecture Mapping + `traces_to` (strict-TDD coherence gap) → FIXED story v2.5/a90c4b4 (deliverable-map rows + AC-176-003 note; DF-SIBLING-SWEEP 5/5 PRESENT; no phantom ci.yml entries; input-hash a90c4b4 canonical)
+- Obs-A INFO: pattern-28 leading-boundary latency → ACCEPTED (spec-faithful; analogous to F-S176P2-003)
+- Obs-B INFO: verification-command breadth conservative-and-sound → ACCEPTED (residue of F-S176P1-004)
+
+Code tip UNCHANGED at pass 3 (b583c4b4 — spec-only fix).
+
+**Pass 4 — Fresh adversary. Part A:** All prior fixable findings VERIFIED-FIXED; fixture arithmetic re-derived 40 BAD + 45 GOOD + 6 hermetic = 91 confirmed. **Part B (1 MEDIUM / 2 LOW + 1 INFO obs — all resolved):**
+- F-S176P4-001 MEDIUM: `bin/test_gitignore_mutants_glob.py` CI-inert (PG-W74-CI-BIN-SELFTEST recurrence; AC-165-001 pattern not extended to new file) → FIXED `ea4bcd8e` (bin-selftest CI job extended: step added per AC-165-001; job name made count-free; stale `10/14` comment reworded count-free; SHA pins verified identical 18/18; YAML valid) + story v2.6 spec sync; PG-W84-011 filed
+- F-S176P4-002 LOW: `traces_to` missing `CHANGELOG.md` → FIXED story v2.6 (traces_to 1:1 with Architecture Mapping; 6 develop deliverables + factory doc)
+- F-S176P4-003 LOW: stale `[v2.3]` Task-4 token → FIXED story v2.6 (dropped)
+- Obs-C INFO: pattern-28/29 latent breadth → ACCEPTED (spec-faithful; consistent with F-S176P2-003/Obs-A; zero current-tree impact confirmed)
+
+Post-fix orchestrator verification (ea4bcd8e + story v2.6/2150cf0): self-test 91/0 exit 0; gate PASS 114 files; gitignore test 2/0.
+
+### Files Updated in This Burst
+
+- `.factory/cycles/wave-084/STORY-176/FINDINGS.md` — pass 3 section already present; pass 4 section written; frontmatter pass_count 3→4
+- `.factory/cycles/wave-084/STORY-176/adversary-convergence-state.json` — pass 4 entry added; head_reviewed → ea4bcd8e
+- `.factory/cycles/wave-084/process-gap-ledger.md` — PG-W84-011 prepended (before PG-W84-010)
+- `.factory/STATE.md` — current_step, timestamp, EXACT RESUME POINT, top CPS row, Session Resume Checkpoint, Phase Progress Wave 84 row, Concurrent Cycles wave-084 row updated
+- `.factory/cycles/wave-084/session-checkpoints.md` — pass-2 checkpoint archived
+- `.factory/cycles/wave-084/burst-log.md` — this entry
+
+### Convergence State After This Burst
+
+- passes: 4 (all FINDINGS)
+- consecutive_clean: 0
+- converged: false
+- bc_5_39_001: PENDING (need 3-clean streak)
+- Pass 5 dispatched.
+
+---
+
+## Burst — STORY-176 Step-4.5 Pass-5 + Pass-6 Convergence Tracking (2026-07-20)
+
+**Type:** state-burst (adversarial convergence update — two passes combined)
+**Dispatched by:** orchestrator
+**Code tip:** `ea4bcd8e` (UNCHANGED throughout — code frozen since pass 4; passes 5 and 6 both reviewed ea4bcd8e)
+
+### Summary
+
+Pass 5 adversarial review classified FINDINGS (spec-only route; 1 MEDIUM + 1 LOW RESOLVED-CLEAN).
+Pass 6 adversarial review classified NITPICK_ONLY (FIRST CLEAN PASS — streak 1/3).
+
+**Pass 5 — Fresh adversary. Part A:** All pass-4 findings VERIFIED-FIXED; axes checked clean (AC-176-002 doc conformant, .gitignore glob correct, no in-tree refs to old job name, frontmatter coherent). **Part B (1 MEDIUM / 1 LOW):**
+- F-S176P5-001 MEDIUM: spec understated ea4bcd8e ci.yml diff (scoping statement claimed 1 edit; actually 3: step add, bin-selftest job-name de-enumeration, gate leading-comment count-free reword) → FIXED story v2.7/6ec8772 (scoping statements enumerate all three edits; sibling sweep 4/4 hits adjudicated; input-hash 6ec8772 canonical, orchestrator-verified)
+- F-S176P5-002 LOW: job-rename might orphan branch-protection required check → RESOLVED-CLEAN by orchestrator execution verification 2026-07-20 (classic develop protection 11 contexts + develop ruleset Test/Clippy/Format — neither references bin-selftest job name; recorded in story v2.7)
+
+Code tip ea4bcd8e UNCHANGED (no worktree commits since pass 4).
+
+**Pass 6 — Fresh adversary; reviewed code HEAD ea4bcd8e + story v2.7/6ec8772. Classification: NITPICK_ONLY.**
+- Part A: F-S176P5-001 VERIFIED-FIXED (adversary independently re-derived the full ci.yml diff: exactly three edits, line-count delta 543→546 reconciles, no hidden fourth edit; SHA pins independently counted 18/18 identical; AC-176-001 scoping statement confirmed accurate). F-S176P5-002 VERIFIED RESOLVED-CLEAN.
+- Part B: ZERO new findings. Adversary statement: "The artifact set is genuinely clean at this pass." Novelty LOW.
+- consecutive_clean advances to 1; clean_streak [6]; converged: false (needs 3).
+
+### Files Updated in This Burst
+
+- `.factory/cycles/wave-084/STORY-176/FINDINGS.md` — Pass 5 section already present; Pass 6 section added; frontmatter pass_count 5→6, consecutive_clean: 1
+- `.factory/cycles/wave-084/STORY-176/adversary-convergence-state.json` — pass 5 and pass 6 entries added; consecutive_clean 0→1; clean_streak [6]
+- `.factory/STATE.md` — current_step, timestamp, EXACT RESUME POINT, top CPS row, Phase Progress wave-084 row, Concurrent Cycles wave-084 row, Session Resume Checkpoint updated
+- `.factory/cycles/wave-084/session-checkpoints.md` — pass-3 checkpoint archived
+- `.factory/cycles/wave-084/burst-log.md` — this entry
+
+### Convergence State After This Burst
+
+- passes: 6 (passes 1–5 FINDINGS; pass 6 NITPICK_ONLY)
+- consecutive_clean: 1 (clean_streak [6])
+- converged: false (needs 3 consecutive)
+- bc_5_39_001: PENDING (need 3-clean streak; passes 7/8 required)
+- trajectory: 3M/5L→1M/2L→1M→1M/2L→1M/1L→0
+- Pass 7 dispatched.
+
+---
+
+## Burst — STORY-176 Step-4.5 Pass-7 + Pass-8 CONVERGED (2026-07-20)
+
+**Type:** state-burst (adversarial convergence update — two passes combined; CONVERGENCE ACHIEVED)
+**Dispatched by:** orchestrator
+**Code tip:** `ea4bcd8e` (UNCHANGED — code frozen since pass 4; passes 5/6/7/8 all reviewed ea4bcd8e)
+
+### Summary
+
+Pass 7 adversarial review classified NITPICK_ONLY (second consecutive clean, streak 2/3).
+Pass 8 adversarial review classified NITPICK_ONLY (THIRD consecutive clean, streak 3/3).
+BC-5.39.001 SATISFIED. CONVERGED.
+
+**Pass 7 — Fresh adversary; reviewed code HEAD ea4bcd8e + story v2.7/6ec8772. Classification: NITPICK_ONLY.**
+- Part A spot-checks all CLEAN: pattern-26/29 mechanics re-traced; fixture arithmetic 40 BAD + 45 GOOD + 6 hermetic = 91 independently re-derived; traces_to 1:1 confirmed; CI wiring 3 edits confirmed; SHA pins 18/18.
+- Part B fresh attack (encodings/CRLF, block comments, hermeticity, check-ignore false-green surfaces, glob cross-matching, verification-command divergence): ZERO findings — all candidates resolved to pre-existing/out-of-scope/by-design/already-dispositioned. 3 non-blocking NITPICK observations: Obs-P7-1 ERE verification command conservatively broader (sound, no coverage gap); Obs-P7-2 bin-selftest CI job absent from required-status-checks (pre-existing since STORY-164/165; PG-W84-012 filed; pending intent verification); Obs-P7-3 pre-existing AC-174-008 fixture coincidentally trips pattern-26 (harmless 2-tuple, behavior correct and by-design).
+- Novelty LOW: "Code tip genuinely converged." consecutive_clean advances to 2; clean_streak [6, 7].
+
+**Pass 8 — Fresh adversary; reviewed code HEAD ea4bcd8e + story v2.7/6ec8772. Classification: NITPICK_ONLY — THIRD consecutive clean.**
+- Part A all spot-checks CLEAN (same checks as P7; all re-derived independently).
+- Part B fresh angles: gate self-scan double-exclusion (.rs-filter + //-only); full 29-pattern precedence trace incl. break-after-first fixture routing; combined adversarial GOOD case multi-token allowlist; verification commands vs. final state; CHANGELOG Keep-a-Changelog placement; delivery-doc vs. CLAUDE.md coherence; gitignore glob coverage: ZERO findings at any severity.
+- Obs-P7-3 RESOLVED-CLEAN: full precedence trace shows pattern 24 precedes pattern 26 — AC-174-008 fixture fires pattern 24 first and never reaches pattern 26; UNREACHABLE confirmed.
+- Novelty LOW. consecutive_clean advances to 3; clean_streak [6, 7, 8]. BC-5.39.001 SATISFIED. CONVERGED.
+
+### Files Updated in This Burst
+
+- `.factory/cycles/wave-084/STORY-176/FINDINGS.md` — pass 8 section added; frontmatter updated: pass_count 8, converged true, consecutive_clean 3, status converged
+- `.factory/cycles/wave-084/STORY-176/adversary-convergence-state.json` — pass 8 entry added; converged true; bc_5_39_001 SATISFIED; consecutive_clean 3; clean_streak [6,7,8]
+- `.factory/cycles/wave-084/STORY-176/convergence-report.md` — created (8 passes, CONVERGED P6/P7/P8)
+- `.factory/STATE.md` — current_step, timestamp, EXACT RESUME POINT, top CPS row (CONVERGED), Phase Progress wave-084 row, Concurrent Cycles wave-084 row, Session Resume Checkpoint, Historical Content (STORY-176 convergence report row added)
+- `.factory/cycles/wave-084/session-checkpoints.md` — stale pass-3 checkpoint archived
+- `.factory/cycles/wave-084/burst-log.md` — this entry + D-481 CPS archival entry above
+
+### Convergence State After This Burst
+
+- passes: 8 (passes 1–5 FINDINGS; passes 6/7/8 NITPICK_ONLY)
+- consecutive_clean: 3 (clean_streak [6, 7, 8])
+- converged: TRUE
+- bc_5_39_001: SATISFIED
+- trajectory: 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0
+- Step 5 demo evidence dispatched.
+
+---
+
+## Burst: D-481 row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the STORY-176
+Step-4.5 CONVERGED bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the STORY-176 Step-4.5 CONVERGED row addition,
+not a spec-evolution or code-delivery burst in its own right. (STORY-147's
+per-story TDD delivery — 8-pass Step-4.5 adversary CONVERGED P6/P7/P8, dual
+pr-reviewer APPROVE, security CLEAN, CI 13/13 — is recorded separately in
+`cycles/wave-084/STORY-147/convergence-report.md`,
+`cycles/wave-084/STORY-147/adversary-convergence-state.json`, and
+`.factory/code-delivery/STORY-147/`.)
+
+**Files touched (Dim-1): 1 unique file**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the STORY-176 Step-4.5 CONVERGED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **STORY-147 DELIVERED (2026-07-20, D-481). PR #421 squash-merged to develop f0cb7374e51ed486cf72ef3ca1694be24169815a (human-executed, 2026-07-20T02:40:53Z, explicit per-PR authorization; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Feature branch + worktree .worktrees/STORY-147 removed. CI 13/13 (Semantic PR recovered after GitHub-declared Minor Service Outage delayed it ~2h). Dual pr-reviewer APPROVE; security CLEAN. Step-4.5 adversary CONVERGED P6/P7/P8 (8 passes; Pass-1 caught placebo config — repo-root mutants.toml/jobs key never read by cargo-mutants; execution-verified pivot to .cargo/mutants.toml minimum_test_timeout=300); spec v2.1→v2.8. STORY-INDEX v3.80→v3.81 (status ready→delivered; wave-84 row 1/3 DELIVERED). stories_delivered 113→114. Evidence artifacts at .factory/code-delivery/STORY-147/ (committed f2b5dcfe). Process-gaps ledgered for cycle-close: stale-inline-version-marker recurrence, sub-agent message-routing breakage (relay-through-orchestrator workaround; also caused security-review.md artifact backfill f2b5dcfe), burst-log template understatement.** | **DELIVERED (D-481)** | develop=f0cb7374. Resume: STORY-166 per-story delivery next (await human go). trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-481 row) rolled
+out by the STORY-176 Step-4.5 CONVERGED row addition (2026-07-20).
+
+---
+
+<!-- Repeat for each burst. Maintain chronological order. -->
+

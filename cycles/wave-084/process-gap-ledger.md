@@ -196,6 +196,57 @@ catch fabricated mechanism references before Step 2.
 
 ---
 
+## PG-W84-011 — new bin/test_*.py delivered without CI wiring (PG-W74-CI-BIN-SELFTEST recurrence)
+
+**Class:** CI-wiring gap / process discipline — "new bin/ self-test delivered without CI wiring"
+**Caught by:** STORY-176 Step-4.5 adversarial pass 4 (F-S176P4-001, 2026-07-20)
+**Severity:** MEDIUM (test file never executed by CI; no regression guarantee)
+**Vehicle:** Engine-level checklist candidate — upstream drbothen/vsdd-factory (DF-VALIDATION-001 required before filing)
+**Status:** FIXED in-cycle — `ea4bcd8e` extended bin-selftest CI job per AC-165-001 pattern
+
+`bin/test_gitignore_mutants_glob.py` was delivered in Steps 1–4 of STORY-176 without being
+wired into any CI job. The `bin-selftest` job in ci.yml already existed (established by
+AC-165-001 from STORY-165) but was not extended to include the new file.
+
+This is a direct recurrence of the PG-W74-CI-BIN-SELFTEST class: a new `bin/test_*.py`
+file delivered without CI wiring, despite the AC-165-001 pattern being codified and a
+concrete CI job existing to receive the step.
+
+**Root cause:** The story's per-story delivery checklist does not include an explicit item
+"for every new bin/test_*.py delivered, add a step to the bin-selftest CI job". The
+pattern exists in AC-165-001 but was not enforced at story-writer or implementer level.
+
+**Candidate engine fix:** Add a checklist item to the per-story-delivery orchestrator
+workflow: after any commit that introduces a new `bin/test_*.py`, verify the file is
+referenced in the bin-selftest CI job before Step-4.5 dispatch. DF-VALIDATION-001
+research-agent validation required before filing upstream.
+
+---
+
+## PG-W84-012 — bin-selftest CI job absent from develop required-status-checks
+
+**Class:** Branch-protection gap / CI self-test guard coverage
+**Caught by:** STORY-176 Step-4.5 adversarial pass 7 (Obs-P7-2, 2026-07-20)
+**Severity:** LOW (self-test guards do not gate merges; pre-existing pattern; no immediate regression risk)
+**Vehicle:** Product-local (branch protection configuration); upstream drbothen/vsdd-factory (DF-VALIDATION-001 required before filing upstream)
+**Status:** OPEN — pending intent verification; consider adding at next branch-protection review
+
+The `bin-selftest` CI job (established by STORY-165 / AC-165-001 and extended for STORY-176
+via `ea4bcd8e`) is not listed as a required status check in either the classic develop branch
+protection rules or the develop ruleset. Self-test guards delivered in STORY-164, STORY-165,
+and STORY-176 therefore do not block merges if the job fails or is absent.
+
+**Pre-existing pattern:** The omission predates STORY-176 (STORY-164/165 both landed without
+wiring bin-selftest into required-status-checks). The adversary surfaced this in pass 7 as
+an observation, not a finding, because the AC-165-001 pattern focused on CI wiring (job
+existence) rather than branch-protection wiring (required-check registration).
+
+**Candidate fix:** Add `bin-selftest` to the develop branch protection required-status-checks
+list at the next branch-protection review cycle. DF-VALIDATION-001 research-agent validation
+required before filing as a GitHub issue.
+
+---
+
 ## PG-W84-010 — gate scan Rust-only blind spot for bin/*.py prose
 
 **Class:** Gate scope gap / self-policing blind spot

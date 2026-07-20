@@ -4,11 +4,12 @@ story: STORY-176
 wave: 84
 cycle: wave-084
 version: "1.0"
-status: in-progress
+status: converged
 producer: state-manager
-timestamp: 2026-07-20T22:45:00Z
-pass_count: 4
-converged: false
+timestamp: 2026-07-20T23:59:00Z
+pass_count: 8
+converged: true
+consecutive_clean: 3
 ---
 
 # STORY-176 Step-4.5 Cross-Pass Findings Tracker
@@ -334,5 +335,321 @@ satisfied. No fix required for convergence.
 
 ---
 
-<!-- Update this file after each pass. Add Pass N section with same structure. -->
-<!-- Set converged: true in frontmatter when BC-5.39.001 clean-streak of 3 achieved. -->
+## Pass 4 — 2026-07-20 | Classification: FINDINGS | Code Tip Reviewed: b583c4b4 + ea4bcd8e
+
+**Adversary:** Fresh (no prior-pass context).
+**Code tip reviewed:** `b583c4b4` (story v2.5) at dispatch; `ea4bcd8e` post-fix
+**Fixes committed through:** `ea4bcd8e` (code) + story v2.6/2150cf0
+
+### Part A — Pass-1, Pass-2, and Pass-3 Fix Verification
+
+Independent fixture arithmetic re-derived: 40 BAD + 45 GOOD + 6 hermetic = 91 confirmed.
+
+| Finding | Status |
+|---------|--------|
+| F-S176P1-001 | VERIFIED-FIXED |
+| F-S176P1-002 | VERIFIED-FIXED |
+| F-S176P1-003 | VERIFIED-FIXED |
+| F-S176P1-004 | ACCEPTED — not re-litigated |
+| F-S176P1-005 | VERIFIED-FIXED |
+| F-S176P1-006 | VERIFIED-FIXED |
+| F-S176P1-007 | LEDGERED — not re-raised |
+| F-S176P1-008 | VERIFIED-FIXED |
+| F-S176P2-001 | VERIFIED-FIXED |
+| F-S176P2-002 | VERIFIED-FIXED |
+| F-S176P2-003 | ACCEPTED — not re-litigated |
+| Obs-1 | ACCEPTED — not re-litigated |
+| Obs-2 | ACCEPTED — not re-litigated |
+| F-S176P3-001 | VERIFIED-FIXED |
+| Obs-A | ACCEPTED — not re-litigated |
+| Obs-B | ACCEPTED — not re-litigated |
+
+All 8 pass-1, 2 pass-2, and 1 pass-3 fixable findings VERIFIED-FIXED.
+
+### Part B — New Findings
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| F-S176P4-001 | MEDIUM | process-gap / CI-wiring | FIXED | `ea4bcd8e` + story v2.6 |
+| F-S176P4-002 | LOW | spec currency (traces_to) | FIXED | story v2.6 |
+| F-S176P4-003 | LOW | spec currency (stale token) | FIXED | story v2.6 |
+| Obs-C | INFO | pattern latent breadth | ACCEPTED | spec-faithful (class: accepted F-S176P2-003/Obs-A) |
+
+**1 MEDIUM / 2 LOW (all FIXED). 1 informational observation ACCEPTED. HIGH/CRITICAL: 0.**
+
+---
+
+### Finding Details
+
+#### F-S176P4-001 — MEDIUM — bin/test_gitignore_mutants_glob.py CI-inert (process-gap recurrence)
+
+`bin/test_gitignore_mutants_glob.py` — a new test file delivered in Steps 1–4 — was not
+wired into any CI job. A test file that is never executed by CI provides no regression
+guarantee. This is a recurrence of the PG-W74-CI-BIN-SELFTEST class: new `bin/test_*.py`
+files delivered without CI wiring. The pattern was previously codified as AC-165-001
+(bin-selftest job in ci.yml). The job existed for prior bin tests but was not extended
+to cover the new file.
+
+**Disposition:** FIXED
+**Fix:** Commit `ea4bcd8e` — bin-selftest CI job extended per AC-165-001 pattern:
+`bin/test_gitignore_mutants_glob.py` step added; job name made count-free to avoid
+recurrence of count-stale class; stale `10/14` comment in the job reworded count-free;
+SHA pins verified identical 18/18; YAML valid. Story v2.6 spec sync: traces_to updated,
+AC-176-003 regression-guard note updated to reference the CI step. PG-W84-011 filed
+in process-gap-ledger.md (engine-level checklist candidate: per-story-delivery checklist
+item for any new `bin/test_*.py`).
+**Orchestrator-verified post-fix (ea4bcd8e):** self-test 91/0; gate PASS 114 files;
+gitignore test 2/0.
+
+---
+
+#### F-S176P4-002 — LOW — traces_to missing CHANGELOG.md
+
+The story's `traces_to` deliverable list did not include `CHANGELOG.md`, which is a
+required deliverable for any PR touching `src/`, `Cargo.toml`, or `bin/` per AC-158-001
+(CHANGELOG obligation). With the pass-4 code fix landing in `ea4bcd8e` (bin/ change),
+CHANGELOG.md is a concrete deliverable for the merge PR.
+
+**Disposition:** FIXED
+**Fix:** Story v2.6 — `traces_to` updated to 1:1 correspondence with Architecture
+Mapping (6 develop deliverables + factory doc). CHANGELOG.md added as explicit entry.
+
+---
+
+#### F-S176P4-003 — LOW — stale v2.3 Task-4 token in story body
+
+A residual `[v2.3]` version token in the story's Task-4 implementation notes section
+was not updated during the v2.4 and v2.5 spec-route remediations. Stale inline version
+markers are a recognized recurrence class (PG-W84-001).
+
+**Disposition:** FIXED
+**Fix:** Story v2.6 — stale `[v2.3]` token in Task-4 section dropped (count-free rewrite;
+does not affect ACs or traces_to).
+
+---
+
+#### Obs-C — INFO — pattern-28/29 latent breadth (informational, spec-faithful)
+
+The adversary noted pattern-28 and pattern-29 exhibit the same class of latent
+breadth/narrowness that was accepted in passes 2 and 3 (F-S176P2-003, Obs-A):
+potential FP-latent / FN-latent forms in inflected object phrases. Zero current-tree
+matches for any of the noted forms confirmed by the adversary.
+
+**Disposition:** ACCEPTED
+**Rationale:** Spec-faithful; consistent with accepted F-S176P2-003 and Obs-A dispositions.
+Zero current-tree impact confirmed. AC zero-FP constraint satisfied.
+
+---
+
+**Orchestrator-verified post-fix (ea4bcd8e + story v2.6/2150cf0):** self-test 91/0 exit 0;
+gate PASS 114 files; gitignore test 2/0. Code tip ea4bcd8e (8 commits over develop fa9be701).
+
+---
+
+## Pass 5 — 2026-07-20 | Classification: FINDINGS | Code Tip Reviewed: ea4bcd8e
+
+**Adversary:** Fresh (no prior-pass context).
+**Code tip reviewed:** `ea4bcd8e` (story v2.6)
+**Fixes committed through:** story v2.7 (spec-only; code tip ea4bcd8e UNCHANGED)
+
+### Part A — Pass-4 Fix Verification
+
+| Finding | Status |
+|---------|--------|
+| F-S176P4-001 | VERIFIED-FIXED |
+| F-S176P4-002 | VERIFIED-FIXED |
+| F-S176P4-003 | VERIFIED-FIXED |
+
+All pass-4 findings VERIFIED-FIXED. Axes checked clean by adversary: AC-176-002 doc
+conformant, .gitignore glob correct, no in-tree references to old job name, frontmatter
+coherent.
+
+### Part B — New Findings
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| F-S176P5-001 | MEDIUM | spec accuracy | FIXED | story v2.7 (6ec8772) |
+| F-S176P5-002 | LOW | branch-protection risk | RESOLVED-CLEAN | orchestrator execution verification 2026-07-20 |
+
+**1 MEDIUM (spec-only → story v2.7). 1 LOW RESOLVED-CLEAN by execution verification.
+HIGH/CRITICAL: 0. Code tip ea4bcd8e UNCHANGED.**
+
+---
+
+### Finding Details
+
+#### F-S176P5-001 — MEDIUM — spec understated ea4bcd8e ci.yml diff
+
+The story's scoping statements for the ea4bcd8e `ci.yml` edit claimed one edit, but
+the actual diff contained three distinct changes: (1) step add, (2) bin-selftest
+job-name de-enumeration, (3) gate leading-comment count-free reword. The
+understatement left the story's Architecture section and AC prose inconsistent with
+what was actually delivered.
+
+**Disposition:** FIXED
+**Fix:** Story v2.7 (input-hash 6ec8772 canonical, orchestrator-verified). Scoping
+statements enumerate all three edits. Sibling sweep 4/4 hits adjudicated. Story
+advanced to v2.7.
+
+---
+
+#### F-S176P5-002 — LOW — job-rename might orphan branch-protection required check
+
+The bin-selftest job-name de-enumeration in ea4bcd8e renames the CI job. If any
+branch-protection rule listed the old job name as a required status check, renaming it
+would silently orphan the requirement, allowing PRs to merge without that check passing.
+
+**Disposition:** RESOLVED-CLEAN
+**Resolution:** Orchestrator execution verification 2026-07-20. Classic develop branch
+protection (11 contexts) and develop ruleset (Test/Clippy/Format) both inspected —
+neither references the bin-selftest job name. No orphaned required-check risk. Recorded
+in story v2.7.
+
+---
+
+**Code tip ea4bcd8e UNCHANGED (no worktree commits since pass 4). Story advanced
+to v2.7 (6ec8772 canonical). consecutive_clean: 0. Pass 6 dispatched.**
+
+---
+
+## Pass 6 — 2026-07-20 | Classification: NITPICK_ONLY | Code Tip Reviewed: ea4bcd8e
+
+**Adversary:** Fresh (no prior-pass context). Reviewed code HEAD ea4bcd8e + story v2.7/6ec8772.
+**Code tip reviewed:** `ea4bcd8e` (UNCHANGED — code frozen 3 passes; passes 4/5/6 all at ea4bcd8e)
+**Fixes committed through:** N/A — ZERO findings; no changes made
+
+### Part A — Pass-5 Fix Verification
+
+| Finding | Status |
+|---------|--------|
+| F-S176P5-001 | VERIFIED-FIXED |
+| F-S176P5-002 | VERIFIED RESOLVED-CLEAN |
+
+Adversary independently re-derived the full ea4bcd8e `ci.yml` diff: exactly three edits;
+line-count delta 543→546 reconciles; no hidden fourth edit. SHA pins independently
+counted 18/18 identical. AC-176-001 scoping statement in story v2.7 confirmed accurate.
+F-S176P5-002 branch-protection risk: confirmed no required-check reference to the
+renamed job — RESOLVED-CLEAN independently corroborated.
+
+### Part B — New Findings
+
+**ZERO new findings.**
+
+Adversary statement: "The artifact set is genuinely clean at this pass."
+
+**Novelty:** LOW — all prior accepted observations (F-S176P1-004, F-S176P2-003,
+Obs-A/B/C) were acknowledged as already-ratified design decisions; none re-raised.
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| (none) | — | — | — | — |
+
+**0 findings. HIGH/CRITICAL: 0. Classification: NITPICK_ONLY.**
+
+---
+
+**Pass 6 verdict: NITPICK_ONLY (first clean pass). consecutive_clean = 1. clean_streak [6].
+converged: false (needs 3 consecutive). Pass 7 dispatched.**
+
+---
+
+## Pass 7 — 2026-07-20 | Classification: NITPICK_ONLY | Code Tip Reviewed: ea4bcd8e
+
+**Adversary:** Fresh (no prior-pass context). Reviewed code HEAD ea4bcd8e + story v2.7/6ec8772.
+**Code tip reviewed:** `ea4bcd8e` (UNCHANGED — code frozen 4 passes; passes 4/5/6/7 all at ea4bcd8e)
+**Fixes committed through:** N/A — ZERO findings; no changes made
+
+### Part A — Pass-6 Fix Verification (Spot-Checks)
+
+| Check | Status |
+|-------|--------|
+| Pattern-26 mechanics (trailing `\b`) | RESOLVED-CLEAN — re-traced |
+| Pattern-29 mechanics (negative lookahead) | RESOLVED-CLEAN — re-traced |
+| Fixture arithmetic (40 BAD + 45 GOOD + 6 hermetic) | RESOLVED-CLEAN — independently re-derived = 91 |
+| `traces_to` 1:1 with Architecture Mapping | RESOLVED-CLEAN — confirmed |
+| CI wiring: `ea4bcd8e` ci.yml edits (3 edits) | RESOLVED-CLEAN — confirmed |
+| SHA pins | RESOLVED-CLEAN — 18/18 identical |
+
+All Part A spot-checks RESOLVED-CLEAN. No prior-pass finding re-raised.
+
+### Part B — New Findings (Fresh Attack)
+
+Attack surfaces probed: encodings/CRLF, block comments, hermeticity, check-ignore false-green
+surfaces, glob cross-matching, verification-command divergence.
+
+**ZERO findings.** All candidates resolved:
+- `scan_file` `UnicodeDecodeError` handling: pre-story code, out of scope
+- Block-comment (`/* ... */`) non-matching: by-design — spec requires `//`-only comment
+  matching per AC requirement ii
+- `check-ignore` ambient-config local-only edge: already-dispositioned (accepted; local-only)
+
+**3 non-blocking observations (NITPICK):**
+
+| ID | Classification | Note |
+|----|---------------|------|
+| Obs-P7-1 | NITPICK | ERE verification command is conservatively broader than lookahead regex — sound and non-blocking; no coverage gap |
+| Obs-P7-2 | NITPICK / [process-gap candidate] | `bin-selftest` CI job not listed in develop required-status-checks; pre-existing pattern since STORY-164/165; self-test guards (STORY-164/165/176) do not gate merges; PG-W84-012 filed; pending intent verification |
+| Obs-P7-3 | NITPICK | Pre-existing AC-174-008 fixture coincidentally also trips pattern-26; produces harmless 2-tuple in output; behavior correct and by-design |
+
+**Novelty:** LOW — "Code tip genuinely converged."
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| (none) | — | — | — | — |
+
+**0 findings. HIGH/CRITICAL: 0. Classification: NITPICK_ONLY.**
+
+---
+
+**Pass 7 verdict: NITPICK_ONLY (second consecutive clean pass). consecutive_clean = 2.
+clean_streak [6, 7]. converged: false (needs 3 consecutive). Pass 8 dispatched.**
+
+---
+
+## Pass 8 — 2026-07-20 | Classification: NITPICK_ONLY | Code Tip Reviewed: ea4bcd8e
+
+**Adversary:** Fresh (no prior-pass context). Reviewed code HEAD ea4bcd8e + story v2.7/6ec8772.
+**Code tip reviewed:** `ea4bcd8e` (UNCHANGED — code frozen 5 passes; passes 4/5/6/7/8 all at ea4bcd8e)
+**Fixes committed through:** N/A — ZERO findings; no changes made
+
+### Part A — Pass-7 Spot-Check Verification
+
+| Check | Status |
+|-------|--------|
+| Pattern-26 mechanics (trailing `\b`) | CLEAN — re-traced |
+| Pattern-29 mechanics (negative lookahead) | CLEAN — re-traced |
+| Fixture arithmetic (40 BAD + 45 GOOD + 6 hermetic = 91) | CLEAN — independently re-derived |
+| `traces_to` 1:1 with Architecture Mapping | CLEAN — confirmed |
+| CI wiring: `ea4bcd8e` ci.yml edits (3 edits) | CLEAN — confirmed |
+| SHA pins | CLEAN — 18/18 identical |
+| story v2.7 AC-176-001 scoping | CLEAN — three-edit provenance confirmed |
+
+All Part A spot-checks CLEAN.
+
+### Part B — New Findings (Fresh Attack)
+
+Fresh attack angles: gate self-scan double-exclusion (.rs-filter + //-only); full 29-pattern
+precedence trace including break-after-first fixture routing; combined adversarial GOOD case
+multi-token allowlist; verification commands vs. final state; CHANGELOG Keep-a-Changelog
+placement; delivery-doc vs. CLAUDE.md coherence; gitignore glob coverage.
+
+**ZERO findings at any severity.**
+
+Additional resolution: Obs-P7-3 from pass 7 (pre-existing AC-174-008 fixture coincidentally trips
+pattern-26 producing harmless 2-tuple) — shown UNREACHABLE at this pass via the full 29-pattern
+precedence trace: pattern 24 precedes pattern 26 in the ordered match sequence, so the AC-174-008
+fixture fires pattern 24 first and never reaches pattern 26. Obs-P7-3 resolved CLEAN.
+
+**Novelty:** LOW.
+
+| ID | Severity | Category | Disposition | Fix |
+|----|----------|----------|-------------|-----|
+| (none) | — | — | — | — |
+
+**0 findings. HIGH/CRITICAL: 0. Classification: NITPICK_ONLY.**
+
+---
+
+**Pass 8 verdict: NITPICK_ONLY (THIRD consecutive clean pass). consecutive_clean = 3.
+clean_streak [6, 7, 8]. BC-5.39.001 SATISFIED — passes_clean 3 (P6/P7/P8).
+CONVERGED. Code tip ea4bcd8e; story v2.7/6ec8772.**

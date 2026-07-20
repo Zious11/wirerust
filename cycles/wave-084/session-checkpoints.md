@@ -108,6 +108,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-4 burst checkpoint)
+
+**STORY-176 Step-4.5 pass 2 FINDINGS (1 MED/2 LOW + 2 obs) — pass-1 fixes all VERIFIED-FIXED; new findings fixed b583c4b4 or ACCEPTED; pass 3 dispatched; code tip b583c4b4. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.4 delivery in progress; Step-4.5 adversarial pass 2 FINDINGS resolved; pass 3 dispatched.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = pass-2 burst commit; code tip = `b583c4b4`. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.4 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 2 FINDINGS resolved; pass 3 dispatched; awaiting pass 3 verdict. No open factory PRs.
+- **NEXT STEP:** STORY-176 Step-4.5 pass 3 adversarial verdict — if CLEAN start clean streak (need 3 consecutive); if FINDINGS fix and dispatch pass 4.
+- **Superseded by:** STORY-176 Step-4.5 pass-4 burst checkpoint (2026-07-20).
+
+---
+
 ## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-2 burst checkpoint)
 
 **STORY-176 Steps 1-2 complete; spec-route remediation v2.2→v2.3 done (research-validated per planning/story-176-ac001-validation.md); Red Gate (Step 3) next. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit. trajectory-tail →0→0→0→0**
@@ -117,6 +129,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 - **In-flight work:** STORY-176 v2.3 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-2 done; Red Gate (Step 3) next. No open factory PRs, no adversarial loop active.
 - **NEXT STEP:** STORY-176 Step 3 (Red Gate — failing tests); then Steps 4-9 (TDD implementation, adversarial convergence, demo, PR lifecycle, cleanup, state update).
 - **Superseded by:** STORY-176 Step-4.5 pass-2 burst checkpoint (2026-07-20).
+
+---
+
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-6 burst checkpoint)
+
+**STORY-176 Step-4.5 pass 3 FINDINGS (1 MED spec-route → story v2.5; 2 informational accepted); all code-level findings exhausted, code tip b583c4b4 unchanged since pass 2; pass 4 dispatched; streak 0/3. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = pass-3 burst commit. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.5 delivery in progress; Step-4.5 adversarial pass 3 FINDINGS resolved; pass 4 dispatched.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); code tip = `b583c4b4` (unchanged since pass 2 — pass-3 finding was spec-only). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.5 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 3 FINDINGS resolved (spec-only: story v2.5 a90c4b4); pass 4 dispatched; awaiting pass 4 verdict.
+- **NEXT STEP:** STORY-176 Step-4.5 pass 4 adversarial verdict — if CLEAN start clean streak (need 3 consecutive); if FINDINGS fix and dispatch pass 5.
+- **Superseded by:** STORY-176 Step-4.5 pass-6 burst checkpoint (2026-07-20; passes 4/5 FINDINGS resolved; pass 6 NITPICK_ONLY first clean).
 
 ---
 
