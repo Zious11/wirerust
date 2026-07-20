@@ -30,6 +30,20 @@ cargo fmt --check           # CI gate
 
 CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 100`, field-init and try shorthand.
 
+### Mutation testing
+
+Bare `cargo mutants` is already serial by default — that invocation, or an
+explicit `--jobs 1` / `CARGO_MUTANTS_JOBS=1`, is the recommended way to run
+it. **Do not pass a high `--jobs`** (e.g. `--jobs 8`): that is what caused
+the PG-MUTANTS-JOBS-001 incident (fix-tls-clienthello-frag F6, 2026-07-01),
+where infinite-loop mutants pegged all cores, inflating other mutants'
+wall-clock past the auto-timeout and producing a false "0 missed" result. No
+config file can override an explicit CLI `--jobs` flag. The config-file
+defense is `.cargo/mutants.toml`'s `minimum_test_timeout` timeout floor
+(>= 300) — this raises the auto-timeout ceiling, it is NOT a parallelism
+default (`jobs` is not a valid config key at all). Upstream engine-default
+tracking: drbothen/vsdd-factory#654 (informational only).
+
 ## Git Workflow
 
 - **Default branch is `develop`** (git-flow). Branch from `develop`; PRs target `develop`. `main` exists but is the release/stable branch.
