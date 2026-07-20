@@ -44,7 +44,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     and 25 (are/is todo!() stub(s)) are now fully documented.
 
   Zero false positives verified on 114 tracked Rust files. Self-test:
-  89 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
+  91 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
 
 - **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
   (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**

@@ -570,6 +570,12 @@ GOOD_CASES: list[tuple[str, str]] = [
         """,
     ),
     (
+        "AC-176-001 pattern (a) allowlist: skeleton compiled (past-tense 'compiled', excluded by trailing-\\b in pattern 26)",
+        """\
+        // harness skeleton compiled cleanly in STORY-NNN
+        """,
+    ),
+    (
         "AC-176-001 pattern (b) allowlist: Test seam accessors (architectural idiom, no 'compile-only' prefix)",
         """\
         // Test seam accessors provide injection points for testing
