@@ -13,7 +13,7 @@ status: active
 current_step: "D-484: STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); code tip ea4bcd8e; story v2.7; Step 5 demo evidence dispatched. trajectory-tail →0→0→0→0"
 current_cycle: "wave-084"
 pipeline: ACTIVE
-timestamp: 2026-07-21T00:35:00Z
+timestamp: 2026-07-21T02:00:00Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 299 = 201 (dual-margin form). ~299 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 302 = 198 (dual-margin form). 302 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -109,7 +109,7 @@ maintenance_prior_run: maint-2026-07-09
 | E2E IEC-104 coverage (human-directed, post-F7) | **MERGED (D-471)** | PR #416 0b65e8e; 4 fixtures + analyzer-level real-pcap test |
 | v0.13.0 RELEASED | RELEASED 2026-07-18 | PR #417 67a06b6 main + tag v0.13.0 + GH release 4 assets; back-merge #418; IEC-104 F1-F7 |
 | **feature-iec104 cycle-close (S-7.02)** | **CLOSED (D-475)** | 9 PGs → STORY-175..179 (12 pts, E-11 epic); B-001/B-002 FIXED; PR #419 82ad2ed; STORY-INDEX v3.77; 132 stories / 777 pts. **D-477 annotation: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream drbothen/vsdd-factory issues/comments per D-477 (D-475 history preserved — vehicle changed, not rewritten); STORY-176 v2.0 local survivor (2 pts).** |
-| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **OPENED (D-480); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484)** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges among the three stories. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass Step-4.5 adversary CONVERGED P6/P7/P8; dual pr-reviewer APPROVE; security CLEAN; CI 13/13). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13). STORY-176 v2.7 Steps 1-4 complete (D-484, 2026-07-20; spec-route remediation v2.3, research-validated); Step-4.5 adversarial CONVERGED — 8 passes, trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0, streak P6/P7/P8 (BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched. |
+| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **OPENED (D-480); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 STEP-4.5 CONVERGED (D-484)** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges among the three stories. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass Step-4.5 adversary CONVERGED P6/P7/P8; dual pr-reviewer APPROVE; security CLEAN; CI 13/13). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13). STORY-176 v2.7 Step-4.5 adversarial CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched. |
 
 ---
 
@@ -125,7 +125,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | Cycle | Status | Branch |
 |-------|--------|--------|
 | feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → upstream drbothen/vsdd-factory per D-477 (STORY-175/177/178/179 superseded); STORY-176 v2.0 + STORY-166 local survivors; B-001/B-002 FIXED; Pipeline RESUMED (D-484) | develop (fa9be701) |
-| wave-084 (E-11 mini-wave) | **OPENED (D-480, 2026-07-19); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 IN PROGRESS (D-484, 2026-07-20)** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 v2.7 Step-4.5 adversarial CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched; 7 pts, all product-local; plan gate approved (human); no dependency edges among the three stories | develop (fa9be701, D-482 STORY-166 merge) |
+| wave-084 (E-11 mini-wave) | **OPENED (D-480, 2026-07-19); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 STEP-4.5 CONVERGED (D-484, 2026-07-20)** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 v2.7 Step-4.5 adversarial CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched; 7 pts, all product-local; plan gate approved (human); no dependency edges among the three stories | develop (fa9be701, D-482 STORY-166 merge) |
 
 ---
 
@@ -137,7 +137,6 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | **D-484 SESSION RESUMED (2026-07-20, human-approved). Worktree health PASS (factory-artifacts in sync at 5f9218dd, 0 ahead / 0 behind); develop=fa9be701 verified; no story worktrees. Human decisions at resume: STORY-176 v2.2 per-story delivery next (wave-84 3/3); Dependabot #422-425 (#422 cargo-deny 2.1.1, #423 harden-runner 2.20.0, #424 gh-release 3.0.2, #425 codeql sarif 4.37.0) DEFERRED to DEP-SOAK-FOLLOWUP-2026-07-27 maintenance sweep; PR #423 satisfies SCORECARD-ENABLEMENT-RUNBOOK Dependabot re-pin watch (window satisfied; no manual re-pin needed). Pipeline ACTIVE.** | **ACTIVE (D-484)** | STORY-176 delivery dispatching. trajectory-tail →0→0→0→0 |
 | **D-483 SESSION WRAP (2026-07-20). Human-requested pause at clean milestone: wave-84 2/3 delivered (STORY-147 PR #421 f0cb7374 ✓, STORY-166 PR #426 fa9be701 ✓). Session this wrap covers D-480..D-482 (exhaustive): E-11 upstream disposition burst (D-480: 4 upstream filings #695/#582/#654/#290, STORY-091 obsoleted, STORY-147 v2.0 split, wave-84 opened); STORY-147 DELIVERED (D-481, PR #421, 8-pass adversary, placebo-config catch); STORY-166 DELIVERED (D-482, PR #426, 10-pass adversary, CI-guard false-green catch, anchor-grammar tooling live). No in-flight work; no story worktrees; no abandoned sub-agents. Pipeline PAUSED.** | **PAUSED (D-483)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next (await human go); wave gate after. trajectory-tail →0→0→0→0 |
 | **STORY-166 DELIVERED (2026-07-20, D-482). PR #426 squash-merged to develop fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409 (human-executed, 2026-07-20T14:33:12Z, under orchestrator merge gate; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Remote+local branch deleted; worktree removed. CI 13/13 first-try (CHANGELOG gate exercised + passed). Dual reviewer APPROVE (c1 + corroborating c2; self-authored PR — COMMENTED review event + pr-review.md artifact = review of record). Security CLEAN (fuzz-verified). Step-4.5 adversary CONVERGED P8/P9/P10 (10 passes; BC-5.39.001 SATISFIED); headline finding F-S166P7-001 caught a Pass-3-era fix regression in demo-evidence-scrub-gate.md's CI-guard example (grep exits 2 on missing .factory/ path even when leaks ARE found, false-green); execution-verified, fixed eef569c9; anchor grammar delivered w/ 27-test suite. STORY-INDEX v3.81→v3.82 (status ready→delivered; wave-84 row 2/3 DELIVERED). stories_delivered 114→115. Evidence artifacts at .factory/code-delivery/STORY-166/. Process-gaps ledgered: validate-pr-review-posted hook false-positive for self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR (agent correctly refused); governance-doc CI examples unvalidated against branch topology (F-S166P7-001); PR-description commit-count drift (R-426-001, cosmetic, 10 vs 11).** | **DELIVERED (D-482)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next (await human go); wave gate after. trajectory-tail →0→0→0→0 |
-| **STORY-147 DELIVERED (2026-07-20, D-481). PR #421 squash-merged to develop f0cb7374e51ed486cf72ef3ca1694be24169815a (human-executed, 2026-07-20T02:40:53Z, explicit per-PR authorization; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Feature branch + worktree .worktrees/STORY-147 removed. CI 13/13 (Semantic PR recovered after GitHub-declared Minor Service Outage delayed it ~2h). Dual pr-reviewer APPROVE; security CLEAN. Step-4.5 adversary CONVERGED P6/P7/P8 (8 passes; Pass-1 caught placebo config — repo-root mutants.toml/jobs key never read by cargo-mutants; execution-verified pivot to .cargo/mutants.toml minimum_test_timeout=300); spec v2.1→v2.8. STORY-INDEX v3.80→v3.81 (status ready→delivered; wave-84 row 1/3 DELIVERED). stories_delivered 113→114. Evidence artifacts at .factory/code-delivery/STORY-147/ (committed f2b5dcfe). Process-gaps ledgered for cycle-close: stale-inline-version-marker recurrence, sub-agent message-routing breakage (relay-through-orchestrator workaround; also caused security-review.md artifact backfill f2b5dcfe), burst-log template understatement.** | **DELIVERED (D-481)** | develop=f0cb7374. Resume: STORY-166 per-story delivery next (await human go). trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -276,6 +275,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | STORY-147 delivery evidence (PR #421, D-481) | `cycles/wave-084/STORY-147/` + `.factory/code-delivery/STORY-147/` (committed f2b5dcfe) |
 | STORY-166 per-story convergence report | `cycles/wave-084/STORY-166/convergence-report.md` + `adversary-convergence-state.json` (10 passes, CONVERGED P8/P9/P10, 2026-07-20) |
 | STORY-166 delivery evidence (PR #426, D-482) | `cycles/wave-084/STORY-166/` + `.factory/code-delivery/STORY-166/` (pr-description.md, pr-review.md, pr-review-c2.md, security-review.md) |
+| STORY-176 per-story convergence report | `cycles/wave-084/STORY-176/convergence-report.md` + `adversary-convergence-state.json` (8 passes, CONVERGED P6/P7/P8, 2026-07-20; BC-5.39.001 SATISFIED; code tip ea4bcd8e; story v2.7/6ec8772) |
 | feature-iec104 F5 adversarial reviews | `.factory/phase-f5-adversarial/round-1-review.md` through `round-5-review.md`; `convergence-summary.md` (D-468) |
 | feature-iec104 F6 gate verdict + hardening artifacts | `.factory/phase-f6-hardening/f6-gate-verdict-iec104.md` (D-469 PASS); `kani-results.md`, `fuzz-results.md`, `mutation-results.md`, `security-scan-results.md` |
 | feature-iec104 F7 convergence artifacts | `.factory/phase-f7-convergence/delta-convergence-report.md` (D-470 CONVERGED); `traceability-chain-delta.md`; `consistency-audit.md` |
@@ -298,3 +298,5 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | Session Resume Checkpoint superseded by STORY-176 Step-4.5 pass-5 burst (2026-07-20) | `cycles/wave-084/session-checkpoints.md` |
 | Session Resume Checkpoint superseded by STORY-176 Step-4.5 pass-6 burst (2026-07-20) | `cycles/wave-084/session-checkpoints.md` |
 | STORY-176 Step-4.5 pass-3/4/5/6 CPS top rows (replaced in-place by CONVERGED burst, last-5 rule) | `cycles/wave-084/burst-log.md` |
+| D-481 Current Phase Steps row (rolled out under last-5 rule by STORY-176 Step-4.5 CONVERGED row addition) | `cycles/wave-084/burst-log.md` |
+| Session Resume Checkpoint superseded by STORY-176 Step-4.5 CONVERGED burst (2026-07-20) | `cycles/wave-084/session-checkpoints.md` |
