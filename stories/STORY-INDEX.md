@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "3.83"
+version: "3.84"
 status: draft
 producer: story-writer
-timestamp: 2026-07-20T17:30:00Z
+timestamp: 2026-07-21T03:00:00Z
 phase: f4
 total_stories: 132
 total_waves: 84
 total_points: 775  # = 775; wave-table scheduled: 747 (STORY-091/121/143/155 wave-TBD + STORY-148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; v3.79)
+# v3.84 (2026-07-20): STORY-176 DELIVERED (D-485, PR #427 595cdba8 squash-merged to develop, human-executed merge 2026-07-20T21:46:45Z under explicit per-PR human authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match); status ready→delivered; wave-84 Delivery Progress row updated (3/3 DELIVERED — STORY-147 ✓, STORY-166 ✓, STORY-176 ✓; CLOSED-PENDING-GATE); CI 13/13 PASS (new "Bin selftest suites" step); pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record); security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22); 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED); story v2.7/6ec8772. Headline: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. stories_delivered 115→116. No numeric points/story/wave totals changed (status transition only).
 # v3.83 (2026-07-20): STORY-176 spec-route remediation v2.2→v2.3 (research-validated per planning/story-176-ac001-validation.md; AC-176-001 substantially INVALID as written — HIGH confidence; motivation PG-GATE-VOCAB-BLINDSPOT VALID; product-local, no upstream filing; locus corrected to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; four phrase-level zero-FP patterns; fabricated allowlist claim deleted; CHANGELOG obligation corrected to REQUIRED; input-hash 41176f4→7f8ff02 canonical tool; no pts/status/wave/title change). [process-gap: story-writer fabricated nonexistent allowlist mechanism + wrong gate locus in v1.0/v2.0 story AC; spec-drift class "AC cites nonexistent mechanism"; caught by Step-2 stub-architect pre-condition probe; filed: cycles/wave-084/process-gap-ledger.md].
 # v3.82 (2026-07-20): STORY-166 DELIVERED (D-482, PR #426 fa9be701 squash-merged to develop, human-executed merge 2026-07-20T14:33:12Z under orchestrator merge gate, DF-MERGE-AUTH-CLASSIFIER-001 satisfied); status ready→delivered; wave-84 Delivery Progress row updated (2/3 DELIVERED — STORY-147 ✓, STORY-166 ✓; STORY-176 remains ready). Per-story Step-4.5 adversarial CONVERGED P8/P9/P10 (10 passes); dual reviewer APPROVE (self-authored PR — COMMENTED review event + pr-review.md artifact = review of record); security CLEAN (fuzz-verified); CI 13/13 first-try (CHANGELOG gate exercised + passed). stories_delivered 114→115. No numeric points/story/wave totals changed (status transition only).
 # v3.81 (2026-07-20): STORY-147 DELIVERED (D-481, PR #421 f0cb7374 squash-merged to develop, human-executed merge 2026-07-20T02:40:53Z under explicit per-PR authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied); status ready→delivered; wave-84 Delivery Progress row updated (1/3 DELIVERED — STORY-166/STORY-176 remain ready). Per-story Step-4.5 adversarial CONVERGED 8 passes streak P6/P7/P8 (BC-5.39.001 SATISFIED); dual pr-reviewer APPROVE; security CLEAN; CI 13/13 (Semantic PR recovered after GitHub-declared Minor Service Outage). stories_delivered 113→114. No numeric points/story/wave totals changed (status transition only).
@@ -258,7 +259,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-165 | Wave-74 cycle-closing: bin-selftest CI wiring, PR-description row-verify mandate, delivery-doc currency sweep, governance-table audit-first rule | E-11 | 75 | 3 | delivered | — |
 | STORY-166 | Wave-75 cycle-closing: citation symbol-at-line assertion, demo-evidence scrub scope extension (project half) | E-11 | 84 | 3 | delivered | — |
 | STORY-175 | Feature-IEC104 Cycle-Close: Demo Evidence JSON Accuracy Protocol | E-11 | ~ | 2 | superseded | — |
-| STORY-176 | Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps | E-11 | 84 | 2 | ready | — |
+| STORY-176 | Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps | E-11 | 84 | 2 | delivered | — |
 | STORY-177 | Feature-IEC104 Cycle-Close: Agent Dispatch and Reporting Discipline | E-11 | ~ | 2 | superseded | — |
 | STORY-178 | Feature-IEC104 Cycle-Close: Pre-Delivery Spec Fidelity Gate | E-11 | ~ | 3 | superseded | — |
 | STORY-179 | Feature-IEC104 Cycle-Close: Session Recovery and Multi-Worktree Verification | E-11 | ~ | 2 | superseded | — |
@@ -537,7 +538,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 81 | STORY-172 | **DELIVERED (D-455, 2026-07-15)** | #406 | d64e5fe | 2026-07-15 |
 | 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
-| 84 | STORY-166, STORY-176, STORY-147 | **IN PROGRESS (2/3 DELIVERED)** | #421 (STORY-147), #426 (STORY-166) | f0cb7374, fa9be701 | 2026-07-20 |
+| 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED (D-485, 2026-07-20) — CLOSED-PENDING-GATE** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) | f0cb7374, fa9be701, 595cdba8 | 2026-07-20 |
 
 ## Coverage Verification
 

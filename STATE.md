@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "D-484: STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); code tip ea4bcd8e; story v2.7; Step 5 demo evidence dispatched. trajectory-tail →0→0→0→0"
+current_step: "D-485: STORY-176 DELIVERED — PR #427 595cdba8 squash-merged 2026-07-20T21:46:45Z (CI 13/13; pr-reviewer APPROVE; security APPROVE 0C/0H/0M; 8-pass adversary CONVERGED). Wave-84 DELIVERY COMPLETE (3/3). Integration gate remains. trajectory-tail →0→0→0→0"
 current_cycle: "wave-084"
 pipeline: ACTIVE
-timestamp: 2026-07-21T02:30:00Z
+timestamp: 2026-07-21T03:20:00Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -23,16 +23,16 @@ release_url: https://github.com/Zious11/wirerust/releases/tag/v0.13.0
 prior_released_version: v0.12.1
 prior_released_at: "2026-07-13"
 main_head: 67a06b6f82654d2af79d023b15ac56ab03182ffd
-develop_head: fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409
+develop_head: 595cdba8d2033abb6dea5b3c42c01ec4d7e1a954
 cargo_version_main: "0.13.0"
 cargo_version_develop: "0.13.0"
 bootstrapped: 2026-05-19T16:56:48Z
 adversary_gate: SATISFIED
 adversary_convergence_counter: SATISFIED
-stories_delivered: 115
-story_index_version: "v3.83"
+stories_delivered: 116
+story_index_version: "v3.84"
 total_stories: 132
-story_index_note: "132 stories / 84 waves / 775 pts. v3.83 (2026-07-20): STORY-176 spec-route remediation v2.2→v2.3 (research-validated per planning/story-176-ac001-validation.md; AC-176-001 substantially INVALID — locus corrected to bin/check-green-doc-tense; fabricated allowlist deleted; CHANGELOG obligation corrected; input-hash 41176f4→7f8ff02; no pts/status/wave change; [process-gap: AC cites nonexistent mechanism; filed: cycles/wave-084/process-gap-ledger.md]). v3.82 (2026-07-20): STORY-166 DELIVERED (D-482, PR #426 fa9be701 squash-merged, human-executed under orchestrator merge gate); status ready→delivered; wave-84 Delivery Progress row (2/3 DELIVERED); stories_delivered 114→115. No points/story/wave totals changed. v3.81 (2026-07-20): STORY-147 DELIVERED (D-481, PR #421 f0cb7374 squash-merged, human-executed under DF-MERGE-AUTH-CLASSIFIER-001); status ready→delivered; wave-84 Delivery Progress row (1/3 DELIVERED); stories_delivered 113→114. No points/story/wave totals changed. v3.80 (2026-07-19): STORY-147 title cell updated to '.cargo/mutants.toml Timeout Floor' (title-only cascade from STORY-147 v2.1→v2.2 spec-route remediation, Step-4.5 adversarial findings F-S147P1-002/-004/-005; no points/status/wave/epic change). v3.79 (2026-07-19): E-11 upstream re-scope burst #2 (D-480, human-approved) — STORY-091 superseded-OBSOLETE (no filing; delivered-by-drift via bin/validate-citations STORY-164 + STORY-166 symbol-at-line assertion); STORY-121/143/155 superseded (upstream drbothen/vsdd-factory #582/#695(NEW)/#290); STORY-147 v2.0 re-scoped local SPLIT survivor (engine half →#654; 3→2 pts). E-11 67→66; total_points 776→775. WAVE-84 OPENED: STORY-166+STORY-176+STORY-147v2 (7 pts, draft→ready). v3.78 (2026-07-19): STORY-175/177/178/179 superseded (upstream #690/#494/#461/#686/#682/#305/#655/#396); STORY-176 v2.0 local survivor 2 pts; E-11 68→67. See cycles/feature-iec104/ + planning/e11-stale-draft-disposition-plan.md for full history."
+story_index_note: "132 stories / 84 waves / 775 pts. v3.84 (2026-07-20): STORY-176 DELIVERED (D-485, PR #427 595cdba8, stories_delivered 115→116, STORY-INDEX v3.83→v3.84, wave-84 3/3 DELIVERED CLOSED-PENDING-GATE). v3.83 (2026-07-20): STORY-176 spec-route remediation v2.2→v2.3 (research-validated per planning/story-176-ac001-validation.md; AC-176-001 substantially INVALID — locus corrected to bin/check-green-doc-tense; fabricated allowlist deleted; CHANGELOG obligation corrected; input-hash 41176f4→7f8ff02; no pts/status/wave change; [process-gap: AC cites nonexistent mechanism; filed: cycles/wave-084/process-gap-ledger.md]). v3.82 (2026-07-20): STORY-166 DELIVERED (D-482, PR #426 fa9be701 squash-merged, human-executed under orchestrator merge gate); status ready→delivered; wave-84 Delivery Progress row (2/3 DELIVERED); stories_delivered 114→115. No points/story/wave totals changed. v3.81 (2026-07-20): STORY-147 DELIVERED (D-481, PR #421 f0cb7374 squash-merged, human-executed under DF-MERGE-AUTH-CLASSIFIER-001); status ready→delivered; wave-84 Delivery Progress row (1/3 DELIVERED); stories_delivered 113→114. No points/story/wave totals changed. v3.80 (2026-07-19): STORY-147 title cell updated to '.cargo/mutants.toml Timeout Floor' (title-only cascade from STORY-147 v2.1→v2.2 spec-route remediation, Step-4.5 adversarial findings F-S147P1-002/-004/-005; no points/status/wave/epic change). v3.79 (2026-07-19): E-11 upstream re-scope burst #2 (D-480, human-approved) — STORY-091 superseded-OBSOLETE (no filing; delivered-by-drift via bin/validate-citations STORY-164 + STORY-166 symbol-at-line assertion); STORY-121/143/155 superseded (upstream drbothen/vsdd-factory #582/#695(NEW)/#290); STORY-147 v2.0 re-scoped local SPLIT survivor (engine half →#654; 3→2 pts). E-11 67→66; total_points 776→775. WAVE-84 OPENED: STORY-166+STORY-176+STORY-147v2 (7 pts, draft→ready). v3.78 (2026-07-19): STORY-175/177/178/179 superseded (upstream #690/#494/#461/#686/#682/#305/#655/#396); STORY-176 v2.0 local survivor 2 pts; E-11 68→67. See cycles/feature-iec104/ + planning/e11-stale-draft-disposition-plan.md for full history."
 bc_index_version: "v2.34"
 vp_index_version: "v2.46"
 arch_index_version: "v2.19"
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 302 = 198 (dual-margin form). 302 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 306 = 194 (dual-margin form). 306 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-484 (2026-07-20). STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); code tip ea4bcd8e; story v2.7/6ec8772; Step 5 demo evidence dispatched. develop=fa9be701. Pipeline ACTIVE.**
+**D-485 (2026-07-20). STORY-176 DELIVERED — PR #427 595cdba8 squash-merged (CI 13/13; adversary CONVERGED P6/P7/P8). Wave-84 DELIVERY COMPLETE (3/3: STORY-147 #421 + STORY-166 #426 + STORY-176 #427). develop=595cdba8. Pipeline ACTIVE. Integration gate + S-7.02 cycle-close remain.**
 
 ---
 
@@ -68,13 +68,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED, 9 PGs → STORY-175..179 (12 pts), B-001/B-002 FIXED (PRD v1.57 + BC-2.19.002 v1.3), PR #419 82ad2ed merged. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded (upstream-routed or OBSOLETE); STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374, 2026-07-20). D-482: STORY-166 DELIVERED (PR #426 fa9be701, 2026-07-20) — wave-84 2/3 DELIVERED; STORY-176 remains ready. D-484: STORY-176 v2.7 Steps 1-4 complete (spec-route remediation v2.3, Steps 1-4 done); Step-4.5 adversarial convergence CONVERGED — 8 passes total, trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0, streak P6/P7/P8 (BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched.** |
-| Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=fa9be701 — D-482 STORY-166 PR #426 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 retained) |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED, 9 PGs → STORY-175..179 (12 pts), B-001/B-002 FIXED (PRD v1.57 + BC-2.19.002 v1.3), PR #419 82ad2ed merged. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded (upstream-routed or OBSOLETE); STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374, 2026-07-20). D-482: STORY-166 DELIVERED (PR #426 fa9be701, 2026-07-20). D-485: STORY-176 DELIVERED (PR #427 595cdba8, 2026-07-20) — wave-84 3/3 DELIVERY COMPLETE; integration gate + S-7.02 cycle-close remain.** |
+| Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=595cdba8 — D-485 STORY-176 PR #427 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 retained) |
 | Main HEAD | `67a06b6f82654d2af79d023b15ac56ab03182ffd` |
-| Develop HEAD | `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` — D-482 STORY-166 PR #426 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 |
+| Develop HEAD | `595cdba8d2033abb6dea5b3c42c01ec4d7e1a954` — D-485 STORY-176 PR #427 squash-merged (2026-07-20); DRIFT-BACKMERGE-SQUASH-001 |
 | Spec versions | BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 |
-| Stories | 115 delivered / 132 total (STORY-INDEX v3.83, dep-graph v3.9, 775 pts) |
-| **Last Updated** | 2026-07-20 — D-484. STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8); Step 5 demo evidence dispatched; trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. code tip ea4bcd8e. story v2.7/6ec8772. trajectory-tail →0→0→0→0 |
+| Stories | 116 delivered / 132 total (STORY-INDEX v3.84, dep-graph v3.9, 775 pts) |
+| **Last Updated** | 2026-07-20 — D-485. STORY-176 DELIVERED (PR #427 595cdba8); wave-84 DELIVERY COMPLETE (3/3). CI 13/13; adversary CONVERGED P6/P7/P8; pr-reviewer APPROVE; security APPROVE 0C/0H/0M. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -109,7 +109,7 @@ maintenance_prior_run: maint-2026-07-09
 | E2E IEC-104 coverage (human-directed, post-F7) | **MERGED (D-471)** | PR #416 0b65e8e; 4 fixtures + analyzer-level real-pcap test |
 | v0.13.0 RELEASED | RELEASED 2026-07-18 | PR #417 67a06b6 main + tag v0.13.0 + GH release 4 assets; back-merge #418; IEC-104 F1-F7 |
 | **feature-iec104 cycle-close (S-7.02)** | **CLOSED (D-475)** | 9 PGs → STORY-175..179 (12 pts, E-11 epic); B-001/B-002 FIXED; PR #419 82ad2ed; STORY-INDEX v3.77; 132 stories / 777 pts. **D-477 annotation: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream drbothen/vsdd-factory issues/comments per D-477 (D-475 history preserved — vehicle changed, not rewritten); STORY-176 v2.0 local survivor (2 pts).** |
-| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **OPENED (D-480); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 STEP-4.5 CONVERGED (D-484)** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges among the three stories. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass Step-4.5 adversary CONVERGED P6/P7/P8; dual pr-reviewer APPROVE; security CLEAN; CI 13/13). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13). STORY-176 v2.7 Step-4.5 adversarial CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched. |
+| **Wave 84 (E-11 mini-wave: STORY-166/176/147v2)** | **DELIVERY COMPLETE (D-485, 2026-07-20) — CLOSED-PENDING-GATE** | Plan gate approved (human, 2026-07-19); 7 pts, all product-local; no dependency edges. STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8). STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10). STORY-176 DELIVERED (D-485, PR #427 595cdba8, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8; BC-5.39.001 SATISFIED; pr-reviewer APPROVE 0 blocking; security APPROVE 0C/0H/0M; CI 13/13). Wave-84 integration gate + S-7.02 cycle-close remain (DF-CONVERGENCE-BEFORE-MERGE-001: wave-level adversarial convergence still owed). |
 
 ---
 
@@ -124,8 +124,8 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | Cycle | Status | Branch |
 |-------|--------|--------|
-| feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → upstream drbothen/vsdd-factory per D-477 (STORY-175/177/178/179 superseded); STORY-176 v2.0 + STORY-166 local survivors; B-001/B-002 FIXED; Pipeline RESUMED (D-484) | develop (fa9be701) |
-| wave-084 (E-11 mini-wave) | **OPENED (D-480, 2026-07-19); DELIVERY IN PROGRESS (2/3 DELIVERED); STORY-176 STEP-4.5 CONVERGED (D-484, 2026-07-20)** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 v2.7 Step-4.5 adversarial CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); Step 5 demo evidence dispatched; 7 pts, all product-local; plan gate approved (human); no dependency edges among the three stories | develop (fa9be701, D-482 STORY-166 merge) |
+| feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED: 9 PGs → upstream drbothen/vsdd-factory per D-477 (STORY-175/177/178/179 superseded); STORY-176 v2.0 + STORY-166 local survivors; B-001/B-002 FIXED; Pipeline RESUMED (D-484) | develop (595cdba8) |
+| wave-084 (E-11 mini-wave) | **DELIVERY COMPLETE (D-485, 2026-07-20) — 3/3 DELIVERED; CLOSED-PENDING-GATE** — STORY-147 DELIVERED (D-481, PR #421 f0cb7374, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8); STORY-166 DELIVERED (D-482, PR #426 fa9be701, 2026-07-20; 10-pass adversary CONVERGED P8/P9/P10); STORY-176 DELIVERED (D-485, PR #427 595cdba8, 2026-07-20; 8-pass adversary CONVERGED P6/P7/P8; BC-5.39.001 SATISFIED); develop=595cdba8. Wave-84 integration gate + S-7.02 cycle-close remain. | develop (595cdba8, D-485 STORY-176 merge) |
 
 ---
 
@@ -133,10 +133,10 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED). Pass 6 NITPICK_ONLY (first clean); pass 7 NITPICK_ONLY (streak 2/3); pass 8 NITPICK_ONLY (streak 3/3, CONVERGED). Code tip ea4bcd8e; story v2.7/6ec8772. Step 5 demo evidence dispatched.** | **IN PROGRESS (D-484)** | STORY-176 v2.7/6ec8772; STORY-INDEX v3.83. trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. trajectory-tail →0→0→0→0 |
+| **STORY-176 DELIVERED (2026-07-20, D-485). PR #427 squash-merged to develop 595cdba8d2033abb6dea5b3c42c01ec4d7e1a954 (human-executed, 2026-07-20T21:46:45Z, explicit per-PR authorization; DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match). Remote+local feature branch deleted; worktree removed. CI 13/13 PASS (incl. new "Bin selftest suites" step exercising test_gitignore_mutants_glob.py, Green-doc-tense gate, CHANGELOG gate, Semantic PR, action-pin-gate). Stale-verdict PASS. pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record). Security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22, not introduced). 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED). Story v2.7/6ec8772. Headline spec-flaw catch: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. STORY-INDEX v3.83→v3.84 (status ready→delivered; wave-84 row 3/3 DELIVERED). stories_delivered 115→116. Wave-84 DELIVERY COMPLETE.** | **DELIVERED (D-485)** | develop=595cdba8. Next: wave-84 integration gate (owes deferred STORY-166 Background line-anchor currency sweep; DF-CONVERGENCE-BEFORE-MERGE-001). trajectory-tail →0→0→0→0 |
+| **STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED). Pass 6 NITPICK_ONLY (first clean); pass 7 NITPICK_ONLY (streak 2/3); pass 8 NITPICK_ONLY (streak 3/3, CONVERGED). Code tip ea4bcd8e; story v2.7/6ec8772. Step 5 demo evidence dispatched.** | **DELIVERED/CONVERGED (D-484→D-485)** | STORY-176 v2.7/6ec8772; STORY-INDEX v3.83→v3.84. trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. trajectory-tail →0→0→0→0 |
 | **D-484 SESSION RESUMED (2026-07-20, human-approved). Worktree health PASS (factory-artifacts in sync at 5f9218dd, 0 ahead / 0 behind); develop=fa9be701 verified; no story worktrees. Human decisions at resume: STORY-176 v2.2 per-story delivery next (wave-84 3/3); Dependabot #422-425 (#422 cargo-deny 2.1.1, #423 harden-runner 2.20.0, #424 gh-release 3.0.2, #425 codeql sarif 4.37.0) DEFERRED to DEP-SOAK-FOLLOWUP-2026-07-27 maintenance sweep; PR #423 satisfies SCORECARD-ENABLEMENT-RUNBOOK Dependabot re-pin watch (window satisfied; no manual re-pin needed). Pipeline ACTIVE.** | **ACTIVE (D-484)** | STORY-176 delivery dispatching. trajectory-tail →0→0→0→0 |
 | **D-483 SESSION WRAP (2026-07-20). Human-requested pause at clean milestone: wave-84 2/3 delivered (STORY-147 PR #421 f0cb7374 ✓, STORY-166 PR #426 fa9be701 ✓). Session this wrap covers D-480..D-482 (exhaustive): E-11 upstream disposition burst (D-480: 4 upstream filings #695/#582/#654/#290, STORY-091 obsoleted, STORY-147 v2.0 split, wave-84 opened); STORY-147 DELIVERED (D-481, PR #421, 8-pass adversary, placebo-config catch); STORY-166 DELIVERED (D-482, PR #426, 10-pass adversary, CI-guard false-green catch, anchor-grammar tooling live). No in-flight work; no story worktrees; no abandoned sub-agents. Pipeline PAUSED.** | **PAUSED (D-483)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next (await human go); wave gate after. trajectory-tail →0→0→0→0 |
-| **STORY-166 DELIVERED (2026-07-20, D-482). PR #426 squash-merged to develop fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409 (human-executed, 2026-07-20T14:33:12Z, under orchestrator merge gate; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Remote+local branch deleted; worktree removed. CI 13/13 first-try (CHANGELOG gate exercised + passed). Dual reviewer APPROVE (c1 + corroborating c2; self-authored PR — COMMENTED review event + pr-review.md artifact = review of record). Security CLEAN (fuzz-verified). Step-4.5 adversary CONVERGED P8/P9/P10 (10 passes; BC-5.39.001 SATISFIED); headline finding F-S166P7-001 caught a Pass-3-era fix regression in demo-evidence-scrub-gate.md's CI-guard example (grep exits 2 on missing .factory/ path even when leaks ARE found, false-green); execution-verified, fixed eef569c9; anchor grammar delivered w/ 27-test suite. STORY-INDEX v3.81→v3.82 (status ready→delivered; wave-84 row 2/3 DELIVERED). stories_delivered 114→115. Evidence artifacts at .factory/code-delivery/STORY-166/. Process-gaps ledgered: validate-pr-review-posted hook false-positive for self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR (agent correctly refused); governance-doc CI examples unvalidated against branch topology (F-S166P7-001); PR-description commit-count drift (R-426-001, cosmetic, 10 vs 11).** | **DELIVERED (D-482)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next (await human go); wave gate after. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -153,7 +153,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | D-465 | feature-iec104 F5 scoped adversarial OPENED (2026-07-17). Round 1 @ 7e95f71: BC-completeness 31/31 PASS; canonical-frame 19 invariants byte-exact; 1H+4M findings → FIX-F5-001. | 2026-07-17 |
 | D-466 | FIX-F5-001 DELIVERED (PR #411 9c5aa9a squash-merged, 2026-07-17). source_ip + timestamp enrichment; 10 red-first tests; 9 stale-prose sites scrubbed; additive JSON keys in CHANGELOG; holdout-expectations sweep COMPLETE. CI 13/13. develop=9c5aa9a. | 2026-07-17 |
 | D-467 | F5 Rounds 2-3 (2026-07-17). R2 code CONVERGED + 2 MEDIUM doc findings → FIX-F5-002 (#412 b356545). R3: F-B1 HIGH fabricated FIX-P4-001 demo-evidence → FIX-F5-003 (PG-DEMO-JSON-FABRICATION root cause confirmed). | 2026-07-17 |
-| D-468 | feature-iec104 F5 CONVERGED (2026-07-17). 5 rounds. FIX-F5-002/003/004 DELIVERED. R5 NITPICK_ONLY (0 CRIT/HIGH/MED; 1 LOW non-blocking TypeID-45 prose). BC-completeness 31/31 + canonical-frame 19 byte-exact. develop=b36b884. | 2026-07-17 |
+| D-468 | feature-iec104 F5 CONVERGED (2026-07-17). 5 rounds. FIX-F5-002/003/004 DELIVERED. R5 NITPICK_ONLY (0 CRIT/HIGH/MED; 1 LOW non-blocking TypeID-45 prose). BC-completeness 31/31 + canonical-frame 19 byte-exact. develop=b36k884. | 2026-07-17 |
 | D-469 | feature-iec104 F6 targeted hardening PASS (2026-07-17). Kani/fuzz/mutation/audit/regression all green. cargo-mutants iec104.rs 95.9%. No BLOCKERs. | 2026-07-17 |
 | D-470 | feature-iec104 F7 delta convergence CONVERGED (2026-07-17). 5/5 dims PASS; holdout 0.99 RELEASE-READY. RELEASE HELD (human direction) — v0.13.0 cut deferred. | 2026-07-17 |
 | D-471 | E2E IEC-104 coverage merged (PR #416 0b65e8e, 2026-07-17, human-executed merge). 4 real captures + tests/iec104_e2e_real_pcaps_tests.rs. CI 13/13. | 2026-07-17 |
@@ -170,6 +170,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 | D-482 | STORY-166 DELIVERED (PR #426 fa9be701 squash-merged 2026-07-20, human-executed under orchestrator merge gate). 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; headline: Pass-7 caught scrub-doc CI-guard exit-2 false-green (execution-verified; fixed eef569c9); anchor grammar delivered w/ 27-test suite; CHANGELOG gate first live exercise PASSED; dual APPROVE (self-approval impossible — COMMENTED event + artifact = record); security CLEAN fuzz-verified; stories_delivered 114→115. Process-gaps ledgered: validate-pr-review-posted hook false-positive for self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR (agent correctly refused); governance-doc CI examples unvalidated against branch topology (F-S166P7-001); PR-description commit-count drift (R-426-001, cosmetic, 10 vs 11). | 2026-07-20 |
 | D-483 | SESSION WRAP (2026-07-20). Human-requested pause. This session, D-480..D-482 (exhaustive): E-11 upstream disposition burst (D-480: 4 upstream filings #695/#582/#654/#290, STORY-091 obsoleted, STORY-147 v2.0 split, wave-84 opened); STORY-147 DELIVERED (D-481, PR #421, 8-pass adversary, placebo-config catch); STORY-166 DELIVERED (D-482, PR #426, 10-pass adversary, CI-guard false-green catch, anchor-grammar tooling live). No in-flight work; no story worktrees; no abandoned sub-agents. Pipeline PAUSED. | 2026-07-20 |
 | D-484 | Session RESUMED (human-approved, 2026-07-20) from D-483 pause. Worktree health PASS (factory-artifacts in sync at 5f9218dd, 0 ahead / 0 behind); develop=fa9be701 verified; no story worktrees; no in-flight work. Human decisions at resume: (1) Resume point = STORY-176 v2.2 per-story delivery (wave-84 3rd story), wave-84 gate after. (2) Four new Dependabot github-actions PRs (#422 cargo-deny-action 2.1.1, #423 harden-runner 2.19.4→2.20.0, #424 action-gh-release 3.0.2, #425 codeql upload-sarif 4.37.0, all opened 2026-07-20) DEFERRED to next maintenance run — fold into DEP-SOAK-FOLLOWUP-2026-07-27 sweep. PR #423 is the Dependabot re-pin awaited by SCORECARD-ENABLEMENT-RUNBOOK (window watch satisfied; no manual re-pin needed; carry-forward updated). (3) PR #407 governance remains pending/unchanged. | 2026-07-20 |
+| D-485 | STORY-176 DELIVERED (PR #427 595cdba8d2033abb6dea5b3c42c01ec4d7e1a954 squash-merged to develop 2026-07-20T21:46:45Z, human-executed under DF-MERGE-AUTH-CLASSIFIER-001 explicit per-PR human authorization; wave-84 #421/#426/#427 pattern match). CI 13/13 PASS (incl. new "Bin selftest suites" step exercising test_gitignore_mutants_glob.py, Green-doc-tense gate, CHANGELOG gate, Semantic PR, action-pin-gate). Stale-verdict PASS at merge. pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR → COMMENTED event + pr-review.md = review of record). Security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22, not introduced by this story). Step-4.5 adversary CONVERGED P6/P7/P8 (8 passes, BC-5.39.001 SATISFIED). Story v2.7/6ec8772. Headline spec-flaw catch: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. STORY-INDEX v3.83→v3.84 (status ready→delivered; wave-84 row 3/3 DELIVERED). stories_delivered 115→116. Wave-84 DELIVERY COMPLETE (3/3: STORY-147 #421 + STORY-166 #426 + STORY-176 #427). Integration gate + S-7.02 cycle-close remain. | 2026-07-20 |
 
 ---
 
@@ -195,7 +196,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 | ID | Summary | Source | Target |
 |----|---------|--------|--------|
-| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; v0.13.0 cut re-encountered this drift resolved-forward. Back-merge #418 also squash-merged per human choice. main (67a06b6) NOT ancestor of develop (fa9be701). Trees ARE identical for released content — history-only divergence. DRIFT PERSISTS. | v0.12.1 release (D-436, 2026-07-13); re-encountered v0.13.0 (D-473, 2026-07-18) | resolve at a future release via true-merge back-merge if desired (human deferred; squash pattern retained D-473) |
+| DRIFT-BACKMERGE-SQUASH-001 | v0.12.1 back-merge PR #400 was squash-merged; v0.13.0 cut re-encountered this drift resolved-forward. Back-merge #418 also squash-merged per human choice. main (67a06b6) NOT ancestor of develop (595cdba8). Trees ARE identical for released content — history-only divergence. DRIFT PERSISTS. | v0.12.1 release (D-436, 2026-07-13); re-encountered v0.13.0 (D-473, 2026-07-18) | resolve at a future release via true-merge back-merge if desired (human deferred; squash pattern retained D-473) |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale present-tense "PO must add BC-2.07.038 postcondition/EC + Red-Gate test name" TODOs for VP-039 (TLS reassembly). Out of feature-iec104 scope. | feature-iec104 F2 review (D-438, 2026-07-14) | SS-07 TLS owner — next TLS maintenance sweep |
 | STORY-INDEX-IN-INPUTS-CHURN | Stories listing STORY-INDEX.md as an input (at minimum STORY-164/165) re-stale on every index version bump; 4 re-baselines in 3 days (D-480 was the 4th — 2026-07-17, 2026-07-18, 2026-07-19×2). Separately, STORY-175..179 list `.factory/STATE.md` as an input, re-staling on EVERY factory commit — 2 re-baselines for that cluster in one day as of D-480, plus this session-wrap's re-baseline (D-483) is the 3rd for that cluster. Structural fix (remove index/STATE.md from inputs lists) awaits human decision, now covering both the STORY-INDEX.md-in-inputs cluster (164/165) and the STATE.md-in-inputs cluster (175..179). Related upstream discussion #672/#314. | D-477 (2026-07-19, #3) → D-480 (2026-07-19, #4) → housekeeping burst (2026-07-19, STATE.md cluster re-baseline #2) → D-483 session-wrap (2026-07-20, STATE.md cluster re-baseline #3) | Human decision: remove STORY-INDEX.md/STATE.md from affected story inputs lists — still pending after 4+3 re-baselines |
 
@@ -204,7 +205,7 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 ## Active Carry-Forwards
 
 | ID | Summary | Target |
-|----|---------|--------|
+|---|---------|--------|
 | ROUTE-BC-DEFER-2026-07-11 | Routes B/C deferred from maint-2026-07-11 (human decision). | Next maintenance run |
 | ROUTE-W74-DEFERRED | Code-review 1 NIT deferred from wave-74 gate (human-ratified); joins wave-75 NIT. | Next bin-touch PR |
 | PERF-RERUN-001 | AC-149-003 quiescent re-run pending (load avg 52.57 at maint-2026-07-11; human deferred). | Next maintenance run |
@@ -220,18 +221,18 @@ F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(N
 
 ## Session Resume Checkpoint
 
-**STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. code tip ea4bcd8e; story v2.7/6ec8772; Step 5 demo evidence dispatched. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit.**
+**D-485 (2026-07-20). STORY-176 DELIVERED — PR #427 595cdba8. Wave-84 DELIVERY COMPLETE (3/3). develop=595cdba8; STORY-INDEX v3.84; factory-artifacts = this burst commit.**
 
 Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and `cycles/wave-084/session-checkpoints.md`.
 
-- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.7 delivery in progress; Step-4.5 adversarial CONVERGED (BC-5.39.001 SATISFIED, streak P6/P7/P8); Step 5 demo evidence dispatched.
-- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = this burst commit; code tip = `ea4bcd8e`. DRIFT-BACKMERGE-SQUASH-001 still applies.
-- **In-flight work:** STORY-176 v2.7 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; Step-4.5 CONVERGED; Step 5 demo evidence dispatched; awaiting demo evidence completion. No open factory PRs.
-- **NEXT STEP:** STORY-176 Step 5 demo evidence completion, then Steps 6-9 (PR, review, merge).
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 3/3 DELIVERED; STORY-176 DELIVERED (PR #427 595cdba8, human-executed under DF-MERGE-AUTH-CLASSIFIER-001). Wave-84 DELIVERY COMPLETE; integration gate + S-7.02 cycle-close remain.
+- **Ground truth:** develop = `595cdba8d2033abb6dea5b3c42c01ec4d7e1a954` (PR #427, wave-84 final); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = this burst commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** None. All three wave-84 story worktrees removed; no open factory PRs.
+- **NEXT STEP:** Wave-84 integration gate (wave-level adversarial convergence per DF-CONVERGENCE-BEFORE-MERGE-001; owes the deferred STORY-166 Background line-anchor currency sweep noted in prior state). S-7.02 cycle-close after gate (process-gap ledger PG-W84-* → DF-VALIDATION-001 research before any upstream filing).
 - **Pending human decisions:** (a) PR #407 governance (external; triage preserved at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix — BOTH clusters: STORY-INDEX.md-in-inputs (164/165, ~7 re-baselines) AND STATE.md-in-inputs (175..179, ~5 re-baselines).
-- **Wave-84 cycle-close process-gap ledger (upstream vehicles per human directive, DF-VALIDATION-001 research required before filing):** stale-inline-version-marker recurrence (3+); sub-agent message-routing breakage; burst-log template understatement; STATE.md write-path hook friction; validate-pr-review-posted hook false-positive on self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR; governance-doc CI examples unvalidated against branch topology (F-S166P7-001, fixed locally); R-426-001 PR-description commit-count drift; AC-176-001 fabricated nonexistent allowlist mechanism + wrong gate locus (PG-W84-009). **NEW (this burst set): F-S176P4-001 bin/test_gitignore_mutants_glob.py CI-inert (PG-W74-CI-BIN-SELFTEST recurrence; PG-W84-011 filed).**
+- **Wave-84 cycle-close process-gap ledger (upstream vehicles per human directive, DF-VALIDATION-001 research required before filing):** stale-inline-version-marker recurrence (3+); sub-agent message-routing breakage; burst-log template understatement; STATE.md write-path hook friction; validate-pr-review-posted hook false-positive on self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR; governance-doc CI examples unvalidated against branch topology (F-S166P7-001, fixed locally); R-426-001 PR-description commit-count drift; AC-176-001 fabricated nonexistent allowlist mechanism + wrong gate locus (PG-W84-009); F-S176P4-001 bin/test_gitignore_mutants_glob.py CI-inert (PG-W74-CI-BIN-SELFTEST recurrence; PG-W84-011 filed).
 - **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 deferred to maintenance sweep).
-- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.83 / dep-graph v3.9.
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.84 / dep-graph v3.9.
 - **Resume command:** `/vsdd-factory:next-step`.
 
 ---
@@ -276,6 +277,7 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | STORY-166 per-story convergence report | `cycles/wave-084/STORY-166/convergence-report.md` + `adversary-convergence-state.json` (10 passes, CONVERGED P8/P9/P10, 2026-07-20) |
 | STORY-166 delivery evidence (PR #426, D-482) | `cycles/wave-084/STORY-166/` + `.factory/code-delivery/STORY-166/` (pr-description.md, pr-review.md, pr-review-c2.md, security-review.md) |
 | STORY-176 per-story convergence report | `cycles/wave-084/STORY-176/convergence-report.md` + `adversary-convergence-state.json` (8 passes, CONVERGED P6/P7/P8, 2026-07-20; BC-5.39.001 SATISFIED; code tip ea4bcd8e; story v2.7/6ec8772) |
+| STORY-176 delivery evidence (PR #427, D-485) | `cycles/wave-084/STORY-176/` + `.factory/code-delivery/STORY-176/` (delivery-report.md, pr-description.md, pr-review.md, review-findings.md) + `docs/demo-evidence/STORY-176/` on develop |
 | feature-iec104 F5 adversarial reviews | `.factory/phase-f5-adversarial/round-1-review.md` through `round-5-review.md`; `convergence-summary.md` (D-468) |
 | feature-iec104 F6 gate verdict + hardening artifacts | `.factory/phase-f6-hardening/f6-gate-verdict-iec104.md` (D-469 PASS); `kani-results.md`, `fuzz-results.md`, `mutation-results.md`, `security-scan-results.md` |
 | feature-iec104 F7 convergence artifacts | `.factory/phase-f7-convergence/delta-convergence-report.md` (D-470 CONVERGED); `traceability-chain-delta.md`; `consistency-audit.md` |
@@ -300,3 +302,5 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | STORY-176 Step-4.5 pass-3/4/5/6 CPS top rows (replaced in-place by CONVERGED burst, last-5 rule) | `cycles/wave-084/burst-log.md` |
 | D-481 Current Phase Steps row (rolled out under last-5 rule by STORY-176 Step-4.5 CONVERGED row addition) | `cycles/wave-084/burst-log.md` |
 | Session Resume Checkpoint superseded by STORY-176 Step-4.5 CONVERGED burst (2026-07-20) | `cycles/wave-084/session-checkpoints.md` |
+| D-482 STORY-166 DELIVERED CPS row (rolled out under last-5 rule by D-485 STORY-176 DELIVERED row addition) | `cycles/wave-084/burst-log.md` |
+| Session Resume Checkpoint (STORY-176 Step-4.5 CONVERGED) superseded by D-485 STORY-176 DELIVERED burst (2026-07-20) | `cycles/wave-084/session-checkpoints.md` |

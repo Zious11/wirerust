@@ -913,8 +913,11 @@ stories:
     merged_date: "2026-07-20"
 
   STORY-176:
-    status: pending
+    status: done  # DELIVERED: PR #427 595cdba8 squash-merged to develop 2026-07-20 (D-485)
     wave: 84
-    branch: null
+    branch: null  # squash-merged; worktree cleaned
     worktree: null
     blocked_by: []
+    pr: 427
+    merge_commit: 595cdba8
+    merged_date: "2026-07-20"

@@ -156,6 +156,19 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by D-485 STORY-176 DELIVERED burst checkpoint)
+
+**STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED); trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. code tip ea4bcd8e; story v2.7/6ec8772; Step 5 demo evidence dispatched. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = Step-4.5 CONVERGED burst commit.**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.7 delivery in progress; Step-4.5 adversarial CONVERGED (BC-5.39.001 SATISFIED, streak P6/P7/P8); Step 5 demo evidence dispatched.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = Step-4.5 CONVERGED burst commit; code tip = `ea4bcd8e`. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.7 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; Step-4.5 CONVERGED; Step 5 demo evidence dispatched; awaiting demo evidence completion. No open factory PRs.
+- **NEXT STEP:** STORY-176 Step 5 demo evidence completion, then Steps 6-9 (PR, review, merge).
+- **Pending human decisions:** (a) PR #407 governance; (b) input-hash churn structural fix.
+- **Superseded by:** D-485 STORY-176 DELIVERED burst checkpoint (2026-07-20).
+
+---
+
 ## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 CONVERGED recording burst checkpoint)
 
 **STORY-176 Step-4.5 pass 6 NITPICK_ONLY (first clean); streak 1/3; pass 7 dispatched; trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0. code tip ea4bcd8e; story v2.7/6ec8772. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = pass-6 burst commit.**

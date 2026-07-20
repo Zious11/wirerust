@@ -531,5 +531,37 @@ out by the STORY-176 Step-4.5 CONVERGED row addition (2026-07-20).
 
 ---
 
+## Burst — D-485 STORY-176 DELIVERED (2026-07-20)
+
+**Burst type:** State update — Step 9 final state recording (state-manager closing burst for STORY-176 per-story delivery)
+
+**Story:** STORY-176 "Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps"
+
+**Summary:** PR #427 "ci: extend green-doc-tense gate with stub-era patterns + mutants.out gitignore (STORY-176)" squash-merged to develop 595cdba8d2033abb6dea5b3c42c01ec4d7e1a954 (2026-07-20T21:46:45Z, human-executed under DF-MERGE-AUTH-CLASSIFIER-001 explicit per-PR authorization; wave-84 #421/#426/#427 pattern match). CI 13/13 PASS (incl. new "Bin selftest suites" step exercising test_gitignore_mutants_glob.py, Green-doc-tense gate, CHANGELOG gate, Semantic PR, action-pin-gate). Stale-verdict PASS. pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record). Security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22, not introduced by this story). Step-4.5 adversary CONVERGED P6/P7/P8 (8 passes, BC-5.39.001 SATISFIED). Story v2.7/6ec8772. Headline spec-flaw catch: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG obligation → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. Wave-84 DELIVERY COMPLETE (3/3: STORY-147 #421 + STORY-166 #426 + STORY-176 #427). Integration gate + S-7.02 cycle-close remain.
+
+**Files touched (Dim-1):**
+- .factory/STATE.md (D-485 transition: develop_head, stories_delivered, story_index_version, current_step, timestamp, Project Metadata, Phase Progress wave-84, Concurrent Cycles, CPS, Decisions Log, Session Resume Checkpoint)
+- .factory/stories/STORY-INDEX.md (v3.83→v3.84; STORY-176 status ready→delivered; wave-84 row 3/3 DELIVERED)
+- .factory/stories/sprint-state.yaml (STORY-176 status pending→done; pr: 427, merge_commit: 595cdba8)
+- .factory/cycles/wave-084/burst-log.md (this file)
+- .factory/cycles/wave-084/session-checkpoints.md (old checkpoint archived)
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the D-485 STORY-176 DELIVERED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **STORY-166 DELIVERED (2026-07-20, D-482). PR #426 squash-merged to develop fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409 (human-executed, 2026-07-20T14:33:12Z, under orchestrator merge gate; DF-MERGE-AUTH-CLASSIFIER-001 satisfied). Remote+local branch deleted; worktree removed. CI 13/13 first-try (CHANGELOG gate exercised + passed). Dual reviewer APPROVE (c1 + corroborating c2; self-authored PR — COMMENTED review event + pr-review.md artifact = review of record). Security CLEAN (fuzz-verified). Step-4.5 adversary CONVERGED P8/P9/P10 (10 passes; BC-5.39.001 SATISFIED); headline finding F-S166P7-001 caught a Pass-3-era fix regression in demo-evidence-scrub-gate.md's CI-guard example (grep exits 2 on missing .factory/ path even when leaks ARE found, false-green); execution-verified, fixed eef569c9; anchor grammar delivered w/ 27-test suite. STORY-INDEX v3.81→v3.82 (status ready→delivered; wave-84 row 2/3 DELIVERED). stories_delivered 114→115. Evidence artifacts at .factory/code-delivery/STORY-166/. Process-gaps ledgered: validate-pr-review-posted hook false-positive for self-authored PRs; pr-manager-completion-guard pressured step-9 fabrication on unmerged PR (agent correctly refused); governance-doc CI examples unvalidated against branch topology (F-S166P7-001); PR-description commit-count drift (R-426-001, cosmetic, 10 vs 11).** | **DELIVERED (D-482)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next (await human go); wave gate after. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-482 STORY-166 DELIVERED row) rolled
+out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
 
