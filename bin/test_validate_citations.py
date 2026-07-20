@@ -598,7 +598,9 @@ def test_T23_anchor_present_passes() -> None:
     rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
     assert rc == 0, f"T23: expected exit 0, got {rc}\nstdout={out!r}\nstderr={err!r}"
     assert "PASS" in out, f"T23: expected PASS in stdout, got {out!r}"
-    assert "2" in out, f"T23: expected count 2 in stdout, got {out!r}"
+    assert "PASS: 2 citations verified" in out, (
+        f"T23: expected exact 'PASS: 2 citations verified' line, got {out!r}"
+    )
     print(
         "  [PASS] T23 anchor present (+ EC-002 regex-special anchor): "
         f"exit={rc}, out={out.strip()!r}"
