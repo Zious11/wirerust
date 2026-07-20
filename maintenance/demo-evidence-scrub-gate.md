@@ -87,7 +87,7 @@ To enforce this gate in CI, add the following step to `.github/workflows/ci.yml`
 ```yaml
 - name: Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB)
   run: |
-    if grep -rE '/Users/|/home/' docs/demo-evidence/ 2>/dev/null; then
+    if grep -rE '/Users/|/home/|~/' docs/demo-evidence/ .factory/demo-evidence/ 2>/dev/null; then
       echo "FAIL: absolute host paths found in demo-evidence"
       exit 1
     fi
@@ -102,6 +102,7 @@ present in committed demo evidence, preventing reintroduction at CI time.
 
 | Date | Change | Reference |
 |------|--------|-----------|
+| 2026-07-20 | CI-guard example aligned with the extended mandatory gate — tilde + `.factory` tree propagation; sibling-sweep gap from the AC-166-003 edit. | F-S166P3-001 |
 | 2026-07-19 | Extended gate scope to `.factory/demo-evidence/` for NEW captures (both trees now covered by the gate command). 92 pre-existing files (163 host-path occurrences as of wave-75 close, 2026-07-13) documented as a baseline exempt from retroactive remediation. | PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE / STORY-166 AC-166-003 |
 | 2026-07-09 | Extended scrub pattern to also reject tilde-form home paths (`~/`) in tape/evidence text files. Root cause: SEC-W72-001 LOW — STORY-159 demo tapes contained `~/Documents/GITHUB/wirerust` which bypassed the original `/Users/` + `/home/` gate. Fixed via PR #391. | SEC-W72-001 / PR #391 |
 | 2026-07-08 | Initial gate document authored (STORY-157 AC-157-002, PG-W70-DEMO-SCRUB). | STORY-157 |
