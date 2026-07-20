@@ -508,7 +508,7 @@ pr-reviewer APPROVE, security CLEAN, CI 13/13 — is recorded separately in
 `cycles/wave-084/STORY-147/adversary-convergence-state.json`, and
 `.factory/code-delivery/STORY-147/`.)
 
-**Files touched (Dim-1): 1 unique file**
+**Files touched (Dim-1): 1 unique files**
 
 - .factory/cycles/wave-084/burst-log.md (this file)
 

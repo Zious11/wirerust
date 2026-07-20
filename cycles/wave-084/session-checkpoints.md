@@ -88,6 +88,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 CONVERGED checkpoint)
+
+**STORY-176 Step-4.5 pass 3 FINDINGS (1 MED spec-route → story v2.5; 2 informational accepted); all code-level findings exhausted, code tip b583c4b4 unchanged since pass 2; pass 4 dispatched; streak 0/3. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = pass-3 burst commit. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.5 delivery in progress; Step-4.5 adversarial pass 3 FINDINGS resolved; pass 4 dispatched.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = pass-3 burst commit; code tip = `b583c4b4` (unchanged since pass 2 — pass-3 finding was spec-only). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.5 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 3 FINDINGS resolved (spec-only: story v2.5 a90c4b4); pass 4 dispatched; awaiting pass 4 verdict. No open factory PRs.
+- **Pending human decisions:** (a) PR #407 governance (external; do NOT re-run triage); (b) input-hash churn structural fix — BOTH clusters.
+- **Superseded by:** STORY-176 Step-4.5 CONVERGED checkpoint (8 passes, BC-5.39.001 SATISFIED P6/P7/P8; code tip ea4bcd8e; story v2.7/6ec8772).
+
+---
+
 ## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 pass-1 burst checkpoint)
 
 **STORY-176 Steps 1-2 complete; spec-route remediation v2.2→v2.3 done (research-validated per planning/story-176-ac001-validation.md); Red Gate (Step 3) next. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = this burst commit. trajectory-tail →0→0→0→0**
@@ -141,6 +153,20 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 - **In-flight work:** STORY-176 v2.5 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 3 FINDINGS resolved (spec-only: story v2.5 a90c4b4); pass 4 dispatched; awaiting pass 4 verdict.
 - **NEXT STEP:** STORY-176 Step-4.5 pass 4 adversarial verdict — if CLEAN start clean streak (need 3 consecutive); if FINDINGS fix and dispatch pass 5.
 - **Superseded by:** STORY-176 Step-4.5 pass-6 burst checkpoint (2026-07-20; passes 4/5 FINDINGS resolved; pass 6 NITPICK_ONLY first clean).
+
+---
+
+## Checkpoint archived 2026-07-20 (replaced by STORY-176 Step-4.5 CONVERGED recording burst checkpoint)
+
+**STORY-176 Step-4.5 pass 6 NITPICK_ONLY (first clean); streak 1/3; pass 7 dispatched; trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0. code tip ea4bcd8e; story v2.7/6ec8772. develop=fa9be701; STORY-INDEX v3.83; factory-artifacts = pass-6 burst commit.**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; STORY-176 v2.7 delivery in progress; Step-4.5 adversarial pass 6 NITPICK_ONLY (first clean); pass 7 dispatched; streak 1/3.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426, unchanged); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = pass-6 burst commit; code tip = `ea4bcd8e`. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** STORY-176 v2.7 delivery in progress; worktree .worktrees/STORY-176 on feature/STORY-176-cycle-close-hygiene (base fa9be701); Steps 1-4 done; adversarial pass 6 NITPICK_ONLY (first clean); pass 7 dispatched; awaiting pass 7 verdict. No open factory PRs.
+- **NEXT STEP:** STORY-176 Step-4.5 pass 7 adversarial verdict — if CLEAN streak advances to 2/3; if FINDINGS reset streak and dispatch pass 8.
+- **Pending human decisions:** (a) PR #407 governance; (b) input-hash churn structural fix (STORY-INDEX.md-in-inputs and STATE.md-in-inputs clusters).
+- **Wave-84 process-gap ledger (new this burst): PG-W84-011 bin/test_gitignore_mutants_glob.py CI-inert (FIXED ea4bcd8e).**
+- **Superseded by:** STORY-176 Step-4.5 pass-7/CONVERGED recording burst checkpoint (2026-07-20; pass 7 NITPICK_ONLY streak 2/3; pass 8 NITPICK_ONLY streak 3/3 CONVERGED; BC-5.39.001 SATISFIED).
 
 ---
 
