@@ -4,7 +4,7 @@ level: ops
 version: "1.0"
 status: in-progress
 producer: state-manager
-timestamp: 2026-07-19T23:55:00Z
+timestamp: 2026-07-20T15:17:56Z
 cycle: "wave-084"
 inputs: [STATE.md]
 input-hash: "[live-state]"
@@ -164,6 +164,55 @@ Factory artifact integrity verified via state-burst Single-Commit Protocol
 
 **Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-479 row) rolled
 out by the D-482 STORY-166 DELIVERED row addition.
+
+---
+
+## Burst: D-480 row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-483
+SESSION WRAP bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the D-483 SESSION WRAP row addition, not a
+spec-evolution or code-delivery burst in its own right. (D-480's E-11
+disposition work — research pass, upstream filings, story dispositions,
+wave-84 open — is recorded separately in
+`planning/e11-stale-draft-disposition-plan.md` and the D-480 Decisions Log
+entry.)
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the D-483 SESSION WRAP row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **D-480 E-11 DISPOSITION BURST DELIVERED (2026-07-19, resumed from D-479 pause; all items human-approved). DF-VALIDATION-001 research pass (research-agent) over 5 stale E-11 drafts (STORY-091/121/143/147/155) → disposition plan (planning/e11-stale-draft-disposition-plan.md, dupe-checked against D-477's 465-issue corpus). Upstream filings (github-ops, redaction-verified): NEW issue drbothen/vsdd-factory#695 (STORY-143, x-ref #580); evidence comments on #582 (STORY-121, comment-5016995736, x-ref #396), #654 (STORY-147 engine half, comment-5016997563), #290 (STORY-155, comment-5016998745, x-ref #600). STORY-091: no filing (OBSOLETE — verification core delivered by bin/validate-citations STORY-164 + STORY-166 symbol-at-line assertion; residual --scan layer represented upstream #622/#603/#396). Story-writer burst: STORY-091/121/143/155 status draft→superseded; STORY-147 v2.0 SPLIT survivor "Repo-Local Mutation-Testing Defaults: mutants.toml (jobs=1) + CLAUDE.md Guidance" (retitled v2.2) (3→2 pts, AC-147-001..004, engine half →#654). WAVE-84 OPENED (plan gate approved, human): STORY-166 v1.2 + STORY-176 v2.1 + STORY-147 v2.0, 7 pts, all product-local, draft→ready, no dependency edges. STORY-INDEX v3.78→v3.79 (7 rows updated; E-11 67→66 [only STORY-147's -1 delta]; total_points 776→775; total_waves 83→84; arithmetic verified: wave-scheduled 747 + exclusions 28 = 775). input-hash final scan MATCH=132 STALE=0; re-baselined STORY-164/165 (4th re-baseline — STORY-INDEX-IN-INPUTS-CHURN), STORY-176 (edited), STORY-175/177/178/179 (pre-existing drift, benign). Incidental fixes: STORY-091 unescaped-pipe table bug + missing template fields; STORY-143/155 body Status-line loci agreement corrected.** | **COMPLETE (D-480)** | STORY-INDEX v3.79. Wave-84 OPENED, 3 ready stories. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable. This
+archival step performs no compilation or test execution; the underlying E-11
+disposition work was gated separately (research-agent validation, story-writer
+burst, human plan-gate approval).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only this
+.md archival artifact plus STATE.md bookkeeping.
+
+**Dim-6 Attestation:** N/A — no source code changes on develop branch made by
+this archival step itself. Burst commits exclusively to factory-artifacts
+branch.
+
+**Dim-7 Attestation:** N/A — no test suite changes made by this archival step.
+Factory artifact integrity verified via state-burst Single-Commit Protocol
+(TD-VSDD-053).
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-480 row)
+rolled out by the D-483 SESSION WRAP row addition.
 
 ---
 

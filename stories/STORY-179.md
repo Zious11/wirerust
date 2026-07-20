@@ -30,7 +30,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "0ce7ada"
+input-hash: "41176f4"
 ---
 
 # STORY-179: Feature-IEC104 Cycle-Close: Session Recovery and Multi-Worktree Verification

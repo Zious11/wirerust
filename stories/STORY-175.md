@@ -31,7 +31,7 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "0ce7ada"
+input-hash: "41176f4"
 ---
 
 # STORY-175: Feature-IEC104 Cycle-Close: Demo Evidence JSON Accuracy Protocol

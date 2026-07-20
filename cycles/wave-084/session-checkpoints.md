@@ -46,4 +46,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by D-483 SESSION WRAP checkpoint)
+
+**STORY-166 DELIVERED (2026-07-20, D-482). PR #426 fa9be701 squash-merged to develop; 10-pass Step-4.5 adversary CONVERGED P8/P9/P10; dual reviewer APPROVE; security CLEAN; CI 13/13 first-try. Wave-84 2/3 DELIVERED — STORY-176 remains ready, un-started. Pipeline ACTIVE. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 delivery IN PROGRESS (2/3 delivered), pipeline ACTIVE. Next step: STORY-176 v2.2 per-story delivery (await human go); wave gate after; no dependency edges among the three stories.
+- **Ground truth:** main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0); develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (D-482 STORY-166 PR #426 squash-merged 2026-07-20); factory-artifacts = this burst commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** Wave-84 delivery IN PROGRESS (2/3 delivered). STORY-147 and STORY-166 DELIVERED and closed (worktrees + branches removed). No open factory PRs, no adversarial loop active. STORY-176 not started.
+- **Pending human decisions:** (a) PR #407 governance (triage preserved at `planning/pr-407-security-triage.md` — do NOT re-run); (b) STORY-INDEX-IN-INPUTS-CHURN structural decision (remove STORY-INDEX.md/STATE.md from affected story inputs lists? now 4+2 re-baselines across the two clusters); (c) go-ahead for STORY-176 per-story delivery; (d) wave-84 gate after STORY-176.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked bumps eligible 2026-07-21..27); harden-runner v2.20.0 Dependabot re-pin watch (~48h from 2026-07-19, manual re-pin SHA `bf7454d06d71f1098171f2acdf0cd4708d7b5920` if absent).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.82 / dep-graph v3.9 (137 edges).
+- **Resume command:** `/vsdd-factory:next-step` (STORY-176 v2.2 per-story delivery next, await human go). Superseded by D-483 SESSION WRAP checkpoint (human-requested pause, pipeline PAUSED).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
