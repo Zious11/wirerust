@@ -8,6 +8,8 @@ ALGORITHM:
   2. Each non-blank, non-comment line has the form:
        path/to/file.md:LINE            # optional inline comment (stripped)
        path/to/file.md:LINE-LINE       # line range (both endpoints checked)
+       path/to/file.md:LINE:ANCHOR     # AC-166-001(a): opt-in symbol-at-line assertion
+       path/to/file.md:LINE-LINE:ANCHOR  # anchor applies to the START line only (EC-003)
      Lines beginning with '#' are comments and are ignored. Blank lines are ignored.
   3. Paths are relative to the repo root (resolved using the same repo-root
      detection as compute-input-hash: WIRERUST_REPO_ROOT env, walk up from script,
@@ -25,6 +27,15 @@ ALGORITHM:
      - For ranges, start MUST be ≤ end.  FAIL → "INVALID RANGE: path:N-M (start > end)"
      - The cited line number (or both range endpoints) MUST be ≤ the file's actual
        line count.                       FAIL → "LINE OUT OF RANGE: path:N (file has M lines)"
+     - AC-166-001(b)-(c): when a third ":ANCHOR" field is present, the anchor
+       token MUST appear on the cited (start) line -- either as a
+       def/async def/fn/class declaration prefix, or (minimal acceptable form,
+       EC-001) as a bare substring. The anchor is re.escape()'d before
+       matching (EC-002).
+                                         FAIL → "SYMBOL NOT AT LINE: path:N
+                                         (expected anchor '<anchor>', found '<line-text>')"
+                                         (line-text is the cited line's stripped
+                                         content, truncated to ≤80 chars)
   5. On full success:  print "PASS: N citations verified", exit 0.
      On any failure:   print each failing entry's reason, then
                        "FAIL: K of N citations invalid", exit 1.
@@ -97,15 +108,19 @@ def find_repo_root() -> Path:
 # ---------------------------------------------------------------------------
 
 # Matches: optional-leading-whitespace, path (no colon), colon,
-# start-line, optional -end-line, optional trailing whitespace + inline comment.
-_CITATION_RE = re.compile(r"^\s*([^:]+):(\d+)(?:-(\d+))?\s*(?:#.*)?$")
+# start-line, optional -end-line, optional :anchor (AC-166-001(a)), optional
+# trailing whitespace + inline comment.
+_CITATION_RE = re.compile(r"^\s*([^:]+):(\d+)(?:-(\d+))?(?::(\S+))?\s*(?:#.*)?$")
 
 
-def parse_line(raw: str) -> tuple[str, int, int | None] | None:
+def parse_line(raw: str) -> tuple[str, int, int | None, str | None] | None:
     """Parse one line from a citations table.
 
-    Returns (path, start_line, end_line_or_None) for a valid citation line,
-    or None if the line should be skipped (blank or comment).
+    Returns (path, start_line, end_line_or_None, anchor_or_None) for a valid
+    citation line, or None if the line should be skipped (blank, comment, or
+    a non-blank/non-comment line that fails the citation regex match --
+    callers distinguish this MALFORMED case from the skip case by re-checking
+    the stripped/comment status of the raw line, per F-S164P1-002).
     """
     stripped = raw.strip()
     if not stripped or stripped.startswith("#"):
@@ -116,7 +131,8 @@ def parse_line(raw: str) -> tuple[str, int, int | None] | None:
     path = m.group(1).strip()
     start = int(m.group(2))
     end = int(m.group(3)) if m.group(3) is not None else None
-    return path, start, end
+    anchor = m.group(4) if m.group(4) is not None else None
+    return path, start, end, anchor
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +142,49 @@ def parse_line(raw: str) -> tuple[str, int, int | None] | None:
 def count_lines(file_path: Path) -> int:
     """Return the number of lines in a file by iterating in binary mode."""
     return sum(1 for _ in file_path.open("rb"))
+
+
+def _read_line_text(file_path: Path, line_no: int) -> str:
+    """Return the stripped text of line `line_no` (1-based) of file_path.
+
+    Callers must have already bounds-checked line_no against the file's
+    line count. Decoding uses errors="replace" so a non-UTF-8 byte does not
+    raise -- symbol assertion is a best-effort content check, not the
+    citations-file UTF-8 usage-error gate (see main()'s exit-2 paths).
+    """
+    with file_path.open("r", encoding="utf-8", errors="replace") as f:
+        for i, line in enumerate(f, start=1):
+            if i == line_no:
+                return line.strip()
+    return ""
+
+
+# AC-166-001(b): preferred symbol-assertion form -- a def/async def/fn/class
+# declaration prefix immediately followed by the anchor name. `{}` is filled
+# with the re.escape()'d anchor (EC-002) before compiling.
+_ANCHOR_PREFIX_TEMPLATE = r"(?:async\s+def|def|fn|class)\s+{}\b"
+
+
+def _symbol_at_line(line_text: str, anchor: str) -> bool:
+    """Return True if `anchor` is asserted present on `line_text`.
+
+    Preferred match: a def/async def/fn/class declaration prefix (AC-166-
+    001(b)). Falls back to a bare substring match, which AC-166-001(b)
+    documents as an acceptable minimal implementation and which also covers
+    EC-001 (anchor present as a substring of a longer identifier). The
+    anchor is re.escape()'d before compiling (EC-002) so regex-special
+    characters in the anchor (e.g. 'arr[0]') are treated as literal text.
+    """
+    escaped = re.escape(anchor)
+    prefix_pattern = re.compile(_ANCHOR_PREFIX_TEMPLATE.format(escaped))
+    if prefix_pattern.search(line_text):
+        return True
+    return re.search(escaped, line_text) is not None
+
+
+def _truncate_for_message(text: str, limit: int = 80) -> str:
+    """Truncate `text` to at most `limit` characters (AC-166-001(c))."""
+    return text[:limit]
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +201,7 @@ def validate(text: str, repo_root: Path) -> int:
     # so MALFORMED lines are counted in "FAIL: K of N" rather than inflating K
     # above N when no valid citations are present.
     total: int = 0
-    citations: list[tuple[str, int, int | None]] = []
+    citations: list[tuple[str, int, int | None, str | None]] = []
     failures: list[str] = []
     resolved_root = repo_root.resolve()
 
@@ -157,8 +216,8 @@ def validate(text: str, repo_root: Path) -> int:
                 failures.append(f"MALFORMED: {stripped}")
             continue
         total += 1
-        path_str, start, end = parsed
-        citations.append((path_str, start, end))
+        path_str, start, end, anchor = parsed
+        citations.append((path_str, start, end, anchor))
 
         # F-S164P2-003: reject paths that escape the repo root via absolute references
         # or parent-directory traversal (CWE-22). pathlib's / operator discards the
@@ -215,6 +274,20 @@ def validate(text: str, repo_root: Path) -> int:
             if start > line_count:
                 failures.append(
                     f"LINE OUT OF RANGE: {path_str}:{start} (file has {line_count} lines)"
+                )
+                continue
+
+        # AC-166-001(a)-(c): opt-in path:line:anchor symbol-at-line assertion.
+        # EC-003: for a range citation (path:start-end:anchor), the anchor
+        # assertion applies only to the START line; the end endpoint is only
+        # bounds-checked above.
+        if anchor is not None:
+            line_text = _read_line_text(abs_path, start)
+            if not _symbol_at_line(line_text, anchor):
+                found = _truncate_for_message(line_text)
+                failures.append(
+                    f"SYMBOL NOT AT LINE: {path_str}:{start} "
+                    f"(expected anchor '{anchor}', found '{found}')"
                 )
                 continue
 
