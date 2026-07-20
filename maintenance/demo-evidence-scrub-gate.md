@@ -87,14 +87,22 @@ To enforce this gate in CI, add the following step to `.github/workflows/ci.yml`
 ```yaml
 - name: Demo-evidence path-scrub gate (PG-W70-DEMO-SCRUB)
   run: |
-    if grep -rE '/Users/|/home/|~/' docs/demo-evidence/ .factory/demo-evidence/ 2>/dev/null; then
-      echo "FAIL: absolute host paths found in demo-evidence"
-      exit 1
-    fi
+    FAIL=0
+    for d in docs/demo-evidence .factory/demo-evidence; do
+      if [ -d "$d" ] && grep -rE '/Users/|/home/|~/' "$d"; then
+        echo "FAIL: absolute host paths found in $d"
+        FAIL=1
+      fi
+    done
+    exit $FAIL
 ```
 
 This step fails if any absolute `/Users/`, `/home/`, or tilde-form (`~/`) paths are
-present in committed demo evidence, preventing reintroduction at CI time.
+present in committed demo evidence, preventing reintroduction at CI time. On `develop`
+CI, only `docs/demo-evidence/` exists (`.factory/` lives on the `factory-artifacts`
+branch — the same constraint that deferred the input-hash CI gate per CLAUDE.md); the
+loop guards whichever trees are present, so the example is safe on both `develop` CI
+and full repo-root checkouts.
 
 ---
 
@@ -102,7 +110,7 @@ present in committed demo evidence, preventing reintroduction at CI time.
 
 | Date | Change | Reference |
 |------|--------|-----------|
-| 2026-07-20 | CI-guard example aligned with the extended mandatory gate — tilde + `.factory` tree propagation; sibling-sweep gap from the AC-166-003 edit (F-S166P3-001). Follow-up same-day sweep: the two TRIGGER-PREDICATE loci (mandatory-gate lead-in and "When to Run" PR-opening rule) still scoped to `docs/` only after the F-S166P3-001 command-body extension — harmonized to name both `docs/demo-evidence/` and `.factory/demo-evidence/`. The new-captures-only baseline exemption (92 pre-existing files, 163 host-path occurrences as of wave-75 close) still governs. | F-S166P3-001 / F-S166P4-002 |
+| 2026-07-20 | CI-guard example aligned with the extended mandatory gate — tilde + `.factory` tree propagation; sibling-sweep gap from the AC-166-003 edit (F-S166P3-001). Follow-up same-day sweep: the two TRIGGER-PREDICATE loci (mandatory-gate lead-in and "When to Run" PR-opening rule) still scoped to `docs/` only after the F-S166P3-001 command-body extension — harmonized to name both `docs/demo-evidence/` and `.factory/demo-evidence/`. The new-captures-only baseline exemption (92 pre-existing files, 163 host-path occurrences as of wave-75 close) still governs. Second same-day fix: the two-tree grep in the CI-guard example exits 2 (error, not 1) when `.factory/` is absent on a `develop` checkout, so the `if` never fires and the guard is a false-green — orchestrator-verified. Replaced with a path-guarded per-tree loop that only greps directories that exist (F-S166P7-001). | F-S166P3-001 / F-S166P4-002 / F-S166P7-001 |
 | 2026-07-19 | Extended gate scope to `.factory/demo-evidence/` for NEW captures (both trees now covered by the gate command). 92 pre-existing files (163 host-path occurrences as of wave-75 close, 2026-07-13) documented as a baseline exempt from retroactive remediation. | PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE / STORY-166 AC-166-003 |
 | 2026-07-09 | Extended scrub pattern to also reject tilde-form home paths (`~/`) in tape/evidence text files. Root cause: SEC-W72-001 LOW — STORY-159 demo tapes contained `~/Documents/GITHUB/wirerust` which bypassed the original `/Users/` + `/home/` gate. Fixed via PR #391. | SEC-W72-001 / PR #391 |
 | 2026-07-08 | Initial gate document authored (STORY-157 AC-157-002, PG-W70-DEMO-SCRUB). | STORY-157 |
