@@ -41,6 +41,8 @@ Test coverage (AC-164-002(d) + edge cases):
         passes — backward-compatibility control
 """
 
+import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -52,35 +54,13 @@ TOOL = Path(__file__).resolve().parent / "validate-citations"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _run(citations_content: str, extra_args: list[str] | None = None) -> tuple[int, str, str]:
-    """
-    Write citations_content to a temp file, invoke the tool with that file,
-    and return (returncode, stdout, stderr).
-    """
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".txt", delete=False, encoding="utf-8"
-    ) as f:
-        f.write(citations_content)
-        citations_path = f.name
-
-    with tempfile.TemporaryDirectory() as tmp:
-        env_override: dict[str, str] = {"WIRERUST_REPO_ROOT": tmp}
-        import os
-        env = {**os.environ, **env_override}
-
-        cmd = [sys.executable, str(TOOL), citations_path] + (extra_args or [])
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-
-    # Clean up
-    Path(citations_path).unlink(missing_ok=True)
-
-    return result.returncode, result.stdout, result.stderr
+#
+# ROUTE-W74 MINOR-1: the previous _run() helper (single-file-only invocation,
+# with a temp citations file separate from the WIRERUST_REPO_ROOT temp dir)
+# was dead code -- every test uses _run_with_real_files() instead, which
+# creates cited files inside the same temp dir used as the repo root. Removed
+# rather than documented: _run_with_real_files() supersedes it entirely and
+# no test exercises the separate-temp-dir shape.
 
 
 def _run_with_real_files(
@@ -93,8 +73,6 @@ def _run_with_real_files(
 
     real_files: {relative_path: file_contents_bytes}
     """
-    import os
-
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         # Create the files inside the temp dir
@@ -228,7 +206,6 @@ def test_T08_invalid_range_start_gt_end() -> None:
 
 def test_T09_bad_argument_exits_2() -> None:
     """T09: Passing a nonexistent citations file as argument exits 2 (usage error)."""
-    import os
     with tempfile.TemporaryDirectory() as tmp:
         env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
         nonexistent = "/absolutely/does/not/exist/citations.txt"
@@ -396,9 +373,6 @@ def test_T17_parent_escape_rejected() -> None:
 
 def test_T18_non_utf8_citations_file_exits_2() -> None:
     """T18 (F-S164P2-004): Non-UTF-8 citations file exits 2 with error message, not traceback."""
-    import os
-    import tempfile
-
     # Write bytes that are not valid UTF-8
     invalid_bytes = b"\xff\xfeThis is not valid UTF-8\n"
     with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
@@ -435,10 +409,6 @@ def test_T19_unreadable_citations_file_exits_2() -> None:
     If the process runs as root (where chmod 000 is still readable), the test
     skips with a printed note rather than giving a false pass or false fail.
     """
-    import os
-    import stat
-    import tempfile
-
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as f:
@@ -492,9 +462,6 @@ def test_T20_non_utf8_stdin_exits_2() -> None:
     reads sys.stdin.buffer and decodes explicitly, so the same error path as
     the file-argument branch applies (stderr message + exit 2).
     """
-    import os
-    import tempfile
-
     invalid_utf8 = b"\xff\xfe invalid bytes"
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -524,15 +491,12 @@ def test_T21_directory_target_not_a_file() -> None:
     unguarded count_lines() call would raise IsADirectoryError. The fix adds
     an is_file() check that produces a clean NOT A FILE diagnostic instead.
     """
-    import os
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
         # Create a subdirectory inside the repo root to cite.
         subdir = Path(tmp) / "docs"
         subdir.mkdir()
         # Write citations file citing the directory as if it were a file.
-        citations = f"docs:1\n"
+        citations = "docs:1\n"
         env = {**os.environ, "WIRERUST_REPO_ROOT": tmp}
         result = subprocess.run(
             [sys.executable, str(TOOL), "-"],
@@ -562,10 +526,6 @@ def test_T22_unreadable_target_file() -> None:
     If the process runs as root (where chmod 000 is still readable), the test
     skips with a printed note rather than giving a false pass or false fail.
     """
-    import os
-    import stat
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
         # Create a real file in the temp root, then lock it down.
         target = Path(tmp) / "locked.txt"
