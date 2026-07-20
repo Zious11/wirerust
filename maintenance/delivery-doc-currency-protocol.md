@@ -168,6 +168,43 @@ A wave gate opened without completing the currency sweep:
 
 ---
 
+## Post-Delivery Input-Hash Re-Baseline (AC-176-002)
+
+Stories whose `inputs:` list includes spec files that were amended during the delivery
+wave will have a stale `input-hash` immediately after delivery. This is expected
+behavior — the hash correctly detects drift between the story's declared spec inputs
+and their current content.
+
+**Post-delivery re-baseline step:** Run the canonical Python tool for each delivered
+story whose spec inputs were modified, immediately after wave close:
+
+```bash
+bin/compute-input-hash --write .factory/stories/STORY-NNN.md
+```
+
+**Canonical Python tool only** (PG-HASH-HOOK-DIVERGENCE). The bash hook
+(`validate-input-hash`) uses a different algorithm — trailing-newline stripping
+inside `$(cat)` subshell — and produces a different hash than the canonical Python
+tool. Hash values set by the hook are advisory-only and MUST be corrected with the
+canonical Python tool. See CLAUDE.md §Known Tool Divergences (PG-HASH-HOOK-DIVERGENCE)
+for the full derivation and concrete per-story evidence.
+
+**The re-baseline is NOT optional.** A STALE hash on a just-delivered story that
+modified its own spec inputs must be resolved before the next wave's plan gate.
+
+**When this applies:** Any story that lists spec files (PRD, BC-INDEX, STORY-INDEX,
+STATE.md, etc.) in its `inputs:` section when those same files were modified as part
+of delivering the story. Particularly common for E-11 and E-22 governance stories
+that trace to actively-revised spec documents.
+
+**Observed on:** STORY-164/165 (re-baselined 2026-07-18). Applicable to any story
+tracing actively-revised spec documents. See also drift item
+`STORY-INDEX-IN-INPUTS-CHURN` (STATE.md Drift Items) for the structural root cause.
+
+**Provenance:** STORY-176 AC-176-002.
+
+---
+
 ## Correction Record
 
 | Finding | Date | Change |
