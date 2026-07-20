@@ -104,6 +104,10 @@ established in `.factory/demo-evidence/story-164/AC-164-001.md:67`:
 Zero stale items found is a valid outcome — record the sweep completion record (see Currency Sweep Record below)
 and proceed. Do not add spurious currency notes where none are needed.
 
+> Note: `.factory/demo-evidence/` is also subject to the path-scrub gate for new
+> captures (PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE); see demo-evidence-scrub-gate.md for the
+> extended gate command.
+
 ---
 
 ## Currency Sweep Record

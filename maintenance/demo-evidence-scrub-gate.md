@@ -36,6 +36,27 @@ grep -rE '/Users/|/home/|~/' docs/demo-evidence/
 If any results are returned, the push is blocked. Scrub all absolute host paths
 and tilde-form home references from the offending files before proceeding.
 
+### `.factory/demo-evidence/` — Extended Scope
+
+The gate command is extended for `.factory/demo-evidence/` — run the path-scrub grep
+against both `docs/demo-evidence/` and `.factory/demo-evidence/` when committing new
+captures to either tree.
+
+Pre-existing files (92 files, 163 host-path occurrences as of wave-75 close, 2026-07-13)
+are documented as a baseline exempt from retroactive remediation. Only files created or
+modified AFTER this story's delivery (STORY-166 AC-166-003) are subject to the extended
+scope.
+
+Extended gate command covering both trees:
+
+```bash
+grep -rE '/Users/|/home/|~/' docs/demo-evidence/ .factory/demo-evidence/
+```
+
+**Process-gap reference:** PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE (wave-75 gate W7
+observation). **Codification story:** STORY-166 AC-166-003 (project half; engine half —
+demo-recorder automatic host-path scrub step — tracked as drbothen/vsdd-factory#636).
+
 ### Common Patterns to Scrub
 
 Replace absolute host paths with repo-relative paths or anonymized placeholders:
@@ -81,6 +102,7 @@ present in committed demo evidence, preventing reintroduction at CI time.
 
 | Date | Change | Reference |
 |------|--------|-----------|
+| 2026-07-19 | Extended gate scope to `.factory/demo-evidence/` for NEW captures (both trees now covered by the gate command). 92 pre-existing files (163 host-path occurrences as of wave-75 close, 2026-07-13) documented as a baseline exempt from retroactive remediation. | PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE / STORY-166 AC-166-003 |
 | 2026-07-09 | Extended scrub pattern to also reject tilde-form home paths (`~/`) in tape/evidence text files. Root cause: SEC-W72-001 LOW — STORY-159 demo tapes contained `~/Documents/GITHUB/wirerust` which bypassed the original `/Users/` + `/home/` gate. Fixed via PR #391. | SEC-W72-001 / PR #391 |
 | 2026-07-08 | Initial gate document authored (STORY-157 AC-157-002, PG-W70-DEMO-SCRUB). | STORY-157 |
 
@@ -92,3 +114,7 @@ present in committed demo evidence, preventing reintroduction at CI time.
 - **F-W70P2-002:** Wave-70 Phase-2 gate finding that identified the scope
 - **PR #376:** `docs: scrub absolute host paths from committed demo evidence`
 - **STORY-157 AC-157-002:** Factory codification story for this gate
+- **PG-W75-DEMO-EVIDENCE-SCRUB-SCOPE:** Wave-75 gate W7 observation — `.factory/demo-evidence/`
+  scope extension (project half)
+- **STORY-166 AC-166-003:** Codification story for the `.factory/demo-evidence/` extended
+  scope (engine half — demo-recorder automatic scrub — tracked as drbothen/vsdd-factory#636)
