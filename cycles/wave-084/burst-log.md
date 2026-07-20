@@ -216,4 +216,50 @@ rolled out by the D-483 SESSION WRAP row addition.
 
 ---
 
+## Burst: D-480 (housekeeping) row archived from STATE.md Current Phase Steps (2026-07-20)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-484 SESSION RESUMED bookkeeping commit (see
+`git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as
+part of this archival step. This is a last-5-rule archival of a Current Phase
+Steps row rolled out of STATE.md by the D-484 SESSION RESUMED row addition, not a
+spec-evolution or code-delivery burst in its own right. (The D-480 E-11 disposition
+work — research pass, upstream filings, story dispositions, wave-84 open — is
+recorded separately in `planning/e11-stale-draft-disposition-plan.md` and the D-480
+Decisions Log entry in STATE.md.)
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the
+last-5 rule when the D-484 SESSION RESUMED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **Housekeeping burst (2026-07-19, folded into current_step — no new D-number). sprint-state.yaml registered wave-84 entries for STORY-147/STORY-166/STORY-176 (status: pending, blocked_by: [] — no dependency edges; STORY-147 branch/worktree fields populated for in-flight dispatch). Story-writer ride-alongs landed: STORY-147 v2.0→v2.1 + STORY-176 v2.1→v2.2 (both add a "Token Budget Estimate" section per per-story-delivery.md Token Budget Check; no AC or scope content change). input-hash re-baselined STORY-175/176/177/178/179 (canonical tool only) — cause: all five list `.factory/STATE.md` in `inputs:`, re-staled by the D-480 STATE.md commit (stored 62d13e0 vs computed 072239d before this re-baseline); 2nd re-baseline for this cluster in one day. Final scan MATCH=132 STALE=0. Wave-84 delivery IN PROGRESS: STORY-147 Step 2 (stubs) dispatched.** | **COMPLETE (housekeeping)** | Resume: STORY-147 Step 2 (stubs) in-flight. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable. This
+archival step performs no compilation or test execution; the underlying housekeeping
+work (sprint-state.yaml, story-writer ride-alongs, input-hash re-baseline) was
+verified separately via bin/compute-input-hash --scan (MATCH=132 STALE=0).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only this
+.md archival artifact plus STATE.md bookkeeping.
+
+**Dim-6 Attestation:** N/A — no source code changes on develop branch made by
+this archival step itself. Burst commits exclusively to factory-artifacts branch.
+
+**Dim-7 Attestation:** N/A — no test suite changes made by this archival step.
+Factory artifact integrity verified via state-burst Single-Commit Protocol
+(TD-VSDD-053).
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-480 housekeeping
+row) rolled out by the D-484 SESSION RESUMED row addition.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

@@ -60,4 +60,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-20 (replaced by D-484 SESSION RESUMED checkpoint)
+
+**SESSION WRAP (2026-07-20, D-483). Human-requested pause at clean milestone: wave-84 2/3 delivered (STORY-147 PR #421 f0cb7374 ✓, STORY-166 PR #426 fa9be701 ✓). No in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave), 2/3 delivered; pipeline PAUSED.
+- **Ground truth:** develop = `fa9be701b2f8d1f5700e108f86a9aeb3a3bf8409` (PR #426); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = D-483 wrap commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE (no stories mid-TDD, no open factory PRs, no worktrees, no adversarial loop mid-streak).
+- **Pending human decisions:** (a) PR #407 governance (external; triage preserved at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix — both clusters: STORY-INDEX.md-in-inputs (164/165, ~7 re-baselines) AND STATE.md-in-inputs (175..179, ~5 re-baselines this session).
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked, eligible 2026-07-21..27); harden-runner v2.20.0 Dependabot re-pin watch (window from 2026-07-19 elapsed as of D-483; check for Dependabot PR at resume); SCORECARD-ENABLEMENT-RUNBOOK (unchanged at time of wrap).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.82 / dep-graph v3.9.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-484 SESSION RESUMED checkpoint (human-approved, 2026-07-20).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
