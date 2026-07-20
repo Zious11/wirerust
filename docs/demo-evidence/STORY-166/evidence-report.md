@@ -163,12 +163,7 @@ no new leakage was introduced elsewhere:
 
 ```
 $ <scrub-gate grep — pattern elided to keep this report scrub-clean; see .factory/maintenance/demo-evidence-scrub-gate.md> docs/demo-evidence/
-docs/demo-evidence/STORY-052/AC-001-006-parse-client-hello.tape:Type "source ~/.zshrc 2>/dev/null || true"
-docs/demo-evidence/STORY-052/AC-010-011-tls13-integration.tape:Type "source ~/.zshrc 2>/dev/null || true"
-docs/demo-evidence/STORY-052/AC-007-map-bounds.tape:Type "source ~/.zshrc 2>/dev/null || true"
-docs/demo-evidence/STORY-052/AC-011-legacy-version-only.tape:Type "source ~/.zshrc 2>/dev/null || true"
-docs/demo-evidence/STORY-052/AC-008-009-012-stop-after-handshake.tape:Type "source ~/.zshrc 2>/dev/null || true"
-docs/demo-evidence/STORY-090/evidence-report.md:**Binary:** `~/.cargo/bin/wirerust` (installed from STORY-090 feature branch)
+(6 pre-existing baseline matches in STORY-052/STORY-090 artifacts — part of the documented pre-existing baseline, out of STORY-166 scope; verbatim lines elided to keep this report scrub-clean)
 ```
 
 All six matches are in **pre-existing, previously-merged** story directories (STORY-052,
