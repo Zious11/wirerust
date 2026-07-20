@@ -39,6 +39,11 @@ Test coverage (AC-164-002(d) + edge cases):
         line → SYMBOL NOT AT LINE failure class, exit 1
   T25  AC-166-001(d): bare path:line citation on the same fixture still
         passes — backward-compatibility control
+  T26  EC-003: range citation `path:start-end:anchor` asserts the anchor
+        against the START line only -- anchor-on-start-but-not-later passes,
+        anchor-absent-on-start-but-present-on-a-later-line fails
+  T27  AC-166-001(c): SYMBOL NOT AT LINE message truncates the found
+        line-text to <=80 chars (plain text[:80] slice, no ellipsis)
 """
 
 import os
@@ -653,6 +658,102 @@ def test_T25_bare_citation_still_passes() -> None:
     print(f"  [PASS] T25 bare citation backward-compat control: exit={rc}, out={out.strip()!r}")
 
 
+def test_T26_range_citation_anchor_asserts_start_line_only() -> None:
+    """T26 (EC-003): for a range citation `path:start-end:anchor`, the anchor
+    assertion applies ONLY to the range's start line -- the end line is
+    bounds-checked only, never anchor-checked. This test proves both
+    directions of that semantic:
+      (a) anchor present on the start line, absent from a later line in the
+          same range -> PASS (exit 0), because only the start line matters.
+      (b) anchor absent from the start line, but present on a LATER line
+          within the range -> FAIL (exit 1, SYMBOL NOT AT LINE), proving a
+          later-line match does NOT satisfy the assertion.
+    """
+    file_content = (
+        b"# header comment\n"       # line 1
+        b"def some_function():\n"   # line 2 -- anchor present here
+        b"    return 1\n"           # line 3 -- anchor absent here
+        b"def some_function():\n"   # line 4 -- anchor present here (later line)
+        b"    pass\n"                # line 5
+    )
+
+    # (a) start line (2) has the anchor; later line (3) in the range does not.
+    citations_pass = "mod.py:2-3:some_function\n"
+    rc, out, err = _run_with_real_files(citations_pass, {"mod.py": file_content})
+    assert rc == 0, (
+        f"T26a: expected exit 0 (anchor present on start line satisfies the "
+        f"range assertion regardless of later lines), got {rc}\n"
+        f"stdout={out!r}\nstderr={err!r}"
+    )
+    assert "PASS" in out, f"T26a: expected PASS in stdout, got {out!r}"
+
+    # (b) start line (3) lacks the anchor; a later line (4) in the range has it.
+    citations_fail = "mod.py:3-4:some_function\n"
+    rc2, out2, err2 = _run_with_real_files(citations_fail, {"mod.py": file_content})
+    assert rc2 == 1, (
+        f"T26b: expected exit 1 (a match on a later line does not satisfy "
+        f"the start-line-only anchor assertion), got {rc2}\n"
+        f"stdout={out2!r}\nstderr={err2!r}"
+    )
+    combined2 = out2 + err2
+    assert "SYMBOL NOT AT LINE" in combined2, (
+        f"T26b: expected SYMBOL NOT AT LINE in output, got {combined2!r}"
+    )
+    assert "mod.py:3" in combined2, (
+        f"T26b: expected the failure to cite the start line 'mod.py:3' "
+        f"(not the end line), got {combined2!r}"
+    )
+    print(
+        "  [PASS] T26 range anchor asserts start-line-only: "
+        f"a_exit={rc}, b_exit={rc2}"
+    )
+
+
+def test_T27_symbol_failure_message_truncates_long_line() -> None:
+    """T27 (AC-166-001(c) truncation): the cited line's text embedded in a
+    SYMBOL NOT AT LINE failure message is truncated to at most 80 chars.
+
+    Per bin/validate-citations's `_truncate_for_message()` (lines 185-187 at
+    the time this test was written: `return text[:limit]`), truncation is a
+    plain slice with NO ellipsis or other marker appended -- this test
+    asserts that exact observed behavior rather than assuming an ellipsis
+    convention.
+    """
+    long_line = "x" * 150  # far exceeds the 80-char truncation limit
+    file_content = (
+        b"# header comment\n"          # line 1
+        + (long_line.encode() + b"\n")  # line 2 -- long line, anchor absent
+        + b"    pass\n"                 # line 3
+    )
+    citations = "mod.py:2:nonexistent_symbol\n"
+    rc, out, err = _run_with_real_files(citations, {"mod.py": file_content})
+    assert rc == 1, f"T27: expected exit 1, got {rc}\nstdout={out!r}\nstderr={err!r}"
+    combined = out + err
+    assert "SYMBOL NOT AT LINE" in combined, (
+        f"T27: expected SYMBOL NOT AT LINE in output, got {combined!r}"
+    )
+
+    # Extract the found '<line-text>' portion of the message.
+    marker = "found '"
+    start_idx = combined.index(marker) + len(marker)
+    end_idx = combined.index("')", start_idx)
+    found_text = combined[start_idx:end_idx]
+
+    assert len(found_text) <= 80, (
+        f"T27: expected truncated line text to be <=80 chars, got "
+        f"{len(found_text)} chars: {found_text!r}"
+    )
+    assert found_text == "x" * 80, (
+        f"T27: expected exact plain-slice truncation ('x'*80, no ellipsis, "
+        f"per _truncate_for_message's text[:limit] implementation), "
+        f"got {found_text!r}"
+    )
+    print(
+        "  [PASS] T27 long-line SYMBOL NOT AT LINE message truncated to "
+        f"<=80 chars: exit={rc}, found_len={len(found_text)}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -684,6 +785,8 @@ def main() -> None:
         test_T23_anchor_present_passes,
         test_T24_anchor_absent_symbol_not_at_line,
         test_T25_bare_citation_still_passes,
+        test_T26_range_citation_anchor_asserts_start_line_only,
+        test_T27_symbol_failure_message_truncates_long_line,
     ]
     passed = 0
     failed = 0
