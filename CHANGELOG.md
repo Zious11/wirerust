@@ -9,6 +9,43 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`bin/check-green-doc-tense`: four phrase-level stub-era patterns added
+  (STORY-176, AC-176-001, wave-84, PG-GATE-VOCAB-BLINDSPOT).**
+
+  The green-doc-tense gate gains four patterns (26-29) that catch stub-era
+  vocabulary not covered by the original gate:
+
+  - Pattern 26 `skeleton compiles?\b`: flags "harness skeleton compiles" /
+    "VP-044 Kani skeleton compiles" -- compile-only harness scaffolding that
+    has no real proof assertions yet. Bare-label forms ("proof skeleton",
+    "VP-024 Sub-D skeleton") and past-tense forms ("skeleton originated") are
+    not matched by specificity. Trailing `\b` word boundary now also excludes
+    the past-tense form "skeleton compiled" (F-S176P1-002).
+  - Pattern 27 `(exposes|is a|are) compile-only seam(s)`: flags present-tense
+    assertions that a module or harness exposes compile-only seams. Requires
+    an explicit present-tense verb so "as a compile-only seam" (past-tense
+    narrative) and bare seam idioms ("Test seam accessors", "VP-047 seam")
+    are not matched.
+  - Pattern 28 `(are|is) (currently) compile-only`: flags present-tense
+    predicate claims ("are currently compile-only", "is compile-only at the
+    red-gate boundary"). "was compile-only" and forms without a preceding
+    are/is are not matched.
+  - Pattern 29 `until … wired`: flags CI-wiring-incomplete prose. Re-narrowed
+    (F-S176P1-001): the original `until.*is wired` requirement was replaced by
+    `until.*wired` with a negative lookahead that excludes object
+    pronouns/articles immediately after "wired" (`it`, `the`, `a`, `that`,
+    `this`, `them`). This catches bare "fails until wired" in addition to
+    the original "until … is wired" form, while still excluding past-tense
+    verb-object forms like "wired it" and "wired the handler".
+  - Docstring TOKEN LIST entries 23-25 added (F-S176P1-005): the three
+    patterns added by STORY-174 (AC-174-008) were implemented in the code
+    but never documented in the TOKEN LIST or allowlist notes. Entries 23
+    (All tests … MUST FAIL with interposed words), 24 (FAIL(S) Red Gate),
+    and 25 (are/is todo!() stub(s)) are now fully documented.
+
+  Zero false positives verified on 114 tracked Rust files. Self-test:
+  91 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
+
 - **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
   (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**
 

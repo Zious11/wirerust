@@ -442,9 +442,10 @@ jobs:
   # Implementation: bin/check-green-doc-tense scans tracked tests/*.rs and src/**/*.rs
   # comment lines for a curated set of current-state RED assertions. It exits 1 with a
   # file:line + token message per violation, and exits 0 when clean. A self-test
-  # (bin/test_check_green_doc_tense.py) verifies 10 known-bad patterns are flagged and
-  # 14 known-good patterns (past-tense provenance, inline test assertions, statistical
-  # descriptions) are not, so the gate itself is tested. Pure Python 3, no dependencies.
+  # (bin/test_check_green_doc_tense.py) verifies a fixture suite of known-bad patterns
+  # are flagged and known-good patterns (past-tense provenance, inline test assertions,
+  # statistical descriptions) are not, so the gate itself is tested. Pure Python 3, no
+  # dependencies.
   #
   # The self-test is run first so a broken gate script surfaces immediately, not after a
   # false-negative on the scan.
@@ -470,7 +471,7 @@ jobs:
   # hardcoded count would silently stale (same rationale as the
   # green-doc-tense-gate job above).
   bin-selftest:
-    name: Bin selftest suite (test_validate_citations + test_changelog_gate_content)
+    name: Bin selftest suites
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -481,6 +482,8 @@ jobs:
         run: python3 bin/test_validate_citations.py
       - name: Run bin/test_changelog_gate_content.py
         run: python3 bin/test_changelog_gate_content.py
+      - name: Run bin/test_gitignore_mutants_glob.py
+        run: python3 bin/test_gitignore_mutants_glob.py
 
   # AC-158-001 / PG-W71-CHANGELOG: enforce CHANGELOG entry for production-code PRs.
   #

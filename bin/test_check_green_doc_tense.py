@@ -48,7 +48,7 @@ def _tmpfile(content: str, tmp_path: Path, name: str = "fixture.rs") -> Path:
 # Known-BAD fixtures — each line must be flagged
 # ---------------------------------------------------------------------------
 
-BAD_CASES: list[tuple[str, str]] = [
+BAD_CASES: list[tuple[str, str] | tuple[str, str, str]] = [
     (
         "module-level MUST FAIL header",
         """\
@@ -208,8 +208,8 @@ BAD_CASES: list[tuple[str, str]] = [
     # ------------------------------------------------------------------
     # AC-174-008 patterns (a)-(c): IEC-104 stale Red-Gate headers that
     # slipped through the original gate (PG-REDGREEN-COMMENT-CLEANUP,
-    # PG-REDGREEN-SIBLING-SWEEP). These known-bad cases will FAIL until
-    # bin/check-green-doc-tense is extended with the three new patterns:
+    # PG-REDGREEN-SIBLING-SWEEP). These known-bad cases FAILED (Red Gate, STORY-174) until
+    # the gate was extended with three new patterns:
     #   (a) All tests\b.*\bMUST FAIL   (interposed words between tokens)
     #   (b) FAILS?\s+Red Gate
     #   (c) are\s+todo!\(\)\s+stub
@@ -249,6 +249,79 @@ BAD_CASES: list[tuple[str, str]] = [
         """\
         // The harness body is todo!() stub until STORY-174 wires the assertion.
         """,
+    ),
+    # ------------------------------------------------------------------
+    # AC-176-001 patterns (a)-(d): phrase-level stub-era vocabulary for
+    # skeleton/seam compile-only assertions and CI-wiring-incomplete prose
+    # (PG-GATE-VOCAB-BLINDSPOT). These known-bad cases FAILED (Red Gate, STORY-176) until
+    # the gate was extended with four phrase patterns:
+    #   (a) skeleton\s+compiles?        — "harness skeleton compiles" stub-era
+    #   (b) compile-only\s+seams?       — "compile-only seam(s)" present-tense
+    #   (c) (?:are|is)\s+(?:currently\s+)?compile-only — present-tense compile-only claim
+    #   (d) \buntil\b[^\n]*\bwired\b    — "fails until wired" CI-wiring prose
+    # ------------------------------------------------------------------
+    (
+        "AC-176-001 pattern (a): harness skeleton compiles only (stub-era compile-only header)",
+        """\
+        // harness skeleton compiles only — wiring deferred to STORY-176
+        """,
+        "AC-176-001 pattern a",
+    ),
+    (
+        "AC-176-001 pattern (a): VP-044 Kani skeleton compiles, no assertions (stub-era header)",
+        """\
+        // VP-044 Kani skeleton compiles — no proof assertions added yet
+        """,
+        "AC-176-001 pattern a",
+    ),
+    (
+        "AC-176-001 pattern (b): compile-only seams module header (present-tense stub assertion)",
+        """\
+        // this module exposes compile-only seams — assertions pending in STORY-174
+        """,
+        "AC-176-001 pattern b",
+    ),
+    (
+        "AC-176-001 pattern (b): harness is a compile-only seam (present-tense stub label)",
+        """\
+        // harness body is a compile-only seam during red-gate phase
+        """,
+        "AC-176-001 pattern b",
+    ),
+    (
+        "AC-176-001 pattern (c): are currently compile-only (present-tense no-assertions claim)",
+        """\
+        // all harness bodies are currently compile-only — no real assertions
+        """,
+        "AC-176-001 pattern c",
+    ),
+    (
+        "AC-176-001 pattern (c): is compile-only (present-tense stub-boundary claim, no 'currently')",
+        """\
+        // this function is compile-only at the red-gate boundary
+        """,
+        "AC-176-001 pattern c",
+    ),
+    (
+        "AC-176-001 pattern (d): fails until wired (CI-wiring incomplete prose)",
+        """\
+        // CI test fails until the IEC-104 handler is wired
+        """,
+        "AC-176-001 pattern d",
+    ),
+    (
+        "AC-176-001 pattern (d): returns early until STORY-NNN is wired (CI-wiring incomplete prose)",
+        """\
+        // function returns early until STORY-176 is wired
+        """,
+        "AC-176-001 pattern d",
+    ),
+    (
+        "AC-176-001 pattern (d): CI job fails until wired (bare motivating phrase, no object clause)",
+        """\
+        // CI job fails until wired — see STORY-NNN
+        """,
+        "AC-176-001 pattern d",
     ),
 ]
 
@@ -478,6 +551,72 @@ GOOD_CASES: list[tuple[str, str]] = [
         // All harness bodies originated as todo!() stubs; STORY-174 upgraded them to assertions.
         """,
     ),
+    # ------------------------------------------------------------------
+    # AC-176-001 allowlist cases: past-tense provenance and legitimate
+    # architectural uses of skeleton/seam vocabulary that must NOT be
+    # flagged by patterns (a)-(d). Proves zero false positives on the
+    # common forms named in the STORY-176 spec.
+    # ------------------------------------------------------------------
+    (
+        "AC-176-001 pattern (a) allowlist: skeleton originated (past-tense provenance, no 'compiles')",
+        """\
+        // Harness skeleton originated in STORY-167
+        """,
+    ),
+    (
+        "AC-176-001 pattern (a) allowlist: bare skeleton label (architectural reference, no 'compiles')",
+        """\
+        // VP-024 Sub-D skeleton
+        """,
+    ),
+    (
+        "AC-176-001 pattern (a) allowlist: skeleton compiled (past-tense 'compiled', excluded by trailing-\\b in pattern 26)",
+        """\
+        // harness skeleton compiled cleanly in STORY-NNN
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: Test seam accessors (architectural idiom, no 'compile-only' prefix)",
+        """\
+        // Test seam accessors provide injection points for testing
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: VP-047 seam (bare seam reference, no 'compile-only')",
+        """\
+        // VP-047 seam exercised per architecture diagram
+        """,
+    ),
+    (
+        "AC-176-001 pattern (b) allowlist: UDP gap-key seam (bare seam reference, no 'compile-only')",
+        """\
+        // UDP gap-key seam validated in STORY-147
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c) allowlist: was compile-only (past tense 'was', not 'are'/'is')",
+        """\
+        // was compile-only until STORY-153 wired it
+        """,
+    ),
+    (
+        "AC-176-001 pattern (c) allowlist: compile-only checks passed (no 'are'/'is' before 'compile-only')",
+        """\
+        // compile-only checks passed for the test infrastructure
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d) allowlist: STORY-NNN wired the handler (past-tense 'wired', no preceding 'until')",
+        """\
+        // STORY-153 wired the handler — all assertions now GREEN
+        """,
+    ),
+    (
+        "AC-176-001 pattern (d) allowlist: was compile-only until STORY-NNN wired it (past-tense 'until...wired' context)",
+        """\
+        // was compile-only until STORY-153 wired it
+        """,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -495,12 +634,26 @@ def run_tests() -> int:
         tmp = Path(td)
 
         print("=== BAD cases (must be flagged) ===")
-        for label, content in BAD_CASES:
+        for entry in BAD_CASES:
+            label, content = entry[0], entry[1]
+            expected_pattern: str | None = entry[2] if len(entry) > 2 else None  # type: ignore[misc]
             p = _tmpfile(content, tmp, f"bad_{passed}.rs")
             violations = scan_file(p)
             if violations:
-                print(f"  PASS  [{label}]")
-                passed += 1
+                if expected_pattern is not None:
+                    matched_labels = [v[2] for v in violations]
+                    if any(expected_pattern in ml for ml in matched_labels):
+                        print(f"  PASS  [{label}]")
+                        passed += 1
+                    else:
+                        print(
+                            f"  FAIL  [{label}] — gate fired but not on expected pattern "
+                            f"(expected {expected_pattern!r}; got {matched_labels})"
+                        )
+                        failures += 1
+                else:
+                    print(f"  PASS  [{label}]")
+                    passed += 1
             else:
                 print(f"  FAIL  [{label}] — gate did NOT flag expected violation")
                 failures += 1
