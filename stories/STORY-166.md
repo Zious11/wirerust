@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-166
 epic_id: E-11
 version: "1.3"
-status: ready
+status: delivered
 producer: story-writer
 timestamp: 2026-07-13T00:00:00Z
 phase: f7
@@ -41,7 +41,7 @@ input-hash: "b56924f"
 # STORY-166: Wave-75 cycle-closing: citation symbol-at-line assertion, demo-evidence scrub scope extension (project half)
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 84
 **Points:** 3
 **Priority:** P3

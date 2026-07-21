@@ -1,14 +1,34 @@
 ---
 document_type: story
+story_id: STORY-147
 id: STORY-147
-title: "Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance"
+epic_id: E-11
 epic: E-11
 wave: "84"
 points: 2
-status: ready
+status: delivered
 version: "2.8"
-# BC status: E-11 convention — governance/config-only story; no BCs authored.
+level: feature
+phase: f4
+cycle: wave-084
+producer: story-writer
+timestamp: 2026-07-19T00:00:00Z
+priority: P3
+estimated_days: 1
+tdd_mode: strict
+target_module: .cargo/
+subsystems: []
 depends_on: []
+blocks: []
+behavioral_contracts: []
+verification_properties: []
+assumption_validations: []
+risk_mitigations: []
+traces_to:
+  - .factory/cycles/fix-tls-clienthello-frag/burst-log.md
+  - .cargo/mutants.toml
+  - CLAUDE.md
+# BC status: E-11 convention — governance/config-only story; no BCs authored.
 input-hash: d41d8cd
 inputs: []
 ---
@@ -16,9 +36,16 @@ inputs: []
 # STORY-147 — Repo-Local Mutation-Testing Defaults: .cargo/mutants.toml Timeout Floor + CLAUDE.md Guidance
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 84
 **Points:** 2
+
+## Narrative
+
+- **As a** developer on the wirerust project
+- **I want** a `.cargo/mutants.toml` timeout floor and CLAUDE.md low-parallelism guidance codified
+- **So that** mutation testing runs are reliable by default and future cycles do not silently
+  drop real survivors due to load-induced timeouts from high `--jobs` parallelism
 
 ## Background
 
@@ -151,6 +178,28 @@ AC-147-004: A self-audit confirms that after this story ships, a developer runni
   mutation-testing skill / formal-verifier agent default (engine-level, tracked
   separately per Disposition).
 
+## Architecture Mapping
+
+_(N/A — governance/config-only story; no Rust source modified; no subsystem
+architecture affected. Delivery artifacts: `.cargo/mutants.toml` (new) +
+`CLAUDE.md` amendment.)_
+
+## Edge Cases
+
+- Rejection of `jobs = N` in `.cargo/mutants.toml` due to `deny_unknown_fields` —
+  a fatal parse error that breaks every mutation run; explicitly prohibited by AC-147-001/002
+- Quoted-string numeric values (`minimum_test_timeout = "300"`) are TOML type
+  errors under the same `deny_unknown_fields` check; AC-147-002 tests verify this
+- Bare `cargo mutants` is already serial by default — the guidance must not
+  imply config-file parallelism control is possible
+- The CLI `--jobs` flag overrides all config; no config-file defense for
+  explicit high-parallelism invocations (only documentation can address this)
+
+## Purity Classification
+
+_(N/A — no Rust source; no pure/effectful boundary analysis required for a
+config/docs story)_
+
 ## Notes
 
 - This is a configuration and documentation story. The `.cargo/mutants.toml`
@@ -179,9 +228,46 @@ AC-147-004: A self-audit confirms that after this story ships, a developer runni
 
 Well within context window. No story split required.
 
+## Tasks (MANDATORY)
+
+1. [DONE] Add `.cargo/mutants.toml` with `minimum_test_timeout = 300` and no `jobs` key
+   (PR #421 f0cb7374; delivered 2026-07-20)
+2. [DONE] Add `CLAUDE.md` "Mutation testing" note per AC-147-003(a–e)
+   (PR #421; delivered 2026-07-20)
+3. [DONE] Write test verifying config key allowlist and value type (AC-147-002)
+   (PR #421; delivered 2026-07-20)
+
+## Previous Story Intelligence (MANDATORY)
+
+- **PG-MUTANTS-JOBS-001** (D-314, 2026-07-01): fix-tls-clienthello-frag F6 — `cargo mutants
+  --jobs 8` hid two real survivors at tls.rs:950:59/tls.rs:1030:67; `--jobs 1` re-run
+  revealed them; 13 more gaps subsequently closed
+- **STORY-147 v2.0 re-scope** (2026-07-19): engine half (mutation-skill safe-parallelism
+  default for all VSDD projects) routed upstream to drbothen/vsdd-factory#654 evidence
+  comment; product half retained locally (pts 3→2)
+- **Execution-evidence correction** (2026-07-19, F-S147P1-002/-004/-005 CONFIRMED):
+  `.cargo/mutants.toml` is the ONLY valid config location; `jobs` is not a config key
+  (would cause fatal parse error); bare `cargo mutants` is already serial by default
+
+## Architecture Compliance Rules (MANDATORY)
+
+_(N/A — no Rust source modified; no architecture rules apply to a config/docs story)_
+
+## Library & Framework Requirements (MANDATORY)
+
+- **cargo-mutants** >= 27.0.0: config key set execution-verified against v27.0.0 strict
+  parser (`deny_unknown_fields`); cross-referenced with v27.1.0 `src/config.rs` source
+
+## File Structure Requirements (MANDATORY)
+
+| File | Action | Notes |
+|------|--------|-------|
+| `.cargo/mutants.toml` | CREATE | `minimum_test_timeout = 300`; no `jobs` key; `deny_unknown_fields` compliant |
+| `CLAUDE.md` | AMEND | Add "Mutation testing" note in "Build & Test" section per AC-147-003(a–e) |
+
 ## Disposition
 
-**Status:** ready — SPLIT disposition (decided at the v2.0 re-scope, 2026-07-19);
+**Status:** delivered — SPLIT disposition (decided at the v2.0 re-scope, 2026-07-19);
 product half retained locally, engine half routed upstream.
 
 The human-approved E-11 stale-draft disposition plan

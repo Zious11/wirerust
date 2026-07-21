@@ -183,4 +183,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-21 (replaced by D-486 WAVE-84 GATE CLOSED burst checkpoint)
+
+**D-485 (2026-07-20). STORY-176 DELIVERED — wave-84 3/3 DELIVERY COMPLETE; integration gate NEXT. develop=595cdba8; STORY-INDEX v3.84. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-20. Position: wave-84 (E-11 mini-wave) 3/3 DELIVERED (D-485); integration gate next.
+- **Ground truth:** develop = `595cdba8d2033abb6dea5b3c42c01ec4d7e1a954` (PR #427, wave-84 STORY-176 delivery); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** None. Wave-84 3/3 DELIVERED. No story worktrees; no open factory PRs.
+- **NEXT STEP:** Wave-84 integration gate (6-gate protocol): Gate 1 full test suite, Gate 2 DTU, Gate 3 adversarial (6 passes conducted — streak P4/P5/P6, 3 gate-fix PRs dispatched), Gate 3b consistency/code-review/security, Gate 4 demo-evidence, Gate 5 holdout.
+- **Pending human decisions:** (a) PR #407 governance (external; triage at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix (STORY-INDEX.md-in-inputs + STATE.md-in-inputs clusters).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.84 / dep-graph v3.9.
+- **Superseded by:** D-486 WAVE-84 GATE CLOSED burst checkpoint (2026-07-21).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

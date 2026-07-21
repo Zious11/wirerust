@@ -563,5 +563,33 @@ out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
 
 ---
 
+## Burst — D-486 WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21)
+
+**Burst type:** Integration gate closure + cycle-close (state-manager closing burst for wave-84 gate)
+
+**Summary:** Wave-84 integration gate CLOSED (6-gate all-pass). Gate 1 PASS (2640 tests/94 suites, develop 1e967bad, clippy/fmt clean, 5 bin/ Python self-tests pass). Gate 2 SKIP (dtu_required:false). Gate 3 PASS/CONVERGED (6 adversarial passes, streak P4/P5/P6, DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED; 3 gate-fix PRs: #428 82105d02 / #429 39b30cb1 / #430 1e967bad). Gate 3b PASS (consistency-validator 4MED/3LOW addressed; code-reviewer 0 MAJOR/3 MINOR/6 NIT; security APPROVE 0C/0H/0M). Gate 4 PASS (STORY-147/166/176 demo evidence on develop). Gate 5 SKIP (CI/tooling/factory-process wave). S-7.02 cycle-close COMPLETE: 12 PG-W84 entries — PG-W84-007/009/011 FIXED in-cycle; PG-W84-001/002/003/004/005/006/008/010/012 deferred to DF-VALIDATION-001 batch. STORY-INDEX v3.84→v3.85 (wave-84 delivery row CLOSED-PENDING-GATE→CLOSED; story-file loci synced: STORY-147/166/176 status ready→delivered). develop=1e967bad.
+
+**Files touched (Dim-1): 10 unique files**
+
+- .factory/STATE.md (D-486 transition: current_step, timestamp, Phase Progress wave-84/pass-84-adversary rows, Concurrent Cycles wave-084 row, CPS D-486 row, Decisions Log D-486, Session Resume Checkpoint, develop_head, story_index_version, story_index_note)
+- .factory/stories/STORY-INDEX.md (v3.84→v3.85; wave-84 delivery row CLOSED-PENDING-GATE→CLOSED; STORY-147/166/176 status rows synced ready→delivered)
+- .factory/stories/STORY-147.md (frontmatter status: ready→delivered; body Status: ready→delivered)
+- .factory/stories/STORY-166.md (frontmatter status: ready→delivered; body Status: ready→delivered)
+- .factory/stories/STORY-176.md (frontmatter status: ready→delivered; body Status: ready→delivered)
+- .factory/cycles/wave-084/wave-gate/gate-summary.md (authored — gate 6-gate all-pass summary D-486)
+- .factory/cycles/wave-084/wave-gate/code-review.md (authored — AC-158-006 gate-level code review artifact)
+- .factory/cycles/wave-084/lessons.md (authored — S-7.02 12-entry lessons file; 3 [codified] + 9 [deferred])
+- .factory/cycles/wave-084/burst-log.md (this file)
+- .factory/cycles/wave-084/session-checkpoints.md (D-485 checkpoint archived)
+
+**Dim-2 Attestation:** N/A — factory-only burst; no develop branch changes.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-486 WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21).
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
 

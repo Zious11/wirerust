@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-176
 epic_id: E-11
 version: "2.7"
-status: ready
+status: delivered
 producer: story-writer
 timestamp: 2026-07-20T00:00:00Z
 phase: f7
@@ -36,13 +36,13 @@ traces_to:
 inputs:
   - .factory/STATE.md
   - .factory/cycles/feature-iec104/convergence-trajectory.md
-input-hash: "6ec8772"
+input-hash: "b86900d"
 ---
 
 # STORY-176: Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** ready
+**Status:** delivered
 **Wave:** 84
 **Points:** 2
 **Priority:** P3
