@@ -115,7 +115,6 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   in `.github/workflows/ci.yml` -- they silently stale as the suites grow.
   Follows the same count-free step-naming pattern already used by the
   `green-doc-tense-gate` job.
-
 ## [0.13.0] - 2026-07-18
 
 IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
