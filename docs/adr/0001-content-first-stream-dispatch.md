@@ -36,6 +36,7 @@ pub struct StreamDispatcher {
     modbus: Option<ModbusAnalyzer>,  // Rule 5: port-502 flows (ADR-005)
     dnp3: Option<Dnp3Analyzer>,      // Rule 6: port-20000 flows (ADR-007)
     enip: Option<EnipAnalyzer>,      // Rule 7: port-44818 flows (ADR-010)
+    iec104: Option<Iec104Analyzer>,  // Rule 8: port-2404 flows (ADR-013)
     unclassified_flows: u64,
     /// Per-port unclassified-flow counter; populated when coverage_gaps_enabled=true.
     unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
@@ -49,6 +50,7 @@ enum DispatchTarget {
     Modbus,
     Dnp3,
     Enip,
+    Iec104,
     None,
 }
 ```
@@ -62,7 +64,8 @@ Classification rule order (see module-level comment in `src/dispatcher.rs`):
 5. Port 502 → `Modbus`
 6. Port 20000 → `Dnp3`
 7. Port 44818 → `Enip` (ADR-010)
-8. No match → `None`
+8. Port 2404 → `Iec104` (ADR-013)
+9. No match → `None`
 
 ## Alternatives Considered
 
