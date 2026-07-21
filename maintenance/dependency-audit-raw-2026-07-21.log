@@ -1,0 +1,287 @@
+---
+run-id: maint-2026-07-21
+sweep: 1 (dependency scan — raw data only)
+producer: dependency-scan-agent
+date: 2026-07-21
+wirerust-version: 0.13.0
+crate-count: 175
+advisory-db-entries: 1166
+tools: cargo-audit, cargo-deny, cargo-tree, crates.io API, gh API
+prior-sweep: maint-2026-07-11 (dependency-audit-raw-2026-07-11.log)
+---
+
+# Dependency Audit Raw Data — maint-2026-07-21 (Sweep 1, SCAN STAGE ONLY)
+
+IMPORTANT: This file contains raw data only. Severity classification, fix decisions,
+and merge/commit actions are deferred to the security-reviewer agent.
+
+================================================================================
+SECTION 1: cargo audit
+================================================================================
+
+Command: cargo audit
+Exit code: 0
+
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1166 security advisories (from /Users/zious/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (175 crate dependencies)
+
+[No advisory output — zero advisories of any category produced]
+
+TERMINATOR: Exit 0 (CLEAN). Zero RUSTSEC advisories, zero [VULNERABILITY] entries,
+zero [WARNING] entries against the 175 locked crates.
+
+Advisory DB delta since last sweep: 1159 (maint-2026-07-11) → 1166 (+7 new entries).
+
+================================================================================
+SECTION 2: cargo deny check
+================================================================================
+
+Command: cargo deny check
+Exit code: 0
+
+warning[duplicate]: found 2 duplicate entries for crate 'syn'
+    ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:133:1
+    │
+133 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
+134 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
+    │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
+    │
+    ├ syn v1.0.109
+      ├── derive-into-owned v0.2.0
+      │   └── pcap-file v2.0.0
+      │       └── wirerust v0.13.0
+      └── nom-derive-impl v0.10.1
+          └── nom-derive v0.10.1
+              └── tls-parser v0.12.2
+                  └── wirerust v0.13.0 (*)
+    ├ syn v2.0.117
+      ├── clap_derive v4.6.1 (proc-macro)
+      │   └── clap v4.6.1
+      │       ├── criterion v0.8.2
+      │       │   └── (dev) wirerust v0.13.0
+      │       └── wirerust v0.13.0 (*)
+      ├── num_enum_derive v0.7.6 (proc-macro)
+      │   └── num_enum v0.7.6
+      │       └── tls-parser v0.12.2
+      │           └── wirerust v0.13.0 (*)
+      ├── serde_derive v1.0.228 (proc-macro)
+      │   └── serde v1.0.228
+      │       ├── chrono v0.4.45
+      │       │   └── wirerust v0.13.0 (*)
+      │       ├── ciborium v0.2.2
+      │       │   └── criterion v0.8.2 (*)
+      │       ├── criterion v0.8.2 (*)
+      │       ├── tinytemplate v1.2.1
+      │       │   └── criterion v0.8.2 (*)
+      │       └── wirerust v0.13.0 (*)
+      ├── thiserror-impl v1.0.69 (proc-macro)
+      │   └── thiserror v1.0.69
+      │       └── pcap-file v2.0.0
+      │           └── wirerust v0.13.0 (*)
+      ├── wasm-bindgen-macro-support v0.2.117
+      │   └── wasm-bindgen-macro v0.2.117
+      │       └── wasm-bindgen v0.2.117
+      │           ├── chrono v0.4.45 (*)
+      │           ├── iana-time-zone v0.1.65
+      │           │   └── chrono v0.4.45 (*)
+      │           ├── js-sys v0.3.94
+      │           │   ├── chrono v0.4.45 (*)
+      │           │   ├── iana-time-zone v0.1.65 (*)
+      │           │   ├── web-sys v0.3.94
+      │           │   │   └── plotters v0.3.7
+      │           │   │       └── criterion v0.8.2 (*)
+      │           │   └── web-time v1.1.0
+      │           │       └── indicatif v0.18.6
+      │           │           └── wirerust v0.13.0 (*)
+      │           ├── plotters v0.3.7 (*)
+      │           ├── web-sys v0.3.94 (*)
+      │           └── web-time v1.1.0 (*)
+      ├── windows-implement v0.60.2
+      │   └── windows-core v0.62.2
+      │       └── iana-time-zone v0.1.65 (*)
+      ├── windows-interface v0.59.3
+      │   └── windows-core v0.62.2 (*)
+      └── zerocopy-derive v0.8.54 (proc-macro)
+          └── zerocopy v0.8.54
+              ├── half v2.7.1
+              │   └── ciborium-ll v0.2.2
+              │       └── ciborium v0.2.2 (*)
+              └── ppv-lite86 v0.2.21
+                  └── rand_chacha v0.9.0
+                      └── proptest v1.11.0
+                          └── (dev) wirerust v0.13.0 (*)
+
+advisories ok, bans ok, licenses ok, sources ok
+
+SUMMARY: 1 warning (syn duplicate, pre-existing DEP-007), 0 errors.
+All four cargo deny check categories pass: advisories ok, bans ok, licenses ok, sources ok.
+
+================================================================================
+SECTION 3: cargo tree --duplicates
+================================================================================
+
+Command: cargo tree --duplicates
+Exit code: 0
+
+phf_shared v0.11.3
+├── phf_codegen v0.11.3
+│   [build-dependencies]
+│   └── tls-parser v0.12.2
+│       └── wirerust v0.13.0 (/Users/zious/Documents/GITHUB/wirerust)
+└── phf_generator v0.11.3
+    └── phf_codegen v0.11.3 (*)
+
+phf_shared v0.11.3
+└── phf v0.11.3
+    └── tls-parser v0.12.2 (*)
+
+rand v0.8.7
+└── phf_generator v0.11.3 (*)
+
+rand v0.9.5
+└── proptest v1.11.0
+    [dev-dependencies]
+    └── wirerust v0.13.0 (/Users/zious/Documents/GITHUB/wirerust)
+
+rand_core v0.6.4
+└── rand v0.8.7 (*)
+
+rand_core v0.9.5
+├── rand v0.9.5 (*)
+├── rand_chacha v0.9.0
+│   └── proptest v1.11.0 (*)
+└── rand_xorshift v0.4.0
+    └── proptest v1.11.0 (*)
+
+syn v1.0.109
+├── derive-into-owned v0.2.0 (proc-macro)
+│   └── pcap-file v2.0.0
+│       └── wirerust v0.13.0 (/Users/zious/Documents/GITHUB/wirerust)
+└── nom-derive-impl v0.10.1 (proc-macro)
+    └── nom-derive v0.10.1
+        └── tls-parser v0.12.2 (*)
+
+syn v2.0.117
+├── clap_derive v4.6.1 (proc-macro)
+│   └── clap v4.6.1
+│       ├── criterion v0.8.2
+│       │   [dev-dependencies]
+│       │   └── wirerust v0.13.0 (/Users/zious/Documents/GITHUB/wirerust)
+│       └── wirerust v0.13.0 (/Users/zious/Documents/GITHUB/wirerust)
+├── num_enum_derive v0.7.6 (proc-macro)
+│   └── num_enum v0.7.6
+│       └── tls-parser v0.12.2 (*)
+├── serde_derive v1.0.228 (proc-macro)
+│   └── serde v1.0.228
+│       ├── chrono v0.4.45
+│       │   └── wirerust v0.13.0 (*)
+│       ├── ciborium v0.2.2
+│       │   └── criterion v0.8.2 (*)
+│       ├── criterion v0.8.2 (*)
+│       ├── tinytemplate v1.2.1
+│       │   └── criterion v0.8.2 (*)
+│       └── wirerust v0.13.0 (*)
+├── thiserror-impl v1.0.69 (proc-macro)
+│   └── thiserror v1.0.69
+│       └── pcap-file v2.0.0 (*)
+└── zerocopy-derive v0.8.54 (proc-macro)
+    └── zerocopy v0.8.54
+        ├── half v2.7.1
+        │   └── ciborium-ll v0.2.2
+        │       └── ciborium v0.2.2 (*)
+        └── ppv-lite86 v0.2.21
+            └── rand_chacha v0.9.0
+                └── proptest v1.11.0 (*)
+
+DUPLICATE SUMMARY:
+- phf_shared 0.11.3: two usage paths (phf_codegen + phf), SAME version — not a version conflict
+- rand 0.8.7 + 0.9.5: TWO DIFFERENT VERSIONS (0.8 via phf_generator, 0.9 via proptest dev-dep)
+- rand_core 0.6.4 + 0.9.5: TWO DIFFERENT VERSIONS (0.6 via rand 0.8, 0.9 via rand 0.9/proptest)
+- syn 1.0.109 + 2.0.117: TWO DIFFERENT VERSIONS (pre-existing DEP-007)
+
+NOTE: rand/rand_core dual versions appear to be a new finding vs maint-2026-07-11 (not noted
+in prior duplicate log). Classification deferred to security-reviewer.
+
+================================================================================
+SECTION 4: DEPENDABOT RELEASE DATES
+================================================================================
+
+Reference PRs: #422 (cargo-deny-action), #423 (harden-runner), #424 (action-gh-release),
+               #425 (codeql-action). All opened as Dependabot bumps; none yet merged.
+
+Data source: gh api repos/<owner>/<repo>/releases/tags/<tag>
+
+| Action | Version | Upstream Release Date (UTC) | Days Since Release (2026-07-21) | Security-Relevant | Evidence |
+|--------|---------|----------------------------|--------------------------------|-------------------|---------|
+| EmbarkStudios/cargo-deny-action | 2.1.1 | 2026-07-13 | 8 days | NO | Release notes: "fixed in issue introduced in the 2.1.0 release due the deprecation of the use-git-cli argument" — routine deprecation fix, no CVE/vulnerability mention |
+| step-security/harden-runner | 2.20.0 | 2026-07-07 | 14 days | NO | Release notes: "Support for block policy for MacOS and Windows GitHub-hosted runners"; "HTTPS monitoring support for Bun for Linux runners (enterprise tier)" — platform-support additions, no CVE |
+| softprops/action-gh-release | 3.0.2 | 2026-07-13 | 8 days | NO | Release notes: patch release focused on "release reliability and compatibility" — upload hardening, diagnostics, asset fixes. No CVE reference. Historical upload failure (#790) mentioned but noted as not reproducible on current runners |
+| github/codeql-action | 4.37.0 | 2026-07-08 | 13 days | NO | Release notes: default CodeQL bundle updated to 2.26.0; new config-file input format (ships disabled). No CVE; routine bundle update |
+
+Raw release body excerpts stored above in crates.io/gh API calls.
+
+SCORECARD-ENABLEMENT-RUNBOOK NOTE: PR #423 (harden-runner 2.20.0) was deferred in
+DEP-SOAK-FOLLOWUP-2026-07-27 with note "window watch satisfied; no manual re-pin needed."
+As of 2026-07-21, that PR is 14 days old (released 2026-07-07). Eligibility for adoption
+is subject to security-reviewer and soak-policy analysis.
+
+================================================================================
+SECTION 5: CRATE SOAK DATES
+================================================================================
+
+Source: DEP-SOAK-FOLLOWUP-2026-07-27 carry-forward in STATE.md, corroborated by
+PR #420 deferred-crates list (build(deps): soaked dependency bumps 2026-07-19).
+
+STATE.md records "17 not-yet-soaked crates + 4 soaked-but-blocked".
+From PR #420 body, 15 named not-yet-soaked crates are identifiable; 2 are unaccounted
+for in source material (possible counting of clap_derive separately, or other sub-crates).
+
+Soak policy: ≥8 days since crates.io release date (per D-417 precedent).
+Data source: crates.io API (https://crates.io/api/v1/crates/<name>/versions).
+Reference date: 2026-07-21.
+
+NOT-YET-SOAKED (15 identified of 17):
+
+| Crate | Deferred Ver (PR #420) | Latest Ver (2026-07-21) | Latest Release Date | Days Since Release | Soak-Eligible Date | Notes |
+|-------|----------------------|------------------------|--------------------|--------------------|-------------------|-------|
+| anyhow | 1.0.104 | 1.0.104 | 2026-07-18 | 3 | 2026-07-26 | No newer version |
+| bitflags | 2.13.1 | 2.13.1 | 2026-07-15 | 6 | 2026-07-23 | No newer version |
+| bstr | 1.13.0 | 1.13.0 | 2026-07-14 | 7 | 2026-07-22 | No newer version |
+| cc | 1.3.0 | 1.3.0 | 2026-07-18 | 3 | 2026-07-26 | PR #420 listed eligible 2026-07-27 (9-day window); recording 2026-07-26 from 8-day calculation |
+| clap | 4.6.2 | 4.6.3 | 2026-07-20 | 1 | 2026-07-28 | Newer version 4.6.3 released 2026-07-20; deferred ver 4.6.2 was 2026-07-15 (eligible 2026-07-23) |
+| fastrand | 2.5.0 | 2.5.0 | 2026-07-19 | 2 | 2026-07-27 | No newer version |
+| portable-atomic | 1.14.0 | 1.14.0 | 2026-07-17 | 4 | 2026-07-25 | No newer version |
+| proc-macro2 | ~1.0.107 (not pinned in PR) | 1.0.107 | 2026-07-19 | 2 | 2026-07-27 | PR #420 grouped as "proc-macro2/quote (2026-07-27)" |
+| quote | ~1.0.47 (not pinned in PR) | 1.0.47 | 2026-07-19 | 2 | 2026-07-27 | PR #420 grouped as "proc-macro2/quote (2026-07-27)" |
+| regex | 1.13.1 | 1.13.1 | 2026-07-15 | 6 | 2026-07-23 | No newer version |
+| serde | 1.0.229 | 1.0.229 | 2026-07-18 | 3 | 2026-07-26 | No newer version |
+| syn | 2.0.119 | 3.0.2 | 2026-07-20 | 1 | 2026-07-28 | MAJOR VERSION BUMP: syn 3.0.2 released 2026-07-20; deferred was 2.0.119 (2026-07-15, eligible 2026-07-23). Classification deferred. |
+| toml_edit | 0.25.13 | 0.25.13+spec-1.1.0 | 2026-07-14 | 7 | 2026-07-22 | Latest has +spec-1.1.0 metadata suffix; same base version |
+| winnow | 1.0.4 | 1.0.4 | 2026-07-13 | 8 | 2026-07-21 | ELIGIBLE TODAY (2026-07-21) |
+| zmij | 1.0.23 | 1.0.23 | 2026-07-13 | 8 | 2026-07-21 | ELIGIBLE TODAY (2026-07-21) |
+
+UNIDENTIFIED (2): Two crates counted in STATE.md "17 not-yet-soaked" could not be
+identified from PR #420 source text. Possible candidates: clap_derive (grouped under
+clap in PR), iana-time-zone (in Cargo.lock at 0.1.65), or other transitive deps.
+Security-reviewer should resolve against Cargo.lock if needed.
+
+SOAKED-BUT-BLOCKED (4, from STATE.md):
+
+| Crate | Latest Ver (2026-07-21) | Latest Release Date | Days Since Release | Block Reason |
+|-------|------------------------|--------------------|--------------------|-------------|
+| js-sys | 0.3.103 | 2026-06-24 | 27 | futures-* 0.3.33 published 2026-07-19 (too fresh); chain blocks adoption of newer js-sys versions |
+| wasm-bindgen | 0.2.126 | 2026-06-24 | 27 | Same: futures-* 0.3.33 dependency chain |
+| web-sys | 0.3.103 | 2026-06-24 | 27 | Same: futures-* 0.3.33 dependency chain |
+| shlex | 2.0.1 | 2026-05-17 | 65 | Blocked by cc 1.3.0 not yet soaked (cc uses ^1 semver constraint; shlex 2.0.1 is a major-version bump) |
+
+NOTE: js-sys/wasm-bindgen/web-sys latest versions on crates.io (0.3.103, 0.2.126, 0.3.103)
+were released 2026-06-24. These may be versions that do NOT depend on futures-* 0.3.33.
+The blocking scenario from PR #420 was that NEWER target versions of these crates required
+futures-* 0.3.33 which was too fresh. Security-reviewer should verify whether the 2026-06-24
+versions are independently adoptable or if the block remains in effect.
+
+================================================================================
+END OF RAW LOG
+================================================================================
