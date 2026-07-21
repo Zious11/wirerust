@@ -772,3 +772,9 @@ out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
 
 **Closes:** D-490 maint-2026-07-21 COMPLETE (2026-07-21).
 
+---
+
+## CPS Roll — D-487 row rolled out of STATE.md last-5 (D-492, 2026-07-21)
+
+**E-16/E-17 ARP STALE-DRAFT SUPERSESSION (2026-07-21, D-487). STORY-111..115 (E-16, v0.7.0, waves 40-44, 47 pts) + STORY-116/117 (E-17, v0.7.0/v0.7.1, waves 45-46, 8 pts) status draft→superseded DELIVERED-BY-DRIFT; wave-table scheduled 747→692; STORY-INDEX v3.85→v3.86. Backlog now EMPTY of scheduled work.** | COMPLETE (D-487) | STORY-INDEX v3.86. Backlog EMPTY. trajectory-tail →0→0→0→0. Pipeline idle; no wave-85 scheduled.
+

@@ -240,4 +240,17 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-21 (replaced by D-492 SESSION WRAP checkpoint)
+
+**D-491 (2026-07-21). v0.13.1 RELEASED — DRIFT-BACKMERGE-SQUASH-001 RESOLVED. develop=dc7331fb; main=47b7d23c. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-21. Position: D-491 v0.13.1 RELEASED. Pipeline ACTIVE; awaiting human direction.
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-491 release commit. DRIFT-BACKMERGE-SQUASH-001 RESOLVED.
+- **In-flight work:** None. v0.13.1 RELEASED. maint-2026-07-21 COMPLETE. No open stories or worktrees.
+- **Pending human decisions:** (a) session wrap or continue; (b) PR #407 governance (external; do NOT re-run triage); (c) input-hash churn structural fix; (d) TARGET-PASSED re-triage: SEC-001, ROUTE-W74; (e) ROUTE-DOC-DEFER-2026-07-21; (f) PERF-RERUN-001.
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.57 / STORY-INDEX v3.87 / dep-graph v3.9 / HS-INDEX v2.14 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-492 SESSION WRAP checkpoint (2026-07-21; pipeline PAUSED).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

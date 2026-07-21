@@ -1076,3 +1076,6 @@ Session-end markers for the VSDD factory. Run /session-review to synthesize.
 - Session ended at 2026-07-21T19:38:15Z (awaiting /session-review)
 - Session ended at 2026-07-21T19:42:30Z (awaiting /session-review)
 - Session ended at 2026-07-21T19:47:23Z (awaiting /session-review)
+- Session ended at 2026-07-21T20:04:14Z (awaiting /session-review)
+- Session ended at 2026-07-21T20:04:22Z (awaiting /session-review)
+- Session ended at 2026-07-21T20:06:02Z (awaiting /session-review)
