@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
@@ -23,6 +23,8 @@ behavioral_contracts:
   - BC-2.12.024
   - BC-2.18.001
 lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-21): catalog partition 7/23→8/22 — IEC 60870-5-104 promoted to supported in v0.13.0. Updated Case A jq assertions (supported==7→8, unsupported==23→22), BC linkage, verification approach, evaluation rubric, and failure guidance (FINDING-3 maint-2026-07-21)."
 introduced: v0.12.0-feature-protocol-coverage
 last_evaluated: null
 staleness_check: null
@@ -34,7 +36,7 @@ fixture_needed: true
 fixture_note: "Two real-world corpus sources needed: (1) a known-good IT network pcap (e.g., Wireshark sample captures from the SampleCaptures archive — any public HTTP/HTTPS/DNS IT traffic pcap); (2) a known-problematic ICS pcap with BACnet/IP UDP/47808 traffic (BACnet capture from a building automation testbed, a Wireshark BACnet sample, or a researcher-released ICS capture with documented BACnet traffic). See scenario body for sources."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP uses UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1. The known-problematic corpus is expected to contain BACnet/IP UDP/47808 traffic that wirerust classifies as known-unsupported in CoverageGapsSummary."
-input-hash: "94f7144"
+input-hash: "341c592"
 ---
 
 # Holdout Scenario: Protocol Coverage Real-World Corpus — Known-Good IT (Low False-Positive) and Known-Problematic with BACnet/IP (Known Gap Detection)
@@ -96,8 +98,8 @@ sources to validate the `protocols` subcommand and the `CoverageGapsSummary` fea
 1. The evaluator runs: `wirerust protocols --json`
 2. The tool exits 0.
 3. `jq '.protocols | length'` == 30.
-4. `jq '.protocols | map(select(.supported == true)) | length'` == 7.
-5. `jq '.protocols | map(select(.supported == false)) | length'` == 23.
+4. `jq '.protocols | map(select(.supported == true)) | length'` == 8.
+5. `jq '.protocols | map(select(.supported == false)) | length'` == 22.
 6. `jq '.protocols[] | select(.name | test("BACnet"; "i")) | .transport'` == `"UDP"`.
    BACnet/IP is present in the catalog with the correct transport (ASHRAE 135-2016 Annex J §J.2.1).
 
@@ -138,7 +140,7 @@ The analyzer must process them gracefully with exit code 0.
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.18.001 | `wirerust protocols` catalog output is correct (30 entries, 7+23 partition) | Case A |
+| BC-2.18.001 | `wirerust protocols` catalog output is correct (30 entries, 8+22 partition) | Case A |
 | BC-2.12.023 | `--coverage-gaps` produces CoverageGapsSummary with L2 caveat | Cases B, C: caveat present |
 | BC-2.12.024 | L2 caveat explains GOOSE and L2 protocols not in gap report | Case B: no GOOSE gap entry |
 | BC-2.12.024 | UDP/47808 classified as known-unsupported, named BACnet/IP | Case C (ASHRAE 135-2016 Annex J §J.2.1) |
@@ -153,7 +155,7 @@ The analyzer must process them gracefully with exit code 0.
 ```bash
 # Case A — catalog correct (known-good corpus, no pcap needed for protocols subcommand)
 wirerust protocols --json | jq '.protocols | {total: length, supported: (map(select(.supported)) | length), unsupported: (map(select(.supported | not)) | length)}'
-# Expect: {"total": 30, "supported": 7, "unsupported": 23}
+# Expect: {"total": 30, "supported": 8, "unsupported": 22}
 
 wirerust protocols --json | jq '.protocols[] | select(.name | test("BACnet"; "i")) | .transport'
 # Expect: "UDP"
@@ -171,7 +173,7 @@ wirerust analyze bacnet_ics.pcap --coverage-gaps --json | \
 ## Evaluation Rubric
 
 - **Catalog correctness (real-world binary)** (weight: 0.25): Case A: protocols subcommand
-  produces correct 30/7/23 partition with correct BACnet/IP transport=UDP.
+  produces correct 30/8/22 partition with correct BACnet/IP transport=UDP.
 - **Known-good corpus: no crash; L2 caveat** (weight: 0.25): Case B: analyze exits 0; L2 caveat
   present; no GOOSE gap entry (confirms L2 structural limitation is correctly communicated).
 - **Known-problematic corpus: BACnet/IP detected** (weight: 0.35): Case C: UDP/47808
@@ -181,8 +183,9 @@ wirerust analyze bacnet_ics.pcap --coverage-gaps --json | \
 ## Failure Guidance
 
 "HOLDOUT FAIL: HS-132 — real-world corpus failure.
-Case A: if catalog has wrong counts (not 30 total / 7 supported / 23 unsupported), check KNOWN_PROTOCOLS
-array length and supported_protocols()/unsupported_protocols() implementations.
+Case A: if catalog has wrong counts (not 30 total / 8 supported / 22 unsupported), check KNOWN_PROTOCOLS
+array length and supported_protocols()/unsupported_protocols() implementations. As of v0.13.0
+IEC 60870-5-104 (TCP/2404) is in the supported set; if it is absent, the supported count will be 7.
 Case C: if UDP/47808 gap entry absent: either the UDP counter is not firing for BACnet traffic
 (check dns_analyzer.can_decode() exclusion path — BACnet/IP is not DNS and should NOT be excluded),
 OR the tri-state lookup is returning 'unknown' for UDP/47808 (check catalog has BACnet/IP with

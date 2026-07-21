@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-20T22:25:52Z","command":"git checkout develop -q 2>&1; echo \"=== cargo test --release ===\" && cargo test --release --all-targets 2>&1 | grep -E \"^test result|error\\[|error:|warning: unused\" | sort | uniq -c | tail -30"}
+{"status":"pass","timestamp":"2026-07-21T19:05:51Z","command":"cd /tmp/wirerust-release-0.13.1 && cargo test --all-targets 2>&1 | grep -E \"(^test result|FAILED|error\\[)\" | head -30"}

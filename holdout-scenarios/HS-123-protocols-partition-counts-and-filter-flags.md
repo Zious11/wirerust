@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
@@ -23,6 +23,8 @@ behavioral_contracts:
   - BC-2.18.004
   - BC-2.12.022
 lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-21): catalog partition 7/23→8/22 — IEC 60870-5-104 (TCP/2404) promoted to supported in v0.13.0 (STORY-167..174). Updated Case B (7→8 rows, IEC 60870-5-104 must appear), Case C (23→22 rows, IEC 60870-5-104 must NOT appear), Case G (7+23→8+22), BC linkage, verification approach, rubric, and failure guidance (FINDING-3 maint-2026-07-21)."
 introduced: v0.12.0-feature-protocol-coverage
 last_evaluated: null
 staleness_check: null
@@ -32,7 +34,7 @@ assumption_source: null
 risk_source: null
 fixture_needed: false
 fixture_note: "No pcap fixture needed. `wirerust protocols` is a pure-catalog command that requires no input file. The evaluator requires only a correctly built wirerust binary."
-input-hash: "9e5778e"
+input-hash: "c749b3a"
 ---
 
 # Holdout Scenario: `protocols` Subcommand — Partition Counts and Filter Flag Semantics
@@ -43,11 +45,12 @@ input-hash: "9e5778e"
 
 `wirerust protocols` is a new top-level subcommand that queries the static protocol coverage
 catalog and renders it in either terminal table or JSON format. The catalog contains exactly
-30 entries: 7 supported (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP) and 23
-unsupported. The three filter flags (`--all`, `--supported`, `--unsupported`) must each
-produce the correct row count and the flags must be mutually exclusive.
+30 entries: 8 supported (Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP,
+IEC 60870-5-104) and 22 unsupported. The three filter flags (`--all`, `--supported`,
+`--unsupported`) must each produce the correct row count and the flags must be mutually
+exclusive.
 
-This scenario verifies the partition invariant (7 + 23 == 30, with no overlap, no omissions)
+This scenario verifies the partition invariant (8 + 22 == 30, with no overlap, no omissions)
 and the filter flag wiring — observable from the CLI alone with no source code access.
 
 ### Case A — No Filter Flag: All 30 Entries (Default == `--all`)
@@ -58,24 +61,25 @@ and the filter flag wiring — observable from the CLI alone with no source code
    footnote lines). The count MUST be exactly 30.
 4. Non-zero output must appear on stdout.
 
-### Case B — `--supported`: Exactly 7 Rows
+### Case B — `--supported`: Exactly 8 Rows
 
 1. The evaluator runs: `wirerust protocols --supported`
 2. The tool exits 0.
-3. The output contains exactly 7 protocol rows.
+3. The output contains exactly 8 protocol rows.
 4. ARP must appear in the output (ARP is supported via the DecodedFrame::Arp path; it has
    no canonical port but is explicitly included in the supported set).
 5. DNS must appear in the output (DNS/UDP/53 is actively dissected).
-6. The following protocols must NOT appear: BACnet/IP, S7comm, IEC 61850 GOOSE, PROFINET-RT,
+6. IEC 60870-5-104 must appear in the output (TCP/2404; promoted to supported in v0.13.0).
+7. The following protocols must NOT appear: BACnet/IP, S7comm, IEC 61850 GOOSE, PROFINET-RT,
    EtherCAT, Ethernet POWERLINK, or IEC 61850 Sampled Values (all unsupported).
 
-### Case C — `--unsupported`: Exactly 23 Rows
+### Case C — `--unsupported`: Exactly 22 Rows
 
 1. The evaluator runs: `wirerust protocols --unsupported`
 2. The tool exits 0.
-3. The output contains exactly 23 protocol rows.
+3. The output contains exactly 22 protocol rows.
 4. BACnet/IP, S7comm, IEC 61850 GOOSE, and Ethernet POWERLINK must all appear.
-5. Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, and HTTP must NOT appear.
+5. Modbus/TCP, DNP3, EtherNet/IP+CIP, TLS, ARP, DNS, HTTP, and IEC 60870-5-104 must NOT appear.
 
 ### Case D — `--all` Explicit: Equivalent to No Flag
 
@@ -97,7 +101,7 @@ and the filter flag wiring — observable from the CLI alone with no source code
 ### Case G — Partition Invariant (Row Count Cross-Check)
 
 Using the outputs from Cases B and C:
-- `--supported` row count (7) + `--unsupported` row count (23) MUST equal `--all` row count (30).
+- `--supported` row count (8) + `--unsupported` row count (22) MUST equal `--all` row count (30).
 - No protocol name must appear in both `--supported` and `--unsupported` output.
   The evaluator may verify disjointness by extracting the name column from each output and
   confirming the two name sets do not intersect.
@@ -106,9 +110,9 @@ Using the outputs from Cases B and C:
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.18.003 | `supported_protocols()` returns exactly 7 entries including ARP special case | Case B: 7 rows; ARP present |
-| BC-2.18.003 | `unsupported_protocols()` returns complement (23 entries) | Case C: 23 rows |
-| BC-2.18.004 | Union invariant: supported + unsupported == KNOWN_PROTOCOLS (30); disjoint | Case G: 7+23==30; no overlap |
+| BC-2.18.003 | `supported_protocols()` returns exactly 8 entries including ARP special case | Case B: 8 rows; ARP present |
+| BC-2.18.003 | `unsupported_protocols()` returns complement (22 entries) | Case C: 22 rows |
+| BC-2.18.004 | Union invariant: supported + unsupported == KNOWN_PROTOCOLS (30); disjoint | Case G: 8+22==30; no overlap |
 | BC-2.12.022 | `wirerust protocols` dispatches correctly; exits 0 on success | Cases A-D: exit 0 |
 | BC-2.12.022 | Filter flags are mutually exclusive (clap enforces) | Case E: non-zero exit |
 | BC-2.12.022 | Default (no flag) == `--all` | Cases A and D: identical count |
@@ -116,7 +120,7 @@ Using the outputs from Cases B and C:
 
 <!-- HIDDEN TRACEABILITY: BC-2.18.003 Invariant 3 (ARP special case via p.name=="ARP", not port intersection);
      BC-2.18.003 Invariant 4 (unsupported derived as complement, not hand-maintained list);
-     BC-2.18.004 Postconditions 1-5 (30 total, 7 supported, 23 unsupported, union==30, disjoint);
+     BC-2.18.004 Postconditions 1-5 (30 total, 8 supported, 22 unsupported, union==30, disjoint);
      BC-2.12.022 Invariant 2 (mutual exclusion); BC-2.12.022 Invariant 3 (no-flag == --all) -->
 
 ## Verification Approach
@@ -128,7 +132,7 @@ wirerust protocols | grep -v '^[[:space:]]*$' | grep -v '^#\|^\-\|^Name\|^NOTE\|
 
 # Case B — supported
 wirerust protocols --supported | grep -c 'yes'
-# Expect: 7 (counting rows where Supported column == yes)
+# Expect: 8 (counting rows where Supported column == yes)
 
 wirerust protocols --supported | grep -i 'ARP'
 # Expect: at least one line
@@ -136,12 +140,15 @@ wirerust protocols --supported | grep -i 'ARP'
 wirerust protocols --supported | grep -i 'DNS'
 # Expect: at least one line
 
+wirerust protocols --supported | grep -i 'IEC 60870\|IEC-104\|iec104'
+# Expect: at least one line (IEC 60870-5-104 is supported as of v0.13.0)
+
 wirerust protocols --supported | grep -i 'BACnet'
 # Expect: zero lines (BACnet is unsupported)
 
 # Case C — unsupported
 wirerust protocols --unsupported | grep -c 'no'
-# Expect: 23 (approximate; counting rows where Supported column == no)
+# Expect: 22 (approximate; counting rows where Supported column == no)
 
 # Case D — explicit --all
 wirerust protocols --all | wc -l
@@ -156,27 +163,28 @@ wirerust protocols --json | jq '.protocols | length'
 # Expect: 30
 
 wirerust protocols --json --supported | jq '.protocols | length'
-# Expect: 7
+# Expect: 8
 
 wirerust protocols --json --unsupported | jq '.protocols | length'
-# Expect: 23
+# Expect: 22
 ```
 
 ## Evaluation Rubric
 
 - **30-entry total** (weight: 0.25): Case A/D: `--all` and no-flag produce exactly 30 entries.
-- **7-entry supported set** (weight: 0.25): Case B: exactly 7 rows; ARP and DNS present; BACnet/GOOSE absent.
-- **23-entry unsupported set** (weight: 0.20): Case C: exactly 23 rows; complement of Case B.
-- **Partition invariant** (weight: 0.15): Case G: 7+23==30; disjoint name sets.
+- **8-entry supported set** (weight: 0.25): Case B: exactly 8 rows; ARP, DNS, and IEC 60870-5-104 present; BACnet/GOOSE absent.
+- **22-entry unsupported set** (weight: 0.20): Case C: exactly 22 rows; complement of Case B.
+- **Partition invariant** (weight: 0.15): Case G: 8+22==30; disjoint name sets.
 - **Flag gating** (weight: 0.15): Cases E and F: clap error on bad invocations.
 
 ## Failure Guidance
 
 "HOLDOUT FAIL: HS-123 — partition or filter wiring incorrect.
-If Case A produces ≠ 30 rows: `KNOWN_PROTOCOLS` has wrong entry count (expected 30 = 7+23).
+If Case A produces ≠ 30 rows: `KNOWN_PROTOCOLS` has wrong entry count (expected 30 = 8+22).
 Check that all entries are declared and none were accidentally omitted or duplicated.
-If Case B produces ≠ 7 rows: `supported_protocols()` filter is wrong. ARP must be included
+If Case B produces ≠ 8 rows: `supported_protocols()` filter is wrong. ARP must be included
 via the explicit `p.name == 'ARP'` special case (not port intersection — ARP has no ports).
+IEC 60870-5-104 (TCP/2404) must also be in the supported set as of v0.13.0.
 If Case G shows overlap (a name in both supported and unsupported): `unsupported_protocols()`
 is not derived as the complement of `supported_protocols()`; check for a hand-maintained list.
 See BC-2.18.003 (supported/unsupported logic) and BC-2.18.004 (partition invariant)."

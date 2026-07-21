@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.86"
+version: "3.87"
 status: draft
 producer: story-writer
 timestamp: 2026-07-21T09:00:00Z
@@ -8,6 +8,7 @@ phase: f4
 total_stories: 132
 total_waves: 84
 total_points: 775  # = 775; wave-table scheduled: 692 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; supersession of STORY-111..117 does not change grand total per D-477/D-480 convention)
+# v3.87 (2026-07-21): maint-2026-07-21 SPEC-009: epic table TOTAL points cell corrected 776→775 (per-epic row arithmetic sum = 775 = frontmatter total_points; root cause: v3.79 STORY-147 re-scope delta applied to E-11 row and frontmatter but not to the TOTAL row). STORY-INDEX v3.86→v3.87.
 # v3.86 (2026-07-21): E-16/E-17 ARP stale-draft supersession (D-487, 2026-07-21) — STORY-111..115 (E-16, v0.7.0, 47 pts, waves 40-44) + STORY-116/117 (E-17, v0.7.0/v0.7.1, 8 pts, waves 45-46) status draft→superseded DELIVERED-BY-DRIFT; twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. Wave-table scheduled 747→692 (7 stories / 55 pts moved to exclusion). Convention (D-477/D-480 precedent): supersession alone does not change total_points (775) or epic-table totals; wave-table scheduled total decremented because STORY-111..117 had actual wave assignments (40-46) and were previously counted. Arithmetic check: 692 + 83 (exclusion sum) = 775 = total_points. E-16 and E-17 marked DELIVERED/CLOSED in epic table. STORY-INDEX v3.85→v3.86.
 # v3.85 (2026-07-21): WAVE-84 GATE CLOSED (D-486, 2026-07-21); wave-84 delivery row updated CLOSED-PENDING-GATE→CLOSED (D-486, 2026-07-21); story-file status loci synced (STORY-147/166/176 frontmatter+body status: ready→delivered, three-loci agreement with STORY-INDEX rows at v3.84). No numeric totals changed.
 # v3.84 (2026-07-20): STORY-176 DELIVERED (D-485, PR #427 595cdba8 squash-merged to develop, human-executed merge 2026-07-20T21:46:45Z under explicit per-PR human authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match); status ready→delivered; wave-84 Delivery Progress row updated (3/3 DELIVERED — STORY-147 ✓, STORY-166 ✓, STORY-176 ✓; CLOSED-PENDING-GATE); CI 13/13 PASS (new "Bin selftest suites" step); pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record); security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22); 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED); story v2.7/6ec8772. Headline: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. stories_delivered 115→116. No numeric points/story/wave totals changed (status transition only).
@@ -449,7 +450,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254); STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, wave 62); STORY-148 on_flow_close wiring + DNP3 flow-map cap (SEC-005/SEC-006, maint-2026-07-01) — superseded by PR #362 (D-383, issue #342 closed 2026-07-06)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138, STORY-139, STORY-148 | 11 | 79 |
 | E-21: Protocol Coverage Catalog (feature-protocol-coverage, 2026-07-02) — **STORY-151/153 wave 67; STORY-152 wave 68; STORY-154 wave 69 (file-sequencing edge 152→154, F-F3P2-005); BCs: BC-2.18.001..004 + BC-2.05.010/011 + BC-2.12.022..024; VPs: VP-041/VP-042/VP-043** | STORY-151, STORY-152, STORY-153, STORY-154 | 4 | 32 |
 | E-22: IEC-104 Passive Analyzer (feature-iec104) — **STORY-167..174 F3 story decomposition (D-440, 2026-07-14; waves 76–83, serialized; dep-graph v3.9 acyclic 137 edges; 170→171 file-seq edge; F3 handoff: BC-2.10.010 EMITTED harness→STORY-173; RETRANSMIT-NS-FALSEPOS-001→STORY-171); BCs: BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025; VPs: VP-044/VP-045/VP-046/VP-047** | STORY-167, STORY-168, STORY-169, STORY-170, STORY-171, STORY-172, STORY-173, STORY-174 | 8 | 36 |
-| **TOTAL** | | **132** | **776** |
+| **TOTAL** | | **132** | **775** |
 
 ---
 

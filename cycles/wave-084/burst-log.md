@@ -739,3 +739,36 @@ out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
 
 **Closes:** D-489 SESSION RESUMED + maintenance sweep maint-2026-07-21 STARTED (2026-07-21).
 
+---
+
+## Burst — D-490 maint-2026-07-21 COMPLETE (2026-07-21)
+
+**Burst type:** Factory-only bookkeeping — maintenance sweep close-out; state-manager closing burst.
+
+**Summary:** maint-2026-07-21 COMPLETE. 8 sweeps (S6=DTU SKIP, S9=a11y SKIP). DOC-011 HIGH fixed (PR #431 6c47c0ef, IEC-104 doc-drift, human-executed post-classifier-halt). Dependabot #422-425 batch-merged (orchestrator-executed). Holdouts repaired HS-087/123/125/132 (HS-INDEX v2.14). ARCH-INDEX v2.19→v2.20 (SS-19 BC count 27→28, SPEC-008). STORY-INDEX v3.86→v3.87 (epic TOTAL cell 776→775, SPEC-009). Tech-debt register v1.9→v2.0 (15 new rows, 10 resolutions). develop=6c47c0ef. trajectory-tail →0→0→0→0.
+
+**Files touched (Dim-1): 14 unique files**
+
+- .factory/STATE.md (D-490 transition: maintenance_run COMPLETE, maintenance_completed_at, story_index_version v3.87, arch_index_version v2.20, develop_head 6c47c0ef, timestamp, EXACT RESUME POINT, Project Metadata, Phase Progress maint-2026-07-21 row, CPS D-490 + D-489 status, Decisions Log D-490, Active Carry-Forwards, Session Resume Checkpoint)
+- .factory/tech-debt-register.md (v1.9→v2.0: 15 new rows, 10 resolutions)
+- .factory/maintenance/sweep-report-2026-07-21.md (new — maint-2026-07-21 sweep summary)
+- .factory/holdout-scenarios/HS-087-run-analyze-all-flag-analyzer-enablement.md (repaired)
+- .factory/holdout-scenarios/HS-123-protocols-partition-counts-and-filter-flags.md (repaired)
+- .factory/holdout-scenarios/HS-125-protocols-json-canonical-bacnet-modbus-goose.md (repaired)
+- .factory/holdout-scenarios/HS-132-protocol-coverage-real-world-corpus.md (repaired)
+- .factory/holdout-scenarios/HS-INDEX.md (v2.13→v2.14)
+- .factory/specs/architecture/ARCH-INDEX.md (v2.19→v2.20: SS-19 BC count 27→28)
+- .factory/stories/STORY-INDEX.md (v3.86→v3.87: epic TOTAL cell 776→775)
+- .factory/stories/STORY-158.md (input-hash re-baseline: ac92b99→5650b57, SPEC-010)
+- .factory/cycles/wave-084/burst-log.md (this file — D-490 maintenance complete entry)
+- .factory/regression-state.json (updated during session)
+- .factory/sidecar-learning.md (updated during session)
+- .factory/code-delivery/maint-2026-07-21/pr-review.md (PR #431 review artifact)
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch changes are via PR merges under D-490 authorization. develop=6c47c0ef (PR #431 squash-merged, human-executed post-classifier-halt).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-490 maint-2026-07-21 COMPLETE (2026-07-21).
+

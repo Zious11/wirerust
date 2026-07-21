@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -16,7 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.009.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.010.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.011.md
-input-hash: "db27506"
+input-hash: "8c833f3"
 traces_to: .factory/stories/STORY-086.md
 id: "HS-087"
 category: "integration-boundaries"
@@ -29,6 +29,8 @@ behavioral_contracts:
   - BC-2.12.010
   - BC-2.12.011
 lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-21): Part C stale→active — directory expansion is magic-byte-based (ADR-009 Decision at line 72-74); .pcapng files are included when their magic matches; .PCAP (uppercase) is also included if magic matches. Updated Part C scenario, verification, edge conditions, and failure guidance. Was FAIL-STALE since 2026-07-11 (FINDING-1)."
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
@@ -63,7 +65,9 @@ produce an explicit warning so the analyst understands that stream analysis will
 
 **Part C — directory expansion:**
 1. The tool is invoked with a directory path as the target.
-2. Only `.pcap` files in that directory are processed (not `.pcapng`, not files in subdirs).
+2. Both `.pcap` and `.pcapng` files (and any file whose first four bytes match a known capture
+   magic) are processed; sub-directories are NOT recursed (ADR-009, line 72-74: detection is
+   magic-byte-based, not extension-based).
 3. Files are processed in lexicographic order.
 
 ## Behavioral Contract Linkage
@@ -75,7 +79,7 @@ produce an explicit warning so the analyst understands that stream analysis will
 | BC-2.12.009 | Postcondition 5: warning on --no-reassemble + HTTP/TLS | Part B: exact warning text |
 | BC-2.12.009 | Postcondition 4: HTTP/TLS not constructed when no-reassemble | Part B: no HTTP output |
 | BC-2.12.009 | Postcondition 6: DNS independent of reassembly | Part B: DNS proceeds even with --no-reassemble |
-| BC-2.12.011 | Postcondition 1-2: .pcap only, sorted | Part C: directory expansion behavior |
+| BC-2.12.011 | Postcondition 1-2: capture files (magic-byte detection) sorted | Part C: directory expansion behavior (.pcap and .pcapng both included) |
 
 ## Verification Approach
 
@@ -93,9 +97,11 @@ Assert: stdout does not contain HTTP analyzer results.
 Assert: stdout contains DNS results (if any DNS traffic in pcap).
 
 **Part C:**
-Create a temp dir with `a.pcap`, `b.pcapng`, `sub/c.pcap`. Run `wirerust analyze <tempdir>`.
-Assert: only `a.pcap` is processed; `b.pcapng` and `sub/c.pcap` are not.
-Assert: processing order is alphabetical.
+Create a temp dir with `a.pcap`, `b.pcapng` (valid pcapng magic), `sub/c.pcap`.
+Run `wirerust analyze <tempdir>`.
+Assert: both `a.pcap` and `b.pcapng` are processed (magic-byte detection includes pcapng);
+`sub/c.pcap` is NOT processed (no sub-directory recursion).
+Assert: processing order is alphabetical (`a.pcap` before `b.pcapng`).
 
 ## Evaluation Rubric
 
@@ -108,9 +114,11 @@ Assert: processing order is alphabetical.
 ## Edge Conditions
 
 - `--no-reassemble` without `--http`/`--tls`: no warning is emitted.
-- Directory with no `.pcap` files: tool proceeds with empty file list (no error).
-- `.PCAP` (uppercase): excluded from directory expansion (case-sensitive check).
+- Directory with no capture files: tool proceeds with empty file list (no error).
+- `.PCAP` (uppercase extension): INCLUDED if the file contains valid capture magic bytes —
+  detection is extension-agnostic (ADR-009 line 72-74). A file named `FOO.PCAP` with a valid
+  pcap magic header will be processed.
 
 ## Failure Guidance
 
-"HOLDOUT LOW: HS-087 (satisfaction: 0.XX) -- --all did not enable all three analyzers, the --no-reassemble warning was missing or appeared multiple times, or directory expansion included non-.pcap files."
+"HOLDOUT LOW: HS-087 (satisfaction: 0.XX) -- --all did not enable all three analyzers, the --no-reassemble warning was missing or appeared multiple times, or directory expansion did not include .pcapng files alongside .pcap files (magic-byte detection must accept both formats per ADR-009)."

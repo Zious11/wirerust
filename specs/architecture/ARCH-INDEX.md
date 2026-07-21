@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "2.19"
+version: "2.20"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -126,6 +126,9 @@ modified:
   - date: 2026-07-15
     actor: architect
     reason: "F-172-201 guard-placement prose precision: Bounded-Resource Design SS-19 note updated — 'bound checked on residual' → guard runs at on_data entry on directional carry alone (equivalent to bounding previous walk's residual); SS-19 v1.8→v1.9 aligned; ADR-013 Decision 2 + Decision 3 carry-overflow paragraphs updated. Version bump 2.18→2.19."
+  - date: 2026-07-21
+    actor: spec-steward
+    reason: "maint-2026-07-21 SPEC-008: SS-19 BC count corrected 27→28 (BC-2.19.028 was added at BC-INDEX v2.32 but was not propagated to the Subsystem Registry SS-19 row; BC-INDEX v2.34 active SS-19 = 28). Version bump 2.19→2.20."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -197,7 +200,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 16 |
 | SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 26 <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..026; TCP/44818 explicit messaging MVP; UDP/2222 deferred; F2 addendum: BC-2.17.026 --enip-error-burst-threshold --> |
 | SS-18 | Protocol Coverage Catalog | CAP-18 | protocols.rs | 4 <!-- feature-protocol-coverage F2 design layer D-320; ADR-012; BC-2.18.001..004; C-26; VP-041 proptest oracle-cross-check + partition invariant (F-F2P1-008/F-F2P7-003: 2 harnesses — proptest_vp041_oracle_cross_check independent oracle + proptest_vp041_partition_invariant supported∪unsupported=KNOWN_PROTOCOLS) + VP-042 proptest dispatcher port-count accumulation + VP-043 proptest main.rs UDP decode-loop accumulation (F-F2P1-011); ProtocolCategory = {ICS, IT} ONLY — NO L2 variant (F-F2P1-003); L2 detection expressed by transport:LinkLayer + port_detectable:false; KNOWN_PROTOCOLS ~30 entries (7 supported + 9 ICS + 5 L2-flagged + 9 IT); CoverageGapsSummary --coverage-gaps; TCP+UDP dynamic detection (D-320 OQ-5); BACnet UDP/47808 IS flaggable; (TransportProto, u16) key = min(src_port, dst_port) (F-F2P1-006); L2/multicast port-undetectable --> |
-| SS-19 | IEC-104 Analysis | CAP-19 | analyzer/iec104.rs | 27 <!-- feature-iec104 F2; ADR-013; IEC 60870-5-104 TCP/2404 passive analyzer; C-27; VP-044 Kani P0 APCI parse safety + VP-045/VP-046 proptest P1 carry-isolation/frame-format + VP-047 cargo-fuzz P1 no-panic; parser-origin constraint: iec60870-5 crate BANNED (proprietary), Wireshark dissector BANNED (GPLv2), lib60870 BANNED (GPLv3); ADR-013 Decision 7 blocking PR criterion --> |
+| SS-19 | IEC-104 Analysis | CAP-19 | analyzer/iec104.rs | 28 <!-- feature-iec104 F2; ADR-013; IEC 60870-5-104 TCP/2404 passive analyzer; C-27; VP-044 Kani P0 APCI parse safety + VP-045/VP-046 proptest P1 carry-isolation/frame-format + VP-047 cargo-fuzz P1 no-panic; parser-origin constraint: iec60870-5 crate BANNED (proprietary), Wireshark dissector BANNED (GPLv2), lib60870 BANNED (GPLv3); ADR-013 Decision 7 blocking PR criterion --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

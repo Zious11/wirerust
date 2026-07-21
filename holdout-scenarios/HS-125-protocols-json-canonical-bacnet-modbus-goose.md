@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
@@ -21,6 +21,8 @@ behavioral_contracts:
   - BC-2.18.002
   - BC-2.12.022
 lifecycle_status: active
+modified:
+  - "v1.1 (maint-2026-07-21): Case E array-length 7→8 — IEC 60870-5-104 promoted to supported in v0.13.0 raises `--supported` JSON array from 7 to 8 entries. Updated Case E, BC linkage, and evaluation rubric (FINDING-3 maint-2026-07-21)."
 introduced: v0.12.0-feature-protocol-coverage
 last_evaluated: null
 staleness_check: null
@@ -32,7 +34,7 @@ fixture_needed: false
 fixture_note: "No pcap fixture needed. Pure catalog command. jq must be available for JSON assertions."
 canonical_value_scenario: true
 canonical_spec_citation: "BACnet/IP UDP port 47808 (0xBAC0) per ASHRAE 135-2016 Annex J §J.2.1; Modbus/TCP port 502 per IANA registry and Modbus Application Protocol Specification v1.1b3 §4.3.1; GOOSE EtherType 35000 (0x88B8) per IEC 61850-8-1 §4 and IEEE RA registry."
-input-hash: "d786aa9"
+input-hash: "e04b222"
 ---
 
 # Holdout Scenario: `protocols --json` — Canonical Values for BACnet/IP, Modbus/TCP, and GOOSE (DF-CANONICAL-FRAME-HOLDOUT-001)
@@ -114,10 +116,10 @@ When `wirerust protocols --json` is invoked, the output is a single JSON object 
 5. The category must NOT be `"L2"` — there is no L2 category variant. L2-ness is expressed
    via `"transport": "LinkLayer"` and `"port_detectable": false`.
 
-### Case E — `--supported` JSON: Array Length 7
+### Case E — `--supported` JSON: Array Length 8
 
 1. The evaluator runs: `wirerust protocols --json --supported`
-2. `jq '.protocols | length'` == 7.
+2. `jq '.protocols | length'` == 8.
 
 ### Case F — All `"port_detectable": false` Entries Have `"canonical_ports": []`
 
@@ -140,7 +142,7 @@ When `wirerust protocols --json` is invoked, the output is a single JSON object 
 | BC-2.18.002 | BACnet/IP: UDP transport, port 47808 | Case B (ASHRAE 135-2016 Annex J §J.2.1) |
 | BC-2.18.002 | Modbus/TCP: TCP transport, port 502, supported=true | Case C (Modbus App Protocol v1.1b3 §4.3.1) |
 | BC-2.18.002 | GOOSE: ethertype=35000 (decimal), transport=LinkLayer, category=ICS | Case D (IEC 61850-8-1 §4) |
-| BC-2.18.002 | `--supported` JSON length == 7 | Case E |
+| BC-2.18.002 | `--supported` JSON length == 8 | Case E |
 | BC-2.18.002 | All port_detectable:false entries have canonical_ports:[] | Case F |
 | BC-2.18.002 | category is only "ICS" or "IT" (never "L2") | Case G |
 | BC-2.12.022 | --json flag produces valid JSON with "protocols" key | Cases A-G |
@@ -171,6 +173,10 @@ wirerust protocols --json --unsupported | jq '.protocols[] | select(.name | test
 wirerust protocols --json --unsupported | jq '.protocols[] | select(.name | test("GOOSE"; "i")) | .transport'
 # Expect: "LinkLayer"
 
+# Case E — supported array length
+wirerust protocols --json --supported | jq '.protocols | length'
+# Expect: 8
+
 # Case G — no "L2" category
 wirerust protocols --json | jq '.protocols[].category' | sort -u
 # Expect: only "ICS" and "IT"
@@ -182,7 +188,7 @@ wirerust protocols --json | jq '.protocols[].category' | sort -u
   CANONICAL-VALUE must-pass. Wrong transport or port is a catalog data defect.
 - **GOOSE canonical (ethertype=35000)** (weight: 0.25): Case D: ethertype=35000 integer in JSON.
   CANONICAL-VALUE must-pass. Wrong value (34992 or 35002) is a catalog data defect.
-- **JSON structure and array length** (weight: 0.20): Cases A and E: valid JSON, 30 total, 7 supported.
+- **JSON structure and array length** (weight: 0.20): Cases A and E: valid JSON, 30 total, 8 supported.
 - **Modbus canonical (TCP/502)** (weight: 0.15): Case C: transport="TCP", canonical_ports=[502], supported=true.
 - **Invariants** (weight: 0.10): Cases F and G: port_detectable:false → empty ports; category ∈ {ICS, IT}.
 
@@ -193,5 +199,8 @@ Case B failure: BACnet/IP must have transport='UDP' and canonical_ports=[47808] 
 Annex J §J.2.1. If transport='TCP', the catalog entry has the wrong transport.
 Case D failure: GOOSE ethertype must be integer 35000 in JSON (not string '0x88B8', not 34992).
 The value 34992 (0x88B0) is a pre-F2 erroneous value; the correct IEC 61850-8-1 §4 value is 35000.
+Case E failure: --supported JSON array length must be 8 (not 7) as of v0.13.0 — IEC 60870-5-104
+(TCP/2404) was promoted to supported. If length is 7, the catalog or supported_protocols() filter
+has not been updated to include IEC 60870-5-104.
 Case G failure: 'L2' category value means ADR-012 Decision 7 was violated. L2-ness is expressed
 via transport='LinkLayer', not a third category variant. See BC-2.18.002 Invariant 2."
