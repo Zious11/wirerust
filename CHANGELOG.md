@@ -78,6 +78,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`src/cli.rs` ENIP write-burst doc-comment unit format (DOC-005, maint-2026-07-21).**
+
+  The `--enip-write-burst-threshold` arg doc-comment at `src/cli.rs:259` used
+  "within any 1-second window" (hyphenated, spelled out). Changed to "within any 1s window"
+  to match the adjacent Modbus write-burst arg at `src/cli.rs:185` (fixed in maint-2026-07-11
+  as UNIT-FMT-5-20S-001). No behavior change; doc-comment only.
+
 - **`bin/check-green-doc-tense` pattern leading-`\b` tightening + test coverage +
   subprocess timeout (wave-84 gate code-review CR-002/CR-005/CR-006/SEC-003).**
 

@@ -256,7 +256,7 @@ pub enum Commands {
         iec104: bool,
 
         /// Per-flow write-burst threshold: fires T0836 when more than N write-class
-        /// requests are observed within any 1-second window. Default: 50.
+        /// requests are observed within any 1s window. Default: 50.
         /// 0 triggers detection on the very first write (1 > 0).
         // BC-2.17.023 Invariant 1 (OA-001 RESOLVED=50)
         #[arg(long, default_value_t = 50)]
