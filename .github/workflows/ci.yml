@@ -159,7 +159,7 @@ jobs:
     # repo-policy violations, not external advisory noise.
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: EmbarkStudios/cargo-deny-action@bb137d7af7e4fb67e5f82a49c4fce4fad40782fe # v2.0.20
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           command: check bans licenses sources
 
@@ -442,9 +442,10 @@ jobs:
   # Implementation: bin/check-green-doc-tense scans tracked tests/*.rs and src/**/*.rs
   # comment lines for a curated set of current-state RED assertions. It exits 1 with a
   # file:line + token message per violation, and exits 0 when clean. A self-test
-  # (bin/test_check_green_doc_tense.py) verifies 10 known-bad patterns are flagged and
-  # 14 known-good patterns (past-tense provenance, inline test assertions, statistical
-  # descriptions) are not, so the gate itself is tested. Pure Python 3, no dependencies.
+  # (bin/test_check_green_doc_tense.py) verifies a fixture suite of known-bad patterns
+  # are flagged and known-good patterns (past-tense provenance, inline test assertions,
+  # statistical descriptions) are not, so the gate itself is tested. Pure Python 3, no
+  # dependencies.
   #
   # The self-test is run first so a broken gate script surfaces immediately, not after a
   # false-negative on the scan.
@@ -463,21 +464,26 @@ jobs:
 
   # AC-165-001 / PG-W74-CI-BIN-SELFTEST: run Python self-test suites for bin/ gate scripts.
   #
-  # STORY-164 (wave-74) delivered bin/test_validate_citations.py (22 tests) and
-  # bin/test_changelog_gate_content.py (10 tests) without CI wiring. This job closes that gap
+  # STORY-164 (wave-74) delivered bin/test_validate_citations.py and
+  # bin/test_changelog_gate_content.py without CI wiring. This job closes that gap
   # following the green-doc-tense-gate structural pattern (STORY-162 AC-162-002).
+  # W75 NIT-1: step names are count-free -- suite sizes grow over time and a
+  # hardcoded count would silently stale (same rationale as the
+  # green-doc-tense-gate job above).
   bin-selftest:
-    name: Bin selftest suite (test_validate_citations + test_changelog_gate_content)
+    name: Bin selftest suites
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Run bin/test_validate_citations.py (22 tests)
+      - name: Run bin/test_validate_citations.py
         run: python3 bin/test_validate_citations.py
-      - name: Run bin/test_changelog_gate_content.py (10 tests)
+      - name: Run bin/test_changelog_gate_content.py
         run: python3 bin/test_changelog_gate_content.py
+      - name: Run bin/test_gitignore_mutants_glob.py
+        run: python3 bin/test_gitignore_mutants_glob.py
 
   # AC-158-001 / PG-W71-CHANGELOG: enforce CHANGELOG entry for production-code PRs.
   #

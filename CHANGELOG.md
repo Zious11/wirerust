@@ -7,6 +7,114 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-07-21
+
+### Added
+
+- **`bin/check-green-doc-tense`: four phrase-level stub-era patterns added
+  (STORY-176, AC-176-001, wave-84, PG-GATE-VOCAB-BLINDSPOT).**
+
+  The green-doc-tense gate gains four patterns (26-29) that catch stub-era
+  vocabulary not covered by the original gate:
+
+  - Pattern 26 `\bskeleton compiles?\b`: flags "harness skeleton compiles" /
+    "VP-044 Kani skeleton compiles" -- compile-only harness scaffolding that
+    has no real proof assertions yet. Bare-label forms ("proof skeleton",
+    "VP-024 Sub-D skeleton") and past-tense forms ("skeleton originated") are
+    not matched by specificity. Trailing `\b` word boundary now also excludes
+    the past-tense form "skeleton compiled" (F-S176P1-002); leading `\b`
+    excludes compound-word prefixes such as "exoskeleton" and "microskeleton".
+  - Pattern 27 `(exposes|is a|are) compile-only seam(s)`: flags present-tense
+    assertions that a module or harness exposes compile-only seams. Requires
+    an explicit present-tense verb so "as a compile-only seam" (past-tense
+    narrative) and bare seam idioms ("Test seam accessors", "VP-047 seam")
+    are not matched.
+  - Pattern 28 `\b(are|is) (currently) compile-only`: flags present-tense
+    predicate claims ("are currently compile-only", "is compile-only at the
+    red-gate boundary"). "was compile-only" and forms without a preceding
+    are/is are not matched.
+  - Pattern 29 `until … wired`: flags CI-wiring-incomplete prose. Re-narrowed
+    (F-S176P1-001): the original `until.*is wired` requirement was replaced by
+    `until.*wired` with a negative lookahead that excludes object
+    pronouns/articles immediately after "wired" (`it`, `the`, `a`, `that`,
+    `this`, `them`). This catches bare "fails until wired" in addition to
+    the original "until … is wired" form, while still excluding past-tense
+    verb-object forms like "wired it" and "wired the handler".
+  - Docstring TOKEN LIST entries 23-25 added (F-S176P1-005): the three
+    patterns added by STORY-174 (AC-174-008) were implemented in the code
+    but never documented in the TOKEN LIST or allowlist notes. Entries 23
+    (All tests … MUST FAIL with interposed words), 24 (FAIL(S) Red Gate),
+    and 25 (are/is todo!() stub(s)) are now fully documented.
+
+  Zero false positives verified across the tracked Rust tree. Self-tested by
+  `bin/test_check_green_doc_tense.py` (all known-bad patterns flagged, all
+  known-good allowlist forms not).
+
+- **`.gitignore` `mutants.out*/` glob + `bin/test_gitignore_mutants_glob.py` regression guard
+  (STORY-176, AC-176-003, wave-84).**
+
+  `.gitignore` gains `mutants.out*/` under the cargo-mutants section, covering the
+  default cargo-mutants output dirs `mutants.out/` and `mutants.out.j4-invalid/`
+  (complements the existing `mutants-f6*/` glob). A new self-test
+  `bin/test_gitignore_mutants_glob.py` asserts both dirs are git-ignored via 2
+  `git check-ignore` assertions. The self-test is wired into CI's `bin-selftest`
+  job and was green on merge.
+
+- **`bin/validate-citations`: opt-in `path:line:anchor` symbol-at-line assertion
+  (STORY-166, AC-166-001, wave-84/wave-75, PG-W75-VALIDATE-CITATIONS-SYMBOL-GAP).**
+
+  The citation grammar gains an optional third `:anchor` field --
+  `path:line:anchor` or `path:line-line:anchor` (a range's anchor applies to
+  the start line only). When present, the tool reads the cited line and
+  asserts the anchor token appears -- either as a `def`/`async def`/`fn`/
+  `class` declaration prefix, or (minimal acceptable form) as a bare
+  substring. The anchor is `re.escape()`'d before matching, so regex-special
+  characters (e.g. `arr[0]`) are treated literally. On mismatch, the tool
+  exits 1 with a new failure class: `SYMBOL NOT AT LINE: path:line (expected
+  anchor '<anchor>', found '<line-text>')`, where `<line-text>` is the cited
+  line's stripped content truncated to 80 characters. Bare `path:line` and
+  `path:line-line` citations are unchanged -- fully backward compatible.
+  stdlib `re` only, no ctags or other external binary dependency. Self-tested
+  by `bin/test_validate_citations.py` (five tests, T23–T27, added to the
+  existing 22 tests).
+
+### Fixed
+
+- **`src/cli.rs` ENIP write-burst doc-comment unit format (DOC-005, maint-2026-07-21).**
+
+  The `--enip-write-burst-threshold` arg doc-comment at `src/cli.rs:259` used
+  "within any 1-second window" (hyphenated, spelled out). Changed to "within any 1s window"
+  to match the adjacent Modbus write-burst arg at `src/cli.rs:185` (fixed in maint-2026-07-11
+  as UNIT-FMT-5-20S-001). No behavior change; doc-comment only.
+
+- **`bin/check-green-doc-tense` pattern leading-`\b` tightening + test coverage +
+  subprocess timeout (wave-84 gate code-review CR-002/CR-005/CR-006/SEC-003).**
+
+  Gate-hardening fixes applied after wave-84 code review:
+  pattern 26 (`\bskeleton compiles?\b`) gains a leading word boundary so
+  "exoskeleton compiles" is no longer a false-positive; pattern 28
+  (`\b(?:are|is) … compile-only`) gains a leading word boundary for
+  consistency; two new GOOD test cases cover these boundaries
+  (exoskeleton false-positive + "until wired the handler" negative-lookahead
+  exercise); `bin/test_gitignore_mutants_glob.py`'s `git check-ignore` call
+  gains `timeout=30` with a clear `AssertionError` on timeout (SEC-003).
+
+### Changed
+
+- **ROUTE-W74-DEFERRED bin/ tooling housekeeping (STORY-166, AC-166-001(g)).**
+  Removed the dead `_run()` helper from `bin/test_validate_citations.py`
+  (superseded by `_run_with_real_files()`, never called); moved inline
+  `os`/`stat`/`tempfile` imports from individual test bodies to module-level
+  imports; removed an unnecessary `f`-prefix on a placeholder-free string
+  literal in `test_T21_directory_target_not_a_file`; documented
+  `parse_line()`'s regex-mismatch `None` return path. No behavior change.
+
+- **CI: `bin-selftest` step names are count-free (W75 NIT-1, ratified by
+  STORY-166 AC-166-001(g)).** Removed the hardcoded `(22 tests)` / `(10
+  tests)` parentheticals from the `bin-selftest` job's comment and step names
+  in `.github/workflows/ci.yml` -- they silently stale as the suites grow.
+  Follows the same count-free step-naming pattern already used by the
+  `green-doc-tense-gate` job.
 ## [0.13.0] - 2026-07-18
 
 IEC 60870-5-104 (IEC-104) passive analyzer: full eight-story feature tree (STORY-167..174) delivering APCI parsing, frame classification, U-frame session state machine, ASDU threat detection, N(S)/N(R) sequence tracking, carry buffers + frame-walk loop, dispatcher integration with `--iec104` CLI flag, and four real-world E2E pcap/pcapng fixture captures. Plus four fix stories (FIX-P4-001, FIX-F5-001..004) enriching IEC-104 findings with `direction`, `source_ip`, and `timestamp` JSON keys and correcting demo-evidence accuracy.
@@ -1721,7 +1829,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/Zious11/wirerust/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0

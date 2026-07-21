@@ -1,0 +1,7 @@
+# Timeout floor. See PG-MUTANTS-JOBS-001: `--jobs 8` pegged all cores with
+# infinite-loop mutants, inflating other mutants' wall-clock past the
+# auto-timeout and producing a false "0 missed" result.
+#
+# WARNING: strictly parsed (`deny_unknown_fields`) — an invalid key (e.g.
+# `jobs`, which is CLI/env-only, not a Config field) fatally aborts every run.
+minimum_test_timeout = 300

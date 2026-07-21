@@ -155,6 +155,7 @@ Analyzers register themselves in a global registry (e.g., via `inventory` crate)
 | DNP3 | custom dispatch interface (see ADR-0007) | `src/analyzer/dnp3.rs` | v0.6.0 |
 | ARP | custom packet-level interface (no separate ADR; see §Deviations below) | `src/analyzer/arp.rs` | v0.7.0 |
 | EtherNet/IP | custom dispatch interface (see ADR-010 and §Deviations below) | `src/analyzer/enip.rs` | v0.11.0 |
+| IEC 60870-5-104 | custom dispatch interface (see ADR-013 and §Deviations below) | `src/analyzer/iec104.rs` | v0.13.0 |
 
 ### Deviations from generic traits (DNP3 and ARP)
 
@@ -181,7 +182,17 @@ Their actual interfaces are:
   `enip.on_data(flow_key.clone(), ...)` with a per-packet `FlowKey` clone. See ADR-010 for the
   full EtherNet/IP design rationale.
 
+- **`Iec104Analyzer`** — exposes `on_data(flow_key: FlowKey, data: &[u8], ts: u32,
+  direction: Direction)` and `on_flow_close(flow_key: FlowKey)` as plain inherent methods.
+  `src/dispatcher.rs` calls them directly (not via the `StreamHandler` trait). The deviation mirrors
+  the `EnipAnalyzer` pattern: `Iec104Analyzer` was designed from the start with the same
+  pure-core / effectful-shell separation mandated by ADR-013 Decision 8 (Kani formal-verification
+  amenability), which is incompatible with the `StreamHandler` trait's required method signatures.
+  The dispatcher arm calls `iec104.on_data(flow_key.clone(), ...)` with a per-packet `FlowKey`
+  clone. See ADR-013 for the full IEC 60870-5-104 design rationale.
+
 The "Adding a New Analyzer" steps above describe the standard generic-trait path. For DNP3, step 2
 is replaced by direct inherent-method dispatch as described in ADR-0007. For ARP, step 2 is
 replaced by direct inherent-method dispatch as described in the §Deviations section above; there
-is no separate ADR for the ARP deviation.
+is no separate ADR for the ARP deviation. For IEC-104, step 2 is replaced by direct inherent-method
+dispatch as described in ADR-013.
