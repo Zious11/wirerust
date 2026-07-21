@@ -691,3 +691,51 @@ out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
 
 <!-- Repeat for each burst. Maintain chronological order. -->
 
+---
+
+## Burst: D-485 (STORY-176 Step-4.5 CONVERGED) row archived from STATE.md Current Phase Steps (2026-07-21)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-489 SESSION RESUMED bookkeeping commit (see `git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as part of this archival step. This is a last-5-rule archival of a Current Phase Steps row rolled out of STATE.md by the D-489 SESSION RESUMED row addition, not a spec-evolution or code-delivery burst in its own right. (The STORY-176 Step-4.5 adversarial convergence — 8 passes, CONVERGED P6/P7/P8, BC-5.39.001 SATISFIED — is recorded separately in `cycles/wave-084/STORY-176/adversary-convergence-state.json` and `cycles/wave-084/STORY-176/convergence-report.md`.)
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the last-5 rule when the D-489 SESSION RESUMED row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED). Pass 6 NITPICK_ONLY (first clean); pass 7 NITPICK_ONLY (streak 2/3); pass 8 NITPICK_ONLY (streak 3/3, CONVERGED). Code tip ea4bcd8e; story v2.7/6ec8772. Step 5 demo evidence dispatched.** | **DELIVERED/CONVERGED (D-484→D-485)** | STORY-176 v2.7/6ec8772; STORY-INDEX v3.83→v3.84. trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-485 STORY-176 Step-4.5 CONVERGED row) rolled out by the D-489 SESSION RESUMED row addition (2026-07-21).
+
+---
+
+## Burst — D-489 SESSION RESUMED + MAINTENANCE SWEEP maint-2026-07-21 STARTED (2026-07-21)
+
+**Burst type:** Factory-only bookkeeping — session resume + maintenance sweep start; state-manager closing burst.
+
+**Summary:** Session RESUMED from D-488 SESSION WRAP (human-approved 2026-07-21). Worktree health PASS; develop=1e967bad verified (unchanged from D-488 wrap). Open PRs verified: Dependabot #422-425 + external #407 — both categories deferred per human decisions. Maintenance sweep maint-2026-07-21 STARTED (human-selected from idle work menu). Human scope decisions: (a) dep-soak eligibility measured from upstream RELEASE DATE, not Dependabot PR open date — security-relevant bumps considered regardless of soak; (b) NO carry-forwards pulled in (PERF-RERUN-001, Routes B/C, PG-W84 DF-VALIDATION-001 all remain at their stated targets). Sweeps 1-5,7,8 dispatched; Sweep 6 DTU SKIP (dtu_required:false); Sweep 9 a11y SKIP (no UI). develop=1e967bad (UNCHANGED — factory-only burst).
+
+**Files touched (Dim-1): 3 unique files**
+
+- .factory/STATE.md (D-489 transition: mode, pipeline, current_step, timestamp, maintenance fields, EXACT RESUME POINT, Project Metadata Mode + Last Updated rows, CPS D-489 row + D-485 roll-out, Decisions Log D-489, Session Resume Checkpoint, Historical Content notes)
+- .factory/cycles/wave-084/burst-log.md (this file — D-485 CPS archival + D-489 resume entry)
+- .factory/cycles/wave-084/session-checkpoints.md (D-488 SESSION WRAP checkpoint archived)
+
+**Dim-2 Attestation:** N/A — factory-only burst; no shell gates applicable; develop UNCHANGED.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch (develop=1e967bad, unchanged).
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-489 SESSION RESUMED + maintenance sweep maint-2026-07-21 STARTED (2026-07-21).
+
