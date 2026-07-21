@@ -15,18 +15,19 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   The green-doc-tense gate gains four patterns (26-29) that catch stub-era
   vocabulary not covered by the original gate:
 
-  - Pattern 26 `skeleton compiles?\b`: flags "harness skeleton compiles" /
+  - Pattern 26 `\bskeleton compiles?\b`: flags "harness skeleton compiles" /
     "VP-044 Kani skeleton compiles" -- compile-only harness scaffolding that
     has no real proof assertions yet. Bare-label forms ("proof skeleton",
     "VP-024 Sub-D skeleton") and past-tense forms ("skeleton originated") are
     not matched by specificity. Trailing `\b` word boundary now also excludes
-    the past-tense form "skeleton compiled" (F-S176P1-002).
+    the past-tense form "skeleton compiled" (F-S176P1-002); leading `\b`
+    excludes compound-word prefixes such as "exoskeleton" and "microskeleton".
   - Pattern 27 `(exposes|is a|are) compile-only seam(s)`: flags present-tense
     assertions that a module or harness exposes compile-only seams. Requires
     an explicit present-tense verb so "as a compile-only seam" (past-tense
     narrative) and bare seam idioms ("Test seam accessors", "VP-047 seam")
     are not matched.
-  - Pattern 28 `(are|is) (currently) compile-only`: flags present-tense
+  - Pattern 28 `\b(are|is) (currently) compile-only`: flags present-tense
     predicate claims ("are currently compile-only", "is compile-only at the
     red-gate boundary"). "was compile-only" and forms without a preceding
     are/is are not matched.
@@ -43,8 +44,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     (All tests … MUST FAIL with interposed words), 24 (FAIL(S) Red Gate),
     and 25 (are/is todo!() stub(s)) are now fully documented.
 
-  Zero false positives verified on 114 tracked Rust files. Self-test:
-  91 passed, 0 failed (`bin/test_check_green_doc_tense.py`).
+  Zero false positives verified across the tracked Rust tree. Self-tested by
+  `bin/test_check_green_doc_tense.py` (all known-bad patterns flagged, all
+  known-good allowlist forms not).
 
 - **`.gitignore` `mutants.out*/` glob + `bin/test_gitignore_mutants_glob.py` regression guard
   (STORY-176, AC-176-003, wave-84).**
