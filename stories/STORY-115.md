@@ -2,14 +2,14 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.6"
+version: "1.7"
 # v1.6 (2026-07-06): BC-2.16.008 v2.0 propagation (silent-limit audit) — add storm_counters_evicted observability counter to AC-010; update storm-counter cap AC to assert storm_counters_evicted increments on eviction; update BC-2.16.010 cross-story extension section to v1.9 annotation; update BC status comment.
 # v1.5 (2026-06-23): fix-pc-013-014-015 BC propagation — BC-2.16.010 cross-story extension section updated to v1.8 annotation; BC status comment updated. No AC changes — BC-2.16.010 v1.8 (no-dropped_findings invariant) does not affect storm_findings key scope.
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
 # v1.4 (2026-06-16): F7 consistency F4 — EC-011 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-011 fix from v1.3 and BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.3 (2026-06-16): F7 consistency F3 — AC-011 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.2 (2026-06-15): D-074 back-propagation — EC-011 updated from "clamp to 1 or CLI error" to "rejected at CLI parse time"; AC-011 extended with 0-rejection requirement and test_cli_arp_storm_rate_0_rejected (BC-2.16.008 EC-006 / BC-2.16.013 EC-004)
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
 phase: f3
@@ -311,3 +311,24 @@ Within 20–30% of agent context window.
 
 - `depends_on: [STORY-114]` — D3 storm detection shares `ARP_FLAP_WINDOW_SECS = 60` (defined as a constant in BC-2.16.004, primary anchor). STORY-115 reuses this constant from `src/analyzer/arp.rs`. Also, STORY-114's VP-007 atomic update must be complete (SEEDED=25, EMITTED=17) before STORY-115 integration tests exercise the full detection + MITRE reporting pipeline — otherwise `technique_name("T0830")` returns "Unknown" in the integration test output.
 - `blocks: []` — STORY-115 is the final story in E-16. No downstream E-16 stories depend on it. Phase-4 holdout evaluation (wave-gate) follows STORY-115's merge.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-16 (ARP Security Analyzer) shipped and released in **v0.7.0** (`CHANGELOG.md:1484`, "ARP Security Analyzer (issue #9, epic E-16)", PRs #236–#241). STORY-115's D3 ARP storm detection, `--arp-storm-rate` CLI flag, storm summary keys, and LRU eviction observability counter are all present in the released codebase.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001–AC-009 (D3 storm detection) | `detect_storm` at `arp.rs:1016`; rate formula `count_in_window / elapsed.max(1)` at `arp.rs:1041–1042`; 60s window via `ARP_FLAP_WINDOW_SECS = 60` at `arp.rs:79`; `ARP_STORM_RATE_DEFAULT = 50` at `arp.rs:86`; `tests/bc_2_16_story115_arp_tests.rs` present |
+| AC-010 (storm counter cap) | `MAX_STORM_COUNTERS = 4_096` at `arp.rs:94`; LRU eviction + `storm_counters_evicted` observability at `arp.rs:806` |
+| AC-011 (--arp-storm-rate) | `--arp-storm-rate` at `cli.rs:244` (`default_value_t = 50`); 0-reject `anyhow::bail!` at `main.rs:215–216` |
+| AC-014 (D3 empty MITRE) | `detect_storm` returns `mitre_techniques: vec![]` with T0814-withheld comment at `arp.rs:1070–1071` per DF-VALIDATION-001 |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.7 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; epic E-16 shipped/released in v0.7.0 (`CHANGELOG.md:1484`); twice-research-validated per DF-VALIDATION-001 (see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`). Status draft→superseded. |

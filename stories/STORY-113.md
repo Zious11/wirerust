@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.6"
-status: draft
+version: "1.7"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
 phase: f3
@@ -370,8 +370,25 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 - `depends_on: [STORY-112]` — STORY-112 delivers working `extract_arp_frame`, the `ArpAnalyzer` stub, and the `main.rs` `DecodedFrame` pattern-match. The full implementation in STORY-113 cannot proceed without the stub's method signatures and the working extraction function.
 - `blocks: [STORY-114]` — STORY-114 implements D1 spoof escalation, GARP-that-conflicts (BC-2.16.014), and the VP-007 MITRE atomic update. All of these depend on the binding table (BC-2.16.005/BC-2.16.006) and GARP detection (BC-2.16.003) from this story.
 
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-16 (ARP Security Analyzer) shipped and released in **v0.7.0** (`CHANGELOG.md:1484`, "ARP Security Analyzer (issue #9, epic E-16)", PRs #236–#241). STORY-113's full `ArpAnalyzer` implementation — binding table, GARP detection, D11/D12, `summarize()`, `--arp` flag, VP-024 Sub-B/C/D — is present in the released codebase.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001/002 (is_gratuitous_arp) | `is_gratuitous_arp` at `arp.rs:161`; `tests/bc_2_16_story113_arp_tests.rs` present |
+| AC-005/006/007/008 (binding table) | `insert_binding_lru` at `arp.rs:180`; `MAX_ARP_BINDINGS = 65_536` at `arp.rs:57`; LRU eviction present |
+| AC-013 (summarize 13 keys) | 13-key `summarize()` at `arp.rs:753–806`; exact key set: `frames_analyzed, request_count, reply_count, other_opcode_count, bindings_tracked, spoof_findings, garp_findings, storm_findings, mismatch_findings, malformed_findings, malformed_frames, bindings_evicted, storm_counters_evicted` |
+| AC-016 (--arp flag) | `--arp` flag at `cli.rs:228` |
+| AC-017/AC-019 (VP-024 Sub-B/D Kani) | `verify_classify_garp_total` at `arp.rs:4596`; `verify_binding_table_cap` at `arp.rs:4648` |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
 ## Changelog
 
+- v1.7 (2026-07-21): DELIVERED-BY-DRIFT supersession; epic E-16 shipped/released in v0.7.0 (`CHANGELOG.md:1484`); twice-research-validated per DF-VALIDATION-001 (see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`). Status draft→superseded.
 - v1.6: Input re-hash after BC-2.16.016 v1.2 Traceability backfill, wave-71 gate; no scope impact.
 - v1.5: Input re-hash after anchor-only BC amendment BC-2.16.016 v1.1, wave 71; no scope impact.
 - v1.4: BC-2.16.010 v1.9 propagation (silent-limit audit) — update BC table annotation v1.8→v1.9; "eleven keys"→"thirteen keys" throughout body, AC-013, EC-012, Architecture Compliance Rule 5, Task 1, Task 9; add bindings_evicted and storm_counters_evicted to key list in AC-013 and Task 1; rename test to test_BC_2_16_010_summarize_zero_frames_all_thirteen_keys_zero.

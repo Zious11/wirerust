@@ -2,9 +2,9 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.6"
+version: "1.7"
 version_note: "1.6 (2026-06-24): fix-pc-013-014-015 BC-2.16.004 v1.10 sync — REMOVE v1.9 fail-safe degradation framing; rewrite AC-018 to by-construction panic-freedom / regression-guard framing per human-approved PC-013 decision; BC table annotation updated to 'BC-2.16.004 v1.10'; BC status comment updated. 1.5 (2026-06-23): fix-pc-013-014-015 BC propagation — BC-2.16.004 synced to v1.9 (fail-safe degradation Invariant 6 / PC-013); BC table annotation updated to 'BC-2.16.004 v1.9'; AC-018 added (fail-safe no-panic test at 4 if-let guard sites); BC status comment updated. 1.4 (2026-06-16): F7 consistency F4 — EC-014 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-006 fix from v1.3 and BC-2.16.012 v1.4). 1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
-status: draft
+status: superseded
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
 phase: f3
@@ -360,3 +360,33 @@ Within 20–30% of agent context window.
 
 - `depends_on: [STORY-113]` — D1 spoof detection requires the binding table (BC-2.16.005/BC-2.16.006) and rebind state (`rebind_count`, `first_rebind_ts`, `spoof_high_emitted` in `BindingEntry`) from STORY-113. GARP-that-conflicts (BC-2.16.014) requires `is_gratuitous_arp` from STORY-113. The VP-007 atomic update adds T0830 and T1557.002 to the MITRE catalog; these IDs are tagged on D1/D2/D12 findings from STORY-113 and STORY-114 — without the catalog entry, `technique_name("T0830")` would return "Unknown".
 - `blocks: [STORY-115]` — STORY-115 implements D3 ARP storm detection. D3 shares `ARP_FLAP_WINDOW_SECS` (defined in BC-2.16.004 and shared) and the `summarize()` storm key. STORY-115 also adds the `--arp-storm-rate` CLI flag, which is the sister flag to `--arp-spoof-threshold` from this story. STORY-115 cannot build cleanly until the full MITRE catalog (SEEDED=25, EMITTED=17) is in place, because its integration tests exercise the full detection + reporting pipeline.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-16 (ARP Security Analyzer) shipped and released in **v0.7.0** (`CHANGELOG.md:1484`, "ARP Security Analyzer (issue #9, epic E-16)", PRs #236–#241). STORY-114's D1 spoof escalation, GARP-that-conflicts, MITRE attribution, and `--arp-spoof-threshold` CLI flag are all present in the released codebase. The VP-007 5-part atomic update (T0830 + T1557.002 seeded and emitted) is confirmed at `mitre.rs:233–237` and `mitre.rs:359–360`.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001–AC-005 (D1 escalation) | D1 escalation + GARP-conflict logic at `arp.rs:517`, `arp.rs:908`, `arp.rs:938`; `tests/bc_2_16_story114_arp_tests.rs` present |
+| AC-006 (--arp-spoof-threshold) | `--arp-spoof-threshold` at `cli.rs:235` (`default_value_t = 3`); 0-reject `anyhow::bail!` at `main.rs:218–219` |
+| AC-011/AC-012 (VP-007 catalog) | T0830 seeded at `mitre.rs:233`; T1557.002 at `mitre.rs:236`; both in `EMITTED_IDS` at `mitre.rs:359–360`; `SEEDED_TECHNIQUE_ID_COUNT` at `mitre.rs:485` |
+
+### MANDATORY CAVEAT — Draft ACs Are STALE-IF-RESURRECTED
+
+**This draft MUST NOT be treated as current truth for the following ACs. These ACs reflect the draft's original assumptions, which the shipped code supersedes:**
+
+1. **AC-011 tactic mapping is stale:** The draft assumes `technique_info("T0830") == (…, MitreTactic::LateralMovement)`. The shipped code correctly maps T0830 to `MitreTactic::IcsCollection` (TA0100) at `mitre.rs:233`. Live MITRE ATT&CK verification (both independent DF-VALIDATION-001 research passes) confirms T0830 Adversary-in-the-Middle is a **Collection** technique (TA0100) in the ICS matrix, NOT Lateral Movement. `CHANGELOG.md:1239` records the deliberate reclassification. T1557.002 → `CredentialAccess` (TA0006) is correct in both draft and shipped code.
+
+2. **AC-012 SEEDED/EMITTED counts are stale:** The draft asserts `SEEDED_TECHNIQUE_ID_COUNT == 25` and `kani_proofs::EMITTED_IDS.len() == 17`. The current tree has `SEEDED_TECHNIQUE_ID_COUNT = 29` at `mitre.rs:485` (later stories seeded T0858/T0816/T1693.001 via STORY-133; T0881 via STORY-173). The ARP pair (T0830 + T1557.002) is present and emitted — the STORY-114 functional obligation is satisfied — but the frozen counts are obsolete. **Any assertion verbatim re-using `== 25` or `== 17` would FAIL the current tree.**
+
+These divergences do not change the DELIVERED-BY-DRIFT verdict; the underlying behavior is correctly shipped. They are recorded here so no future reader mistakes the numeric/tactic ACs for current specification truth.
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.7 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; epic E-16 shipped/released in v0.7.0 (`CHANGELOG.md:1484`); twice-research-validated per DF-VALIDATION-001. MANDATORY CAVEAT recorded: AC-011 T0830→IcsCollection/TA0100 (not LateralMovement; MITRE-verified); AC-012 SEEDED=29 not 25 (`mitre.rs:485`). Status draft→superseded. |

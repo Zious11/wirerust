@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-117
 epic_id: E-17
-version: "1.0"
-status: draft
+version: "1.1"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-16T00:00:00Z
 phase: f3
@@ -292,3 +292,27 @@ Within 20-30% of agent context window.
   is merged to ensure the complete 10-test suite is reviewed together.
 - `blocks: []` — STORY-117 is the final story in E-17. No downstream E-17 stories depend
   on it. Phase-F5 scoped adversarial review follows STORY-117's merge.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-17 (QinQ/MACsec ARP offset hardening): the ARP offset handling itself shipped in **v0.7.0** (`CHANGELOG.md:1475`); the regression test suite (including this story's 6 MACsec tests) was released in **v0.7.1** (`CHANGELOG.md:1464`, "Regression test coverage for VLAN / QinQ (802.1ad double-tag) / MACsec link-extension ARP offset handling — 10 tests across `tests/bc_2_16_qinq_macsec_offset_tests.rs` and `tests/bc_2_16_e17_macsec_offset_tests.rs` (issue #253, STORY-116/117)"). Note: v0.8.0 is `--no-collapse` / STORY-118 and is unrelated to E-17. The documented-limitation (no public MACsec-over-ARP pcap) is also recorded in `CHANGELOG.md:1476–1478`.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001 (MACsec no-SCI offset 22 benign truncation) | `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` at `tests/bc_2_16_e17_macsec_offset_tests.rs:270` |
+| AC-002 (MACsec no-SCI malformed hlen=8 → D11) | `test_BC_2_16_009_macsec_no_sci_unmodified_arp_malformed_hlen8_routes_to_d11` at `tests/bc_2_16_e17_macsec_offset_tests.rs:442` |
+| AC-003 (MACsec SCI-present offset 30 benign truncation) | `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30` at `tests/bc_2_16_e17_macsec_offset_tests.rs:575` |
+| AC-004 (MACsec SCI-present malformed hlen=8 → D11) | `test_BC_2_16_009_macsec_sci_present_unmodified_arp_malformed_hlen8_routes_to_d11` at `tests/bc_2_16_e17_macsec_offset_tests.rs:754` |
+| AC-005 (Modified/no-SCI opaque guard) | `test_BC_2_16_015_macsec_no_sci_modified_opaque_payload_unreachable` at `tests/bc_2_16_e17_macsec_offset_tests.rs:885` |
+| AC-006 (Modified/SCI-present opaque guard) | `test_BC_2_16_015_macsec_sci_present_modified_opaque_payload_unreachable` at `tests/bc_2_16_e17_macsec_offset_tests.rs:969` |
+| Zero stubs | No `todo!`/`unimplemented!` in `tests/bc_2_16_e17_macsec_offset_tests.rs` (facade requirement satisfied) |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; offset handling shipped in v0.7.0 (`CHANGELOG.md:1475`); regression suite (6 MACsec tests) released in v0.7.1 (`CHANGELOG.md:1464`); twice-research-validated per DF-VALIDATION-001. Status draft→superseded. |

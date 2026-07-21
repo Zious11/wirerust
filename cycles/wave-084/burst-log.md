@@ -323,6 +323,55 @@ remediation burst row addition (D-484, 2026-07-20).
 
 ---
 
+## Burst: D-483 row archived from STATE.md Current Phase Steps (2026-07-21)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-487 E-16/E-17 ARP stale-draft supersession bookkeeping commit (see `git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as part of this archival step. This is a last-5-rule archival of a Current Phase Steps row rolled out of STATE.md by the D-487 E-16/E-17 ARP STALE-DRAFT SUPERSESSION row addition, not a spec-evolution or code-delivery burst in its own right.
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the last-5 rule when the D-487 E-16/E-17 ARP STALE-DRAFT SUPERSESSION row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **D-483 SESSION WRAP (2026-07-20). Human-requested pause at clean milestone: wave-84 2/3 delivered (STORY-147 PR #421 f0cb7374 ✓, STORY-166 PR #426 fa9be701 ✓). Session covers D-480..D-482 (exhaustive). No in-flight work; no story worktrees. Pipeline PAUSED.** | **PAUSED (D-483)** | develop=fa9be701. Resume: STORY-176 v2.2 per-story delivery next. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-483 row) rolled out by the D-487 E-16/E-17 ARP STALE-DRAFT SUPERSESSION row addition (2026-07-21).
+
+---
+
+## Burst — D-487 E-16/E-17 ARP STALE-DRAFT SUPERSESSION (2026-07-21)
+
+**Burst type:** Factory-only bookkeeping — stale-draft supersession; state-manager closing burst.
+
+**Summary:** 7 E-16/E-17 ARP draft stories (STORY-111..117, 55 pts, waves 40-46) retired as DELIVERED-BY-DRIFT. Twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. E-16 (STORY-111..115, 47 pts, v0.7.0) and E-17 (STORY-116/117, 8 pts, v0.7.0+v0.7.1): ARP offset handling shipped and released without local story delivery. Story files already flipped draft→superseded by story-writer; this state-manager burst closes the bookkeeping. STORY-INDEX v3.85→v3.86 (wave-table scheduled 747→692; total_points 775 and epic totals unchanged per D-477/D-480 supersession-convention; arithmetic: 692 + 83 exclusion sum = 775; E-16/E-17 epic rows DELIVERED/CLOSED). STORY-114 mandatory stale-assumption caveat retained (T0830→IcsCollection not LateralMovement; SEEDED=29 not 25). develop=1e967bad (UNCHANGED — factory-only burst). Backlog now EMPTY. No wave-85 scheduled. Pipeline idle at clean milestone.
+
+**Files touched (Dim-1): 4 unique files**
+
+- .factory/STATE.md (D-487 transition: current_step, timestamp, story_index_version, story_index_note, EXACT RESUME POINT, Project Metadata Stories + Last Updated rows, CPS D-487 row, Decisions Log D-487, Session Resume Checkpoint)
+- .factory/stories/STORY-INDEX.md (v3.85→v3.86; STORY-111..117 status draft→superseded; wave-table scheduled 747→692; E-16/E-17 epic rows DELIVERED/CLOSED; exclusion list updated; v3.86 version note)
+- .factory/cycles/wave-084/burst-log.md (this file — D-483 CPS archival + D-487 burst entry)
+- .factory/cycles/wave-084/session-checkpoints.md (D-486 checkpoint archived)
+
+**Dim-2 Attestation:** N/A — factory-only burst; no shell gates applicable; develop UNCHANGED.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch (develop=1e967bad, unchanged).
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-487 E-16/E-17 ARP stale-draft supersession; backlog EMPTY; pipeline idle at clean milestone.
+
+---
+
 ## Burst — STORY-176 Step-4.5 Pass-2 Convergence Tracking (2026-07-20)
 
 **Type:** state-burst (adversarial convergence update)

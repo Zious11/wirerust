@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "3.85"
+version: "3.86"
 status: draft
 producer: story-writer
-timestamp: 2026-07-21T07:00:00Z
+timestamp: 2026-07-21T09:00:00Z
 phase: f4
 total_stories: 132
 total_waves: 84
-total_points: 775  # = 775; wave-table scheduled: 747 (STORY-091/121/143/155 wave-TBD + STORY-148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; v3.79)
+total_points: 775  # = 775; wave-table scheduled: 692 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; supersession of STORY-111..117 does not change grand total per D-477/D-480 convention)
+# v3.86 (2026-07-21): E-16/E-17 ARP stale-draft supersession (D-487, 2026-07-21) — STORY-111..115 (E-16, v0.7.0, 47 pts, waves 40-44) + STORY-116/117 (E-17, v0.7.0/v0.7.1, 8 pts, waves 45-46) status draft→superseded DELIVERED-BY-DRIFT; twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. Wave-table scheduled 747→692 (7 stories / 55 pts moved to exclusion). Convention (D-477/D-480 precedent): supersession alone does not change total_points (775) or epic-table totals; wave-table scheduled total decremented because STORY-111..117 had actual wave assignments (40-46) and were previously counted. Arithmetic check: 692 + 83 (exclusion sum) = 775 = total_points. E-16 and E-17 marked DELIVERED/CLOSED in epic table. STORY-INDEX v3.85→v3.86.
 # v3.85 (2026-07-21): WAVE-84 GATE CLOSED (D-486, 2026-07-21); wave-84 delivery row updated CLOSED-PENDING-GATE→CLOSED (D-486, 2026-07-21); story-file status loci synced (STORY-147/166/176 frontmatter+body status: ready→delivered, three-loci agreement with STORY-INDEX rows at v3.84). No numeric totals changed.
 # v3.84 (2026-07-20): STORY-176 DELIVERED (D-485, PR #427 595cdba8 squash-merged to develop, human-executed merge 2026-07-20T21:46:45Z under explicit per-PR human authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match); status ready→delivered; wave-84 Delivery Progress row updated (3/3 DELIVERED — STORY-147 ✓, STORY-166 ✓, STORY-176 ✓; CLOSED-PENDING-GATE); CI 13/13 PASS (new "Bin selftest suites" step); pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record); security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22); 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED); story v2.7/6ec8772. Headline: AC-176-001 v2.2 had 91 false-positive bare-word tokens / wrong locus / fabricated allowlist / inverted CHANGELOG → research-validated spec-route to v2.3, then 8-pass adversary hardening to v2.7. stories_delivered 115→116. No numeric points/story/wave totals changed (status transition only).
 # v3.83 (2026-07-20): STORY-176 spec-route remediation v2.2→v2.3 (research-validated per planning/story-176-ac001-validation.md; AC-176-001 substantially INVALID as written — HIGH confidence; motivation PG-GATE-VOCAB-BLINDSPOT VALID; product-local, no upstream filing; locus corrected to bin/check-green-doc-tense + bin/test_check_green_doc_tense.py; four phrase-level zero-FP patterns; fabricated allowlist claim deleted; CHANGELOG obligation corrected to REQUIRED; input-hash 41176f4→7f8ff02 canonical tool; no pts/status/wave/title change). [process-gap: story-writer fabricated nonexistent allowlist mechanism + wrong gate locus in v1.0/v2.0 story AC; spec-drift class "AC cites nonexistent mechanism"; caught by Step-2 stub-architect pre-condition probe; filed: cycles/wave-084/process-gap-ledger.md].
@@ -278,14 +279,14 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-108 | DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize | E-15 | 37 | 13 | completed | STORY-107 |
 | STORY-109 | DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed | E-15 | 38 | 13 | completed | STORY-108 |
 | STORY-110 | DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update | E-15 | 39 | 8 | completed | STORY-109 |
-| STORY-111 | etherparse 0.20 Migration + DecodedFrame/ArpFrame Types + BC-2.02.009 Revision | E-16 | 40 | 5 | draft | STORY-110 |
-| STORY-112 | extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A | E-16 | 41 | 8 | draft | STORY-111 |
-| STORY-113 | ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D | E-16 | 42 | 13 | draft | STORY-112 |
-| STORY-114 | D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update | E-16 | 43 | 13 | draft | STORY-113 |
-| STORY-115 | D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key | E-16 | 44 | 8 | draft | STORY-114 |
+| STORY-111 | etherparse 0.20 Migration + DecodedFrame/ArpFrame Types + BC-2.02.009 Revision | E-16 | 40 | 5 | superseded | STORY-110 |
+| STORY-112 | extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A | E-16 | 41 | 8 | superseded | STORY-111 |
+| STORY-113 | ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D | E-16 | 42 | 13 | superseded | STORY-112 |
+| STORY-114 | D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update | E-16 | 43 | 13 | superseded | STORY-113 |
+| STORY-115 | D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key | E-16 | 44 | 8 | superseded | STORY-114 |
 | STORY-156 | ARP Findings Output Unbounded-Cap Documentation + Regression Test (BC-2.16.016) | E-16 | 71 | 3 | merged | STORY-115 |
-| STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | draft | STORY-115 |
-| STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
+| STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | superseded | STORY-115 |
+| STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | superseded | STORY-116 |
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
 | STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre (B: render path + CLI flip) | E-18 | 50 | 5 | completed | STORY-122 |
 | STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
@@ -418,7 +419,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 82 | STORY-173 | 1 | 5 |
 | 83 | STORY-174 | 1 | 5 |
 | 84 | STORY-166, STORY-176, STORY-147 | 3 | 7 |
-| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD, STORY-143 wave-TBD, STORY-148 superseded, STORY-155 wave-TBD, STORY-175 superseded, STORY-177 superseded, STORY-178 superseded, STORY-179 superseded)** | | **123** | **747** |
+| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD, STORY-143 wave-TBD, STORY-111..117 superseded, STORY-148 superseded, STORY-155 wave-TBD, STORY-175 superseded, STORY-177 superseded, STORY-178 superseded, STORY-179 superseded)** | | **116** | **692** |
 
 ---
 
@@ -441,8 +442,8 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | E-13: Multi-Tag Finding Schema Migration (v0.3.0 / issue #7) | STORY-100, STORY-101 | 2 | 21 |
 | E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) — **STORY-141 Modbus carry-split + saturating_sub fix (RULING-MODBUS-SIBLING-001, wave 64)** | STORY-102, STORY-103, STORY-104, STORY-105, STORY-141 | 5 | 45 |
 | E-15: DNP3/ICS Analyzer (issue #8) — **STORY-140 DNP3 carry-split + saturating_sub fix (RULING-DNP3-SIBLING-001, wave 63); STORY-142 DNP3 desync-latch fix (RULING-DNP3-DESYNC-001, wave 64)** | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110, STORY-140, STORY-142 | 7 | 58 |
-| E-16: ARP Security Analyzer (issue #9) — **STORY-156 ARP findings unbounded-cap documentation + regression test (BC-2.16.016 gap F-NEW-MAJ-003, maint-2026-07-06)** | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115, STORY-156 | 6 | 50 |
-| E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
+| E-16: ARP Security Analyzer (issue #9) — **DELIVERED/CLOSED — STORY-111..115 superseded DELIVERED-BY-DRIFT v0.7.0 (D-487, 2026-07-21; twice-research-validated DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md); STORY-156 ARP findings unbounded-cap documentation + regression test (BC-2.16.016 gap F-NEW-MAJ-003, maint-2026-07-06)** | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115, STORY-156 | 6 | 50 |
+| E-17: ARP QinQ/MACsec Offset Hardening (issue #253) — **DELIVERED/CLOSED — STORY-116/117 superseded DELIVERED-BY-DRIFT v0.7.0/v0.7.1 (D-487, 2026-07-21; twice-research-validated DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md)** | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
 | E-19: pcapng Capture-Format Reader Support (FE-001) — **COMPLETE (6/6 MERGED, D-184)** | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254); STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, wave 62); STORY-148 on_flow_close wiring + DNP3 flow-map cap (SEC-005/SEC-006, maint-2026-07-01) — superseded by PR #362 (D-383, issue #342 closed 2026-07-06)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138, STORY-139, STORY-148 | 11 | 79 |
@@ -495,13 +496,13 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 37 | STORY-108 | **DELIVERED & CLOSED** | #227 | 9c03fde | 2026-06-11 |
 | 38 | STORY-109 | **DELIVERED & CLOSED** | #228 | 34443f9 | 2026-06-11 |
 | 39 | STORY-110 | **DELIVERED & CLOSED** | #229 | ddfa576 | 2026-06-11 |
-| 40 | STORY-111 | draft | — | — | — |
-| 41 | STORY-112 | draft | — | — | — |
-| 42 | STORY-113 | draft | — | — | — |
-| 43 | STORY-114 | draft | — | — | — |
-| 44 | STORY-115 | draft | — | — | — |
-| 45 | STORY-116 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
-| 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
+| 40 | STORY-111 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21) | — | — | — |
+| 41 | STORY-112 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21) | — | — | — |
+| 42 | STORY-113 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21) | — | — | — |
+| 43 | STORY-114 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21; stale-assumption caveat: T0830→IcsCollection not LateralMovement; SEEDED=29 not 25 per story file) | — | — | — |
+| 44 | STORY-115 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21) | — | — | — |
+| 45 | STORY-116 | superseded (DELIVERED-BY-DRIFT v0.7.0; D-487, 2026-07-21) | #258 (test/arp-qinq-macsec-fixtures) | — | — |
+| 46 | STORY-117 | superseded (DELIVERED-BY-DRIFT v0.7.0+v0.7.1; D-487, 2026-07-21) | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
 | 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
 | 49 | STORY-122 | **DELIVERED & CLOSED** | #268 | 8696448 | 2026-06-19 |

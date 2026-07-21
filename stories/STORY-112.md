@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-112
 epic_id: E-16
-version: "1.6"
-status: draft
+version: "1.7"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
 phase: f3
@@ -324,3 +324,24 @@ Within 20–30% of agent context window.
 
 - `depends_on: [STORY-111]` — `extract_arp_frame` requires the `ArpFrame` struct and the updated `decode_packet` return type `Result<DecodedFrame>` from STORY-111. Cannot implement the extraction function without the types.
 - `blocks: [STORY-113]` — STORY-113 implements the full `ArpAnalyzer` (binding table, GARP detection, D11 malformed emission, D12 mismatch, summarize). It requires the `ArpAnalyzer` stub and `process_arp` signature from this story, plus the working `extract_arp_frame` function that STORY-113's tests will exercise.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-16 (ARP Security Analyzer) shipped and released in **v0.7.0** (`CHANGELOG.md:1484`, "ARP Security Analyzer (issue #9, epic E-16)", PRs #236–#241). STORY-112's full `extract_arp_frame` implementation, ARP routing in both strict and lax decode arms, `ArpAnalyzer` stub, and VP-024 Sub-A Kani harnesses are all present in the released codebase.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001–AC-005 (extract_arp_frame) | Implemented in `src/decoder.rs`; unit coverage in `tests/bc_2_16_story112_arp_tests.rs` |
+| AC-006/AC-007/AC-012 (strict + lax ARP routing, error strings) | Both arms present in `decode_packet`; QinQ/MACsec offset logic at `decoder.rs:290–337` descends from the lax arm; `test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error` present |
+| AC-008/AC-010 (main.rs wiring + ArpAnalyzer) | `main.rs:445` routes `DecodedFrame::Arp`; `ArpAnalyzer` exists far beyond stub |
+| AC-011 (VP-024 Sub-A Kani) | `verify_extract_arp_frame_safety` / `_eth_ipv4_correctness` / `_none_on_bad_size` harnesses present in `decoder.rs` |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.7 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; epic E-16 shipped/released in v0.7.0 (`CHANGELOG.md:1484`); twice-research-validated per DF-VALIDATION-001 (see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`). Status draft→superseded. |

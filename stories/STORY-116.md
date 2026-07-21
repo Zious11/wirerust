@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-116
 epic_id: E-17
-version: "1.0"
-status: draft
+version: "1.1"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-16T00:00:00Z
 phase: f3
@@ -231,3 +231,25 @@ Within 20-30% of agent context window.
 - `blocks: [STORY-117]` — STORY-117 depends on the same PR branch (#258) and its MACsec
   offset assertion tests reference the same ARP lax-path formula being verified here. The
   logical sequencing (QinQ first, MACsec second) matches BC authoring order and F1 §6 recommendation.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-17 (QinQ/MACsec ARP offset hardening): the ARP offset handling itself shipped in **v0.7.0** (`CHANGELOG.md:1475`); the regression test suite (including this story's 4 QinQ tests) was released in **v0.7.1** (`CHANGELOG.md:1464`, "Regression test coverage for VLAN / QinQ (802.1ad double-tag) / MACsec link-extension ARP offset handling — 10 tests across `tests/bc_2_16_qinq_macsec_offset_tests.rs` and `tests/bc_2_16_e17_macsec_offset_tests.rs` (issue #253, STORY-116/117)"). Note: v0.8.0 is `--no-collapse` / STORY-118 and is unrelated to E-17.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-001 (QinQ benign truncation no false D11) | `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11` at `tests/bc_2_16_qinq_macsec_offset_tests.rs:249` |
+| AC-002 (QinQ malformed hlen=8 routes to D11) | `test_BC_2_16_009_qinq_malformed_hlen8_routes_to_d11` at `tests/bc_2_16_qinq_macsec_offset_tests.rs:433` |
+| AC-003 (offset formula pin) | `test_BC_2_16_015_qinq_link_exts_offset_formula_pin` at `tests/bc_2_16_qinq_macsec_offset_tests.rs:546` |
+| AC-004 (MACsec observe-only probe) | `test_BC_2_16_015_macsec_arp_lax_parse_probe` at `tests/bc_2_16_qinq_macsec_offset_tests.rs:671` |
+| Offset formula | `14 + Σ link_exts.header_len()` at `decoder.rs:315–320` |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; offset handling shipped in v0.7.0 (`CHANGELOG.md:1475`); regression suite (4 QinQ tests) released in v0.7.1 (`CHANGELOG.md:1464`); twice-research-validated per DF-VALIDATION-001. Status draft→superseded. |

@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-111
 epic_id: E-16
-version: "1.6"
-status: draft
+version: "1.7"
+status: superseded
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
 phase: f3
@@ -277,3 +277,23 @@ Well within 20–30% of agent context window.
 
 - `depends_on: [STORY-110]` — STORY-110 is the last completed E-15 story. E-16 begins here. No specific code from STORY-110 is a prerequisite; the dependency ensures the E-15 wave is fully merged before E-16 begins (VP-007 SEEDED=23/EMITTED=15 counts must be stable before STORY-114 adds the ARP entries).
 - `blocks: [STORY-112]` — STORY-112 implements `extract_arp_frame` and the full ARP routing in `decode_packet`. It cannot proceed until the `DecodedFrame` enum, `ArpFrame` struct, and return-type change from this story are merged.
+
+## Disposition (DELIVERED-BY-DRIFT, 2026-07-21)
+
+**Status:** superseded — DELIVERED-BY-DRIFT, delivered-by-drift — no filing (product-local); disposition validated by two independent DF-VALIDATION-001 research passes, see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`.
+
+Epic E-16 (ARP Security Analyzer) shipped and released in **v0.7.0** (`CHANGELOG.md:1484`, "ARP Security Analyzer (issue #9, epic E-16)", PRs #236–#241). STORY-111's scaffolding work (etherparse 0.20 migration, `DecodedFrame`/`ArpFrame` types, `decode_packet` return-type change) was the foundation for the full E-16 delivery and is present in the released codebase.
+
+| AC | Shipping Evidence |
+|----|-------------------|
+| AC-010 (Cargo.toml bump) | `Cargo.toml:28` `etherparse = "0.20"` with version-pin comment block at `:21–27` |
+| AC-003/005/005b/006 (types + dispatch + no-panic) | `src/decoder.rs` defines `struct ArpFrame` (`:141`), `enum DecodedFrame` (`:162`), `pub fn extract_arp_frame` (`:395`); etherparse 0.20 `link_exts` API live at `decoder.rs:319`; `strict_ip_triple` and `lax_ip_triple` unreachable arms present |
+| AC-009 (VP-008 harness) | Fuzz harness updated to `Result<DecodedFrame>`; `test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing` and `test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered` both green |
+
+This story file is retained on disk for traceability. No further wirerust delivery expected.
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.7 | 2026-07-21 | story-writer | DELIVERED-BY-DRIFT supersession; epic E-16 shipped/released in v0.7.0 (`CHANGELOG.md:1484`); twice-research-validated per DF-VALIDATION-001 (see `.factory/planning/e16-e17-arp-draft-disposition-plan.md`). Status draft→superseded. |
