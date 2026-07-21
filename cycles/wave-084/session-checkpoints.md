@@ -212,4 +212,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-21 (replaced by D-488 SESSION WRAP checkpoint)
+
+**D-487 (2026-07-21). E-16/E-17 ARP stale-draft supersession COMPLETE — backlog EMPTY; pipeline idle at clean milestone. develop=1e967bad (unchanged); STORY-INDEX v3.86. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-21. Position: D-487 E-16/E-17 ARP stale-draft supersession COMPLETE. Product backlog EMPTY of scheduled work — wave-84 CLOSED (D-486), all E-11 + E-16/E-17 stale drafts dispositioned. No wave-85 scheduled.
+- **Ground truth:** develop = `1e967bad3d04dd989efd8f02191568abb5382757` (PR #430, wave-84 final gate-fix); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged). DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** None. Backlog EMPTY. No story worktrees; no open factory PRs.
+- **Pending human decisions:** (a) PR #407 governance (external; triage at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix (STORY-INDEX.md-in-inputs + STATE.md-in-inputs clusters); (c) next action from optional work items above.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 deferred to maintenance sweep).
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.86 / dep-graph v3.9.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-488 SESSION WRAP checkpoint (2026-07-21; pipeline PAUSED; backlog EMPTY; no wave-85).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

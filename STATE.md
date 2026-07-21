@@ -10,10 +10,10 @@ project: wirerust
 mode: steady-state
 phase: "steady-state"
 status: active
-current_step: "D-487: E-16/E-17 ARP stale-draft supersession — 7 drafts (STORY-111..117) status draft→superseded DELIVERED-BY-DRIFT; twice-research-validated (DF-VALIDATION-001), human-approved. STORY-INDEX v3.86. Backlog EMPTY; pipeline idle at clean milestone. develop=1e967bad (unchanged). trajectory-tail →0→0→0→0"
+current_step: "D-488 SESSION WRAP (2026-07-21). Human-requested pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427); wave-84 gate CLOSED (adversary 3-clean P4/P5/P6, gate-fix PRs #428/#429/#430); E-16/E-17 ARP 7-draft supersession (delivered-by-drift, twice-validated). Backlog EMPTY, no wave-85, no in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0"
 current_cycle: "wave-084"
-pipeline: ACTIVE
-timestamp: 2026-07-21T09:04:00Z
+pipeline: PAUSED
+timestamp: 2026-07-21T11:15:00Z
 released_version: v0.13.0
 released_at: "2026-07-18"
 release_tag: v0.13.0
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-09
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 281 = 219 (dual-margin form). ~281 lines (wc-l).
+  Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 282 = 218 (dual-margin form). ~282 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-09
 
 ## EXACT RESUME POINT
 
-**D-487 (2026-07-21). E-16/E-17 ARP stale-draft supersession — 7 drafts (STORY-111..117) status draft→superseded DELIVERED-BY-DRIFT; twice-research-validated (DF-VALIDATION-001), human-approved. Backlog now EMPTY; pipeline idle at clean milestone. develop=1e967bad (unchanged); STORY-INDEX v3.86. trajectory-tail →0→0→0→0.**
+**D-488 (2026-07-21). SESSION WRAP — human-requested pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427); wave-84 gate CLOSED (adversary 3-clean P4/P5/P6, gate-fix PRs #428/#429/#430); E-16/E-17 ARP 7-draft supersession (delivered-by-drift, twice-validated). Backlog EMPTY, no wave-85, no in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0.**
 
 ---
 
@@ -68,13 +68,13 @@ maintenance_prior_run: maint-2026-07-09
 | Field | Value |
 |-------|-------|
 | Project | wirerust |
-| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded; STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374). D-482: STORY-166 DELIVERED (PR #426 fa9be701). D-485: STORY-176 DELIVERED (PR #427 595cdba8) — wave-84 3/3 DELIVERY COMPLETE. D-486: WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21). D-487: E-16/E-17 ARP stale-draft supersession; backlog EMPTY.** |
+| Mode | Feature Mode — feature-iec104 (IEC 60870-5-104, TCP 2404); **RELEASED v0.13.0 (D-473, 2026-07-18). F1→F7 CONVERGED; CYCLE CLOSED (D-475, 2026-07-18): S-7.02 SATISFIED. D-477: STORY-175/177/178/179 codification VEHICLE CHANGED to upstream (see D-477). D-480: E-11 disposition burst #2 — STORY-091/121/143/155 superseded; STORY-147 v2.0 local survivor. WAVE-84 OPENED (STORY-166/176/147v2, 7 pts, all product-local). D-481: STORY-147 DELIVERED (PR #421 f0cb7374). D-482: STORY-166 DELIVERED (PR #426 fa9be701). D-485: STORY-176 DELIVERED (PR #427 595cdba8) — wave-84 3/3 DELIVERY COMPLETE. D-486: WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21). D-487: E-16/E-17 ARP stale-draft supersession; backlog EMPTY. D-488: SESSION WRAP (2026-07-21).** |
 | Version | 0.13.0 (released 2026-07-18; main=67a06b6; develop=1e967bad — D-486 wave-84 gate-fix PR #430 squash-merged (2026-07-21); DRIFT-BACKMERGE-SQUASH-001 retained) |
 | Main HEAD | `67a06b6f82654d2af79d023b15ac56ab03182ffd` |
 | Develop HEAD | `1e967bad3d04dd989efd8f02191568abb5382757` — D-486 wave-84 gate-close (PR #430, final gate-fix, 2026-07-21) |
 | Spec versions | BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 |
 | Stories | 116 delivered / 132 total (STORY-INDEX v3.86, dep-graph v3.9, 775 pts) |
-| **Last Updated** | 2026-07-21 — D-487. E-16/E-17 ARP stale-draft supersession; backlog EMPTY. STORY-INDEX v3.86 (7 drafts STORY-111..117 draft→superseded DELIVERED-BY-DRIFT). trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-21 — D-488. SESSION WRAP (clean idle milestone): wave-84 CLOSED, backlog EMPTY, no wave-85. Pipeline PAUSED. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -133,11 +133,11 @@ Wave-84 gate-level adversarial trajectory (6 passes, code frozen 1e967bad): `1M�
 
 | Step | Status | Notes |
 |------|--------|-------|
+| **SESSION WRAP (2026-07-21, D-488). Human-requested pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427 595cdba8); wave-84 gate CLOSED (6-pass adversary streak P4/P5/P6, gate-fix PRs #428 82105d02 / #429 39b30cb1 / #430 1e967bad); E-16/E-17 ARP 7-draft supersession (STORY-111..117, DELIVERED-BY-DRIFT, twice-validated DF-VALIDATION-001, human-approved). Backlog EMPTY; no wave-85 scheduled; no in-flight work; no open factory PRs. Pipeline PAUSED. develop=1e967bad (UNCHANGED). trajectory-tail →0→0→0→0.** | **PAUSED (D-488)** | Pipeline idle at clean milestone. Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0 |
 | **E-16/E-17 ARP STALE-DRAFT SUPERSESSION (2026-07-21, D-487). STORY-111..115 (E-16, v0.7.0, waves 40-44, 47 pts) + STORY-116/117 (E-17, v0.7.0/v0.7.1, waves 45-46, 8 pts) status draft→superseded DELIVERED-BY-DRIFT. Twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. Wave-table scheduled 747→692 (55 pts / 7 stories); total_points 775 and epic totals unchanged per D-477/D-480 supersession-convention. STORY-INDEX v3.85→v3.86. Backlog now EMPTY of scheduled work. develop=1e967bad (UNCHANGED — factory-only burst).** | **COMPLETE (D-487)** | STORY-INDEX v3.86. Backlog EMPTY. trajectory-tail →0→0→0→0. Pipeline idle; no wave-85 scheduled. |
 | **WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21, D-486). 6-gate all-pass: Gate 1 PASS (2640 tests/94 suites, develop 1e967bad, clippy/fmt clean, 5 bin/ Python self-tests pass); Gate 2 SKIP (dtu_required:false, passive analyzer); Gate 3 PASS/CONVERGED (6 passes, streak P4/P5/P6, code frozen 1e967bad, DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED; gate-fix PRs #428 82105d02 / #429 39b30cb1 / #430 1e967bad); Gate 3b PASS (consistency-validator 4MED addressed / code-reviewer 0 MAJOR / security APPROVE 0C/0H/0M); Gate 4 PASS (demo STORY-147/166/176 on develop); Gate 5 SKIP (CI/tooling wave). S-7.02: 12 PG-W84 entries — 3 FIXED in-cycle (PG-W84-007/009/011) + 9 deferred to DF-VALIDATION-001 batch. STORY-INDEX v3.84→v3.85. Story-file loci synced. gate-summary.md + code-review.md + lessons.md committed.** | **CLOSED (D-486)** | develop=1e967bad3d04dd989efd8f02191568abb5382757. trajectory-tail →0→0→0→0. |
 | **STORY-176 DELIVERED (2026-07-20, D-485). PR #427 squash-merged to develop 595cdba8d2033abb6dea5b3c42c01ec4d7e1a954 (human-executed, 2026-07-20T21:46:45Z, explicit per-PR authorization; DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match). CI 13/13 PASS (incl. new "Bin selftest suites" step). Stale-verdict PASS. pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted). Security APPROVE (0C/0H/0M/1L pre-existing SEC-001). 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED). Story v2.7/6ec8772. STORY-INDEX v3.83→v3.84. stories_delivered 115→116. Wave-84 DELIVERY COMPLETE.** | **DELIVERED (D-485)** | develop=595cdba8. Wave-84 integration gate next. trajectory-tail →0→0→0→0 |
 | **STORY-176 Step-4.5 CONVERGED (8 passes, streak P6/P7/P8, BC-5.39.001 SATISFIED). Pass 6 NITPICK_ONLY (first clean); pass 7 NITPICK_ONLY (streak 2/3); pass 8 NITPICK_ONLY (streak 3/3, CONVERGED). Code tip ea4bcd8e; story v2.7/6ec8772. Step 5 demo evidence dispatched.** | **DELIVERED/CONVERGED (D-484→D-485)** | STORY-176 v2.7/6ec8772; STORY-INDEX v3.83→v3.84. trajectory 3M/5L→1M/2L→1M→1M/2L→1M/1L→0→0→0. trajectory-tail →0→0→0→0 |
-| **D-484 SESSION RESUMED (2026-07-20, human-approved). Worktree health PASS (factory-artifacts in sync at 5f9218dd, 0 ahead / 0 behind); develop=fa9be701 verified; no story worktrees. Human decisions at resume: STORY-176 v2.2 per-story delivery next (wave-84 3/3); Dependabot #422-425 DEFERRED to DEP-SOAK-FOLLOWUP-2026-07-27 maintenance sweep; PR #423 satisfies SCORECARD-ENABLEMENT-RUNBOOK Dependabot re-pin watch. Pipeline ACTIVE.** | **ACTIVE (D-484)** | STORY-176 delivery dispatching. trajectory-tail →0→0→0→0 |
 
 ## Decisions Log
 
@@ -174,6 +174,7 @@ Wave-84 gate-level adversarial trajectory (6 passes, code frozen 1e967bad): `1M�
 | D-485 | STORY-176 DELIVERED (PR #427 595cdba8 squash-merged to develop 2026-07-20T21:46:45Z, human-executed). CI 13/13. Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED). Story v2.7. STORY-INDEX v3.83→v3.84. stories_delivered 115→116. Wave-84 DELIVERY COMPLETE (3/3). | 2026-07-20 |
 | D-486 | WAVE-84 GATE CLOSED + S-7.02 COMPLETE (2026-07-21). Integration gate 6-gate all-pass: Gate 1 PASS (2640 tests/94 suites, develop `1e967bad`, clippy/fmt clean, 5 bin/ Python self-tests pass); Gate 2 SKIP (dtu_required:false, passive analyzer); Gate 3 PASS/CONVERGED (6 passes, streak P4/P5/P6, DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED; gate-fix PRs #428 82105d02 / #429 39b30cb1 / #430 1e967bad); Gate 3b PASS (consistency 4MED/3LOW addressed; code-reviewer 0 MAJOR/3 MINOR/6 NIT; security APPROVE 0C/0H/0M); Gate 4 PASS (STORY-147/166/176 demo evidence on develop); Gate 5 SKIP (CI/tooling/factory-process wave, no product behavior change). S-7.02 cycle-close COMPLETE: 12 PG-W84 entries — PG-W84-007/009/011 FIXED in-cycle; PG-W84-001/002/003/004/005/006/008/010/012 deferred to DF-VALIDATION-001 batch (see cycles/wave-084/lessons.md [codified]/[deferred] entries). gate-summary.md + code-review.md + lessons.md authored. STORY-INDEX v3.84→v3.85 (wave-84 delivery row CLOSED; story-file loci synced: STORY-147/166/176 status ready→delivered). develop=1e967bad. WAVE-84 CLOSED. | 2026-07-21 |
 | D-487 | E-16/E-17 ARP STALE-DRAFT SUPERSESSION (2026-07-21). STORY-111..115 (E-16, 47 pts, waves 40-44) + STORY-116/117 (E-17, 8 pts, waves 45-46) status draft→superseded DELIVERED-BY-DRIFT. Twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. Wave-table scheduled 747→692 (55 pts / 7 stories excluded from scheduled); total_points 775 unchanged; epic totals unchanged per D-477/D-480 supersession-convention. Arithmetic: 692 + 83 (exclusion sum) = 775. E-16 and E-17 marked DELIVERED/CLOSED in epic table. STORY-INDEX v3.85→v3.86. Backlog now EMPTY; no wave-85 scheduled. develop=1e967bad (unchanged — factory-only burst). | 2026-07-21 |
+| D-488 | SESSION WRAP (2026-07-21). Human-requested pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427); wave-84 gate CLOSED (adversary 3-clean P4/P5/P6, gate-fix PRs #428/#429/#430); E-16/E-17 ARP 7-draft supersession (STORY-111..117, delivered-by-drift, twice-validated, human-approved). Backlog EMPTY; no wave-85 scheduled; no in-flight work. Pipeline PAUSED. | 2026-07-21 |
 
 ---
 
@@ -224,15 +225,15 @@ Wave-84 gate-level adversarial trajectory (6 passes, code frozen 1e967bad): `1M�
 
 ## Session Resume Checkpoint
 
-**D-487 (2026-07-21). E-16/E-17 ARP stale-draft supersession COMPLETE — backlog EMPTY; pipeline idle at clean milestone. develop=1e967bad (unchanged); STORY-INDEX v3.86. trajectory-tail →0→0→0→0.**
+**D-488 (2026-07-21). SESSION WRAP — pipeline PAUSED at clean idle milestone; wave-84 CLOSED; backlog EMPTY; no wave-85. trajectory-tail →0→0→0→0.**
 
 Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and `cycles/wave-084/session-checkpoints.md`.
 
-- **Date:** 2026-07-21. Position: D-487 E-16/E-17 ARP stale-draft supersession COMPLETE. Product backlog EMPTY of scheduled work — wave-84 CLOSED (D-486), all E-11 + E-16/E-17 stale drafts dispositioned (D-480/D-487). No wave-85 scheduled.
-- **Ground truth:** develop = `1e967bad3d04dd989efd8f02191568abb5382757` (PR #430, wave-84 final gate-fix; UNCHANGED by this burst); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged). DRIFT-BACKMERGE-SQUASH-001 still applies.
-- **In-flight work:** None. Backlog EMPTY. No story worktrees; no open factory PRs.
-- **NEXT STEP:** Pipeline idle at clean milestone. No wave-85 scheduled. Pending optional work items for human choice (do NOT start any): (a) maintenance sweep — deferred Dependabot #422-425 + DEP-SOAK-FOLLOWUP-2026-07-27; (b) release cut of the accumulated [Unreleased] CHANGELOG (wave-84 tooling entries); (c) new feature request; (d) still-active drift/carry-forward items (STORY-INDEX-IN-INPUTS-CHURN structural fix, PR #407 governance, SEC-001/SEC-002 deferrals, IEC104-TIMED-CMD-GAP-001).
-- **Pending human decisions:** (a) PR #407 governance (external; triage at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix (STORY-INDEX.md-in-inputs + STATE.md-in-inputs clusters); (c) next action from optional work items above.
+- **Date:** 2026-07-21. Position: D-488 SESSION WRAP. Pipeline PAUSED at clean idle milestone — wave-84 CLOSED (D-486), backlog EMPTY (D-487: E-16/E-17 ARP 7-draft supersession done), no wave-85 scheduled.
+- **Ground truth:** develop = `1e967bad3d04dd989efd8f02191568abb5382757` (PR #430, wave-84 final gate-fix); main = `67a06b6f82654d2af79d023b15ac56ab03182ffd` (v0.13.0, unchanged); factory-artifacts = this wrap commit. DRIFT-BACKMERGE-SQUASH-001 still applies.
+- **In-flight work:** NONE (no stories mid-TDD, no open factory PRs, no worktrees, no adversarial streak).
+- **NEXT STEP (do NOT start without human direction):** Optional work menu: (a) release cut of accumulated [Unreleased] CHANGELOG wave-84 tooling entries; (b) maintenance sweep — deferred Dependabot #422-425 (incl. harden-runner 2.20.0 re-pin) + DEP-SOAK-FOLLOWUP-2026-07-27; (c) new feature request (Feature Mode); (d) carry-forwards: STORY-INDEX-IN-INPUTS-CHURN structural fix, PR #407 governance, SEC-001/SEC-002 deferrals, IEC104-TIMED-CMD-GAP-001, wave-84 PG-W84-* deferred for next DF-VALIDATION-001 pass.
+- **Pending human decisions:** (a) PR #407 governance (external; triage at planning/pr-407-security-triage.md — do NOT re-run); (b) input-hash churn structural fix (STORY-INDEX.md-in-inputs + STATE.md-in-inputs clusters); (c) next action from optional work menu above.
 - **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred + 4 blocked + Dependabot PRs #422-425); SCORECARD-ENABLEMENT-RUNBOOK (PR #423 deferred to maintenance sweep).
 - **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.19 / PRD v1.57 / STORY-INDEX v3.86 / dep-graph v3.9.
 - **Resume command:** `/vsdd-factory:next-step`.
@@ -274,8 +275,8 @@ v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-CANONICAL-FRAME-HOLDOUT-001.
 | STORY-147 per-story convergence report | `cycles/wave-084/STORY-147/convergence-report.md` + `adversary-convergence-state.json` (8 passes, CONVERGED P6/P7/P8) |
 | STORY-166 per-story convergence report | `cycles/wave-084/STORY-166/convergence-report.md` + `adversary-convergence-state.json` (10 passes, CONVERGED P8/P9/P10) |
 | STORY-176 per-story convergence report | `cycles/wave-084/STORY-176/convergence-report.md` + `adversary-convergence-state.json` (8 passes, CONVERGED P6/P7/P8; BC-5.39.001 SATISFIED) |
-| Wave-084 burst log | `cycles/wave-084/burst-log.md` (archives rolled-out CPS rows D-477 through D-483 + D-484) |
-| Wave-084 session checkpoints (all archived) | `cycles/wave-084/session-checkpoints.md` (D-481 through D-486 superseded checkpoints) |
+| Wave-084 burst log | `cycles/wave-084/burst-log.md` (archives rolled-out CPS rows D-477 through D-484 + D-488 wrap entry) |
+| Wave-084 session checkpoints (all archived) | `cycles/wave-084/session-checkpoints.md` (D-481 through D-487 superseded checkpoints) |
 | feature-iec104 F5 adversarial reviews | `.factory/phase-f5-adversarial/round-1-review.md` through `round-5-review.md`; `convergence-summary.md` (D-468) |
 | feature-iec104 F6 gate verdict + hardening artifacts | `.factory/phase-f6-hardening/f6-gate-verdict-iec104.md` (D-469 PASS) |
 | feature-iec104 F7 convergence artifacts | `.factory/phase-f7-convergence/delta-convergence-report.md` (D-470 CONVERGED) |

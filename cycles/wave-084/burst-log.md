@@ -323,6 +323,55 @@ remediation burst row addition (D-484, 2026-07-20).
 
 ---
 
+## Burst: D-484 row archived from STATE.md Current Phase Steps (2026-07-21)
+
+**Parent-commit:** HEAD of factory-artifacts immediately prior to the D-488 SESSION WRAP bookkeeping commit (see `git -C .factory log -1 --format='%H' HEAD^` at commit time).
+
+**Adversary verdict:** N/A — bookkeeping burst; no adversarial pass conducted as part of this archival step. This is a last-5-rule archival of a Current Phase Steps row rolled out of STATE.md by the D-488 SESSION WRAP row addition, not a spec-evolution or code-delivery burst in its own right.
+
+**Files touched (Dim-1): 1 unique files**
+
+- .factory/cycles/wave-084/burst-log.md (this file)
+
+**Codifications:** None — pure archival. Row content below.
+
+**Archived row (verbatim from STATE.md Current Phase Steps, rolled out under the last-5 rule when the D-488 SESSION WRAP row was added):**
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **D-484 SESSION RESUMED (2026-07-20, human-approved). Worktree health PASS (factory-artifacts in sync at 5f9218dd, 0 ahead / 0 behind); develop=fa9be701 verified; no story worktrees. Human decisions at resume: STORY-176 v2.2 per-story delivery next (wave-84 3/3); Dependabot #422-425 DEFERRED to DEP-SOAK-FOLLOWUP-2026-07-27 maintenance sweep; PR #423 satisfies SCORECARD-ENABLEMENT-RUNBOOK Dependabot re-pin watch. Pipeline ACTIVE.** | **ACTIVE (D-484)** | STORY-176 delivery dispatching. trajectory-tail →0→0→0→0 |
+
+**Dim-2 Attestation:** N/A — bookkeeping burst; no shell gates applicable.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** STATE.md Current Phase Steps last-5-rule overflow (D-484 row) rolled out by the D-488 SESSION WRAP row addition (2026-07-21).
+
+---
+
+## Burst — D-488 SESSION WRAP (2026-07-21)
+
+**Burst type:** Factory-only bookkeeping — session wrap; state-manager closing burst.
+
+**Summary:** Human-requested pipeline pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427 595cdba8); wave-84 gate CLOSED (D-486, 6-pass adversary streak P4/P5/P6, gate-fix PRs #428/429/430); E-16/E-17 ARP 7-draft supersession (STORY-111..117, DELIVERED-BY-DRIFT, twice-validated DF-VALIDATION-001, human-approved, D-487). Backlog now EMPTY; no wave-85 scheduled; no in-flight work; no open factory PRs. Pipeline PAUSED. develop=1e967bad (UNCHANGED — factory-only burst).
+
+**Files touched (Dim-1): 4 unique files**
+
+- .factory/STATE.md (D-488 transition: current_step, timestamp, EXACT RESUME POINT, Project Metadata Mode + Last Updated rows, CPS D-488 row + D-484 roll-out, Decisions Log D-488, Session Resume Checkpoint)
+- .factory/cycles/wave-084/burst-log.md (this file — D-484 CPS archival + D-488 wrap entry)
+- .factory/cycles/wave-084/session-checkpoints.md (D-487 checkpoint archived)
+- Other uncommitted artifacts: regression-state.json, sidecar-learning.md, code-delivery/FIX-W84G-001/, code-delivery/FIX-W84G-002/, code-delivery/FIX-W84G-003/, code-delivery/STORY-176/pr-review-PR428-F-W84G-P1-001.md
+
+**Dim-2 Attestation:** N/A — factory-only burst; no shell gates applicable; develop UNCHANGED.
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch (develop=1e967bad, unchanged).
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-488 SESSION WRAP; pipeline idle at clean milestone.
+
+---
+
 ## Burst: D-483 row archived from STATE.md Current Phase Steps (2026-07-21)
 
 **Parent-commit:** HEAD of factory-artifacts immediately prior to the D-487 E-16/E-17 ARP stale-draft supersession bookkeeping commit (see `git -C .factory log -1 --format='%H' HEAD^` at commit time).

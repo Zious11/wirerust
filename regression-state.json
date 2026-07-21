@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-20T17:43:49Z","command":"cargo test --all-targets 2>&1 | grep \"^test result\" | awk -F'[;.] ' '{print $1}' | sort | uniq -c; cargo test --all-targets 2>&1 | grep -c \"FAILED\\|error\\[\" || true"}
+{"status":"pass","timestamp":"2026-07-20T22:25:52Z","command":"git checkout develop -q 2>&1; echo \"=== cargo test --release ===\" && cargo test --release --all-targets 2>&1 | grep -E \"^test result|error\\[|error:|warning: unused\" | sort | uniq -c | tail -30"}
