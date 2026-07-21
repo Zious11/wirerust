@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-07-21
+
 ### Added
 
 - **`bin/check-green-doc-tense`: four phrase-level stub-era patterns added
@@ -1828,7 +1830,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/Zious11/wirerust/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/Zious11/wirerust/compare/v0.11.5...v0.12.0
