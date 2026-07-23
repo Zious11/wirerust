@@ -59,7 +59,7 @@ control logic), T0827 (loss of control / system reset / reconnaissance), and T08
 | BC-2.19.019 | Control Command TypeIDs 45–51 Emit T1692.001; Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836 | TypeID-range detection — switching commands emit T1692.001; set-point/bitstring TypeIDs 48–51 also emit T0836 |
 | BC-2.19.020 | C_RP_NA_1 (TypeID 105) Emits T0827 "Loss of Control" Finding | System-reset detection |
 | BC-2.19.021 | Interrogation and Clock-Sync Commands (TypeIDs 100, 101, 103) Are Logged Without Findings | Interrogation/clock-sync commands — no finding, logged only |
-| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly (v1.1: silently-logged range narrowed to {1–57, 65–99, 102, 104, 106–127}; TypeIDs 58–64 removed — now handled by BC-2.19.029/030 via STORY-180) | TypeID=0 and 128–255 anomaly detection; [1–127] defined-but-unhandled silently logged |
+| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly (v1.1: silently-logged range narrowed to {1–44, 52–57, 65–99, 102, 104, 106–127}; TypeIDs 58–64 removed — now handled by BC-2.19.029/030 via STORY-180) | TypeID=0 and 128–255 anomaly detection; [1–127] defined-but-unhandled silently logged |
 
 ## Acceptance Criteria
 

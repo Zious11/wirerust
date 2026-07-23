@@ -18,7 +18,6 @@ behavioral_contracts:
   - BC-2.19.029
   - BC-2.19.030
   - BC-2.19.022
-  - BC-2.19.028
 verification_properties:
   - VP-047
 lifecycle_status: active
@@ -144,7 +143,6 @@ T1692.001 + T0836. No change in per-arm finding counts vs. pre-wave-85 baseline.
 | BC-2.19.029 | Postcondition 1 — T1692.001 for TypeIDs 58–60 | Case B |
 | BC-2.19.030 | Postconditions 1–2 — T1692.001 + T0836 for TypeIDs 61–64 | Case C |
 | BC-2.19.022 v1.1 | Invariant 1 — silently-logged range {52–57, 65–99} only | Case A (no overflow) |
-| BC-2.19.028 | Invariant 3 — IEC-104 traffic causes no unrelated analysis side effects | Case A (zero-finding floor) |
 
 ## Verification Approach
 
@@ -171,11 +169,14 @@ wirerust analyze iec104_attack_timed_setpoint.pcap --iec104 --json | \
 # Expect: > 0 (one per TypeID 61–64 frame)
 
 # Case D: untimed-arm non-regression on real corpus
-# Compare to pre-wave-85 baseline run on same corpus
+# Isolate untimed-only T1692.001 findings by excluding timed-mnemonic summaries.
+# Untimed summaries contain "(C_SC/C_DC/C_RC)" or "(C_SE/C_BO)" — no "time-tagged" qualifier.
+# Timed summaries contain "time-tagged" or a timed mnemonic (C_SC_TA/C_DC_TA etc.).
+# Negating the timed-mnemonic pattern selects only untimed-arm findings.
 wirerust analyze 4sics_iec104_subset.pcap --iec104 --json | \
   jq '[.findings[] | select(
     (.mitre_techniques[] == "T1692.001") and
-    (.summary | test("C_SC_NA|C_DC_NA|C_RC_NA|C_SE_NA|C_SE_NB|C_SE_NC|C_BO_NA") | not)
+    (.summary | test("time-tagged|C_SC_TA|C_DC_TA|C_RC_TA|C_SE_TA|C_SE_TB|C_SE_TC|C_BO_TA") | not)
   )] | length'
 # Expect: same count as pre-wave-85 (no regression on untimed arms)
 ```

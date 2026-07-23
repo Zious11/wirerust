@@ -166,4 +166,54 @@ D-495 WAVE-85 ADVERSARIAL PASS 1 → REMEDIATED. Pass-1 adversary (spec+story pa
 
 ---
 
+---
+
+## Archived CPS Row — D-491 (rolled from STATE.md CPS under last-5 rule, D-496 burst)
+
+| **v0.13.1 RELEASED (2026-07-21, D-491). Dev-tooling patch: green-doc-tense patterns 26-29, validate-citations path:line:anchor, gitignore mutants guard, IEC-104 doc-drift batch (PRs #422-430 wave-84 + maint). Release PR #432 47b7d23c squash-merged to main (human-executed). Tag v0.13.1 lightweight (orchestrator-pushed under explicit human 'proceed' authorization); tag_object = commit SHA. GH release 4 assets (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu). Back-merge PR #433 TRUE-MERGE dc7331fb to develop (human decision). DRIFT-BACKMERGE-SQUASH-001 RESOLVED: main IS ancestor of develop (git merge-base --is-ancestor PASS), first time since v0.12.1/D-436. main=47b7d23c. develop=dc7331fb. trajectory-tail →0→0→0→0** | **RELEASED (D-491)** | v0.13.1 RELEASED. DRIFT-BACKMERGE-SQUASH-001 RESOLVED. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 4 (2026-07-23) — Adversarial Pass 2 Remediation
+
+D-496 WAVE-85 ADVERSARIAL PASS 2 → REMEDIATED. Pass-2 adversary (spec+story @ 304bb465, fresh context): 0 CRIT / 0 HIGH / 3 MED / 1 LOW / 1 process-gap. NO merge-blocker. All 4 actionable findings fixed; PG-W85-001 adjudicated upstream. HS-INDEX v2.17. Next: adversary pass 3 (fresh context).
+
+---
+
+## Burst: D-496 WAVE-85 ADVERSARIAL PASS 2 → REMEDIATED (2026-07-23)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-495 pass-1 remediation commit).
+
+**Adversary verdict:** PASS-2 REMEDIATED — 0 CRIT / 0 HIGH / 3 MED / 1 LOW / 1 process-gap. NO merge-blocker (zero HIGH/CRIT). All 4 actionable findings fixed. F-P2-005 (process-gap) adjudicated as plugin-level defect, NOT a per-file fix; PG-W85-001 filed for upstream resolution.
+
+**Files touched (Dim-1): 5 unique files**
+
+- .factory/STATE.md (D-496 transition: frontmatter current_step + timestamp; EXACT RESUME POINT D-496; Project Metadata Last Updated; Phase Progress wave-085 row + trajectory; Convergence Status wave-85 trajectory; Concurrent Cycles wave-085 row; CPS D-496 add + D-491 rolled; Decisions Log D-496; Drift Items PG-W85-001 added; Session Resume Checkpoint D-496)
+- .factory/cycles/wave-085/burst-log.md (D-491 CPS archival + D-496 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-495 checkpoint archived — created this burst)
+- .factory/stories/STORY-170.md (line 62: silently-logged range {1–57,65–99,...}→{1–44,52–57,65–99,...})
+- .factory/holdout-scenarios/HS-135-iec104-timed-parity-neighbor-silence-guard.md (Case C/D LEN 0x0B→0x0E)
+- .factory/holdout-scenarios/HS-136-iec104-timed-control-real-world-corpus.md (BC-2.19.028 citation dropped; Case D jq regex fixed to negate timed-mnemonic set)
+- .factory/holdout-scenarios/HS-INDEX.md (v2.16→v2.17; HS-136 BC-column + narrative BC-2.19.028 removal)
+- .factory/sidecar-learning.md (session-marker lines)
+
+**Codifications:**
+- F-P2-001 MED REMEDIATED: STORY-170:62 silently-logged range corrected {1–57,65–99,...}→{1–44,52–57,65–99,...} (was wrongly folding handled TypeIDs 45–51); 17-site sibling sweep confirmed no other stale ranges. STORY-170 input-hash 7873f11 (unchanged — annotation-only).
+- F-P2-002 MED REMEDIATED: HS-136 BC-2.19.028 dropped (Inv-3 text mismatch + DoS-cap not exercised by any case); now absent across all HS-133..136 + HS-INDEX.
+- F-P2-003 MED REMEDIATED: HS-136 Case D dead jq regex (_NA/_NB/_NC mnemonics match nothing) fixed to negate timed-mnemonic set (parity with Case A); iec104.rs:764/805 confirm actual summaries use C_SC/C_DC/C_RC and C_SE/C_BO mnemonics.
+- F-P2-004 LOW REMEDIATED: HS-135 Case C/D frame LEN 0x0B→0x0E.
+- F-P2-005 MED[process-gap] PG-W85-001 ADJUDICATED: plugin-level template+hook defect — holdout-scenario-template.md + validate-template-compliance.sh treat '## Category: real-world-corpus' as unconditionally-required (only 6/136 HS files carry it; HS-122/132 lack it), forcing a contradictory heading on non-corpus files. NOT a per-file fix; does NOT block wave-85 convergence. Filed as PG-W85-001 → DF-VALIDATION-001 + upstream drbothen/vsdd-factory.
+- HS-INDEX v2.16→v2.17.
+
+**Summary:** Wave-85 adversarial pass-2 remediation burst. Pass-2 adversary reviewed spec+story package at 304bb465 in fresh context: 0 CRIT / 0 HIGH / 3 MED / 1 LOW / 1 process-gap. No merge-blocker findings. F-P2-001: STORY-170 line 62 silently-logged range was incorrectly listing TypeIDs 45–51 (already handled by the detection path) — corrected to {1–44,52–57,65–99,...} reflecting actual gap; 17-site sibling sweep confirmed no other stale ranges. F-P2-002: HS-136 BC-2.19.028 citation dropped — the Invariant 3 text does not match BC-2.19.028 semantics and no case exercises the DoS-cap constraint; now absent from all HS-133..136 + HS-INDEX. F-P2-003: HS-136 Case D jq regex was keying on _NA/_NB/_NC mnemonics which match no actual iec104.rs output; fixed to negate the timed-mnemonic set (C_SC_NA_1, C_DC_NA_1, etc.) for parity with Case A. F-P2-004: HS-135 Case C/D APCI LEN corrected 0x0B→0x0E. F-P2-005 adjudicated as plugin defect (PG-W85-001): the '## Category: real-world-corpus' heading is a plugin template/hook artefact, not a per-file obligation on HS-135; filed for upstream fix; does not block wave-85 convergence. develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Adversary pass 3 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-496 WAVE-85 ADVERSARIAL PASS 2 → REMEDIATED. Pass-3 adversarial review next (fresh context). clean-pass count = 0 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

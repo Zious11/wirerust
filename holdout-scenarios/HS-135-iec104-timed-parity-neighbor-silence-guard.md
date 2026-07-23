@@ -187,7 +187,7 @@ element (TypeIDs 58–60): 4+(6+3+1+7)=21=0x15. LEN for timed 2-byte+QOS element
 These fall to the `_` catch-all; any plausible minimal frame structure suffices since no finding
 is emitted. Example using a 1-byte placeholder info element per TypeID:
 TypeID bytes: 0x34(52), 0x35(53), 0x36(54), 0x37(55), 0x38(56), 0x39(57).
-Frame template: `APCI: 68 0B 00 00 00 00; ASDU: <TypeID> 01 06 00 01 00 64 00 00 00`
+Frame template: `APCI: 68 0E 00 00 00 00; ASDU: <TypeID> 01 06 00 01 00 64 00 00 00`
 
 **typeids_65_66_67_99.pcap** (Case D — neighbor silence): Four I-frames, TypeIDs 65, 66, 67, 99
 (unhandled above the new timed set-point arm). Same minimal frame template.
