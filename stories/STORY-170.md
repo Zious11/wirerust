@@ -102,7 +102,7 @@ control logic), T0827 (loss of control / system reset / reconnaissance), and T08
 - Then no finding is emitted — these TypeIDs are silently logged (future-proof design per BC-2.19.022 v1.1)
 - Note (v2.1 annotation): TypeIDs 58–64 were formerly listed in this silently-logged set. As of BC-2.19.022 v1.1
   (wave-85), they are handled explicitly: 58–60 emit T1692.001 Possible (BC-2.19.029, STORY-180) and 61–64
-  emit T1692.001 + T0836 Possible (BC-2.19.030, STORY-180). The silently-logged set is now {52–57, 65–99, 102,
+  emit T1692.001 + T0836 Possible (BC-2.19.030, STORY-180). The silently-logged set is now {1–44, 52–57, 65–99, 102,
   104, 106–127} within [1, 127].
 (traces to BC-2.19.022 invariant 1)
 

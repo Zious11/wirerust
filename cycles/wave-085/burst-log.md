@@ -216,4 +216,44 @@ D-496 WAVE-85 ADVERSARIAL PASS 2 → REMEDIATED. Pass-2 adversary (spec+story @ 
 
 ---
 
+## Archived CPS Row — D-492 (rolled from STATE.md CPS under last-5 rule, D-497 burst)
+
+| **SESSION WRAP (2026-07-21, D-492). Human-requested pause at clean post-release milestone. Session D-489..D-491 (exhaustive): maint-2026-07-21 COMPLETE (8 sweeps, 0 CRIT/HIGH residual; Dependabot #422-425 + doc-drift #431 merged; holdouts repaired HS-INDEX v2.14; ARCH-INDEX v2.20/STORY-INDEX v3.87; register v2.0); v0.13.1 RELEASED (PR #432 47b7d23c, tag v0.13.1 lightweight, GH release 4 assets); back-merge #433 TRUE-MERGE dc7331fb — DRIFT-BACKMERGE-SQUASH-001 RESOLVED. No in-flight work, no story worktrees, no factory lock. Pipeline PAUSED. trajectory-tail →0→0→0→0** | **PAUSED (D-492)** | Pipeline PAUSED at clean post-release milestone. No in-flight work. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 5 (2026-07-23) — Adversarial Pass 3 Remediation
+
+D-497 WAVE-85 ADVERSARIAL PASS 3 → REMEDIATED. Pass-3 adversary (spec+story @ dcc8cc06, fresh context): 0 CRIT / 0 HIGH / 1 MED. NO merge-blocker. F-P3-001: STORY-170 AC-170-005 Note {1–44,...} fix. Clean-pass counter still 0/3. Next: adversary pass 4 (fresh context).
+
+---
+
+## Burst: D-497 WAVE-85 ADVERSARIAL PASS 3 → REMEDIATED (2026-07-23)
+
+**Parent-commit:** `dcc8cc06` — factory(wave-085): adversarial pass-2 remediated (D-496).
+
+**Adversary verdict:** PASS-3 REMEDIATED — 0 CRIT / 0 HIGH / 1 MED. NO merge-blocker. F-P3-001 (MED): STORY-170 AC-170-005 Note (lines 105-106) dropped the [1,44] monitoring-direction segment — partial-fix residual of pass-2 (line 62 BC-table fixed, sibling Note locus missed). 12 other review axes independently re-verified clean by pass-3 (SEC-001 anchor, APCI LEN byte-recompute, jq filters, count=0, BC-2.19.028 orphan-free, TypeID/technique maps, index arithmetic, AC↔BC traces, canonical-frame coverage). Clean-pass counter still 0/3.
+
+**Files touched (Dim-1): 4 unique files**
+
+- .factory/STATE.md (D-497 transition: frontmatter current_step + timestamp; EXACT RESUME POINT D-497; Project Metadata Last Updated; Phase Progress wave-085 row + trajectory; Convergence Status wave-85 trajectory; Concurrent Cycles wave-085 row; CPS D-497 add + D-492 rolled; Decisions Log D-497; Session Resume Checkpoint D-497)
+- .factory/cycles/wave-085/burst-log.md (D-492 CPS archival + D-497 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-496 checkpoint archived)
+- .factory/stories/STORY-170.md (AC-170-005 Note lines 105-106: {52–57, 65–99,...} → {1–44, 52–57, 65–99,...}; all 11 STORY-170 silent-set loci now consistent; input-hash 7873f11 unchanged)
+
+**Codifications:**
+- F-P3-001 MED REMEDIATED: STORY-170 AC-170-005 Note (lines 105-106) corrected — the Note text referred to "silently-logged set" as `{52–57, 65–99, 102, 104, 106–127}` but was missing the `1–44` monitoring-direction segment that had already been correct in line 62 BC-table (pass-2 partial-fix). Corrected to `{1–44, 52–57, 65–99, 102, 104, 106–127}`. Exhaustive in-file sweep confirmed all 11 STORY-170 silent-set loci now consistent; cross-file clean. STORY-170 hash 7873f11 (unchanged — annotation-only fix).
+- 12 other review axes independently re-verified clean: SEC-001 anchor (enip.rs:992-999), APCI LEN byte-recompute (HS-133/134 fixed in P1/P2), jq filters (HS-136 Case D fixed in P2), count=0 (Inv-3 fixed in P1), BC-2.19.028 orphan-free (dropped from HS-133/134 in P1, HS-136 in P2, HS-INDEX in P2), TypeID/technique maps (exhaustive), index arithmetic (STORY-INDEX v3.88 consistent), AC↔BC traces (all STORY-170/180/181 ACs trace), canonical-frame coverage (19 frames per F5 baseline).
+
+**Summary:** Wave-85 adversarial pass-3 remediation burst. Pass-3 adversary reviewed spec+story package at dcc8cc06 (fresh context): 0 CRIT / 0 HIGH / 1 MED. F-P3-001: STORY-170 AC-170-005 Note (lines 105-106) was missing the `1–44` monitoring-direction segment in the silently-logged set description — a partial-fix residual from pass-2 (line 62 BC-table row was fixed in P2, but this sibling Note locus at lines 105-106 was missed). Corrected to `{1–44, 52–57, 65–99, 102, 104, 106–127}`; exhaustive in-file sweep confirmed all 11 STORY-170 silent-set loci now consistent; no cross-file stale instances found. 12 other review axes independently re-verified clean. STORY-170 hash 7873f11 unchanged (annotation-only). develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Clean-pass counter still 0/3. Adversary pass 4 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-497 WAVE-85 ADVERSARIAL PASS 3 → REMEDIATED. Pass-4 adversarial review next (fresh context). clean-pass count = 0 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
