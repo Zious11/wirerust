@@ -253,4 +253,18 @@ Archived checkpoints from STATE.md (superseded by newer session resume points).
 
 ---
 
+## Checkpoint archived 2026-07-23 (replaced by D-493 SESSION RESUMED + WAVE-85 SCOPED checkpoint)
+
+**D-492 SESSION WRAP (2026-07-21). Pipeline PAUSED at clean post-release milestone. maint-2026-07-21 COMPLETE (D-490); v0.13.1 RELEASED (D-491); DRIFT-BACKMERGE-SQUASH-001 RESOLVED. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-21. Position: D-492 SESSION WRAP; pipeline PAUSED post-v0.13.1; maint-2026-07-21 COMPLETE (D-490); v0.13.1 RELEASED (D-491).
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-492 wrap commit; cargo 0.13.1 both branches. DRIFT-BACKMERGE-SQUASH-001 RESOLVED (main IS ancestor of develop).
+- **In-flight work:** NONE. No stories mid-TDD, no open factory PRs, no worktrees, no adversarial streak in progress. Only open PR: external #407 (DEFERRED, governance pending — do NOT re-run security triage). Untracked bin/__pycache__/ in product tree is transient bytecode, not WIP.
+- **NEXT STEP (do NOT start without human direction):** Options: (a) wave-85 IEC-104 completion mini-wave (IEC104-TIMED-CMD-GAP-001 detection story + DF-VALIDATION-001 research first + IEC-104 holdout authoring + SEC-001 enip refactor — SEC-001 and ROUTE-W74 TARGET-PASSED, need re-triage); (b) hygiene batches; (c) PG-W84 DF-VALIDATION-001 research pass (9 deferred process-gaps); (d) DEP-SOAK-FOLLOWUP-2026-07-27 (dated, on/after 2026-07-27).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN structural fix; SEC-001 + ROUTE-W74 target-passed re-triage; ROUTE-DOC-DEFER-2026-07-21 next doc sweep.
+- **Spec versions:** BC-INDEX v2.34 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.57 / STORY-INDEX v3.87 / dep-graph v3.9 / HS-INDEX v2.14 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-493 SESSION RESUMED + WAVE-85 SCOPED checkpoint (2026-07-23).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

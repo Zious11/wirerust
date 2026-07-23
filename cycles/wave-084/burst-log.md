@@ -778,3 +778,11 @@ out by the D-485 STORY-176 DELIVERED row addition (2026-07-20).
 
 **E-16/E-17 ARP STALE-DRAFT SUPERSESSION (2026-07-21, D-487). STORY-111..115 (E-16, v0.7.0, waves 40-44, 47 pts) + STORY-116/117 (E-17, v0.7.0/v0.7.1, waves 45-46, 8 pts) status draft→superseded DELIVERED-BY-DRIFT; wave-table scheduled 747→692; STORY-INDEX v3.85→v3.86. Backlog now EMPTY of scheduled work.** | COMPLETE (D-487) | STORY-INDEX v3.86. Backlog EMPTY. trajectory-tail →0→0→0→0. Pipeline idle; no wave-85 scheduled.
 
+---
+
+## CPS Roll — D-488 row rolled out of STATE.md last-5 (D-493, 2026-07-23)
+
+**SESSION WRAP (2026-07-21, D-488). Human-requested pause at clean idle milestone. Session D-484..D-487 (exhaustive): STORY-176 DELIVERED (PR #427 595cdba8); wave-84 gate CLOSED (6-pass adversary streak P4/P5/P6, gate-fix PRs #428 82105d02 / #429 39b30cb1 / #430 1e967bad); E-16/E-17 ARP 7-draft supersession (STORY-111..117, DELIVERED-BY-DRIFT, twice-validated DF-VALIDATION-001, human-approved). Backlog EMPTY; no wave-85 scheduled; no in-flight work; no open factory PRs. Pipeline PAUSED. develop=1e967bad (UNCHANGED). trajectory-tail →0→0→0→0** | PAUSED (D-488) | Pipeline idle at clean milestone. Resume: /vsdd-factory:next-step. trajectory-tail →0→0→0→0.
+
+Rolled out of STATE.md Current Phase Steps (last-5 rule) when the D-493 SESSION RESUMED + WAVE-85 SCOPED row was added (2026-07-23). Belongs to wave-084 era (pre-wave-085 open).
+
