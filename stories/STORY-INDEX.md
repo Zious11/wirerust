@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "3.87"
+version: "3.88"
 status: draft
 producer: story-writer
-timestamp: 2026-07-21T09:00:00Z
+timestamp: 2026-07-23T00:00:00Z
 phase: f4
-total_stories: 132
-total_waves: 84
-total_points: 775  # = 775; wave-table scheduled: 692 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84); epic-table grand total: 775 (STORY-147 re-scoped 3→2 pts 2026-07-19; supersession of STORY-111..117 does not change grand total per D-477/D-480 convention)
+total_stories: 134
+total_waves: 85
+total_points: 783  # = 783; wave-table scheduled: 700 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85); epic-table grand total: 783 (+5 STORY-180 E-22 + +3 STORY-181 E-20)
+# v3.88 (2026-07-23): wave-85 STORY-CREATION BURST (D-493) — STORY-180 (IEC-104 timed control-command detection TypeIDs 58–64, BC-2.19.029+BC-2.19.030+BC-2.19.022 v1.1 regression guard, E-22, 5 pts, wave 85) + STORY-181 (SEC-001 ENIP split-borrow refactor + ROUTE-W74 OBS-1, E-20, 3 pts, wave 85); BC-2.19.022 v1.1 propagation sweep: STORY-170 v2.0→v2.1 (AC-170-005/006 silently-logged range updated, BC table annotated); STORY-INDEX v3.87→v3.88; total_stories 132→134; total_points 775→783; total_waves 84→85; wave-table scheduled 692→700. Arithmetic: E-22 36→41 pts (+5 STORY-180); E-20 79→82 pts (+3 STORY-181); grand total 132+2=134 stories, 775+8=783 pts; wave-table 692+8=700 (both stories wave-85 scheduled).
 # v3.87 (2026-07-21): maint-2026-07-21 SPEC-009: epic table TOTAL points cell corrected 776→775 (per-epic row arithmetic sum = 775 = frontmatter total_points; root cause: v3.79 STORY-147 re-scope delta applied to E-11 row and frontmatter but not to the TOTAL row). STORY-INDEX v3.86→v3.87.
 # v3.86 (2026-07-21): E-16/E-17 ARP stale-draft supersession (D-487, 2026-07-21) — STORY-111..115 (E-16, v0.7.0, 47 pts, waves 40-44) + STORY-116/117 (E-17, v0.7.0/v0.7.1, 8 pts, waves 45-46) status draft→superseded DELIVERED-BY-DRIFT; twice research-validated (DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md), human-approved. Wave-table scheduled 747→692 (7 stories / 55 pts moved to exclusion). Convention (D-477/D-480 precedent): supersession alone does not change total_points (775) or epic-table totals; wave-table scheduled total decremented because STORY-111..117 had actual wave assignments (40-46) and were previously counted. Arithmetic check: 692 + 83 (exclusion sum) = 775 = total_points. E-16 and E-17 marked DELIVERED/CLOSED in epic table. STORY-INDEX v3.85→v3.86.
 # v3.85 (2026-07-21): WAVE-84 GATE CLOSED (D-486, 2026-07-21); wave-84 delivery row updated CLOSED-PENDING-GATE→CLOSED (D-486, 2026-07-21); story-file status loci synced (STORY-147/166/176 frontmatter+body status: ready→delivered, three-loci agreement with STORY-INDEX rows at v3.84). No numeric totals changed.
@@ -329,6 +330,8 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | delivered (D-455, PR #406 d64e5fe, wave-81) | STORY-170, STORY-171 |
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | delivered (D-458, PR #408 084ff93, wave-82; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; 17 adversarial passes 3-clean A/B/C; 2604/0) | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | delivered (D-463, PR #409 547deba, wave-83) | STORY-173 |
+| STORY-180 | IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard) | E-22 | 85 | 5 | draft | STORY-174 |
+| STORY-181 | Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Direction-Keyed Carry Select (Behavior-Preserving Refactor) | E-20 | 85 | 3 | draft | — |
 
 ---
 
@@ -420,7 +423,8 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 82 | STORY-173 | 1 | 5 |
 | 83 | STORY-174 | 1 | 5 |
 | 84 | STORY-166, STORY-176, STORY-147 | 3 | 7 |
-| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD, STORY-143 wave-TBD, STORY-111..117 superseded, STORY-148 superseded, STORY-155 wave-TBD, STORY-175 superseded, STORY-177 superseded, STORY-178 superseded, STORY-179 superseded)** | | **116** | **692** |
+| 85 | STORY-180, STORY-181 | 2 | 8 |
+| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD, STORY-143 wave-TBD, STORY-111..117 superseded, STORY-148 superseded, STORY-155 wave-TBD, STORY-175 superseded, STORY-177 superseded, STORY-178 superseded, STORY-179 superseded)** | | **118** | **700** |
 
 ---
 
@@ -447,10 +451,10 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) — **DELIVERED/CLOSED — STORY-116/117 superseded DELIVERED-BY-DRIFT v0.7.0/v0.7.1 (D-487, 2026-07-21; twice-research-validated DF-VALIDATION-001; planning/e16-e17-arp-draft-disposition-plan.md)** | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
 | E-19: pcapng Capture-Format Reader Support (FE-001) — **COMPLETE (6/6 MERGED, D-184)** | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
-| E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254); STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, wave 62); STORY-148 on_flow_close wiring + DNP3 flow-map cap (SEC-005/SEC-006, maint-2026-07-01) — superseded by PR #362 (D-383, issue #342 closed 2026-07-06)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138, STORY-139, STORY-148 | 11 | 79 |
+| E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254); STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, wave 62); STORY-148 on_flow_close wiring + DNP3 flow-map cap (SEC-005/SEC-006, maint-2026-07-01) — superseded by PR #362 (D-383, issue #342 closed 2026-07-06); STORY-181 SEC-001 unsafe split-borrow refactor + ROUTE-W74 OBS-1 (wave 85, 3 pts, D-493)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138, STORY-139, STORY-148, STORY-181 | 12 | 82 |
 | E-21: Protocol Coverage Catalog (feature-protocol-coverage, 2026-07-02) — **STORY-151/153 wave 67; STORY-152 wave 68; STORY-154 wave 69 (file-sequencing edge 152→154, F-F3P2-005); BCs: BC-2.18.001..004 + BC-2.05.010/011 + BC-2.12.022..024; VPs: VP-041/VP-042/VP-043** | STORY-151, STORY-152, STORY-153, STORY-154 | 4 | 32 |
-| E-22: IEC-104 Passive Analyzer (feature-iec104) — **STORY-167..174 F3 story decomposition (D-440, 2026-07-14; waves 76–83, serialized; dep-graph v3.9 acyclic 137 edges; 170→171 file-seq edge; F3 handoff: BC-2.10.010 EMITTED harness→STORY-173; RETRANSMIT-NS-FALSEPOS-001→STORY-171); BCs: BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025; VPs: VP-044/VP-045/VP-046/VP-047** | STORY-167, STORY-168, STORY-169, STORY-170, STORY-171, STORY-172, STORY-173, STORY-174 | 8 | 36 |
-| **TOTAL** | | **132** | **775** |
+| E-22: IEC-104 Passive Analyzer (feature-iec104) — **STORY-167..174 F3 story decomposition (D-440, 2026-07-14; waves 76–83, serialized; dep-graph v3.9 acyclic 137 edges; 170→171 file-seq edge; F3 handoff: BC-2.10.010 EMITTED harness→STORY-173; RETRANSMIT-NS-FALSEPOS-001→STORY-171); BCs: BC-2.19.001-027 + BC-2.05.012 + BC-2.10.010 + BC-2.12.025; VPs: VP-044/VP-045/VP-046/VP-047; STORY-180 timed control-command detection TypeIDs 58–64 (BC-2.19.029+030+022 v1.1, wave 85, 5 pts, D-493)** | STORY-167, STORY-168, STORY-169, STORY-170, STORY-171, STORY-172, STORY-173, STORY-174, STORY-180 | 9 | 41 |
+| **TOTAL** | | **134** | **783** |
 
 ---
 
@@ -542,6 +546,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
+| 85 | STORY-180, STORY-181 | **OPEN — stories created (D-493, 2026-07-23); awaiting dispatch** | — | — | — |
 
 ## Coverage Verification
 

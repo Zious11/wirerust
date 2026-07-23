@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.57"
+version: "1.58"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 288 BCs → 377 active (378 on disk, BC-2.01.004 retired).**
+> **→ Current total after all deltas: 288 BCs → 380 active (381 on disk, BC-2.01.004 retired; +BC-2.19.028 SR-173-02 v2.32; +BC-2.19.029/030 wave-85 v2.35).**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -424,6 +424,14 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.58 delta (2026-07-23 — wave-85-spec-evolution — BC-2.19.029/030 new: timed IEC-104 control-command detection; BC-2.19.022 v1.1 narrowed):**
+> NEW BC-2.19.029 v1.0: Time-Tagged Switching Control Commands (TypeIDs 58–60, C_SC_TA_1/C_DC_TA_1/C_RC_TA_1) Emit T1692.001 Possible. Closes timed-variant evasion channel IEC104-TIMED-CMD-GAP-001 (CONFIRMED/HIGH — TypeIDs 58–64 previously fell through `_` catch-all silently). Parity with untimed arm 45–47 (BC-2.19.019): Verdict::Possible, Confidence::Medium, ThreatCategory::Impact, CASDU/first_ioa evidence. No T0836 (binary switching, not parameter write). [TEST] tagging inherited from cot_test loop. EC-009: TypeID=52 → silent; EC-010: TypeID=65 → silent (regression guards).
+> NEW BC-2.19.030 v1.0: Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64, C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1) Emit T1692.001 + T0836 Possible. Parity with untimed arm 48–51 (BC-2.19.019): two findings co-emitted, identical verdict/confidence/evidence shape; summaries distinguish timed variants. EC-010: TypeID=52 → silent; EC-011: TypeID=65 → silent.
+> AMENDED BC-2.19.022 v1.0→v1.1: silently-logged defined TypeID range narrowed from {1–44, 52–99, 102, 104, 106–127} to {1–44, 52–57, 65–99, 102, 104, 106–127} — TypeIDs 58–64 now have explicit detection arms and are no longer silently logged. No new MITRE catalog entries. BC-INDEX bumped v2.34→v2.35. SS-19: 28→30 BCs.
+>
+> **Version 1.57 delta (2026-07-15 — SR-173-02 BLOCKING — BC-2.19.028 new: MAX_IEC104_FINDINGS DoS bound):**
+> NEW BC-2.19.028 v1.0: MAX_IEC104_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth. Anchors fidelity finding SR-173-02 (BLOCKING, CWE-400/770). MAX_IEC104_FINDINGS = 10_000 (matches DNP3 BC-2.15.022 and EtherNet/IP BC-2.17.022 precedent); per-session scope (Iec104Analyzer::all_findings); cap enforced at on_data extend step (local_findings truncated before merge); `Iec104Analyzer.dropped_findings: u64` counter incremented by count of discarded findings; counter surfaced in summarize() as detail key "dropped_findings"; no Finding emitted on cap event; fn-doc-comment cardinality-bound requirement (IEC104-FINDINGS-CAP-001) mandated on detect_iec104_threats and on_data; one-shot dedup guards NOT set when finding dropped (EC-002). BC-INDEX bumped v2.31→v2.32. SS-19: 27→28 BCs.
 >
 > **Version 1.56 delta (2026-07-14 — F2 Pass-7 remediation — BC-2.19.005 title sync; BC-2.19.026 Inv-4 math; BC-2.18.003 test-vector count):**
 > M1 (MEDIUM) §2.19.A RTM row BC-2.19.005 title propagated from H1 — added "6-byte APCI" (was "Valid Input", now "Valid 6-byte APCI Input (Happy Path)"). L2 (LOW) BC-2.19.026 v1.4→v1.5: Invariant 4 math corrected ceil(255/6)=43→floor(255/6)=42; unsound "input ≤ 255" assumption dropped (termination unconditional for any finite input). L3 (LOW) BC-2.18.003 v1.4→v1.5: unsupported_protocols() canonical test vector count ~23→~22. BC-INDEX bumped to v2.28. Comprehensive title-sync sweep (DF-SIBLING-SWEEP-001): all 32 IEC-104-related BCs verified — only BC-2.19.005 had a title mismatch. No BC count change.
@@ -2238,7 +2246,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 ### 2.19 IEC 60870-5-104 Passive Analysis (CAP-19) [Feature — ADR-013, feature-iec104]
 
 > **Release target: future (v0.13.0 candidate — additive: new `--iec104` analyzer flag + TCP/2404 passive analysis).**
-> 27 BCs (BC-2.19.001..027) authored plus 3 cross-subsystem BCs (BC-2.05.012, BC-2.10.010, BC-2.12.025).
+> 30 BCs (BC-2.19.001..030) authored plus 3 cross-subsystem BCs (BC-2.05.012, BC-2.10.010, BC-2.12.025): 27 greenfield (BC-2.19.001..027), BC-2.19.028 (SR-173-02 DoS cap, v2.32), BC-2.19.029..030 (wave-85 timed-command detection, v2.35).
 
 > **Protocol overview:** IEC 60870-5-104 is a SCADA telecontrol protocol over TCP port 2404. Two-layer framing:
 > outer APCI (6-byte: start byte 0x68, LEN octet 4–253, CF1–CF4 control octets) + inner ASDU
@@ -2254,9 +2262,11 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 > **Control-command detection (ASDU TypeIDs):**
 > - TypeIDs 45–51 (C_SC/C_DC/C_RC/C_SE_NA_1/C_SE_NB_1/C_SE_NC_1/C_BO_NA_1): T1692.001 (all Possible); set-point + bitstring writes (C_SE 48–50, C_BO 51) emit T0836 (Possible).
+> - TypeIDs 58–60 (C_SC_TA_1/C_DC_TA_1/C_RC_TA_1, time-tagged switching): T1692.001 Possible; no T0836. Parity with untimed arms 45–47.
+> - TypeIDs 61–64 (C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1, time-tagged set-point + bitstring): T1692.001 + T0836 Possible. Parity with untimed arms 48–51.
 > - TypeID 105 (C_RP Reset Process): T0827 "Loss of Control" Possible.
 > - TypeIDs 100/101/103 (interrogation/clock-sync): benign, logged only.
-> - Reserved TypeIDs (0, 128–255): T0814 Possible.
+> - Reserved TypeIDs (0, 128–255): T0814 Possible. TypeIDs 52–57 and 65–99 (defined but unhandled): silently logged (no finding).
 
 > **Formal verification:** VP-044 (Kani P0: parse_apci_header arithmetic safety, no panic, LEN+2∈[6,255]),
 > VP-045 (proptest P1: directional carry buffer isolation), VP-046 (proptest P1: classify_frame_format
@@ -2309,7 +2319,9 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.19.019 | Control Command TypeIDs 45–51 Emit T1692.001; Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836 | P0 | feature-iec104 |
 | BC-2.19.020 | C_RP_NA_1 (TypeID 105) Emits T0827 "Loss of Control" Finding | P0 | feature-iec104 |
 | BC-2.19.021 | Interrogation and Clock-Sync Commands (TypeIDs 100, 101, 103) Are Logged Without Findings | P1 | feature-iec104 |
-| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly | P0 | feature-iec104 |
+| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly (v1.1: silently-logged range narrowed to {52–57, 65–99}) | P0 | feature-iec104 |
+| BC-2.19.029 | Time-Tagged Switching Control Commands (TypeIDs 58–60) Emit T1692.001 Possible | P0 | wave-85-spec-evolution |
+| BC-2.19.030 | Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64) Emit T1692.001 + T0836 Possible | P0 | wave-85-spec-evolution |
 
 #### 2.19.F Sequence Tracking (Group F — SS-19)
 
@@ -2326,6 +2338,12 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.19.026 | Frame-Walk Loop Processes Multiple APDUs per on_data Call | P0 | feature-iec104 |
 | BC-2.19.027 | on_flow_close Removes Iec104FlowState and Discards Carry Bytes | P0 | feature-iec104 |
 
+#### 2.19.H DoS Bound (Group H — SS-19)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.19.028 | MAX_IEC104_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | SR-173-02 |
+
 #### 2.19.X Cross-Subsystem Extensions
 
 | BC ID | Title | Priority | Origin |
@@ -2335,7 +2353,10 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.12.025 | `--iec104` Flag Enables IEC-104 Analysis; Included in `--all`; Default False | P0 | feature-iec104 |
 
 > Full contracts:
-> - `behavioral-contracts/ss-19/BC-2.19.001.md` through `BC-2.19.027.md` (SS-19 IEC-104)
+> - `behavioral-contracts/ss-19/BC-2.19.001.md` through `BC-2.19.027.md` (SS-19 IEC-104 greenfield)
+> - `behavioral-contracts/ss-19/BC-2.19.028.md` (SS-19 DoS cap, SR-173-02)
+> - `behavioral-contracts/ss-19/BC-2.19.029.md` (SS-19 timed switching T1692.001, wave-85-spec-evolution)
+> - `behavioral-contracts/ss-19/BC-2.19.030.md` (SS-19 timed set-point/bitstring T1692.001+T0836, wave-85-spec-evolution)
 > - `behavioral-contracts/ss-05/BC-2.05.012.md` (SS-05 dispatch Rule 8)
 > - `behavioral-contracts/ss-10/BC-2.10.010.md` (SS-10 MITRE catalog T0881)
 > - `behavioral-contracts/ss-12/BC-2.12.025.md` (SS-12 --iec104 flag)

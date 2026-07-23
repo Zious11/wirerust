@@ -1,12 +1,12 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.14"  # maint-2026-07-21 freshness repair: HS-123/125/132 catalog partition 7/23→8/22 (IEC 60870-5-104 promoted to supported in v0.13.0; FINDING-3 maint-2026-07-21); HS-087C pcapng expansion (directory expansion is magic-byte-based per ADR-009, .pcapng included; FINDING-1 maint-2026-07-21). All 4 files version-bumped to v1.1; modified: changelog added. Prior v2.13: wave-72-repair-2026-07-09: repaired 8 primary stale JSON-assertion expectations (HS-021, HS-032, HS-034, HS-059, HS-064, HS-065, HS-074, HS-075) — verdict/confidence/category PascalCase lowercased per BC-2.11.036 v1.2; HS-064/HS-075 expanded to 6-key envelope per BC-2.11.037 (adds schema_version). DF-SIBLING-SWEEP-001 found 5 additional JSON-assertion hits repaired: HS-024, HS-033, HS-035, HS-050, HS-054. All 13 files version-bumped; modified: changelog added per FIX-C precedent. Prior v2.12: maint-2026-07-06 (FIX-C holdout repair): repaired 4 stale scenarios (HS-061, HS-064, HS-066, HS-075) — relaxed exact-key-count assertions to authoritative key sets per BC-2.06.023 v1.6 (HTTP 10 keys), BC-2.07.031 v1.5 (TLS 10 keys), and PR #209 MITRE ATT&CK-for-ICS v19.1 envelope (JSON reporter 5 top-level keys). All four set lifecycle_status active, version bumped to 1.1, modified: changelog added. HS-018 inspected — lifecycle_status: active already present, no change needed. Active count restored to 131. Prior v2.11: maint-2026-07-06 Sweep 4 (holdout-freshness-check): marked 4 scenarios `stale` per DF-030 lifecycle. HS-064, HS-075 assert "Exactly 3 top-level JSON keys" but the JSON reporter now emits 5 (adds `mitre_attack_version` and `mitre_domain` per prior PR #209 MITRE ATT&CK-for-ICS v19.1 envelope — flagged in maint-2026-06-22 sweep, still unfixed). HS-066 asserts "exactly 7 keys" in TLS analyzer detail but v0.11.4 (via BC-2.07.031 v1.5 `dropped_map_entries`, plus earlier BC-2.07.039 `handshake_reassembly_overflows` and BC-2.07.043 `buffer_saturation_drops`) surfaces the detail map at 10 keys. HS-061 asserts "Exactly 9 keys" in HTTP analyzer detail but v0.11.4 (BC-2.06.023 v1.6 `dropped_map_entries`) surfaces the detail map at 10 keys. Frontmatter-only edits; scenario bodies unchanged; input-hashes pre-existing drift not touched (state-manager commits). Prior v2.10: F3P3-002+F3P3-005 remediation: wave propagation + total reconciliation. STORY-154 corrected from wave 68 → wave 69 in all HS-INDEX locations (frontmatter comment line 18, Feature Holdouts table row, section description, Protocol Coverage summary table). Protocol Coverage wave range corrected "waves 67-68" → "waves 67-69" everywhere. Closing Note updated: all-namespace total 182 → 205, breakdown now includes ENIP=13 and Protocol-Coverage=10 to match Totals table. Prior v2.9: F3P2-003 remediation (LOW): HS-124 title and HS-INDEX title cell updated to enumerate IEC 61850 Sampled Values 0x88BA (35002) — Case E was already present in HS-124 but omitted from title enumerations; BC Coverage table gains SV row (BC-2.18.001 Case E; guards GOOSE/SV transposition). Prior v2.8: F3P1-001 remediation: HS-124 extended to v2.0 — added Cases F (EtherCAT 0x88A4=34980) and G (PROFINET-DCP 0x8892=34962) with wrong-value guards; HS-124 title updated; BC Coverage table gains EtherCAT + PROFINET rows. EtherCAT/PROFINET values derived independently from IEEE RA EtherType registry (not from project BCs) per DF-CANONICAL-FRAME-HOLDOUT-001. Prior v2.7: F3 feature-protocol-coverage: added HS-123..HS-132 (10 concrete holdout files for E-21 protocol coverage catalog; waves 67-68). Also adds Feature Holdouts section for EtherNet/IP (HS-110..HS-122, v0.11.0-feature-enip, 13 files authored in prior cycle but not previously registered in HS-INDEX). Updated all-namespace total 182→205. Updated maintenance note table to reflect on-disk status. Prior v2.6: F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
+version: "2.15"  # wave-85-spec-evolution (2026-07-23): added HS-133..HS-136 (IEC-104 timed control-command detection for TypeIDs 58–64, BC-2.19.029/BC-2.19.030); all-namespace total 205→209. Prior v2.14: maint-2026-07-21 freshness repair: HS-123/125/132 catalog partition 7/23→8/22 (IEC 60870-5-104 promoted to supported in v0.13.0; FINDING-3 maint-2026-07-21); HS-087C pcapng expansion (directory expansion is magic-byte-based per ADR-009, .pcapng included; FINDING-1 maint-2026-07-21). All 4 files version-bumped to v1.1; modified: changelog added. Prior v2.13: wave-72-repair-2026-07-09: repaired 8 primary stale JSON-assertion expectations (HS-021, HS-032, HS-034, HS-059, HS-064, HS-065, HS-074, HS-075) — verdict/confidence/category PascalCase lowercased per BC-2.11.036 v1.2; HS-064/HS-075 expanded to 6-key envelope per BC-2.11.037 (adds schema_version). DF-SIBLING-SWEEP-001 found 5 additional JSON-assertion hits repaired: HS-024, HS-033, HS-035, HS-050, HS-054. All 13 files version-bumped; modified: changelog added per FIX-C precedent. Prior v2.12: maint-2026-07-06 (FIX-C holdout repair): repaired 4 stale scenarios (HS-061, HS-064, HS-066, HS-075) — relaxed exact-key-count assertions to authoritative key sets per BC-2.06.023 v1.6 (HTTP 10 keys), BC-2.07.031 v1.5 (TLS 10 keys), and PR #209 MITRE ATT&CK-for-ICS v19.1 envelope (JSON reporter 5 top-level keys). All four set lifecycle_status active, version bumped to 1.1, modified: changelog added. HS-018 inspected — lifecycle_status: active already present, no change needed. Active count restored to 131. Prior v2.11: maint-2026-07-06 Sweep 4 (holdout-freshness-check): marked 4 scenarios `stale` per DF-030 lifecycle. HS-064, HS-075 assert "Exactly 3 top-level JSON keys" but the JSON reporter now emits 5 (adds `mitre_attack_version` and `mitre_domain` per prior PR #209 MITRE ATT&CK-for-ICS v19.1 envelope — flagged in maint-2026-06-22 sweep, still unfixed). HS-066 asserts "exactly 7 keys" in TLS analyzer detail but v0.11.4 (via BC-2.07.031 v1.5 `dropped_map_entries`, plus earlier BC-2.07.039 `handshake_reassembly_overflows` and BC-2.07.043 `buffer_saturation_drops`) surfaces the detail map at 10 keys. HS-061 asserts "Exactly 9 keys" in HTTP analyzer detail but v0.11.4 (BC-2.06.023 v1.6 `dropped_map_entries`) surfaces the detail map at 10 keys. Frontmatter-only edits; scenario bodies unchanged; input-hashes pre-existing drift not touched (state-manager commits). Prior v2.10: F3P3-002+F3P3-005 remediation: wave propagation + total reconciliation. STORY-154 corrected from wave 68 → wave 69 in all HS-INDEX locations (frontmatter comment line 18, Feature Holdouts table row, section description, Protocol Coverage summary table). Protocol Coverage wave range corrected "waves 67-68" → "waves 67-69" everywhere. Closing Note updated: all-namespace total 182 → 205, breakdown now includes ENIP=13 and Protocol-Coverage=10 to match Totals table. Prior v2.9: F3P2-003 remediation (LOW): HS-124 title and HS-INDEX title cell updated to enumerate IEC 61850 Sampled Values 0x88BA (35002) — Case E was already present in HS-124 but omitted from title enumerations; BC Coverage table gains SV row (BC-2.18.001 Case E; guards GOOSE/SV transposition). Prior v2.8: F3P1-001 remediation: HS-124 extended to v2.0 — added Cases F (EtherCAT 0x88A4=34980) and G (PROFINET-DCP 0x8892=34962) with wrong-value guards; HS-124 title updated; BC Coverage table gains EtherCAT + PROFINET rows. EtherCAT/PROFINET values derived independently from IEEE RA EtherType registry (not from project BCs) per DF-CANONICAL-FRAME-HOLDOUT-001. Prior v2.7: F3 feature-protocol-coverage: added HS-123..HS-132 (10 concrete holdout files for E-21 protocol coverage catalog; waves 67-68). Also adds Feature Holdouts section for EtherNet/IP (HS-110..HS-122, v0.11.0-feature-enip, 13 files authored in prior cycle but not previously registered in HS-INDEX). Updated all-namespace total 182→205. Updated maintenance note table to reflect on-disk status. Prior v2.6: F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-07-02T00:00:00Z
 phase: 2
-total_scenarios: 109  # greenfield namespace only; all-namespace total = 205 (see feature_holdout_seeds + Totals table)
+total_scenarios: 109  # greenfield namespace only; all-namespace total = 209 (see feature_holdout_seeds + Totals table)
 must_pass_count: 108
 should_pass_count: 1
 total_waves: 27
@@ -16,6 +16,7 @@ feature_holdout_seeds:
   finding_collapse_wave_47: 13
   enip_feature_e20: 13  # concrete HS files HS-110..HS-122 (v0.11.0-feature-enip; E-20)
   protocol_coverage_feature_e21: 10  # concrete HS files HS-123..HS-132 (v0.12.0-feature-protocol-coverage; E-21; waves 67-69)
+  iec104_timed_cmd_wave85_spec_evolution: 4  # concrete HS files HS-133..HS-136 (wave-85-spec-evolution; D-493 follow-on; IEC104-TIMED-CMD-GAP-001 closure)
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -25,7 +26,8 @@ traces_to:
 # wirerust Holdout Scenario Index
 
 > **Authoritative registry of all 109 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
-> **plus feature holdouts for DNP3 (waves 35-39), ARP (waves 40-44), and Finding-Collapse (wave 47).**
+> **plus feature holdouts for DNP3 (waves 35-39), ARP (waves 40-44), Finding-Collapse (wave 47),**
+> **EtherNet/IP (E-20), Protocol Coverage (E-21), and IEC-104 Timed Commands (wave-85-spec-evolution).**
 > Holdout scenarios are sealed evaluations used by the holdout-evaluator agent only.
 > They must NEVER be shown to implementer or test-writer agents.
 >
@@ -64,7 +66,8 @@ traces_to:
 | Feature holdouts — finding-collapse (wave 47) | 13 |
 | Feature holdouts — EtherNet/IP E-20 (HS-110..HS-122) | 13 |
 | Feature holdouts — Protocol Coverage E-21 (HS-123..HS-132) | 10 |
-| **All-namespace total** | **205** |
+| Feature holdouts — IEC-104 Timed Commands wave-85 (HS-133..HS-136) | 4 |
+| **All-namespace total** | **209** |
 
 ### By Category
 
@@ -430,8 +433,8 @@ All other checks passed for the greenfield set:
 - HS-001..100 carry concrete per-file `inputs`; HS-101..109 carry BC `inputs` (story inputs added after story decomposition)
 
 > **Note:** This index covers the v0.1.0 greenfield holdout set (HS-NNN sequence, waves 1-27).
-> Greenfield total is 109 (HS-001..HS-109). All-namespace total is 205 (greenfield=109,
-> feature DNP3=32 + ARP=28 + collapse=13 + ENIP=13 + Protocol-Coverage=10 = 96).
+> Greenfield total is 109 (HS-001..HS-109). All-namespace total is 209 (greenfield=109,
+> feature DNP3=32 + ARP=28 + collapse=13 + ENIP=13 + Protocol-Coverage=10 + IEC104-timed=4 = 100).
 > Feature-mode holdouts for SS-15 DNP3 (v0.6.0, waves 35-39) use the HS-W35-NNN / HS-W38-NNN
 > namespace and are tracked separately in the feature holdout tree — see the
 > "Feature Holdouts (SS-15 DNP3, waves 35-39)" section below.
@@ -764,6 +767,7 @@ Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
 |---------|---------------|-----------------|--------|
 | EtherNet/IP (waves 63-68) | 13 seeds (DNP3 convention) | 13 (HS-110..HS-122) | CONCRETE — authored v0.11.0-feature-enip |
 | Protocol Coverage Catalog (waves 67-69) | 10 | 10 (HS-123..HS-132) | CONCRETE — authored v0.12.0-feature-protocol-coverage (F3 2026-07-02) |
+| IEC-104 Timed Commands (wave-85-spec-evolution) | 4 | 4 (HS-133..HS-136) | CONCRETE — authored 2026-07-23 (D-493 follow-on, IEC104-TIMED-CMD-GAP-001) |
 
 ---
 
@@ -859,3 +863,41 @@ Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
 | Stories | STORY-151 (wave 67), STORY-152 (wave 68), STORY-153 (wave 67), STORY-154 (wave 69) |
 | Files | HS-123..HS-132 (individual files in holdout-scenarios/) |
 No GitHub issues filed — pending research-agent validation per DF-VALIDATION-001.
+
+---
+
+## Feature Holdouts (SS-19 IEC-104 Passive Analysis, wave-85-spec-evolution)
+
+> **Individual files:** HS-133..HS-136 in `.factory/holdout-scenarios/` (individual files, same
+> directory as greenfield set). Authored 2026-07-23 for wave-85-spec-evolution (D-493 follow-on,
+> IEC104-TIMED-CMD-GAP-001 closure). These 4 holdouts cover timed control-command detection for
+> TypeIDs 58–64 (C_SC_TA_1/C_DC_TA_1/C_RC_TA_1/C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1).
+> BCs covered: BC-2.19.029, BC-2.19.030, BC-2.19.022 (v1.1 narrowing), BC-2.19.017, BC-2.19.019, BC-2.19.028.
+> Epic: feature-iec104. Risk source: IEC104-TIMED-CMD-GAP-001 (CONFIRMED/HIGH confidence).
+
+| HS ID | Title | Priority | Category | BCs |
+|-------|-------|----------|----------|-----|
+| [HS-133](HS-133-iec104-timed-switching-cmds-t1692001.md) | IEC-104 Time-Tagged Switching Commands (TypeIDs 58–60) Emit T1692.001 | P0 | security-probes | BC-2.19.029, BC-2.19.017, BC-2.19.028 |
+| [HS-134](HS-134-iec104-timed-setpoint-bitstring-t1692001-t0836.md) | IEC-104 Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64) Emit T1692.001 + T0836 | P0 | security-probes | BC-2.19.030, BC-2.19.017, BC-2.19.028 |
+| [HS-135](HS-135-iec104-timed-parity-neighbor-silence-guard.md) | IEC-104 Timed/Untimed Parity and Neighbor Silence Regression Guard (TypeIDs 52–57 and 65–99 Stay Silent) | P0 | edge-case-combinations | BC-2.19.029, BC-2.19.030, BC-2.19.022, BC-2.19.019 |
+| [HS-136](HS-136-iec104-timed-control-real-world-corpus.md) | IEC-104 Timed Control Commands — Real-World Corpus Validation (4SICS Known-Good + ICS-PCAP Attack Corpus) | P0 | real-world-corpus | BC-2.19.029, BC-2.19.030, BC-2.19.022, BC-2.19.028 |
+
+### IEC-104 Timed-Command Feature Holdout Summary
+
+| Metric | Count |
+|--------|-------|
+| Total IEC-104 timed-command holdouts | 4 |
+| P0 must-pass | 4 |
+| P1 nice-to-have | 0 |
+| Categories | security-probes ×2, edge-case-combinations ×1, real-world-corpus ×1 |
+| Epic | feature-iec104 |
+| Wave/Cycle | wave-85-spec-evolution (D-493 follow-on, 2026-07-23) |
+| BCs | BC-2.19.029 (TypeIDs 58–60 → T1692.001), BC-2.19.030 (TypeIDs 61–64 → T1692.001+T0836), BC-2.19.022 v1.1 (narrowed silent range) |
+| Risk source | IEC104-TIMED-CMD-GAP-001 (CONFIRMED/HIGH — `_` catch-all evasion channel closed) |
+| Files | HS-133..HS-136 (individual files in `.factory/holdout-scenarios/`) |
+
+> **Evasion-gap context:** Prior to BC-2.19.029/030, TypeIDs 58–64 fell silently through the
+> `_` catch-all in `detect_iec104_threats`. An attacker issuing time-tagged switching or
+> set-point commands would produce zero findings. These holdouts verify that the evasion
+> channel is closed: HS-133 (TypeIDs 58–60 → T1692.001), HS-134 (TypeIDs 61–64 →
+> T1692.001 + T0836), HS-135 (parity + neighbor-silence regression), HS-136 (real-world corpus).

@@ -4,7 +4,7 @@ level: ops
 story_id: STORY-170
 title: "IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs"
 epic_id: E-22
-version: "2.0"
+version: "2.1"
 status: delivered
 producer: story-writer
 timestamp: 2026-07-15T00:00:00Z
@@ -27,6 +27,7 @@ tdd_mode: strict
 feature_id: feature-iec104
 modified:
   - "v2.0: pre-delivery BC-realignment — AsduHeader→Asdu / extract_asdu_header→parse_asdu (STORY-169 delivered broken-out Asdu struct); added AC-170-007 cot_test [TEST]-tagging tracing BC-2.19.017 inv1; AC-170-001 extended to include T0836 for TypeIDs 48–51 (BC-2.19.019 postcondition 2); AC-170-002 confidence Possible→Likely (BC-2.19.020 v1.1 postcondition 1); AC-170-003 rewritten — interrogation TypeIDs 100/101/103 emit NO finding (BC-2.19.021 postcondition 1, was erroneously T0827 Possible); AC-170-004 scope tightened to TypeID=0 or >=128 (BC-2.19.022 precondition 2); AC-170-006 dispatch table corrected for silently-logged range [52–127]; BC-2.19.017 added to behavioral_contracts and inputs."
+  - "v2.1: BC-2.19.022 v1.1 propagation (wave-85 annotation-only sweep, 2026-07-23) — BC table row for BC-2.19.022 annotated with v1.1 note; AC-170-005 silently-logged range updated from 52–99 to {52–57, 65–99} (TypeIDs 58–64 now handled by BC-2.19.029/030 via STORY-180); AC-170-006 dispatch table split 52–99 into 52–57 (silent), 58–60 (T1692.001 Possible, BC-2.19.029), 61–64 (T1692.001+T0836 Possible, BC-2.19.030), 65–99 (silent). No scope changes to existing ACs."
 inputs:
   - .factory/specs/behavioral-contracts/ss-19/BC-2.19.017.md
   - .factory/specs/behavioral-contracts/ss-19/BC-2.19.019.md
@@ -58,7 +59,7 @@ control logic), T0827 (loss of control / system reset / reconnaissance), and T08
 | BC-2.19.019 | Control Command TypeIDs 45–51 Emit T1692.001; Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836 | TypeID-range detection — switching commands emit T1692.001; set-point/bitstring TypeIDs 48–51 also emit T0836 |
 | BC-2.19.020 | C_RP_NA_1 (TypeID 105) Emits T0827 "Loss of Control" Finding | System-reset detection |
 | BC-2.19.021 | Interrogation and Clock-Sync Commands (TypeIDs 100, 101, 103) Are Logged Without Findings | Interrogation/clock-sync commands — no finding, logged only |
-| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly | TypeID=0 and 128–255 anomaly detection; [1–127] defined-but-unhandled silently logged |
+| BC-2.19.022 | Reserved or Invalid TypeID Emits T0814 Anomaly (v1.1: silently-logged range narrowed to {1–57, 65–99, 102, 104, 106–127}; TypeIDs 58–64 removed — now handled by BC-2.19.029/030 via STORY-180) | TypeID=0 and 128–255 anomaly detection; [1–127] defined-but-unhandled silently logged |
 
 ## Acceptance Criteria
 
@@ -95,9 +96,14 @@ control logic), T0827 (loss of control / system reset / reconnaissance), and T08
 
 ### AC-170-005: Defined-but-unhandled TypeIDs in [1, 127] produce no finding (silently logged)
 - Given an I-format frame with TypeID in the defined-but-unhandled range [1, 127] excluding the explicitly
-  handled sets ({45–51}, {100, 101, 103}, {105}) — for example TypeIDs 1–44 (monitoring), 52–99, 102, 104, 106–127
+  handled sets ({45–51}, {58–64}, {100, 101, 103}, {105}) — for example TypeIDs 1–44 (monitoring),
+  52–57, 65–99, 102, 104, 106–127
 - When `detect_iec104_threats` processes the parsed `Asdu`
-- Then no finding is emitted — these TypeIDs are silently logged (future-proof design per BC-2.19.022)
+- Then no finding is emitted — these TypeIDs are silently logged (future-proof design per BC-2.19.022 v1.1)
+- Note (v2.1 annotation): TypeIDs 58–64 were formerly listed in this silently-logged set. As of BC-2.19.022 v1.1
+  (wave-85), they are handled explicitly: 58–60 emit T1692.001 Possible (BC-2.19.029, STORY-180) and 61–64
+  emit T1692.001 + T0836 Possible (BC-2.19.030, STORY-180). The silently-logged set is now {52–57, 65–99, 102,
+  104, 106–127} within [1, 127].
 (traces to BC-2.19.022 invariant 1)
 
 ### AC-170-006: TypeID dispatch is exhaustive — every TypeID produces exactly one outcome
@@ -106,7 +112,10 @@ control logic), T0827 (loss of control / system reset / reconnaissance), and T08
   - 1–44: silently logged, no finding (monitoring direction, per BC-2.19.022 invariant 1)
   - 45–47: T1692.001 Possible only (switching commands C_SC, C_DC, C_RC — per BC-2.19.019 invariant 2)
   - 48–51: T1692.001 Possible + T0836 Possible (set-point/bitstring, per BC-2.19.019 postcondition 2)
-  - 52–99: silently logged, no finding (defined range, per BC-2.19.022 invariant 1)
+  - 52–57: silently logged, no finding (RESERVED, per BC-2.19.022 v1.1 invariant 1)
+  - 58–60: T1692.001 Possible only (timed switching commands C_SC_TA/C_DC_TA/C_RC_TA — added wave-85, BC-2.19.029, STORY-180)
+  - 61–64: T1692.001 Possible + T0836 Possible (timed set-point/bitstring C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA — added wave-85, BC-2.19.030, STORY-180)
+  - 65–99: silently logged, no finding (defined range, per BC-2.19.022 v1.1 invariant 1)
   - 100, 101, 103: no finding, logged (interrogation/clock-sync, per BC-2.19.021 postcondition 1)
   - 102, 104, 106–127: silently logged, no finding (defined range, per BC-2.19.022 invariant 1)
   - 105: T0827 Likely (C_RP reset, per BC-2.19.020 postcondition 1)
