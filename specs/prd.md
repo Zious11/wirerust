@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.58"
+version: "1.59"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -424,6 +424,10 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.59 delta (2026-07-23 — pre-existing drift corrections — §2.19 TypeID-105 verdict + §2.19 header re-tense):**
+> F-W85S-P6-001 (MEDIUM): §2.19 TypeID-105 verdict corrected — T0827 "Possible" → "Likely" (BC-2.19.020 v1.1 correction F-P2-M2 2026-07-13; matches `iec104.rs` TypeID-105 arm `Verdict::Likely` and STORY-170 AC-170-002/EC-006). Pre-existing drift; not a wave-85 behavior change.
+> F-W85S-P6-003 (LOW): §2.19 header re-tensed — base IEC-104 analyzer (`--iec104` flag + TCP/2404 passive analysis) shipped in v0.13.0 (2026-07-18); stale "future (v0.13.0 candidate)" wording replaced; wave-85 timed-command extension (TypeIDs 58–64) explicitly scoped as not yet delivered. No BC count change.
 >
 > **Version 1.58 delta (2026-07-23 — wave-85-spec-evolution — BC-2.19.029/030 new: timed IEC-104 control-command detection; BC-2.19.022 v1.1 narrowed):**
 > NEW BC-2.19.029 v1.0: Time-Tagged Switching Control Commands (TypeIDs 58–60, C_SC_TA_1/C_DC_TA_1/C_RC_TA_1) Emit T1692.001 Possible. Closes timed-variant evasion channel IEC104-TIMED-CMD-GAP-001 (CONFIRMED/HIGH — TypeIDs 58–64 previously fell through `_` catch-all silently). Parity with untimed arm 45–47 (BC-2.19.019): Verdict::Possible, Confidence::Medium, ThreatCategory::Impact, CASDU/first_ioa evidence. No T0836 (binary switching, not parameter write). [TEST] tagging inherited from cot_test loop. EC-009: TypeID=52 → silent; EC-010: TypeID=65 → silent (regression guards).
@@ -2245,7 +2249,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 ### 2.19 IEC 60870-5-104 Passive Analysis (CAP-19) [Feature — ADR-013, feature-iec104]
 
-> **Release target: future (v0.13.0 candidate — additive: new `--iec104` analyzer flag + TCP/2404 passive analysis).**
+> **v0.13.0 (2026-07-18) — shipped: base IEC-104 analyzer (`--iec104` flag + TCP/2404 passive analysis). Wave-85 extension (not yet delivered): timed-command detection for TypeIDs 58–64.**
 > 30 BCs (BC-2.19.001..030) authored plus 3 cross-subsystem BCs (BC-2.05.012, BC-2.10.010, BC-2.12.025): 27 greenfield (BC-2.19.001..027), BC-2.19.028 (SR-173-02 DoS cap, v2.32), BC-2.19.029..030 (wave-85 timed-command detection, v2.35).
 
 > **Protocol overview:** IEC 60870-5-104 is a SCADA telecontrol protocol over TCP port 2404. Two-layer framing:
@@ -2264,7 +2268,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 > - TypeIDs 45–51 (C_SC/C_DC/C_RC/C_SE_NA_1/C_SE_NB_1/C_SE_NC_1/C_BO_NA_1): T1692.001 (all Possible); set-point + bitstring writes (C_SE 48–50, C_BO 51) emit T0836 (Possible).
 > - TypeIDs 58–60 (C_SC_TA_1/C_DC_TA_1/C_RC_TA_1, time-tagged switching): T1692.001 Possible; no T0836. Parity with untimed arms 45–47.
 > - TypeIDs 61–64 (C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1, time-tagged set-point + bitstring): T1692.001 + T0836 Possible. Parity with untimed arms 48–51.
-> - TypeID 105 (C_RP Reset Process): T0827 "Loss of Control" Possible.
+> - TypeID 105 (C_RP Reset Process): T0827 "Loss of Control" Likely.
 > - TypeIDs 100/101/103 (interrogation/clock-sync): benign, logged only.
 > - Reserved TypeIDs (0, 128–255): T0814 Possible. TypeIDs 52–57 and 65–99 (defined but unhandled): silently logged (no finding).
 

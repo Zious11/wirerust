@@ -79,4 +79,21 @@ traces_to: STATE.md
 
 ---
 
+---
+
+## Session Resume Checkpoint (2026-07-23) — D-499 WAVE-85 ADVERSARIAL PASS 5 CLEAN (archived)
+
+**D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) + nit remediated (2026-07-23). Pass-5 (spec+story @ 574325fc, fresh context): 0C/0H/0M/1L — FIRST CLEAN PASS. F-P5-001 (LOW): REC-004 risk-assumption-monitoring.md:468 harmonized to take-remove-reinsert pattern (superseded by STORY-181). 12+ axes independently re-verified clean. Clean-pass streak 1/3. Next: adversary pass 6 (fresh context). trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-23. Position: D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY); pipeline ACTIVE.
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21 — unchanged); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-499 burst commit; cargo 0.13.1 both branches. DRIFT-BACKMERGE-SQUASH-001 RESOLVED (main IS ancestor of develop).
+- **In-flight work:** STORY-180 + STORY-181 (wave-85, spec locked post-pass-5-clean); adversarial convergence in progress (pass-5 CLEAN; streak 1/3; pass-6 next, fresh context required). No code worktrees, no factory lock. Only open PR: external #407 (DEFERRED, governance pending — do NOT re-run security triage). Untracked bin/__pycache__/ in product tree is transient bytecode, not WIP.
+- **NEXT STEP:** Wave-85 adversarial pass 6 — dispatch `/vsdd-factory:adversarial-review` with scope = wave-85 stories STORY-180/181 (spec+story package); fresh context required (BC-5.39.001 clean-pass count = 1 of 3; need 2 more consecutive clean/nitpick-only passes for convergence).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN structural fix (7 churn-cluster stales un-baselined by design); ROUTE-DOC-DEFER-2026-07-21 next doc sweep; ROUTE-W74-OBS-2 scope decision.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred crates + 4 blocked; crate soak only remains; on/after 2026-07-27); SCORECARD-ENABLEMENT-RUNBOOK.
+- **Spec versions:** BC-INDEX v2.35 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.58 / STORY-INDEX v3.89 / dep-graph v3.9 / HS-INDEX v2.17 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-500 pass-6 remediation checkpoint (PRD v1.59; streak RESET to 0/3; pass-7 next).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

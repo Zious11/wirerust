@@ -345,4 +345,53 @@ D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) + nit remediated. Pass
 
 ---
 
+---
+
+## Archived CPS Row — D-495 (rolled from STATE.md CPS under last-5 rule, D-500 burst)
+
+| **D-495 WAVE-85 ADVERSARIAL PASS 1 → REMEDIATED (2026-07-23). Pass-1 adversary (spec+story package @ 2202c5b3): 1 CRIT / 2 HIGH / 4 MED / 2 LOW. CRITICAL F-W85S-P1-001 (orchestrator-verified against src/analyzer/enip.rs): STORY-181 mis-anchored SEC-001 to an already-safe carry split-borrow (825-829 uses std::mem::take); real+only unsafe is self/self.flows split-borrow via *mut EnipFlowState at enip.rs:992-999. STORY-181 rewritten to target 992-999 with take-remove-reinsert fix + specific grep exit gate. F-P1-002 (HIGH): tech-debt-register SEC-001 description corrected (+sibling fix in risk-assumption-monitoring.md via DF-SIBLING-SWEEP-001). F-P1-003 (HIGH): HS-136 count=0 contradiction fixed (count-independent per BC-2.19.029/030 Invariant 3, not Inv 2). F-P1-004/006/007/009 (MED/LOW): HS-135 BC-2.19.017 frontmatter, Fixture Creation Obligation sections added to HS-133/134/135, APCI LEN bytes recomputed (HS-133 0x13→0x15; HS-134 A/B 0x12→0x17, C 0x13→0x19, D 0x12→0x18 + C_BO_TA_1 QOS field removed per IEC 60870-5-101 Table 8), BC-2.19.028 dropped from HS-133/134. F-P1-008 (LOW): STORY-170 modified-note softened. F-P1-005 (MED)[process-gap]: DISPUTED/NON-FIX — '## Category: real-world-corpus' heading is a template-mandated structural section (validate-template-compliance hook exit_code=2), not a copy-paste artifact; PO rebuttal accepted pending pass-2 fresh-context confirmation. HS-INDEX v2.15→v2.16. STORY-181 hash 8253122 (unchanged). Next: adversary pass 2 (fresh context). trajectory-tail →0→0→0→0** | **ACTIVE (D-495)** | Pass-1 REMEDIATED (1C/2H/4M/2L). STORY-181 re-anchored enip.rs:992-999. HS-INDEX v2.16. Adversary pass-2 next (fresh context). trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 8 (2026-07-23) — Adversarial Pass 6 Remediation (D-500)
+
+D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Pass-6 adversary (spec+story @ 92c28620, fresh context): 0 CRIT / 0 HIGH / 1 MED / 2 LOW — ALL THREE PRE-EXISTING. Adversary CERTIFIED wave-85 timed-command package. Fixed (spec-currency hygiene): F-P6-001 PRD §2.19 TypeID-105 Possible→Likely; F-P6-002 SEC-001 labels updated; F-P6-003 §2.19 header re-tensed; STORY-180 AC-180-008 asdu.vsq.count→asdu.count. PRD v1.58→v1.59. Clean-pass streak RESET to 0/3. Pass-7 next.
+
+---
+
+## Burst: D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED (2026-07-23)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-499 pass-5 clean commit).
+
+**Adversary verdict:** PASS-6 REMEDIATED — 0 CRIT / 0 HIGH / 1 MED / 2 LOW. ALL THREE PRE-EXISTING (predate wave-85; reside in §2.19 PRD block / risk files, NOT in wave-85 change set). Adversary CERTIFIED the wave-85 timed-command package (BC-2.19.029/030, STORY-180/181, HS-133..136, BC-2.19.022 v1.1) "byte-accurate, anchor-exact, internally coherent — genuinely converged on its own scope". Fixed (spec-currency hygiene, since adversary re-flags them each pass as anchor sources): F-P6-001 (MED) prd §2.19 TypeID-105 verdict Possible→Likely; F-P6-002 (LOW) stale "v0.12.0 candidate" SEC-001 labels → "target: wave-85 / STORY-181" in risk-register R-010 + risk-assumption-monitoring R-CAND-010; F-P6-003 (LOW) prd §2.19 header re-tensed; STORY-180 AC-180-008 asdu.vsq.count→asdu.count. STORY-180 hash c0fad6c unchanged. Clean-pass streak RESET to 0/3.
+
+**Files touched (Dim-1): 7 unique files**
+
+- .factory/STATE.md (D-500 transition: frontmatter current_step + timestamp + prd_version v1.59; EXACT RESUME POINT D-500; Project Metadata Spec versions PRD v1.59 + Last Updated; Phase Progress wave-085 row + trajectory; Convergence Status wave-85 trajectory; Concurrent Cycles wave-085 row; CPS D-500 add + D-495 rolled; Decisions Log D-500; Session Resume Checkpoint D-500 replaces D-499)
+- .factory/specs/prd.md (§2.19 TypeID-105 verdict Possible→Likely; §2.19 header re-tensed; v1.58→v1.59 + changelog — F-P6-001 MED + F-P6-003 LOW)
+- .factory/specs/domain-spec/risk-register.md (R-010 priority "(v0.12.0 candidate)" → "(target: wave-85 / STORY-181)" — F-P6-002 LOW)
+- .factory/maintenance/risk-assumption-monitoring.md (R-CAND-010 "v0.12.0 candidate" → "Target: wave-85 / STORY-181" — F-P6-002 LOW)
+- .factory/stories/STORY-180.md (AC-180-008 asdu.vsq.count→asdu.count — minor field-name fix)
+- .factory/cycles/wave-085/burst-log.md (D-495 CPS archival + D-500 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-499 checkpoint archived)
+
+**Codifications:**
+- F-P6-001 (MED) REMEDIATED: prd.md §2.19 TypeID-105 verdict corrected from Possible→Likely (BC-2.19.020 v1.1 + iec104.rs:847 Verdict::Likely + STORY-170 were already correct; PRD §2.19 summary row was stale drift). PRD v1.58→v1.59.
+- F-P6-002 (LOW) REMEDIATED: risk-register.md R-010 priority label "(v0.12.0 candidate)" → "(target: wave-85 / STORY-181)"; risk-assumption-monitoring.md R-CAND-010 "v0.12.0 candidate" → "Target: wave-85 / STORY-181". Sibling sweep confirmed no other stale "v0.12.0 candidate" SEC-001 labels.
+- F-P6-003 (LOW) REMEDIATED: prd.md §2.19 header re-tensed — base IEC-104 shipped v0.13.0; wave-85 timed-command delta scoped not-yet-delivered; tense corrected accordingly.
+- STORY-180 AC-180-008 asdu.vsq.count→asdu.count: minor field-name fix (verified vs iec104.rs:572 — Asdu struct has no vsq subfield). STORY-180 input-hash c0fad6c unchanged.
+- Clean-pass streak RESET to 0/3: pass-6 had substantive MED (F-P6-001), per BC-5.39.001 streak rule. Need 3 consecutive clean passes P7/P8/P9.
+- Adversary CERTIFIED wave-85 timed-command package as "byte-accurate, anchor-exact, internally coherent — genuinely converged on its own scope".
+
+**Summary:** Wave-85 adversarial pass-6 remediation burst. Pass-6 adversary reviewed spec+story package at 92c28620 in fresh context: 0 CRIT / 0 HIGH / 1 MED / 2 LOW — all three findings PRE-EXISTING (predate wave-85; reside in §2.19 PRD block / risk files, not in the wave-85 change set). Adversary certified the wave-85 timed-command package as genuinely converged on its own scope. Three spec-currency hygiene fixes applied (F-P6-001/002/003) + one minor story field fix (STORY-180 AC-180-008). PRD version bumped v1.58→v1.59. Sibling sweeps confirmed no other v0.12.0/Possible hits are wave-85-scope issues. Clean-pass streak RESET to 0/3 due to substantive MED finding. develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Adversary pass 7 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Clean-pass streak RESET to 0/3. Pass-7 adversarial review next (fresh context). clean-pass count = 0 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

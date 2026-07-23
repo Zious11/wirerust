@@ -155,7 +155,7 @@ TypeIDs 58–64 are no longer in the silently-logged set.
 (traces to BC-2.19.022 v1.1 architecture anchor; BC-2.19.029 invariant 6 note; BC-2.19.030 invariant 6 note)
 
 ### AC-180-008: Emission is count-independent — one finding set per ASDU regardless of VSQ object count
-- Given an I-format ASDU with TypeID in {58..=64} and `asdu.vsq.count == 0`
+- Given an I-format ASDU with TypeID in {58..=64} and `asdu.count == 0`
 - When `detect_iec104_threats` processes the parsed `Asdu`
 - Then the same finding(s) are still emitted as for `count > 0` — emission is per-ASDU,
   not per-object

@@ -277,7 +277,7 @@ counters.
 **Impact:** medium — if the disjointness invariant is violated by future refactoring, the
   resulting aliasing could produce undefined behavior in a production binary
 **Status:** open
-**Priority:** P2 (v0.12.0 candidate)
+**Priority:** P2 (target: wave-85 / STORY-181)
 **Monitoring:** yes
 
 **Description:** The `EnipAnalyzer::on_data` function in `src/analyzer/enip.rs` contains an
