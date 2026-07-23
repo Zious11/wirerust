@@ -303,4 +303,46 @@ D-498 WAVE-85 ADVERSARIAL PASS 4 → REMEDIATED. Pass-4 adversary (spec+story @ 
 
 ---
 
+## Archived CPS Row — D-494 (rolled from STATE.md CPS under last-5 rule, D-499 burst)
+
+| **D-494 WAVE-85 SPEC-EVOLUTION + STORY-CREATION COMPLETE (2026-07-23). IEC104-TIMED-CMD-GAP-001 CONFIRMED HIGH (DF-VALIDATION-001). PO burst: BC-2.19.029 (timed switching 58-60 → T1692.001) + BC-2.19.030 (timed set-point/bitstring 61-64 → T1692.001+T0836) NEW v1.0; BC-2.19.022 v1.0→v1.1 (silent-set narrowed to {52-57, 65-99}); BC-INDEX v2.34→v2.35; HS-133..136 (HS-INDEX v2.14→v2.15); prd.md v1.57→v1.58. Story burst: STORY-180 (E-22, 5 pts, detection, BC-2.19.029/030/022) + STORY-181 (E-20, 3 pts, SEC-001 ENIP split-borrow + ROUTE-W74 OBS-1 AC-181-004) drafted; STORY-170 v2.0→v2.1 propagation (annotation-only); STORY-INDEX v3.87→v3.88 (134 stories / 783 pts; wave-85 = STORY-180/181, 8 pts). ROUTE-W74 disposition: primary STORY-166 (wave-84 delivered); residual OBS-1 → AC-181-004; OBS-2 carry-forward. Next: wave-85 story adversarial convergence (3 clean passes) then human story-approval gate. trajectory-tail →0→0→0→0** | **ACTIVE (D-494)** | Spec-evolution + story-creation COMPLETE. Adversarial convergence next. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 7 (2026-07-23) — Adversarial Pass 5 Clean + Nit Remediation
+
+D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) + nit remediated. Pass-5 adversary (spec+story @ 574325fc, fresh context): 0 CRIT / 0 HIGH / 0 MED / 1 LOW — FIRST CLEAN PASS. F-P5-001 LOW: REC-004 risk-assumption-monitoring.md:468 harmonized to take-remove-reinsert. Clean-pass streak 1/3. Pass-6 next (fresh context).
+
+---
+
+## Burst: D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) (2026-07-23)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-498 pass-4 remediation commit).
+
+**Adversary verdict:** PASS-5 CLEAN — 0 CRIT / 0 HIGH / 0 MED / 1 LOW (NITPICK_ONLY). FIRST CLEAN PASS. clean-pass streak 1/3. DF-CONVERGENCE-BEFORE-MERGE-001 zero-HIGH/CRIT criterion met. F-P5-001 (LOW): REC-004 in risk-assumption-monitoring.md:468 recommended inapt get_disjoint/index technique — harmonized to take-remove-reinsert pattern (superseded by STORY-181). Micro-sweep: 2nd get_disjoint hit in research/deferred-security-perf-validation-2026-07.md:33 correctly left as historical dated snapshot (2026-07-06). 12+ axes independently re-verified clean.
+
+**Files touched (Dim-1): 5 unique files**
+
+- .factory/STATE.md (D-499 transition: frontmatter current_step + timestamp; EXACT RESUME POINT D-499; Project Metadata Last Updated; Phase Progress wave-085 row + trajectory; Convergence Status wave-85 trajectory; Concurrent Cycles wave-085 row; CPS D-499 add + D-494 rolled; Decisions Log D-499; Session Resume Checkpoint D-499)
+- .factory/cycles/wave-085/burst-log.md (D-494 CPS archival + D-499 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-498 checkpoint archived)
+- .factory/maintenance/risk-assumption-monitoring.md (REC-004 line 468: get_disjoint/index → take-remove-reinsert pattern, superseded by STORY-181; F-P5-001 LOW remediation)
+- .factory/sidecar-learning.md (session-marker lines)
+
+**Codifications:**
+- F-P5-001 LOW REMEDIATED: REC-004 in risk-assumption-monitoring.md:468 — recommendation clause updated from "refactor to safe `get_disjoint`/index pattern" to "refactor to safe take-remove-reinsert pattern (self.flows.remove before the PDU dispatch loop, insert after); superseded by STORY-181 (wave-85)". Micro-sweep confirmed 2nd get_disjoint hit in research/deferred-security-perf-validation-2026-07.md:33 is a historical dated snapshot (2026-07-06) — correctly left in place.
+- 12+ review axes independently re-verified clean: TypeID enums, SEC-001 anchor+framing all loci, APCI LEN byte-recompute, jq filters, count=0 Inv-3, BC-2.19.028 orphan-free, index arithmetic, AC↔BC, EC cites, canonical-frame, RED-tense.
+- FIRST CLEAN PASS for wave-85 adversarial convergence. clean-pass streak 1/3. DF-CONVERGENCE-BEFORE-MERGE-001 zero-HIGH/CRIT criterion met (P5 is first clean pass; 2 more required for BC-5.39.001 3/3 streak).
+
+**Summary:** Wave-85 adversarial pass-5 clean burst. Pass-5 adversary reviewed spec+story package at 574325fc in fresh context: 0 CRIT / 0 HIGH / 0 MED / 1 LOW — FIRST CLEAN PASS. F-P5-001 (LOW, NITPICK): REC-004 in risk-assumption-monitoring.md:468 still recommended the inapt get_disjoint/index pattern that was superseded by the pass-1 CRITICAL remediation; harmonized to "take-remove-reinsert pattern (self.flows.remove before the PDU dispatch loop, insert after); superseded by STORY-181 (wave-85)". Micro-sweep of get_disjoint hits confirmed the 2nd instance in research/deferred-security-perf-validation-2026-07.md:33 is a historical dated snapshot (2026-07-06) and should be preserved. 12+ axes independently re-verified clean (all prior pass-specific fixes confirmed stable). This is the first clean pass for wave-85; clean-pass streak 1/3; need 2 more consecutive clean passes for BC-5.39.001 convergence. develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Adversary pass 6 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) + nit remediated. Pass-6 adversarial review next (fresh context). clean-pass count = 1 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
