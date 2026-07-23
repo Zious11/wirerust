@@ -468,7 +468,7 @@ No design assumption was invalidated during this sweep period. The product did n
 | MEDIUM | REC-004 | R-CAND-010 (SEC-001 unsafe `*mut EnipFlowState` split-borrow at enip.rs:992-999): refactor to safe take-remove-reinsert pattern (self.flows.remove before the PDU dispatch loop, insert after); superseded by STORY-181 (wave-85). | S | Carry forward P2 |
 | LOW | REC-005 | ASM-CAND-008 / ADR-007 Decision 3: add Crain/Sistrunk CRC-caveat as normative note. Three sweeps unactioned. | XS | Carry forward (3rd sweep) |
 | LOW | REC-006 | R-CAND-008 (MACsec ARP limitation): add one sentence to README § Known Limitations referencing STORY-117. Three sweeps unactioned. Bundle with next docs PR. | XS | Carry forward (3rd sweep) |
-| LOW | REC-007 | R-CAND-011 (Port-44818 ENIP gate, no dedicated Kani proof): add `classify_enip_gate` Kani harness analogous to VP-022/VP-023 in the next ENIP hardening cycle. v0.12.0 candidate. | S | Carry forward |
+| LOW | REC-007 | R-CAND-011 (Port-44818 ENIP gate, no dedicated Kani proof): add `classify_enip_gate` Kani harness analogous to VP-022/VP-023 in the next ENIP hardening cycle. Deferred — not yet scheduled. | S | Carry forward |
 | INFORMATIONAL | REC-009 | VSDD consistency criteria 42–50 remain unverifiable without a formal registry. Ensure STATE.md DRIFT items reflect this persisting gap. | XS | Unchanged |
 | INFORMATIONAL | REC-010 | Tech-debt register footer P1 candidates note stale: still lists resolved TD-MAINT-THRESHOLD-CALIB-001. Update footer to list only TD-MAINT-RISK-REGISTRY-BACKFILL as current P1. | XS | NEW |
 

@@ -394,4 +394,43 @@ D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Pass-6 adversary (spec+story @ 
 
 ---
 
+---
+
+## Archived CPS Row — D-496 (rolled out by D-501 burst, last-5 rule)
+
+| **D-496 WAVE-85 ADVERSARIAL PASS 2 → REMEDIATED (2026-07-23). Pass-2 adversary (spec+story @ 304bb465, fresh context): 0 CRIT / 0 HIGH / 3 MED / 1 LOW / 1 process-gap. NO merge-blocker (zero HIGH/CRIT). Fixes: F-P2-001 (MED) STORY-170:62 silently-logged range corrected {1–57,65–99,...}→{1–44,52–57,65–99,...} (was wrongly folding handled 45–51); 17-site sibling sweep confirmed no other stale ranges. F-P2-002 (MED) HS-136 dropped mis-cited BC-2.19.028 (Inv-3 text mismatch + DoS-cap not exercised by any case); now absent across all HS-133..136 + HS-INDEX. F-P2-003 (MED) HS-136 Case D dead jq regex (_NA/_NB/_NC mnemonics match nothing) fixed to negate timed-mnemonic set (parity with Case A); iec104.rs:764/805 confirm actual summaries use C_SC/C_DC/C_RC and C_SE/C_BO. F-P2-004 (LOW) HS-135 Case C/D frame LEN 0x0B→0x0E. HS-INDEX v2.16→v2.17. STORY-170 hash 7873f11 (unchanged). F-P2-005 (MED)[process-gap]: ADJUDICATED as plugin-level template+hook defect — holdout-scenario-template.md + validate-template-compliance.sh treat '## Category: real-world-corpus' as unconditionally-required (only 6/136 files carry it; HS-122/132 lack it), forcing a contradictory heading on non-corpus files. NOT a per-file fix; does NOT block wave-85 convergence. NEW process-gap PG-W85-001 → DF-VALIDATION-001 + upstream drbothen/vsdd-factory. Next: adversary pass 3 (fresh context); need 3 clean/nitpick-only consecutive passes for BC-5.39.001 convergence.** | **ACTIVE (D-496)** | Pass-2 remediated. Adversary pass-3 next (fresh context). trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst — D-501 (2026-07-23)
+
+**WAVE-85 ADVERSARIAL PASS 7 → CLEAN (NITPICK_ONLY) + LOW residues swept**
+
+**Files touched (Dim-1): 5 unique files**
+
+- .factory/STATE.md (D-501 transition: frontmatter current_step + timestamp; EXACT RESUME POINT D-501; Project Metadata Last Updated; Phase Progress wave-085 row + trajectory; Convergence Status wave-85 trajectory + streak 1/3; Concurrent Cycles wave-085 row; CPS D-501 add + D-496 rolled; Decisions Log D-501; Session Resume Checkpoint D-501 replaces D-500)
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.029.md (v1.0→v1.1: PC5 backticked non-existent `vsq.count` → "(the VSQ object count / `asdu.count`)" — F-P7-001 LOW)
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.028.md (v1.0→v1.1: Related-BCs +BC-2.19.029 +BC-2.19.030 reciprocal entries — F-P7-002 LOW)
+- .factory/maintenance/risk-assumption-monitoring.md (REC-007 R-CAND-011 stale "v0.12.0 candidate" → "Deferred — not yet scheduled" — F-P7-003 LOW)
+- .factory/cycles/wave-085/burst-log.md (D-496 CPS archival + D-501 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-500 checkpoint archived)
+
+**Codifications:**
+- F-P7-001 (LOW) REMEDIATED: BC-2.19.029 v1.0→v1.1, PC5 Postconditions text corrected — backticked non-existent field path `` `vsq.count` `` → prose "(the VSQ object count / `asdu.count`)". Asdu struct (iec104.rs:559-572) has flat `count: u8` and `sq: bool` fields; no `vsq` subfield exists. Exhaustive sweep: backticked `vsq.` field-path grep across all 30 SS-19 BCs + STORY-170/180/181 = EMPTY (only changelog references remain). No BC-INDEX bump (body edit only, no index-structural field change).
+- F-P7-002 (LOW) REMEDIATED: BC-2.19.028 v1.0→v1.1, Related-BCs section updated — added BC-2.19.029 and BC-2.19.030 as reciprocal entries. Reciprocity matrix now fully symmetric: all 6 directional pairs (028↔029, 028↔030, 029↔030) mutually cite each other. Sweep confirmed symmetric. No BC-INDEX bump.
+- F-P7-003 (LOW) REMEDIATED: risk-assumption-monitoring.md REC-007 / R-CAND-011 stale "v0.12.0 candidate" label → "Deferred — not yet scheduled". Currency fix unrelated to SEC-001 (SEC-001 was already corrected in F-P6-002 at R-CAND-010; R-CAND-011 is a separate monitor item). Sweep: live v0.12.0-candidate labels in all risk docs = EMPTY after fix.
+- 1 pre-existing out-of-scope obs (not a finding against the wave-85 package): noted and classified as pre-existing, no fix required.
+- wave-85 timed-command package re-certified: adversary independently re-verified the wave-85 change set (BC-2.19.029/030, STORY-180/181, HS-133..136, BC-2.19.022 v1.1) as byte-accurate, anchor-exact, internally coherent. Clean-pass streak 1/3 — FIRST CLEAN PASS of the restarted streak.
+
+**Summary:** Wave-85 adversarial pass-7 LOW-fix burst. Pass-7 adversary reviewed spec+story package at 2635ac6b in fresh context: 0 CRIT / 0 HIGH / 0 MED / 2 LOW + 1 pre-existing out-of-scope obs — FIRST CLEAN PASS of the restarted streak (pass-6 had reset the streak to 0/3 with a substantive MED). Three LOW spec-currency fixes applied (F-P7-001/002/003). Exhaustive PG-W85-002-closing sweeps all clean. No BC-INDEX bump (body/Related-BC edits only). develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Adversary pass 8 next (fresh context). clean-pass streak = 1 of 3.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-501 WAVE-85 ADVERSARIAL PASS 7 → CLEAN (NITPICK_ONLY). LOW residues swept. Clean-pass streak 1/3. Pass-8 adversarial review next (fresh context). clean-pass count = 1 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

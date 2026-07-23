@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-23T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-19
 capability: CAP-19
 lifecycle_status: active
 introduced: wave-85-spec-evolution
-modified: []
+modified:
+  - "v1.1: F-W85S-P7-001 — PC5 field-path corrected: backticked vsq.count replaced with (the VSQ object count / asdu.count); Asdu struct has a flat count: u8 field with no vsq subfield. 2026-07-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -67,7 +68,7 @@ selected the time-tagged TypeID instead of its untimed twin.
    time-tagged switching control command observed on passive monitor (T1692.001 unauthorized
    command message; BC-2.19.029)". The summary MUST NOT be identical to the BC-2.19.019 summary
    for the untimed arm; analysts must be able to distinguish timed from untimed in output.
-5. The finding is emitted once per ASDU frame regardless of the ASDU object count (`vsq.count`).
+5. The finding is emitted once per ASDU frame regardless of the ASDU object count (the VSQ object count / `asdu.count`).
 6. When `asdu.cot_test == true`, the ` [TEST]` suffix is appended to the finding's `summary`
    field by the post-emission loop at `detect_iec104_threats` lines 924–928 (BC-2.19.017
    Invariant 1 / AC-170-007). No extra wiring is needed in this arm — the loop runs over all

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-15T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-19
 capability: CAP-19
 lifecycle_status: active
 introduced: feature-iec104
-modified: []
+modified:
+  - "v1.1: F-W85S-P7-002 — Related-BCs: added BC-2.19.029 and BC-2.19.030 as depend-on (timed-command detection BCs; their findings are subject to the MAX_IEC104_FINDINGS cap at the on_data extend step). 2026-07-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -154,6 +155,7 @@ for P0 gate.
 
 - BC-2.19.019 through BC-2.19.022, BC-2.19.024, BC-2.19.025 — all depend on (MAX_IEC104_FINDINGS cap guard is a precondition for each detection BC; if findings are near cap, some from a given on_data call may be discarded at the extend step)
 - BC-2.19.025 — composes with (carry-overflow T0814 findings enter via local_findings and are subject to the same cap at extend time)
+- BC-2.19.029, BC-2.19.030 — depend on (timed-command findings subject to the cap at the on_data extend step)
 - BC-2.14.022 — precedent (Modbus MAX_FINDINGS pattern)
 - BC-2.15.022 — precedent (DNP3 MAX_FINDINGS pattern; RULING-DNP3-SIBLING-001 consistency; constant value 10_000 matched)
 - BC-2.17.022 — precedent (EtherNet/IP MAX_FINDINGS pattern; same dropped_findings counter design)
