@@ -371,7 +371,7 @@ MACsec ARP limitation (CWE-693) correctly documented by design (STORY-117, E-17)
 **Prior status (maint-2026-07-06):** LOW (P2), OPEN.
 **Current status:** LOW (P2) — OPEN, NO CHANGE.
 
-Unsafe split-borrow of `state.carry_c2s` and `state.carry_s2c` in `enip.rs::on_data` remains present (tech-debt-register SEC-001). PF-001 (PR #384) converted counter increments but did not touch the carry-buffer borrow pattern. Sound as written; risk is fragility under future `EnipFlowState` struct refactoring.
+Unsafe self/flows split-borrow in `enip.rs::on_data` PDU dispatch loop remains present (tech-debt-register SEC-001). The `for pdu in pdu_queue` loop (lines 992–999) derives a `*mut EnipFlowState` raw pointer from `self.flows.get_mut(&flow_key)`, then calls `self.process_pdu(unsafe { &mut *flow_ptr }, ...)`, creating simultaneous aliasing between `&mut self` and the raw pointer into `self.flows`. Note: the carry-buffer select at lines 825–829 is already safe (`std::mem::take`). PF-001 (PR #384) converted counter increments but did not touch the PDU dispatch borrow pattern. Sound under the stated invariant that `process_pdu` never accesses `self.flows`; risk is fragility under future `process_pdu` or `EnipAnalyzer` refactoring. Absorbed into STORY-181 (wave-85, drafted D-494).
 
 **Assessment:** Low (P2). v0.12.0 candidate. Recommend formal R-010 with status OPEN/ACCEPTED-PENDING-REFACTOR.
 

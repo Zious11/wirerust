@@ -203,9 +203,10 @@ wirerust analyze 4sics_iec104_subset.pcap --iec104 --json | \
   issued timed commands, those will produce T1692.001 findings. This is correct behavior. The
   evaluator must manually confirm any hit against the pcap content before labeling it a false
   positive.
-- **TypeID count = 0 ASDUs:** An ASDU with VSQ=0 (count=0) emits zero findings per BC-2.19.029
-  Invariant 2 and BC-2.19.030 Invariant 2. The real corpus may contain such frames; they must
-  not contribute to false-positive or false-negative counts.
+- **TypeID count = 0 ASDUs:** An ASDU with VSQ=0 (count=0) still emits the finding(s) —
+  emission is count-independent (BC-2.19.029 Invariant 3 and BC-2.19.030 Invariant 3). The
+  real corpus may contain such frames; they count toward the false-positive and false-negative
+  thresholds just like any other ASDU.
 - **COT test bit in corpus:** Some captures include frames with the test bit set (COT bit 7).
   These produce findings with " [TEST]" in the summary. They are valid findings and count toward
   the false-negative threshold (they should still be detected) but are annotated.

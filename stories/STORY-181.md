@@ -2,7 +2,7 @@
 document_type: story
 level: ops
 story_id: STORY-181
-title: "Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Direction-Keyed Carry Select (Behavior-Preserving Refactor)"
+title: "Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor)"
 epic_id: E-20
 version: "1.0"
 status: draft
@@ -33,7 +33,7 @@ inputs:
 input-hash: "8253122"
 ---
 
-# STORY-181: Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Direction-Keyed Carry Select (Behavior-Preserving Refactor)
+# STORY-181: Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor)
 
 **Epic:** E-20 (EtherNet/IP ENIP/CIP Analyzer)
 **Status:** draft
@@ -44,16 +44,39 @@ input-hash: "8253122"
 ## Narrative
 
 **As a** security engineer maintaining the wirerust codebase,
-**I want** the `on_data` function in `src/analyzer/enip.rs` to select the active carry
-buffer using the safe direction-keyed owned-borrow pattern (as used by `modbus.rs`) rather
-than the unsafe pointer-derived split-borrow currently in place,
-**so that** the ENIP analyzer no longer contains a fragile `unsafe` block in its hot path,
-future refactoring of `EnipFlowState` carries no risk of silently breaking the borrow-split
-invariant, and the carry-buffer acquisition code is consistent with the house pattern.
+**I want** the `on_data` function in `src/analyzer/enip.rs` to dispatch PDUs to
+`process_pdu` using a safe Rust borrow pattern rather than a raw-pointer-derived
+`&mut EnipFlowState`,
+**so that** the ENIP analyzer no longer contains a fragile `unsafe` block in its PDU
+dispatch loop, the SAFETY comment invariant ("process_pdu does NOT access self.flows")
+is enforced structurally rather than by convention, and future refactoring of
+`EnipAnalyzer` cannot silently break the split-borrow soundness proof.
 
 This story resolves SEC-001 from `.factory/tech-debt-register.md` (MEDIUM, filed PR #334
 security review, re-triaged into wave-85 at D-493 after the "next feature wave" target
 passed without pickup).
+
+**Root cause of SEC-001:** In the PDU dispatch `for pdu in pdu_queue` loop (lines 985–1000),
+`on_data` acquires a `*mut EnipFlowState` raw pointer via `self.flows.get_mut(&flow_key)`,
+then calls `self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, ...)`. This creates a
+simultaneous aliasing situation: `self.process_pdu` requires `&mut self` (which includes
+`self.flows`), while `flow_ptr` is a live raw pointer into `self.flows[flow_key]`. The
+compiler cannot verify disjointness; a multi-line SAFETY comment at lines 986–991
+documents the required invariant that `process_pdu` never accesses `self.flows`. The
+pattern is sound as written but fragile — any future change to `process_pdu` that touches
+`self.flows` would silently break soundness.
+
+Note: the carry-buffer select at lines 825–829 already uses `std::mem::take` on
+`flow.carry_c2s` / `flow.carry_s2c` and is safe. SEC-001 is exclusively the `*mut
+EnipFlowState` raw pointer at lines 992–999 in the PDU dispatch loop.
+
+**Target design (take-remove-reinsert):** Before the `for pdu in pdu_queue` loop, remove
+the flow from `self.flows` with `self.flows.remove(&flow_key)`. The resulting local owned
+`EnipFlowState` no longer aliases `self.flows`, so `self.process_pdu(&mut flow, &pdu, ...)`
+is unambiguously safe — `&mut self` (for process_pdu) and `&mut flow` (the local variable)
+are disjoint. After the loop, re-insert with `self.flows.insert(flow_key, flow)`.
+`process_pdu`'s signature is unchanged; behavior is identical because `process_pdu`
+(per its SAFETY comment) never accesses `self.flows`.
 
 ## Behavioral Contracts
 
@@ -63,22 +86,21 @@ passed without pickup).
 
 ## Acceptance Criteria
 
-### AC-181-001: Unsafe split-borrow in src/analyzer/enip.rs on_data carry acquisition is eliminated
-- The `unsafe` block at `src/analyzer/enip.rs` lines 992–999 (approximately) that derives
-  simultaneous `&mut` borrows of `state.carry_c2s` and `state.carry_s2c` using raw pointer
-  casts is replaced with the direction-keyed owned-borrow pattern
-- After the refactor, the carry-buffer acquisition in `on_data` uses a single-direction
-  select at call entry, for example:
-  ```rust
-  let carry = match direction {
-      Direction::ClientToServer => &mut state.carry_c2s,
-      Direction::ServerToClient => &mut state.carry_s2c,
-  };
-  ```
-  or equivalent (the exact pattern must avoid simultaneous `&mut` borrows of both fields)
-- `grep -n "unsafe" src/analyzer/enip.rs` must NOT match any carry-acquisition site in
-  `on_data` after the fix (other pre-existing `unsafe` blocks, if any, are out of scope)
-(traces to BC-2.17.016 invariant: carry buffer acquisition must be sound and fragility-free)
+### AC-181-001: Unsafe *mut EnipFlowState split-borrow in PDU dispatch loop is eliminated
+- The `unsafe` block at `src/analyzer/enip.rs` lines 992–999 (approximately) — which casts
+  `self.flows.get_mut(&flow_key)` to `*mut EnipFlowState` then passes `unsafe { &mut
+  *flow_ptr }` to `self.process_pdu` — is removed and replaced with a safe pattern
+- Specifically, before the `for pdu in pdu_queue` loop `self.flows.remove(&flow_key)`
+  produces an owned local `EnipFlowState`; `self.process_pdu(&mut flow, &pdu, ...)` is
+  called with this local variable (no aliasing with `self.flows`); after the loop
+  `self.flows.insert(flow_key, flow)` re-inserts the flow
+- After the fix, `grep -n "unsafe" src/analyzer/enip.rs` returns no match at the former
+  `flow_ptr` site; the `*mut EnipFlowState` declaration and the `unsafe { &mut *flow_ptr
+  }` expression are both absent from the PDU dispatch loop (the `#[allow(clippy::ptr_as_ptr)]`
+  annotation there is also removed); any `unsafe` elsewhere in the file is out of scope
+- `process_pdu`'s method signature (`pub fn process_pdu(&mut self, flow: &mut
+  EnipFlowState, ...)`) is unchanged — the fix is local to the `on_data` call site
+(traces to BC-2.17.016 invariant: PDU dispatch refactor must preserve carry behavior and all existing test postconditions)
 
 ### AC-181-002: All existing ENIP tests pass unchanged — behavior is identical
 - `cargo test --all-targets` passes with zero failures after the refactor
@@ -118,7 +140,7 @@ preserved under refactor)
 
 | Component | Module | File | Pure/Effectful |
 |-----------|--------|------|---------------|
-| `on_data` carry acquisition (refactor site) | SS-17 ENIP carry buffer | `src/analyzer/enip.rs` | Effectful (stream dispatch) |
+| `on_data` PDU dispatch loop (refactor site) | SS-17 ENIP PDU dispatch | `src/analyzer/enip.rs` | Effectful (stream dispatch) |
 | `parse_line()` docstring (OBS-1, optional) | bin/ tooling | `bin/validate-citations` | Pure (no behavior change) |
 
 Subsystem anchor: SS-17 owns this story's scope because the ENIP carry buffer is a core
@@ -134,39 +156,41 @@ already delivered on develop. The refactor can proceed against the current devel
 | Module | Classification | Justification |
 |--------|---------------|---------------|
 | `on_data` (enip.rs, post-refactor) | Effectful-shell | Processes TCP stream bytes, updates EnipFlowState, emits findings |
-| Carry-buffer select | Effectful-shell | Selects mutable borrow of carry_c2s or carry_s2c based on direction |
+| PDU dispatch loop (take-remove-reinsert) | Effectful-shell | Removes flow from self.flows, calls process_pdu for each PDU, re-inserts flow |
 | `parse_line()` docstring fix | Pure (doc only) | No code logic change; docstring addition only |
 
 ## Tasks
 
-- [ ] Locate the `unsafe` split-borrow block in `src/analyzer/enip.rs` `on_data` function
-  (approximately lines 992–999 per tech-debt-register.md SEC-001). Confirm the exact lines
-  and the pattern used (raw pointer cast to obtain `&mut carry_c2s` and `&mut carry_s2c`
-  simultaneously).
-- [ ] Replace the unsafe split-borrow with a direction-keyed carry select at the start of
-  `on_data`:
-  - Select `&mut state.carry_c2s` when `direction == Direction::ClientToServer`
-  - Select `&mut state.carry_s2c` when `direction == Direction::ServerToClient`
-  - Propagate the single `carry` reference through all downstream carry operations in the
-    function that currently borrow both fields simultaneously
-  - Use the same pattern as `src/analyzer/modbus.rs` for consistency (the house pattern)
-- [ ] Verify no `unsafe` block remains in the carry-acquisition path of `on_data` with
-  `grep -n "unsafe" src/analyzer/enip.rs`
+- [ ] Locate the `unsafe` PDU dispatch block in `src/analyzer/enip.rs` `on_data` function
+  (approximately lines 985–1000 per tech-debt-register.md SEC-001). Confirm the exact lines:
+  the `let flow_ptr: *mut EnipFlowState = self.flows.get_mut(&flow_key)...` declaration
+  and the `self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, ...)` call inside the
+  `for pdu in pdu_queue` loop.
+- [ ] Replace the unsafe split-borrow with the take-remove-reinsert pattern:
+  - Before the `for pdu in pdu_queue` loop, add:
+    `let mut flow = self.flows.remove(&flow_key).expect("flow exists: inserted above and not removed");`
+  - Replace the per-iteration `flow_ptr` + `unsafe { &mut *flow_ptr }` with:
+    `self.process_pdu(&mut flow, &pdu, timestamp, src_ip);`
+  - After the loop, add: `self.flows.insert(flow_key, flow);`
+  - Remove the `#[allow(clippy::ptr_as_ptr)]` annotation that accompanied the unsafe block
+- [ ] Verify no `unsafe` block remains at the former `flow_ptr` site with
+  `grep -n "unsafe" src/analyzer/enip.rs`; confirm the `*mut EnipFlowState` cast is gone
 - [ ] Run `cargo test --all-targets` and confirm zero failures
 - [ ] Run `cargo clippy --all-targets -- -D warnings` and confirm no new warnings
 - [ ] (Optional, advisory) Update `parse_line()` docstring in `bin/validate-citations` to
   add the regex-mismatch None return case (AC-181-004 OBS-1 residual)
 - [ ] If the bin/ docstring is updated, verify `python3 bin/test_validate_citations.py` still passes
-- [ ] Update PR description with at least 3 carry-path test names as regression evidence
+- [ ] Update PR description with at least 3 BC-2.17.016 test names as regression evidence
+  (e.g. `test_BC_2_17_016_*` tests from STORY-139 delivery)
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | C→S direction carry buffer accumulation | Carry drains correctly into `state.carry_c2s`; behavior identical to pre-refactor |
-| EC-002 | S→C direction carry buffer accumulation | Carry drains correctly into `state.carry_s2c`; behavior identical to pre-refactor |
-| EC-003 | Single-direction flow (only C→S frames seen) | Only `carry_c2s` is touched; `carry_s2c` unchanged |
-| EC-004 | Refactored code with a future EnipFlowState field rename | No unsafe raw-pointer arithmetic means a rename is caught by the compiler, not silently broken |
+| EC-001 | Multiple PDUs in a single pdu_queue (common case) | All PDUs are dispatched sequentially with the local owned flow; mutations between iterations persist; flow is re-inserted after the last PDU; behavior identical to pre-refactor |
+| EC-002 | Empty pdu_queue (is_non_enip was set or no valid PDUs) | The `for` body never executes; remove + re-insert is a no-op; no flow state is lost |
+| EC-003 | BC-2.17.016 per-direction carry postconditions | Carry buffer accumulation, drain, and per-direction isolation are unchanged — the refactor touches only the PDU dispatch loop, not the carry-select at lines 825–829 |
+| EC-004 | Future process_pdu modification that accesses self.flows | Such a change would be a logic error (self.flows[flow_key] absent during the loop) detectable by tests rather than an invisible soundness violation; structural safety is improved over the prior SAFETY-comment-only invariant |
 | EC-005 | `bin/validate-citations` parse_line() with regex-mismatch input | Returns `None`; the caller correctly treats this as MALFORMED; the updated docstring describes this case |
 
 ## Token Budget Estimate
@@ -176,7 +200,7 @@ already delivered on develop. The refactor can proceed against the current devel
 | This story spec | ~2,000 |
 | BC-2.17.016 (~900 tokens) | ~900 |
 | src/analyzer/enip.rs (large file, full scan needed) | ~25,000 |
-| src/analyzer/modbus.rs (house-pattern reference, carry select section) | ~3,000 |
+| src/analyzer/enip.rs process_pdu signature + SAFETY comment (verify fields mutated) | ~1,000 |
 | bin/validate-citations (if OBS-1 is fixed; ~310 lines) | ~2,500 |
 | **TOTAL** | **~33,400** |
 
@@ -187,16 +211,18 @@ Agent context window ~200k tokens. This story uses ~17% — within budget.
 **Primary predecessor: STORY-139** (ENIP per-direction carry buffer + saturating window
 monotonicity, wave 62, delivered):
 - STORY-139 established the per-direction carry fields `carry_c2s` and `carry_s2c` in
-  `EnipFlowState` and fixed the EC-X1 cross-direction carry splice bug
-- The unsafe split-borrow SEC-001 predates STORY-139 and was noted in the PR #334 security
-  review but not fixed then; STORY-139's carry-direction work happened concurrently
-- Read STORY-139's deliver PR (#384/enip carry) to understand the carry field shapes and
-  any existing test coverage for per-direction isolation
+  `EnipFlowState` and fixed the EC-X1 cross-direction carry splice bug. Its delivery also
+  introduced the safe `std::mem::take` carry select at lines 825–829.
+- The SEC-001 `*mut EnipFlowState` unsafe block (lines 992–999) predates STORY-139 and was
+  noted in the PR #334 security review but not fixed then; it is a distinct site from the
+  carry select.
+- Read STORY-139's delivery PR to understand `EnipFlowState` field shapes and the BC-2.17.016
+  test suite that forms the regression guard for this story.
 
 **Analogy: STORY-142** (DNP3 desync-latch one-line fix, wave 64, 3 pts):
 - STORY-142 was a targeted one-function fix (3 pts) that was behavior-preserving and
-  required all existing tests to pass unchanged — the same profile as SEC-001
-- The fix pattern: locate the exact lines, replace the fragile construct, verify tests pass
+  required all existing tests to pass unchanged — the same profile as SEC-001.
+- The fix pattern: locate the exact lines, replace the fragile construct, verify tests pass.
 
 **STORY-166 precedent (ROUTE-W74 items)**:
 - STORY-166 (wave-84, delivered, PR #426) handled ROUTE-W74 MINOR-1/2/NIT-1/4 items as
@@ -205,19 +231,21 @@ monotonicity, wave 62, delivered):
 
 ## Architecture Compliance Rules
 
-From `src/analyzer/modbus.rs` (house pattern reference):
-- Direction-keyed carry select: at the start of `on_data`, select the appropriate carry
-  buffer with a `match direction { ... }` expression. Use the selected reference throughout
-  the function. This avoids ever needing two `&mut` borrows of the same struct simultaneously.
-- No unsafe: the house style for carry buffers is safe Rust only. `unsafe` split-borrow is
-  a known fragility point (SEC-001 tech-debt-register entry); the direction-keyed pattern
-  is the correct replacement.
-- All carry modifications use `extend_from_slice`, `drain`, and direct `.len()` calls on
-  the selected `carry` reference — the same idioms already present in the unsafe path.
+From `src/analyzer/enip.rs` SAFETY comment (lines 979–991, the invariant being made structural):
+- The existing SAFETY comment states: "process_pdu does NOT access self.flows (verified by
+  inspection); the flow we pass is from self.flows[flow_key], and process_pdu only mutates
+  self.all_findings, self.error_count, self.write_count, self.dropped_findings, and threshold
+  fields." The take-remove-reinsert pattern makes this invariant structurally enforced: the
+  flow is absent from `self.flows` during the loop, so no `self.flows` access by process_pdu
+  could conflict.
+- The carry-buffer select (lines 825–829) already uses `std::mem::take` and is safe — do NOT
+  modify it. SEC-001 is exclusively the PDU dispatch loop (lines 992–999).
 
-From ADR-0012 and ADR-0013 (architectural consistency):
-- ENIP and IEC-104 analyzers should follow the same carry-buffer pattern as Modbus and DNP3
-  (per the carry-direction fix series STORY-139 through STORY-142)
+From ADR-010 Decision 4 (frame-walk / detection order):
+- `on_data` collects valid PDUs during the frame-walk loop, then dispatches them in a
+  separate PDU dispatch phase. The take-remove-reinsert pattern is applied to the dispatch
+  phase only; the frame-walk loop borrow is released at its block exit (line 975 comment)
+  before the dispatch phase begins.
 
 ## Library & Framework Requirements
 
@@ -236,6 +264,6 @@ No new crate dependencies. No Cargo.toml changes.
 
 ## Forbidden Dependencies
 
-- New `unsafe` blocks in the carry-acquisition path — the fix MUST be safe Rust
-- Changes to `EnipFlowState` public fields or public methods — behavior-preserving scope only
+- New `unsafe` blocks in the PDU dispatch loop — the fix MUST be safe Rust with no raw-pointer casts
+- Changes to `process_pdu`'s method signature or `EnipFlowState` public fields — behavior-preserving scope only; `process_pdu` must remain `pub fn process_pdu(&mut self, flow: &mut EnipFlowState, ...)`
 - Changes to any test assertion — tests must pass exactly as-is

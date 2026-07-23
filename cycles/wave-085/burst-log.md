@@ -110,4 +110,60 @@ D-494 WAVE-85 SPEC-EVOLUTION + STORY-CREATION COMPLETE. Research validation CONF
 
 ---
 
+---
+
+## Archived CPS Row — D-490 (rolled from STATE.md CPS under last-5 rule, D-495 burst)
+
+| **maint-2026-07-21 COMPLETE (2026-07-21, D-490, human-authorized). 8 sweeps total (S1 dep-audit 0C/0H/0M/3L log-only; S2 doc-drift 1H/3M/1L ALL FIXED PR #431 6c47c0ef IEC-104 README+ADR-0001/0002/0012/CLAUDE.md; S3 pattern 4 log-only/NIT; S4 holdout repair HS-087/123/125/132 HS-INDEX v2.14; S5 perf VALID 5OK/2WARN-noise/0CRIT AC-149-003 PASS 23.659µs; S6 DTU SKIP dtu_required:false; S7 spec-coherence 4 new SPEC-008/009/010/011 all addressed; S8 register v2.0 15 new rows 10 resolutions; S9 a11y SKIP no UI). Dependabot #422-425 batch-merged (orchestrator-executed). PR #431 doc-drift (human-executed post-classifier-halt). ARCH-INDEX v2.19→v2.20 (SS-19). STORY-INDEX v3.86→v3.87 (epic TOTAL). develop=6c47c0ef. trajectory-tail →0→0→0→0** | **COMPLETE (D-490)** | maint-2026-07-21 COMPLETE. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 3 (2026-07-23) — Adversarial Pass 1 Remediation
+
+D-495 WAVE-85 ADVERSARIAL PASS 1 → REMEDIATED. Pass-1 adversary (spec+story package @ 2202c5b3): 1 CRIT / 2 HIGH / 4 MED / 2 LOW. All remediations applied; F-P1-005 DISPUTED/NON-FIX. HS-INDEX v2.16. Next: adversary pass 2 (fresh context).
+
+---
+
+## Burst: D-495 WAVE-85 ADVERSARIAL PASS 1 → REMEDIATED (2026-07-23)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-494 spec-evolution + story-creation commit).
+
+**Adversary verdict:** PASS-1 REMEDIATED — 1 CRIT / 2 HIGH / 4 MED / 2 LOW. All actionable findings remediated. F-P1-005 DISPUTED/NON-FIX (MED, process-gap): '## Category: real-world-corpus' heading is template-mandated structural section (validate-template-compliance hook exit_code=2); PO rebuttal accepted pending pass-2 fresh-context confirmation.
+
+**Files touched (Dim-1): 11 unique files**
+
+- .factory/STATE.md (D-495 transition: frontmatter current_step + timestamp; EXACT RESUME POINT D-495; Phase Progress wave-085 row + convergence trajectory; Concurrent Cycles wave-085 row; CPS D-495 add + D-490 rolled; Decisions Log D-495; Session Resume Checkpoint D-495)
+- .factory/cycles/wave-085/burst-log.md (D-490 CPS archival + D-495 burst entry — this file)
+- .factory/stories/STORY-181.md (v2.0→v2.1 rewritten: SEC-001 re-anchored to enip.rs:992-999 self/self.flows split-borrow via *mut EnipFlowState; take-remove-reinsert fix + specific grep exit gate; input-hash 8253122 unchanged)
+- .factory/stories/STORY-170.md (v2.1 modified-note softened; input-hash → 7873f11)
+- .factory/tech-debt-register.md (SEC-001 description corrected to enip.rs:992-999 split-borrow via *mut EnipFlowState)
+- .factory/maintenance/risk-assumption-monitoring.md (SEC-001 sibling description corrected per DF-SIBLING-SWEEP-001)
+- .factory/holdout-scenarios/HS-133-iec104-timed-switching-cmds-t1692001.md (count=0 fix BC-2.19.029/030 Invariant 3; APCI LEN 0x13→0x15; BC-2.19.028 dropped; Fixture Creation Obligation added)
+- .factory/holdout-scenarios/HS-134-iec104-timed-setpoint-bitstring-t1692001-t0836.md (count=0 fix; APCI LEN A/B 0x12→0x17 / C 0x13→0x19 / D 0x12→0x18; C_BO_TA_1 QOS field removed per IEC 60870-5-101 Table 8; BC-2.19.028 dropped; Fixture Creation Obligation added)
+- .factory/holdout-scenarios/HS-135-iec104-timed-parity-neighbor-silence-guard.md (BC-2.19.017 frontmatter added; Fixture Creation Obligation added)
+- .factory/holdout-scenarios/HS-136-iec104-timed-control-real-world-corpus.md (count=0 fix per BC-2.19.029/030 Invariant 3 — count-independent; Fixture Creation Obligation added)
+- .factory/holdout-scenarios/HS-INDEX.md (v2.15→v2.16; BC-column updates for HS-133..136)
+
+**Codifications:**
+- F-W85S-P1-001 CRITICAL REMEDIATED: STORY-181 re-anchored from enip.rs:825-829 (already-safe carry split-borrow using std::mem::take) to enip.rs:992-999 (real+only unsafe self/self.flows split-borrow via *mut EnipFlowState). STORY-181 rewritten to target take-remove-reinsert fix pattern.
+- F-P1-002 HIGH REMEDIATED: tech-debt-register SEC-001 description corrected (DF-SIBLING-SWEEP-001: sibling risk-assumption-monitoring.md also corrected).
+- F-P1-003 HIGH REMEDIATED: HS-136 count=0 contradiction fixed — count-independent per BC-2.19.029/030 Invariant 3 (not Inv 2).
+- F-P1-004 MED REMEDIATED: HS-135 BC-2.19.017 frontmatter added.
+- F-P1-005 MED DISPUTED/NON-FIX (process-gap): '## Category: real-world-corpus' heading is template-mandated structural section (validate-template-compliance hook exit_code=2), not copy-paste artifact; PO rebuttal accepted pending pass-2 fresh-context confirmation.
+- F-P1-006 MED REMEDIATED: Fixture Creation Obligation sections added to HS-133/134/135.
+- F-P1-007 MED REMEDIATED: APCI LEN bytes recomputed (HS-133 0x13→0x15; HS-134 A/B 0x12→0x17, C 0x13→0x19, D 0x12→0x18 + C_BO_TA_1 QOS field removed per IEC 60870-5-101 Table 8).
+- F-P1-008 LOW REMEDIATED: STORY-170 modified-note softened (input-hash → 7873f11).
+- F-P1-009 LOW REMEDIATED: BC-2.19.028 dropped from HS-133/134.
+
+**Summary:** Wave-85 adversarial pass-1 remediation burst. Orchestrator verified CRITICAL finding against src/analyzer/enip.rs: STORY-181 was mis-anchored to already-safe carry split-borrow (std::mem::take at enip.rs:825-829); real+only unsafe split-borrow is self/self.flows via *mut EnipFlowState at enip.rs:992-999. STORY-181 rewritten to target 992-999 with take-remove-reinsert fix and specific grep exit gate. All 8 actionable findings remediated. F-P1-005 DISPUTED/NON-FIX per PO rebuttal (template-mandated structural section, validate-template-compliance hook exit_code=2). HS-INDEX v2.16. develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Adversary pass 2 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-495 WAVE-85 ADVERSARIAL PASS 1 → REMEDIATED. Pass-2 adversarial review next (fresh context).
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

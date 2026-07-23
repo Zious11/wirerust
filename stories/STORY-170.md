@@ -27,7 +27,7 @@ tdd_mode: strict
 feature_id: feature-iec104
 modified:
   - "v2.0: pre-delivery BC-realignment — AsduHeader→Asdu / extract_asdu_header→parse_asdu (STORY-169 delivered broken-out Asdu struct); added AC-170-007 cot_test [TEST]-tagging tracing BC-2.19.017 inv1; AC-170-001 extended to include T0836 for TypeIDs 48–51 (BC-2.19.019 postcondition 2); AC-170-002 confidence Possible→Likely (BC-2.19.020 v1.1 postcondition 1); AC-170-003 rewritten — interrogation TypeIDs 100/101/103 emit NO finding (BC-2.19.021 postcondition 1, was erroneously T0827 Possible); AC-170-004 scope tightened to TypeID=0 or >=128 (BC-2.19.022 precondition 2); AC-170-006 dispatch table corrected for silently-logged range [52–127]; BC-2.19.017 added to behavioral_contracts and inputs."
-  - "v2.1: BC-2.19.022 v1.1 propagation (wave-85 annotation-only sweep, 2026-07-23) — BC table row for BC-2.19.022 annotated with v1.1 note; AC-170-005 silently-logged range updated from 52–99 to {52–57, 65–99} (TypeIDs 58–64 now handled by BC-2.19.029/030 via STORY-180); AC-170-006 dispatch table split 52–99 into 52–57 (silent), 58–60 (T1692.001 Possible, BC-2.19.029), 61–64 (T1692.001+T0836 Possible, BC-2.19.030), 65–99 (silent). No scope changes to existing ACs."
+  - "v2.1: BC-2.19.022 v1.1 propagation (wave-85 annotation-only sweep, 2026-07-23) — BC table row for BC-2.19.022 annotated with v1.1 note; AC-170-005 silently-logged range updated from 52–99 to {52–57, 65–99} (TypeIDs 58–64 now handled by BC-2.19.029/030 via STORY-180); AC-170-006 dispatch table split 52–99 into 52–57 (silent), 58–60 (T1692.001 Possible, BC-2.19.029), 61–64 (T1692.001+T0836 Possible, BC-2.19.030), 65–99 (silent). AC-170-005 and AC-170-006 dispatch-table rows were updated to document wave-85/STORY-180 forthcoming detection outcomes for TypeIDs 58–64; those outcomes are pending STORY-180 delivery and are not asserted by STORY-170 tests. STORY-170's delivered implementation scope (TypeIDs 45–51, 100/101/103, 105, and 0/128–255) is unchanged; re-validating against develop HEAD reflects no regression in STORY-170's delivered scope."
 inputs:
   - .factory/specs/behavioral-contracts/ss-19/BC-2.19.017.md
   - .factory/specs/behavioral-contracts/ss-19/BC-2.19.019.md
@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "490f9b5"
+input-hash: "7873f11"
 ---
 
 # STORY-170: IEC-104 Control Command Detection: TypeIDs 45–51, C_RP, Interrogation, Reserved TypeIDs

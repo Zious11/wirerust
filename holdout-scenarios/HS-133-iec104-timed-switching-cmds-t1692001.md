@@ -17,7 +17,6 @@ epic_id: "feature-iec104"
 behavioral_contracts:
   - BC-2.19.029
   - BC-2.19.017
-  - BC-2.19.028
 verification_properties:
   - VP-047
 lifecycle_status: active
@@ -47,15 +46,15 @@ A crafted PCAP file is presented containing a single TCP flow on port 2404. The 
 delivers three IEC-104 I-frames, each carrying an ASDU with a distinct TypeID.
 
 **Frame A** — TypeID=58 (C_SC_TA_1, time-tagged single command):
-APCI: `68 13 00 00 00 00`; ASDU: TypeID=0x3A, VSQ=0x01, COT=0x0006, CASDU=0x0001,
+APCI: `68 15 00 00 00 00`; ASDU: TypeID=0x3A, VSQ=0x01, COT=0x0006, CASDU=0x0001,
 IOA=0x000064 (100), SCS=0x01, CP56Time2a=7 zero bytes.
 
 **Frame B** — TypeID=59 (C_DC_TA_1, time-tagged double command):
-APCI: `68 13 02 00 00 00`; ASDU: TypeID=0x3B, VSQ=0x01, COT=0x0006, CASDU=0x0001,
+APCI: `68 15 02 00 00 00`; ASDU: TypeID=0x3B, VSQ=0x01, COT=0x0006, CASDU=0x0001,
 IOA=0x000065 (101), DCS=0x02, CP56Time2a=7 zero bytes.
 
 **Frame C** — TypeID=60 (C_RC_TA_1, time-tagged regulating step command):
-APCI: `68 13 04 00 00 00`; ASDU: TypeID=0x3C, VSQ=0x01, COT=0x0006, CASDU=0x0001,
+APCI: `68 15 04 00 00 00`; ASDU: TypeID=0x3C, VSQ=0x01, COT=0x0006, CASDU=0x0001,
 IOA=0x000066 (102), RCS=0x02, CP56Time2a=7 zero bytes.
 
 ### Case A — TypeID=58 Emits T1692.001 (Primary Evasion-Closure Guard)
@@ -146,6 +145,42 @@ evasion detection validation.
 | known_edge_cases | CP56Time2a timestamp bytes (7 bytes) appended to each information object |
 | false_positive_threshold | 0 T0836 findings for TypeIDs 58–60 (binary switching, not parameter writes) |
 | false_negative_threshold | 3 T1692.001 findings required (one per TypeID 58, 59, 60) |
+
+## Fixture Creation Obligation
+
+The evaluator must produce `iec104_timed_switching.pcap`: a single TCP flow on port 2404
+delivering three back-to-back IEC-104 I-frames (TypeIDs 58, 59, 60), one ASDU per frame,
+VSQ=0x01, COT=6 activation (0x06 0x00), CASDU=1 (0x01 0x00).
+
+**LEN arithmetic** (IEC 60870-5-104 rule: LEN = 4 control-field octets + ASDU length):
+- ASDU = TypeID(1) + VSQ(1) + COT(2) + CASDU(2) + IOA(3) + info-element(1) + CP56Time2a(7)
+- ASDU = 17 bytes → LEN = 4 + 17 = 21 = **0x15** (applies to all three frames; SCS/DCS/RCS are each 1 byte)
+
+**Canonical byte layout per frame:**
+
+Frame A — TypeID=58 (C_SC_TA_1):
+```
+APCI: 68 15 00 00 00 00
+ASDU: 3A 01 06 00 01 00 64 00 00 01 00 00 00 00 00 00 00
+```
+(TypeID=0x3A, VSQ=0x01, COT=0x0006, CASDU=0x0001, IOA=0x000064=100, SCS=0x01, 7×0x00)
+
+Frame B — TypeID=59 (C_DC_TA_1), Send-sequence=1:
+```
+APCI: 68 15 02 00 00 00
+ASDU: 3B 01 06 00 01 00 65 00 00 02 00 00 00 00 00 00 00
+```
+(IOA=0x000065=101, DCS=0x02)
+
+Frame C — TypeID=60 (C_RC_TA_1), Send-sequence=2:
+```
+APCI: 68 15 04 00 00 00
+ASDU: 3C 01 06 00 01 00 66 00 00 02 00 00 00 00 00 00 00
+```
+(IOA=0x000066=102, RCS=0x02)
+
+These three frames are TCP-encapsulated in a single flow (ephemeral port → dst port 2404).
+The back-to-back delivery means exactly 3 T1692.001 findings are expected (Case E).
 
 ## Failure Guidance
 

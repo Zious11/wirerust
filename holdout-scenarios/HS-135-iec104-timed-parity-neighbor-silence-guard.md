@@ -19,6 +19,7 @@ behavioral_contracts:
   - BC-2.19.030
   - BC-2.19.022
   - BC-2.19.019
+  - BC-2.19.017
 verification_properties:
   - VP-047
 lifecycle_status: active
@@ -169,6 +170,37 @@ is covered in HS-136 (known-good and known-problematic ICS traffic corpus).
 | known_edge_cases | RESERVED TypeIDs 52–57 (defined by spec but have no ASDU meaning); CP56Time2a variant parsing |
 | false_positive_threshold | 0 findings for TypeIDs 52–57 and 65–99 (strict — any finding is a bug) |
 | false_negative_threshold | Cases A+B: 1 T1692.001 per timed arm; Case F: exactly 11 findings for untimed arms |
+
+## Fixture Creation Obligation
+
+This scenario requires multiple small crafted pcap fixtures. All fixtures are TCP flows on
+port 2404, VSQ=0x01, COT=0x06 0x00 (activation), CASDU=0x01 0x00 (CASDU=1). LEN for untimed
+commands: 4+(6+3+1)=14=0x0E (1-byte info element, no CP56Time2a). LEN for timed 1-byte
+element (TypeIDs 58–60): 4+(6+3+1+7)=21=0x15. LEN for timed 2-byte+QOS element (TypeIDs
+61–62): 4+(6+3+2+1+7)=23=0x17. LEN for timed 4-byte+QOS element (TypeID 63): 4+(6+3+4+1+7)=25=0x19.
+
+**iec104_typeids_45_58_parity.pcap** (Case A — two separate TCP flows):
+- Flow 1, TypeID=45 (C_SC_NA_1, untimed): `APCI: 68 0E 00 00 00 00; ASDU: 2D 01 06 00 01 00 64 00 00 01`
+- Flow 2, TypeID=58 (C_SC_TA_1, timed): `APCI: 68 15 00 00 00 00; ASDU: 3A 01 06 00 01 00 64 00 00 01 00 00 00 00 00 00 00`
+
+**typeids_52_57.pcap** (Case C — neighbor silence): Six I-frames, TypeIDs 52–57 (RESERVED).
+These fall to the `_` catch-all; any plausible minimal frame structure suffices since no finding
+is emitted. Example using a 1-byte placeholder info element per TypeID:
+TypeID bytes: 0x34(52), 0x35(53), 0x36(54), 0x37(55), 0x38(56), 0x39(57).
+Frame template: `APCI: 68 0B 00 00 00 00; ASDU: <TypeID> 01 06 00 01 00 64 00 00 00`
+
+**typeids_65_66_67_99.pcap** (Case D — neighbor silence): Four I-frames, TypeIDs 65, 66, 67, 99
+(unhandled above the new timed set-point arm). Same minimal frame template.
+TypeID bytes: 0x41(65), 0x42(66), 0x43(67), 0x63(99).
+
+**typeids_58_61_cot_test.pcap** (Case E — [TEST] suffix): Two I-frames with COT test bit set
+(cot_test=true; COT low byte = 0x86 = 0x06 | 0x80):
+- TypeID=58 (C_SC_TA_1): `APCI: 68 15 00 00 00 00; ASDU: 3A 01 86 00 01 00 64 00 00 01 00 00 00 00 00 00 00`
+- TypeID=61 (C_SE_TA_1): `APCI: 68 17 02 00 00 00; ASDU: 3D 01 86 00 01 00 64 00 00 00 40 00 00 00 00 00 00 00 00`
+
+**typeids_45_51.pcap** (Case F — untimed regression): Seven I-frames TypeIDs 45–51 per
+BC-2.19.019 reference implementation. These match the pre-wave-85 baseline byte layouts
+(no CP56Time2a).
 
 ## Failure Guidance
 
