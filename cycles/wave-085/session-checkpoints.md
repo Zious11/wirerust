@@ -113,4 +113,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-23) — D-501 WAVE-85 ADVERSARIAL PASS 7 CLEAN (archived)
+
+**D-501 WAVE-85 ADVERSARIAL PASS 7 → CLEAN (NITPICK_ONLY) + LOW residues swept (2026-07-23). Pass-7 adversary (spec+story @ 2635ac6b, fresh context): 0C/0H/0M/2L + 1 pre-existing out-of-scope obs — FIRST CLEAN PASS of the restarted streak (clean-pass streak 1/3; wave-85 timed-command package re-certified byte-accurate, anchor-exact, internally coherent). F-P7-001 BC-2.19.029 v1.1 PC5 vsq.count → (VSQ object count / asdu.count); F-P7-002 BC-2.19.028 v1.1 Related-BCs +029/030 reciprocal; F-P7-003 R-CAND-011 stale v0.12.0 label → Deferred — not yet scheduled. No BC-INDEX bump. Clean-pass streak 1/3. Next: adversary pass 8 (fresh context) — need P8/P9 clean for 3/3 BC-5.39.001 convergence. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-23. Position: D-501 WAVE-85 ADVERSARIAL PASS 7 → CLEAN (NITPICK_ONLY); pipeline ACTIVE.
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21 — unchanged); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-501 burst commit; cargo 0.13.1 both branches. DRIFT-BACKMERGE-SQUASH-001 RESOLVED (main IS ancestor of develop).
+- **In-flight work:** STORY-180 + STORY-181 (wave-85, spec locked post-pass-7-clean); adversarial convergence in progress (pass-7 CLEAN; streak 1/3; pass-8 next, fresh context required). No code worktrees, no factory lock. Only open PR: external #407 (DEFERRED, governance pending — do NOT re-run security triage). Untracked bin/__pycache__/ in product tree is transient bytecode, not WIP.
+- **NEXT STEP:** Wave-85 adversarial pass 8 — dispatch `/vsdd-factory:adversarial-review` with scope = wave-85 stories STORY-180/181 (spec+story package); fresh context required (BC-5.39.001 clean-pass count = 1 of 3; need 2 more consecutive clean/nitpick-only passes P8/P9 for convergence).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN structural fix (7 churn-cluster stales un-baselined by design); ROUTE-DOC-DEFER-2026-07-21 next doc sweep; ROUTE-W74-OBS-2 scope decision.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred crates + 4 blocked; crate soak only remains; on/after 2026-07-27); SCORECARD-ENABLEMENT-RUNBOOK.
+- **Spec versions:** BC-INDEX v2.35 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.89 / dep-graph v3.9 / HS-INDEX v2.17 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-502 pass-8 fully-clean checkpoint (0 findings; streak 2/3; pass-9 next).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

@@ -433,4 +433,10 @@ D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Pass-6 adversary (spec+story @ 
 
 ---
 
+## Archived CPS Row — D-497 (rolled from STATE.md CPS under last-5 rule, D-502 burst)
+
+| **D-497 WAVE-85 ADVERSARIAL PASS 3 → REMEDIATED (2026-07-23). Pass-3 adversary (spec+story @ dcc8cc06, fresh context): 0 CRIT / 0 HIGH / 1 MED. NO merge-blocker. F-P3-001 (MED): STORY-170 AC-170-005 Note (lines 105-106) dropped the [1,44] monitoring-direction segment — partial-fix residual of pass-2 (line 62 BC-table fixed, sibling Note locus missed). Corrected to {1–44, 52–57, 65–99, 102, 104, 106–127}; exhaustive in-file sweep confirmed all 11 STORY-170 silent-set loci now consistent; cross-file clean. STORY-170 hash 7873f11 (unchanged). 12 other review axes independently re-verified clean by pass-3 (SEC-001 anchor, APCI LEN byte-recompute, jq filters, count=0, BC-2.19.028 orphan-free, TypeID/technique maps, index arithmetic, AC↔BC traces, canonical-frame coverage). Clean-pass counter still 0/3. Next: adversary pass 4 (fresh context). trajectory-tail →0→0→0→0** | **COMPLETE (D-497)** | Pass-3 remediated. Adversary pass-4 next (fresh context). trajectory-tail →0→0→0→0 |
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
