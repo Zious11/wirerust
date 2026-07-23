@@ -116,7 +116,7 @@ preserved under refactor)
 - The refactor is implementation-internal to the `on_data` function body
 - No `pub` or `pub(crate)` signatures in `src/analyzer/enip.rs` change
 - No Cargo.toml changes, no new crate dependencies
-(traces to BC-2.17.016 invariant: refactor scope is carry acquisition only)
+(traces to BC-2.17.016 invariant: refactor scope is the PDU dispatch loop only; carry select at 825-829 untouched)
 
 ### AC-181-004 (ROUTE-W74 OBS-1 residual, bin/ housekeeping): parse_line() docstring in bin/validate-citations clarified for regex-mismatch None return path
 - The docstring for `parse_line()` in `bin/validate-citations` is updated to add the
@@ -259,7 +259,7 @@ No new crate dependencies. No Cargo.toml changes.
 
 | File | Action | Contents |
 |------|--------|---------|
-| `src/analyzer/enip.rs` | MODIFY | Replace unsafe split-borrow carry acquisition with direction-keyed owned-borrow pattern in `on_data`; no behavior change |
+| `src/analyzer/enip.rs` | MODIFY | Replace unsafe `*mut EnipFlowState` split-borrow in the PDU dispatch loop (enip.rs:992-999) with take-remove-reinsert of the owned flow; no behavior change |
 | `bin/validate-citations` | MODIFY (advisory) | Add regex-mismatch None case to `parse_line()` docstring (AC-181-004 OBS-1 residual; one-line docstring addition) |
 
 ## Forbidden Dependencies

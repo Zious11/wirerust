@@ -11,7 +11,7 @@ generated: 2026-07-09
 inputs:
   - .factory/maintenance/risk-assumption-monitoring.md
   - .factory/tech-debt-register.md
-input-hash: "0447a72"
+input-hash: "865986f"
 ---
 
 # wirerust Risk Register
@@ -280,22 +280,31 @@ counters.
 **Priority:** P2 (v0.12.0 candidate)
 **Monitoring:** yes
 
-**Description:** The `EnipAnalyzer::on_data` function in `src/analyzer/enip.rs` uses a
-pointer-derived split-borrow to access `state.carry_c2s` and `state.carry_s2c` separately,
-bypassing Rust's borrow checker. The borrow is sound under its stated invariant (the two
-carry fields are disjoint and non-aliasing) but is fragile under future `EnipFlowState`
-struct refactoring. This is tech-debt-register item SEC-001 (OPEN, v0.12.0 candidate).
+**Description:** The `EnipAnalyzer::on_data` function in `src/analyzer/enip.rs` contains an
+unsafe self/flows split-borrow in the PDU dispatch loop (lines 992–999). The `for pdu in
+pdu_queue` loop derives a `*mut EnipFlowState` raw pointer via `self.flows.get_mut(&flow_key)`,
+then calls `self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, ...)`, creating simultaneous
+aliasing between the `&mut self` borrow required by `process_pdu` and the raw pointer into
+`self.flows[flow_key]`. Sound under the inline SAFETY comment invariant that `process_pdu`
+never accesses `self.flows`, but fragile under refactoring. Note: the carry-buffer select at
+lines 825–829 uses `std::mem::take` and is already safe — SEC-001 is exclusively the PDU
+dispatch loop. This is tech-debt-register item SEC-001.
 
-**Mitigation (pending):** Refactor to the owned-borrow pattern used by `ModbusAnalyzer`
-(direction-keyed per-direction carry select; no unsafe pointer arithmetic). Estimated
-effort: small. Target: v0.12.0.
+**Mitigation:** Take-remove-reinsert pattern: `self.flows.remove(&flow_key)` before the PDU
+dispatch loop produces an owned local `EnipFlowState`, eliminating aliasing with `self.flows`;
+`self.process_pdu(&mut flow, &pdu, ...)` called on the local variable; `self.flows.insert(flow_key,
+flow)` re-inserts after the loop. `process_pdu`'s signature unchanged; behavior identical.
+Absorbed into STORY-181 (wave-85, drafted D-494). Target: wave-85 delivery.
 
 **History:**
 - Surfaced in PR #334 security review as a pre-existing finding.
 - DF-VALIDATION-001 confirmed pattern still present at commit c4eb1f4 (maint-2026-07-08).
 - PF-001 (PR #384): converted counter increments to `saturating_add` but did not touch the
-  carry-buffer borrow pattern, which was out of scope for a counter discipline sweep.
+  PDU dispatch borrow pattern, which was out of scope for a counter discipline sweep.
 - maint-2026-07-09: OPEN P2, no change.
+- Wave-85 adversarial pass-1 remediation (2026-07-23): description corrected from stale
+  carry-field split-borrow framing to the actual *mut EnipFlowState PDU-dispatch site;
+  absorbed into STORY-181 (D-494).
 
 ---
 

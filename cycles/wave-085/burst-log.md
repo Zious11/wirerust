@@ -256,4 +256,51 @@ D-497 WAVE-85 ADVERSARIAL PASS 3 → REMEDIATED. Pass-3 adversary (spec+story @ 
 
 ---
 
+## Archived CPS Row — D-493 (rolled from STATE.md CPS under last-5 rule, D-498 burst)
+
+| **D-493 SESSION RESUMED + WAVE-85 SCOPED (human-approved, 2026-07-23). Resumed from D-492 pause. Worktree health PASS (factory-artifacts a1676f0d in-sync). Ground truth verified: develop=dc7331fb, main=47b7d23c (v0.13.1); only open PR = external #407 (DEFERRED, unchanged). Human selected Option A: wave-85 IEC-104 completion mini-wave. Wave-85 scope: (1) IEC104-TIMED-CMD-GAP-001 detection story — DF-VALIDATION-001 research validation DISPATCHED; (2) IEC-104 holdout scenario authoring; (3) SEC-001 ENIP split-borrow refactor — PULLED INTO WAVE-85; (4) ROUTE-W74 deferred NIT — PULLED INTO WAVE-85. Options B/C/D NOT selected. Pipeline ACTIVE. trajectory-tail →0→0→0→0** | **ACTIVE (D-493)** | Session resumed + wave-85 scoped. Spec-evolution + story-creation next. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst 6 (2026-07-23) — Adversarial Pass 4 Remediation
+
+D-498 WAVE-85 ADVERSARIAL PASS 4 → REMEDIATED. Pass-4 adversary (spec+story @ 097c3dd1, fresh context): 0 CRIT / 1 HIGH / 0 MED. F-P4-001 (HIGH): STORY-181 title/FSR/AC-trace + risk-register.md R-010 Direction-Keyed Carry Select framing purged. STORY-INDEX v3.89. PG-W85-002 filed. Clean-pass counter still 0/3. Next: adversary pass 5 (fresh context).
+
+---
+
+## Burst: D-498 WAVE-85 ADVERSARIAL PASS 4 → REMEDIATED (2026-07-23)
+
+**Parent-commit:** `097c3dd1` — factory(wave-085): adversarial pass-3 remediated (D-497).
+
+**Adversary verdict:** PASS-4 REMEDIATED — 0 CRIT / 1 HIGH / 0 MED. F-P4-001 (HIGH): STORY-181 body correctly targets the *mut EnipFlowState PDU-dispatch-loop fix (enip.rs:992-999, take-remove-reinsert) but 3 loci retained the REJECTED "Direction-Keyed Carry Select" framing from the pass-1 CRITICAL finding. Second-order propagation tail of F-P1-001. All 4 loci fixed (story-writer 27-hit exhaustive sweep caught 4th locus). 12 other review axes re-verified clean. Clean-pass counter still 0/3.
+
+**Files touched (Dim-1): 6 unique files**
+
+- .factory/STATE.md (D-498 transition: frontmatter current_step + story_index_version v3.88→v3.89 + story_index_note prepended v3.89 entry + timestamp; EXACT RESUME POINT D-498; Project Metadata Last Updated; Phase Progress wave-085 row + trajectory `1C+2H+4M+2L→3M/1L(P2)→1M(P3)→1H(P4)→pending-P5`; Convergence Status trajectory; Concurrent Cycles wave-085 row; CPS D-498 add + D-493 rolled; Decisions Log D-498; Drift Items PG-W85-002 added; Session Resume Checkpoint D-498)
+- .factory/cycles/wave-085/burst-log.md (D-493 CPS archival + D-498 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-497 checkpoint archived)
+- .factory/stories/STORY-INDEX.md (v3.88→v3.89: STORY-181 line 334 title cell corrected — Direction-Keyed Carry Select framing removed; correct framing Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop; no numeric totals changed)
+- .factory/stories/STORY-181.md (line 262 FSR cell + line 119 AC-181-003 trace re-framed to *mut/PDU-dispatch-loop framing; Direction-Keyed Carry Select references purged; input-hash 8253122 unchanged)
+- .factory/specs/domain-spec/risk-register.md (R-010 description + mitigation corrected to enip.rs:992-999 PDU dispatch loop split-borrow via *mut EnipFlowState; take-remove-reinsert pattern absorbed into STORY-181; input-hash 0447a72→865986f)
+
+**Codifications:**
+- F-P4-001 HIGH REMEDIATED: STORY-INDEX line 334 title cell (canonical story registry) — Direction-Keyed Carry Select framing replaced with "Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop". STORY-INDEX v3.88→v3.89 (patch bump, title-cell correction only; no numeric story/wave/point totals changed).
+- F-P4-001 HIGH REMEDIATED: STORY-181 line 262 FSR normative cell — stale "carry-select in split-borrow context (enip.rs:825-829)" framing replaced with "Replace unsafe *mut EnipFlowState split-borrow in the PDU dispatch loop (enip.rs:992-999) with take-remove-reinsert of the owned flow; no behavior change". Direction-Keyed Carry Select framing purged.
+- F-P4-001 HIGH REMEDIATED: STORY-181 line 119 AC-181-003 trace — "refactor scope is the PDU dispatch loop only; carry select at 825-829 untouched" note added (BC-2.17.016 invariant cite). Direction-Keyed Carry Select framing purged.
+- F-P4-001 HIGH REMEDIATED (4th locus, story-writer exhaustive sweep): risk-register.md R-010 description + mitigation corrected to target enip.rs:992-999 PDU dispatch loop *mut EnipFlowState split-borrow; take-remove-reinsert pattern noted as absorbed into STORY-181. risk-register input-hash 0447a72→865986f.
+- 27-hit exhaustive sweep: 23 remaining occurrences of carry-related text verified correct (already-safe notes, unrelated TLS/DNP3/Modbus carry logic). Zero stale loci remaining.
+- 12 axes re-verified clean by pass-4: TypeID enums, SEC-001 anchor, APCI LEN, jq filters, count=0, BC-2.19.028 orphan-free, arithmetic, AC↔BC, EC cites, canonical-frame, RED-tense.
+- PG-W85-002 filed: recurring remediation-sweep locus-coverage gap — passes P2/P3/P4 each found stale framing not covered by the preceding sweep. Remediation sweeps must cover index titles, FSR cells, AC traces, and cross-spec risk-register loci, not just the cited line.
+
+**Summary:** Wave-85 adversarial pass-4 remediation burst. Pass-4 adversary reviewed spec+story package at 097c3dd1 in fresh context: 0 CRIT / 0 HIGH / 0 MED initially; 1 HIGH F-P4-001 identified: STORY-181 body correctly targeted the *mut EnipFlowState PDU-dispatch-loop fix at enip.rs:992-999 (take-remove-reinsert), but 3 loci in the same STORY-181 file still retained the REJECTED Direction-Keyed Carry Select framing that had been the root of the pass-1 CRITICAL finding — specifically the STORY-INDEX line 334 title cell, STORY-181 line 262 FSR normative cell (which incorrectly directed implementers to the 825-829 carry region the story explicitly forbids touching), and STORY-181 line 119 AC-181-003 trace. Story-writer dispatched a 27-hit exhaustive sweep and caught a 4th locus in risk-register.md R-010 with the same stale framing. All 4 loci fixed. 23 remaining carry-related occurrences verified correct. 12 other review axes independently re-verified clean. STORY-181 full-section consistency confirmed. Hashes: STORY-181 8253122 (unchanged), risk-register 0447a72→865986f. STORY-INDEX v3.89 (patch bump, title-cell correction only). Process-gap PG-W85-002 filed: 3 consecutive passes (P2→STORY-170:62, P3→STORY-170:105, P4→STORY-181 title/FSR/trace + risk-register) found partial-fix propagation residuals — recurring remediation-sweep locus-coverage gap flagged for cycle-close codification. develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Clean-pass counter still 0/3. Adversary pass 5 next (fresh context).
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-498 WAVE-85 ADVERSARIAL PASS 4 → REMEDIATED. Pass-5 adversarial review next (fresh context). clean-pass count = 0 of 3.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
