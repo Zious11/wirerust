@@ -128,4 +128,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-23) — D-502 WAVE-85 ADVERSARIAL PASS 8 FULLY CLEAN (archived)
+
+**D-502 WAVE-85 ADVERSARIAL PASS 8 → FULLY CLEAN (2026-07-23). Pass-8 adversary (spec+story @ c7ef4b15, fresh context): 0C/0H/0M/0L — zero findings at any severity; novelty NONE. Independent re-derivation reconciled exactly: TypeID-range enumeration (silent set {1–44,52–57,65–99,102,104,106–127}; TypeID-105 Likely), SEC-001 five-locus framing (enip.rs:992-999 *mut/take-remove-reinsert; 825-829 already-safe), APCI LEN bytes, HS-136 jq filters, count=0 Inv-3 + asdu.count, BC-2.19.028/029/030 reciprocity, index arithmetic (STORY-INDEX 134/783, BC-INDEX 380/381, HS-INDEX 209), AC↔BC traces, EC-cites, canonical-frame, green-doc-tense. Prior-pass fixes (F-P4-001/P6/P7) confirmed fully propagated. Clean-pass streak 2/3. Next: adversary pass 9 (fresh context, final — 1 more for BC-5.39.001 3/3). trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-23. Position: D-502 WAVE-85 ADVERSARIAL PASS 8 → FULLY CLEAN; pipeline ACTIVE.
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21 — unchanged); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-502 burst commit; cargo 0.13.1 both branches. DRIFT-BACKMERGE-SQUASH-001 RESOLVED (main IS ancestor of develop).
+- **In-flight work:** STORY-180 + STORY-181 (wave-85, spec locked post-pass-8-clean); adversarial convergence in progress (pass-8 FULLY CLEAN; streak 2/3; pass-9 next, fresh context required — final pass). No code worktrees, no factory lock. Only open PR: external #407 (DEFERRED, governance pending — do NOT re-run security triage). Untracked bin/__pycache__/ in product tree is transient bytecode, not WIP.
+- **NEXT STEP:** Wave-85 adversarial pass 9 — dispatch `/vsdd-factory:adversarial-review` with scope = wave-85 stories STORY-180/181 (spec+story package); fresh context required (BC-5.39.001 clean-pass count = 2 of 3; need 1 more consecutive clean/nitpick-only pass P9 for BC-5.39.001 convergence).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN structural fix; ROUTE-DOC-DEFER-2026-07-21 next doc sweep; ROUTE-W74-OBS-2 scope decision.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred crates + 4 blocked; crate soak only remains; on/after 2026-07-27); SCORECARD-ENABLEMENT-RUNBOOK.
+- **Spec versions:** BC-INDEX v2.35 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.89 / dep-graph v3.9 / HS-INDEX v2.17 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-503 session-wrap checkpoint (wave-85 CONVERGED 3/3; pipeline PAUSED before human story-approval gate).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

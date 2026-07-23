@@ -439,4 +439,50 @@ D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Pass-6 adversary (spec+story @ 
 
 ---
 
+## Archived CPS Row — D-498 (rolled from STATE.md CPS under last-5 rule, D-503 wrap burst)
+
+| **D-498 WAVE-85 ADVERSARIAL PASS 4 → REMEDIATED (2026-07-23). Pass-4 adversary (spec+story @ 097c3dd1, fresh context): 0 CRIT / 1 HIGH / 0 MED. F-P4-001 (HIGH): STORY-181 body correctly targeted the *mut EnipFlowState PDU-dispatch-loop fix but 3 loci retained the REJECTED "Direction-Keyed Carry Select" framing — STORY-INDEX:334 title (canonical registry), STORY-181:262 FSR normative cell (pointed implementer at the 825-829 carry region the story forbids touching), STORY-181:119 AC-181-003 trace. Second-order propagation tail of pass-1 CRITICAL F-P1-001. All 3 fixed; story-writer 27-hit exhaustive sweep caught a 4th locus (risk-register.md R-010 same stale framing) — fixed; 23 remaining hits verified correct (already-safe notes / unrelated TLS/DNP3/Modbus carry logic). STORY-181 full-section consistency confirmed. Hashes: STORY-181 8253122 (unchanged), risk-register 0447a72→865986f. Pass-4 also independently re-verified 12 axes clean. Clean-pass counter still 0/3. PG-W85-002 filed. Next: adversary pass 5 (fresh context). trajectory-tail →0→0→0→0** | **COMPLETE (D-498)** | Pass-4 remediated. Adversary pass-5 next (fresh context). trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst — D-503 SESSION WRAP: WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED + PAUSED (2026-07-23)
+
+**WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED 3/3 + SESSION WRAP — pipeline PAUSED**
+
+9-pass fresh-context adversarial convergence COMPLETE. Streak P7/P8/P9 = 3/3 consecutive clean/nitpick-only passes. BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. F-W85S-P9-001 LOW CLOSED (BC-2.19.019 v1.1→v1.2 parity back-refs to BC-2.19.029/030). Human /wrap — Pipeline PAUSED before consistency-validator audit + human story-approval gate.
+
+---
+
+## Burst: D-503 SESSION WRAP — WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED (2026-07-23)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-502 pass-8 fully-clean commit).
+
+**Adversary verdict:** CONVERGED — 9-pass story-level adversarial complete. Streak P7/P8/P9 = 3/3 consecutive clean/nitpick-only passes. Zero open HIGH/CRITICAL findings. BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. P9 result: 0C/0H/0M/1L NITPICK — F-W85S-P9-001 LOW CLOSED in this wrap burst (BC-2.19.019 v1.1→v1.2 parity reciprocity back-refs to BC-2.19.029/030). Human /wrap invoked at converged milestone.
+
+**Files touched (Dim-1): 5 unique files**
+
+- .factory/STATE.md (D-503 wrap: frontmatter pipeline: PAUSED + timestamp + current_step D-503; EXACT RESUME POINT D-503; Project Metadata Last Updated; Phase Progress wave-085 row CONVERGED/PAUSED; Convergence Status final trajectory `→ NITPICK/1L-closed(P9 CLEAN 3/3) → CONVERGED 3/3 (P7/P8/P9)`; Concurrent Cycles wave-085 row CONVERGED/PAUSED; CPS D-503 PAUSED add + D-498 rolled; Decisions Log D-503; Session Resume Checkpoint D-503 replaces D-502)
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.019.md (v1.1→v1.2: Related-BCs section updated — back-refs to BC-2.19.029 and BC-2.19.030 added; F-W85S-P9-001 LOW CLOSED)
+- .factory/cycles/wave-085/burst-log.md (D-498 CPS archival + D-503 wrap burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-502 checkpoint archived)
+- .factory/sidecar-learning.md (session-marker lines)
+
+**Codifications:**
+- F-W85S-P9-001 LOW CLOSED: BC-2.19.019 v1.1→v1.2 — parity reciprocity: back-references to BC-2.19.029 and BC-2.19.030 added to Related-BCs section. BC-2.19.019 covers non-timed switching/control TypeIDs 46-51; BC-2.19.029 covers timed switching TypeIDs 58-60; BC-2.19.030 covers timed set-point/bitstring TypeIDs 61-64. All three now mutually cite each other for implementer navigation. Finding status: CLOSED.
+- 9-pass fresh-context adversarial convergence COMPLETE: streak P7/P8/P9 = 3/3 consecutive clean/nitpick-only passes. Zero open HIGH/CRITICAL findings. BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED.
+- Converged spec+story package: BC-2.19.019 v1.2 / BC-2.19.022 v1.1 / BC-2.19.028 v1.1 / BC-2.19.029 v1.1 / BC-2.19.030 v1.0; STORY-180/181 (draft, ready for human story-approval gate); STORY-170 v2.1; HS-133..136; PRD v1.59; STORY-INDEX v3.89; BC-INDEX v2.35; HS-INDEX v2.17.
+- Process-gaps logged for cycle-close: PG-W85-001 (plugin template+hook '## Category: real-world-corpus' forced-section defect) + PG-W85-002 (recurring remediation-sweep locus-coverage gap) — both in Drift Items, target DF-VALIDATION-001.
+- Pipeline PAUSED before (a) fresh-context consistency-validator full-corpus audit (MANDATED before human gate — NOT yet run this session); (b) human story-approval gate for STORY-180/181.
+
+**Summary:** Session wrap burst. Human invoked /wrap at wave-85 adversarial convergence milestone. 9-pass fresh-context adversarial convergence COMPLETE: streak P7/P8/P9 = 3/3 consecutive clean/nitpick-only passes (P9: 0C/0H/0M/1L NITPICK — F-W85S-P9-001 LOW parity back-refs closed). BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. F-W85S-P9-001 LOW CLOSED in this burst: BC-2.19.019 v1.1→v1.2 parity reciprocity back-refs to BC-2.19.029/030 added (pre-existing parity gap — BC-2.19.019 covers non-timed TypeIDs 46-51 and needed to cite timed counterparts BC-2.19.029/030 for implementer navigation). develop=dc7331fb (UNCHANGED — no product code changed this session). Pipeline PAUSED before consistency-validator audit + human story-approval gate.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-503 SESSION WRAP — wave-85 story package CONVERGED 3/3 (zero open findings). Pipeline PAUSED. Human story-approval gate is NEXT on resume.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

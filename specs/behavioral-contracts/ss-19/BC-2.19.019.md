@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: feature-iec104
 modified:
   - "v1.1: F-P6-H1 — H1 title label corrected from 'Set-Point TypeIDs 48–51' to 'Set-Point + Bitstring TypeIDs 48–51' (TypeID 51 = C_BO_NA_1 is a bitstring write, not a set-point; set-points are TypeIDs 48–50 only). Body description/postconditions/invariants were already correct. Title-only fix. 2026-07-14"
+  - "v1.2: F-W85S-P9-001 — Related-BCs: added BC-2.19.029 and BC-2.19.030 as timed-twin parity back-refs (wave-85 reciprocity closure; parity declarations were one-directional). 2026-07-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -25,7 +26,7 @@ inputs:
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-research.md
-input-hash: "a153144"
+input-hash: "0e684c9"
 ---
 
 # BC-2.19.019: Control Command TypeIDs 45–51 Emit T1692.001; Set-Point + Bitstring TypeIDs 48–51 Also Emit T0836
@@ -109,6 +110,8 @@ they are high-confidence control events.
 - BC-2.19.016 — depends on (TypeID extraction)
 - BC-2.19.020 — composes with (TypeID 105: C_RP, different technique)
 - BC-2.19.021 — composes with (interrogation commands: no control finding)
+- BC-2.19.029 — timed twin (parity): C_SC_TA_1/C_DC_TA_1/C_RC_TA_1 (TypeIDs 58–60) are the CP56Time2a-tagged variants of this BC's untimed switching commands (45–47), emitting the same T1692.001.
+- BC-2.19.030 — timed twin (parity): C_SE_TA/TB/TC + C_BO_TA (TypeIDs 61–64) are the timed variants of the untimed set-point/bitstring commands (48–51).
 
 ## Architecture Anchors
 
