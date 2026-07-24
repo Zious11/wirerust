@@ -7117,9 +7117,9 @@ mod story_180 {
         let asdu = make_asdu(58, false);
         let mut findings = Vec::new();
         detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
-        let f = findings.first().expect(
-            "TypeID=58 must emit at least one finding (BC-2.19.029 postcondition 1)",
-        );
+        let f = findings
+            .first()
+            .expect("TypeID=58 must emit at least one finding (BC-2.19.029 postcondition 1)");
         assert_eq!(
             f.verdict,
             Verdict::Possible,
@@ -7272,8 +7272,7 @@ mod story_180 {
         );
 
         assert_ne!(
-            findings_timed[0].summary,
-            findings_untimed[0].summary,
+            findings_timed[0].summary, findings_untimed[0].summary,
             "TypeID=58 (timed) summary must NOT be identical to TypeID=45 (untimed) summary — \
              analysts must distinguish timed from untimed findings \
              (BC-2.19.029 postcondition 4; AC-180-004)"
@@ -7658,8 +7657,7 @@ mod story_180 {
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
             .expect("TypeID=61 must have a T1692.001 finding (BC-2.19.030)");
         assert_ne!(
-            t1692_timed.summary,
-            t1692_untimed.summary,
+            t1692_timed.summary, t1692_untimed.summary,
             "TypeID=61 T1692.001 summary must differ from TypeID=48 T1692.001 summary — \
              analysts must distinguish timed from untimed \
              (BC-2.19.030 postcondition 4; AC-180-004)"
@@ -7674,8 +7672,7 @@ mod story_180 {
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
             .expect("TypeID=61 must have a T0836 finding (BC-2.19.030)");
         assert_ne!(
-            t0836_timed.summary,
-            t0836_untimed.summary,
+            t0836_timed.summary, t0836_untimed.summary,
             "TypeID=61 T0836 summary must differ from TypeID=48 T0836 summary — \
              analysts must distinguish timed from untimed \
              (BC-2.19.030 postcondition 5; AC-180-004)"
