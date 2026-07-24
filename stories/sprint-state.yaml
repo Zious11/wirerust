@@ -929,14 +929,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-180:
-    status: in-progress  # per-story delivery dispatched 2026-07-24, D-505 gate approved
+    status: done  # DELIVERED: PR #437 421bf572 squash-merged to develop 2026-07-24 (D-507); human-executed post-classifier-halt; DF-MERGE-AUTH-CLASSIFIER-001 satisfied
     wave: 85
-    branch: feature/STORY-180-iec104-timed-cmd-detection
-    worktree: .worktrees/STORY-180
+    branch: null  # squash-merged; worktree cleaned
+    worktree: null
     blocked_by: [STORY-174]  # static edge; STORY-174 done — resolved per blocked_by convention
-    pr: null
-    merge_commit: null
-    merged_date: null
+    pr: 437
+    merge_commit: 421bf572
+    merged_date: "2026-07-24"
 
   STORY-181:
     status: pending  # approved D-505; dispatches after STORY-180

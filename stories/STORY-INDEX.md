@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "3.91"
+version: "3.92"
 status: draft
 producer: story-writer
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-24T00:00:00Z
 phase: f4
 total_stories: 134
 total_waves: 85
 total_points: 783  # = 783; wave-table scheduled: 700 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85); epic-table grand total: 783 (+5 STORY-180 E-22 + +3 STORY-181 E-20)
+# v3.92 (2026-07-24): STORY-180 DELIVERED (D-507, PR #437 421bf572 squash-merged to develop 2026-07-24T18:44:47Z, human-executed post-classifier-halt; DF-MERGE-AUTH-CLASSIFIER-001 satisfied; CI 13/13; pr-reviewer APPROVE cycle 1, 0 blocking; security CLEAN; Step-4.5 CONVERGED 3/3 D-506); status ready→delivered; wave-85 Delivery Progress 1/2; stories_delivered 116→117. STORY-INDEX v3.91→v3.92. No numeric points/story/wave totals changed (status transition only).
 # v3.91 (2026-07-24): WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (D-505) — STORY-180/181 status draft→ready (human gate approved both for Phase 3 TDD per-story delivery; STORY-180 first — dep on delivered STORY-174; then STORY-181; structured review questions presented: TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping — human approved both without changes); STORY-INDEX v3.90→v3.91; no numeric totals changed.
 # v3.90 (2026-07-24): pre-gate remediation burst (D-504) — index-body currency corrections: wave count 83→85 (wave-84 STORY-147/166/176 + wave-85 STORY-180/181), dep-graph v3.9→v3.10 (STORY-174→STORY-180 edge, 137→138 acyclic edges), E-22 epic row updated (v3.10 acyclic 138 edges); no numeric story/points totals changed.
 # v3.89 (2026-07-23): STORY-181 title-cell correction (F-P4-001 pass-4 adversary remediation, D-498) — 'Direction-Keyed Carry Select' framing removed from STORY-181 title cell; correct framing 'Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop' now consistent with STORY-181 body (FSR line 262), AC-181-003 trace (line 119), and risk-register.md R-010; STORY-INDEX v3.88→v3.89; no numeric totals changed (title-cell correction only).
@@ -333,7 +334,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-172 | IEC-104 Carry Buffers + Frame-Walk Loop + Flow Lifecycle (on_data / on_flow_close) | E-22 | 81 | 5 | delivered (D-455, PR #406 d64e5fe, wave-81) | STORY-170, STORY-171 |
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | delivered (D-458, PR #408 084ff93, wave-82; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; 17 adversarial passes 3-clean A/B/C; 2604/0) | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | delivered (D-463, PR #409 547deba, wave-83) | STORY-173 |
-| STORY-180 | IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard) | E-22 | 85 | 5 | ready | STORY-174 |
+| STORY-180 | IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard) | E-22 | 85 | 5 | delivered | STORY-174 |
 | STORY-181 | Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor) | E-20 | 85 | 3 | ready | — |
 
 ---
@@ -549,7 +550,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 82 | STORY-173 | **DELIVERED (D-458, 2026-07-16)** | #408 | 084ff93 | 2026-07-16 |
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
-| 85 | STORY-180, STORY-181 | **OPEN — stories created (D-493, 2026-07-23); awaiting dispatch** | — | — | — |
+| 85 | STORY-180, STORY-181 | **1/2 DELIVERED — STORY-180 DELIVERED (D-507, 2026-07-24); STORY-181 pending dispatch** | #437 (STORY-180) | 421bf572 | 2026-07-24 |
 
 ## Coverage Verification
 

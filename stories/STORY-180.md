@@ -4,8 +4,8 @@ level: ops
 story_id: STORY-180
 title: "IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard)"
 epic_id: E-22
-version: "1.1"
-status: ready
+version: "1.2"
+status: delivered
 producer: story-writer
 timestamp: 2026-07-23T00:00:00Z
 phase: f3
@@ -35,13 +35,13 @@ inputs:
   - .factory/planning/iec104-timed-cmd-gap-validation.md
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
-input-hash: "8ddf419"
+input-hash: "e87befe"
 ---
 
 # STORY-180: IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard)
 
 **Epic:** E-22 (IEC-104 Passive Analyzer)
-**Status:** ready
+**Status:** delivered
 **Wave:** 85
 **Points:** 5
 **Priority:** P1
@@ -337,5 +337,6 @@ No new crate dependencies. No Cargo.toml changes.
 
 | Version | Date | Note |
 |---------|------|------|
+| 1.2 | 2026-07-24 | DELIVERED — PR #437 421bf572 squash-merged to develop, human-executed post-classifier-halt; CI 13/13; Step-4.5 CONVERGED 3/3 (D-506); stories_delivered 116→117 |
 | 1.1 | 2026-07-24 | Human story-approval gate PASSED (D-505, 2026-07-24); status draft→ready |
 | 1.0 | 2026-07-23 | Initial story decomposition (wave-85 spec-evolution, BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1) |
