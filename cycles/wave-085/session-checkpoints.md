@@ -143,4 +143,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-23) — D-503 WAVE-85 ADVERSARIAL CONVERGED SESSION WRAP (archived)
+
+**D-503 SESSION WRAP — WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED 3/3 (2026-07-23). 9-pass fresh-context adversarial convergence COMPLETE: streak P7/P8/P9 = 3/3 consecutive clean/nitpick-only passes (P9: 0C/0H/0M/1L NITPICK — F-W85S-P9-001 LOW parity back-refs CLOSED). BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. BC-2.19.019 v1.1→v1.2 parity back-refs to BC-2.19.029/030 added (F-W85S-P9-001 CLOSED). Pipeline PAUSED before consistency-validator audit + human story-approval gate. trajectory-tail →0→0→0→0.**
+
+- **Date:** 2026-07-23. Position: D-503 SESSION WRAP — WAVE-85 ADVERSARIAL CONVERGED 3/3; pipeline PAUSED.
+- **Ground truth:** develop = `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` (PR #433, true-merge back-merge, 2026-07-21 — unchanged); main = `47b7d23c137483de37aa7705617749f5f9d37b07` (v0.13.1, 2026-07-21); factory-artifacts = D-503 burst commit; cargo 0.13.1 both branches. DRIFT-BACKMERGE-SQUASH-001 RESOLVED (main IS ancestor of develop).
+- **In-flight work:** STORY-180 + STORY-181 (wave-85, spec CONVERGED post-P9 adversarial; ready for human story-approval gate); adversarial convergence COMPLETE (BC-5.39.001 SATISFIED; streak P7/P8/P9 = 3/3). No code worktrees, no factory lock. Only open PR: external #407 (DEFERRED, governance pending — do NOT re-run security triage). Untracked bin/__pycache__/ in product tree is transient bytecode, not WIP.
+- **NEXT STEP:** (a) consistency-validator full-corpus audit (MANDATED before human gate — NOT yet run this session; fresh context required); (b) human story-approval gate for STORY-180/181.
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN structural fix (7 churn-cluster stales un-baselined by design); ROUTE-DOC-DEFER-2026-07-21 next doc sweep; ROUTE-W74-OBS-2 scope decision.
+- **Dated follow-ups:** DEP-SOAK-FOLLOWUP-2026-07-27 (17 deferred crates + 4 blocked; crate soak only remains; on/after 2026-07-27); SCORECARD-ENABLEMENT-RUNBOOK.
+- **Spec versions:** BC-INDEX v2.35 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.89 / dep-graph v3.9 / HS-INDEX v2.17 / register v2.0.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-504 pre-gate remediation burst checkpoint (BC-INDEX v2.36, STORY-INDEX v3.90, story-anchor fills CV-004/005; pipeline ACTIVE).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

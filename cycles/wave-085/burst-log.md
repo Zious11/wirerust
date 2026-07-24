@@ -485,4 +485,59 @@ D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED. Pass-6 adversary (spec+story @ 
 
 ---
 
+---
+
+## Archived CPS Row — D-499 (rolled from STATE.md CPS under last-5 rule, D-504 burst)
+
+| **D-499 WAVE-85 ADVERSARIAL PASS 5 → CLEAN (NITPICK_ONLY) (2026-07-23). Pass-5 adversary (spec+story @ 574325fc, fresh context): 0C/0H/0M/1L — FIRST CLEAN PASS. F-P5-001 (LOW): risk-assumption-monitoring.md REC-004 harmonized to take-remove-reinsert pattern (superseded by STORY-181). 12+ axes independently re-verified clean. Clean-pass streak 1/3 (note: streak subsequently RESET at D-500 pass-6 due to substantive MED F-P6-001; restarted P7/P8/P9 converged 3/3). trajectory-tail →0→0→0→0** | **COMPLETE (D-499)** | Pass-5 clean (streak 1/3 original; reset at D-500 pass-6). Adversary pass-6 next (fresh context). trajectory-tail →0→0→0→0 |
+
+---
+
+D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: CV-001..005 (total count 379/378→381/380 corrected; v2.36 changelog added; BC-2.19.028 v1.1 annotation; BC-2.19.019 v1.3 story_anchor + v1.2 parity back-refs annotation; BC-2.19.029 v1.2 story_anchor + v1.1 PC-5 vsq annotation; BC-2.19.030 v1.1 story_anchor annotation). STORY-INDEX v3.89→v3.90: CV-006/007 (wave count 83→85; dep-graph v3.9→v3.10; E-22 epic row updated). BC-2.19.019 v1.2→v1.3 (story_anchor STORY-170 filled). BC-2.19.029 v1.1→v1.2 (story_anchor STORY-180 filled). BC-2.19.030 v1.0→v1.1 (story_anchor STORY-180 filled). STORY-170 input-hash rebaselined 7873f11→096877a. STORY-180 input-hash rebaselined c0fad6c→8ddf419. CV-008 DEFERRED: VP-047 source_bc += BC-2.19.029/030 deferred to STORY-180 delivery. Pipeline ACTIVE.
+
+---
+
+## Burst: D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-503 session-wrap CONVERGED commit).
+
+**Adversary verdict:** PRE-GATE REMEDIATION COMPLETE (no adversary this burst — state-manager remediation only). BC-INDEX v2.35→v2.36 (CV-001..005). STORY-INDEX v3.89→v3.90 (CV-006/007). Story-anchor fills: BC-2.19.019 v1.3 (STORY-170), BC-2.19.029 v1.2 + BC-2.19.030 v1.1 (STORY-180). Input-hashes rebaselined: STORY-170 096877a, STORY-180 8ddf419. CV-008 DEFERRED (VP-047 source_bc to STORY-180 delivery). Pipeline ACTIVE.
+
+**Files touched (Dim-1): 11 unique files**
+
+- .factory/STATE.md (D-504 transition: frontmatter pipeline: ACTIVE + timestamp + current_step D-504 + bc_index_version v2.36 + story_index_version v3.90 + story_index_note v3.90 update; EXACT RESUME POINT D-504; Project Metadata Last Updated + BC-INDEX v2.36 + STORY-INDEX v3.90; Phase Progress wave-085 row; Concurrent Cycles wave-085 row; CPS D-504 add + D-499 rolled; Decisions Log D-504; Session Resume Checkpoint D-504 replaces D-503; Active Carry-Forwards CV-008 added)
+- .factory/specs/behavioral-contracts/BC-INDEX.md (v2.35→v2.36: CV-001 total count text corrected 379/378→381/380; CV-002 v2.36 changelog entry added; CV-003 BC-2.19.028 row annotation prepended v1.1 (F-P7-002 wave-85-P7 Related-BCs +BC-2.19.029/030 reciprocal); CV-004 BC-2.19.019 row annotation prepended v1.3 story_anchor STORY-170 + v1.2 parity back-refs (F-W85S-P9-001 wave-85-P9); CV-005 BC-2.19.029 row annotation prepended v1.2 story_anchor STORY-180 + v1.1 PC-5 vsq fix; BC-2.19.030 row annotation prepended v1.1 story_anchor STORY-180)
+- .factory/stories/STORY-INDEX.md (v3.89→v3.90: CV-006 wave count 83→85 (wave-84 STORY-147/166/176 + wave-85 STORY-180/181 rows added); CV-007 dep-graph version v3.9→v3.10 (STORY-174→STORY-180 edge, 137→138 acyclic edges), E-22 epic row updated (v3.10 acyclic 138 edges))
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.019.md (v1.2→v1.3: story_anchor field filled — STORY-170 (wave 79, delivered, PR #401 4b6a4e2, 2026-07-14) — CV-004 story-anchor fill)
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.029.md (v1.1→v1.2: story_anchor field filled — STORY-180 (wave 85, draft) — CV-005 story-anchor fill)
+- .factory/specs/behavioral-contracts/ss-19/BC-2.19.030.md (v1.0→v1.1: story_anchor field filled — STORY-180 (wave 85, draft) — CV-005 story-anchor fill)
+- .factory/stories/STORY-170.md (input-hash rebaselined 7873f11→096877a — triggered by BC-2.19.019.md v1.3 modification; canonical Python tool bin/compute-input-hash applied; PG-HASH-HOOK-DIVERGENCE canonical-tool-only discipline)
+- .factory/stories/STORY-180.md (input-hash rebaselined c0fad6c→8ddf419 — triggered by BC-2.19.029.md v1.2 + BC-2.19.030.md v1.1 modifications; canonical Python tool bin/compute-input-hash applied)
+- .factory/sidecar-learning.md (D-503 wrap residue session-marker applied; session state transition annotation D-503→D-504)
+- .factory/cycles/wave-085/burst-log.md (D-499 CPS archival + D-504 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-503 checkpoint archived)
+
+**Codifications:**
+- CV-001 REMEDIATED: BC-INDEX.md total BC count text corrected 379/378→381/380. Pre-D-504 text claimed 379 on disk / 378 active (stale from before wave-85 story-creation burst D-493 added BC-2.19.029/030). Correct counts per BC-INDEX frontmatter (total_bcs: 381) and body: 381 on disk / 380 active.
+- CV-002 REMEDIATED: BC-INDEX.md v2.35→v2.36 version bump + v2.36 changelog entry added. Changelog entry documents CV-001..005 fixes and CV-008 DEFERRED (VP-047 source_bc).
+- CV-003 REMEDIATED: BC-INDEX.md BC-2.19.028 row annotation updated — v1.1 annotation prepended (F-P7-002 wave-85-P7: Related-BCs expanded +BC-2.19.029/030; reciprocity matrix fully symmetric: all 6 directional pairs 019↔028/029/030, 028↔029/030, 029↔030 mutually cite each other).
+- CV-004 REMEDIATED: BC-INDEX.md BC-2.19.019 row annotation updated — v1.3 story_anchor STORY-170 + v1.2 parity back-refs (F-W85S-P9-001 wave-85-P9) prepended. BC-2.19.019.md v1.2→v1.3: story_anchor field filled with STORY-170 (wave 79, delivered, PR #401 4b6a4e2, 2026-07-14). STORY-170 input-hash rebaselined 7873f11→096877a (BC-2.19.019.md is an input to STORY-170).
+- CV-005 REMEDIATED: BC-INDEX.md BC-2.19.029 + BC-2.19.030 row annotations updated — v1.2/v1.1 story_anchor fills prepended. BC-2.19.029.md v1.1→v1.2: story_anchor field filled with STORY-180 (wave 85, draft). BC-2.19.030.md v1.0→v1.1: story_anchor field filled with STORY-180 (wave 85, draft). STORY-180 input-hash rebaselined c0fad6c→8ddf419 (BC-2.19.029/030 are inputs to STORY-180).
+- CV-006 REMEDIATED: STORY-INDEX v3.89→v3.90 — wave count corrected 83→85. Wave-table body was missing wave-84 (STORY-147/166/176) and wave-85 (STORY-180/181) rows.
+- CV-007 REMEDIATED: STORY-INDEX v3.90 dep-graph v3.9→v3.10 — STORY-174→STORY-180 dependency edge added (STORY-174 BC-2.19.022 v1.1 regression-guard output required by STORY-180 AC-180-010), 137→138 acyclic edges; E-22 epic row updated (v3.10 acyclic 138 edges annotation).
+- CV-008 DEFERRED: VP-047 source_bc += BC-2.19.029/030 — deferred to STORY-180 delivery. VP-047 update requires full story delivery context (verifier confirmation needed). Carry-forward logged in STATE.md Active Carry-Forwards.
+- STORY-170 input-hash rebaselined: 7873f11→096877a. Canonical Python tool bin/compute-input-hash applied after BC-2.19.019.md v1.3 modification (PG-HASH-HOOK-DIVERGENCE: canonical-tool-only discipline).
+- STORY-180 input-hash rebaselined: c0fad6c→8ddf419. Canonical Python tool bin/compute-input-hash applied after BC-2.19.029.md v1.2 + BC-2.19.030.md v1.1 modifications.
+
+**Summary:** Wave-85 pre-gate remediation burst. Resumed from D-503 CONVERGED session-wrap (PAUSED state). Orchestrator identified 8 pre-gate consistency violations (CV-001..008) against the converged spec+story package. CV-001..007 remediated atomically: BC-INDEX v2.35→v2.36 (total count corrected, changelog added, 4 row annotations updated); BC-2.19.019.md v1.3 + BC-2.19.029.md v1.2 + BC-2.19.030.md v1.1 (story_anchor fields filled); STORY-INDEX v3.89→v3.90 (wave count corrected, dep-graph updated, E-22 row updated); STORY-170/180 input-hashes rebaselined via canonical Python tool. CV-008 deferred to STORY-180 delivery (VP-047 source_bc update requires full story delivery context). develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. consistency-validator full-corpus audit + human story-approval gate are NEXT on resume.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-504 WAVE-85 PRE-GATE REMEDIATION BURST COMPLETE. BC-INDEX v2.36 + STORY-INDEX v3.90 + story-anchor fills (CV-001..007). CV-008 DEFERRED to STORY-180 delivery. Pipeline ACTIVE. consistency-validator full-corpus audit + human story-approval gate are NEXT on resume.
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

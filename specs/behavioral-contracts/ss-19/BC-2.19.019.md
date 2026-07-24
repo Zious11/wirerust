@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-13T00:00:00Z
@@ -16,6 +16,7 @@ introduced: feature-iec104
 modified:
   - "v1.1: F-P6-H1 — H1 title label corrected from 'Set-Point TypeIDs 48–51' to 'Set-Point + Bitstring TypeIDs 48–51' (TypeID 51 = C_BO_NA_1 is a bitstring write, not a set-point; set-points are TypeIDs 48–50 only). Body description/postconditions/invariants were already correct. Title-only fix. 2026-07-14"
   - "v1.2: F-W85S-P9-001 — Related-BCs: added BC-2.19.029 and BC-2.19.030 as timed-twin parity back-refs (wave-85 reciprocity closure; parity declarations were one-directional). 2026-07-23"
+  - "v1.3: CV-005 — Story Anchor filled: STORY-170 (delivered, wave 79; untimed control commands TypeIDs 45–51). 2026-07-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -120,7 +121,7 @@ they are high-confidence control events.
 
 ## Story Anchor
 
-(TBD — F3 story decomposition)
+STORY-170 (delivered, wave 79)
 
 ## VP Anchors
 

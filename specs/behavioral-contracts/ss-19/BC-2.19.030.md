@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-07-23T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-19
 capability: CAP-19
 lifecycle_status: active
 introduced: wave-85-spec-evolution
-modified: []
+modified:
+  - "v1.1: CV-004 — Story Anchor filled: STORY-180 (draft, wave 85). 2026-07-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -161,7 +162,7 @@ HIGH confidence, 2026-07-23). TypeIDs 58–64 fell silently through the `_` catc
 
 ## Story Anchor
 
-TBD — wave-85 spec evolution; story-writer assigns after burst
+STORY-180 (draft, wave 85)
 
 ## VP Anchors
 
