@@ -7,6 +7,29 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **ENIP `on_data` PDU dispatch loop: unsafe `*mut EnipFlowState` split-borrow replaced
+  with safe take-remove-reinsert (STORY-181, SEC-001, wave-85).**
+
+  The PDU dispatch loop in `src/analyzer/enip.rs` `on_data` previously acquired a raw
+  `*mut EnipFlowState` pointer via `self.flows.get_mut(&flow_key)` and called
+  `self.process_pdu(unsafe { &mut *flow_ptr }, ...)`, relying on a multi-line SAFETY
+  comment to guarantee that `process_pdu` never accesses `self.flows`. This pattern was
+  sound but fragile — any future change to `process_pdu` touching `self.flows` would
+  silently break soundness.
+
+  The fix removes the raw pointer entirely. Before the dispatch loop,
+  `self.flows.remove(&flow_key)` produces an owned `EnipFlowState`; `process_pdu(&mut
+  self, &mut flow, ...)` is called with this local variable (structurally disjoint from
+  `self.flows`); after the loop, `self.flows.insert(flow_key, flow)` re-inserts the flow.
+  The compiler enforces disjointness — no convention required. No `unsafe` block, no
+  `#[allow(clippy::ptr_as_ptr)]`, no raw-pointer cast remains in `on_data`. Behavior is
+  identical; all 2667 tests pass unchanged.
+
+  Resolves SEC-001 from `.factory/tech-debt-register.md` (MEDIUM, carry-forward since
+  PR #334).
+
 ### Added
 
 - **IEC-104 timed control command detection: TypeIDs 58–64 emit T1692.001 and T0836
