@@ -829,6 +829,105 @@ pub fn detect_iec104_threats(
             });
         }
 
+        // TypeIDs 58–60 (C_SC_TA_1, C_DC_TA_1, C_RC_TA_1): time-tagged switching commands.
+        // Emit T1692.001 "Unauthorized Message: Command Message" — Possible.
+        // No T0836 emitted: timed switching commands are binary control, not parameter writes.
+        // Parity with untimed arm 45..=47; only the summary wording differs to name timed mnemonics.
+        // (BC-2.19.029 postconditions 1–2; invariants 1–2; AC-180-001/002).
+        58..=60 => {
+            // BC-2.19.029 postcondition 3: include CASDU and first_ioa as target-address
+            // context; parity with untimed arm 45..=47 (BC-2.19.019 PC3).
+            let mut evidence = vec![
+                format!(
+                    "TypeID={type_id} is a time-tagged switching control command \
+                     (C_SC_TA/C_DC_TA/C_RC_TA)"
+                ),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                evidence.push(format!("first_ioa={ioa}"));
+            }
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 time-tagged control command TypeID={type_id} \
+                     (C_SC_TA/C_DC_TA/C_RC_TA): time-tagged switching control command \
+                     observed on passive monitor \
+                     (T1692.001 unauthorized command message; BC-2.19.029)"
+                ),
+                evidence,
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip,
+                timestamp,
+                direction: Some(direction),
+            });
+        }
+
+        // TypeIDs 61–64 (C_SE_TA_1, C_SE_TB_1, C_SE_TC_1, C_BO_TA_1):
+        // time-tagged set-point and bitstring write commands.
+        // Emit T1692.001 Possible (command-message indicator for all control TypeIDs)
+        // AND T0836 Possible (parameter/value write — set-point/bitstring are ICS parameter writes).
+        // Parity with untimed arm 48..=51; only summary wording differs to name timed mnemonics.
+        // (BC-2.19.030 postconditions 1–2; invariants 1–2; AC-180-003).
+        61..=64 => {
+            // BC-2.19.030 postcondition 3: CASDU/first_ioa target-address context for both
+            // co-emitted findings (T1692.001 + T0836); parity with untimed arm 48..=51 (BC-2.19.019 PC3).
+            let mut ev1 = vec![
+                format!(
+                    "TypeID={type_id} is a time-tagged set-point/bitstring write command \
+                     (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)"
+                ),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                ev1.push(format!("first_ioa={ioa}"));
+            }
+            let mut ev2 = vec![
+                format!(
+                    "TypeID={type_id} is a time-tagged set-point/bitstring write; \
+                     parameter modification (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)"
+                ),
+                format!("CASDU={}", asdu.casdu),
+            ];
+            if let Some(ioa) = asdu.first_ioa {
+                ev2.push(format!("first_ioa={ioa}"));
+            }
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 time-tagged control command TypeID={type_id} \
+                     (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA): time-tagged set-point or bitstring \
+                     write command observed on passive monitor \
+                     (T1692.001 unauthorized command message; BC-2.19.030)"
+                ),
+                evidence: ev1,
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip,
+                timestamp,
+                direction: Some(direction),
+            });
+            findings.push(Finding {
+                category: ThreatCategory::Impact,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "IEC-104 time-tagged parameter modification TypeID={type_id} \
+                     (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA): time-tagged set-point or bitstring \
+                     write modifies ICS control parameters \
+                     (T0836 modify parameter; BC-2.19.030 postcondition 2)"
+                ),
+                evidence: ev2,
+                mitre_techniques: vec!["T0836".to_string()],
+                source_ip,
+                timestamp,
+                direction: Some(direction),
+            });
+        }
+
         // TypeID 105 (C_RP_NA_1 — Reset Process Command).
         // Emit T0827 "Loss of Control" — Likely (NOT Possible; BC-2.19.020 v1.1 correction).
         // Only T0827 is emitted — not T1692.001 (reset is session management, not parameter change).
@@ -910,8 +1009,10 @@ pub fn detect_iec104_threats(
         }
 
         // Defined-but-unhandled TypeIDs in [1, 127] not covered by the arms above:
-        // TypeIDs 1–44 (monitoring direction), 52–99, 102 (C_RD_NA_1), 104, 106–127.
-        // No finding emitted — silently logged (BC-2.19.022 invariant 1; AC-170-005).
+        // TypeIDs 1–44 (monitoring direction), {52–57, 65–99}, 102 (C_RD_NA_1), 104, 106–127.
+        // TypeIDs 58–64 were here prior to wave-85-spec-evolution; they are now handled by
+        // BC-2.19.029 (58–60) and BC-2.19.030 (61–64).
+        // No finding emitted — silently logged (BC-2.19.022 v1.1 invariant 1; AC-170-005).
         _ => {
             // Silently logged: defined TypeID not in any detection set.
             // No finding emitted (BC-2.19.022 invariant 1).
