@@ -35,7 +35,7 @@ inputs:
   - .factory/planning/iec104-timed-cmd-gap-validation.md
   - .factory/specs/architecture/ss-19-iec104-analysis.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
-input-hash: "e87befe"
+input-hash: "eb005af"
 ---
 
 # STORY-180: IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard)

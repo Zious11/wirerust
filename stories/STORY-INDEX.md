@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "3.93"
+version: "3.94"
 status: draft
 producer: story-writer
 timestamp: 2026-07-24T00:00:00Z
@@ -8,6 +8,7 @@ phase: f4
 total_stories: 134
 total_waves: 85
 total_points: 783  # = 783; wave-table scheduled: 700 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85); epic-table grand total: 783 (+5 STORY-180 E-22 + +3 STORY-181 E-20)
+# v3.94 (2026-07-24): WAVE-85 GATE CLOSED (D-510) — STORY-181 Dependencies cell corrected '#438'→'—' (CV-W85G-001; PR number is delivery artifact, not a story dependency); BC-2.19.029 v1.4 + BC-2.19.030 v1.3 PO Story-Anchor label refreshes (CV-W85G-002, PO edits included in D-510 burst); input-hash re-baseline 22 stories (annotation/index churn: PRD v1.57-59 spec-evolution, STORY-INDEX v3.90-93 bumps, STATE.md-in-inputs cluster STORY-175..179, BC-2.19.029/030 PO label bumps staling STORY-180; canonical Python tool DF-INPUT-HASH-CANONICAL-001). No numeric story/points/wave totals changed.
 # v3.93 (2026-07-24): STORY-181 DELIVERED (D-509, PR #438 5555495b squash-merged to develop 2026-07-24T20:26:06Z, human-executed post-MERGE-AUTH-HALT; DF-MERGE-AUTH-CLASSIFIER-001 satisfied; CI 13/13; pr-reviewer APPROVE cycle 1, 0 blocking; security 0C/0H/0M; Step-4.5 CONVERGED 3/3 D-508); status ready→delivered; wave-85 Delivery Progress 2/2 DELIVERED; CLOSED-PENDING-GATE; stories_delivered 117→118. PG-W85-004 NEW (pr-manager attempted gh pr review --approve on self-authored PR #438, blocked by two-party harness guard). STORY-INDEX v3.92→v3.93. No numeric points/story/wave totals changed (status transition only).
 # v3.92 (2026-07-24): STORY-180 DELIVERED (D-507, PR #437 421bf572 squash-merged to develop 2026-07-24T18:44:47Z, human-executed post-classifier-halt; DF-MERGE-AUTH-CLASSIFIER-001 satisfied; CI 13/13; pr-reviewer APPROVE cycle 1, 0 blocking; security CLEAN; Step-4.5 CONVERGED 3/3 D-506); status ready→delivered; wave-85 Delivery Progress 1/2; stories_delivered 116→117. STORY-INDEX v3.91→v3.92. No numeric points/story/wave totals changed (status transition only).
 # v3.91 (2026-07-24): WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (D-505) — STORY-180/181 status draft→ready (human gate approved both for Phase 3 TDD per-story delivery; STORY-180 first — dep on delivered STORY-174; then STORY-181; structured review questions presented: TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping — human approved both without changes); STORY-INDEX v3.90→v3.91; no numeric totals changed.
@@ -336,7 +337,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-173 | IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS | E-22 | 82 | 5 | delivered (D-458, PR #408 084ff93, wave-82; IEC104-FINDINGS-CAP-001 RESOLVED; BC-2.19.006 v1.2; BC-INDEX v2.33; 17 adversarial passes 3-clean A/B/C; 2604/0) | STORY-172 |
 | STORY-174 | IEC-104 Formal Hardening: VP-044 Kani + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 Re-run + cargo-mutants | E-22 | 83 | 5 | delivered (D-463, PR #409 547deba, wave-83) | STORY-173 |
 | STORY-180 | IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard) | E-22 | 85 | 5 | delivered | STORY-174 |
-| STORY-181 | Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor) | E-20 | 85 | 3 | delivered | #438 |
+| STORY-181 | Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor) | E-20 | 85 | 3 | delivered | — |
 
 ---
 

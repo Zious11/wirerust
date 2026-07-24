@@ -28,7 +28,7 @@ traces_to:
   - .github/workflows/ci.yml
   - bin/check-green-doc-tense
   - bin/lint-cycle-artifact
-input-hash: "5650b57"
+input-hash: "318bff2"
 inputs:
   - .factory/cycles/wave-71/STORY-157/FINDINGS.md
   - .github/workflows/ci.yml

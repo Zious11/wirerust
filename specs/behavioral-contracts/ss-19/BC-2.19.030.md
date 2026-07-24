@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-23T00:00:00Z
@@ -16,6 +16,7 @@ introduced: wave-85-spec-evolution
 modified:
   - "v1.1: CV-004 — Story Anchor filled: STORY-180 (draft, wave 85). 2026-07-23"
   - "v1.2: F-180-P4-001 — Story Anchor status label refreshed draft→ready (D-505 gate). 2026-07-24"
+  - "v1.3: CV-W85G-002 — Story Anchor status label refreshed ready→delivered (PR #437, D-507). 2026-07-24"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -163,7 +164,7 @@ HIGH confidence, 2026-07-23). TypeIDs 58–64 fell silently through the `_` catc
 
 ## Story Anchor
 
-STORY-180 (ready, wave 85)
+STORY-180 (delivered, wave 85)
 
 ## VP Anchors
 
