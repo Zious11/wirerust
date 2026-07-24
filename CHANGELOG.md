@@ -7,6 +7,38 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **IEC-104 timed control command detection: TypeIDs 58–64 emit T1692.001 and T0836
+  (STORY-180, BC-2.19.029 + BC-2.19.030, wave-85).**
+
+  The IEC-104 passive analyzer detects the CP56Time2a time-tagged variants of control
+  command TypeIDs, closing the evasion gap documented in IEC104-TIMED-CMD-GAP-001 where
+  TypeIDs 58–64 fell silently through the `_` catch-all arm.
+
+  Two new match arms in `detect_iec104_threats` (`src/analyzer/iec104.rs`):
+
+  - `58..=60` (C_SC_TA_1 / C_DC_TA_1 / C_RC_TA_1 — timed switching commands): emits one
+    T1692.001 "Unauthorized Message: Command Message" Possible / Medium / Impact finding
+    with CASDU and conditional first_ioa evidence. No T0836 (binary switching control, not
+    parameter writes). Parity with untimed arm 45..=47 (BC-2.19.019); summary wording
+    distinguishes timed from untimed with "time-tagged" qualifier and C_SC_TA/C_DC_TA/C_RC_TA
+    mnemonics (BC-2.19.029).
+
+  - `61..=64` (C_SE_TA_1 / C_SE_TB_1 / C_SE_TC_1 / C_BO_TA_1 — timed set-point and
+    bitstring write commands): emits T1692.001 Possible then T0836 "Modify Parameter" Possible,
+    both with CASDU and conditional first_ioa evidence. T0836 is co-emitted because set-point
+    and bitstring TypeIDs modify ICS control parameters. Parity with untimed arm 48..=51
+    (BC-2.19.019); summaries name C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA mnemonics (BC-2.19.030).
+
+  The catch-all arm comment at `detect_iec104_threats` is narrowed from "52–99" to
+  "{52–57, 65–99}", noting that TypeIDs 58–64 are now handled by BC-2.19.029 and
+  BC-2.19.030 (AC-180-007; BC-2.19.022 v1.1). The existing post-emission `[TEST]` loop
+  covers the new arms automatically — no extra wiring required (BC-2.19.017 invariant 1).
+
+  `cargo test --test iec104_analyzer_tests`: 248 passed (221 prior + 27 new story_180
+  tests; 21 flipped red→green at the Green step, 6 regression guards green throughout).
+
 ## [0.13.1] - 2026-07-21
 
 ### Added
