@@ -184,6 +184,4 @@ grep -rE '<host-path-pattern>' docs/demo-evidence/STORY-180/
 
 Result: **zero matches** — no absolute host paths present in any evidence file.
 
-Result: **zero matches** — no absolute host paths present in any evidence file.
-
 Gate status: **PASSED** (2026-07-24).
