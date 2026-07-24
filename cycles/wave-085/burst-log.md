@@ -620,4 +620,38 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## Burst: D-508 STORY-181 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24)
+
+**Parent-commit:** `e7f76508` — HEAD of factory-artifacts at burst start (factory(phase-3): STORY-181 red-gate log (N/A-BY-DESIGN — behavior-preserving refactor, baseline 2667/0)).
+
+**Adversary verdict:** CONVERGED — BC-5.39.001 SATISFIED (3/3 consecutive clean passes P1/P2/P3). Zero open HIGH/CRITICAL findings. O-181-P3-001 theoretical non-blocking observation accepted.
+
+**Files touched (Dim-1): 5 unique files**
+
+- `.factory/cycles/wave-085/STORY-181/adversary-convergence-state.json` — NEW: per-story adversarial state (3 passes, CONVERGED, clean_streak [1,2,3], all findings LOW/theoretical)
+- `.factory/cycles/wave-085/STORY-181/convergence-report.md` — NEW: per-story convergence report (trajectory NITPICK/2L(P1)→NITPICK/2L(P2)→CLEAN/0(P3), SEC-001 zero unsafe verified, ROUTE-W74 OBS-1 closed, O-181-P3-001 non-blocking)
+- `.factory/STATE.md` — D-508 transition: frontmatter current_step + timestamp; EXACT RESUME POINT; Last Updated row; Phase Progress wave-085 row (D-508 appended); Convergence Status STORY-181 trajectory line added; Concurrent Cycles wave-085 updated; CPS D-508 added + D-503 rolled; Decisions Log D-508 added; Session Resume Checkpoint → D-508
+- `.factory/cycles/wave-085/session-checkpoints.md` — D-507 checkpoint archived (STORY-180 DELIVERED → STORY-181 dispatch next)
+- `.factory/cycles/wave-085/burst-log.md` — this entry
+
+**Archived CPS row (D-503, rolled out of last-5):**
+> | **D-503 WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED + SESSION WRAP (2026-07-23). Streak P7/P8/P9 = 3/3. BC-5.39.001 + DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. F-W85S-P9-001 LOW closed. wave-85 spec+story package CONVERGED, ZERO open findings. Pipeline PAUSED. develop=dc7331fb. trajectory-tail →0→0→0→0** | **COMPLETE (D-503)** | wave-85 CONVERGED 3/3. Superseded by D-504. trajectory-tail →0→0→0→0 |
+
+**Codifications:**
+- STORY-181 STEP-4.5 ADVERSARIAL CONVERGED (D-508, 2026-07-24): BC-5.39.001 SATISFIED via consecutive clean passes P1/P2/P3. P1 2 LOW nits (F-181-P1-001 false pdu_queue invariant comment; F-181-P1-002 stale flow_key param doc) SWEPT 294168fa. P2 2 LOW precision nits (F-181-P2-001 RULING-137-002 cross-ref missing; F-181-P2-002 line ~1033 6-off) SWEPT 093ff519. P3 CLEAN/0 findings. O-181-P3-001 theoretical panic-unwind (debug_assert-only, release-compiled-out) accepted non-blocking.
+- SEC-001 ENIP split-borrow fix verified: zero unsafe in enip.rs — adversary-confirmed ×3.
+- ROUTE-W74 OBS-1 closed: AC-181-004 implementation confirmed correct — adversary-confirmed ×3.
+- Semantic equivalence independently derived CLEAN: process_pdu self.flows isolation verified by exhaustive grep ×3.
+
+**Summary:** STORY-181 per-story adversarial convergence COMPLETE. 3 fresh-context passes; streak P1/P2/P3 = 3/3; BC-5.39.001 SATISFIED. Trajectory NITPICK/2L(P1)→NITPICK/2L(P2)→CLEAN/0(P3). Implementation commits 224311a1/13491355/e9572820 + sweeps 294168fa/093ff519. All findings LOW, closed in-cycle. O-181-P3-001 theoretical panic-unwind non-blocking. SEC-001 fix verified (zero unsafe in enip.rs, adversary-confirmed ×3). ROUTE-W74 OBS-1 closed (AC-181-004, adversary-confirmed ×3). develop=421bf572 (UNCHANGED — no code changes in this state-manager burst). Demo evidence + pr-manager PR lifecycle next.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (421bf572).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-508 STORY-181 STEP-4.5 ADVERSARIAL CONVERGED. BC-5.39.001 SATISFIED (P1/P2/P3). Demo evidence + pr-manager lifecycle next. trajectory-tail NITPICK/2L(P1)→NITPICK/2L(P2)→CLEAN/0(P3)→CONVERGED
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

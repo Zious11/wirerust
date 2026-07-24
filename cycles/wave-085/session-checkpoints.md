@@ -188,4 +188,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-24) — D-507 STORY-180 DELIVERED (archived)
+
+**D-507 STORY-180 DELIVERED (2026-07-24). PR #437 421bf572 squash-merged to develop, human-executed post-classifier-halt; DF-MERGE-AUTH-CLASSIFIER-001 satisfied. CI 13/13; pr-reviewer APPROVE cycle 1 (0 blocking); security CLEAN; stories_delivered 116→117. VP-INDEX v2.47 (CV-008 RESOLVED: VP-047 source_bc += BC-2.19.029/030). Worktree cleaned. develop=421bf572. Next: per-story delivery STORY-181. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-24. Position: STORY-180 DELIVERED (D-507); per-story delivery STORY-181 is NEXT.
+- **Convergence counter:** STORY-180 BC-5.39.001 3/3 SATISFIED (P2/P3/P4) — DELIVERED. Do NOT re-run per-story adversarial for STORY-180.
+- **In-flight:** NONE. All bursts committed. Tree clean (factory-artifacts updated this burst).
+- **PENDING NEXT STEPS (in order) on resume:** (a) per-story delivery STORY-181 (SEC-001 ENIP split-borrow refactor + ROUTE-W74 OBS-1); (b) wave-85 integration gate; (c) cycle-close: codify PG-W85-001 + PG-W85-002 + PG-W85-003.
+- **Ground truth:** develop=421bf5724bb80449b121d2a3c7e1460cf665ddec, main=47b7d23c (v0.13.1). No open worktrees. Only open product PR: external #407 (DEFERRED).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21; ROUTE-W74-OBS-2.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.92 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-508 STORY-181 Step-4.5 adversarial CONVERGED checkpoint (BC-5.39.001 3/3 P1/P2/P3; demo evidence + pr-manager lifecycle next).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
