@@ -3198,16 +3198,22 @@ mod story_170 {
         );
     }
 
-    /// BC-2.19.022 invariant: a representative sample of defined-but-unhandled TypeIDs emit no finding.
+    /// BC-2.19.022 v1.1 invariant: a representative sample of defined-but-unhandled TypeIDs emit no finding.
     ///
     /// Tests {1, 30, 44, 52, 99, 102, 104, 127} — all silently logged with no findings.
     /// Ensures the silent-log path is exhaustive for a cross-section of the [1,127] range.
     ///
-    /// Traces: BC-2.19.022 invariant 1; AC-170-005; AC-170-006.
+    /// BC-2.19.022 v1.1 (wave-85-spec-evolution): the silently-logged range is now {52–57} and
+    /// {65–99}. TypeIDs 58–64 were removed from the silently-logged set and are handled by
+    /// BC-2.19.029 (58–60) and BC-2.19.030 (61–64). The sample below (52 and 99) is unchanged
+    /// because it does not include any value in 58–64, so no assertion removal is needed.
+    ///
+    /// Traces: BC-2.19.022 v1.1 invariant 1; AC-170-005; AC-170-006; AC-180-006.
     #[test]
     fn test_BC_2_19_022_invariant_silent_range_sample_emits_no_findings() {
         // Defined-but-unhandled TypeIDs that must produce no finding:
-        // 1–44: monitoring direction; 52–99: above control range;
+        // 1–44: monitoring direction; 52–57 and 65–99: silently logged per BC-2.19.022 v1.1
+        // (TypeIDs 58–64 are now handled by BC-2.19.029/030 — NOT in this list);
         // 102: C_RD (read, not detection set); 104: between C_RP and C_IC; 106–127: future
         let silent_type_ids: &[u8] = &[1, 30, 44, 52, 99, 102, 104, 106, 127];
         for &type_id in silent_type_ids {
@@ -6931,6 +6937,950 @@ mod fix_f5_001 {
         assert!(
             f.timestamp.is_some(),
             "non-canonical U-frame T0814 must carry a non-None timestamp (FIX-F5-001)"
+        );
+    }
+}
+
+// =============================================================================
+// STORY-180: IEC-104 Timed Control Command Detection (TypeIDs 58–64)
+// BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard
+// =============================================================================
+// Red Gate classification:
+//   RED  (expected FAIL before implementation): all tests asserting findings for
+//        TypeIDs 58–64 — currently these fall through the `_` catch-all silently.
+//   GREEN (expected PASS before implementation): BC-2.19.022 v1.1 silence guards
+//        (52, 57, 65, 99) and untimed twin regression guards (45, 51) — their
+//        detection arms are unchanged by STORY-180.
+// =============================================================================
+mod story_180 {
+    use wirerust::analyzer::iec104::{Asdu, detect_iec104_threats};
+    use wirerust::findings::{Confidence, ThreatCategory, Verdict};
+    use wirerust::reassembly::handler::Direction;
+
+    // -------------------------------------------------------------------------
+    // Test helpers
+    // -------------------------------------------------------------------------
+
+    /// Construct a minimal Asdu with a given TypeID and cot_test flag.
+    ///
+    /// Mirrors story_170::make_asdu; sq=false, count=1, cot_cause=6, cot_pn=false,
+    /// cot_originator=0, casdu=1, first_ioa=None.
+    fn make_asdu(type_id: u8, cot_test: bool) -> Asdu {
+        Asdu {
+            type_id,
+            sq: false,
+            count: 1,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test,
+            cot_originator: 0,
+            casdu: 1,
+            first_ioa: None,
+        }
+    }
+
+    /// Construct an Asdu with explicit casdu, first_ioa, and count for evidence/count tests.
+    fn make_asdu_full(
+        type_id: u8,
+        cot_test: bool,
+        casdu: u16,
+        first_ioa: Option<u32>,
+        count: u8,
+    ) -> Asdu {
+        Asdu {
+            type_id,
+            sq: false,
+            count,
+            cot_cause: 6,
+            cot_pn: false,
+            cot_test,
+            cot_originator: 0,
+            casdu,
+            first_ioa,
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.029: Time-Tagged Switching Control Commands (TypeIDs 58–60)
+    // Emit exactly one T1692.001 Possible finding; no T0836.
+    // AC-180-001, AC-180-002
+    // =========================================================================
+
+    /// BC-2.19.029 canonical vector row 1: TypeID=58 (C_SC_TA_1, timed single command) →
+    /// exactly 1 finding (T1692.001 only; no T0836).
+    ///
+    /// Expected RED: TypeID=58 currently falls through `_` catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.029 postconditions 1–2; invariants 1–2; AC-180-001; AC-180-002;
+    ///         EC-001 (BC-2.19.029).
+    #[test]
+    fn test_BC_2_19_029_type_id_58_emits_t1692_001_only() {
+        let asdu = make_asdu(58, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=58 (C_SC_TA_1, timed single command) must emit exactly 1 finding — \
+             T1692.001 only; no T0836 \
+             (BC-2.19.029 postconditions 1–2; invariant 2; AC-180-001/002)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=58 sole finding must be T1692.001 \
+             (BC-2.19.029 postcondition 1; AC-180-001)"
+        );
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=58 must NOT emit T0836 — timed switching commands are binary control, \
+             not parameter writes (BC-2.19.029 postcondition 2; invariant 2; AC-180-002)"
+        );
+    }
+
+    /// BC-2.19.029 canonical vector row 2: TypeID=59 (C_DC_TA_1, timed double command) →
+    /// exactly 1 finding (T1692.001 only; no T0836).
+    ///
+    /// Expected RED: falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.029 postconditions 1–2; invariant 2; AC-180-001; EC-002 (BC-2.19.029).
+    #[test]
+    fn test_BC_2_19_029_type_id_59_emits_t1692_001_only() {
+        let asdu = make_asdu(59, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=59 (C_DC_TA_1, timed double command) must emit exactly 1 finding — \
+             T1692.001 only (BC-2.19.029 postconditions 1–2; AC-180-001)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=59 finding must be T1692.001 (BC-2.19.029 postcondition 1)"
+        );
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=59 must NOT emit T0836 (BC-2.19.029 invariant 2; AC-180-002)"
+        );
+    }
+
+    /// BC-2.19.029: TypeID=60 (C_RC_TA_1, timed regulating step command) → exactly 1 finding
+    /// (T1692.001 only; no T0836).
+    ///
+    /// Expected RED: falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.029 postconditions 1–2; invariant 2; AC-180-001; EC-003 (BC-2.19.029).
+    #[test]
+    fn test_BC_2_19_029_type_id_60_emits_t1692_001_only() {
+        let asdu = make_asdu(60, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=60 (C_RC_TA_1, timed regulating step) must emit exactly 1 finding — \
+             T1692.001 only (BC-2.19.029 postconditions 1–2; AC-180-001)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=60 finding must be T1692.001 (BC-2.19.029 postcondition 1)"
+        );
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=60 must NOT emit T0836 (BC-2.19.029 invariant 2; AC-180-002)"
+        );
+    }
+
+    /// BC-2.19.029 postcondition 1 sub-check: TypeID=58 finding has Verdict::Possible,
+    /// Confidence::Medium, ThreatCategory::Impact — parity with untimed arm 45–47.
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.029 postcondition 1; invariant 5 (parity with untimed arm); AC-180-001.
+    #[test]
+    fn test_BC_2_19_029_type_id_58_verdict_confidence_category() {
+        let asdu = make_asdu(58, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        let f = findings.first().expect(
+            "TypeID=58 must emit at least one finding (BC-2.19.029 postcondition 1)",
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "TypeID=58 T1692.001 finding must have Verdict::Possible \
+             (BC-2.19.029 postcondition 1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Medium,
+            "TypeID=58 T1692.001 finding must have Confidence::Medium \
+             (BC-2.19.029 postcondition 1)"
+        );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Impact,
+            "TypeID=58 T1692.001 finding must have ThreatCategory::Impact \
+             (BC-2.19.029 postcondition 1; ICS command message)"
+        );
+    }
+
+    /// BC-2.19.029 canonical vector row 1: TypeID=58, CASDU=1, first_ioa=Some(100) →
+    /// evidence includes "CASDU=1" and "first_ioa=100".
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 1.
+    #[test]
+    fn test_BC_2_19_029_casdu_first_ioa_evidence() {
+        let asdu = make_asdu_full(58, false, 1, Some(100), 1);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=58 must emit a finding (BC-2.19.029 postcondition 1; \
+             precondition for evidence check)"
+        );
+        let f = &findings[0];
+        assert!(
+            f.evidence.iter().any(|e| e.contains("CASDU=1")),
+            "TypeID=58, CASDU=1: finding evidence must contain \"CASDU=1\" \
+             (BC-2.19.029 postcondition 3; canonical vector row 1)"
+        );
+        assert!(
+            f.evidence.iter().any(|e| e.contains("first_ioa=100")),
+            "TypeID=58, first_ioa=Some(100): finding evidence must contain \"first_ioa=100\" \
+             (BC-2.19.029 postcondition 3; canonical vector row 1)"
+        );
+    }
+
+    /// BC-2.19.029 canonical vector row 2: TypeID=59, CASDU=200, first_ioa=None →
+    /// evidence includes "CASDU=200" but no "first_ioa=" entry.
+    ///
+    /// first_ioa is conditionally included (only when Some). None → omitted entirely.
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 2; EC-008 (STORY-180).
+    #[test]
+    fn test_BC_2_19_029_type_id_59_first_ioa_none_no_first_ioa_evidence() {
+        let asdu = make_asdu_full(59, false, 200, None, 1);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=59 must emit a finding (BC-2.19.029 postcondition 1)"
+        );
+        let f = &findings[0];
+        assert!(
+            f.evidence.iter().any(|e| e.contains("CASDU=200")),
+            "TypeID=59, CASDU=200: evidence must contain \"CASDU=200\" \
+             (BC-2.19.029 postcondition 3; canonical vector row 2)"
+        );
+        assert!(
+            !f.evidence.iter().any(|e| e.contains("first_ioa=")),
+            "TypeID=59, first_ioa=None: evidence must NOT contain a \"first_ioa=\" entry — \
+             conditional inclusion only when first_ioa is Some \
+             (BC-2.19.029 postcondition 3; EC-008 STORY-180)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.029 postcondition 4: Timed summary wording (AC-180-004)
+    // =========================================================================
+
+    /// BC-2.19.029 postcondition 4: TypeID=58 finding summary contains "time-tagged"
+    /// qualifier and names C_SC_TA/C_DC_TA/C_RC_TA mnemonics.
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.029 postcondition 4; AC-180-004.
+    #[test]
+    fn test_BC_2_19_029_timed_summary_contains_time_tagged_qualifier() {
+        let asdu = make_asdu(58, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=58 must emit a finding (BC-2.19.029 postcondition 1; \
+             precondition for summary wording check)"
+        );
+        let summary = &findings[0].summary;
+        assert!(
+            summary.contains("time-tagged"),
+            "TypeID=58 T1692.001 summary must contain \"time-tagged\" qualifier \
+             (BC-2.19.029 postcondition 4; AC-180-004). Actual: {summary:?}"
+        );
+        assert!(
+            summary.contains("C_SC_TA")
+                || summary.contains("C_DC_TA")
+                || summary.contains("C_RC_TA"),
+            "TypeID=58 T1692.001 summary must name timed mnemonics \
+             C_SC_TA/C_DC_TA/C_RC_TA (BC-2.19.029 postcondition 4; AC-180-004). \
+             Actual: {summary:?}"
+        );
+    }
+
+    /// BC-2.19.029 postcondition 4: TypeID=58 (timed) summary differs from TypeID=45
+    /// (untimed twin) summary — analysts must distinguish timed from untimed in output.
+    ///
+    /// Expected RED for the TypeID=58 assertion; TypeID=45 assertion is GREEN.
+    ///
+    /// Traces: BC-2.19.029 postcondition 4; AC-180-004.
+    #[test]
+    fn test_BC_2_19_029_timed_summary_differs_from_untimed_twin() {
+        let asdu_untimed = make_asdu(45, false);
+        let mut findings_untimed = Vec::new();
+        detect_iec104_threats(
+            &asdu_untimed,
+            &mut findings_untimed,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
+        assert!(
+            !findings_untimed.is_empty(),
+            "TypeID=45 (untimed twin) must emit a finding (BC-2.19.019 — regression guard)"
+        );
+
+        let asdu_timed = make_asdu(58, false);
+        let mut findings_timed = Vec::new();
+        detect_iec104_threats(
+            &asdu_timed,
+            &mut findings_timed,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
+        assert!(
+            !findings_timed.is_empty(),
+            "TypeID=58 (timed) must emit a finding (BC-2.19.029 postcondition 1; AC-180-001)"
+        );
+
+        assert_ne!(
+            findings_timed[0].summary,
+            findings_untimed[0].summary,
+            "TypeID=58 (timed) summary must NOT be identical to TypeID=45 (untimed) summary — \
+             analysts must distinguish timed from untimed findings \
+             (BC-2.19.029 postcondition 4; AC-180-004)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.029 postcondition 6: cot_test=true appends [TEST] suffix (AC-180-005)
+    // =========================================================================
+
+    /// BC-2.19.029 canonical vector row 3: TypeID=60, cot_test=true → summary ends with
+    /// " [TEST]". Applied by the post-emission loop; no arm-specific wiring needed.
+    ///
+    /// Expected RED: no findings for TypeID=60 before implementation.
+    ///
+    /// Traces: BC-2.19.029 postcondition 6; BC-2.19.017 invariant 1; AC-180-005;
+    ///         EC-007 (BC-2.19.029); EC-009 (STORY-180).
+    #[test]
+    fn test_BC_2_19_029_type_id_60_cot_test_suffix() {
+        let asdu = make_asdu(60, true);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            !findings.is_empty(),
+            "TypeID=60 must emit a finding (BC-2.19.029 postcondition 1; \
+             precondition for [TEST] suffix check)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.ends_with(" [TEST]"),
+                "TypeID=60 with cot_test=true: finding summary must end with \" [TEST]\" \
+                 (BC-2.19.029 postcondition 6; BC-2.19.017 invariant 1; AC-180-005). \
+                 Actual: {:?}",
+                f.summary
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.029 postcondition 5 / invariant 3: count-independent emission (AC-180-008)
+    // =========================================================================
+
+    /// BC-2.19.029 invariant 3: TypeID=58, count=0 → finding still emitted.
+    ///
+    /// Emission is per-ASDU frame; the VSQ object count is not consulted.
+    /// Expected RED: TypeID=58 falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.029 postcondition 5; invariant 3; AC-180-008;
+    ///         EC-006 (BC-2.19.029); EC-011 (STORY-180).
+    #[test]
+    fn test_BC_2_19_029_type_id_58_count_zero_still_emits() {
+        let asdu = make_asdu_full(58, false, 1, None, 0);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=58 with count=0 must still emit 1 finding — emission is count-independent \
+             per ASDU frame (BC-2.19.029 postcondition 5; invariant 3; AC-180-008; EC-011)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.030: Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64)
+    // Emit exactly 2 findings: T1692.001 Possible + T0836 Possible.
+    // AC-180-003
+    // =========================================================================
+
+    /// BC-2.19.030 canonical vector row 1: TypeID=61 (C_SE_TA_1, timed set-point normalized)
+    /// → exactly 2 findings: T1692.001 Possible + T0836 Possible.
+    ///
+    /// Expected RED: TypeID=61 currently falls through `_` catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-001 (BC-2.19.030).
+    #[test]
+    fn test_BC_2_19_030_type_id_61_emits_two_findings() {
+        let asdu = make_asdu(61, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=61 (C_SE_TA_1) must emit exactly 2 findings: T1692.001 + T0836 \
+             (BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=61 must emit T1692.001 (BC-2.19.030 postcondition 1; AC-180-003)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=61 must emit T0836 (BC-2.19.030 postcondition 2; AC-180-003)"
+        );
+    }
+
+    /// BC-2.19.030: TypeID=62 (C_SE_TB_1, timed set-point scaled) → exactly 2 findings.
+    ///
+    /// Expected RED: falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-002 (BC-2.19.030).
+    #[test]
+    fn test_BC_2_19_030_type_id_62_emits_two_findings() {
+        let asdu = make_asdu(62, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=62 (C_SE_TB_1, timed set-point scaled) must emit exactly 2 findings: \
+             T1692.001 + T0836 (BC-2.19.030 postconditions 1–2; AC-180-003)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=62 must emit T1692.001 (BC-2.19.030 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=62 must emit T0836 (BC-2.19.030 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.030: TypeID=63 (C_SE_TC_1, timed set-point short float) → exactly 2 findings.
+    ///
+    /// Expected RED: falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-003 (BC-2.19.030).
+    #[test]
+    fn test_BC_2_19_030_type_id_63_emits_two_findings() {
+        let asdu = make_asdu(63, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=63 (C_SE_TC_1, timed set-point short float) must emit exactly 2 findings: \
+             T1692.001 + T0836 (BC-2.19.030 postconditions 1–2; AC-180-003)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=63 must emit T1692.001 (BC-2.19.030 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=63 must emit T0836 (BC-2.19.030 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.030: TypeID=64 (C_BO_TA_1, timed bitstring of 32 bits) → exactly 2 findings.
+    ///
+    /// Expected RED: falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.030 postconditions 1–2; invariants 1–2; AC-180-003;
+    ///         EC-004 (BC-2.19.030); EC-005 (STORY-180).
+    #[test]
+    fn test_BC_2_19_030_type_id_64_emits_two_findings() {
+        let asdu = make_asdu(64, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=64 (C_BO_TA_1, timed bitstring) must emit exactly 2 findings: \
+             T1692.001 + T0836 (BC-2.19.030 postconditions 1–2; invariant 2; AC-180-003)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=64 must emit T1692.001 (BC-2.19.030 postcondition 1)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=64 must emit T0836 (BC-2.19.030 postcondition 2)"
+        );
+    }
+
+    /// BC-2.19.030 postconditions 1–2 sub-check: TypeID=61 — both findings have
+    /// Verdict::Possible, Confidence::Medium, ThreatCategory::Impact.
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.030 postconditions 1–2; invariant 5 (parity with untimed arm); AC-180-003.
+    #[test]
+    fn test_BC_2_19_030_type_id_61_verdict_confidence_category_both_findings() {
+        let asdu = make_asdu(61, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=61 must emit 2 findings (precondition for verdict/category check)"
+        );
+        for f in &findings {
+            assert_eq!(
+                f.verdict,
+                Verdict::Possible,
+                "TypeID=61 finding (technique={:?}) must have Verdict::Possible \
+                 (BC-2.19.030 postconditions 1–2)",
+                f.mitre_techniques
+            );
+            assert_eq!(
+                f.confidence,
+                Confidence::Medium,
+                "TypeID=61 finding (technique={:?}) must have Confidence::Medium \
+                 (BC-2.19.030 postconditions 1–2)",
+                f.mitre_techniques
+            );
+            assert_eq!(
+                f.category,
+                ThreatCategory::Impact,
+                "TypeID=61 finding (technique={:?}) must have ThreatCategory::Impact \
+                 (BC-2.19.030 postconditions 1–2)",
+                f.mitre_techniques
+            );
+        }
+    }
+
+    /// BC-2.19.030 postcondition 3 / canonical vector row 1: TypeID=61, CASDU=1,
+    /// first_ioa=Some(200) → BOTH findings' evidence include "CASDU=1" and "first_ioa=200".
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.030 postcondition 3; AC-180-003; canonical vector row 1.
+    #[test]
+    fn test_BC_2_19_030_type_id_61_casdu_first_ioa_evidence_both_findings() {
+        let asdu = make_asdu_full(61, false, 1, Some(200), 1);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=61 must emit 2 findings (BC-2.19.030 postconditions 1–2)"
+        );
+        for f in &findings {
+            assert!(
+                f.evidence.iter().any(|e| e.contains("CASDU=1")),
+                "TypeID=61 finding (technique={:?}) evidence must include \"CASDU=1\" \
+                 (BC-2.19.030 postcondition 3; canonical vector row 1)",
+                f.mitre_techniques
+            );
+            assert!(
+                f.evidence.iter().any(|e| e.contains("first_ioa=200")),
+                "TypeID=61, first_ioa=Some(200): finding (technique={:?}) evidence must include \
+                 \"first_ioa=200\" (BC-2.19.030 postcondition 3; canonical vector row 1)",
+                f.mitre_techniques
+            );
+        }
+    }
+
+    /// BC-2.19.030 postcondition 3 / canonical vector row 2: TypeID=62, CASDU=100,
+    /// first_ioa=None → both findings include "CASDU=100"; neither has "first_ioa=".
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.030 postcondition 3; AC-180-003; canonical vector row 2.
+    #[test]
+    fn test_BC_2_19_030_type_id_62_first_ioa_none_no_first_ioa_evidence() {
+        let asdu = make_asdu_full(62, false, 100, None, 1);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=62 must emit 2 findings (BC-2.19.030 postconditions 1–2)"
+        );
+        for f in &findings {
+            assert!(
+                f.evidence.iter().any(|e| e.contains("CASDU=100")),
+                "TypeID=62 finding (technique={:?}) evidence must include \"CASDU=100\" \
+                 (BC-2.19.030 postcondition 3; canonical vector row 2)",
+                f.mitre_techniques
+            );
+            assert!(
+                !f.evidence.iter().any(|e| e.contains("first_ioa=")),
+                "TypeID=62, first_ioa=None: finding (technique={:?}) evidence must NOT include \
+                 a \"first_ioa=\" entry — conditional inclusion only when Some \
+                 (BC-2.19.030 postcondition 3)",
+                f.mitre_techniques
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.030 postconditions 4–5: Timed summary wording (AC-180-004)
+    // =========================================================================
+
+    /// BC-2.19.030 postconditions 4–5: TypeID=61 — BOTH findings' summaries contain
+    /// "time-tagged" qualifier and C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA mnemonics.
+    ///
+    /// Expected RED: no findings before implementation.
+    ///
+    /// Traces: BC-2.19.030 postconditions 4–5; AC-180-004.
+    #[test]
+    fn test_BC_2_19_030_timed_summaries_contain_time_tagged_and_mnemonics() {
+        let asdu = make_asdu(61, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=61 must emit 2 findings (precondition for summary wording check)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.contains("time-tagged"),
+                "TypeID=61 finding (technique={:?}) summary must contain \"time-tagged\" \
+                 (BC-2.19.030 postconditions 4–5; AC-180-004). Actual: {:?}",
+                f.mitre_techniques,
+                f.summary
+            );
+            assert!(
+                f.summary.contains("C_SE_TA")
+                    || f.summary.contains("C_SE_TB")
+                    || f.summary.contains("C_SE_TC")
+                    || f.summary.contains("C_BO_TA"),
+                "TypeID=61 finding (technique={:?}) summary must name timed mnemonics \
+                 C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA (BC-2.19.030 postconditions 4–5; AC-180-004). \
+                 Actual: {:?}",
+                f.mitre_techniques,
+                f.summary
+            );
+        }
+    }
+
+    /// BC-2.19.030: Timed summaries (TypeID=61) differ from untimed twin summaries (TypeID=48).
+    ///
+    /// Expected RED for TypeID=61 assertions; TypeID=48 regression check is GREEN.
+    ///
+    /// Traces: BC-2.19.030 postconditions 4–5; AC-180-004.
+    #[test]
+    fn test_BC_2_19_030_timed_summaries_differ_from_untimed_twin() {
+        let asdu_untimed = make_asdu(48, false);
+        let mut findings_untimed = Vec::new();
+        detect_iec104_threats(
+            &asdu_untimed,
+            &mut findings_untimed,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
+        assert_eq!(
+            findings_untimed.len(),
+            2,
+            "TypeID=48 (untimed twin) must still emit 2 findings (BC-2.19.019 — regression guard)"
+        );
+
+        let asdu_timed = make_asdu(61, false);
+        let mut findings_timed = Vec::new();
+        detect_iec104_threats(
+            &asdu_timed,
+            &mut findings_timed,
+            Direction::ClientToServer,
+            None,
+            None,
+        );
+        assert_eq!(
+            findings_timed.len(),
+            2,
+            "TypeID=61 (timed) must emit 2 findings (BC-2.19.030 postconditions 1–2; AC-180-003)"
+        );
+
+        let t1692_untimed = findings_untimed
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("TypeID=48 must have a T1692.001 finding (BC-2.19.019)");
+        let t1692_timed = findings_timed
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("TypeID=61 must have a T1692.001 finding (BC-2.19.030)");
+        assert_ne!(
+            t1692_timed.summary,
+            t1692_untimed.summary,
+            "TypeID=61 T1692.001 summary must differ from TypeID=48 T1692.001 summary — \
+             analysts must distinguish timed from untimed \
+             (BC-2.19.030 postcondition 4; AC-180-004)"
+        );
+
+        let t0836_untimed = findings_untimed
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .expect("TypeID=48 must have a T0836 finding (BC-2.19.019)");
+        let t0836_timed = findings_timed
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .expect("TypeID=61 must have a T0836 finding (BC-2.19.030)");
+        assert_ne!(
+            t0836_timed.summary,
+            t0836_untimed.summary,
+            "TypeID=61 T0836 summary must differ from TypeID=48 T0836 summary — \
+             analysts must distinguish timed from untimed \
+             (BC-2.19.030 postcondition 5; AC-180-004)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.030 postcondition 7: cot_test=true tags BOTH findings (AC-180-005)
+    // =========================================================================
+
+    /// BC-2.19.030 canonical vector row 3: TypeID=64, cot_test=true, first_ioa=Some(1) →
+    /// BOTH findings' summaries end with " [TEST]".
+    ///
+    /// Expected RED: no findings for TypeID=64 before implementation.
+    ///
+    /// Traces: BC-2.19.030 postcondition 7; BC-2.19.017 invariant 1; AC-180-005;
+    ///         EC-008 (BC-2.19.030); EC-010 (STORY-180).
+    #[test]
+    fn test_BC_2_19_030_type_id_64_cot_test_both_findings_tagged() {
+        let asdu = make_asdu_full(64, true, 1, Some(1), 1);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=64 with cot_test=true must emit exactly 2 findings — \
+             precondition for [TEST] tagging check \
+             (BC-2.19.030 postconditions 1–2)"
+        );
+        for f in &findings {
+            assert!(
+                f.summary.ends_with(" [TEST]"),
+                "TypeID=64 with cot_test=true: finding (technique={:?}) summary must end with \
+                 \" [TEST]\" (BC-2.19.030 postcondition 7; BC-2.19.017 invariant 1; AC-180-005). \
+                 Actual: {:?}",
+                f.mitre_techniques,
+                f.summary
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.19.030 postcondition 6 / invariant 3: count-independent emission (AC-180-008)
+    // =========================================================================
+
+    /// BC-2.19.030 invariant 3: TypeID=61, count=0 → both findings still emitted.
+    ///
+    /// Emission is per-ASDU frame; the VSQ object count is not consulted.
+    /// Expected RED: TypeID=61 falls through catch-all → 0 findings.
+    ///
+    /// Traces: BC-2.19.030 postcondition 6; invariant 3; AC-180-008; EC-007 (BC-2.19.030).
+    #[test]
+    fn test_BC_2_19_030_type_id_61_count_zero_still_emits_two_findings() {
+        let asdu = make_asdu_full(61, false, 1, None, 0);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=61 with count=0 must still emit 2 findings — emission is count-independent \
+             per ASDU frame (BC-2.19.030 postcondition 6; invariant 3; AC-180-008)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.022 v1.1 Regression Guard — TypeIDs 52–57 and 65–99 stay silent
+    // AC-180-006
+    // =========================================================================
+
+    /// BC-2.19.022 v1.1 invariant 1: TypeID=52 (RESERVED, in {52–57} silent range) →
+    /// no finding. Expected GREEN.
+    ///
+    /// TypeID=52 was silently logged under the old 52–99 range and remains silently logged
+    /// under BC-2.19.022 v1.1's narrowed {52–57, 65–99} range.
+    ///
+    /// Traces: BC-2.19.022 v1.1 invariant 1; BC-2.19.029 invariant 6; AC-180-006;
+    ///         EC-006 (STORY-180).
+    #[test]
+    fn test_BC_2_19_022_v1_1_type_id_52_no_finding() {
+        let asdu = make_asdu(52, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            findings.is_empty(),
+            "TypeID=52 (RESERVED, {{52-57}} silent range per BC-2.19.022 v1.1) must produce \
+             no finding (BC-2.19.022 v1.1 invariant 1; AC-180-006)"
+        );
+    }
+
+    /// BC-2.19.022 v1.1 invariant 1: TypeID=57 (RESERVED, upper neighbor below 58..=60 arm) →
+    /// no finding. Expected GREEN.
+    ///
+    /// TypeID=57 is the immediate predecessor of the new timed switching arm (58..=60).
+    /// It must remain silently logged per BC-2.19.029 invariant 6.
+    ///
+    /// Traces: BC-2.19.022 v1.1 invariant 1; BC-2.19.029 invariant 6; AC-180-006;
+    ///         EC-004 (BC-2.19.029); EC-006 (STORY-180).
+    #[test]
+    fn test_BC_2_19_022_v1_1_type_id_57_no_finding() {
+        let asdu = make_asdu(57, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            findings.is_empty(),
+            "TypeID=57 (RESERVED, upper neighbor below timed switching arm 58..=60) must produce \
+             no finding (BC-2.19.022 v1.1 invariant 1; BC-2.19.029 invariant 6; AC-180-006)"
+        );
+    }
+
+    /// BC-2.19.022 v1.1 invariant 1: TypeID=65 (unhandled, lower neighbor above 61..=64 arm) →
+    /// no finding. Expected GREEN.
+    ///
+    /// TypeID=65 is the immediate successor of the new timed set-point arm (61..=64).
+    /// It must remain silently logged per BC-2.19.030 invariant 6.
+    ///
+    /// Traces: BC-2.19.022 v1.1 invariant 1; BC-2.19.030 invariant 6; AC-180-006;
+    ///         EC-006 (BC-2.19.030); EC-007 (STORY-180).
+    #[test]
+    fn test_BC_2_19_022_v1_1_type_id_65_no_finding() {
+        let asdu = make_asdu(65, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            findings.is_empty(),
+            "TypeID=65 (unhandled, lower neighbor above timed set-point arm 61..=64) must produce \
+             no finding (BC-2.19.022 v1.1 invariant 1; BC-2.19.030 invariant 6; AC-180-006)"
+        );
+    }
+
+    /// BC-2.19.022 v1.1 invariant 1: TypeID=99 (unhandled, in {65–99} silent range) →
+    /// no finding. Expected GREEN.
+    ///
+    /// Traces: BC-2.19.022 v1.1 invariant 1; BC-2.19.030 invariant 6; AC-180-006;
+    ///         EC-008 (BC-2.19.022).
+    #[test]
+    fn test_BC_2_19_022_v1_1_type_id_99_no_finding() {
+        let asdu = make_asdu(99, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert!(
+            findings.is_empty(),
+            "TypeID=99 (unhandled, in {{65-99}} silent range per BC-2.19.022 v1.1) must produce \
+             no finding (BC-2.19.022 v1.1 invariant 1; AC-180-006)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.19.019 untimed twin regression guards (EC-012/013 from STORY-180)
+    // Expected GREEN: existing arms are unchanged by STORY-180.
+    // =========================================================================
+
+    /// EC-012 (STORY-180): TypeID=45 (C_SC_NA_1, untimed twin of 58-60) still emits
+    /// exactly 1 finding (T1692.001 only) after STORY-180 arms are added.
+    /// Expected GREEN.
+    ///
+    /// Traces: BC-2.19.019 postcondition 1; EC-012 (STORY-180); AC-180-006 regression guard.
+    #[test]
+    fn test_BC_2_19_019_v1_1_regression_type_id_45_still_one_finding() {
+        let asdu = make_asdu(45, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            1,
+            "TypeID=45 (untimed twin C_SC_NA_1) must still emit exactly 1 finding after \
+             STORY-180 arms are added — regression guard \
+             (BC-2.19.019 postcondition 1; EC-012 STORY-180)"
+        );
+        assert!(
+            findings[0]
+                .mitre_techniques
+                .iter()
+                .any(|t| t == "T1692.001"),
+            "TypeID=45 regression guard: sole finding must be T1692.001 (BC-2.19.019)"
+        );
+    }
+
+    /// EC-013 (STORY-180): TypeID=51 (C_BO_NA_1, untimed twin of 61-64) still emits
+    /// exactly 2 findings (T1692.001 + T0836) after STORY-180 arms are added.
+    /// Expected GREEN.
+    ///
+    /// Traces: BC-2.19.019 postconditions 1–2; EC-013 (STORY-180); AC-180-006 regression guard.
+    #[test]
+    fn test_BC_2_19_019_v1_1_regression_type_id_51_still_two_findings() {
+        let asdu = make_asdu(51, false);
+        let mut findings = Vec::new();
+        detect_iec104_threats(&asdu, &mut findings, Direction::ClientToServer, None, None);
+        assert_eq!(
+            findings.len(),
+            2,
+            "TypeID=51 (untimed twin C_BO_NA_1) must still emit exactly 2 findings after \
+             STORY-180 arms are added — regression guard \
+             (BC-2.19.019 postconditions 1–2; EC-013 STORY-180)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001")),
+            "TypeID=51 regression guard: must emit T1692.001 (BC-2.19.019)"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.mitre_techniques.iter().any(|t| t == "T0836")),
+            "TypeID=51 regression guard: must emit T0836 (BC-2.19.019)"
         );
     }
 }
