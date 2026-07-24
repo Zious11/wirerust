@@ -921,3 +921,29 @@ stories:
     pr: 427
     merge_commit: 595cdba8
     merged_date: "2026-07-20"
+
+  # ---------------------------------------------------------------------------
+  # Wave 85 — STORY-180 (IEC-104 timed-command detection) + STORY-181
+  # D-505 gate approved 2026-07-24. STORY-180 per-story delivery dispatched.
+  # STORY-181 approved; dispatches after STORY-180.
+  # ---------------------------------------------------------------------------
+
+  STORY-180:
+    status: in-progress  # per-story delivery dispatched 2026-07-24, D-505 gate approved
+    wave: 85
+    branch: feature/STORY-180-iec104-timed-cmd-detection
+    worktree: .worktrees/STORY-180
+    blocked_by: [STORY-174]  # static edge; STORY-174 done — resolved per blocked_by convention
+    pr: null
+    merge_commit: null
+    merged_date: null
+
+  STORY-181:
+    status: pending  # approved D-505; dispatches after STORY-180
+    wave: 85
+    branch: null
+    worktree: null
+    blocked_by: []
+    pr: null
+    merge_commit: null
+    merged_date: null
