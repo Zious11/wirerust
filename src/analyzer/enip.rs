@@ -983,8 +983,11 @@ impl EnipAnalyzer {
         // and threshold fields) and &mut flow (the local variable) do not alias — the
         // compiler enforces this disjointness, not a convention. After all PDUs are
         // dispatched, the flow is re-inserted.
-        // pdu_queue is empty if is_non_enip was set above (carry overflow clears it before
-        // block exit).
+        // is_non_enip safety: if the flag was already true on on_data entry, the early
+        // return at ~801 fired before any PDUs were collected, so pdu_queue is empty here.
+        // If the flag was latched during this call's carry-cap check (~955-974), pdu_queue
+        // may still contain items; process_pdu gates on flow.is_non_enip (early return,
+        // line ~1033) and skips all detection for those PDUs.
         let mut flow = self
             .flows
             .remove(&flow_key)
@@ -1014,7 +1017,10 @@ impl EnipAnalyzer {
     /// the frame-walk loop in `on_data` (BC-2.17.016 PC-0, STORY-137).
     ///
     /// # Parameters
-    /// - `flow_key` — identifies the TCP flow; used to look up `EnipFlowState`.
+    /// - `flow`     — owned-out `EnipFlowState` passed by the `on_data` dispatch loop;
+    ///   caller removes the state from `self.flows` before the loop and reinserts it
+    ///   after (SEC-001 pattern). Caller guarantees this is the state for the flow
+    ///   being dispatched.
     /// - `pdu`      — complete ENIP frame bytes (header + payload, 24 + header.length bytes).
     /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
     /// - `src_ip`   — source IP address of the sending endpoint.
