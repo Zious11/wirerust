@@ -3200,7 +3200,7 @@ mod story_170 {
 
     /// BC-2.19.022 v1.1 invariant: a representative sample of defined-but-unhandled TypeIDs emit no finding.
     ///
-    /// Tests {1, 30, 44, 52, 99, 102, 104, 127} — all silently logged with no findings.
+    /// Tests {1, 30, 44, 52, 99, 102, 104, 106, 127} — all silently logged with no findings.
     /// Ensures the silent-log path is exhaustive for a cross-section of the [1,127] range.
     ///
     /// BC-2.19.022 v1.1 (wave-85-spec-evolution): the silently-logged range is now {52–57} and
@@ -7109,7 +7109,7 @@ mod story_180 {
     /// BC-2.19.029 postcondition 1 sub-check: TypeID=58 finding has Verdict::Possible,
     /// Confidence::Medium, ThreatCategory::Impact — parity with untimed arm 45–47.
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postcondition 1; invariant 5 (parity with untimed arm); AC-180-001.
     #[test]
@@ -7143,7 +7143,7 @@ mod story_180 {
     /// BC-2.19.029 canonical vector row 1: TypeID=58, CASDU=1, first_ioa=Some(100) →
     /// evidence includes "CASDU=1" and "first_ioa=100".
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 1.
     #[test]
@@ -7173,9 +7173,12 @@ mod story_180 {
     /// evidence includes "CASDU=200" but no "first_ioa=" entry.
     ///
     /// first_ioa is conditionally included (only when Some). None → omitted entirely.
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=59 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
-    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 2; EC-008 (STORY-180).
+    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 2;
+    ///         EC-008 analog (STORY-180 EC-008 specifies TypeID=58; the conditional
+    ///         first_ioa-omission property is TypeID-independent within the 58..=60 arm —
+    ///         TypeID=59 exercised here).
     #[test]
     fn test_BC_2_19_029_type_id_59_first_ioa_none_no_first_ioa_evidence() {
         let asdu = make_asdu_full(59, false, 200, None, 1);
@@ -7206,7 +7209,7 @@ mod story_180 {
     /// BC-2.19.029 postcondition 4: TypeID=58 finding summary contains "time-tagged"
     /// qualifier and names C_SC_TA/C_DC_TA/C_RC_TA mnemonics.
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postcondition 4; AC-180-004.
     #[test]
@@ -7286,7 +7289,7 @@ mod story_180 {
     /// BC-2.19.029 canonical vector row 3: TypeID=60, cot_test=true → summary ends with
     /// " [TEST]". Applied by the post-emission loop; no arm-specific wiring needed.
     ///
-    /// Expected RED: no findings for TypeID=60 before implementation.
+    /// At the RED gate, TypeID=60 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postcondition 6; BC-2.19.017 invariant 1; AC-180-005;
     ///         EC-007 (BC-2.19.029); EC-009 (STORY-180).
@@ -7466,7 +7469,7 @@ mod story_180 {
     /// BC-2.19.030 postconditions 1–2 sub-check: TypeID=61 — both findings have
     /// Verdict::Possible, Confidence::Medium, ThreatCategory::Impact.
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 1–2; invariant 5 (parity with untimed arm); AC-180-003.
     #[test]
@@ -7507,7 +7510,7 @@ mod story_180 {
     /// BC-2.19.030 postcondition 3 / canonical vector row 1: TypeID=61, CASDU=1,
     /// first_ioa=Some(200) → BOTH findings' evidence include "CASDU=1" and "first_ioa=200".
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postcondition 3; AC-180-003; canonical vector row 1.
     #[test]
@@ -7539,7 +7542,7 @@ mod story_180 {
     /// BC-2.19.030 postcondition 3 / canonical vector row 2: TypeID=62, CASDU=100,
     /// first_ioa=None → both findings include "CASDU=100"; neither has "first_ioa=".
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=62 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postcondition 3; AC-180-003; canonical vector row 2.
     #[test]
@@ -7576,7 +7579,7 @@ mod story_180 {
     /// BC-2.19.030 postconditions 4–5: TypeID=61 — BOTH findings' summaries contain
     /// "time-tagged" qualifier and C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA mnemonics.
     ///
-    /// Expected RED: no findings before implementation.
+    /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 4–5; AC-180-004.
     #[test]
@@ -7686,7 +7689,7 @@ mod story_180 {
     /// BC-2.19.030 canonical vector row 3: TypeID=64, cot_test=true, first_ioa=Some(1) →
     /// BOTH findings' summaries end with " [TEST]".
     ///
-    /// Expected RED: no findings for TypeID=64 before implementation.
+    /// At the RED gate, TypeID=64 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postcondition 7; BC-2.19.017 invariant 1; AC-180-005;
     ///         EC-008 (BC-2.19.030); EC-010 (STORY-180).
