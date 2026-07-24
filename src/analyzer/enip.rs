@@ -975,29 +975,24 @@ impl EnipAnalyzer {
         } // flow borrow released here
 
         // ── PDU dispatch phase ────────────────────────────────────────────────────────
-        // Dispatch each collected valid PDU. Re-acquire flow per call.
-        // Safety: process_pdu does NOT access self.flows (verified by inspection); the
-        // flow we pass is from self.flows[flow_key], and process_pdu only mutates
+        // Dispatch each collected valid PDU using take-remove-reinsert (SEC-001 fix).
+        // The flow is removed from self.flows before the loop; the resulting owned local
+        // EnipFlowState is structurally disjoint from self.flows. process_pdu(&mut self,
+        // &mut flow, ...) is therefore safe: &mut self (for process_pdu's access to
         // self.all_findings, self.error_count, self.write_count, self.dropped_findings,
-        // and threshold fields.
-        // We re-borrow self.flows[flow_key] each iteration; pdu_queue is empty if
-        // is_non_enip was set above (carry overflow clears it before block exit).
+        // and threshold fields) and &mut flow (the local variable) do not alias — the
+        // compiler enforces this disjointness, not a convention. After all PDUs are
+        // dispatched, the flow is re-inserted.
+        // pdu_queue is empty if is_non_enip was set above (carry overflow clears it before
+        // block exit).
+        let mut flow = self
+            .flows
+            .remove(&flow_key)
+            .expect("flow exists: inserted above and not removed");
         for pdu in pdu_queue {
-            // SAFETY (split-borrow): flow_ptr aliases self.flows[flow_key]. process_pdu
-            // only touches self.all_findings, self.error_count, self.write_count,
-            // self.dropped_findings, self.enip_write_burst_threshold,
-            // self.enip_error_burst_threshold — none of which overlap with self.flows.
-            // The aliased field is therefore not accessed by process_pdu, making the
-            // exclusive-reference invariant sound.
-            let flow_ptr: *mut EnipFlowState = self
-                .flows
-                .get_mut(&flow_key)
-                .expect("flow exists: inserted above and not removed");
-            // SAFETY: flow_ptr is a valid &mut obtained from self.flows. process_pdu does
-            // not call self.flows or alias flow_ptr through any other path.
-            #[allow(clippy::ptr_as_ptr)]
-            self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, timestamp, src_ip);
+            self.process_pdu(&mut flow, &pdu, timestamp, src_ip);
         }
+        self.flows.insert(flow_key, flow);
     }
 
     /// Main per-PDU detection dispatch for a single validated ENIP frame.
