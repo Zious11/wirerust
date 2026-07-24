@@ -702,14 +702,16 @@ pub fn parse_asdu(asdu_body: &[u8]) -> Option<Asdu> {
 ///
 /// ## TypeID dispatch (AC-170-006 — exhaustive, no fallthrough)
 ///
-/// | Range / value      | Technique(s)            | Verdict  | BC ref      |
-/// |--------------------|-------------------------|----------|-------------|
-/// | 45–47 (C_SC/DC/RC) | T1692.001               | Possible | BC-2.19.019 |
-/// | 48–51 (C_SE/C_BO)  | T1692.001 + T0836       | Possible | BC-2.19.019 |
-/// | 105 (C_RP_NA_1)    | T0827 Loss of Control   | Likely   | BC-2.19.020 |
-/// | 100, 101, 103      | none (trace-logged)     | —        | BC-2.19.021 |
-/// | 0 or 128–255       | T0814 DoS anomaly       | Possible | BC-2.19.022 |
-/// | 1–127 (unhandled)  | none (silently logged)  | —        | BC-2.19.022 |
+/// | Range / value               | Technique(s)            | Verdict  | BC ref      |
+/// |-----------------------------|-------------------------|----------|-------------|
+/// | 45–47 (C_SC/DC/RC)          | T1692.001               | Possible | BC-2.19.019 |
+/// | 48–51 (C_SE/C_BO)           | T1692.001 + T0836       | Possible | BC-2.19.019 |
+/// | 58–60 (C_SC/DC/RC_TA)       | T1692.001               | Possible | BC-2.19.029 |
+/// | 61–64 (C_SE_TA/C_BO_TA)     | T1692.001 + T0836       | Possible | BC-2.19.030 |
+/// | 105 (C_RP_NA_1)             | T0827 Loss of Control   | Likely   | BC-2.19.020 |
+/// | 100, 101, 103               | none (trace-logged)     | —        | BC-2.19.021 |
+/// | 0 or 128–255                | T0814 DoS anomaly       | Possible | BC-2.19.022 |
+/// | {52–57, 65–99, …} (unhandled) | none (silently logged)  | —        | BC-2.19.022 |
 ///
 /// When `asdu.cot_test == true`, ` [TEST]` is appended to every emitted finding's
 /// `summary` field (BC-2.19.017 invariant 1; AC-170-007).

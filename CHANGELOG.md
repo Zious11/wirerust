@@ -36,8 +36,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   BC-2.19.030 (AC-180-007; BC-2.19.022 v1.1). The existing post-emission `[TEST]` loop
   covers the new arms automatically — no extra wiring required (BC-2.19.017 invariant 1).
 
-  `cargo test --test iec104_analyzer_tests`: 248 passed (227 prior + 21 new story_180
-  tests green).
+  `cargo test --test iec104_analyzer_tests`: 248 passed (221 prior + 27 new story_180
+  tests; 21 flipped red→green at the Green step, 6 regression guards green throughout).
 
 ## [0.13.1] - 2026-07-21
 

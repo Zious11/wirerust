@@ -7009,7 +7009,7 @@ mod story_180 {
     /// BC-2.19.029 canonical vector row 1: TypeID=58 (C_SC_TA_1, timed single command) →
     /// exactly 1 finding (T1692.001 only; no T0836).
     ///
-    /// Expected RED: TypeID=58 currently falls through `_` catch-all → 0 findings.
+    /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postconditions 1–2; invariants 1–2; AC-180-001; AC-180-002;
     ///         EC-001 (BC-2.19.029).
@@ -7045,7 +7045,7 @@ mod story_180 {
     /// BC-2.19.029 canonical vector row 2: TypeID=59 (C_DC_TA_1, timed double command) →
     /// exactly 1 finding (T1692.001 only; no T0836).
     ///
-    /// Expected RED: falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=59 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postconditions 1–2; invariant 2; AC-180-001; EC-002 (BC-2.19.029).
     #[test]
@@ -7077,7 +7077,7 @@ mod story_180 {
     /// BC-2.19.029: TypeID=60 (C_RC_TA_1, timed regulating step command) → exactly 1 finding
     /// (T1692.001 only; no T0836).
     ///
-    /// Expected RED: falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=60 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postconditions 1–2; invariant 2; AC-180-001; EC-003 (BC-2.19.029).
     #[test]
@@ -7238,7 +7238,7 @@ mod story_180 {
     /// BC-2.19.029 postcondition 4: TypeID=58 (timed) summary differs from TypeID=45
     /// (untimed twin) summary — analysts must distinguish timed from untimed in output.
     ///
-    /// Expected RED for the TypeID=58 assertion; TypeID=45 assertion is GREEN.
+    /// At the RED gate, the TypeID=58 assertion was RED (catch-all fallthrough, 0 findings); TypeID=45 assertion was GREEN throughout.
     ///
     /// Traces: BC-2.19.029 postcondition 4; AC-180-004.
     #[test]
@@ -7318,7 +7318,7 @@ mod story_180 {
     /// BC-2.19.029 invariant 3: TypeID=58, count=0 → finding still emitted.
     ///
     /// Emission is per-ASDU frame; the VSQ object count is not consulted.
-    /// Expected RED: TypeID=58 falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
     /// Traces: BC-2.19.029 postcondition 5; invariant 3; AC-180-008;
     ///         EC-006 (BC-2.19.029); EC-011 (STORY-180).
@@ -7344,7 +7344,7 @@ mod story_180 {
     /// BC-2.19.030 canonical vector row 1: TypeID=61 (C_SE_TA_1, timed set-point normalized)
     /// → exactly 2 findings: T1692.001 Possible + T0836 Possible.
     ///
-    /// Expected RED: TypeID=61 currently falls through `_` catch-all → 0 findings.
+    /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-001 (BC-2.19.030).
     #[test]
@@ -7374,7 +7374,7 @@ mod story_180 {
 
     /// BC-2.19.030: TypeID=62 (C_SE_TB_1, timed set-point scaled) → exactly 2 findings.
     ///
-    /// Expected RED: falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=62 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-002 (BC-2.19.030).
     #[test]
@@ -7404,7 +7404,7 @@ mod story_180 {
 
     /// BC-2.19.030: TypeID=63 (C_SE_TC_1, timed set-point short float) → exactly 2 findings.
     ///
-    /// Expected RED: falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=63 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 1–2; invariant 1; AC-180-003; EC-003 (BC-2.19.030).
     #[test]
@@ -7434,7 +7434,7 @@ mod story_180 {
 
     /// BC-2.19.030: TypeID=64 (C_BO_TA_1, timed bitstring of 32 bits) → exactly 2 findings.
     ///
-    /// Expected RED: falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=64 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postconditions 1–2; invariants 1–2; AC-180-003;
     ///         EC-004 (BC-2.19.030); EC-005 (STORY-180).
@@ -7613,7 +7613,7 @@ mod story_180 {
 
     /// BC-2.19.030: Timed summaries (TypeID=61) differ from untimed twin summaries (TypeID=48).
     ///
-    /// Expected RED for TypeID=61 assertions; TypeID=48 regression check is GREEN.
+    /// At the RED gate, the TypeID=61 assertions were RED (catch-all fallthrough, 0 findings); TypeID=48 regression check was GREEN throughout.
     ///
     /// Traces: BC-2.19.030 postconditions 4–5; AC-180-004.
     #[test]
@@ -7721,7 +7721,7 @@ mod story_180 {
     /// BC-2.19.030 invariant 3: TypeID=61, count=0 → both findings still emitted.
     ///
     /// Emission is per-ASDU frame; the VSQ object count is not consulted.
-    /// Expected RED: TypeID=61 falls through catch-all → 0 findings.
+    /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
     /// Traces: BC-2.19.030 postcondition 6; invariant 3; AC-180-008; EC-007 (BC-2.19.030).
     #[test]
