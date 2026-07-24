@@ -10,10 +10,10 @@ project: wirerust
 mode: maintenance
 phase: "steady-state"
 status: active
-current_step: "D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). Both STORY-180 and STORY-181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented (TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping) — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE — Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0"
+current_step: "D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 4 passes; streak P2/P3/P4 = 3/3; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Remediation commits a0087033/e40955f1/0502c642. Demo evidence ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). BC-INDEX v2.37. PG-W85-003 filed. Next: pr-manager full 9-step PR lifecycle (STORY-180). trajectory-tail →0→0→0→0"
 current_cycle: "wave-085"
 pipeline: ACTIVE
-timestamp: 2026-07-24T01:20:00Z
+timestamp: 2026-07-24T08:11:00Z
 released_version: v0.13.1
 released_at: "2026-07-21"
 release_tag: v0.13.1
@@ -33,7 +33,7 @@ stories_delivered: 116
 story_index_version: "v3.91"
 total_stories: 134
 story_index_note: "134 stories / 85 waves / 783 pts. v3.91 (2026-07-24): WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (D-505) — STORY-180/181 status draft→ready; STORY-INDEX v3.90→v3.91; no numeric totals changed. v3.90 (2026-07-24): pre-gate remediation burst (D-504) — index-body currency corrections: wave count 83→85 (wave-84 STORY-147/166/176 + wave-85 STORY-180/181), dep-graph v3.9→v3.10 (STORY-174→STORY-180 edge, 137→138 acyclic edges), E-22 epic row updated (v3.10 acyclic 138 edges); no numeric story/points totals changed. v3.89 (2026-07-23): STORY-181 title-cell correction (F-P4-001 pass-4 adversary remediation, D-498) — Direction-Keyed Carry Select framing removed from STORY-181 title cell; correct framing Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop now consistent with STORY-181 body (FSR line 262), AC-181-003 trace (line 119), and risk-register.md R-010; no numeric totals changed. v3.88 (2026-07-23): wave-85 STORY-CREATION BURST (D-493) — STORY-180 (IEC-104 timed control-command detection TypeIDs 58–64, E-22, 5 pts, wave 85, BC-2.19.029+030+022 v1.1 regression guard) + STORY-181 (SEC-001 ENIP split-borrow refactor + ROUTE-W74 OBS-1, E-20, 3 pts, wave 85, BC-2.17.016); BC-2.19.022 v1.1 propagation sweep: STORY-170 v2.0→v2.1 (AC-170-005/006 silently-logged range 52–99→{52–57,65–99}, BC table annotated); total_stories 132→134; total_points 775→783; total_waves 84→85; wave-table scheduled 692→700. v3.87 (2026-07-21): Epic table TOTAL cell arithmetic corrected 776→775 (SPEC-009); per-epic sum = 775 = frontmatter total_points; root cause: v3.79 re-scope delta decremented E-11 row (67→66) but TOTAL cell not updated; no other numeric changes; maint-2026-07-21 D-490. STORY-INDEX v3.86→v3.87. v3.86 (2026-07-21): E-16/E-17 ARP stale-draft supersession (D-487, 2026-07-21) — 7 drafts STORY-111..117 status draft→superseded DELIVERED-BY-DRIFT; E-16 v0.7.0 (STORY-111..115, 47 pts, waves 40-44) + E-17 v0.7.0/v0.7.1 (STORY-116/117, 8 pts, waves 45-46); twice-research-validated DF-VALIDATION-001 + human-approved; wave-table scheduled 747→692; total_points 775 unchanged per D-477/D-480 supersession-convention. STORY-INDEX v3.85→v3.86. v3.85 (2026-07-21): WAVE-84 GATE CLOSED (D-486); wave-84 delivery row updated CLOSED-PENDING-GATE→CLOSED (D-486, 2026-07-21); story-file status loci synced (STORY-147/166/176 frontmatter+body status: ready→delivered, three-loci agreement with STORY-INDEX rows at v3.84). No numeric totals changed. v3.84 (2026-07-20): STORY-176 DELIVERED (D-485, PR #427 595cdba8 squash-merged to develop, human-executed merge 2026-07-20T21:46:45Z under explicit per-PR human authorization, DF-MERGE-AUTH-CLASSIFIER-001 satisfied; wave-84 #421/#426/#427 pattern match); status ready→delivered; wave-84 Delivery Progress row updated (3/3 DELIVERED — STORY-147 ✓, STORY-166 ✓, STORY-176 ✓; CLOSED-PENDING-GATE); CI 13/13 PASS (new \"Bin selftest suites\" step); pr-reviewer APPROVE (1 cycle, 0 blocking, 3 NITs accepted; self-authored PR — COMMENTED event + pr-review.md = review of record); security APPROVE (0C/0H/0M/1L pre-existing SEC-001 CWE-22); 8-pass Step-4.5 adversary CONVERGED P6/P7/P8 (BC-5.39.001 SATISFIED); story v2.7/6ec8772. stories_delivered 115→116. No numeric points/story/wave totals changed (status transition only)."
-bc_index_version: "v2.36"
+bc_index_version: "v2.37"
 vp_index_version: "v2.46"
 arch_index_version: "v2.20"
 prd_version: "v1.59"
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-11
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-    Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 296 = 204 (dual-margin form). ~296 lines (wc-l).
+    Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 300 = 200 (dual-margin form). ~300 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-11
 
 ## EXACT RESUME POINT
 
-**D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). STORY-180/181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE — Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0**
+**D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 4 fresh-context passes; streak P2/P3/P4 = 3/3 clean; zero open HIGH/CRIT; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Remediation commits a0087033/e40955f1/0502c642 on feature branch; head ccec1711 (demo evidence, 8 artifacts, PG-W70-DEMO-SCRUB PASSED). Red Gate PASSED (21 red/227 green). BC-2.19.029 v1.3 / BC-2.19.030 v1.2 (label refresh); BC-INDEX v2.37. PG-W85-003 filed. Pipeline ACTIVE — pr-manager full 9-step PR lifecycle next (STORY-180). trajectory-tail →0→0→0→0**
 
 ---
 
@@ -72,9 +72,9 @@ maintenance_prior_run: maint-2026-07-11
 | Version | 0.13.1 (released 2026-07-21; main=47b7d23c; develop=dc7331fb — D-491 v0.13.1 RELEASED (PR #432 dev-tooling patch + PR #433 true-merge back-merge, 2026-07-21)) |
 | Main HEAD | `47b7d23c137483de37aa7705617749f5f9d37b07` |
 | Develop HEAD | `dc7331fbe3a41fc2b74084dafd8553c3009d7c2e` — D-491 v0.13.1 RELEASED (PR #433 true-merge back-merge, 2026-07-21) |
-| Spec versions | BC-INDEX v2.36 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 |
+| Spec versions | BC-INDEX v2.37 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 |
 | Stories | 116 delivered / 134 total (STORY-INDEX v3.91, dep-graph v3.10, 783 pts) |
-| **Last Updated** | 2026-07-24 — D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED. STORY-180/181 status draft→ready. STORY-INDEX v3.91. Pipeline ACTIVE — Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-24 — D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED. 4 passes streak 3/3; BC-5.39.001 SATISFIED. BC-INDEX v2.37. PG-W85-003 filed. pr-manager PR lifecycle next. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -111,7 +111,7 @@ maintenance_prior_run: maint-2026-07-11
 | Wave-84 gate fix burst (3 gate-fix PRs) | CLOSED (D-486) | Gate fix burst: #428 82105d02 (F-W84G-P1-001 MEDIUM TLS doctest); #429 39b30cb1 (CR-002/005/006 + SEC-003 FIXED); #430 1e967bad (F-W84G-P3-001 LOW STORY-147 inline comment). develop=1e967bad. |
 | **Maintenance maint-2026-07-21** | **COMPLETE (D-490, 2026-07-21)** | 8 sweeps (S6=DTU SKIP, S9=a11y SKIP). 5 PRs merged: #422-425 Dependabot batch + #431 IEC-104 doc-drift. ARCH-INDEX v2.20 + STORY-INDEX v3.87 + HS-INDEX v2.14. Register v2.0. develop=6c47c0ef. |
 | **v0.13.1 RELEASED** | **RELEASED 2026-07-21** | PR #432 47b7d23c main + tag v0.13.1 (lightweight) + GH release 4 assets; back-merge #433 TRUE-MERGE dc7331fb; DRIFT-BACKMERGE-SQUASH-001 RESOLVED. |
-| **Wave 85 (IEC-104 completion mini-wave)** | **ACTIVE (D-505, 2026-07-24)** | Spec-evolution + story-creation COMPLETE (D-494). P1-P6 REMEDIATED (D-495..500). Pass-7 CLEAN (D-501): streak 1/3. Pass-8 CLEAN (D-502): streak 2/3. Pass-9 CLEAN (D-503): CONVERGED 3/3. BC-5.39.001 SATISFIED. D-504: BC-INDEX v2.36 + STORY-INDEX v3.90 (pre-gate remediation). D-505: HUMAN STORY-APPROVAL GATE PASSED (2026-07-24); STORY-180/181 status ready; STORY-INDEX v3.91. Phase 3 per-story delivery STORY-180 next. develop=dc7331fb (unchanged). trajectory: `1C+2H+4M+2L(P1)→3M/1L(P2)→1M(P3)→1H(P4)→NITPICK/1L(P5)→1M/2L(P6)→NITPICK/2L(P7 CLEAN 1/3)→CLEAN/0(P8 CLEAN 2/3)→NITPICK/1L-closed(P9 CLEAN 3/3) → CONVERGED 3/3` trajectory-tail →0→0→0→0 |
+| **Wave 85 (IEC-104 completion mini-wave)** | **ACTIVE (D-506, 2026-07-24)** | Spec-evolution + story-creation COMPLETE (D-494). P1-P6 REMEDIATED (D-495..500). Pass-7/8/9 CLEAN 3/3 (D-501..503): CONVERGED. BC-5.39.001 SATISFIED. D-504: BC-INDEX v2.36 + STORY-INDEX v3.90. D-505: HUMAN STORY-APPROVAL GATE PASSED; STORY-180/181 ready; STORY-INDEX v3.91. D-506: STORY-180 per-story adversarial CONVERGED (2026-07-24) — 4 passes, streak P2/P3/P4, trajectory `3M(P1)→3L(P2)→1L(P3)→1L(P4)`; demo ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED); BC-INDEX v2.37; PG-W85-003 filed. develop=dc7331fb. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -120,7 +120,8 @@ maintenance_prior_run: maint-2026-07-11
 Per-story F4 convergence details archived to `cycles/feature-iec104/convergence-trajectory.md`.
 F5 phase-level trajectory: 5 rounds, code frozen R2, `5H/M→2M→1H→1M→1L(NB)` — CONVERGED (D-468).
 Wave-84 gate-level adversarial trajectory (6 passes, code frozen 1e967bad): `1M→M/L-batch→1L→0→0→0` — CONVERGED (D-486). Streak P4/P5/P6.
-Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)→1M(P3)→1H(P4)→NITPICK/1L(P5 CLEAN 1/3)→1M/2L-preexisting(P6)→NITPICK/2L(P7 CLEAN 1/3)→CLEAN/0(P8 CLEAN 2/3)→NITPICK/1L-closed(P9 CLEAN 3/3) → CONVERGED 3/3 (P7/P8/P9)` — BC-5.39.001 SATISFIED. DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. Pipeline ACTIVE. trajectory-tail →0→0→0→0.
+Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)→1M(P3)→1H(P4)→NITPICK/1L(P5)→1M/2L(P6)→NITPICK/2L(P7 1/3)→CLEAN/0(P8 2/3)→NITPICK/1L-closed(P9 3/3) → CONVERGED 3/3 (P7/P8/P9)` — BC-5.39.001 SATISFIED. trajectory-tail →0→0→0→0.
+Wave-85 STORY-180 per-story adversarial trajectory (CONVERGED D-506): `3M(P1)→NITPICK/3L(P2)→NITPICK/1L(P3)→NITPICK/1L(P4) → CONVERGED 3/3 (P2/P3/P4)` — BC-5.39.001 SATISFIED. Commits a0087033/e40955f1/0502c642. Demo head ccec1711. trajectory-tail →0→0→0→0.
 
 ---
 
@@ -130,7 +131,7 @@ Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)�
 |-------|--------|--------|
 | feature-iec104 | **CLOSED (D-475, 2026-07-18)** — v0.13.0 RELEASED (D-473); F1→F7 CONVERGED (D-470); S-7.02 SATISFIED. D-477: STORY-175/177/178/179 vehicles changed to upstream; STORY-176 v2.0 + STORY-166 local survivors | develop (1e967bad) |
 | wave-084 (E-11 mini-wave) | **CLOSED (D-486, 2026-07-21)** — 3/3 DELIVERED + gate CLOSED; S-7.02 COMPLETE; 12 PG-W84 entries (3 FIXED / 9 deferred to DF-VALIDATION-001 batch). develop=1e967bad (PR #430 gate-fix final). trajectory-tail →0→0→0→0 | develop (1e967bad, D-486 gate-close) |
-| wave-085 (IEC-104 completion mini-wave) | **ACTIVE (D-505, 2026-07-24)** — 9-pass story-level adversarial CONVERGED 3/3 (D-503); BC-5.39.001 SATISFIED; pre-gate remediation D-504 COMPLETE; human story-approval gate D-505 PASSED (STORY-180/181 ready); Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0 | develop (dc7331fb, unchanged) |
+| wave-085 (IEC-104 completion mini-wave) | **ACTIVE (D-506, 2026-07-24)** — STORY-180 per-story adversarial CONVERGED 3/3 (D-506); demo evidence ccec1711 committed; BC-INDEX v2.37; PG-W85-003 filed; pr-manager PR lifecycle next (STORY-180). trajectory-tail →0→0→0→0 | develop (dc7331fb, unchanged) |
 
 ---
 
@@ -138,11 +139,11 @@ Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)�
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). STORY-180/181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented (TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping) — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE. trajectory-tail →0→0→0→0** | **ACTIVE (D-505)** | Human gate PASSED. STORY-180/181 status ready. STORY-INDEX v3.91. Phase 3 delivery next (STORY-180 first). trajectory-tail →0→0→0→0 |
+| **D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 4 fresh-context passes; streak P2/P3/P4 = 3/3; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Commits a0087033/e40955f1/0502c642; demo head ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). Red Gate PASSED (21 red/227 green). BC-2.19.029 v1.3 / BC-2.19.030 v1.2 (label refresh); BC-INDEX v2.37. PG-W85-003 filed. pr-manager PR lifecycle next (STORY-180). trajectory-tail →0→0→0→0** | **ACTIVE (D-506)** | STORY-180 Step-4.5 CONVERGED. Demo evidence committed. BC-INDEX v2.37. PR lifecycle next. trajectory-tail →0→0→0→0 |
+| **D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). STORY-180/181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented (TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping) — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE. trajectory-tail →0→0→0→0** | **COMPLETE (D-505)** | Human gate PASSED. STORY-180/181 status ready. STORY-INDEX v3.91. trajectory-tail →0→0→0→0 |
 | **D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: CV-001/002/003 changelog entries, total count 379/378→381/380, row annotations BC-2.19.019/028/029/030 updated. STORY-INDEX v3.89→v3.90: wave count 83→85, dep-graph v3.9→v3.10 (STORY-174→STORY-180 edge, 137→138 acyclic edges), E-22 epic row updated. CV-004/005 story-anchor fills APPLIED. CV-008 DEFERRED: VP-047 source_bc deferred to STORY-180 delivery. Input hashes rebaselined (STORY-170 096877a, STORY-180 8ddf419). Pipeline ACTIVE. trajectory-tail →0→0→0→0** | **COMPLETE (D-504)** | Pre-gate remediation burst COMPLETE. BC-INDEX v2.36. STORY-INDEX v3.90. CV-008 deferred. trajectory-tail →0→0→0→0 |
 | **D-503 WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED + SESSION WRAP (2026-07-23). Streak P7/P8/P9 = 3/3. BC-5.39.001 + DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. F-W85S-P9-001 LOW closed. wave-85 spec+story package CONVERGED, ZERO open findings. Pipeline PAUSED. develop=dc7331fb. trajectory-tail →0→0→0→0** | **COMPLETE (D-503)** | wave-85 CONVERGED 3/3. Superseded by D-504. trajectory-tail →0→0→0→0 |
 | **D-502 WAVE-85 ADVERSARIAL PASS 8 → FULLY CLEAN (2026-07-23). Pass-8: 0 CRIT/HIGH/MED/LOW. Clean-pass streak 2/3. trajectory-tail →0→0→0→0** | **COMPLETE (D-502)** | Pass-8 FULLY CLEAN. Clean streak 2/3. trajectory-tail →0→0→0→0 |
-| **D-501 WAVE-85 ADVERSARIAL PASS 7 → CLEAN NITPICK_ONLY (2026-07-23). Pass-7: 0 CRIT/HIGH/MED / 2 LOW. Clean streak 1/3. F-P7-001/002/003 LOW residues swept. trajectory-tail →0→0→0→0** | **COMPLETE (D-501)** | Pass-7 CLEAN. LOW residues swept. Streak 1/3. trajectory-tail →0→0→0→0 |
 
 
 ## Decisions Log
@@ -198,6 +199,7 @@ Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)�
 | D-503 | WAVE-85 STORY-LEVEL ADVERSARIAL CONVERGED + SESSION WRAP (2026-07-23). Streak P7/P8/P9 = 3/3 clean. BC-5.39.001 + DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED. F-W85S-P9-001 LOW closed (BC-2.19.019 v1.1→v1.2). Pipeline PAUSED. develop=dc7331fb unchanged. trajectory-tail →0→0→0→0 | 2026-07-23 |
 | D-504 | WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: CV-001..005; total BC count text corrected 379/378→381/380. STORY-INDEX v3.89→v3.90: wave count 83→85, dep-graph v3.9→v3.10, E-22 epic row updated. CV-008 DEFERRED: VP-047 source_bc deferred to STORY-180 delivery. STORY-170 input-hash 7873f11→096877a; STORY-180 input-hash c0fad6c→8ddf419. Pipeline ACTIVE. | 2026-07-24 |
 | D-505 | WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). Both stories approved for Phase 3 per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented (TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping) — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Next: per-story delivery STORY-180 (worktree → stubs → failing tests → TDD → Step-4.5 adversarial → demos → PR). | 2026-07-24 |
+| D-506 | STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 4 fresh-context passes; streak P2/P3/P4 = 3/3 clean; zero open HIGH/CRIT; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Remediation commits a0087033/e40955f1/0502c642 on feature branch; demo head ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). Red Gate PASSED (21 red/227 green). BC-2.19.029 v1.3 / BC-2.19.030 v1.2 (draft→ready label refresh, F-180-P4-001); BC-INDEX v2.36→v2.37. PG-W85-003 NEW: bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class (adversary pass-1 observation) — queued DF-VALIDATION-001 batch. Convergence state + report: cycles/wave-085/STORY-180/. Next: pr-manager full 9-step PR lifecycle (STORY-180). | 2026-07-24 |
 
 ---
 
@@ -230,6 +232,7 @@ Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)�
 | PG-W84-LOCAL-BATCH | PG-W84-010/012 (2 product-local gaps). DF-VALIDATION-001 research required. | wave-084 S-7.02 (D-486) | DF-VALIDATION-001 research pass |
 | PG-W85-001 | Plugin-level template+hook defect. NOT per-file fix; does NOT block wave-85 convergence. | wave-085 pass-2 (D-496) | DF-VALIDATION-001 + upstream |
 | PG-W85-002 | Recurring remediation-sweep locus-coverage gap. Flag for cycle-close codification. | wave-085 P2-P4 (D-496/497/498) | Cycle-close codification / DF-VALIDATION-001 |
+| PG-W85-003 | bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class — allowed F-180-P1-003 (9 stale present-tense sites) to pass the gate undetected at Step 4. | wave-085 STORY-180 pass-1 adversary (D-506) | DF-VALIDATION-001 batch |
 
 ---
 
@@ -253,17 +256,17 @@ Wave-85 story adversarial trajectory (CONVERGED): `1C+2H+4M+2L(P1)→3M/1L(P2)�
 
 ## Session Resume Checkpoint
 
-**D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). STORY-180/181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE — Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0**
+**D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 4 fresh-context passes; streak P2/P3/P4 = 3/3; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Commits a0087033/e40955f1/0502c642; demo head ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). BC-INDEX v2.37. PG-W85-003 filed. Pipeline ACTIVE — pr-manager full 9-step PR lifecycle next (STORY-180). trajectory-tail →0→0→0→0**
 
 Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and `cycles/wave-084/session-checkpoints.md` and `cycles/wave-085/session-checkpoints.md`.
 
-- **Date:** 2026-07-24. Position: wave-85 human story-approval gate (D-505) PASSED; per-story delivery STORY-180 is NEXT.
-- **Convergence counter:** BC-5.39.001 3/3 SATISFIED — do NOT re-run story-level adversarial on resume.
-- **In-flight:** NONE. All bursts committed. Tree clean.
-- **PENDING NEXT STEPS (in order) on resume:** (a) per-story delivery STORY-180 (worktree → stubs → failing tests → TDD → Step-4.5 adversarial → demos → PR); (b) per-story delivery STORY-181; (c) wave-85 integration gate; (d) cycle-close: codify PG-W85-001 + PG-W85-002.
-- **Ground truth:** develop=dc7331fb, main=47b7d23c (v0.13.1). No product code changed. Only open product PR: external #407 (DEFERRED).
+- **Date:** 2026-07-24. Position: STORY-180 Step-4.5 adversarial CONVERGED (D-506); PR lifecycle (pr-manager) is NEXT.
+- **Convergence counter:** STORY-180 BC-5.39.001 3/3 SATISFIED (P2/P3/P4) — do NOT re-run per-story adversarial on resume.
+- **In-flight:** NONE. All bursts committed. Tree clean (factory-artifacts updated this burst).
+- **PENDING NEXT STEPS (in order) on resume:** (a) pr-manager full 9-step PR lifecycle (STORY-180 feature branch → PR → CI → review → merge); (b) per-story delivery STORY-181; (c) wave-85 integration gate; (d) cycle-close: codify PG-W85-001 + PG-W85-002 + PG-W85-003.
+- **Ground truth:** develop=dc7331fb, main=47b7d23c (v0.13.1). Feature branch HEAD ccec1711 (demo evidence). Only open product PR: external #407 (DEFERRED).
 - **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21; CV-008 (deferred to STORY-180 delivery); ROUTE-W74-OBS-2.
-- **Spec versions:** BC-INDEX v2.36 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.91 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.91 / HS-INDEX v2.17 / dep-graph v3.10.
 - **Resume command:** `/vsdd-factory:next-step`
 
 ---
@@ -293,4 +296,5 @@ Full policy text: `.factory/policies.yaml`. 17 active policies — critical: DF-
 | **Wave-84 lessons (S-7.02 COMPLETE)** | `cycles/wave-084/lessons.md` |
 | **Wave-084 burst log + session checkpoints** | `cycles/wave-084/burst-log.md` + `cycles/wave-084/session-checkpoints.md` |
 | STORY-147/166/176 per-story convergence reports | `cycles/wave-084/STORY-{147,166,176}/convergence-report.md` |
+| **STORY-180 per-story convergence report** | `cycles/wave-085/STORY-180/convergence-report.md` + `adversary-convergence-state.json` |
 | feature-iec104 F5–F7 adversarial/hardening/convergence | `.factory/phase-f5-adversarial/` + `.factory/phase-f6-hardening/` + `.factory/phase-f7-convergence/` |

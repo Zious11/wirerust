@@ -579,4 +579,45 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## Archived CPS Row — D-501 (rolled from STATE.md CPS under last-5 rule, D-506 burst)
+
+| **D-501 WAVE-85 ADVERSARIAL PASS 7 → CLEAN NITPICK_ONLY (2026-07-23). Pass-7: 0 CRIT/HIGH/MED / 2 LOW. Clean streak 1/3. F-P7-001/002/003 LOW residues swept. trajectory-tail →0→0→0→0** | **COMPLETE (D-501)** | Pass-7 CLEAN NITPICK_ONLY. Clean streak 1/3. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst: D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-505 human story-approval gate commit).
+
+**Adversary verdict:** CONVERGED — BC-5.39.001 SATISFIED. 4 passes; clean streak P2/P3/P4 = 3/3. Trajectory: 3M(P1)→NITPICK/3L(P2)→NITPICK/1L(P3)→NITPICK/1L(P4). Remediation commits: a0087033 (P1), e40955f1 (P2 sweep), 0502c642 (P3 fix). P4 closed by BC-only product-owner edit (no code commit). Demo evidence ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). Process-gap PG-W85-003 filed.
+
+**Files touched (Dim-1): 8 unique files**
+
+- `.factory/STATE.md` (D-506: current_step, timestamp, bc_index_version v2.37, EXACT RESUME POINT, Project Metadata Last Updated, Phase Progress wave-085 row, Convergence Status wave-085 STORY-180 trajectory, Concurrent Cycles wave-085, CPS last-5 roll D-501→archive, D-506 Decisions Log entry, PG-W85-003 Drift Items row, Session Resume Checkpoint D-506 replaces D-505)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v2.36→v2.37: v2.37 changelog entry added; BC-2.19.029 row annotation updated v1.3; BC-2.19.030 row annotation updated v1.2)
+- `.factory/specs/behavioral-contracts/ss-19/BC-2.19.029.md` (v1.2→v1.3: story_anchor label draft→ready, F-180-P4-001 — product-owner edit)
+- `.factory/specs/behavioral-contracts/ss-19/BC-2.19.030.md` (v1.1→v1.2: story_anchor label draft→ready, F-180-P4-001 — product-owner edit)
+- `.factory/cycles/wave-085/STORY-180/adversary-convergence-state.json` (NEW — per-story adversarial convergence state; 4 passes; converged=true; bc_5_39_001=SATISFIED)
+- `.factory/cycles/wave-085/STORY-180/convergence-report.md` (NEW — per-story convergence report; verdict CONVERGED; trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4); 9 findings total disposed)
+- `.factory/cycles/wave-085/burst-log.md` (D-501 CPS archival + D-506 burst entry — this file)
+- `.factory/cycles/wave-085/session-checkpoints.md` (D-505 checkpoint archived)
+
+**Codifications:**
+- STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (D-506, 2026-07-24): BC-5.39.001 SATISFIED via consecutive clean passes P2/P3/P4. 3 MEDIUM findings in P1 (F-180-P1-001 dispatch-table doc drift; F-180-P1-002 CHANGELOG count 21→27; F-180-P1-003 stale RED docstrings ×9) REMEDIATED a0087033. P2 3 LOW sweeps REMEDIATED e40955f1. P3 1 LOW (F-180-P3-001 unasserted first_ioa evidence) FIXED 0502c642. P4 1 LOW (F-180-P4-001 BC story-anchor draft→ready) FIXED by product-owner (BC-only).
+- BC-2.19.029 v1.2→v1.3 (F-180-P4-001): story_anchor label refreshed draft→ready.
+- BC-2.19.030 v1.1→v1.2 (F-180-P4-001): story_anchor label refreshed draft→ready.
+- BC-INDEX v2.36→v2.37: v2.37 changelog entry + row annotation updates for BC-2.19.029 and BC-2.19.030.
+- PG-W85-003 filed (DF-VALIDATION-001 batch): bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class — gate's own vocabulary gap that allowed F-180-P1-003 to slip past Step 4.
+
+**Summary:** STORY-180 per-story adversarial convergence COMPLETE. 4 fresh-context passes; streak P2/P3/P4 = 3/3; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). All findings fixed or closed in-cycle; no carried residuals. Demo evidence committed (ccec1711, 8 artifacts, PG-W70-DEMO-SCRUB PASSED). BC-INDEX bumped v2.36→v2.37 (BC-2.19.029/030 label refresh). PG-W85-003 filed to DF-VALIDATION-001 batch. develop=dc7331fb (UNCHANGED — no code changes in this state-manager burst). Pipeline ACTIVE. pr-manager PR lifecycle (STORY-180 Step 7) is NEXT on resume.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED. BC-5.39.001 SATISFIED (P2/P3/P4). BC-INDEX v2.37. PG-W85-003 filed. pr-manager PR lifecycle next. trajectory-tail 3M(P1)→3L(P2)→1L(P3)→1L(P4)→CONVERGED
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

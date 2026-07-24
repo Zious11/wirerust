@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-21T19:05:51Z","command":"cd /tmp/wirerust-release-0.13.1 && cargo test --all-targets 2>&1 | grep -E \"(^test result|FAILED|error\\[)\" | head -30"}
+{"status":"pass","timestamp":"2026-07-24T15:47:49Z","command":"cargo test --test iec104_analyzer_tests \"BC_2_19_019_v1_1\" 2>&1"}

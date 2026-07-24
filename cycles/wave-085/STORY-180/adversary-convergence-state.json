@@ -1,0 +1,61 @@
+{
+  "story": "STORY-180",
+  "wave": 85,
+  "cycle": "wave-085",
+  "head_reviewed": "0502c642",
+  "worktree_base": "dc7331fb",
+  "delivery_mode": "story-worktree",
+  "converged": true,
+  "bc_5_39_001": "SATISFIED",
+  "consecutive_clean": 3,
+  "clean_streak": [2, 3, 4],
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "FINDINGS",
+      "high_critical": 0,
+      "finding_ids": [
+        "F-180-P1-001",
+        "F-180-P1-002",
+        "F-180-P1-003",
+        "[process-gap] PG-W85-003"
+      ],
+      "code_tip": "d64d660b",
+      "notes": "0C/0H/3M + 1 process-gap. F-180-P1-001 MEDIUM dispatch-table doc comment drift (iec104.rs match-arm comments described untimed TypeIDs 45-51 only; did not mention timed-variant arms 58-64); F-180-P1-002 MEDIUM CHANGELOG count 21-vs-27 (entry claimed '21 red assertion-shaped tests' but actual new-test count was 27); F-180-P1-003 MEDIUM stale present-tense RED docstrings ×9 in iec104 test file ('currently asserts', 'is expected to', and similar RED-phase phrasing). [process-gap] PG-W85-003: bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class — the gate's own pattern vocabulary did not cover this class of phrases, allowing F-180-P1-003 to pass the gate undetected. REMEDIATED in commit a0087033."
+    },
+    {
+      "pass": 2,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "a0087033",
+      "notes": "Fresh adversary; reviewed code HEAD a0087033. Classification: NITPICK_ONLY — clean 1/3. Part A: all P1 fixes VERIFIED-FIXED. F-180-P1-001 VERIFIED-FIXED (dispatch-table comments now enumerate timed-variant arms 58-64); F-180-P1-002 VERIFIED-FIXED (CHANGELOG count corrected to 27); F-180-P1-003 VERIFIED-FIXED (9 stale present-tense phrasing sites scrubbed to past-tense). Part B: 3 LOW findings — (1) docstring set-notation for TypeID 106 (TypeIDs {1..=44,52..=57,65..=99,102,104,106..=127} used in inline docstring missing '106' in one spot); (2) 10 terse one-liner docstrings on detection-branch arms have style parity gap with longer descriptive docstrings elsewhere in the same function; (3) EC-008 canonical test-vector citation used TypeID imprecision in description. All swept in commit e40955f1. consecutive_clean advances to 1; clean_streak [2]. converged: false (needs 3 consecutive). Pass 3 dispatched."
+    },
+    {
+      "pass": 3,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "e40955f1",
+      "notes": "Fresh adversary; reviewed code HEAD e40955f1. Classification: NITPICK_ONLY — clean 2/3. Part A: all P2 LOW sweeps VERIFIED-FIXED; P1 fixes re-spot-checked clean. Part B: 1 LOW — F-180-P3-001 descriptive evidence element in T1692.001 finding unasserted by a test: the first_ioa evidence key was populated by production code but no test asserted its presence and non-empty value, leaving the evidence contract partially unguarded. Closed by test-writer in commit 0502c642 (new assertion added; non-tautological — assertion uses a computed expected value from the test fixture, not a hardcoded constant that might trivially pass). consecutive_clean advances to 2; clean_streak [2, 3]. converged: false (needs 3 consecutive). Pass 4 dispatched."
+    },
+    {
+      "pass": 4,
+      "verdict": "NITPICK_ONLY",
+      "high_critical": 0,
+      "finding_ids": [],
+      "code_tip": "0502c642",
+      "notes": "Fresh adversary; reviewed code HEAD 0502c642. Classification: NITPICK_ONLY — THIRD consecutive clean pass. Part A: F-180-P3-001 VERIFIED-FIXED (assertion is non-tautological; adversary verified the expected value is computed from the fixture, not hardcoded). Part B: 1 LOW — F-180-P4-001 BC Story-Anchor '(draft)' label staleness: BC-2.19.029 v1.2 and BC-2.19.030 v1.1 both carried story_anchor STORY-180 label 'draft' in modified-history entries; D-505 gate approved STORY-180 as status 'ready', making the label stale. Closed by product-owner this burst: BC-2.19.029 v1.2→v1.3 (draft→ready); BC-2.19.030 v1.1→v1.2 (draft→ready); sibling sweep clean. consecutive_clean advances to 3; clean_streak [2, 3, 4]. BC-5.39.001 SATISFIED. CONVERGED."
+    }
+  ],
+  "carried_findings": [],
+  "process_notes": [
+    "Pass 1 code tip reviewed: d64d660b (TDD implementation HEAD — commits 18d0a91d + d64d660b; iec104 suite 248/0, full suite 0 failed, clippy/fmt clean). No-stub-required verdict applied before Red Gate (orchestrator-verified: 21 red assertion-shaped / 227 green, log committed e781a8c9). All 3 MEDIUM findings required code/doc fixes; REMEDIATED commit a0087033. Process-gap PG-W85-003 filed: bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class.",
+    "Pass 2 code tip reviewed: a0087033. Fresh adversary. All P1 fixes VERIFIED-FIXED. 3 LOW findings (set-notation, docstring style parity, EC-008 TypeID description) all swept in e40955f1. consecutive_clean: 1. Pass 3 dispatched.",
+    "Pass 3 code tip reviewed: e40955f1. Fresh adversary. P2 sweeps VERIFIED-FIXED. F-180-P3-001 LOW (unasserted first_ioa evidence element) → FIXED 0502c642 (test-writer). consecutive_clean: 2. Pass 4 dispatched.",
+    "Pass 4 code tip reviewed: 0502c642. Fresh adversary. F-180-P3-001 VERIFIED-FIXED (non-tautological assertion confirmed). F-180-P4-001 LOW (BC story-anchor draft→ready label refresh, F-180-P4-001) → FIXED by product-owner (BC-2.19.029 v1.2→v1.3, BC-2.19.030 v1.1→v1.2; sibling sweep clean; NOT a code commit — BC-only change). consecutive_clean: 3; clean_streak [2, 3, 4]. BC-5.39.001 SATISFIED. CONVERGED.",
+    "Post-convergence: Step 5 demo evidence committed to feature branch (ccec1711, 8 artifacts, PG-W70-DEMO-SCRUB PASSED). Feature branch ready for PR lifecycle.",
+    "Red Gate outcome (pre-Step-4 TDD): 21 red assertion-shaped tests / 227 green baseline — orchestrator-verified; log committed e781a8c9.",
+    "worktree: .worktrees/STORY-180, branch feature/STORY-180-iec104-timed-cmd-detection (inferred), base dc7331fb (develop)."
+  ]
+}

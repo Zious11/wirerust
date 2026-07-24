@@ -1,11 +1,11 @@
 ---
 document_type: bc-index
 level: L3
-version: "2.36"
+version: "2.37"
 total_bcs: 381
 status: draft
 producer: product-owner
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-24T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -21,6 +21,9 @@ traces_to: .factory/specs/prd.md
 >
 > **v2.23 2026-07-13 (feature-iec104 — 27 new BC-2.19.001..027 SS-19 + 3 cross-subsystem new + 2 SS-18 amendments; ARCH-INDEX SS-19 27 BCs; SS-05: 11→12, SS-10: 9→10, SS-12: 24→25, SS-18: 2 amendments; total 348→378 on disk; 347→377 active):**
 > NEW SS-19 (IEC 60870-5-104 Passive Analysis, CAP-19): BC-2.19.001..027 — 27 greenfield BCs covering APCI framing (0x68 start byte validation, LEN range 4–253, carry-incomplete path), post-classification validity gate, I/S/U frame format discrimination (CF1 low-bit rules, VP-046 totality), U-format session state machine (STARTDT, STOPDT-with/without-STARTDT→T0881, TESTFR no-op, non-canonical CF1→T0814/CVE-2026-1773), ASDU parsing (TypeID/VSQ/COT/CASDU/IOA), control-command detection (TypeIDs 45–51→T1692.001 (all); set-point TypeIDs 48–51→+T0836; TypeID 105→T0827, TypeIDs 100/101/103 benign, reserved TypeIDs 0,128–255→T0814), N(S)/N(R) 15-bit extraction + k=12 desync detection→T1692.001, directional carry isolation (VP-045, MAX_IEC104_CARRY_BYTES=255), frame-walk loop (VP-044+VP-047), per-flow teardown. VP anchors: VP-044 (Kani P0), VP-045 (proptest P1), VP-046 (proptest P1), VP-047 (cargo-fuzz P1). NEW cross-subsystem: BC-2.05.012 (Rule 8: TCP/2404→Iec104), BC-2.10.010 (T0881 SEEDED+technique_info+EMITTED, SEEDED count 28→29), BC-2.12.025 (--iec104 flag, included in --all). AMENDED: BC-2.18.003 v1.3→v1.4 (SUPPORTED_PORTS adds 2404, supported entries 7→8), BC-2.18.004 v1.2→v1.3 (EC-003/EC-007 IEC-104 examples). BC count: 348→378 on disk; 347→377 active.
+>
+> **v2.37 2026-07-24 (STORY-180 Step-4.5 adversarial D-506 — BC-2.19.029 v1.3 + BC-2.19.030 v1.2: story_anchor label draft→ready; F-180-P4-001 label refresh):**
+> AMENDED BC-2.19.029 v1.2→v1.3 (F-180-P4-001 STORY-180 adversarial pass-4): story_anchor status label refreshed draft→ready — STORY-180 approved as status ready at D-505 human story-approval gate (2026-07-24); label now consistent with STORY-180 frontmatter status. AMENDED BC-2.19.030 v1.1→v1.2 (F-180-P4-001 STORY-180 adversarial pass-4): same draft→ready label refresh. Sibling sweep clean (BC-2.19.019 v1.3 story_anchor STORY-170 delivered unchanged; BC-2.19.028 v1.1 unchanged; no other story_anchor labels affected). No BC count change (381 on disk; 380 active).
 >
 > **v2.36 2026-07-24 (wave-85 pre-gate remediation burst D-504 — BC-2.19.028 v1.1 Related-BCs; BC-2.19.029 v1.1 PC-5 vsq fix; BC-2.19.019 v1.2 back-refs + v1.3 story_anchor; BC-2.19.030 v1.1 story_anchor):**
 > AMENDED BC-2.19.028 v1.0→v1.1 (F-P7-002 wave-85-P7): Related-BCs expanded +BC-2.19.029/030 — reciprocity matrix now fully symmetric (019→028/029/030, 028→019/029/030, 029→019/028, 030→019/028). AMENDED BC-2.19.029 v1.0→v1.1 (F-P7-001 wave-85-P7): PC-5 backticked `vsq.count` replaced with "(VSQ object count / `asdu.count`)" — Asdu struct has flat count:u8 field (no vsq subfield). AMENDED BC-2.19.019 v1.1→v1.2 (F-W85S-P9-001 wave-85-P9): parity back-refs to BC-2.19.029/030 added to Related-BCs + reciprocal cross-references. STORY-ANCHOR FILLS (D-504 CV-004/005): BC-2.19.019 v1.2→v1.3 story_anchor STORY-170 (wave 79, delivered, PR #401 4b6a4e2, 2026-07-14); BC-2.19.029 v1.1→v1.2 story_anchor STORY-180 (wave 85, draft); BC-2.19.030 v1.0→v1.1 story_anchor STORY-180 (wave 85, draft). DEFERRED (CV-008): VP-047 source_bc += BC-2.19.029/030 deferred to STORY-180 delivery. No BC count change (381 on disk; 380 active).
@@ -928,8 +931,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.19.026 | Frame-Walk Loop Processes Multiple APDUs per on_data Call | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.027 | on_flow_close Removes Iec104FlowState and Discards Carry Bytes | P0 | [WRITTEN] | feature-iec104 |
 | BC-2.19.028 | MAX_IEC104_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | [WRITTEN] | feature-iec104 | <!-- v1.1 (F-P7-002 wave-85-P7): Related-BCs expanded +BC-2.19.029/030 (reciprocity matrix now symmetric); v1.0: SR-173-02 BLOCKING anchor; MAX_IEC104_FINDINGS=10_000; cap at on_data extend step; dropped_findings counter; IEC104-FINDINGS-CAP-001 fn-doc-comment requirement; DF-SIBLING-SWEEP-001 SS-15/SS-19 consistency verified -->
-| BC-2.19.029 | Time-Tagged Switching Control Commands (TypeIDs 58–60, C_SC_TA_1/C_DC_TA_1/C_RC_TA_1) Emit T1692.001 | P0 | [WRITTEN] | wave-85-spec-evolution | <!-- v1.2 (D-504 CV-005): story_anchor STORY-180 (wave 85, draft); v1.1 (F-P7-001 wave-85-P7): PC-5 vsq.count → "(VSQ object count / asdu.count)" (Asdu has flat count:u8, no vsq subfield); v1.0: IEC104-TIMED-CMD-GAP-001 closure; parity with BC-2.19.019 arm 45..=47; T1692.001 Possible only; no T0836; CASDU/first_ioa evidence; [TEST] inherited; neighbor regression guard EC-009/010 -->
-| BC-2.19.030 | Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64, C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1) Emit T1692.001 + T0836 | P0 | [WRITTEN] | wave-85-spec-evolution | <!-- v1.1 (D-504 CV-005): story_anchor STORY-180 (wave 85, draft); v1.0: IEC104-TIMED-CMD-GAP-001 closure; parity with BC-2.19.019 arm 48..=51; T1692.001 + T0836 Possible; CASDU/first_ioa evidence; [TEST] inherited; neighbor regression guard EC-010/011 -->
+| BC-2.19.029 | Time-Tagged Switching Control Commands (TypeIDs 58–60, C_SC_TA_1/C_DC_TA_1/C_RC_TA_1) Emit T1692.001 | P0 | [WRITTEN] | wave-85-spec-evolution | <!-- v1.3 (F-180-P4-001 D-506): story_anchor label draft→ready (D-505 gate; STORY-180 ready, wave 85); v1.2 (D-504 CV-005): story_anchor STORY-180 (wave 85, draft); v1.1 (F-P7-001 wave-85-P7): PC-5 vsq.count → "(VSQ object count / asdu.count)" (Asdu has flat count:u8, no vsq subfield); v1.0: IEC104-TIMED-CMD-GAP-001 closure; parity with BC-2.19.019 arm 45..=47; T1692.001 Possible only; no T0836; CASDU/first_ioa evidence; [TEST] inherited; neighbor regression guard EC-009/010 -->
+| BC-2.19.030 | Time-Tagged Set-Point + Bitstring Commands (TypeIDs 61–64, C_SE_TA_1/C_SE_TB_1/C_SE_TC_1/C_BO_TA_1) Emit T1692.001 + T0836 | P0 | [WRITTEN] | wave-85-spec-evolution | <!-- v1.2 (F-180-P4-001 D-506): story_anchor label draft→ready (D-505 gate; STORY-180 ready, wave 85); v1.1 (D-504 CV-005): story_anchor STORY-180 (wave 85, draft); v1.0: IEC104-TIMED-CMD-GAP-001 closure; parity with BC-2.19.019 arm 48..=51; T1692.001 + T0836 Possible; CASDU/first_ioa evidence; [TEST] inherited; neighbor regression guard EC-010/011 -->
 
 ---
 

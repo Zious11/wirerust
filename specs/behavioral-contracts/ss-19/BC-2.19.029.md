@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-07-23T00:00:00Z
@@ -16,6 +16,7 @@ introduced: wave-85-spec-evolution
 modified:
   - "v1.1: F-W85S-P7-001 — PC5 field-path corrected: backticked vsq.count replaced with (the VSQ object count / asdu.count); Asdu struct has a flat count: u8 field with no vsq subfield. 2026-07-23"
   - "v1.2: CV-004 — Story Anchor filled: STORY-180 (draft, wave 85). 2026-07-23"
+  - "v1.3: F-180-P4-001 — Story Anchor status label refreshed draft→ready (D-505 gate). 2026-07-24"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -157,7 +158,7 @@ selected the time-tagged TypeID instead of its untimed twin.
 
 ## Story Anchor
 
-STORY-180 (draft, wave 85)
+STORY-180 (ready, wave 85)
 
 ## VP Anchors
 

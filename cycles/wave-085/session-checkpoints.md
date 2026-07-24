@@ -173,4 +173,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-24) — D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (archived)
+
+**D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24). STORY-180/181 approved for Phase 3 TDD per-story delivery (STORY-180 first — dep on delivered STORY-174; then STORY-181). Structured review questions presented — human approved both without changes. STORY-180 v1.1 / STORY-181 v1.1 status ready. STORY-INDEX v3.91. Pipeline ACTIVE — Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-24. Position: wave-85 human story-approval gate (D-505) PASSED; per-story delivery STORY-180 is NEXT.
+- **Convergence counter:** BC-5.39.001 3/3 SATISFIED — do NOT re-run story-level adversarial on resume.
+- **In-flight:** NONE. All bursts committed. Tree clean.
+- **PENDING NEXT STEPS (in order) on resume:** (a) per-story delivery STORY-180 (worktree → stubs → failing tests → TDD → Step-4.5 adversarial → demos → PR); (b) per-story delivery STORY-181; (c) wave-85 integration gate; (d) cycle-close: codify PG-W85-001 + PG-W85-002.
+- **Ground truth:** develop=dc7331fb, main=47b7d23c (v0.13.1). No product code changed. Only open product PR: external #407 (DEFERRED).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21; CV-008 (deferred to STORY-180 delivery); ROUTE-W74-OBS-2.
+- **Spec versions:** BC-INDEX v2.36 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.91 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-506 STORY-180 Step-4.5 adversarial CONVERGED checkpoint (BC-INDEX v2.37; PG-W85-003 filed; pr-manager PR lifecycle next).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
