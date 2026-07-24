@@ -158,4 +158,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-24) — D-504 WAVE-85 PRE-GATE REMEDIATION BURST COMPLETE (archived)
+
+**D-504 WAVE-85 PRE-GATE REMEDIATION BURST COMPLETE (2026-07-24). BC-INDEX v2.35→v2.36 + STORY-INDEX v3.89→v3.90. CV-001..007 applied; CV-008 (VP-047 source_bc += BC-2.19.029/030) deferred to STORY-180 delivery. STORY-170/180 input hashes rebaselined (096877a / 8ddf419). Pipeline ACTIVE — consistency-validator full-corpus audit next, then human story-approval gate (STORY-180/181). trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-24. Position: wave-85 pre-gate remediation burst (D-504) COMPLETE; consistency-validator audit next.
+- **Convergence counter:** BC-5.39.001 3/3 SATISFIED — do NOT re-run story-level adversarial on resume.
+- **In-flight:** NONE. All bursts committed. Tree clean.
+- **PENDING NEXT STEPS (in order) on resume:** (a) run fresh-context consistency-validator full-corpus audit (MANDATED before human gate — NOT yet run this session); (b) present HUMAN story-approval gate for STORY-180/181 with structured questions; (c) on approval → Phase 3 TDD per-story-delivery (STORY-180 detection arms 58-60→T1692.001 / 61-64→T1692.001+T0836; STORY-181 SEC-001 *mut EnipFlowState take-remove-reinsert refactor at enip.rs:992-999 + ROUTE-W74 OBS-1); (d) cycle-close: codify PG-W85-001 + PG-W85-002.
+- **Ground truth:** develop=dc7331fb, main=47b7d23c (v0.13.1). No product code changed. Only open product PR: external #407 (DEFERRED).
+- **Pending human decisions:** PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21; CV-008 (deferred to STORY-180 delivery).
+- **Spec versions:** BC-INDEX v2.36 / VP-INDEX v2.46 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.90 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-505 human story-approval gate checkpoint (STORY-180/181 ready; Phase 3 delivery next).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

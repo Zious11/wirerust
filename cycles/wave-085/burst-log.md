@@ -540,4 +540,43 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## Archived CPS Row — D-500 (rolled from STATE.md CPS under last-5 rule, D-505 burst)
+
+| **D-500 WAVE-85 ADVERSARIAL PASS 6 → REMEDIATED (2026-07-23). Pass-6: 0 CRIT/HIGH / 1 MED / 2 LOW — ALL PRE-EXISTING. Adversary CERTIFIED wave-85 timed-command package. PRD v1.58→v1.59. Clean-pass streak RESET to 0/3. trajectory-tail →0→0→0→0** | **COMPLETE (D-500)** | Pass-6 REMEDIATED (pre-existing only). PRD v1.59. Streak RESET to 0/3. trajectory-tail →0→0→0→0 |
+
+---
+
+## Burst: D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (2026-07-24)
+
+**Parent-commit:** factory-artifacts HEAD at time of this burst (prior = D-504 pre-gate remediation commit).
+
+**Adversary verdict:** N/A — human story-approval gate burst; no adversarial pass conducted. BC-5.39.001 remains SATISFIED (streak P7/P8/P9 = 3/3; do NOT re-run story-level adversarial).
+
+**Files touched (Dim-1): 6 unique files**
+
+- .factory/STATE.md (D-505 transition: frontmatter current_step + timestamp + story_index_version v3.91 + story_index_note prepended v3.91 entry; EXACT RESUME POINT D-505; Project Metadata Last Updated + STORY-INDEX v3.91; Phase Progress wave-085 row annotated D-505 human gate PASSED; CPS D-505 add + D-500 rolled; Decisions Log D-505; Session Resume Checkpoint D-505 replaces D-504)
+- .factory/stories/STORY-INDEX.md (v3.90→v3.91: STORY-180/181 status draft→ready; v3.91 changelog entry added)
+- .factory/stories/STORY-180.md (v1.0→v1.1: status draft→ready, three loci — story-writer authored)
+- .factory/stories/STORY-181.md (v1.0→v1.1: status draft→ready, three loci — story-writer authored)
+- .factory/cycles/wave-085/burst-log.md (D-500 CPS archival + D-505 burst entry — this file)
+- .factory/cycles/wave-085/session-checkpoints.md (D-504 checkpoint archived)
+
+**Codifications:**
+- WAVE-85 HUMAN STORY-APPROVAL GATE PASSED (D-505, 2026-07-24): Both STORY-180 and STORY-181 approved by human for Phase 3 TDD per-story delivery. Delivery order: STORY-180 first (dep on delivered STORY-174, wave 85, 5 pts), then STORY-181 (dep=[], wave 85, 3 pts).
+- STORY-180 v1.0→v1.1 status draft→ready (story-writer edited, three loci synced).
+- STORY-181 v1.0→v1.1 status draft→ready (story-writer edited, three loci synced).
+- STORY-INDEX v3.90→v3.91: status cells updated (both rows draft→ready); no numeric story/pts/wave totals changed.
+- Structured review questions presented: TypeID 58-64 scope, SEC-001 anchor enip.rs:992-999, ROUTE-W74 OBS-2 left pending, MITRE parity mapping — human approved both without changes.
+
+**Summary:** Wave-85 human story-approval gate burst. Resumed from D-504 pre-gate remediation burst (Pipeline ACTIVE; consistency-validator full-corpus audit complete, pre-gate remediation COMPLETE). Orchestrator presented structured human story-approval gate for STORY-180 and STORY-181. Human reviewed scope, SEC-001 anchor precision, ROUTE-W74 OBS-2 (left pending per carry-forward), and MITRE technique parity mapping. Human approved BOTH stories without changes (D-505). Story-writer had already flipped both story files draft→ready (STORY-180 v1.0→v1.1, STORY-181 v1.0→v1.1, three loci each). State-manager: STORY-INDEX v3.90→v3.91 (story rows updated, changelog entry added). develop=dc7331fb (UNCHANGED — no code changes). Pipeline ACTIVE. Phase 3 per-story delivery STORY-180 next.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop branch UNCHANGED (dc7331fb).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** N/A — no source code changes on develop branch. Burst commits exclusively to factory-artifacts branch.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-505 WAVE-85 HUMAN STORY-APPROVAL GATE PASSED. STORY-180/181 status ready. STORY-INDEX v3.91. Phase 3 per-story delivery STORY-180 next. trajectory-tail →0→0→0→0
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

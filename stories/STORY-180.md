@@ -4,8 +4,8 @@ level: ops
 story_id: STORY-180
 title: "IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard)"
 epic_id: E-22
-version: "1.0"
-status: draft
+version: "1.1"
+status: ready
 producer: story-writer
 timestamp: 2026-07-23T00:00:00Z
 phase: f3
@@ -41,7 +41,7 @@ input-hash: "8ddf419"
 # STORY-180: IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard)
 
 **Epic:** E-22 (IEC-104 Passive Analyzer)
-**Status:** draft
+**Status:** ready
 **Wave:** 85
 **Points:** 5
 **Priority:** P1
@@ -332,3 +332,10 @@ No new crate dependencies. No Cargo.toml changes.
 - `iec60870-5`, `wireshark`, `lib60870`, `nom` (ICS parsing libs) — banned per ADR-013 Decision 7
 - Finding emission inside `parse_asdu` (pure function) — banned per ADR-013 Decision 8
 - Unsafe split-borrow for carry fields — the new detection arms read `asdu` only (immutable borrow); no unsafe pattern needed
+
+## Changelog
+
+| Version | Date | Note |
+|---------|------|------|
+| 1.1 | 2026-07-24 | Human story-approval gate PASSED (D-505, 2026-07-24); status draft→ready |
+| 1.0 | 2026-07-23 | Initial story decomposition (wave-85 spec-evolution, BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1) |

@@ -4,8 +4,8 @@ level: ops
 story_id: STORY-181
 title: "Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor)"
 epic_id: E-20
-version: "1.0"
-status: draft
+version: "1.1"
+status: ready
 producer: story-writer
 timestamp: 2026-07-23T00:00:00Z
 phase: f2
@@ -36,7 +36,7 @@ input-hash: "8253122"
 # STORY-181: Fix SEC-001 ENIP Unsafe Split-Borrow in on_data: Eliminate *mut EnipFlowState Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor)
 
 **Epic:** E-20 (EtherNet/IP ENIP/CIP Analyzer)
-**Status:** draft
+**Status:** ready
 **Wave:** 85
 **Points:** 3
 **Priority:** P2
@@ -267,3 +267,10 @@ No new crate dependencies. No Cargo.toml changes.
 - New `unsafe` blocks in the PDU dispatch loop — the fix MUST be safe Rust with no raw-pointer casts
 - Changes to `process_pdu`'s method signature or `EnipFlowState` public fields — behavior-preserving scope only; `process_pdu` must remain `pub fn process_pdu(&mut self, flow: &mut EnipFlowState, ...)`
 - Changes to any test assertion — tests must pass exactly as-is
+
+## Changelog
+
+| Version | Date | Note |
+|---------|------|------|
+| 1.1 | 2026-07-24 | Human story-approval gate PASSED (D-505, 2026-07-24); status draft→ready |
+| 1.0 | 2026-07-23 | Initial story decomposition (SEC-001 ENIP unsafe split-borrow refactor, wave-85 maint cycle) |
