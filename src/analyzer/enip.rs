@@ -986,8 +986,10 @@ impl EnipAnalyzer {
         // is_non_enip safety: if the flag was already true on on_data entry, the early
         // return at ~801 fired before any PDUs were collected, so pdu_queue is empty here.
         // If the flag was latched during this call's carry-cap check (~955-974), pdu_queue
-        // may still contain items; process_pdu gates on flow.is_non_enip (early return,
-        // line ~1033) and skips all detection for those PDUs.
+        // may still contain items (per RULING-137-002 this latch branch is currently
+        // structurally unreachable; retained as defensive documentation for the anticipated
+        // carry-cap redesign); process_pdu gates on flow.is_non_enip (process_pdu's
+        // is_non_enip early-return gate) and skips all detection for those PDUs.
         let mut flow = self
             .flows
             .remove(&flow_key)
