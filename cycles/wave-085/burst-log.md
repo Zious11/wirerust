@@ -654,4 +654,42 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## Burst: D-509 STORY-181 DELIVERED (2026-07-24)
+
+**Parent-commit:** `e7f76508` — HEAD of factory-artifacts at burst start (factory(phase-3): prior burst D-508 STORY-181 Step-4.5 ADVERSARIAL CONVERGED).
+
+**Adversary verdict:** N/A — delivery state-management burst; per-story adversarial CONVERGED at D-508 (BC-5.39.001 SATISFIED 3/3 P1/P2/P3). No adversarial pass conducted in this burst.
+
+**Archived CPS row (D-504, rolled out of last-5):**
+> | **D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: CV-001..005; total BC count text corrected 379/378→381/380. STORY-INDEX v3.89→v3.90: wave count 83→85, dep-graph v3.9→v3.10, E-22 epic row updated. CV-008 DEFERRED: VP-047 source_bc deferred to STORY-180 delivery. STORY-170 input-hash 7873f11→096877a; STORY-180 input-hash c0fad6c→8ddf419. Pipeline ACTIVE. trajectory-tail →0→0→0→0** | **COMPLETE (D-504)** | Pre-gate remediation burst COMPLETE. BC-INDEX v2.36. STORY-INDEX v3.90. CV-008 deferred. trajectory-tail →0→0→0→0 |
+
+**Files touched (Dim-1): 7 unique files**
+
+- `.factory/STATE.md` — D-509 transition: frontmatter stories_delivered 117→118 + story_index_version v3.93 + develop_head 5555495b + current_step + timestamp + story_index_note v3.93 prepended; EXACT RESUME POINT D-509; Project Metadata Version/Develop HEAD/Stories/Last Updated rows; Phase Progress wave-085 row D-509 appended CLOSED-PENDING-GATE; Convergence Status STORY-181 DELIVERED line; Concurrent Cycles wave-085 CLOSED-PENDING-GATE; CPS D-509 add + D-504 rolled off; Decisions Log D-509 added; Drift Items PG-W85-004 added; Active Carry-Forwards SEC-001 + ROUTE-W74-DEFERRED marked RESOLVED; Session Resume Checkpoint D-509 replaces D-508
+- `.factory/stories/sprint-state.yaml` — STORY-181 status pending→done, pr 438, merge_commit 5555495b, merged_date 2026-07-24
+- `.factory/stories/STORY-181.md` — v1.1→v1.2: status ready→delivered (three loci: frontmatter, body, changelog row 1.2 added)
+- `.factory/stories/STORY-INDEX.md` — v3.92→v3.93: STORY-181 catalog row ready→delivered + #438; wave-85 delivery row 1/2→2/2 DELIVERED CLOSED-PENDING-GATE; v3.93 changelog comment prepended
+- `.factory/tech-debt-register.md` — v2.0→v2.1: SEC-001 status RESOLVED (PR #438 5555495b); Resolution History row added; Summary P2 count 8→7; summary narrative v2.1 entry prepended
+- `.factory/cycles/wave-085/burst-log.md` — D-504 CPS archival + D-509 burst entry (this file)
+- `.factory/cycles/wave-085/session-checkpoints.md` — D-508 checkpoint archived
+
+**Codifications:**
+- STORY-181 DELIVERED (D-509, 2026-07-24): PR #438 squash-merged to develop @ 5555495bbcdb3b0d4088a21c77aa6cc24e9ce7f3 by human 2026-07-24T20:26:06Z after MERGE-AUTH-HALT per DF-MERGE-AUTH-CLASSIFIER-001 pattern (same as PR #421/#426/#427/#437). CI 13/13 green. pr-reviewer APPROVE cycle 1, 0 blocking; review-of-record comment issuecomment-5073978095 posted. Security 0C/0H/0M. Step-4.5 CONVERGED 3/3 (D-508).
+- SEC-001 RESOLVED: zero unsafe in enip.rs post-merge. take-remove-reinsert pattern at enip.rs:992-999 permanently replaces *mut EnipFlowState. Tech-debt-register v2.1, P2 8→7.
+- ROUTE-W74 OBS-1 RESOLVED: AC-181-004 delivered (parse_line() docstring regex-mismatch None return case). ROUTE-W74-DEFERRED carry-forward closed. ROUTE-W74-OBS-2 remains open (OBS-2 row retained in STATE.md Active Carry-Forwards).
+- WAVE-85 DELIVERY COMPLETE (2/2): STORY-180 (D-507) + STORY-181 (D-509) both delivered. Wave-85 CLOSED-PENDING-GATE. Integration gate next.
+- PG-W85-004 NEW: pr-manager attempted `gh pr review --approve` on self-authored PR #438; blocked by two-party harness guard (no GitHub approval event landed, orchestrator-verified). Dispatch prompts must pre-forbid review events on self-authored PRs. Queued DF-VALIDATION-001 batch + upstream candidate.
+- stories_delivered 117→118. STORY-INDEX v3.93.
+
+**Summary:** STORY-181 delivery state-management burst. PR #438 (fix(enip): eliminate unsafe *mut EnipFlowState split-borrow in PDU dispatch) squash-merged to develop by human post-MERGE-AUTH-HALT. DF-MERGE-AUTH-CLASSIFIER-001 satisfied (5th occurrence: #421/#426/#427/#437/#438). CI 13/13; pr-reviewer APPROVE cycle 1; security 0C/0H/0M. SEC-001 CLOSED — zero unsafe in enip.rs, take-remove-reinsert pattern permanently applied. ROUTE-W74 OBS-1 RESOLVED via AC-181-004. PG-W85-004 filed (pr-manager self-review attempt blocked by harness). Wave-85 delivery COMPLETE (2/2 DELIVERED, CLOSED-PENDING-GATE). stories_delivered 118. Tech-debt-register v2.1, P2 7. STORY-INDEX v3.93. All five artifacts updated atomically.
+
+**Dim-2 Attestation:** develop advanced 421bf572→5555495b (PR #438 squash-merge). Source code change: src/analyzer/enip.rs (take-remove-reinsert refactor) + bin/validate-citations (parse_line() docstring OBS-1 fix).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** Factory-artifacts burst covers state-tracking artifacts only. Source code delivered on develop via PR #438 (implementer/pr-manager steps complete).
+**Dim-7 Attestation:** N/A — no test suite changes in this factory burst. Test coverage for STORY-181 delivered via PR #438 (existing BC-2.17.016 tests pass unchanged per AC-181-002).
+
+**Closes:** D-509 STORY-181 DELIVERED (PR #438 5555495b squash-merged to develop 2026-07-24T20:26:06Z). Wave-85 delivery COMPLETE (2/2). CLOSED-PENDING-GATE. stories_delivered=118. SEC-001 RESOLVED. ROUTE-W74 OBS-1 RESOLVED. PG-W85-004 filed. Integration gate next. trajectory-tail →0→0→0→0
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

@@ -939,11 +939,11 @@ stories:
     merged_date: "2026-07-24"
 
   STORY-181:
-    status: pending  # approved D-505; dispatches after STORY-180
+    status: done  # DELIVERED: PR #438 5555495b squash-merged to develop 2026-07-24 (D-509); human-executed post-MERGE-AUTH-HALT; DF-MERGE-AUTH-CLASSIFIER-001 satisfied
     wave: 85
-    branch: null
+    branch: null  # squash-merged; worktree cleaned
     worktree: null
     blocked_by: []
-    pr: null
-    merge_commit: null
-    merged_date: null
+    pr: 438
+    merge_commit: 5555495b
+    merged_date: "2026-07-24"

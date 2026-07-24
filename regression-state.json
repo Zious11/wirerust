@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-24T15:47:49Z","command":"cargo test --test iec104_analyzer_tests \"BC_2_19_019_v1_1\" 2>&1"}
+{"status":"pass","timestamp":"2026-07-24T19:58:05Z","command":"cargo test --test enip_analyzer_tests \"test_carry_buffer_partial_header\" 2>&1 | tail -5 && echo \"---\" && cargo test --test enip_analyzer_tests \"test_carry_buffer_two_frames_one_segment\" 2>&1 | tail -5 && echo \"---\" && cargo test --test enip_analyzer_tests \"test_ec_x1_cross_direction_no_splice\" 2>&1 | tail -5"}
