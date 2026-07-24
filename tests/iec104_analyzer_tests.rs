@@ -7141,11 +7141,16 @@ mod story_180 {
     }
 
     /// BC-2.19.029 canonical vector row 1: TypeID=58, CASDU=1, first_ioa=Some(100) →
-    /// evidence includes "CASDU=1" and "first_ioa=100".
+    /// evidence includes the descriptive element
+    /// "time-tagged switching control command (C_SC_TA/C_DC_TA/C_RC_TA)", "CASDU=1",
+    /// and "first_ioa=100".
+    ///
+    /// F-180-P3-001: strengthened to assert the BC-canonical descriptive evidence element so
+    /// that a regression mangling that element would be caught.
     ///
     /// At the RED gate, TypeID=58 fell through the `_` catch-all (0 findings); now handled by the 58..=60 arm.
     ///
-    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 1.
+    /// Traces: BC-2.19.029 postcondition 3; AC-180-001; canonical vector row 1; F-180-P3-001.
     #[test]
     fn test_BC_2_19_029_casdu_first_ioa_evidence() {
         let asdu = make_asdu_full(58, false, 1, Some(100), 1);
@@ -7157,6 +7162,15 @@ mod story_180 {
              precondition for evidence check)"
         );
         let f = &findings[0];
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e
+                    .contains("time-tagged switching control command (C_SC_TA/C_DC_TA/C_RC_TA)")),
+            "TypeID=58: finding evidence must contain the descriptive element \
+             \"time-tagged switching control command (C_SC_TA/C_DC_TA/C_RC_TA)\" \
+             (BC-2.19.029 canonical vector row 1; F-180-P3-001)"
+        );
         assert!(
             f.evidence.iter().any(|e| e.contains("CASDU=1")),
             "TypeID=58, CASDU=1: finding evidence must contain \"CASDU=1\" \
@@ -7509,10 +7523,16 @@ mod story_180 {
 
     /// BC-2.19.030 postcondition 3 / canonical vector row 1: TypeID=61, CASDU=1,
     /// first_ioa=Some(200) → BOTH findings' evidence include "CASDU=1" and "first_ioa=200".
+    /// Additionally asserts the BC-canonical descriptive elements per finding:
+    ///   ev1 (T1692.001): "time-tagged set-point/bitstring write command (C_SE_TA/...)"
+    ///   ev2 (T0836):     "parameter modification (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)"
+    ///
+    /// F-180-P3-001: strengthened to assert per-finding descriptive evidence elements so that
+    /// a regression mangling either element would be caught.
     ///
     /// At the RED gate, TypeID=61 fell through the `_` catch-all (0 findings); now handled by the 61..=64 arm.
     ///
-    /// Traces: BC-2.19.030 postcondition 3; AC-180-003; canonical vector row 1.
+    /// Traces: BC-2.19.030 postconditions 1–3; AC-180-003; canonical vector row 1; F-180-P3-001.
     #[test]
     fn test_BC_2_19_030_type_id_61_casdu_first_ioa_evidence_both_findings() {
         let asdu = make_asdu_full(61, false, 1, Some(200), 1);
@@ -7537,6 +7557,35 @@ mod story_180 {
                 f.mitre_techniques
             );
         }
+        // F-180-P3-001: assert the BC-canonical descriptive element for ev1 (T1692.001) and
+        // ev2 (T0836) individually — a loop over both findings cannot distinguish them because
+        // their descriptive strings differ.
+        let ev1 = findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T1692.001"))
+            .expect("T1692.001 finding must be present (BC-2.19.030 postcondition 1)");
+        assert!(
+            ev1.evidence.iter().any(|e| e.contains(
+                "time-tagged set-point/bitstring write command \
+                                      (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)"
+            )),
+            "T1692.001 finding evidence must contain the descriptive element \
+             \"time-tagged set-point/bitstring write command \
+             (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)\" \
+             (BC-2.19.030 postcondition 1; F-180-P3-001)"
+        );
+        let ev2 = findings
+            .iter()
+            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"))
+            .expect("T0836 finding must be present (BC-2.19.030 postcondition 2)");
+        assert!(
+            ev2.evidence
+                .iter()
+                .any(|e| e.contains("parameter modification (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)")),
+            "T0836 finding evidence must contain the descriptive element \
+             \"parameter modification (C_SE_TA/C_SE_TB/C_SE_TC/C_BO_TA)\" \
+             (BC-2.19.030 postcondition 2; F-180-P3-001)"
+        );
     }
 
     /// BC-2.19.030 postcondition 3 / canonical vector row 2: TypeID=62, CASDU=100,
