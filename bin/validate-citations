@@ -117,10 +117,10 @@ def parse_line(raw: str) -> tuple[str, int, int | None, str | None] | None:
     """Parse one line from a citations table.
 
     Returns (path, start_line, end_line_or_None, anchor_or_None) for a valid
-    citation line, or None if the line should be skipped (blank, comment, or
-    a non-blank/non-comment line that fails the citation regex match --
-    callers distinguish this MALFORMED case from the skip case by re-checking
-    the stripped/comment status of the raw line, per F-S164P1-002).
+    citation line, or None if the line should be skipped (blank or comment),
+    or None if the line fails the citation regex (caller should treat as
+    MALFORMED). Callers distinguish the skip case from the MALFORMED case by
+    re-checking the stripped/comment status of the raw line, per F-S164P1-002.
     """
     stripped = raw.strip()
     if not stripped or stripped.startswith("#"):

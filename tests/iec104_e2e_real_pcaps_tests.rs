@@ -24,7 +24,7 @@
 //! |------|------|-----------------|
 //! | `test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation` | `iec104.pcap` (Wireshark Foundation) | T0836 ×24 + T1692.001 ×42 = 66 total; flows_analyzed=1; dropped_findings=0 |
 //! | `test_e2e_BC_2_19_iec104_sq_pcapng_zero_findings_benign_uframes` | `iec104-sq.pcapng` (Wireshark Foundation) | 0 findings (benign STARTDT/TESTFR-only SQ-bit fixture); flows_analyzed=1; dropped_findings=0 |
-//! | `test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu` | `iec104-iti-diverse.pcap` (ITI CC-BY-4.0) | T0836 ×10 + T1692.001 ×21 = 31 total; flows_analyzed=1; dropped_findings=0 |
+//! | `test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu` | `iec104-iti-diverse.pcap` (ITI CC-BY-4.0) | T0836 ×20 + T1692.001 ×46 = 66 total; flows_analyzed=1; dropped_findings=0 |
 //! | `test_e2e_BC_2_19_iec104_iti_dissect_T0814_T1692_001_control_coverage` | `iec104-iti-dissect.pcap` (ITI CC-BY-4.0) | T0814 ×2 + T1692.001 ×9 = 11 total; flows_analyzed=6; dropped_findings=0 |
 //!
 //! ## Traces
@@ -337,8 +337,17 @@ mod iec104_e2e_real_pcaps {
     //
     // Pcap: IEC-104 traffic with a diverse mix of ASDU Type IDs from the ITI ICS corpus.
     //       173 reader packets; 1 TCP flow on port 2404.
-    // Expected: 31 findings = T0836 ×10 + T1692.001 ×21. All Impact/Possible/Medium.
-    //           flows_analyzed=1, total_findings=31, dropped_findings=0.
+    // Expected: 66 findings = T0836 ×20 + T1692.001 ×46. All Impact/Possible/Medium.
+    //           flows_analyzed=1, total_findings=66, dropped_findings=0.
+    //
+    // Wave-85 change (STORY-180, BC-2.19.029/030): TypeIDs 58–64 (time-tagged control
+    // commands) present in this capture were silently ignored before wave-85. They are now
+    // detected, raising the total from 31 to 66 (+35 findings). The untimed contribution
+    // (31) is unchanged: TypeID=45→5×T1692.001, TypeID=46→6×T1692.001,
+    // TypeID=50→10×T0836+10×T1692.001.
+    // Timed contribution (+35): x=15 timed-switching ASDUs (TypeID=58→5, TypeID=59→10,
+    // each 1 finding → +15×T1692.001); y=10 timed-setpoint ASDUs (TypeID=61→5,
+    // TypeID=63→5, each 2 findings → +10×T1692.001 + +10×T0836); x+2y=35. ✓
     //
     // Traces: BC-2.19 (IEC-104 analyzer pipeline).
     // License: ITI/ICS-Security-Tools CC-BY-4.0. Attribution: ICS Security Tools,
@@ -349,15 +358,23 @@ mod iec104_e2e_real_pcaps {
     ///
     /// iec104-iti-diverse.pcap is from the same ITI ICS Security Tools corpus as the ENIP
     /// fixtures. It contains a diverse ASDU Type ID mix representing realistic IEC-104
-    /// traffic from a SCADA deployment.
+    /// traffic from a SCADA deployment, including time-tagged control commands.
     ///
-    /// Postconditions asserted (ground-truth from analyzer-level validation run):
-    /// - `iec104.all_findings.len()` == 31.
-    /// - T0836 count == 10.
-    /// - T1692.001 count == 21.
+    /// Wave-85 (STORY-180, BC-2.19.029/030): TypeIDs 58–64 (time-tagged control commands)
+    /// present in this capture were silently ignored before wave-85; they are now detected,
+    /// raising the expectation from 31 to 66. The +35 timed findings decompose as:
+    ///   x=15 from timed-switching TypeIDs 58–59 (1 finding each, T1692.001 only)
+    ///   2y=20 from timed-setpoint TypeIDs 61+63 (2 findings each: T1692.001 + T0836)
+    ///   T0836 delta=y=10; T1692.001 delta=x+y=25
+    ///
+    /// Postconditions asserted (ground-truth from wave-85 validation run):
+    /// - `iec104.all_findings.len()` == 66.
+    /// - T0836 count == 20.
+    /// - T1692.001 count == 46.
+    /// - Count of findings whose summary contains "time-tagged" == 35 (= x + 2y).
     /// - Every finding is Impact / Possible / Medium.
     /// - `iec104_summary.flows_analyzed` == 1.
-    /// - `iec104_summary.total_findings` == 31.
+    /// - `iec104_summary.total_findings` == 66.
     /// - `iec104_summary.dropped_findings` == 0.
     ///
     /// Traces: BC-2.19 (IEC-104 analyzer pipeline).
@@ -372,9 +389,10 @@ mod iec104_e2e_real_pcaps {
         // ── Total findings count ──────────────────────────────────────────────
         assert_eq!(
             iec104.all_findings.len(),
-            31,
-            "iec104-iti-diverse.pcap: expected exactly 31 findings \
-             (T0836 ×10 + T1692.001 ×21); got {} findings: {:?}",
+            66,
+            "iec104-iti-diverse.pcap: expected exactly 66 findings \
+             (T0836 ×20 + T1692.001 ×46, incl. 35 time-tagged from wave-85); \
+             got {} findings: {:?}",
             iec104.all_findings.len(),
             iec104
                 .all_findings
@@ -396,12 +414,30 @@ mod iec104_e2e_real_pcaps {
             .count();
 
         assert_eq!(
-            t0836_count, 10,
-            "iec104-iti-diverse.pcap: expected 10 T0836 findings; got {t0836_count}"
+            t0836_count, 20,
+            "iec104-iti-diverse.pcap: expected 20 T0836 findings \
+             (10 untimed from TypeID=50 + 10 timed from TypeIDs 61+63); got {t0836_count}"
         );
         assert_eq!(
-            t1692_001_count, 21,
-            "iec104-iti-diverse.pcap: expected 21 T1692.001 findings; got {t1692_001_count}"
+            t1692_001_count, 46,
+            "iec104-iti-diverse.pcap: expected 46 T1692.001 findings \
+             (21 untimed + 25 timed: x=15 from TypeIDs 58-59, y=10 from TypeIDs 61+63); \
+             got {t1692_001_count}"
+        );
+
+        // ── Time-tagged timed-arm marker (wave-85 STORY-180 guard) ───────────
+        // x=15 timed-switching findings (TypeIDs 58-59) + 2y=20 timed-setpoint findings
+        // (TypeIDs 61+63) = 35 findings whose summary contains "time-tagged".
+        let time_tagged_count = iec104
+            .all_findings
+            .iter()
+            .filter(|f| f.summary.contains("time-tagged"))
+            .count();
+        assert_eq!(
+            time_tagged_count, 35,
+            "iec104-iti-diverse.pcap: expected 35 time-tagged findings (x+2y = 15+20, \
+             TypeIDs 58–59 + 61+63; BC-2.19.029/030 timed-command detection from wave-85); \
+             got {time_tagged_count}"
         );
 
         // ── Category / verdict / confidence — all Impact/Possible/Medium ──────
@@ -438,8 +474,8 @@ mod iec104_e2e_real_pcaps {
         );
         assert_eq!(
             detail["total_findings"],
-            serde_json::json!(31u64),
-            "iec104-iti-diverse.pcap: total_findings must be 31; got {:?}",
+            serde_json::json!(66u64),
+            "iec104-iti-diverse.pcap: total_findings must be 66; got {:?}",
             detail["total_findings"]
         );
         assert_eq!(
