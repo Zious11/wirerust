@@ -722,4 +722,35 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## CPS Archive — D-507 (rolled off CPS 2026-07-25, D-512 burst)
+
+**D-507 STORY-180 DELIVERED (2026-07-24).** PR #437 421bf572 squash-merged to develop 2026-07-24T18:44:47Z, human-executed post-classifier-halt; DF-MERGE-AUTH-CLASSIFIER-001 satisfied (wave-84 pattern #421/#426/#427/#437). CI 13/13 green. pr-reviewer APPROVE cycle 1 (0 blocking; self-authored COMMENTED+review-findings.md = review of record). Security CLEAN. Step-4.5 CONVERGED 3/3 (D-506, BC-5.39.001). stories_delivered 116→117. STORY-INDEX v3.91→v3.92 (D-507). VP-INDEX v2.46→v2.47: VP-047 source_bc += BC-2.19.029/030 (CV-008 RESOLVED). STORY-180 input-hash rebaselined 8ddf419→e87befe (canonical Python; BC-2.19.029 v1.3 + BC-2.19.030 v1.2 changed). Worktree cleaned. Next: per-story delivery STORY-181. trajectory-tail →0→0→0→0
+
+---
+
+## Burst 10 (2026-07-25) — D-512 v0.13.2 RELEASED
+
+**Trigger:** Orchestrator closing burst — record v0.13.2 patch release. All facts orchestrator-verified.
+
+**Files touched:**
+
+- `.factory/STATE.md` — D-512 transition: frontmatter (released_version v0.13.2, released_at 2026-07-25, release_tag v0.13.2, release_tag_object/release_commit 9601d711baf72ca30d29be2c289271ade5d027cc, release_url https://github.com/Zious11/wirerust/releases/tag/v0.13.2, prior_released_version v0.13.1, prior_released_at 2026-07-21, main_head 9601d711..., develop_head e8841d76..., cargo_version_main/develop 0.13.2, current_step D-512, timestamp 2026-07-25T01:30:00Z); EXACT RESUME POINT D-512; Project Metadata (Version 0.13.2, Main HEAD 9601d711, Develop HEAD e8841d76, Last Updated D-512); Phase Progress (new row: v0.13.2 RELEASED 2026-07-25); Concurrent Cycles wave-085 row (develop=e8841d76, v0.13.2 RELEASED D-512 noted); CPS last-5 (D-512 added, D-507 rolled off); Decisions Log D-512; Session Resume Checkpoint D-512 replaces D-511
+- `.factory/cycles/wave-085/burst-log.md` — D-507 CPS archival + D-512 burst entry (this file)
+- `.factory/cycles/wave-085/session-checkpoints.md` — D-511 checkpoint archived
+
+**Codifications:**
+
+- v0.13.2 RELEASED (D-512, 2026-07-25): Patch bump (human-directed). Release PR #440 9601d711baf72ca30d29be2c289271ade5d027cc merged to main (human-merged). Tag v0.13.2 (lightweight) on commit 9601d711. GH release published 2026-07-25T00:36:46Z with 4 assets (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu). Back-merge PR #441 TRUE-MERGE e8841d761f3f25f320f98977618e506e8b41a058 to develop (human-authorized `gh pr merge --merge`; ancestry PASS — no DRIFT-BACKMERGE-SQUASH recurrence). Ships wave-85: STORY-180 IEC-104 timed-command detection (TypeIDs 58-64) + STORY-181 SEC-001 ENIP unsafe elimination + gate-fix PR #439. CR-004 CHANGELOG trim applied at release cut. CHANGELOG [0.13.2] - 2026-07-25. Version 0.13.1→0.13.2.
+
+**Summary:** v0.13.2 patch-release state-management closing burst. Human directed patch release from wave-85 deliver content (IEC-104 timed-command detection + SEC-001 ENIP unsafe elimination). Release PR #440 merged to main at 9601d711baf72ca30d29be2c289271ade5d027cc. Tag v0.13.2 (lightweight). GH release published with 4 platform assets. Back-merge PR #441 TRUE-MERGE to develop at e8841d761f3f25f320f98977618e506e8b41a058 (ancestry PASS — no DRIFT-BACKMERGE-SQUASH recurrence). STATE.md updated: release fields, D-512 Decisions Log, Phase Progress v0.13.2 RELEASED row, Concurrent Cycles wave-085 develop head updated, CPS rolled D-507 off and D-512 on, Session Resume Checkpoint replaced, D-511 checkpoint archived to session-checkpoints.md. main=9601d711. develop=e8841d76. Pipeline ACTIVE at idle.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop source tree unchanged (e8841d76 is back-merge of main into develop; no new feature code in factory burst). Source code was delivered by release PR #440 + back-merge PR #441 (human-executed).
+**Dim-5 Attestation:** N/A — no WASM binary changes in this factory burst.
+**Dim-6 Attestation:** Factory-artifacts burst covers state-tracking artifacts only. Source code released on main via PR #440 (human-merged); develop synced via PR #441 back-merge (human-executed).
+**Dim-7 Attestation:** N/A — no test suite changes in this factory burst.
+
+**Closes:** D-512 v0.13.2 RELEASED (2026-07-25). main=9601d711baf72ca30d29be2c289271ade5d027cc. develop=e8841d761f3f25f320f98977618e506e8b41a058. Pipeline ACTIVE at idle. trajectory-tail →0→0→0→0
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

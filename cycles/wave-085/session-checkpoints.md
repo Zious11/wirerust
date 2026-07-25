@@ -233,4 +233,18 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-25) — D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED (archived)
+
+**D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED (2026-07-25). Human gate: all 6 gates ratified — streak P1/P2/P3 accepted, PG-W85-005 deferral accepted, HS-136 0.9 corpus caveat accepted, holdout real-capture runs accepted as wave integration demos. Wave-085 CLOSED. S-7.02 COMPLETE (PG-W85-001..005 dispositioned per lessons.md). develop=0ab6f52e. Pipeline ACTIVE at idle. Next: human choice. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-25. Position: D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED; pipeline ACTIVE at idle.
+- **Ground truth:** develop=0ab6f52ee3be21687437d29923fadc903ca70387 (gate-fix PR #439, frozen at gate close), main=47b7d23c137483de37aa7705617749f5f9d37b07 (v0.13.1). No open product worktrees. Only open product PR: external #407 (DEFERRED).
+- **In-flight work:** NONE. Wave-085 CLOSED. Tree clean. All bursts committed. factory-artifacts HEAD = D-511 burst commit.
+- **PENDING NEXT STEPS (in order) on resume:** Human choice — (a) ROUTE-W74-OBS-2 scope decision; (b) PG-W84+PG-W85 DF-VALIDATION-001 research batch; (c) DEP-SOAK-FOLLOWUP-2026-07-27 (on/after 2026-07-27); (d) PR #407 governance; (e) PERF-RERUN-001; (f) ROUTE-BC/DOC defers; (g) next wave or maintenance. Release candidacy v0.14.0 (two [Unreleased] entries incl. one Added feature — minor bump candidate).
+- **Pending human decisions:** PR #407 governance; ROUTE-W74-OBS-2; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.94 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-512 v0.13.2 RELEASED checkpoint (main=9601d711; develop=e8841d76; v0.13.2 patch release).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

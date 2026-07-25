@@ -1,1 +1,1 @@
-{"status":"pass","timestamp":"2026-07-24T22:41:08Z","command":"cargo test --all-targets 2>&1 | grep -cE \"test result: FAILED\"; cargo clippy --all-targets -- -D warnings 2>&1 | tail -1; cargo fmt --check && echo FMT-CLEAN"}
+{"status":"pass","timestamp":"2026-07-25T00:21:58Z","command":"cargo test --all-targets 2>&1 | grep -E \"^test result\" | tail -20"}
