@@ -1107,3 +1107,6 @@ Session-end markers for the VSDD factory. Run /session-review to synthesize.
 - Session ended at 2026-07-23T23:22:09Z (awaiting /session-review)
 - Session ended at 2026-07-25T01:34:47Z (awaiting /session-review)
 - Session ended at 2026-07-25T02:00:00Z (D-513 SESSION WRAP; human /wrap; wave-085 closed; v0.13.2 released; pipeline PAUSED)
+- Session ended at 2026-07-25T01:52:08Z (awaiting /session-review)
+- Session ended at 2026-07-25T17:35:10Z (awaiting /session-review)
+- Session ended at 2026-07-25T17:37:21Z (awaiting /session-review)
