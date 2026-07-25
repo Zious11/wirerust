@@ -1072,19 +1072,54 @@ policies:
             Note: "was RED", "turned GREEN", "passed their Red Gate phase", "before the
             <X> arm existed" are PAST-TENSE PROVENANCE — CORRECT and MUST NOT be flagged.
 
-          Behavioral-absence phrases (expanded — PROP-FE001-01):
-            "no .* arm"             # regex: "no <X> arm" (match arm for a variant)
-            "doesn't exist yet"     # negative-capability phrase
-            "does not exist yet"    # variant
-            "not yet implemented"   # stub marker
-            "currently has NO"      # present-tense absence claim
-            "currently fall"        # "currently falls", "currently fall(s)"
-            "falls to the wildcard" # wildcard-arm fallthrough status claim
-            "falls to `_`"          # backtick variant
-            "falls through to"      # generic fallthrough
+          TWO-TIER ENFORCEMENT MODEL (DF-GREEN-DOC-TENSE-SWEEP v3,
+          F-W86S-P2-006 ruling 2026-07-25):
+
+          TIER-1 TOKENS — zero-FP automatable; MUST be enforced by
+          bin/check-green-doc-tense in CI (add to _VIOLATION_PATTERNS when
+          wave-86 stories deliver; 0 live legitimate uses verified):
+
+            Behavioral-absence phrases — TIER-1 (PROP-FE001-01):
+            "no .* arm"              # regex: "no <X> arm" (match arm for a variant)
+            "doesn't exist yet"      # negative-capability phrase
+            "does not exist yet"     # variant
+            "not yet implemented"    # stub marker
+            "currently has NO"       # present-tense absence claim
+            "currently fall"         # "currently falls", "currently fall(s)"
+            "currently asserts"      # RED-phase present-tense claim; 0 live
+                                     # legitimate uses; D-506/STORY-180 F-180-P1-003
+                                     # evidence (9 sites of this exact class)
+            "falls to the wildcard"  # wildcard-arm fallthrough; 0 live legitimate
+                                     # uses; specific phrasing signals RED-phase state
             "currently satisfied by" # passive implementation-status phrase
             "will be GREEN currently" # conditional tense claim
             "currently FAILS"        # present-false claim on a passing test
+
+          TIER-2 TOKENS — context-dependent; adversarial/manual sweeps MUST check
+          these, but bin/check-green-doc-tense MUST NOT flag them (high FP risk).
+          A phrase listed here that the tool does not flag is NOT a tool defect:
+
+            "falls through to"       # 12 live legitimate uses accurately describing
+                                     # Rust match-arm fallthrough behavior in src/
+                                     # and tests/ (e.g. tls.rs:930, bc_2_16_d078_
+                                     # lax_malformed_tests.rs:18,90, main_story_089_
+                                     # tests.rs:648). Adversary MUST check context:
+                                     # if the comment accurately describes shipped
+                                     # behavior, skip; if it falsely claims a match
+                                     # arm is absent when the arm now exists, MEDIUM.
+            "falls to `_`"           # 1+ live legitimate uses (e.g. bc_f6_mutation_
+                                     # gap_tests.rs:870 "Under correct code: falls to
+                                     # `_` arm → E-INP-010" describes correct
+                                     # behavior). Same context-check rule as above.
+            "is expected to"         # 6+ live legitimate uses in regression-guard
+                                     # framing and product prose (e.g. "This test is
+                                     # expected to PASS on the current codebase",
+                                     # "false-positive rate is expected to be low").
+                                     # Automated flagging produces false positives.
+                                     # Adversary checks only for RED-phase claims:
+                                     # "is expected to fail until X is fixed" → MEDIUM;
+                                     # "is expected to PASS" or product-description
+                                     # uses → skip.
 
           Stub markers (expanded — PROP-FE001-01):
             "MUST FAIL"             # RED-gate stub directive surviving into GREEN
@@ -1143,13 +1178,20 @@ policies:
           annotate: "// TODO-GREEN: update this comment at GREEN step."
 
       (d) Adversary doc-accuracy axis:
-        - MUST explicitly flag surviving tokens from the full expanded list in
-          section (a) above — "scaffold / Red Gate / stub / todo!() / uncalled /
-          RED: / no <X> arm / currently has NO / falls to wildcard / falls to `_` /
-          doesn't exist yet / not yet implemented / currently satisfied by /
-          currently FAILS / MUST FAIL / unimplemented!()" — at module-level,
-          test-banner, OR in-test per-line doc-comment depth — as MEDIUM (not LOW
-          cosmetic).
+        - MUST explicitly flag surviving TIER-1 tokens from section (a) above —
+          "scaffold / Red Gate / stub / todo!() / uncalled / RED: / no <X> arm /
+          currently has NO / currently fall / currently asserts / falls to the
+          wildcard / doesn't exist yet / does not exist yet / not yet implemented /
+          currently satisfied by / currently FAILS / MUST FAIL / unimplemented!()"
+          — at module-level, test-banner, OR in-test per-line doc-comment depth —
+          as MEDIUM (not LOW cosmetic). These are always stale when present on GREEN
+          code; no context check required.
+        - MUST apply context-check for TIER-2 tokens from section (a) ("falls
+          through to", "falls to `_`", "is expected to") before filing a finding:
+          if the phrase accurately describes shipped behavior, skip; if it falsely
+          claims an absent implementation, file MEDIUM. Do NOT file a finding
+          against bin/check-green-doc-tense for not flagging these tokens — the
+          tool's zero-FP design intentionally excludes context-dependent tokens.
         - MUST scan ALL doc-comment depths (module/crate `//!`, function `///`, and
           per-statement inline `// ...` within test bodies), not only the first
           doc-comment line of a function.
@@ -1195,22 +1237,25 @@ policies:
       test-writer dispatch: "Before committing the GREEN implementation, run a doc-tense
       sweep over ALL files in `git diff develop..HEAD --name-only`, INCLUDING any
       newly-added test functions, at ALL comment depths (module doc, function doc, AND
-      per-statement inline lines in test bodies). Grep for the FULL expanded token set
-      from DF-GREEN-DOC-TENSE-SWEEP section (a): scaffold, Red Gate, RED GATE, RED:,
+      per-statement inline lines in test bodies). Grep for the TIER-1 token set from
+      DF-GREEN-DOC-TENSE-SWEEP section (a): scaffold, Red Gate, RED GATE, RED:,
       RED-phase, todo!(), stub, uncalled, skeleton, MUST FAIL, unimplemented!(), no .*
       arm, doesn't exist yet, does not exist yet, not yet implemented, currently has NO,
-      currently fall, falls to the wildcard, falls to `_`, falls through to, currently
-      satisfied by, will be GREEN currently, currently FAILS — plus any stale count
-      values this story changes. Fix ALL hits. Apply the explicit exclusions in section
-      (a): do NOT fix past-tense provenance or regression-guard framing. Only
-      F6-deferred or explicitly-named-deferred comments may retain future-tense prose."
+      currently fall, currently asserts, falls to the wildcard, currently satisfied by,
+      will be GREEN currently, currently FAILS — plus any stale count values this story
+      changes. Fix ALL TIER-1 hits. Additionally, check TIER-2 tokens (falls through to,
+      falls to `_`, is expected to) with context: fix only if the phrase falsely claims
+      an absent implementation; skip if it accurately describes shipped behavior. Apply
+      the explicit exclusions in section (a): do NOT fix past-tense provenance or
+      regression-guard framing. Only F6-deferred or explicitly-named-deferred comments
+      may retain future-tense prose."
       Adversary MUST flag surviving stale RED prose as MEDIUM, not LOW. The three-pass
       requirement (BC-5.39.001) is retained: STORY-115 evidence confirms that pass 1
       missed a whole-attack-class bypass (GARP-storm detection unreachable) that passes
       2 and 3 caught via fresh-context + BC-completeness sweep.
     added: "2026-06-15"
-    last-extended: "2026-06-22"
-    version: v2
+    last-extended: "2026-07-25"
+    version: v3
     derived-from: >
       PG-ARP-F4-REDBANNER-SWEEP (STORY-112); PG-ARP-F4-STALE-SKELETON-DOC (STORY-113);
       STORY-114 Step-4.5 F-1/F-2/F-3 (codified 2026-06-15 in lessons.md);
@@ -1221,7 +1266,16 @@ policies:
       and stub markers; added explicit exclusion list for past-tense provenance and
       regression-guard framing; all doc-comment depths now mandated; FE-001 F5 Passes
       2-5 evidence — 4 adversary passes of docstring churn attributable to narrow
-      token set)
+      token set); extended v3 2026-07-25 (F-W86S-P2-006 product-owner ruling:
+      introduced two-tier enforcement model distinguishing zero-FP TIER-1 tokens
+      enforced by bin/check-green-doc-tense from context-dependent TIER-2 tokens
+      reserved for manual/adversarial sweeps; moved "falls through to", "falls to
+      `_`", and "is expected to" to TIER-2 based on 12, 1, and 6 live legitimate
+      uses respectively in the current tree; added "currently asserts" to TIER-1
+      per D-506/STORY-180 F-180-P1-003 evidence and 0 live legitimate uses; removed
+      "falls to the wildcard" from TIER-2 per 0 live legitimate uses; STORY-183
+      GOOD_CASE asserting "falls through to" is not flagged by the tool is CORRECT
+      behavior under this policy)
 
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment
