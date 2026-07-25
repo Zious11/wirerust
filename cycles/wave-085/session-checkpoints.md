@@ -262,4 +262,20 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-25) — D-513 SESSION WRAP (archived)
+
+**D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): pre-gate consistency audit (D-504, 8 findings remediated); D-505 human story gate PASSED; STORY-180 DELIVERED (D-507, PR #437 421bf572); STORY-181 DELIVERED (D-509, PR #438 5555495b; SEC-001 CLOSED); gate-fix PR #439 0ab6f52e; wave-085 gate CONVERGED 3/3 + CLOSED (D-511, S-7.02 COMPLETE); v0.13.2 RELEASED (D-512, main=9601d711; back-merge PR #441 ancestry PASS). No in-flight work; no story worktrees; no abandoned sub-agent steps; all product branches merged and deleted. Pipeline PAUSED.**
+
+- **Date:** 2026-07-25. Position: steady-state idle, post-v0.13.2 release; wave-085 CLOSED; no active wave; no in-flight work.
+- **Convergence counters:** NONE active. Wave-85 story-level (9 passes, streak P7/P8/P9 = 3/3) and gate-level (3 passes, streak P1/P2/P3 = 3/3) — both SATISFIED and closed. Do NOT re-run either.
+- **In-flight:** NONE. All bursts committed. Tree clean.
+- **PENDING NEXT STEPS (in order) on resume:** Human choice — (a) DEP-SOAK-FOLLOWUP-2026-07-27 (dated, eligible on/after 2026-07-27; includes Dependabot #434/#435); (b) DF-VALIDATION-001 research batches: PG-W84-UPSTREAM (7) + PG-W84-LOCAL (2) + PG-W85-001..005; (c) ROUTE-W74-OBS-2 human scope decision; (d) PR #407 governance; (e) PERF-RERUN-001; (f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21; (g) STORY-INDEX-IN-INPUTS-CHURN structural fix (pending human decision); (h) deferred code-review NITs (CR-002/003/005/006 doc/test sweeps; CR-W85G-001 tech-debt row).
+- **Ground truth:** develop=e8841d761f3f25f320f98977618e506e8b41a058 (back-merge PR #441 TRUE-MERGE; main IS ancestor), main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2). Cargo 0.13.2 on both branches. No open product worktrees. Open PRs: external #407 (DEFERRED, governance pending) + Dependabot #434/#435 (deferred to DEP-SOAK-FOLLOWUP-2026-07-27).
+- **Pending human decisions:** DEP-SOAK-FOLLOWUP-2026-07-27; PR #407 governance; ROUTE-W74-OBS-2; STORY-INDEX-IN-INPUTS-CHURN; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21.
+- **Note:** main-repo untracked bin/__pycache__/ is a harmless Python build artifact; candidate .gitignore addition at next hygiene sweep.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.94 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-515 DF-VALIDATION-001 BATCH COMPLETE checkpoint (steady-state idle; Pipeline ACTIVE).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

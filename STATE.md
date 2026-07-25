@@ -9,11 +9,11 @@ traces_to: ""
 project: wirerust
 mode: maintenance
 phase: "steady-state"
-status: paused
-current_step: "D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-release milestone. Session D-504..D-512 (exhaustive): wave-85 delivered+gated+closed, v0.13.2 released, back-merge ancestry PASS. No in-flight work. Pipeline PAUSED."
+status: active
+current_step: "D-515 DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). 14 PG findings validated (PG-W84-001/002/003/004/005/006/008 + PG-W85-001..005 + PG-W84-010/012). Rollup: 8 DUP / 2 NOVEL-UPSTREAM / 4 LOCAL-CARRY-FORWARD. Upstream: #764 (PG-W84-006) + #765 (PG-W85-001) filed; evidence comments on #749/#681/#663/#626. Steady-state idle. Pipeline ACTIVE. trajectory-tail →0→0→0→0"
 current_cycle: "wave-085"
-pipeline: PAUSED
-timestamp: 2026-07-25T02:00:00Z
+pipeline: ACTIVE
+timestamp: 2026-07-25T14:00:00Z
 released_version: v0.13.2
 released_at: "2026-07-25"
 release_tag: v0.13.2
@@ -51,7 +51,7 @@ maintenance_prior_run: maint-2026-07-11
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-    Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 315 = 185 (dual-margin form). ~315 lines (wc-l).
+    Hard cap (500 lines) margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 319 = 181 (dual-margin form). ~319 lines (wc-l).
   Hard cap: 500 lines.
 -->
 
@@ -59,7 +59,7 @@ maintenance_prior_run: maint-2026-07-11
 
 ## EXACT RESUME POINT
 
-**D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): pre-gate consistency audit (D-504, 8 findings remediated); D-505 human story gate PASSED; STORY-180 DELIVERED (D-507, PR #437 421bf572); STORY-181 DELIVERED (D-509, PR #438 5555495b; SEC-001 CLOSED); wave-85 gate-fix PR #439 0ab6f52e; wave-085 gate CONVERGED 3/3 + CLOSED (D-511, S-7.02 COMPLETE); v0.13.2 RELEASED (D-512, main=9601d711; back-merge PR #441 ancestry PASS). No in-flight work; no story worktrees; no abandoned sub-agent steps; all product branches merged and deleted. Pipeline PAUSED.**
+**D-515 DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). Session D-514/D-515: RESUMED (D-514, human-approved) + 14 PG findings research-validated. Rollup: 8 DUPLICATE / 2 NOVEL-UPSTREAM / 4 LOCAL-CARRY-FORWARD / 0 ALREADY-FIXED / 0 INCONCLUSIVE. Report: .factory/planning/df-validation-2026-07-25.md. Upstream: #764 (PG-W84-006) + #765 (PG-W85-001) filed; evidence comments on #749 (PG-W84-001), #681 (PG-W84-003), #663 (PG-W84-008), #626 (PG-W85-004). Pending: DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27, incl. #434/#435/#436); local fixes PG-W85-005 (3 candidates) + PG-W84-010/PG-W85-003 (combined bin/check-green-doc-tense story) + PG-W84-012; ROUTE-W74-OBS-2; PR #407; remaining carry-forwards unchanged. Steady-state idle. Pipeline ACTIVE.**
 
 ---
 
@@ -74,7 +74,7 @@ maintenance_prior_run: maint-2026-07-11
 | Develop HEAD | `e8841d761f3f25f320f98977618e506e8b41a058` — D-512 v0.13.2 RELEASED (2026-07-25); back-merge PR #441 TRUE-MERGE |
 | Spec versions | BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 |
 | Stories | 118 delivered / 134 total (STORY-INDEX v3.94, dep-graph v3.10, 783 pts) |
-| **Last Updated** | 2026-07-25 — D-513 SESSION WRAP (2026-07-25). wave-085 CLOSED; v0.13.2 RELEASED; Pipeline PAUSED. trajectory-tail →0→0→0→0 |
+| **Last Updated** | 2026-07-25 — D-515 DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). 14 PG findings validated; 8 DUP / 2 NOVEL-UPSTREAM / 4 LOCAL-CARRY-FORWARD. Pipeline ACTIVE. trajectory-tail →0→0→0→0 |
 
 ---
 
@@ -145,11 +145,11 @@ Wave-85 gate-level adversarial trajectory (3 passes, code frozen 0ab6f52e): `NIT
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): wave-85 delivered+gated+closed, v0.13.2 released. No in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0** | **COMPLETE (D-513)** | Session wrap. wave-085 CLOSED; v0.13.2 RELEASED; Pipeline PAUSED. trajectory-tail →0→0→0→0 |
-| **D-512 v0.13.2 RELEASED (2026-07-25). Patch bump (human-directed). Release PR #440 9601d711 main (human-merged); tag v0.13.2 (lightweight); GH release 4 assets; back-merge PR #441 TRUE-MERGE e8841d76 develop (human-authorized gh pr merge --merge; ancestry PASS). Ships wave-85: IEC-104 timed-command detection (TypeIDs 58-64) + SEC-001 ENIP unsafe elimination + gate-fix. CR-004 CHANGELOG trim applied at release cut. Version 0.13.1→0.13.2. main=9601d711. develop=e8841d76. Pipeline ACTIVE at idle. trajectory-tail →0→0→0→0** | **COMPLETE (D-512)** | v0.13.2 RELEASED. PR #440 main (human-merged); back-merge PR #441 TRUE-MERGE. Ships wave-85 content. trajectory-tail →0→0→0→0 |
+| **D-515 DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). Research-agent validated 14 PG findings. Rollup: 8 DUPLICATE / 2 NOVEL-UPSTREAM / 4 LOCAL-CARRY-FORWARD. Report: planning/df-validation-2026-07-25.md. Upstream: #764 (PG-W84-006) + #765 (PG-W85-001) filed; evidence comments on #749 (PG-W84-001), #681 (PG-W84-003), #663 (PG-W84-008), #626 (PG-W85-004). Steady-state idle. Pipeline ACTIVE.** | **COMPLETE (D-515)** | DF-VALIDATION-001 batch complete. 8 DUP / 2 upstream filed / 4 local carry-forwards. |
+| **D-514 SESSION RESUMED (human-approved, 2026-07-25) from D-513 pause. Worktree health PASS. Human selected DF-VALIDATION-001 batch as session work.** | **COMPLETE (D-514)** | Session resumed. DF-VALIDATION-001 batch selected. |
+| **D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): pre-gate consistency audit (D-504, 8 findings remediated); D-505 human story gate PASSED; STORY-180 DELIVERED (D-507, PR #437 421bf572); STORY-181 DELIVERED (D-509, PR #438 5555495b; SEC-001 CLOSED); gate-fix PR #439 0ab6f52e; wave-085 gate CONVERGED 3/3 + CLOSED (D-511, S-7.02 COMPLETE); v0.13.2 RELEASED (D-512, main=9601d711; back-merge PR #441 ancestry PASS). No in-flight work; no story worktrees; no abandoned sub-agent steps; all product branches merged and deleted. Pipeline PAUSED.** | **COMPLETE (D-513)** | Session wrap. wave-085 CLOSED; v0.13.2 RELEASED; Pipeline PAUSED. trajectory-tail →0→0→0→0 |
+| **D-512 v0.13.2 RELEASED (2026-07-25). Patch bump (human-directed). Release PR #440 9601d711 main (human-merged); tag v0.13.2 (lightweight); GH release 4 assets; back-merge PR #441 TRUE-MERGE e8841d76 develop (human-authorized gh pr merge --merge; ancestry PASS — no DRIFT-BACKMERGE-SQUASH recurrence). Ships wave-85: IEC-104 timed-command detection (TypeIDs 58-64) + SEC-001 ENIP unsafe elimination + gate-fix. CR-004 CHANGELOG trim applied at release cut. Version 0.13.1→0.13.2. main=9601d711. develop=e8841d76. Pipeline ACTIVE at idle. trajectory-tail →0→0→0→0** | **COMPLETE (D-512)** | v0.13.2 RELEASED. PR #440 main (human-merged); back-merge PR #441 TRUE-MERGE. Ships wave-85 content. trajectory-tail →0→0→0→0 |
 | **D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED (2026-07-25). Human gate: all 6 gates ratified — streak P1/P2/P3 accepted; PG-W85-005 deferral (3 candidate fixes remain open per lessons.md §PG-W85-005) accepted; HS-136 0.9 corpus caveat (not a product defect) accepted; holdout real-capture runs accepted as wave integration demos. Wave-085 CLOSED. S-7.02 COMPLETE (PG-W85-001..005 dispositioned in cycles/wave-085/lessons.md). develop=0ab6f52e. Pipeline ACTIVE at idle. Backlog: ROUTE-W74-OBS-2, PG-W84+PG-W85 DF-VALIDATION-001 batches, DEP-SOAK-FOLLOWUP-2026-07-27, Dependabot #434/#435 deferred to soak, PR #407 governance, PERF-RERUN-001, ROUTE-BC/DOC defers. Next: human choice (v0.14.0 release candidacy — two [Unreleased] entries incl. one Added feature — minor bump candidate). trajectory-tail →0→0→0→0** | **COMPLETE (D-511)** | WAVE-85 GATE APPROVED + CYCLE CLOSED. S-7.02 COMPLETE. Pipeline idle. trajectory-tail →0→0→0→0 |
-| **D-510 WAVE-85 GATE CLOSED (2026-07-24, pending human approval). Gate-fix PR #439 0ab6f52e merged (ITI e2e 31→66 timed). G1 PASS; G2 SKIP DTU; G3 adversary CONVERGED 3/3 (P1/P2/P3 all NITPICK_ONLY, zero CRIT/HIGH/MED, DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED); G3b security APPROVE 0C/0H/0M/0L + consistency 3 MINOR (CV-W85G-001/002/003) fixed + code review 0 MAJOR/1 MINOR/5 NIT dispositioned (code-review.md); G4 demo PASS (STORY-180 8 artifacts + STORY-181 5 artifacts); G5 holdout PASS mean 0.98 (HS-133/134/135=1.0, HS-136=0.9 corpus caveat, ENIP no regression). Input-hash 22 re-baselined (annotation/index churn, canonical tool). gate-summary.md + code-review.md + lessons.md authored. BC-2.19.029 v1.4 / BC-2.19.030 v1.3 (PO edits). STORY-INDEX v3.94. tech-debt-register v2.2. PG-W85-001..005 dispositioned in lessons.md (all deferred DF-VALIDATION-001). PG-W85-005 NEW: gitignored machine-local e2e fixtures → false-green cargo test (ITI 31-vs-66 surfaced at gate on fixture host). develop=0ab6f52e frozen. Next: human wave-85 gate approval, then wave-085 cycle CLOSED. trajectory-tail →0→0→0→0** | **COMPLETE (D-510)** | WAVE-85 GATE CLOSED pending human approval. develop=0ab6f52e frozen. trajectory-tail →0→0→0→0 |
-| **D-509 STORY-181 DELIVERED + WAVE-85 DELIVERY COMPLETE (2026-07-24). PR #438 5555495b squash-merged to develop, human-executed post-MERGE-AUTH-HALT; DF-MERGE-AUTH-CLASSIFIER-001 satisfied. CI 13/13; pr-reviewer APPROVE cycle 1, 0 blocking; security 0C/0H/0M; review-of-record issuecomment-5073978095. SEC-001 RESOLVED (zero unsafe in enip.rs). ROUTE-W74 OBS-1 RESOLVED (AC-181-004). stories_delivered 117→118. STORY-INDEX v3.93. WAVE-85 DELIVERY COMPLETE (2/2) — CLOSED-PENDING-GATE. PG-W85-004 NEW: pr-manager attempted `gh pr review --approve` on self-authored PR #438 — blocked by two-party harness guard; no approval event landed; DF-VALIDATION-001 batch + upstream candidate. develop=5555495b. Next: wave-85 integration gate. trajectory-tail →0→0→0→0** | **COMPLETE (D-509)** | STORY-181 DELIVERED. PR #438 5555495b merged. stories_delivered 117→118. Wave-85 2/2 CLOSED-PENDING-GATE. trajectory-tail →0→0→0→0 |
 
 
 ## Decisions Log
@@ -213,6 +213,8 @@ Wave-85 gate-level adversarial trajectory (3 passes, code frozen 0ab6f52e): `NIT
 | D-511 | WAVE-85 GATE APPROVED + CYCLE CLOSED (human gate, 2026-07-25). Structured questions presented — all accepted: streak P1/P2/P3 pedigree accepted; PG-W85-005 deferral (3 candidate fixes in lessons.md) accepted; HS-136 0.9 corpus caveat (not a product defect) accepted; holdout real-capture runs accepted as wave integration demos. Wave-085 CLOSED. S-7.02 COMPLETE (PG-W85-001..005 dispositioned per cycles/wave-085/lessons.md). develop=0ab6f52e. Session D-504..D-511 (exhaustive): D-504 pre-gate remediation, D-505 story gate, STORY-180 DELIVERED (#437), STORY-181 DELIVERED (#438, SEC-001 closed), gate-fix #439, wave gate CONVERGED+CLOSED. Backlog: ROUTE-W74-OBS-2 (human scope decision), PG-W84+PG-W85 DF-VALIDATION-001 batches, DEP-SOAK-FOLLOWUP-2026-07-27 (dated), Dependabot #434/#435 deferred to soak, PR #407 governance, PERF-RERUN-001, ROUTE-BC/DOC defers. Pipeline ACTIVE at idle; next work is human choice (release candidacy v0.14.0: two [Unreleased] entries incl. one Added feature — minor bump candidate). | 2026-07-25 |
 | D-512 | v0.13.2 RELEASED (2026-07-25). Patch bump (human-directed). Release PR #440 9601d711 main (human-merged); tag v0.13.2 (lightweight); GH release 4 assets; back-merge PR #441 TRUE-MERGE e8841d76 develop (human-authorized gh pr merge --merge; ancestry PASS — no DRIFT-BACKMERGE-SQUASH recurrence). Ships wave-85: IEC-104 timed-command detection (TypeIDs 58-64) + SEC-001 ENIP unsafe elimination + gate-fix. CR-004 disposition executed at release cut. Version 0.13.1→0.13.2. | 2026-07-25 |
 | D-513 | SESSION WRAP (2026-07-25). Human-requested pause at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): consistency audit remediation; D-505 story gate; STORY-180/181 DELIVERED (PRs #437/#438); wave-85 gate-fix #439; wave-085 gate CONVERGED+CLOSED (D-511, S-7.02 COMPLETE); v0.13.2 RELEASED (D-512). Backlog recorded in checkpoint. No in-flight work, no story worktrees, no factory lock. Pipeline PAUSED. | 2026-07-25 |
+| D-514 | Session RESUMED (human-approved, 2026-07-25) from D-513 pause. Worktree health PASS. Human selected DF-VALIDATION-001 batch as session work. | 2026-07-25 |
+| D-515 | DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). Research-agent validated 14 PG findings. Rollup: 8 DUP / 2 NOVEL-UPSTREAM (filed #764 PG-W84-006, #765 PG-W85-001) / 4 LOCAL-CARRY-FORWARD (PG-W84-010, PG-W84-012, PG-W85-003, PG-W85-005). Evidence comments: #749 (PG-W84-001), #681 (PG-W84-003), #663 (PG-W84-008), #626 (PG-W85-004). Report: planning/df-validation-2026-07-25.md. | 2026-07-25 |
 
 ---
 
@@ -241,13 +243,13 @@ Wave-85 gate-level adversarial trajectory (3 passes, code frozen 0ab6f52e): `NIT
 | DRIFT-BACKMERGE-SQUASH-001 | **RESOLVED (D-491, 2026-07-21).** v0.13.1 back-merge PR #433 TRUE-MERGE (dc7331fb to develop); main (47b7d23c) IS ancestor of develop (dc7331fb). | v0.12.1 release → RESOLVED D-491 (2026-07-21) | RESOLVED — true-merge PR #433. Archive at next compact. |
 | DRIFT-VP039-BC207038-TLS-TODO-001 | VP-INDEX carries stale TODOs for VP-039 (TLS reassembly). Out of feature-iec104 scope. | feature-iec104 F2 review (D-438) | SS-07 TLS owner — next TLS maintenance sweep |
 | STORY-INDEX-IN-INPUTS-CHURN | Stories listing STORY-INDEX.md as input (STORY-164/165) re-stale on every index version bump. | D-477 → D-483 | Human decision: structural fix pending |
-| PG-W84-UPSTREAM-BATCH | PG-W84-001/002/003/004/005/006/008 (7 upstream engine gaps). DF-VALIDATION-001 research required before filing. | wave-084 S-7.02 (D-486) | DF-VALIDATION-001 research pass (next available) |
-| PG-W84-LOCAL-BATCH | PG-W84-010/012 (2 product-local gaps). DF-VALIDATION-001 research required. | wave-084 S-7.02 (D-486) | DF-VALIDATION-001 research pass |
-| PG-W85-001 | Plugin-level template+hook defect. NOT per-file fix; does NOT block wave-85 convergence. | wave-085 pass-2 (D-496) | DF-VALIDATION-001 + upstream |
-| PG-W85-002 | Recurring remediation-sweep locus-coverage gap. Flag for cycle-close codification. | wave-085 P2-P4 (D-496/497/498) | Cycle-close codification / DF-VALIDATION-001 |
-| PG-W85-003 | bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class — allowed F-180-P1-003 (9 stale present-tense sites) to pass the gate undetected at Step 4. | wave-085 STORY-180 pass-1 adversary (D-506) | DF-VALIDATION-001 batch |
-| PG-W85-004 | pr-manager attempted `gh pr review --approve` on self-authored PR #438 — blocked by two-party harness guard; no approval event landed (orchestrator-verified). Two-party review rule not encoded in agent procedure; human-executed approval satisfied DF-MERGE-AUTH-CLASSIFIER-001. Process gap: agent MUST NOT attempt self-approval. | wave-085 D-509 (2026-07-24) | DF-VALIDATION-001 batch + upstream vsdd-factory engine candidate |
-| PG-W85-005 | Gitignored machine-local e2e fixtures cause false-green `cargo test` in clean worktrees/CI — ITI 31-vs-66 only surfaced at the wave gate on the fixture-bearing host. Gate-fix PR #439 corrected the expectation; structural gap remains. Candidate fixes: gate-entry local-fixture sweep step, fixture-manifest with skip-reporting, or committed small representative fixtures. | wave-085 integration gate G1 initial FAIL (D-510, 2026-07-24) | DF-VALIDATION-001 batch (3 candidate fixes); see cycles/wave-085/lessons.md §PG-W85-005 |
+| PG-W84-UPSTREAM-BATCH | **RESOLVED (D-515, 2026-07-25).** Research-validated: 001 DUP #749 (comment posted); 002 DUP #457; 003 DUP #681 (comment posted); 004 DUP #572; 005 DUP #651/#626; 006 FILED #764; 008 DUP #663 (comment posted). | wave-084 S-7.02 (D-486) | RESOLVED — archive at next compact. |
+| PG-W84-LOCAL-BATCH | **VALIDATED LOCAL-CARRY-FORWARD (D-515, 2026-07-25).** PG-W84-010 (bin/check-green-doc-tense) + PG-W84-012 (bin-selftest required-status-check) confirmed product-local; no upstream filing. PG-W84-010 must ship as combined story with PG-W85-003. | wave-084 S-7.02 (D-486) | Local carry-forwards — story delivery |
+| PG-W85-001 | **RESOLVED (D-515, 2026-07-25).** NOVEL-UPSTREAM — filed drbothen/vsdd-factory#765. | wave-085 pass-2 (D-496) | RESOLVED — archive at next compact. |
+| PG-W85-002 | **RESOLVED-DUPLICATE (D-515, 2026-07-25).** Class covered by #470/#507/#216. Local DF-SIBLING-SWEEP-001 extension proposal recorded in cycles/wave-085/lessons.md codification table. | wave-085 P2-P4 (D-496/497/498) | RESOLVED — archive at next compact. |
+| PG-W85-003 | **VALIDATED LOCAL-CARRY-FORWARD (D-515, 2026-07-25).** bin/check-green-doc-tense pattern gap. MUST ship as one combined story with PG-W84-010 (both target bin/check-green-doc-tense). | wave-085 STORY-180 pass-1 (D-506) | Combined local story — bin/check-green-doc-tense |
+| PG-W85-004 | **RESOLVED-DUPLICATE (D-515, 2026-07-25).** Covered by #626 (primary) + #696/#651. Observed-attempt evidence posted as comment on #626. | wave-085 D-509 (2026-07-24) | RESOLVED — archive at next compact. |
+| PG-W85-005 | **VALIDATED LOCAL-CARRY-FORWARD (D-515, 2026-07-25).** Gitignored machine-local e2e fixtures cause false-green. Substantive open local fix; 3 candidate fixes per cycles/wave-085/lessons.md §PG-W85-005. | wave-085 gate G1 (D-510) | Local carry-forward — 3 candidate fixes |
 
 ---
 
@@ -262,24 +264,24 @@ Wave-85 gate-level adversarial trajectory (3 passes, code frozen 0ab6f52e): `NIT
 | SEC-001 | **RESOLVED (D-509, 2026-07-24)** — SEC-001-ENIP (split-borrow) deferred maint-2026-07-11; absorbed into STORY-181 (wave-85). PR #438 5555495b delivered, zero unsafe in enip.rs. | CLOSED |
 | PR-407-FORK-RELEASE-OPS | External ArcavenAE PR #407 SAFE-WITH-CHANGES (D-472); DEFERRED — governance pending. | Governance decision when authorized |
 | SCORECARD-ENABLEMENT-RUNBOOK | Before setting SCORECARD_ENABLED=true: document CWE-200 publish_results:true risk. | Whenever scorecard is enabled |
-| DEP-SOAK-FOLLOWUP-2026-07-27 | 17 not-yet-soaked crates eligible 2026-07-21..27. Run next soak on/after 2026-07-27. | Next maintenance run on/after 2026-07-27 |
+| DEP-SOAK-FOLLOWUP-2026-07-27 | 17 not-yet-soaked crates eligible 2026-07-21..27; Dependabot #434/#435/#436 included. Run next soak on/after 2026-07-27. | Next maintenance run on/after 2026-07-27 |
 | ROUTE-DOC-DEFER-2026-07-21 | PR #431 review residuals: ADR-0001 Consequences (LOW), ADR-0002 Deviations (NIT), ADR-0012 stale 'supported: 7 protocols' (LOW). | Next doc sweep |
 
 ---
 
 ## Session Resume Checkpoint
 
-**D-513 SESSION WRAP (2026-07-25). Human /wrap at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): pre-gate consistency audit (D-504); story gate (D-505); STORY-180 DELIVERED (D-507, PR #437 421bf572); STORY-181 DELIVERED (D-509, PR #438 5555495b; SEC-001 CLOSED); gate-fix PR #439 0ab6f52e; wave-085 gate CONVERGED+CLOSED (D-511, S-7.02 COMPLETE); v0.13.2 RELEASED (D-512, main=9601d711; back-merge PR #441 ancestry PASS). No in-flight work. Pipeline PAUSED. trajectory-tail →0→0→0→0**
+**D-515 DF-VALIDATION-001 BATCH COMPLETE (2026-07-25). Session D-514/D-515: RESUMED (D-514, human-approved) + 14 PG findings research-validated. Rollup: 8 DUPLICATE / 2 NOVEL-UPSTREAM / 4 LOCAL-CARRY-FORWARD / 0 ALREADY-FIXED / 0 INCONCLUSIVE. Report: .factory/planning/df-validation-2026-07-25.md. Upstream: #764 (PG-W84-006) + #765 (PG-W85-001). Steady-state idle. Pipeline ACTIVE.**
 
 Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and `cycles/wave-084/session-checkpoints.md` and `cycles/wave-085/session-checkpoints.md`.
 
-- **Date:** 2026-07-25. Position: steady-state idle, post-v0.13.2 release; wave-085 CLOSED; no active wave; no in-flight work.
-- **Convergence counters:** NONE active. Wave-85 story-level (9 passes, streak P7/P8/P9 = 3/3) and gate-level (3 passes, streak P1/P2/P3 = 3/3) — both SATISFIED and closed. Do NOT re-run either.
+- **Date:** 2026-07-25. Position: steady-state idle, DF-VALIDATION-001 batch COMPLETE; no active wave; no in-flight work.
+- **Convergence counters:** NONE active. Wave-85 story-level + gate-level both SATISFIED and closed. Do NOT re-run either.
 - **In-flight:** NONE. All bursts committed. Tree clean.
-- **PENDING NEXT STEPS (in order) on resume:** Human choice — (a) DEP-SOAK-FOLLOWUP-2026-07-27 (dated, eligible on/after 2026-07-27; includes Dependabot #434/#435); (b) DF-VALIDATION-001 research batches: PG-W84-UPSTREAM (7) + PG-W84-LOCAL (2) + PG-W85-001..005; (c) ROUTE-W74-OBS-2 human scope decision; (d) PR #407 governance; (e) PERF-RERUN-001; (f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21; (g) STORY-INDEX-IN-INPUTS-CHURN structural fix (pending human decision); (h) deferred code-review NITs (CR-002/003/005/006 doc/test sweeps; CR-W85G-001 tech-debt row).
-- **Ground truth:** develop=e8841d761f3f25f320f98977618e506e8b41a058 (back-merge PR #441 TRUE-MERGE; main IS ancestor), main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2). Cargo 0.13.2 on both branches. No open product worktrees. Open PRs: external #407 (DEFERRED, governance pending) + Dependabot #434/#435 (deferred to DEP-SOAK-FOLLOWUP-2026-07-27).
+- **PENDING NEXT STEPS (in order) on resume:** (a) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible on/after 2026-07-27; includes Dependabot #434/#435/#436); (b) local fix candidates: PG-W85-005 (3 candidate fixes per lessons.md §PG-W85-005) + PG-W84-010/PG-W85-003 combined story (bin/check-green-doc-tense) + PG-W84-012 (bin-selftest required-status-check); (c) ROUTE-W74-OBS-2 human scope decision; (d) PR #407 governance; (e) PERF-RERUN-001; (f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21; (g) STORY-INDEX-IN-INPUTS-CHURN structural fix (pending human decision).
+- **Ground truth:** develop=e8841d761f3f25f320f98977618e506e8b41a058 (back-merge PR #441 TRUE-MERGE; main IS ancestor), main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2). Cargo 0.13.2 on both branches. No open product worktrees. Open PRs: external #407 (DEFERRED) + Dependabot #434/#435/#436 (deferred to DEP-SOAK-FOLLOWUP-2026-07-27).
 - **Pending human decisions:** DEP-SOAK-FOLLOWUP-2026-07-27; PR #407 governance; ROUTE-W74-OBS-2; STORY-INDEX-IN-INPUTS-CHURN; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21.
-- **Note:** main-repo untracked bin/__pycache__/ is a harmless Python build artifact; candidate .gitignore addition at next hygiene sweep.
+- **Note:** main-repo untracked bin/__pycache__/ is a harmless Python build artifact; candidate .gitignore addition at next hygiene sweep. DF-VALIDATION-001 batch COMPLETE — PG items dispositioned in Drift Items table.
 - **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.94 / HS-INDEX v2.17 / dep-graph v3.10.
 - **Resume command:** `/vsdd-factory:next-step`
 
