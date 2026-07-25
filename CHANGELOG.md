@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-07-25
+
 ### Changed
 
 - **ENIP `on_data` PDU dispatch loop: unsafe `*mut EnipFlowState` split-borrow replaced
@@ -59,8 +61,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   BC-2.19.030 (AC-180-007; BC-2.19.022 v1.1). The existing post-emission `[TEST]` loop
   covers the new arms automatically — no extra wiring required (BC-2.19.017 invariant 1).
 
-  `cargo test --test iec104_analyzer_tests`: 248 passed (221 prior + 27 new story_180
-  tests; 21 flipped red→green at the Green step, 6 regression guards green throughout).
+  `cargo test --test iec104_analyzer_tests`: 248 passed (221 prior + 27 new STORY-180 tests).
 
 ## [0.13.1] - 2026-07-21
 
@@ -1884,7 +1885,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.2...HEAD
+[0.13.2]: https://github.com/Zious11/wirerust/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/Zious11/wirerust/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/Zious11/wirerust/compare/v0.12.0...v0.12.1
