@@ -753,4 +753,32 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+## Burst 11 (2026-07-25) — D-513 SESSION WRAP
+
+**Trigger:** Human /wrap at clean post-v0.13.2 milestone. Pause + checkpoint burst per BC-6.23.001.
+
+**Files touched:**
+
+- `.factory/STATE.md` — D-513 transition: frontmatter (status active→paused, pipeline ACTIVE→PAUSED, current_step D-513, timestamp 2026-07-25T02:00:00Z); EXACT RESUME POINT D-513; Project Metadata Last Updated D-513; CPS (D-513 added at top; D-508 rolled off — D-508 text preserved in session-checkpoints.md archived checkpoint D-508 and prior burst-log entries); Decisions Log D-513; Session Resume Checkpoint D-513 replaces D-512.
+- `.factory/cycles/wave-085/burst-log.md` — D-508 CPS archival note + D-513 burst entry (this file).
+- `.factory/cycles/wave-085/session-checkpoints.md` — D-512 checkpoint archived.
+- `.factory/sidecar-learning.md` — D-513 session-end marker appended.
+
+**CPS archival (D-508 rolled off):** D-508 row text: "STORY-181 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24). 3 fresh-context passes, all clean (NITPICK/2L → NITPICK/2L → CLEAN); zero open HIGH/CRIT; BC-5.39.001 SATISFIED. Semantic equivalence independently derived 3×. Red Gate N/A-BY-DESIGN. Commits 224311a1/13491355/e9572820 + sweeps 294168fa/093ff519. O-181-P3-001 theoretical panic-unwind accepted non-blocking. SEC-001 zero unsafe verified. ROUTE-W74 OBS-1 closed (AC-181-004). COMPLETE (D-508)." — preserved in session-checkpoints.md archived entry D-508.
+
+**Codifications:**
+
+- D-513 SESSION WRAP (2026-07-25): Human-requested pause at clean post-v0.13.2 milestone. Session D-504..D-512 (exhaustive): pre-gate consistency audit remediation (D-504); human story-approval gate PASSED (D-505); STORY-180 DELIVERED (D-507, PR #437 421bf572); STORY-181 DELIVERED (D-509, PR #438 5555495b; SEC-001 CLOSED); wave-85 gate-fix PR #439 0ab6f52e; wave-085 gate CONVERGED 3/3 (D-510) + CLOSED + S-7.02 COMPLETE (D-511); v0.13.2 RELEASED (D-512, main=9601d711, back-merge PR #441 ancestry PASS). No in-flight work; no story worktrees; no abandoned sub-agent steps; all product branches merged and deleted. Pipeline PAUSED.
+
+**Summary:** Session-wrap state-management closing burst. Human /wrap at clean idle milestone: wave-085 closed, v0.13.2 released, back-merge ancestry PASS. STATE.md updated: pipeline PAUSED, D-513 frontmatter/EXACT-RESUME/CPS/decisions-log/checkpoint. D-512 checkpoint archived to session-checkpoints.md. D-508 CPS row archived to this burst-log. Sidecar-learning.md D-513 session-end marker appended. Pipeline PAUSED at idle.
+
+**Dim-2 Attestation:** N/A — factory-only burst; develop source tree unchanged (e8841d76).
+**Dim-5 Attestation:** N/A — no WASM binary changes.
+**Dim-6 Attestation:** Factory-artifacts burst covers state-tracking artifacts only.
+**Dim-7 Attestation:** N/A — no test suite changes.
+
+**Closes:** D-513 SESSION WRAP (2026-07-25). Pipeline PAUSED. main=9601d711baf72ca30d29be2c289271ade5d027cc. develop=e8841d761f3f25f320f98977618e506e8b41a058. trajectory-tail →0→0→0→0
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->

@@ -247,4 +247,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-25) — D-512 v0.13.2 RELEASED (archived)
+
+**D-512 v0.13.2 RELEASED (2026-07-25). Patch bump (human-directed). Release PR #440 9601d711 main (human-merged); tag v0.13.2 (lightweight); GH release 4 assets; back-merge PR #441 TRUE-MERGE e8841d76 develop (human-authorized gh pr merge --merge; ancestry PASS — no DRIFT-BACKMERGE-SQUASH recurrence). Ships wave-85: IEC-104 timed-command detection (TypeIDs 58-64) + SEC-001 ENIP unsafe elimination + gate-fix. Pipeline ACTIVE at idle. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-25. Position: idle post-v0.13.2 release (D-512); wave-085 CLOSED; v0.13.2 RELEASED.
+- **Convergence counter:** Wave-85 gate adversarial 3/3 SATISFIED (P1/P2/P3 all NITPICK_ONLY) — CONVERGED. Do NOT re-run gate adversarial.
+- **In-flight:** NONE. All bursts committed. Tree clean.
+- **PENDING NEXT STEPS (in order) on resume:** Human choice — (a) ROUTE-W74-OBS-2 scope decision; (b) PG-W84+PG-W85 DF-VALIDATION-001 research batch; (c) DEP-SOAK-FOLLOWUP-2026-07-27 (on/after 2026-07-27, Dependabot #434/#435 eligible); (d) PR #407 governance decision; (e) PERF-RERUN-001; (f) ROUTE-BC/DOC defers; (g) next wave or maintenance.
+- **Ground truth:** develop=e8841d761f3f25f320f98977618e506e8b41a058 (back-merge PR #441 TRUE-MERGE), main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2). No open product worktrees. Only open product PR: external #407 (DEFERRED).
+- **Pending human decisions:** PR #407 governance; ROUTE-W74-OBS-2; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.94 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-513 SESSION WRAP checkpoint (Pipeline PAUSED; no in-flight work).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
