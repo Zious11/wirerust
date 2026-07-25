@@ -218,4 +218,19 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-07-24) — D-510 WAVE-85 GATE CLOSED (archived)
+
+**D-510 WAVE-85 GATE CLOSED (2026-07-24, pending human approval). Gate-fix PR #439 0ab6f52e (ITI e2e 31→66). G1-G5 all pass/skip; G3 adversary CONVERGED 3/3 (all NITPICK_ONLY); G5 holdout mean 0.98. Input-hash 22 re-baselined. STORY-INDEX v3.94. tech-debt-register v2.2. BC-2.19.029 v1.4 / BC-2.19.030 v1.3 (PO). develop=0ab6f52e frozen. Next: human wave-85 gate approval. trajectory-tail →0→0→0→0**
+
+- **Date:** 2026-07-24. Position: WAVE-85 GATE CLOSED (D-510); pending human approval.
+- **Convergence counter:** Wave-85 gate adversarial 3/3 SATISFIED (P1/P2/P3 all NITPICK_ONLY) — CONVERGED. Do NOT re-run gate adversarial.
+- **In-flight:** NONE. All bursts committed. Tree clean (factory-artifacts updated this burst).
+- **PENDING NEXT STEPS (in order) on resume:** (a) human wave-85 gate approval; (b) wave-085 cycle CLOSED; (c) DF-VALIDATION-001 research batch for PG-W85-001..005.
+- **Ground truth:** develop=0ab6f52ee3be21687437d29923fadc903ca70387 (frozen at gate-fix PR #439), main=47b7d23c (v0.13.1). No open product worktrees. Only open product PR: external #407 (DEFERRED).
+- **Pending human decisions:** wave-85 gate approval; PR #407 governance; STORY-INDEX-IN-INPUTS-CHURN; DEP-SOAK-FOLLOWUP-2026-07-27; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21; ROUTE-W74-OBS-2.
+- **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v3.94 / HS-INDEX v2.17 / dep-graph v3.10.
+- **Resume command:** `/vsdd-factory:next-step`. Superseded by D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED checkpoint (wave-085 CLOSED; S-7.02 COMPLETE; pipeline idle; next = human choice).
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

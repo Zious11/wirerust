@@ -692,4 +692,34 @@ D-504 WAVE-85 PRE-GATE REMEDIATION BURST (2026-07-24). BC-INDEX v2.35→v2.36: C
 
 ---
 
+---
+
+## CPS Archive — D-506 (rolled off CPS 2026-07-25, D-511 burst)
+
+**D-506 STORY-180 STEP-4.5 ADVERSARIAL CONVERGED (2026-07-24).** 4 fresh-context passes; streak P2/P3/P4 = 3/3 clean; zero open HIGH/CRIT; BC-5.39.001 SATISFIED. Trajectory 3M(P1)→3L(P2)→1L(P3)→1L(P4). Remediation commits a0087033/e40955f1/0502c642 on feature branch; demo head ccec1711 (8 artifacts, PG-W70-DEMO-SCRUB PASSED). Red Gate PASSED (21 red/227 green). BC-2.19.029 v1.3 / BC-2.19.030 v1.2 (draft→ready label refresh, F-180-P4-001); BC-INDEX v2.36→v2.37. PG-W85-003 NEW: bin/check-green-doc-tense pattern set misses 'Expected RED:'/'currently falls through' stale-RED phrasing class — queued DF-VALIDATION-001 batch. pr-manager PR lifecycle next (STORY-180). trajectory-tail →0→0→0→0
+
+---
+
+## Burst 9 (2026-07-25) — D-511 Wave-85 Gate Approved + Cycle Closed
+
+**Trigger:** Human approved wave-85 gate closure (structured questions presented; all 6 gate dimensions ratified).
+
+**Files touched:**
+
+- `.factory/STATE.md` — D-511 transition: frontmatter current_step + timestamp updated; EXACT RESUME POINT D-511; Project Metadata Mode/Version/Develop HEAD/Last Updated rows; Phase Progress wave-085 row CLOSED (D-511); Concurrent Cycles wave-085 CLOSED (D-511); CPS D-511 added + D-506 rolled off; Decisions Log D-511 added; Session Resume Checkpoint D-511 replaces D-510
+- `.factory/cycles/wave-085/burst-log.md` — D-506 CPS archival + D-511 burst entry (this file)
+- `.factory/cycles/wave-085/session-checkpoints.md` — D-510 checkpoint archived
+
+**Codifications:**
+
+- WAVE-85 GATE APPROVED (D-511, 2026-07-25): Human ratified all 6 gate dimensions — streak P1/P2/P3 pedigree accepted, PG-W85-005 deferral (3 candidate fixes in lessons.md) accepted, HS-136 0.9 corpus caveat (not a product defect) accepted, holdout real-capture runs accepted as wave integration demos.
+- WAVE-085 CYCLE CLOSED (D-511, 2026-07-25): S-7.02 COMPLETE. PG-W85-001..005 all dispositioned in cycles/wave-085/lessons.md (5 deferred to DF-VALIDATION-001 batch; 0 fixed in-cycle).
+- Pipeline ACTIVE at idle. Next work: human choice (release v0.14.0 — minor bump candidate, two [Unreleased] entries incl. one Added feature; or next wave; or maintenance sweep; or DF-VALIDATION-001 research batch).
+
+**Summary:** Wave-85 gate approval + cycle-close state-management burst. Human presented with structured gate-review questions; all accepted. wave-085 CLOSED. S-7.02 COMPLETE. STATE.md updated: D-511 appended to Decisions Log, Phase Progress and Concurrent Cycles wave-085 rows marked CLOSED (D-511), Session Resume Checkpoint replaced, CPS rolled D-506 off and D-511 on. D-510 checkpoint archived to session-checkpoints.md. D-506 CPS entry archived to burst-log. develop=0ab6f52e unchanged.
+
+**Closes:** D-511 WAVE-85 GATE APPROVED + CYCLE CLOSED (2026-07-25). Wave-085 CLOSED. S-7.02 COMPLETE. Pipeline ACTIVE at idle. trajectory-tail →0→0→0→0
+
+---
+
 <!-- Repeat for each burst. Maintain chronological order. -->
