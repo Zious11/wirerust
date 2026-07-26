@@ -576,6 +576,128 @@ upstream vsdd-factory issue.
 
 ---
 
+## PG-W86-011 (candidate) — spec-prescribed verbatim implementation code is a regression generator
+
+**Class:** Story-writer / AC altitude discipline — verbatim-code vs. behavioral-spec boundary
+**Caught by:** Wave-86 adversarial passes 5–9 arc (4 consecutive remediation passes introduced
+  new defects in STORY-182's prescribed code; root cause of the story oscillation)
+**Severity:** HIGH (the oscillation pattern produced 5 HIGH regressions in pass 9 alone,
+  all traceable to verbatim code prescriptions in the v1.8 body)
+**Occurrences:** 4 consecutive remediation passes (P5/P6/P7/P8) each introduced new defects
+  in STORY-182's prescribed implementation code; pass-9 found 5 HIGH regressions
+**Source finding:** F-W86S-P9-001..005 (HIGH ×5, pass 9); root-cause analysis of wave-86
+  oscillation arc (D-516..D-525, 9 passes without convergence)
+**Vehicle:** Local carry-forward — STORY-182 structural fix pending strategy decision;
+  DF-VALIDATION-001 required before filing upstream vsdd-factory issue
+
+### Description
+
+STORY-182 v1.0 was drafted with acceptance criteria that prescribed verbatim Rust code
+snippets, include_str! invocations, exact task execution scripts, and specific CI YAML
+stanzas. From pass 5 onward, every remediation burst that updated these verbatim prescriptions
+introduced new defects: each edit to fix one finding invalidated adjacent code snippets,
+created internal inconsistencies, or introduced new non-compilable constructs.
+
+The oscillation manifested as:
+- Pass 5: Hermetic harness mechanism was prescribed but non-executable
+- Pass 6: include_str! coupling added but self-referential
+- Pass 7: Task 6 quoted-phrase mechanism prescribed but not actually written
+- Pass 8: Discriminator rewrites left 3 surviving stale loci
+- Pass 9: Five HIGH regressions — two-entry COMMITTED_FIXTURES residue, non-compilable
+  include_str!, vacuous self-referential predicate, surviving discriminator, false FSR claim
+
+The pattern is diagnostic: whenever a story prescribes *how* to implement (verbatim code,
+specific API calls, exact script steps), the adversary can find defects in the implementation
+prescription itself, and remediating those defects introduces new ones because the
+prescriptions are interdependent. This is the behavioral-altitude violation: stories should
+specify *what* behavior is required, not *how* to achieve it. The mechanics belong to the
+TDD phase.
+
+### Root Cause
+
+Story-writer's altitude discipline does not apply a sufficient filter at the boundary between
+behavioral specification and implementation prescription. Stories for "tooling" epics (E-11)
+are particularly susceptible because the "behavior" of a script is its invocation contract
+and output guarantees — not the internal implementation mechanics. When story-writer
+descends into prescribing `include_str!` vs `std::fs::read_to_string` vs a registry constant,
+it is writing implementation code, not behavioral contracts.
+
+### Proposed Fix
+
+Add to story-writer's AC altitude discipline for E-11 (tooling) stories:
+
+> For every AC that prescribes a specific implementation mechanism (a code snippet, a specific
+> Rust API call, a specific script construct), ask: "Can this AC be restated as a behavioral
+> assertion — an observable outcome — without prescribing the mechanism?" If yes, restate it.
+> Only prescribe mechanisms when the mechanism IS the behavior (e.g., the story is specifically
+> about introducing a new API surface).
+>
+> Permitted prescriptions: CLI invocation contracts, observable output format, exit codes,
+> file paths written, git index changes, environment variable names.
+>
+> Not permitted without a specific justification: specific Rust type/method choices, internal
+> variable names, include_str! vs fs::read calls, CI YAML stanza internals.
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). This is the root cause of the STORY-182
+oscillation (9 adversarial passes without convergence). Strategy decision required:
+(a) behavioral-altitude refactor [RECOMMENDED] — strip verbatim code bodies, keep decision
+records as behavioral ACs, mechanics to TDD phase; (b) mechanical remediation; (c) split
+story gates. DF-VALIDATION-001 research-agent validation required before filing upstream.
+
+---
+
+## PG-W86-012 (candidate) — src/**/*.rs glob blind spot in bin/check-green-doc-tense
+
+**Class:** Tool implementation gap / CI scan coverage
+**Caught by:** Wave-86 adversarial pass 9 (F-W86S-P9-009 MED [process-gap])
+**Severity:** MEDIUM (latent — 0 TIER-1 hits in top-level src/*.rs today; 10 files unscanned
+  including src/mitre.rs at 284 lines; future additions silently unscanned)
+**Occurrences:** 1 instance identified; structural (all runs of the tool share the defect)
+**Source finding:** F-W86S-P9-009 ([process-gap], pass 9)
+**Vehicle:** Fix-vehicle decision required at resume — fold into STORY-183 or create follow-up
+  story/maintenance item
+
+### Description
+
+`bin/check-green-doc-tense` line 477 uses the glob pattern `src/**/*.rs`. In Python's
+`glob.glob()` with `recursive=True`, the `**` component requires at least one intermediate
+directory component to match — it does NOT match files directly in `src/`. The pattern
+`src/**/*.rs` therefore expands to `src/<subdir>/<file>.rs` but NEVER to `src/<file>.rs`.
+
+Consequence: the following top-level source files are never scanned (10 files as of 2026-07-26):
+`src/lib.rs`, `src/main.rs`, `src/mitre.rs` (284 lines), `src/config.rs`, `src/error.rs`,
+`src/output.rs`, `src/pcapng.rs`, `src/protocols.rs`, `src/report.rs`, `src/stream.rs`
+(list is approximate — the exact count depends on the current src/ root contents).
+
+This is latent today because no TIER-1 tense-violation patterns are expected in those files.
+However, any future additions to top-level src/*.rs files are silently unscanned, and the
+tool's coverage claims are inaccurate.
+
+### Fix
+
+Replace `src/**/*.rs` with `src/**/*.rs` + `src/*.rs` (two separate globs), or use a
+recursive pattern that explicitly covers the root:
+
+```python
+# Option A: two globs
+globs = ["src/*.rs", "src/**/*.rs", ...]
+
+# Option B: pathlib rglob
+files = list(Path("src").rglob("*.rs"))
+```
+
+### Disposition
+
+Candidate for wave-086 cycle-close. Fix-vehicle decision required at resume: fold the fix
+into STORY-183 (which already modifies bin/check-green-doc-tense) or defer to a follow-up
+maintenance item. The fix is trivial but requires a decision on scope. DRIFT-src-glob-blindspot
+tracking row added to STATE.md. DF-VALIDATION-001 not required (purely local tooling fix —
+no upstream vsdd-factory relevance).
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -590,3 +712,5 @@ upstream vsdd-factory issue.
 | PG-W86-008 | MEDIUM | candidate, S-7.02 | Agent-facing rule: canonical hash under hook pressure (DF-VALIDATION-001 before filing) |
 | PG-W86-009 | HIGH | candidate, S-7.02 | S-7.01(c) extension: post-fix verification read for HIGH/CRIT (DF-VALIDATION-001 before filing) |
 | PG-W86-010 | HIGH | candidate, S-7.02 | Extends PG-W86-009: orchestrator-side per-fix grep-evidence mandate (DF-VALIDATION-001 before filing) |
+| PG-W86-011 | HIGH | candidate, S-7.02 | Root cause of STORY-182 oscillation: behavioral-altitude refactor required (strategy decision pending) |
+| PG-W86-012 | MEDIUM | candidate, fix-vehicle decision pending | Local tooling fix: src/**/*.rs blind spot in bin/check-green-doc-tense:477 |
