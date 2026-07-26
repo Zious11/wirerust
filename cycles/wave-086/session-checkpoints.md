@@ -436,4 +436,56 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-527 pass-10 remediated, pass 11 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.06 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v2.0 (pass-10 remediated, FIRST ZERO-HIGH PASS 0C/0H/5M/6L); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-10 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 11 (fresh-context; STORY-182 v2.0 + STORY-183 v2.0) |
+
+### Resume Prompt
+
+```
+D-527 WAVE-86 ADVERSARIAL PASS 10 REMEDIATED (2026-07-26). FIRST ZERO-HIGH
+PASS: 0C/0H/5M/6L + 5 NITs (unfixed, churn avoidance). All 11 fixed with
+per-fix grep evidence (PG-W86-010) + DF-SIBLING-SWEEP-001. Orchestrator
+rulings: F-004 ACR scoped to resolve/open; F-010 E-11 tdd_mode manual-RED
+convention. PG-W86-013 added. STORY-182 v2.0 (9a0f34c). STORY-183 v2.0
+(9c9b12f). STORY-INDEX v4.05→v4.06. Canonical hashes 9a0f34c/9c9b12f.
+Streak 0/3. Pass 11 next. trajectory-tail →14→12→12→11.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire
+    test_lint_cycle_artifact.py/test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

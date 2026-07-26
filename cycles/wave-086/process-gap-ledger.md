@@ -745,6 +745,122 @@ Carry-forward to wave-086 cycle-close (S-7.02). Codification candidate: template
 in E-11 story template (explicit manual-RED section). DF-VALIDATION-001 research-agent
 validation required before filing upstream vsdd-factory issue.
 
+### Pass-11 Evidence Extension (D-528, 2026-07-26)
+
+The v2.0 E-11 tdd_mode note (added per F-W86S-P10-010) was itself defective boilerplate:
+
+- **STORY-183 (F-W86S-P11-007):** The generic "no automated RED reachable" claim was false
+  for this story — a real automated RED exists (add BAD_CASES Tasks 7/8 before pattern tuples
+  Task 6; selftest exits 1; add patterns; GREEN). The boilerplate asserted epic-level
+  unreachability without checking this story's specific structure.
+
+- **STORY-182 (F-W86S-P11-003 + F-W86S-P11-007 context):** The claim was true for STORY-182
+  but only due to chosen task ordering, not a structural invariant. The v2.0 text did not
+  demonstrate the claim — it simply asserted it.
+
+v2.1 notes are now per-story demonstrated claims (STORY-182: chosen-ordering rationale;
+STORY-183: concrete automated RED path prescribed).
+
+**Codification requirement sharpened:** The E-11 template must require stories to DEMONSTRATE
+RED unreachability (or specify a concrete RED path), not assert generic boilerplate. The
+template fix must include a question: "Does task ordering preclude automated RED? Show why,
+or prescribe the RED path."
+
+---
+
+## PG-W86-014 — Intra-story `:NNN` self-citation drift after mid-burst insertions
+
+**Class:** Story artifact / intra-document line-citation drift
+**Caught by:** Wave-86 adversarial pass 11 (F-W86S-P11-003 MED) — direct instance
+**Severity:** MEDIUM (stale line citations produce misdirected implementer guidance; class
+  is structural: any mid-burst insertion without re-anchor sweep produces this defect)
+**Occurrences:** F-W86S-P11-003 is the first recorded instance; STORY-182 carries 17+
+  intra-document :NNN self-citations creating 17+ potential drift sites on every burst
+**Source finding:** F-W86S-P11-003 (MED, pass 11); root-cause analysis of pass-10 insertion arc
+**Vehicle:** Local carry-forward — mitigation imposed D-528 (mandatory post-edit re-anchor sweep
+  for story-writer dispatches); codification candidate at S-7.02 (extend DF-SIBLING-SWEEP-001
+  or story-writer skill checklist)
+
+### Description
+
+Stories with intra-document line citations (`:NNN` references pointing to other lines in the same
+document) accumulate citation drift whenever a remediation burst inserts or removes lines in the
+AC bodies. The drift is silent: the story body is syntactically valid but implementer guidance
+points to wrong lines.
+
+**Specific instance:** Pass-10 remediations inserted ~45 lines into STORY-182's AC bodies. The
+tdd_mode RED note cited :669-674 as the move-capture-aside procedure. After insertion, lines
+:669-674 pointed to the forbidden-committed guard (a different AC section). F-W86S-P11-003
+identified this as a stale citation.
+
+**Structural exposure:** STORY-182 carries 17+ intra-document self-citations. Every remediation
+burst that inserts lines anywhere above a cited line in the document silently invalidates all
+citations below the insertion point. The volume of citations in STORY-182 makes every burst
+a drift event unless a re-anchor sweep is explicitly performed.
+
+### Root Cause
+
+`bin/validate-citations` is a docs-writer preflight for external document citations — it verifies
+that cited paths/lines in documentation point to real content. It does not scan story bodies for
+intra-document `:NNN` self-citations.
+
+Story-writer remediation dispatches do not include an explicit post-edit step to re-verify that
+all intra-document line citations still point to the correct content after line insertions.
+
+### Mitigation Imposed (D-528)
+
+Story-writer dispatches now include a mandatory post-edit intra-document line-citation re-anchor
+sweep:
+
+> After any burst that inserts or removes lines from a story body containing intra-document
+> `:NNN` citations, the story-writer MUST:
+> 1. List all `:NNN` citations in the document (grep for the pattern `:\d\d\d`)
+> 2. For each citation, verify the line number still corresponds to the cited content
+> 3. Re-anchor any stale citations to the correct current line numbers
+> 4. Report the sweep result (e.g., "17 citations checked, 1 re-anchored, table clean")
+
+D-528 executed this sweep on STORY-182: 17+ citations checked, 1 re-anchored (tdd_mode
+note :669-674 → :740-745), table clean.
+
+### Codification Target
+
+Extend DF-SIBLING-SWEEP-001 or story-writer skill checklist with this sweep as a mandatory
+post-edit step for any story with 3+ intra-document citations. DF-VALIDATION-001 required
+before filing upstream vsdd-factory issue.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Mitigation imposed and effective at D-528.
+Codification via DF-SIBLING-SWEEP-001 extension or story-writer skill update.
+
+---
+
+## Inert/Self-Referential-Predicate Class — Codification Tracking
+
+**Recurrence count: 4** (updated D-528, 2026-07-26)
+
+| Pass | Finding | Story | Direction | Description |
+|------|---------|-------|-----------|-------------|
+| P3 | F-W86S-P3-005 | STORY-183 | vacuous-pass | Pattern assertion matched no real inputs — predicate could not fail |
+| P5 | F-W86S-P5-001 | STORY-182 | vacuous-pass | fixture_path() test always-succeeds; no false-negative possible |
+| P9 | F-W86S-P9-003 | STORY-182 | vacuous-pass | include_str!(file!()) self-referential coupling — predicate tests itself |
+| P11 | F-W86S-P11-001 | STORY-182 | **false-FAIL** | concat!-needle: predicate fails for WRONG reason (prose occurrence in comments, not call-site count) |
+
+**Class now covers both directions:**
+- **Vacuous-pass direction:** Predicate cannot fail regardless of subject state (prior 3 instances).
+- **False-FAIL direction:** Predicate fails but for spurious reasons unrelated to the subject (P11 instance).
+
+**Mandatory codification question at S-7.02:** "What makes this predicate fail, and ONLY that?"
+Any predicate that either (a) cannot fail regardless of subject state OR (b) can fail for reasons
+other than the intended subject failure is in this class.
+
+**Codification target:** Add to adversary checklist AND story-writer AC altitude discipline:
+
+> For every assertion AC: "Can this predicate be satisfied/fail by something other than the
+> intended behavior? List: (a) what must be true for it to fail, (b) what must be true for it
+> to pass. Any path to failure/pass not involving the intended subject is a self-referential
+> predicate defect."
+
 ---
 
 ## Summary
@@ -763,4 +879,5 @@ validation required before filing upstream vsdd-factory issue.
 | PG-W86-010 | HIGH | candidate, S-7.02 | Extends PG-W86-009: orchestrator-side per-fix grep-evidence mandate (DF-VALIDATION-001 before filing) |
 | PG-W86-011 | HIGH | candidate, S-7.02 | Root cause of STORY-182 oscillation: behavioral-altitude refactor required (strategy decision pending) |
 | PG-W86-012 | MEDIUM | candidate, fix-vehicle decision pending | Local tooling fix: src/**/*.rs blind spot in bin/check-green-doc-tense:477 |
-| PG-W86-013 | LOW | carry-forward, S-7.02 | E-11 template convention: explicit manual-RED section (DF-VALIDATION-001 before filing upstream) |
+| PG-W86-013 | LOW | carry-forward, S-7.02 (EXTENDED D-528) | E-11 template: per-story demonstrated RED claim required; generic boilerplate prohibited (DF-VALIDATION-001 before filing upstream) |
+| PG-W86-014 | MEDIUM | carry-forward, S-7.02 | Intra-story :NNN self-citation drift; extend DF-SIBLING-SWEEP-001 (mitigation imposed D-528) |

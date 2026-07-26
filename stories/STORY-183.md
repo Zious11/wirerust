@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.0"
+version: "2.1"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -198,16 +198,17 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   requires an intermediate directory component — `src/mitre.rs`, `src/lib.rs`, etc. are
   silently unscanned; F-W86S-P9-009, wave-86)
 - When the function is renamed from `_collect_rust_files` to `_collect_source_files` and
-  extended to additionally run `git ls-files -- bin/*.py src/*.rs` and include entries ending
-  with `.py` (for Python) while the existing Rust glob is corrected to
-  `git ls-files -- tests/*.rs src/**/*.rs src/*.rs` (adding `src/*.rs` to cover top-level
-  src files that `src/**/*.rs` misses)
+  extended to use a SINGLE merged invocation `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py`
+  and include entries ending with `.py` (for Python); the merged invocation also corrects the
+  `src/**/*.rs` blind spot for top-level `src/*.rs` files (F-W86S-P9-009, wave-86); a single
+  invocation is required — the collector does NOT de-duplicate, so two separate invocations
+  would double-count files matched by multiple globs
 - And the rename is propagated to 13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total) in `bin/test_check_green_doc_tense.py`
   (6 functional monkey-patch sites at approximately :699/:707/:726/:859/:872/:905;
   7 `_collect_rust_files` prose sites at approximately :688,:705,:711,:718,:839,:843,:891;
   plus :721 — a `rust_files` prose site, failure-message string citing `if not rust_files:` guard — update to `source_files`)
 - And the `main()` function (line ~549) is updated to call the new/renamed collector function
-- And the pass-message at line ~591 is updated to reflect both file types in the scanned count
+- And the pass-message at line ~591 is updated: rename the local variable from `rust_files` to `source_files` only (variable rename only — no "both file types" prose change required)
 - And a self-test assertion verifies `_collect_source_files(repo_root)` returns a path set
   containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
   (collector returns `Path` objects with absolute paths; comparison by `.name` avoids
@@ -229,7 +230,9 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   git ls-files internally) exits non-zero when any `bin/*.py` file contains a pattern match
   in a `#`-prefixed comment line, and exits 0 when no such violations exist
 - And the scanned-file count in the pass-message includes `.py` files (e.g., "N files scanned"
-  where N > the previous Rust-only count)
+  where N includes at least one `.py` entry; baseline Rust-only count derivation:
+  `git ls-files -- tests/*.rs src/**/*.rs src/*.rs | wc -l`; use a class assertion —
+  `any(p.suffix == ".py" for p in files)` — not a brittle exact-count check)
 
 Verification:
 ```bash
@@ -707,12 +710,15 @@ python3 bin/check-green-doc-tense
 # sites are clean — zero false positives from Patterns 30-37.
 ```
 
-### AC-183-009 (process-gap PG-W84-012 — bin/test_lint_cycle_artifact.py MUST pass locally)
+### AC-183-009 (process-gap PG-W84-012 extended at D-525 — bin/test_lint_cycle_artifact.py MUST pass locally)
 
 `python3 bin/test_lint_cycle_artifact.py` MUST exit 0 (all self-tests pass) at delivery time.
-CI wiring for this selftest file is tracked under PG-W84-012 (pending devops-engineer dispatch
-and human authorization) — do NOT add a CI wiring task for this story; that remains the
-PG-W84-012 ops task.
+CI wiring for this selftest file is tracked under PG-W84-012 AS EXTENDED at D-525 per
+F-W86S-P9-012, which covers both: (a) required-status-check registration for the
+`bin-selftest` job, and (b) adding `bin/test_lint_cycle_artifact.py` as a step in that job.
+The selftest runs locally only until part (b) lands — do NOT add a CI wiring task for this
+story; that remains the PG-W84-012 (D-525) ops task pending devops-engineer dispatch and
+human authorization.
 
 - Given `bin/test_lint_cycle_artifact.py` is modified by Task 13 (4-line scrub at lines :3, :5,
   :6, :125) as part of this story
@@ -720,14 +726,16 @@ PG-W84-012 ops task.
   scrub
 - Then the command MUST exit 0 with the same pass count as before the scrub (the scrub is a
   pure text rewording — no test logic changes; the TC count remains 21)
-- And CI wiring for this file is explicitly NOT added in this story's PR (see PG-W84-012 for
-  the ops-task tracking the `bin-selftest` required-status-check wiring)
+- And CI wiring for this file is explicitly NOT added in this story's PR (see PG-W84-012
+  extended at D-525 for the ops-task tracking both (a) `bin-selftest` required-status-check
+  registration and (b) adding `bin/test_lint_cycle_artifact.py` as a step)
 
 Verification:
 ```bash
 python3 bin/test_lint_cycle_artifact.py
 # Must exit 0; pass count must be 21 (TC1–TC21 unchanged by the scrub)
-# CI wiring: NOT wired in this story — deferred to PG-W84-012 ops task
+# CI wiring: NOT wired in this story — deferred to PG-W84-012 (D-525) ops task
+# covers (a) required-status-check registration + (b) bin/test_lint_cycle_artifact.py step
 ```
 
 ## Architecture Mapping
@@ -798,11 +806,12 @@ Well within context window. No story split required.
 
 2. **Rename and extend `_collect_source_files()` glob (AC-183-001):** Rename
    `_collect_rust_files` to `_collect_source_files` (mandatory — no "(or annotate)"
-   alternative). Add `git ls-files -- bin/*.py` alongside the existing Rust globs AND add
-   `src/*.rs` to the Rust glob invocation (correcting the `src/**/*.rs` blind spot for
-   top-level src files — F-W86S-P9-009). The corrected Rust glob becomes
-   `git ls-files -- tests/*.rs src/**/*.rs src/*.rs`. Accept `.py` endings.
-   Update `main()` call site. Update the pass-message at ~591 to reflect both file types.
+   alternative). Replace the existing Rust-only glob with a SINGLE merged invocation
+   `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py` (correcting the `src/**/*.rs`
+   blind spot for top-level src files — F-W86S-P9-009; a single invocation prevents
+   double-counting since the collector does NOT de-duplicate). Accept `.py` endings.
+   Update `main()` call site. Update the pass-message at ~591: rename the local variable
+   from `rust_files` to `source_files` (variable rename only).
    Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
    containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
    (comparison by `.name` avoids repo-root-prefix fragility — do NOT compare to a
@@ -820,7 +829,7 @@ Well within context window. No story split required.
    - Function docstring at lines :466-473 (and module docstring at line :4) — update scope
      descriptions to enumerate the full pathspec: "tests/*.rs, src/**/*.rs, src/*.rs, and
      bin/*.py" (all four globs must be listed so src/*.rs coverage is explicit — matching
-     the `git ls-files -- tests/*.rs src/**/*.rs src/*.rs` + `bin/*.py` invocations)
+     the single `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py` invocation)
    - Local variable `rust_files` at :556 → rename to `source_files` throughout the function
    - Error string at :558-560 (`"no tracked Rust files found"`) → update to
      `"no tracked source files found"` (covers both `.rs` and `.py`)
@@ -925,12 +934,13 @@ Well within context window. No story split required.
    - Copy `bin/check-green-doc-tense` into `<tmp>/bin/check-green-doc-tense` (creates the
      `<tmp>/bin/` directory) so that `_find_repo_root` resolves to `<tmp>` when the copy
      is invoked
-   - `git add <tmp>/bin/check-green-doc-tense` (git ls-files reads the index after add;
-     no commit required)
+   - `git -C <tmp> add bin/check-green-doc-tense` (cwd=`<tmp>`; git ls-files reads the index
+     after add; no commit required)
    - Create `<tmp>/bin/violating.py` with a `#`-prefixed comment line containing a TIER-1
      phrase (e.g., `"# currently asserts the implementation is complete\n"`)
-   - `git add <tmp>/bin/violating.py` — `git ls-files` is index-only; an untracked file is
-     invisible to `_collect_source_files()` and the harness would exit 0 vacuously
+   - `git -C <tmp> add bin/violating.py` (cwd=`<tmp>`) — `git ls-files` is index-only; an
+     untracked file is invisible to `_collect_source_files()` and the harness would exit 0
+     vacuously
    - Run `python3 <tmp>/bin/check-green-doc-tense` (the copy in the temp repo, not the
      live script from the working tree)
    - Assert the process exits 1 (violation detected)
@@ -1018,7 +1028,7 @@ Well within context window. No story split required.
   an `[Unreleased]` CHANGELOG entry. The `changelog-gate` CI job enforces this.
 - **L-W84-003 / AC-165-001 CI wiring:** Not triggered — STORY-183 extends an existing
   `bin/test_*.py` file. No new `.github/workflows/ci.yml` job steps required.
-- **Action SHA-pin policy:** STORY-183 makes no functional `ci.yml` changes (comment-only updates to lines :434, :442, and :462 step-name only); no new SHA pins required. The ACTION-PIN-GATE job is unaffected.
+- **Action SHA-pin policy:** STORY-183 makes no functional `ci.yml` changes (non-functional edits only (lines :434, :442 comment lines + :462 step-name line)); no new SHA pins required. The ACTION-PIN-GATE job is unaffected.
 - **Zero-false-positive hard requirement:** `python3 bin/check-green-doc-tense` MUST exit 0
   after delivery. The implementer resolves string-literal FPs by converting multi-line
   fixtures to single-line form (Task 5). No skip-file pragma is permitted on the self-test
@@ -1061,13 +1071,14 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   filing required. PG-W84-010 + PG-W85-003 LOCAL-CARRY-FORWARD dispositions per
   DF-VALIDATION-001 (mirroring STORY-182's Notes pattern).
 - **No behavioral contract required:** E-11 convention.
-- **tdd_mode: strict — E-11 template note:** `tdd_mode: strict` is satisfied for this
-  governance story by the documented manual RED demonstration: BAD_CASES fail under inverted
-  pattern order (adding a new pattern before existing ones without adjusting the ordering
-  would cause first-match-wins misfires). Task ordering does not produce an automated RED
-  observation in the normal TDD loop; this manual RED is the accepted substitute for E-11
-  governance stories. This is the E-11 template convention — do not reorder tasks to force
-  an automated RED.
+- **tdd_mode: strict — automated RED procedure for this story:** `tdd_mode: strict` is satisfied
+  by a genuine automated RED: add the 12 new BAD_CASES (Tasks 7 and 8) BEFORE adding the 8
+  new pattern tuples (Task 6). Run `python3 bin/test_check_green_doc_tense.py` at that
+  intermediate state — the self-test FAILS (RED) because BAD_CASES contain TIER-1 phrases
+  that no yet-added pattern matches. Then add the 8 pattern tuples (Task 6) and re-run —
+  the self-test passes (GREEN). Required task ordering: Task 1 (baseline confirm) →
+  Tasks 7/8 (BAD_CASES — creates RED) → run self-test (observe FAIL) → Task 6 (pattern
+  tuples — clears RED) → run self-test (GREEN) → remaining Tasks 2–5/9–13.
 - **Points rationale (5 pts):** Expanded from 3 pts (v1.0/v1.1) due to: (a) 8 new patterns
   (vs 2 originally; 11 proposed in v3, 3 falsified to TIER-2 in v4), (b) ~40 multi-line
   fixture conversions to single-line form, (c) 20+ new BAD/GOOD self-test cases. The
@@ -1091,11 +1102,16 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 - **Deferred scrub obligation (F-W86S-P6-009/010, v6 ruling):** Two live stale sites
   adjudicated at wave-86 pass-6: `iec104_analyzer_tests.rs:6271` and
   `modbus_detection_tests.rs:2472/:2480` — owner: next maintenance sweep.
+- **FP budget for newly-in-scope `src/*.rs` files (F-P11-012):** The 10 top-level `src/*.rs`
+  files brought in-scope by the `src/*.rs` glob extension were audited: grep of `^\s*//`
+  comment lines against all 36 TIER-1 patterns → 0 matches as of commit `e8841d76`. The glob
+  extension introduces no new false positives.
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.1 | 2026-07-26 | story-writer | WAVE-86 PASS-11 REMEDIATION — F-P11-005 MED (AC-183-001 + Task 2: collapsed two-invocation pattern to single merged `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py`; explicit no-dedup note; Task 2 docstring scope updated to cite single invocation); NIT-fix 2 (AC-183-001 + Task 2: pass-message claim corrected to variable-rename-only); F-P11-014 LOW (AC-183-001: "N > previous Rust-only count" replaced with baseline-derivation command + class assertion `any(p.suffix == ".py" for p in files)`); F-P11-006 MED (AC-183-009: PG-W84-012 attribution extended to cite D-525 per F-W86S-P9-012, covering both (a) required-status-check registration and (b) bin/test_lint_cycle_artifact.py step; selftest-runs-locally-until-(b)-lands note added; Then clause + verification comment updated); NIT-fix 1 (ACR: "comment-only updates" → "non-functional edits only (lines :434, :442 comment lines + :462 step-name line)"); F-P11-007 MED (tdd_mode note rewritten: prescribes real automated RED via Tasks 7/8 BAD_CASES-first before Task 6 patterns; inverted-order manual-RED text removed); F-P11-012 LOW (Notes: zero-FP budget note added — 10 src/*.rs files audited, 0 matches against 36 patterns as of e8841d76); F-P11-013 LOW (Task 9: `git add <tmp>/...` → `git -C <tmp> add ...` with cwd note, both occurrences). |
 | 2.0 | 2026-07-26 | story-writer | WAVE-86 PASS-10 REMEDIATION — F-P10-002 MED (src/*.rs glob widening not propagated to three scope-prose sweep instructions: Task 2 :808-812 docstring scope updated to "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py"; Task 10 :931-934 scope declarations updated to include src/*.rs; Task 10 :939-943 ci.yml comment instructions updated to enumerate src/*.rs); F-P10-011 LOW (AC-183-001 :211-220 + Task 2 :800-807 self-test assertions clarified: repo_root derivation stated explicitly as `mod._find_repo_root(Path(mod.__file__).resolve().parent)` with hermetic-section monkey-patch note; mitre.rs-literal assertion replaced with class assertion `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` keeping mitre.rs as illustrative prose example); F-P10-010 LOW (tdd_mode: strict E-11 template note added in Notes). |
 | 1.9 | 2026-07-26 | story-writer | WAVE-86 PASS-9 REMEDIATION — F-P9-009 MED (AC-183-001 + Task 2: pathspec `src/**/*.rs` extended with `src/*.rs` to cover top-level src/*.rs files that git wildmatch `**` skips; self-test assertion added verifying a top-level src file is in the scanned set; points unchanged at 5); F-P9-010 MED (AC-183-007: explicit fixture strings added for all 8 BAD_CASE entries lacking them (Patterns 32 .rs/.py, 33 .rs/.py, 34 .rs, 35 .rs, 36 .rs, 37 .rs) and all 6 GOOD_CASE entries lacking them (Patterns 32-37); first-match-wins break-on-first pattern-priority constraint documented); F-P9-012 LOW (AC-183-009 added: `python3 bin/test_lint_cycle_artifact.py` MUST pass locally at delivery; CI wiring deferred to PG-W84-012 ops task); NIT-03 (AC-183-003 verification: added explicit `MUST exit non-zero` assertion for gate behavior when encountering a Pattern 30 match — aligns modal verb with AC-183-001 language). |
 | 1.8 | 2026-07-26 | story-writer | WAVE-86 PASS-8 REMEDIATION — F-009 MED (bin/test_lint_cycle_artifact.py row added to Architecture Mapping table and FSR table: "Modify (Task 13 — 4 lines only)"); F-010 MED (Task 13 updated: scrub list extended to :3/:5/:6/:125; "Three lines"→"Four lines"; line :125 is a #-comment line newly scan-eligible under this story); F-011 LOW (EC-011 :655 confirmed-stale scrub targets updated from :3/:6 to :3/:5/:6/:125; :125 noted as #-comment line); F-012 LOW (Task 2 adjudication note extended: "Similarly, historical references in delivered story specs (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep .factory/stories/ history."). |
