@@ -221,4 +221,57 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-523 pass-7 remediated, pass 8 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.03 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v1.7 (pass-7 remediated); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-7 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 8 (fresh-context; STORY-182 v1.7 + STORY-183 v1.7) |
+
+### Resume Prompt
+
+```
+D-523 WAVE-86 ADVERSARIAL PASS 7 → REMEDIATED (2026-07-26). 14 findings
+0C/3H/6M/5L; 1 [process-gap] F-013 (tool self-prose sweep gap). Decay
+P6: 2H/11M → P7: 3H/6M/5L. F-009 single-capture provenance ruling:
+iec104-iti-diverse.pcap committed; TestDissectIec104.pcap gitignored.
+Grep-evidence mandate imposed (4th-pass regression F-003). STORY-182 v1.7.
+STORY-183 v1.7. STORY-INDEX v4.02→v4.03. PG-W86-010 added.
+Canonical hashes: 9a0f34c/9c9b12f. streak 0/3. Pass 8 next.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING NEXT STEPS (in order):
+(a) Wave-86 adversarial pass 8 (STORY-182 v1.7 + STORY-183 v1.7)
+(b) Human wave-86 story-approval gate
+(c) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible on/after 2026-07-27)
+(d) PG-W84-012 ops task (bin-selftest → required-status-checks)
+(e) ROUTE-W74-OBS-2 human scope decision
+(f) PR #407 governance
+(g) PERF-RERUN-001
+(h) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(i) STORY-INDEX-IN-INPUTS-CHURN structural fix
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

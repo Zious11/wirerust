@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -633,6 +633,7 @@ python3 bin/check-green-doc-tense
 | String-literal false-positive resolution (~40 multi-line fixtures → single-line) | `bin/test_check_green_doc_tense.py` (amend) | develop |
 | CHANGELOG entry | `CHANGELOG.md` (amend `[Unreleased]`) | develop |
 | Stale scope comment update | `.github/workflows/ci.yml` (amend comment lines :434 and :442 + step-name line :462; non-functional edits only) | develop |
+| Confirmed-stale docstring/comment scrub (Task 13 — 4 lines: :3, :5, :6, :125) | `bin/test_lint_cycle_artifact.py` (amend) | develop |
 
 **No `src/` changes, no `Cargo.toml` changes, no functional CI workflow changes.**
 CHANGELOG obligation: YES — `bin/` changes trigger AC-158-001.
@@ -652,7 +653,7 @@ No new `bin/test_*.py` file — L-W84-003 / AC-165-001 CI-wiring obligation does
 | EC-008 | `// falls through to the wildcard arm` (no "currently") | NOT flagged — Pattern 31 requires "currently" prefix; TIER-2 token by policy |
 | EC-009 | `// this test is expected to PASS` | NOT flagged — `is expected to` is TIER-2 (F-W86S-P2-006 ruling); tool must not flag it |
 | EC-010 | Extension-less Python executables in `bin/` (e.g., `bin/check-green-doc-tense`) | OUT OF SCOPE for this story — `git ls-files -- bin/*.py` glob only covers `.py` files; shebang detection deferred |
-| EC-011 | Python docstring (string literal) containing stale RED-phase prose | NOT scanned — docstrings are string literals, not `#`-prefixed comment lines; `_is_comment_line()` returns False and they are skipped. **DF-GREEN-DOC-TENSE-SWEEP v6 known-residual class:** confirmed-stale scrub targets: `bin/test_lint_cycle_artifact.py:3` ('— RED GATE version.') and `:6` ('All tests MUST FAIL until bin/lint-cycle-artifact is created.') — scrubbed as part of this story in Task 13; DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR). NOT-stale verdicts (no action needed): `bin/test_gitignore_mutants_glob.py:12` and `bin/test_validate_citations.py:645,647`. PG-W84-010 claim is scoped to comment-line prose only; docstring scanning deferred. |
+| EC-011 | Python docstring (string literal) containing stale RED-phase prose | NOT scanned — docstrings are string literals, not `#`-prefixed comment lines; `_is_comment_line()` returns False and they are skipped. **DF-GREEN-DOC-TENSE-SWEEP v6 known-residual class:** confirmed-stale scrub targets: `bin/test_lint_cycle_artifact.py:3` ('— RED GATE version.'), `:5` (stale TC count 'TC1–TC8'), `:6` ('All tests MUST FAIL until bin/lint-cycle-artifact is created.'), and `:125` ('`# Test cases (TC1–TC8)`' — `#`-comment line, newly scan-eligible under this story) — all four scrubbed as part of this story in Task 13; DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR). NOT-stale verdicts (no action needed): `bin/test_gitignore_mutants_glob.py:12` and `bin/test_validate_citations.py:645,647`. PG-W84-010 claim is scoped to comment-line prose only; docstring scanning deferred. |
 | EC-012 | Rust source line `#[test]` / `#[cfg]` / `#[should_panic]` attribute | NOT scanned — `_is_comment_line(stripped, suffix)` returns False for `#` prefix when suffix is not `.py` (F-008 language-scoped fix). Rust `#` is an attribute delimiter, not a comment. Approximately 3625 Rust attribute lines are excluded from scan-eligibility by this scoping. |
 
 ## Purity Classification
@@ -708,7 +709,9 @@ Well within context window. No story split required.
    entry (preserved per DF-SIBLING-SWEEP-001); the `_collect_rust_files` name in that entry
    documents what shipped in STORY-176 and must remain as-is for audit provenance. A
    parenthetical annotation like "(renamed _collect_source_files in STORY-183)" may be added
-   inline but is NOT required.
+   inline but is NOT required. Similarly, historical references in delivered story specs
+   (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep
+   `.factory/stories/` history.
 
 3. **Extend `_is_comment_line(stripped, suffix)` (AC-183-002, F-008):** Add a `suffix`
    parameter (default `""`). Return True for `#`-prefixed lines ONLY when `suffix == ".py"`.
@@ -838,22 +841,26 @@ Well within context window. No story split required.
     python3 bin/check-green-doc-tense           # must exit 0 (no new violations)
     ```
 
-13. **Scrub confirmed-stale docstring sites in `bin/test_lint_cycle_artifact.py` (F-002/EC-011):**
-    Three lines in `bin/test_lint_cycle_artifact.py` contain stale phrasing and must be
-    scrubbed as part of this delivery (docstrings/comments are string literals, not
-    `#`-comment lines — EC-011 class; gate cannot scan them automatically):
-    - Line 3 (`'— RED GATE version.'`): reword to past-tense provenance, dropping the literal
-      "RED GATE" token, e.g.:
+13. **Scrub confirmed-stale docstring/comment sites in `bin/test_lint_cycle_artifact.py` (F-002/EC-011):**
+    Four lines in `bin/test_lint_cycle_artifact.py` contain stale phrasing and must be
+    scrubbed as part of this delivery:
+    - Line 3 (`'— RED GATE version.'`): string literal/docstring — reword to past-tense
+      provenance, dropping the literal "RED GATE" token, e.g.:
       `'— Delivered pre-implementation; all tests were red until bin/lint-cycle-artifact landed (STORY-158).'`
     - Line 5 (stale TC count — `'TC1–TC8 implement all eight test cases'` or similar):
-      the file now contains TC1–TC21 (21 self-tests); update the count to reflect the
-      actual test count, e.g.:
+      string literal/docstring — the file now contains TC1–TC21 (21 self-tests); update
+      the count to reflect the actual test count, e.g.:
       `'TC1–TC21 implement all 21 self-tests.'`
-    - Line 6 (`'All tests MUST FAIL until bin/lint-cycle-artifact is created.'`): reword to
-      past-tense, e.g.:
+    - Line 6 (`'All tests MUST FAIL until bin/lint-cycle-artifact is created.'`): string
+      literal/docstring — reword to past-tense, e.g.:
       `'Tests were written to fail before bin/lint-cycle-artifact was created.'`
-    After rewording, verify: `python3 bin/test_lint_cycle_artifact.py` must exit 0 with the
-    same pass count as before the scrub. DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR).
+    - Line 125 (`# Test cases (TC1–TC8)` or similar): `#`-comment line, **newly
+      scan-eligible** after Task 2's glob extension — the stale TC count (TC1–TC8) must
+      be updated to match the actual 21 test cases, e.g.:
+      `# Test cases (TC1–TC21)`
+    After rewording all four lines, verify: `python3 bin/test_lint_cycle_artifact.py` must
+    exit 0 with the same pass count as before the scrub. DRIFT-docstring-scan row is
+    recorded by state-manager (already present in STATE.md; no action in this story's PR).
     NOT-stale verdicts (no action needed): `bin/test_gitignore_mutants_glob.py:12` and
     `bin/test_validate_citations.py:645,647` — confirmed NOT-stale per v5 classification.
 
@@ -913,6 +920,7 @@ Well within context window. No story split required.
 | `bin/test_check_green_doc_tense.py` | Modify | Runner `.py` extension support; 12 new BAD_CASES + 14 new GOOD_CASES (26 total); scrub lines ~258/~261; convert ~40 multi-line fixtures to single-line form |
 | `CHANGELOG.md` | Modify | Add `[Unreleased]` entry for PG-W84-010 + PG-W85-003 (AC-183-005) |
 | `.github/workflows/ci.yml` | Modify (comment lines :434 and :442 + step-name line :462 only) | Update scope descriptions to include `bin/*.py`; no functional job changes |
+| `bin/test_lint_cycle_artifact.py` | Modify (Task 13 — 4 lines only) | Scrub confirmed-stale phrasing at lines :3, :5, :6, :125 |
 
 **Forbidden modifications:** `src/**/*`, `Cargo.toml`
 **Note:** `tests/**/*` files must NOT be modified by this story. Reading/grepping test files
@@ -953,6 +961,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.8 | 2026-07-26 | story-writer | WAVE-86 PASS-8 REMEDIATION — F-009 MED (bin/test_lint_cycle_artifact.py row added to Architecture Mapping table and FSR table: "Modify (Task 13 — 4 lines only)"); F-010 MED (Task 13 updated: scrub list extended to :3/:5/:6/:125; "Three lines"→"Four lines"; line :125 is a #-comment line newly scan-eligible under this story); F-011 LOW (EC-011 :655 confirmed-stale scrub targets updated from :3/:6 to :3/:5/:6/:125; :125 noted as #-comment line); F-012 LOW (Task 2 adjudication note extended: "Similarly, historical references in delivered story specs (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep .factory/stories/ history."). |
 | 1.7 | 2026-07-26 | story-writer | WAVE-86 PASS-7 REMEDIATION — F-002 HIGH (17 governing cites DF-GREEN-DOC-TENSE-SWEEP v5→v6 via replace_all; 3 standalone: "The v5 two-tier"→v6, "(F-W86S-P4-004, v5)"→v6, "TIER-1 per v5"→v6; grep confirms zero residual governing cites; historical provenance at :856 "per v5 classification" preserved); F-003 HIGH (Task 6: deleted "quoted phrases prevent flagging" claim; replaced with "In-source `# Pattern NN:` comments MUST NOT contain the literal flagged phrase (quoting does not prevent regex match — see Task 4)"); F-004 MED (Task 13 :847/:848 TC1–TC17→TC1–TC21 both occurrences, "and 21 self-tests"→"(21 self-tests)"); F-005 MED (AC-183-001 :201 + Task 2 heading :701: "13 references"→"13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total)"; :721 added to prose list with type clarification); F-006 MED (4 ci.yml scope loci :187/:635/:882/:911: "comment line ~442 only"→"comment lines :434 and :442 + step-name line :462 (non-functional edits only)"); F-010 LOW (Task 2 :693: "path set containing `bin/test_check_green_doc_tense.py`"→.name-based comparison with fragility note); F-012 LOW (AC-183-005 :431-432: two-dot→three-dot `origin/develop...HEAD -- CHANGELOG.md`; two-dot divergence noted); F-013 LOW (Task 10 :821: added ":577 ('in test files' failure summary) and :581–585 (explanatory prose)" to bin/check-green-doc-tense scope-prose sweep); F-014 LOW (EC-011 :655 + Task 13 :856: "Log advisory STATE.md drift row DRIFT-docstring-scan"→"DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR)"). |
 | 1.6 | 2026-07-25 | story-writer | WAVE-86 PASS-6 REMEDIATION — F-005 MED (AC-183-001: removed "and 1 reference in CHANGELOG.md (see Task 2)" — historical entry preserved per DF-SIBLING-SWEEP-001, outside the 13 test-file refs); F-006 MED (Task 9: removed "and create a minimal commit so the index is non-empty" — git add only; no commit required for git ls-files); F-007 MED (Task 9 FAIL format: FAIL [bin/violating.py:1]: Pattern 32 — not "FAIL  bin/violating.py: Pattern 32"); F-008 MED (Task 13 TC count: TC1–21 (21 self-tests)); F-009+F-010 PO PROPAGATION (Notes: bare RED markers re-tiered TIER-2 per DF-GREEN-DOC-TENSE-SWEEP v6; Pattern 30 retained TIER-1; deferred scrub obligation F-W86S-P6-009/010 added — iec104_analyzer_tests.rs:6271 + modbus_detection_tests.rs:2472/:2480; owner: next maintenance sweep); F-011 MED (Task 2: add :721 prose site — failure-message citing if not rust_files: guard); F-012 MED (input-hash NOTE: "Stored value is the canonical Python hash (9c9b12f); bash hook reports 5598136 — advisory only per PG-HASH-HOOK-DIVERGENCE"); F-013 MED (traces_to: add CHANGELOG.md + .github/workflows/ci.yml + bin/test_lint_cycle_artifact.py); F-017 LOW (Task 10 ci.yml sweep: :434 job comment + :462 step name added as stale prose sites); F-018 LOW (Task 5 quote-escaping: "Two fixtures in BAD_CASES (:91, :97)" — :402 is GOOD_CASE); F-019 LOW (Task 13: "state-manager records DRIFT-docstring-scan"); F-020 NIT (AC-183-007: 37 items / 36 tuples — item 5 shares tuple 4). |
 | 1.5 | 2026-07-25 | story-writer | WAVE-86 PASS-5 REMEDIATION — F-002 HIGH (Task 9 hermetic harness fix: copy script into `<tmp>/bin/check-green-doc-tense` inside the `git init`ed temp repo so `_find_repo_root` walks from the script's location upward to `<tmp>`; no env override, no functional tool change); F-003 HIGH (Task 9: `git add bin/violating.py` required so git ls-files index sees the file; assert literal violation-output prefix — FAIL line naming bin/violating.py + pattern label — not just exit code); F-004 MED (Task 2 CHANGELOG:741 rename: per DF-SIBLING-SWEEP-001 preserve historical entry; parenthetical annotation optional only; do NOT alter historical name); F-005 MED (Background .py file list: `bin/test_changelog_gate_check.py` → `bin/test_changelog_gate_content.py`); F-006 MED (Task 6: deleted false "quoted phrases prevent flagging" claim; replaced with correct rule — in-source Pattern NN comments must NOT contain the literal flagged phrase, since regex matches inside quotes equally); F-007 MED (EC-011: "Task 12" → "Task 13" for docstring scrub target); F-008 MED (v4 → v5 at 9 governing sites: AC-183-007 intro :482/:484, AC-183-007 TIER-2 GOOD_CASEs :534/:540/:546, AC-183-008 :568/:590, Architecture Compliance Rules :850; historical provenance cites at :505/:536/:542/:548/:882-896/:112 unchanged); F-009 MED (P4-002 → P4-004 ruling ID at :287/:362/:391 — number-agnostic registry ruling not docstring-scope ruling); F-010 MED (Task 13: add line 5 scrub — `bin/test_lint_cycle_artifact.py:5` stale count "TC1–TC8 implement all eight test cases" reworded; file now has TC1..TC17 / 21 self-tests); F-017 MED (Task 8: suffix-scoping negative-guard GOOD_CASE from AC-183-006 assigned — runner writes to `good_{n}.rs`, gate scans as .rs file and MUST NOT flag it); F-019 LOW (GOOD_CASES arithmetic: 13→14; totals 25→26 in Architecture Mapping and FSR; 14 = P30 allowlist + P31 allowlist + P31 zero-FP + suffix-scoping negative guard + 6×P32-37 + 3 TIER-2 + is-expected-to efficacy); F-020 LOW (Task 1 test file line count: 914→913 lines); F-021 LOW (rename sweep extended to tool's own surfaces: `_collect` docstring :466-473, `rust_files` local :556, "no tracked Rust files found" error string :558-560 — all become inaccurate with .py in scope); F-022 LOW (:121-122 "may be added as Pattern 30" → "is added as Pattern 30" — AC-183-003 mandates it); F-025 LOW (Task 13 replacement text: drops literal "RED GATE" token from example — uses past-tense provenance phrasing); F-027 NIT (AC-183-001 set-membership assertion: compare resolved absolute paths or basenames, not repo-relative strings — collector returns list[Path] absolute). |
