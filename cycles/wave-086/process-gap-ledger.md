@@ -357,6 +357,94 @@ DF-VALIDATION-001 validation before filing upstream vsdd-factory issue.
 
 ---
 
+---
+
+## PG-W86-008 (candidate) — agents must preserve canonical input-hash under hook blocking pressure
+
+**Class:** Agent discipline / DF-INPUT-HASH-CANONICAL-001 enforcement gap
+**Caught by:** Wave-86 adversarial pass 5 (F-W86S-P5-018 MED); repaired by state-manager STEP 0
+**Severity:** MEDIUM (incorrect hash stored in frontmatter; state-manager repair required before commit)
+**Occurrences:** 1 instance in wave-86 (story-writer appended v1.5 with bash-hook hash values `0a1812a` / `5598136` instead of canonical Python values `9a0f34c` / `9c9b12f`)
+**Source finding:** F-W86S-P5-018 (MED, pass 5); DF-INPUT-HASH-CANONICAL-001
+**Vehicle:** Local carry-forward — needs agent-facing rule addition to story-writer agent instructions (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+The `validate-input-hash` hook blocked story-writer's commit because the hook's bash implementation computes different hash values than the canonical Python tool (documented as PG-HASH-HOOK-DIVERGENCE in CLAUDE.md). Under this blocking pressure, story-writer computed a new hash using the bash implementation (`$(cat file)` subshell, which strips trailing newlines) and stored THOSE values — overwriting the correct canonical values that had been previously written by `bin/compute-input-hash --write`.
+
+This is a violation of DF-INPUT-HASH-CANONICAL-001 (`input-hash:` values MUST be set using the canonical Python tool only). The hook's bash values are known to diverge from canonical Python values for every story with trailing-newline content.
+
+### Root Cause
+
+Story-writer agents do not have a clear protocol for what to do when the `validate-input-hash` hook blocks. The natural reflex is to "fix" the hash discrepancy by recomputing with whatever tool is available — but the only correct tool is `bin/compute-input-hash`, and the hook error must be treated as advisory per CLAUDE.md (PG-HASH-HOOK-DIVERGENCE section).
+
+### Proposed Fix
+
+Add an explicit agent-facing rule to story-writer instructions:
+
+> When the `validate-input-hash` hook blocks a commit reporting a hash mismatch, the agent
+> MUST NOT recompute the hash using the bash implementation. The hook result is advisory-only
+> per PG-HASH-HOOK-DIVERGENCE (CLAUDE.md). The canonical Python tool is the sole authority.
+> If the stored hash was set by `bin/compute-input-hash --write`, it is correct — keep it
+> and push with `--no-verify` or accept the hook warning.
+>
+> If the stored hash is suspected stale (spec inputs changed), recompute with:
+> `bin/compute-input-hash --write .factory/stories/STORY-NNN.md`
+> Never use the bash hook to determine the correct value.
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). DF-VALIDATION-001 research-agent validation required before filing upstream vsdd-factory issue. State-manager repaired the immediate instance at burst STEP 0.
+
+---
+
+## PG-W86-009 (candidate) — partial-fix regression: remediation bursts must self-verify before returning
+
+**Class:** Story-writer / remediation-burst discipline — S-7.01(c) recurrence
+**Caught by:** Wave-86 adversarial pass 5 (class recurred from pass-4; F-W86S-P5-002/003/012 are partial-fix regressions)
+**Severity:** HIGH (pass-4 remediation claimed to fix F-002/F-003/F-012 class but left regression artifacts; adversary identified them again in pass-5)
+**Occurrences:** 2 consecutive passes (pass-4 partial fixes → pass-5 re-found them)
+**Source finding:** F-W86S-P5-002/003 (HIGH, pass 5 — hermetic harness), F-W86S-P5-012 (MED, pass 5 — manifest coupling)
+**Vehicle:** Local carry-forward (S-7.01(c) recurrence protocol; DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+S-7.01(c) requires that remediation bursts self-verify the correctness of each fix before declaring it complete. In wave-86:
+
+- **Pass-4 F-002 (HIGH) "unimplementable hermetic harness":** Pass-4 added Task 9 with `PATH` manipulation, but the underlying mechanism (how the script is made findable in the subprocess) was incomplete. Pass-5 found the same functional gap (F-W86S-P5-002/003).
+
+- **Pass-4 F-012 (MED) "dropped manifest coupling":** Pass-4 added `FIXTURE_MANIFEST.contains()` loop to AC-182-005 but dropped the `.len() == 4` exhaustiveness assertion. Pass-5 F-W86S-P5-012 found the coupling was still weak.
+
+In both cases, the story-writer's remediation addressed the surface description of the finding but did not verify that the resulting specification was actually enforceable and complete.
+
+### Root Cause
+
+When remediating HIGH and CRIT findings, story-writer does not perform a **post-fix verification read** to confirm that:
+1. The fixed AC is both necessary AND sufficient for the intended behavior
+2. The implementation pathway through the fixed AC is executable without ambiguity
+3. Adjacent ACs and tasks that depend on the fixed content are consistent with the fix
+
+### Proposed Fix
+
+Add to story-writer's remediation discipline (extension of S-7.01(c)):
+
+> After applying a remediation to a HIGH or CRIT finding, the story-writer MUST read back the
+> affected AC(s) and verify:
+> (a) The AC is technically executable as written (no fictional CLI invocations, no
+>     non-existent mechanisms)
+> (b) The AC is sufficient to prevent the defect class, not just the specific defect instance
+> (c) Any adjacent ACs or tasks that depend on the fixed content have been swept for
+>     consistency
+
+This is a "changelog claim self-verification" step: before declaring a HIGH/CRIT finding
+remediated, re-read the claim and verify it against the actual body content.
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). Extends S-7.01(c) with a mandatory post-fix verification read for HIGH/CRIT findings. DF-VALIDATION-001 research-agent validation required.
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -368,3 +456,5 @@ DF-VALIDATION-001 validation before filing upstream vsdd-factory issue.
 | PG-W86-005 | HIGH | carry-forward, S-7.02 | Local, extends L-W84-002 (DF-VALIDATION-001 before filing) |
 | PG-W86-006 | MEDIUM | candidate, S-7.02 | Orchestrator/dispatch discipline (DF-VALIDATION-001 before filing upstream) |
 | PG-W86-007 | HIGH | candidate, S-7.02 | Local (STORY-182 v1.4 immediate instance; structural fix pending DF-VALIDATION-001) |
+| PG-W86-008 | MEDIUM | candidate, S-7.02 | Agent-facing rule: canonical hash under hook pressure (DF-VALIDATION-001 before filing) |
+| PG-W86-009 | HIGH | candidate, S-7.02 | S-7.01(c) extension: post-fix verification read for HIGH/CRIT (DF-VALIDATION-001 before filing) |

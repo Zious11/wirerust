@@ -68,4 +68,54 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-25) — D-520 pass-4 remediated, pass 5 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.00 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-25 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v1.4 (pass-4 remediated); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-4 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 5 (fresh-context; STORY-182 v1.4 + STORY-183 v1.4) |
+
+### Resume Prompt
+
+```
+D-520 WAVE-86 ADVERSARIAL PASS 4 → REMEDIATED (2026-07-25). 25 findings
+0C/4H/12M/9L all fixed. First zero-CRIT pass. STORY-182 v1.4. STORY-183
+v1.4. STORY-INDEX v3.99→v4.00. PO policy v5 number-agnostic. Orchestrator
+ci.yml ruling (F-014). PG-W86-006/007 added. streak 0/3. Pass 5 next.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING NEXT STEPS (in order):
+(a) Wave-86 adversarial pass 5 (STORY-182 v1.4 + STORY-183 v1.4)
+(b) Human wave-86 story-approval gate
+(c) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible on/after 2026-07-27)
+(d) PG-W84-012 ops task (bin-selftest → required-status-checks)
+(e) ROUTE-W74-OBS-2 human scope decision
+(f) PR #407 governance
+(g) PERF-RERUN-001
+(h) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(i) STORY-INDEX-IN-INPUTS-CHURN structural fix
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
