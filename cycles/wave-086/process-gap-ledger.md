@@ -482,6 +482,100 @@ Candidate for wave-086 cycle-close (S-7.02). Extends S-7.01(c) with a mandatory 
 
 ---
 
+## PG-W86-010 (candidate) — remediation-burst partial-fix regression persisted 4 consecutive passes; per-fix grep-evidence mandate required
+
+**Class:** Remediation-dispatch discipline / S-7.01(c) recurrence — extends PG-W86-009
+**Caught by:** Wave-86 adversarial passes 4–7 arc (partial-fix regressions in P5 and P7; orchestrator
+  imposed per-fix grep-evidence mandate in D-523 burst)
+**Severity:** HIGH (the same quoted-phrase mechanism class recurred in passes 4, 5, 6, AND 7 — four
+  consecutive adversarial passes unable to converge a single class without explicit evidence mandate)
+**Occurrences:** 4 consecutive passes (P4→P5: hermetic harness + manifest coupling; P5→P6: bare-RED
+  re-tier; P6→P7: quoted-phrase Task-6 mechanism resurrected for 4th pass)
+**Source finding:** F-W86S-P7-003 (HIGH, pass 7 — 4th consecutive pass recurrence of quoted-phrase class);
+  extends PG-W86-009 (which caught the P4→P5 arc at 2 consecutive passes)
+**Vehicle:** Local carry-forward — extends PG-W86-009; codifies mandatory per-fix verification evidence
+  requirement for remediation dispatches (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+PG-W86-009 (added after pass 5) codified the "partial-fix regression" class: when remediating
+HIGH/CRIT findings, story-writer must perform a post-fix verification read. That codification
+was applied to the P4→P5 arc.
+
+PG-W86-010 documents that the same regression class persisted for **two more passes** (P5→P6 and
+P6→P7) despite PG-W86-009's codification. The specific instance:
+
+- **P4 F-002 (HIGH) → P5 F-W86S-P5-002/003:** Hermetic harness gap — pass-4 fix was surface-level;
+  pass-5 found the same functional gap.
+- **P5 F-W86S-P5-018 (MED) → P6:** Bare-RED re-tier — pass-5 made a TIER-1 claim without grep evidence;
+  PG-W86-009 codified the post-fix read requirement but did not prevent the same class in v5.
+- **P6 (delivered Task 6 quoted-phrase) → P7 F-W86S-P7-003 (HIGH):** Task 6 quoted-phrase mechanism
+  was claimed delivered in pass-6 changelog but grep showed the body content was absent. Pass-7
+  adversary found the same class for the 4th consecutive time.
+
+The pattern reveals that "post-fix verification read" (PG-W86-009) is necessary but insufficient
+when the verification is performed by the same agent that made the fix. A partial fix can survive
+a self-verification read because the agent's mental model of "what was written" matches the intent,
+not necessarily the actual body text.
+
+### Root Cause
+
+Story-writer's remediation dispatch lacks a **mechanical verification step** — a literal grep or
+read-back confirmation that the specific phrase/mechanism the fix introduced is actually present
+in the output. Self-verification reads catch logical errors but miss cases where the intended text
+was never written (or was written in the wrong section, or was overwritten by a later edit).
+
+The orchestrator identified this gap on pass 7 and imposed the per-fix grep-evidence mandate:
+
+> **Mandate (D-523, effective):** Every remediation dispatch MUST require per-fix verification
+> evidence in the return. For each HIGH/CRIT finding being remediated, the story-writer agent
+> MUST return:
+> 1. The exact text change made (diff or quoted before/after)
+> 2. A grep command + output confirming the new text is present in the story body
+> 3. A grep command + output confirming the old (incorrect) text is absent
+>
+> A remediation return that does not include this evidence for each HIGH finding is treated as
+> unverified and must be re-dispatched.
+
+### Extends PG-W86-009
+
+PG-W86-009 said: "after applying remediation to HIGH/CRIT, read back the affected ACs and
+verify (a) technically executable, (b) sufficient, (c) adjacent ACs swept."
+
+PG-W86-010 extends that with: "the read-back must be a mechanical grep/read-back of the OUTPUT
+artifact, not a self-verification of the agent's own recall. The orchestrator (or dispatching
+agent) must require explicit grep evidence before accepting the remediation as complete."
+
+This moves the verification obligation from the story-writer agent (who may have confirmation
+bias about what they wrote) to the orchestrator (who receives the return and can require evidence).
+
+### Proposed Fix
+
+Add to orchestrator's remediation-dispatch protocol:
+
+> For every HIGH or CRIT finding in a remediation dispatch, require the returning agent to
+> include:
+> - grep/read evidence that the fix is present in the output artifact
+> - grep evidence that the prior incorrect text is absent
+>
+> Do not mark a finding REMEDIATED until this evidence is received. This is a dispatch-side
+> requirement, not a story-writer-side self-check.
+
+Add to story-writer's return format:
+
+> For every HIGH/CRIT finding remediation, return:
+> `[FINDING-ID] FIX EVIDENCE: grep -n "new_text" STORY-NNN.md → {output}`
+> `[FINDING-ID] CLEAN EVIDENCE: grep -n "old_text" STORY-NNN.md → 0 matches`
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). Extends PG-W86-009 (post-fix verification read)
+with a mandatory mechanical evidence requirement. Per-fix grep-evidence mandate introduced and
+effective in D-523 burst. DF-VALIDATION-001 research-agent validation required before filing
+upstream vsdd-factory issue.
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -495,3 +589,4 @@ Candidate for wave-086 cycle-close (S-7.02). Extends S-7.01(c) with a mandatory 
 | PG-W86-007 | HIGH | candidate, S-7.02 | Local (STORY-182 v1.4 immediate instance; structural fix pending DF-VALIDATION-001) |
 | PG-W86-008 | MEDIUM | candidate, S-7.02 | Agent-facing rule: canonical hash under hook pressure (DF-VALIDATION-001 before filing) |
 | PG-W86-009 | HIGH | candidate, S-7.02 | S-7.01(c) extension: post-fix verification read for HIGH/CRIT (DF-VALIDATION-001 before filing) |
+| PG-W86-010 | HIGH | candidate, S-7.02 | Extends PG-W86-009: orchestrator-side per-fix grep-evidence mandate (DF-VALIDATION-001 before filing) |
