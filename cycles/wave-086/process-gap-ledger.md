@@ -698,6 +698,55 @@ no upstream vsdd-factory relevance).
 
 ---
 
+## PG-W86-013 — E-11 governance-story tdd_mode:strict / automated-RED mismatch
+
+**Class:** Story-writer template convention gap / E-11 tdd_mode discipline
+**Caught by:** Wave-86 adversarial pass 10 (F-W86S-P10-010 LOW [process-gap])
+**Severity:** LOW (no delivery blocker; accepted convention; codification value at cycle-close)
+**Occurrences:** 2 stories in wave-86 (STORY-182 + STORY-183); also observed in STORY-176
+**Source finding:** F-W86S-P10-010 ([process-gap], pass 10)
+**Vehicle:** Local carry-forward — codification candidate at wave-86 cycle-close (S-7.02);
+  consider template-level fix (explicit manual-RED section in E-11 story template)
+
+### Description
+
+E-11 governance stories carry `tdd_mode: strict` but their task orderings never produce an
+automated RED observation. In E-11 template stories, the ACs assert against already-green
+artifacts (fixtures, registry entries, ci.yml configurations) — the test harness cannot
+produce a RED state mechanically because the subject of the test already exists.
+
+This pattern was observed in STORY-182, STORY-183, and STORY-176. The adversary (pass 10)
+flagged it as a systematic E-11 template mismatch: `tdd_mode: strict` implies a
+red-green-refactor cycle, but E-11 stories structurally cannot produce automated RED.
+
+**Orchestrator ruling (D-527):** The E-11 tdd_mode convention is accepted. Manual RED
+demonstration (developer removes/corrupts the artifact, observes test failure, restores)
+is the accepted substitute for automated RED. No task reorder required. An explicit E-11
+template note was added to STORY-182 v2.0 and STORY-183 v2.0 documenting the convention.
+
+### Proposed Fix
+
+Add an explicit manual-RED section to the E-11 story template:
+
+```
+## RED Demonstration (E-11 Template Convention)
+tdd_mode: strict applies. Automated RED is not achievable for governance/tooling stories
+because the story's ACs assert against artifacts that exist prior to delivery.
+Manual RED demonstration: remove/corrupt the target artifact, run the test suite,
+observe test failure, restore the artifact. This substitutes for automated RED.
+```
+
+This note should appear in every E-11 story body to make the convention visible without
+requiring re-discovery per wave.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Codification candidate: template-level fix
+in E-11 story template (explicit manual-RED section). DF-VALIDATION-001 research-agent
+validation required before filing upstream vsdd-factory issue.
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -714,3 +763,4 @@ no upstream vsdd-factory relevance).
 | PG-W86-010 | HIGH | candidate, S-7.02 | Extends PG-W86-009: orchestrator-side per-fix grep-evidence mandate (DF-VALIDATION-001 before filing) |
 | PG-W86-011 | HIGH | candidate, S-7.02 | Root cause of STORY-182 oscillation: behavioral-altitude refactor required (strategy decision pending) |
 | PG-W86-012 | MEDIUM | candidate, fix-vehicle decision pending | Local tooling fix: src/**/*.rs blind spot in bin/check-green-doc-tense:477 |
+| PG-W86-013 | LOW | carry-forward, S-7.02 | E-11 template convention: explicit manual-RED section (DF-VALIDATION-001 before filing upstream) |

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "1.9"
+version: "2.0"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -212,12 +212,18 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
   (collector returns `Path` objects with absolute paths; comparison by `.name` avoids
   repo-root-prefix fragility — do NOT compare to a repo-relative string like
-  `"bin/test_check_green_doc_tense.py"`)
-- And a self-test assertion verifies `_collect_source_files(repo_root)` returns a path set
-  containing at least one entry whose `.name` attribute equals a known top-level `src/*.rs`
-  file (e.g., `mitre.rs`) — this assertion CANNOT pass unless `src/*.rs` is in the glob,
-  because `src/**/*.rs` alone would never match `src/mitre.rs` (git wildmatch blind spot,
-  F-W86S-P9-009)
+  `"bin/test_check_green_doc_tense.py"`).
+  **`repo_root` derivation:** use `mod._find_repo_root(Path(mod.__file__).resolve().parent)`
+  where `mod` is the imported `check-green-doc-tense` module. Note: the hermetic test
+  functions (Task 9) monkey-patch `_find_repo_root`, so the derivation choice is
+  load-bearing for non-hermetic self-tests — using the script's own location ensures the
+  correct repo root is resolved.
+- And a self-test assertion verifies `_collect_source_files(repo_root)` contains at least
+  one entry satisfying `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
+  `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` (class assertion;
+  `mitre.rs` is the illustrative example but any top-level `src/*.rs` file satisfies it).
+  This assertion CANNOT pass unless `src/*.rs` is in the glob, because `src/**/*.rs` alone
+  would never match `src/mitre.rs` (git wildmatch blind spot, F-W86S-P9-009)
 
 - Then `python3 bin/check-green-doc-tense` (bare invocation — no file arguments; main() uses
   git ls-files internally) exits non-zero when any `bin/*.py` file contains a pattern match
@@ -801,12 +807,20 @@ Well within context window. No story split required.
    containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
    (comparison by `.name` avoids repo-root-prefix fragility — do NOT compare to a
    repo-relative string like `"bin/test_check_green_doc_tense.py"`).
-   Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
-   containing at least one entry whose `.name` equals a known top-level src file such as
-   `mitre.rs` (asserts `src/*.rs` is working; this assertion cannot pass with only
-   `src/**/*.rs` in the glob — see AC-183-001 F-W86S-P9-009 note).
+   **`repo_root` derivation:** use `mod._find_repo_root(Path(mod.__file__).resolve().parent)`
+   (where `mod` is the imported module). The hermetic test functions (Task 9) monkey-patch
+   `_find_repo_root`, so the derivation choice is load-bearing for non-hermetic self-tests —
+   using the script's own file location ensures correct repo root resolution.
+   Add a self-test assertion confirming `_collect_source_files(repo_root)` contains at least
+   one entry satisfying `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
+   `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` (class assertion;
+   avoids mitre.rs-literal fragility; `mitre.rs` is illustrative only). This assertion
+   cannot pass with only `src/**/*.rs` in the glob — see AC-183-001 F-W86S-P9-009.
    **Propagate rename inside `bin/check-green-doc-tense` itself:**
-   - Function docstring at lines :466-473 — update scope description to include `bin/*.py`
+   - Function docstring at lines :466-473 (and module docstring at line :4) — update scope
+     descriptions to enumerate the full pathspec: "tests/*.rs, src/**/*.rs, src/*.rs, and
+     bin/*.py" (all four globs must be listed so src/*.rs coverage is explicit — matching
+     the `git ls-files -- tests/*.rs src/**/*.rs src/*.rs` + `bin/*.py` invocations)
    - Local variable `rust_files` at :556 → rename to `source_files` throughout the function
    - Error string at :558-560 (`"no tracked Rust files found"`) → update to
      `"no tracked source files found"` (covers both `.rs` and `.py`)
@@ -930,15 +944,18 @@ Well within context window. No story split required.
 10. **Sibling-prose sweep (F-009):**
     - `bin/check-green-doc-tense` module docstring (lines 2–4 scope text, lines 26–30 TOKEN LIST
       preamble, lines 87–88 comment-anchoring note, ALLOWLIST heading at ~:90): update scope
-      declarations from "tests/*.rs and src/**/*.rs" to include "bin/*.py". Update token list
-      to document Patterns 30–37.
+      declarations from "tests/*.rs and src/**/*.rs" to enumerate all four globs: "tests/*.rs,
+      src/**/*.rs, src/*.rs, and bin/*.py" (src/*.rs must appear explicitly — it was the missing
+      glob from the F-W86S-P9-009 blind spot). Update token list to document Patterns 30–37.
     - Lines :577 ("in test files" failure summary) and :581–585 (explanatory prose): update
       scope descriptions from "test files" to "source files" to include `bin/*.py`.
     - `.github/workflows/ci.yml` stale prose sites (COMMENT-ONLY changes; functional job
       steps unchanged):
-      - Line ~442: update scope comment to include `"and bin/*.py"`
-      - Line :434: job comment says "in test files" — stale once `bin/*.py` is in scope;
-        update to "in tracked source files (*.rs and bin/*.py)"
+      - Line ~442: update scope comment to enumerate the full pathspec delivered:
+        "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py"
+      - Line :434: job comment says "in test files" — stale once `bin/*.py` and `src/*.rs`
+        are in scope; update to "in tracked source files (tests/*.rs, src/**/*.rs, src/*.rs,
+        and bin/*.py)"
       - Line :462: step name "Scan for stale RED-phase comment headers in test files"
         — stale; update to "Scan for stale RED-phase comment headers in source files"
 
@@ -1044,6 +1061,13 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   filing required. PG-W84-010 + PG-W85-003 LOCAL-CARRY-FORWARD dispositions per
   DF-VALIDATION-001 (mirroring STORY-182's Notes pattern).
 - **No behavioral contract required:** E-11 convention.
+- **tdd_mode: strict — E-11 template note:** `tdd_mode: strict` is satisfied for this
+  governance story by the documented manual RED demonstration: BAD_CASES fail under inverted
+  pattern order (adding a new pattern before existing ones without adjusting the ordering
+  would cause first-match-wins misfires). Task ordering does not produce an automated RED
+  observation in the normal TDD loop; this manual RED is the accepted substitute for E-11
+  governance stories. This is the E-11 template convention — do not reorder tasks to force
+  an automated RED.
 - **Points rationale (5 pts):** Expanded from 3 pts (v1.0/v1.1) due to: (a) 8 new patterns
   (vs 2 originally; 11 proposed in v3, 3 falsified to TIER-2 in v4), (b) ~40 multi-line
   fixture conversions to single-line form, (c) 20+ new BAD/GOOD self-test cases. The
@@ -1072,6 +1096,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.0 | 2026-07-26 | story-writer | WAVE-86 PASS-10 REMEDIATION — F-P10-002 MED (src/*.rs glob widening not propagated to three scope-prose sweep instructions: Task 2 :808-812 docstring scope updated to "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py"; Task 10 :931-934 scope declarations updated to include src/*.rs; Task 10 :939-943 ci.yml comment instructions updated to enumerate src/*.rs); F-P10-011 LOW (AC-183-001 :211-220 + Task 2 :800-807 self-test assertions clarified: repo_root derivation stated explicitly as `mod._find_repo_root(Path(mod.__file__).resolve().parent)` with hermetic-section monkey-patch note; mitre.rs-literal assertion replaced with class assertion `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` keeping mitre.rs as illustrative prose example); F-P10-010 LOW (tdd_mode: strict E-11 template note added in Notes). |
 | 1.9 | 2026-07-26 | story-writer | WAVE-86 PASS-9 REMEDIATION — F-P9-009 MED (AC-183-001 + Task 2: pathspec `src/**/*.rs` extended with `src/*.rs` to cover top-level src/*.rs files that git wildmatch `**` skips; self-test assertion added verifying a top-level src file is in the scanned set; points unchanged at 5); F-P9-010 MED (AC-183-007: explicit fixture strings added for all 8 BAD_CASE entries lacking them (Patterns 32 .rs/.py, 33 .rs/.py, 34 .rs, 35 .rs, 36 .rs, 37 .rs) and all 6 GOOD_CASE entries lacking them (Patterns 32-37); first-match-wins break-on-first pattern-priority constraint documented); F-P9-012 LOW (AC-183-009 added: `python3 bin/test_lint_cycle_artifact.py` MUST pass locally at delivery; CI wiring deferred to PG-W84-012 ops task); NIT-03 (AC-183-003 verification: added explicit `MUST exit non-zero` assertion for gate behavior when encountering a Pattern 30 match — aligns modal verb with AC-183-001 language). |
 | 1.8 | 2026-07-26 | story-writer | WAVE-86 PASS-8 REMEDIATION — F-009 MED (bin/test_lint_cycle_artifact.py row added to Architecture Mapping table and FSR table: "Modify (Task 13 — 4 lines only)"); F-010 MED (Task 13 updated: scrub list extended to :3/:5/:6/:125; "Three lines"→"Four lines"; line :125 is a #-comment line newly scan-eligible under this story); F-011 LOW (EC-011 :655 confirmed-stale scrub targets updated from :3/:6 to :3/:5/:6/:125; :125 noted as #-comment line); F-012 LOW (Task 2 adjudication note extended: "Similarly, historical references in delivered story specs (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep .factory/stories/ history."). |
 | 1.7 | 2026-07-26 | story-writer | WAVE-86 PASS-7 REMEDIATION — F-002 HIGH (17 governing cites DF-GREEN-DOC-TENSE-SWEEP v5→v6 via replace_all; 3 standalone: "The v5 two-tier"→v6, "(F-W86S-P4-004, v5)"→v6, "TIER-1 per v5"→v6; grep confirms zero residual governing cites; historical provenance at :856 "per v5 classification" preserved); F-003 HIGH (Task 6: deleted "quoted phrases prevent flagging" claim; replaced with "In-source `# Pattern NN:` comments MUST NOT contain the literal flagged phrase (quoting does not prevent regex match — see Task 4)"); F-004 MED (Task 13 :847/:848 TC1–TC17→TC1–TC21 both occurrences, "and 21 self-tests"→"(21 self-tests)"); F-005 MED (AC-183-001 :201 + Task 2 heading :701: "13 references"→"13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total)"; :721 added to prose list with type clarification); F-006 MED (4 ci.yml scope loci :187/:635/:882/:911: "comment line ~442 only"→"comment lines :434 and :442 + step-name line :462 (non-functional edits only)"); F-010 LOW (Task 2 :693: "path set containing `bin/test_check_green_doc_tense.py`"→.name-based comparison with fragility note); F-012 LOW (AC-183-005 :431-432: two-dot→three-dot `origin/develop...HEAD -- CHANGELOG.md`; two-dot divergence noted); F-013 LOW (Task 10 :821: added ":577 ('in test files' failure summary) and :581–585 (explanatory prose)" to bin/check-green-doc-tense scope-prose sweep); F-014 LOW (EC-011 :655 + Task 13 :856: "Log advisory STATE.md drift row DRIFT-docstring-scan"→"DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR)"). |

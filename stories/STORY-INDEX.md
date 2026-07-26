@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "4.05"
+version: "4.06"
 status: draft
 producer: story-writer
-timestamp: 2026-07-26T19:00:00Z
+timestamp: 2026-07-26T21:30:00Z
 phase: f4
 total_stories: 136
 total_waves: 86
 total_points: 792  # = 792; wave-table scheduled: 709 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85 + STORY-182/183 wave 86); epic-table grand total: 792 (+4 STORY-182 E-11 + +5 STORY-183 E-11)
+# v4.06 (2026-07-26): WAVE-86 PASS-10 REMEDIATION — first zero-HIGH pass (0C/0H/5M/6L); STORY-182 v1.9→v2.0 + STORY-183 v1.9→v2.0; body rows v1.9→v2.0; PG-W86-013 added; no numeric totals changed.
 # v4.05 (2026-07-26): WAVE-86 PASS-9 REMEDIATION — STORY-182 v1.8→v1.9 + STORY-183 v1.8→v1.9; body rows v1.8→v1.9; strategy (b) mechanical per human D-526; DRIFT-src-glob-blindspot folded into STORY-183 (F-009); no numeric totals changed.
 # v4.04 (2026-07-26): WAVE-86 PASS-8 REMEDIATION — STORY-182 v1.7→v1.8 (F-001 HIGH AC-182-002 provenance rationale rewritten with POSITIVE-EVIDENCE-OF-UPSTREAM-OF-ITI-ORIGIN discriminator; F-002 HIGH :125 "Both ITI"→"Only iec104-iti-diverse.pcap"; F-003 HIGH Task 7 restricted to diverse annotation only + dissect-unchanged instruction; F-004 MED cardinality sweep 7 loci; F-005 MED SIGPIPE fix tee /dev/stderr→tee coverage-out.txt at 3 sites; F-006 MED Env A 4/4 + zero-SKIP assertion; F-007 MED include_str!(file!()) coupling; F-008 MED Task 1 precondition + gated curls; F-013 LOW state-manager→D-522); STORY-183 v1.7→v1.8 (F-009 MED Architecture Mapping + FSR rows for test_lint_cycle_artifact.py; F-010 MED Task 13 :125 added, Three→Four lines; F-011 LOW EC-011 :3/:5/:6/:125; F-012 LOW Task 2 STORY-158/162 history-preservation note). Wave-86 row: v1.7→v1.8 both stories.
 # v4.03 (2026-07-26): WAVE-86 PASS-7 REMEDIATION — STORY-182 v1.6→v1.7 (F-001 HIGH :612/:813 missed --exact sites fixed; F-007 MED FIXTURE_GATED_TESTS bidirectional + len() pin; F-008 MED pipefail+grep -qE "Fixture coverage: [1-9]/4"+GATES ACR; F-009 MED ORCHESTRATOR RULING iec104-iti-dissect.pcap stays gitignored — 1 committed only; F-011 LOW EC-001 fixture_path() Some caveat); STORY-183 v1.6→v1.7 (F-002 HIGH v5→v6 all governing cites; F-003 HIGH Task 6 quoted-phrase false-claim replaced; F-004 MED Task 13 TC1–TC17→TC1–TC21; F-005 MED rename-site arithmetic 13+1=14; F-006 MED ci.yml :434/:442/:462 3 sites; F-010 LOW Task 2 .name-based comparison; F-012 LOW AC-183-005 three-dot diff; F-013 LOW Task 10 :577/:581-585 added; F-014 LOW EC-011+Task 13 state-manager reword). Wave-86 row: v1.6→v1.7 both stories.
@@ -567,7 +568,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
 | 85 | STORY-180, STORY-181 | **2/2 DELIVERED — STORY-180 (D-507, PR #437 421bf572, 2026-07-24) + STORY-181 (D-509, PR #438 5555495b, 2026-07-24) — CLOSED-PENDING-GATE** | #437 (STORY-180), #438 (STORY-181) | 421bf572, 5555495b | 2026-07-24 |
-| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v1.9, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v1.9, draft) — OPEN (pass-9 REMEDIATED D-526, pass-10 pending)** | — | — | — |
+| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.0, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.0, draft) — OPEN (pass-10 REMEDIATED D-527, first zero-HIGH pass, pass-11 pending)** | — | — | — |
 
 ## Coverage Verification
 

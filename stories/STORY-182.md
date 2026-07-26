@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-182
 epic_id: E-11
-version: "1.9"
+version: "2.0"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -31,6 +31,7 @@ traces_to:
   - .github/workflows/ci.yml
   - CLAUDE.md
   - .factory/maintenance/fixture-count-gate-entry.md
+  - .gitignore
 inputs:
   - .factory/cycles/wave-085/lessons.md
   - .factory/planning/df-validation-2026-07-25.md
@@ -108,9 +109,9 @@ shared path resolver.
 ### Fixture governance surfaces
 
 The following EXISTING governance surfaces apply to committed fixtures:
-- `tests/fixtures/README.md` (lines 5–34): licensing notice + provenance table. ALL committed
-  fixtures must have a row added to this table with source URL, modification indication, and
-  license. This is the authoritative attribution record — not a separate `ATTRIBUTION.md`.
+- `tests/fixtures/README.md` (lines 5–34): licensing notice + provenance table. All fixtures
+  committed BY THIS STORY must have a row added to this table with source URL, modification
+  indication, and license. This is the authoritative attribution record — not a separate `ATTRIBUTION.md`.
 - Lines 7–22 of `tests/fixtures/README.md` contain the licensing notice. This sweep must be
   updated to describe the CC-BY-4.0 class for the committed ITI capture when the provenance row is added.
 - Malware-content check: committed captures must not contain live malware C2 traffic or
@@ -154,7 +155,11 @@ local-samples (clean-worktree equivalent).
 
 `tests/fixtures/` (root) is NOT covered by any `.gitignore` entry. `.gitignore` covers only
 `/tests/fixtures/local-samples/`. Since committed captures go directly in `tests/fixtures/`,
-no `.gitignore` change is required — these files are naturally tracked.
+those pcap files are naturally tracked — no `.gitignore` change is required for the committed
+captures themselves. However, **a `.gitignore` entry IS required for `coverage-out.txt`** —
+the transient CI artifact written by the additive ci.yml step (`tee coverage-out.txt`). This
+file must not be accidentally committed. See Task 10b and the Architecture Mapping + File
+Structure Requirements for the precise `.gitignore` entry.
 
 ### Stdout vs. CI visibility — `println!()` requires `--nocapture`
 
@@ -233,6 +238,10 @@ coverage on every run with `--nocapture`.
           None => {
               let committed_path = Path::new(env!("CARGO_MANIFEST_DIR"))
                   .join(COMMITTED_SAMPLES).join(filename);
+              // NOTE: committed_path is constructed for the SKIP diagnostic display only.
+              // It shows the committed location for informational purposes. Non-committed
+              // manifest entries (iec104.pcap, iec104-sq.pcapng, iec104-iti-dissect.pcap)
+              // must go to local-samples/, not tests/fixtures/ — see COMMITTED_FIXTURES.
               eprintln!(
                   "[iec104-e2e] SKIP: fixture '{}' not found at {} (or in local-samples). \
                    Run `bin/fetch-e2e-pcaps` to populate local-samples.",
@@ -388,10 +397,12 @@ local development (Task 1 Steps 1c/1d).
 - `iec104-sq.pcapng` (Wireshark Foundation "not redistributed" — test-file line 273)
 - `iec104-iti-dissect.pcap` (POSITIVE EVIDENCE OF UPSTREAM-OF-ITI ORIGIN: upstream filename TestDissectIec104.pcap + E2E-PCAPS.md "Wireshark-dissector test capture" indicate Wireshark dissector test suite origin — F-009, D-524 ruling; stays gitignored)
 
-**Size gate (hard):** If the file exceeds 100 KB at commit time (E2E-PCAPS.md records 14 KB —
-well within limit), the implementer MUST NOT commit the oversized file. Instead: truncate or
-re-derive the capture to meet the limit. The size constraint is not waivable via a documented
-exception — the file must be brought under the limit.
+**Size gate (hard):** The committed ITI capture is recorded as 14 KB in E2E-PCAPS.md§IEC-104,
+making the >100 KB branch UNREACHABLE IN PRACTICE for this specific file. IF the branch is
+ever exercised (e.g., the file is replaced with a larger capture), the implementer MUST NOT
+commit the oversized file and is obligated to co-update: re-record the sha256 in E2E-PCAPS.md,
+re-derive the expected finding count (currently 66), and update the README attribution note.
+The size constraint is not waivable.
 
 Verification:
 ```bash
@@ -438,11 +449,13 @@ cargo test --test iec104_e2e_real_pcaps_tests \
   grep -E "1 passed"
 # Must match: test result: ok. 1 passed (not silently skip); 66 findings expected
 
-# Non-vacuous (F-016): confirm no SKIP messages for the committed ITI fixture:
+# Non-vacuous (F-016): confirm no SKIP messages for the committed ITI fixture
+# (gating form: tee-to-file then test count; grep -c || true is non-gating — F-P10-003):
+set -o pipefail
 cargo test --test iec104_e2e_real_pcaps_tests \
-  iec104_e2e_real_pcaps::test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu -- --exact --nocapture 2>&1 | \
-  grep -c "\[iec104-e2e\] SKIP: fixture 'iec104-iti-" || true
-# Expected output: 0 (committed fixture always found — no skip path taken)
+  iec104_e2e_real_pcaps::test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu -- --exact --nocapture 2>&1 | tee coverage-out.txt
+test "$(grep -c "\[iec104-e2e\] SKIP:" coverage-out.txt)" -eq 0
+# Expected: 0 SKIP lines (committed fixture always found; pattern catches ANY iec104-e2e SKIP)
 ```
 
 ### AC-182-004 (traces to PG-W85-005 — regression: clean-worktree observable outcome)
@@ -494,9 +507,11 @@ cargo test --test iec104_e2e_real_pcaps_tests
 # Additive CI step verification (F-014 — makes coverage summary visible on every run):
 set -o pipefail
 cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
-grep -qE "Fixture coverage: [1-9]/4" coverage-out.txt
-# Must print "Fixture coverage: N/4 fixtures present ..." (if: always() — visible incl. after test failures)
-# pipefail (cargo|tee stage) + grep on file: step FAILS (GATES) if cargo test exits non-zero OR no [1-9]/4 coverage line
+grep -qE "Fixture coverage: [1-9][0-9]*/[0-9]+" coverage-out.txt
+# Must print "Fixture coverage: N/M fixtures present ..." (if: always() — visible incl. after test failures)
+# pipefail (cargo|tee stage) + grep on file: step FAILS (GATES) if cargo test exits non-zero OR no coverage line
+# Denominator is [0-9]+ (not hardcoded /4) — loosened so adding fixtures only requires updating
+# the FIXTURE_MANIFEST.len() assertion, ci.yml step, and Task 9 Env A 4/4 expected value together.
 ```
 
 ### AC-182-005 (traces to PG-W85-005 — hard-assert: committed fixtures MUST be present)
@@ -564,12 +579,16 @@ the repo. Both `FIXTURE_MANIFEST` and `COMMITTED_FIXTURES` are declared inside
   // Manifest-size drift pin (fires on manifest growth/shrink only):
   // This len() check fires when FIXTURE_MANIFEST gains or loses entries.
   // It does NOT detect an unregistered test silently using a fixture not in the manifest.
-  // See FIXTURE_GATED_TESTS registry (module-level) for the genuine per-test coupling.
+  // FIXTURE_GATED_TESTS registry (module-level) catches renames of registered tests;
+  // the fixture_present() call-site count assertion below catches unregistered additions.
+  // Co-update loci when fixtures are added: FIXTURE_MANIFEST, this assertion,
+  // ci.yml "Fixture coverage: [1-9][0-9]*/[0-9]+" step, and Task 9 Env A 4/4 expected value.
   assert_eq!(
       FIXTURE_MANIFEST.len(), 4,
       "FIXTURE_MANIFEST.len() must equal the count of distinct fixture names used by \
        fixture-gated tests (currently 4: 1 committed ITI + 3 gitignored (2 Wireshark + 1 ITI)); \
-       update FIXTURE_MANIFEST and this assertion together when new fixtures are added"
+       update FIXTURE_MANIFEST, this assertion, ci.yml coverage step, and Task 9 Env A \
+       4/4 expected value together when new fixtures are added"
   );
   // Fixture-gated test registry assertion — BIDIRECTIONAL set equality:
   // Direction 1 (gated ⊆ manifest): every FIXTURE_GATED_TESTS entry's fixture_name
@@ -644,6 +663,42 @@ the repo. Both `FIXTURE_MANIFEST` and `COMMITTED_FIXTURES` are declared inside
           name, resolved
       );
   }
+  // Forbidden-committed negative guard (F-P10-005):
+  // For every FIXTURE_MANIFEST entry NOT in COMMITTED_FIXTURES, assert it is absent
+  // from tests/fixtures/ (the committed path). Catches accidental commits of
+  // non-redistributable or origin-unclear captures (Wireshark "not redistributed",
+  // iec104-iti-dissect.pcap Wireshark dissector test suite origin — F-009 D-524 ruling).
+  // Fails exactly when a forbidden capture is dropped in tests/fixtures/.
+  for name in FIXTURE_MANIFEST {
+      if !COMMITTED_FIXTURES.contains(name) {
+          let forbidden_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+              .join("tests/fixtures").join(name);
+          assert!(
+              !forbidden_path.exists(),
+              "[iec104-e2e] LICENSING/REDISTRIBUTION VIOLATION: '{}' is present in \
+               tests/fixtures/ but is NOT in COMMITTED_FIXTURES — this file MUST NOT \
+               be committed; Wireshark captures and origin-unclear files are prohibited \
+               from redistribution (see Background §Must NOT commit). Remove the file \
+               from tests/fixtures/ and place it only in tests/fixtures/local-samples/.",
+              name
+          );
+      }
+  }
+  // fixture_present() call-site count assertion (F-P10-009):
+  // Asserts the number of `fixture_present("` call sites in the harness source equals
+  // FIXTURE_GATED_TESTS.len(). Fails when a new fixture-gated test is added WITHOUT
+  // registering it in FIXTURE_GATED_TESTS.
+  // NON-SELF-REFERENTIAL: FIXTURE_GATED_TESTS string literals contain test function
+  // names and fixture filenames — NOT the text `fixture_present("` — so this assertion
+  // cannot vacuously pass by self-reference. Renaming fixture_present itself would break
+  // the literal, which is the intended failure mode.
+  assert_eq!(
+      harness_src.matches("fixture_present(\"").count(),
+      FIXTURE_GATED_TESTS.len(),
+      "fixture_present(\" call-site count != FIXTURE_GATED_TESTS.len() — \
+       a new fixture-gated test was added without a FIXTURE_GATED_TESTS registry entry; \
+       update FIXTURE_GATED_TESTS to include the new test and its fixture filename"
+  );
   ```
 - Then `test_fixture_manifest_report()` FAILS with a clear assertion message when the
   committed capture is absent from `tests/fixtures/` — the panic text appears in CI test
@@ -690,6 +745,7 @@ mv /tmp/iec104-iti-diverse.pcap.bak tests/fixtures/iec104-iti-diverse.pcap  # re
 | Additive CI step "IEC-104 fixture coverage report (visible)" | `.github/workflows/ci.yml` (amend — additive step only; no functional job changes) | develop |
 | Project References row for `.factory/maintenance/fixture-count-gate-entry.md` | `CLAUDE.md` (amend) | develop |
 | Gate-entry evidence doc (manifest counts, `#[ignore]` rejection, D-510 G1 retrospective, enforcement obligation) | `.factory/maintenance/fixture-count-gate-entry.md` (new) | develop |
+| `coverage-out.txt` gitignore entry (transient CI artifact from additive step) | `.gitignore` (amend — add one entry) | develop |
 
 **No `src/` changes, no `bin/` changes, no `Cargo.toml` changes.**
 CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), `CLAUDE.md`, and `.factory/` are all **excluded** from the AC-158-001 changelog-gate trigger set.
@@ -702,7 +758,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
 | EC-001 | `tests/fixtures/iec104-iti-diverse.pcap` absent (broken checkout, git LFS not pulled, etc.) | `fixture_path()` MAY return `Some(local-samples/iec104-iti-diverse.pcap)` if the corpus was fetched locally — but the hard-assert fires via a DIRECT `Path::exists()` check on `tests/fixtures/iec104-iti-diverse.pcap`, not via `fixture_path()`. The direct check correctly fails regardless of local-samples presence, producing a visible CI failure. |
 | EC-002 | `iec104-iti-diverse.pcap` exists in both `tests/fixtures/` and `tests/fixtures/local-samples/` | `fixture_path()` returns `tests/fixtures/` path (checked first); no double-run; safe |
 | EC-003 | Wireshark captures (iec104.pcap, iec104-sq.pcapng) and iec104-iti-dissect.pcap not present in clean checkout | Only 1/4 fixtures present (iec104-iti-diverse.pcap committed); gitignored captures absent → stdout FIXTURE-SKIPPED notice (visible with --nocapture); test still passes (gitignored partition) |
-| EC-004 | The committed ITI capture (`iec104-iti-diverse.pcap`) > 100 KB at commit time | Commit is BLOCKED — implementer must re-derive or truncate to meet the 100 KB limit. The size exception path is NOT available. |
+| EC-004 | The committed ITI capture (`iec104-iti-diverse.pcap`) > 100 KB at commit time | UNREACHABLE IN PRACTICE given the recorded 14 KB size (E2E-PCAPS.md:358). IF ever exercised: commit is BLOCKED; implementer must re-derive or truncate; additionally obligated to co-update: re-record sha256 in E2E-PCAPS.md, re-derive expected finding count (currently 66), and update README attribution note. |
 | EC-005 | `test_fixture_manifest_report()` run in CI without --nocapture | Passes silently when committed fixtures are present. Hard-assert panic (committed fixture absent) IS visible in CI regardless of capture mode. Advisory println!() lines are NOT visible — this is expected behavior. |
 | EC-006 | `fixture_path()` called for a file not in COMMITTED_SAMPLES or LOCAL_SAMPLES | Returns None; `fixture_present()` prints `[iec104-e2e] SKIP:` to stderr; calling test returns early (passes silently) |
 | EC-007 | Stale-assertion D-510 class: test on fixture-bearing host but with wrong expected count | Hard to prevent structurally; STORY-180 gate-fix PR #439 updated 31→66. COMMITTED_FIXTURES hard-assert prevents ABSENCE; it does not prevent wrong fixture content. Expectation updates are the implementer's obligation after fixture content changes. |
@@ -930,11 +986,13 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
      grep -E "1 passed"
    # Must match: test result: ok. 1 passed (not silently skip); 66 findings expected
 
-   # Non-vacuous (F-016): must output 0 SKIP messages for committed fixtures:
+   # Non-vacuous (F-016): must produce 0 SKIP messages for committed fixtures
+   # (gating form: tee-to-file then test count; grep -c || true is non-gating — F-P10-003):
+   set -o pipefail
    cargo test --test iec104_e2e_real_pcaps_tests \
-     iec104_e2e_real_pcaps::test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu -- --exact --nocapture 2>&1 | \
-     grep -c "\[iec104-e2e\] SKIP: fixture 'iec104-iti-" || true
-   # Expected output: 0
+     iec104_e2e_real_pcaps::test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu -- --exact --nocapture 2>&1 | tee coverage-out.txt
+   test "$(grep -c "\[iec104-e2e\] SKIP:" coverage-out.txt)" -eq 0
+   # Expected: 0 (committed fixture always found; pattern catches ANY iec104-e2e SKIP)
 
    # iec104-iti-dissect.pcap: NOT committed (F-009); skips in CI (gitignored)
    # In Env A (local-samples present), runs via local-samples — NOT verified here since
@@ -977,9 +1035,9 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
     ```
 
 11. **Develop PR:** All changes in `tests/`, committed binary fixtures, additive `ci.yml`
-    step, and `CLAUDE.md` row — no CHANGELOG required (`tests/` and `ci.yml`
-    executable run step are excluded from the AC-158-001 trigger set; `CLAUDE.md` itself is
-    also not in the trigger set). The PR description MUST include the actual test output proving:
+    step, `CLAUDE.md` row, and `.gitignore` entry for `coverage-out.txt` — no CHANGELOG
+    required (`tests/`, `ci.yml` executable run step, `CLAUDE.md`, and `.gitignore` are all
+    excluded from the AC-158-001 trigger set). The PR description MUST include the actual test output proving:
     (a) The 1/4 fixture coverage summary (with --nocapture, WITHOUT local-samples present
         per the Environment B protocol in Task 9 — required to produce the 1/4 output)
     (b) The iec104-iti-diverse.pcap test pass with zero SKIP lines (Environment A,
@@ -1008,8 +1066,11 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
   `src/` file needs changing, stop and escalate.
 - **Shared resolver contract:** `fixture_path()` is the SINGLE path-resolution authority.
   `fixture_present()` and `run_iec104_pipeline()` both delegate to it. No independent path
-  construction from `LOCAL_SAMPLES` or `COMMITTED_SAMPLES` is permitted in either function
-  after this story lands.
+  construction from `LOCAL_SAMPLES` or `COMMITTED_SAMPLES` is permitted for RESOLVING OR
+  OPENING a fixture in either function after this story lands; constructing a display-only
+  path for the SKIP diagnostic message in `fixture_present()` is explicitly permitted and
+  expected (see AC-182-001 prescribed implementation — `committed_path` is used only in the
+  `eprintln!()` diagnostic, not for file resolution or opening).
 - **`COMMITTED_SAMPLES = "tests/fixtures"`:** Committed captures go directly in `tests/fixtures/`
   alongside the existing committed captures (25 capture files on disk; to verify:
   `git ls-files tests/fixtures/ | grep -cE '\.(pcap|pcapng|cap|trace)$'` — the `*.pcap*`
@@ -1036,10 +1097,10 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
   ```
   set -o pipefail
   cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
-  grep -qE "Fixture coverage: [1-9]/4" coverage-out.txt
+  grep -qE "Fixture coverage: [1-9][0-9]*/[0-9]+" coverage-out.txt
   ```
   with step name "IEC-104 fixture coverage report (visible)". This step **GATES the CI test
-  job**: if no `Fixture coverage: N/4` line is printed (N ≥ 1), the step exits non-zero and
+  job**: if no `Fixture coverage: N/M` line is printed (N ≥ 1), the step exits non-zero and
   the job fails. This makes the `Fixture coverage: N/4` println!() output visible on every run
   incl. after test failures (`if: always()`) without modifying any functional job steps. The
   step uses only the existing `cargo test` invocation — no new SHA-pinned actions are added.
@@ -1064,6 +1125,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
 | `.factory/maintenance/fixture-count-gate-entry.md` | New | Gate-entry evidence: manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective |
 | `.github/workflows/ci.yml` | Modify (additive step only) | Add "IEC-104 fixture coverage report (visible)" step in test job — makes `Fixture coverage:` println!() CI-visible (F-014 orchestrator ruling) |
 | `CLAUDE.md` | Modify | Add Project References row for `.factory/maintenance/fixture-count-gate-entry.md` (F-015 process-gap) |
+| `.gitignore` | Modify | Add `coverage-out.txt` entry — transient CI artifact from additive step (F-P9-011) |
 
 **Forbidden modifications:** `src/**/*`, `Cargo.toml`, `bin/*`, `CHANGELOG.md`
 **Note:** `.github/workflows/ci.yml` is permitted for the ONE additive step described above
@@ -1104,11 +1166,18 @@ Well within context window. No story split required.
   DRIFT-e2e-sibling-harnesses (already present in STATE.md, D-522; no action in this
   story's PR); follow-up story candidate at next planning.
 - **No behavioral contract required:** E-11 convention.
+- **tdd_mode: strict — E-11 template note:** `tdd_mode: strict` is satisfied for this
+  governance story by the documented manual RED demonstration at lines :669-674 (move the
+  committed capture aside, run the manifest test, observe the hard-assert fire, restore).
+  Task ordering does not produce an automated RED observation in the normal TDD loop; the
+  manual RED demonstration is the accepted substitute for E-11 governance stories. This is
+  the E-11 template convention — do not reorder tasks to force an automated RED.
 - **Develop PR:** All ACs can be batched in a single develop PR. The PR touches: `tests/`
   (test code + binary fixtures), `.github/workflows/ci.yml` (additive step), `CLAUDE.md`
-  (Project References row), and `.factory/maintenance/fixture-count-gate-entry.md` (new
-  gate-entry doc). No CHANGELOG entry required — `.github/`, `CLAUDE.md`, and `.factory/`
-  are outside the AC-158-001 trigger set; `tests/` and binary fixtures are also excluded.
+  (Project References row), `.factory/maintenance/fixture-count-gate-entry.md` (new
+  gate-entry doc), and `.gitignore` (`coverage-out.txt` entry). No CHANGELOG entry required
+  — `.github/`, `CLAUDE.md`, `.factory/`, `.gitignore`, and `tests/` are all outside the
+  AC-158-001 trigger set; binary fixtures are also excluded.
 - **Wave-85 gate G1 retrospective:** D-510 was triggered on a **fixture-bearing host** where
   `test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu` ran with the stale assertion
   of 31 findings when the correct count (post-STORY-180 timed-command detection) is 66. This
@@ -1123,6 +1192,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.0 | 2026-07-26 | story-writer | WAVE-86 PASS-10 REMEDIATION — F-P10-001 MED (.gitignore entry for coverage-out.txt added to ALL structural loci: Background §Gitignore rewritten (coverage-out.txt IS required; committed pcaps naturally tracked separately); .gitignore row added to Architecture Mapping + FSR; .gitignore added to traces_to + Task 11 PR file list + Notes §Develop PR); F-P10-003 MED (two `grep -c ... \|\| true` non-gating forms replaced with SIGPIPE-safe tee-to-file gating pattern at both loci: AC-182-003 :441-445 + Task 9 Env A :932-937; pattern widened to `\[iec104-e2e\] SKIP:` to catch any skip, not only diverse fixture); F-P10-004 MED (ACR §Shared resolver contract scoped: "for RESOLVING OR OPENING" added; display-only path construction in fixture_present() explicitly permitted and expected); F-P10-005 MED (AC-182-005 forbidden-committed negative guard added: for every FIXTURE_MANIFEST entry NOT in COMMITTED_FIXTURES assert !committed_dir.join(name).exists() with licensing/redistribution panic message; SKIP-diagnostic prose note added in fixture_present() code — committed_path displayed is for committed-eligible fixture only); F-P10-006 LOW (Size-gate :391-394 + EC-004 :705 marked UNREACHABLE-IN-PRACTICE given 14 KB recorded size; IF branch ever exercised, co-updates stated: re-record sha256 in E2E-PCAPS.md, re-derive finding counts, update README attribution); F-P10-007 LOW (ci.yml grep denominator loosened at 3 loci: `[1-9]/4` → `[1-9][0-9]*/[0-9]+` at :497/:499/:1039; Task 9 Env A 4/4 retained as env-specific expected value but added to co-update list; FIXTURE_MANIFEST.len() assertion message extended to name ci.yml + Task 9 Env A as co-update loci); F-P10-008 LOW (Background :110-113 overclaim fixed: "ALL committed fixtures" → "all fixtures committed BY THIS STORY"); F-P10-009 LOW (Manifest-size drift pin comment tempered: "genuine per-test coupling" → registry catches renames, not unregistered additions; NEW assertion added: `assert_eq!(harness_src.matches("fixture_present(\"").count(), FIXTURE_GATED_TESTS.len(), ...)` — fails when a new fixture-gated test is added without registering); F-P10-010 LOW (tdd_mode: strict E-11 template note added in Notes). |
 | 1.9 | 2026-07-26 | story-writer | WAVE-86 PASS-9 REMEDIATION — F-P9-001 HIGH (COMMITTED_FIXTURES line 264 two-entry residue fixed: `["iec104-iti-diverse.pcap"]` — single entry only; iec104-iti-dissect.pcap is not committed per F-009 D-524 ruling); F-P9-002 HIGH (include_str!(file!()) removed — does not compile); F-P9-003 HIGH (per-test name coupling replaced with non-self-referential mechanism: std::fs::read_to_string reads harness source at test time and asserts fn <name> exists — checked content and predicate source are different text spans, so renaming a test without updating registry causes failure); F-P9-004 HIGH (three loci with retired pre-D-524 discriminator "provenance unverifiable" updated to D-524 discriminator: POSITIVE EVIDENCE OF UPSTREAM-OF-ITI ORIGIN — filename TestDissectIec104.pcap + E2E-PCAPS.md "Wireshark-dissector test capture"; lines :134, :193-196, :385, :510); F-P9-005 HIGH (Task 7 E2E-PCAPS.md locus + FSR row: "ITI IEC-104 captures" → "iec104-iti-diverse.pcap" singular — dissect remains gitignored, not committed); F-P9-006 MED (dissect sha256 gate reinstated for CI download-and-verify path: DISSECT_SHA added to Task 1 Step 1c using E2E-PCAPS.md:359 value 292c18a8…; AC-182-003 note added); F-P9-007 MED (AC-182-004 verification item 1: WITHOUT-LOCAL-SAMPLES precondition added explicitly); F-P9-008 MED (FIXTURE_GATED_TESTS added to Architecture Mapping row + FSR description; E2E-PCAPS.md added to Architecture Mapping table); F-P9-011 LOW (Task 10/11: add coverage-out.txt to .gitignore — gitignored transient artifact from CI step); NIT-04 (grep confirmed: no underscore-form iec104_iti_diverse.pcap anywhere — canonical hyphen form already used throughout; no text change needed). |
 | 1.8 | 2026-07-26 | story-writer | WAVE-86 PASS-8 REMEDIATION — F-001 HIGH (AC-182-002 provenance rationale rewritten: dissect excluded for POSITIVE EVIDENCE OF UPSTREAM-OF-ITI ORIGIN — upstream filename TestDissectIec104.pcap + E2E-PCAPS.md "Wireshark-dissector test capture" indicate Wireshark dissector test suite origin; diverse excluded for NO indication of non-ITI origin; rule: "repo-level license suffices ABSENT contrary indication of third-party upstream origin"); F-002 HIGH (:125 "Both ITI CC-BY-4.0 captures are MANDATORY committed"→"Only iec104-iti-diverse.pcap is the MANDATORY committed fixture"); F-003 HIGH (Task 7 :793-798 restricted to diverse-only annotation; explicit instruction added: leave :503-504 and dissect mapping row (:28) unchanged — dissect remains gitignored); F-004 MED (cardinality sweep: :52/:54 captures→capture; :53 are→is; :59 committed captures→committed capture; :602-603 either committed capture→the committed capture; :610 add iec104-iti-dissect.pcap to gitignored list; :657 Either ITI capture→The committed ITI capture; :791-792 captures now have→capture now has + 2 new ITI entries→1 new ITI entry; :953 provenance rows→provenance row); F-005 MED (SIGPIPE fix: 3 `| tee /dev/stderr | grep -q` pipelines at :474-478/:845-849/:928-931 replaced with safe two-step: cargo|tee coverage-out.txt then grep on file); F-006 MED (Env A regex :845-849 changed to grep -qE "Fixture coverage: 4/4" + zero-SKIP assertion; CI step + Env B keep [1-9]/4); F-007 MED (include_str!(file!()) coupling assertion added to test_fixture_manifest_report() — registered test_names must exist in source file); F-008 MED (Task 1 precondition reworded: "absent in a fresh clone; may already be present on fixture-bearing host"; each curl gated: only fetch if file missing OR sha256 mismatches; fetch to temp path + move after hash verification); F-013 LOW (:999 "state-manager adds it"→"already present in STATE.md (DRIFT-e2e-sibling-harnesses, D-522); no action in this story's PR"). |
 | 1.7 | 2026-07-26 | story-writer | WAVE-86 PASS-7 REMEDIATION — F-001 HIGH (add `-- --exact` to missed sites :612 and :813; all 16+4 sites now module-qualified with --exact); F-007 MED (FIXTURE_GATED_TESTS assertion made bidirectional: direction 2 manifest⊆gated added + assert_eq!(FIXTURE_GATED_TESTS.len(), 4) count pin); F-008 MED (ci.yml step: `set -o pipefail` added to code blocks at :477 and :865; grep strengthened to `grep -qE "Fixture coverage: [1-9]/4"` at all 3 active sites; ACR updated to state step GATES the test job); F-009 MED ORCHESTRATOR RULING (COMMITTED_FIXTURES=1 entry only — iec104-iti-dissect.pcap stays gitignored; sweep: fixture count anchors 2/4→1/4 everywhere, AC-182-002 rewritten to cover only iec104-iti-diverse.pcap + provenance rationale for dissect exclusion, AC-182-003 dissect test block removed, AC-182-004 "two ITI"→"one ITI" + 2/4→1/4 output, AC-182-005 COMMITTED_FIXTURES const 1 entry + FIXTURE_MANIFEST comment 1 committed ITI, Architecture Mapping dissect row removed, FSR dissect row removed, Task 1 dissect step moved to local-samples-only with exclusion note, Task 2 single copy only, Task 9 Env B 1/4, Task 11 PR evidence 1/4, EC-003 updated, Background §fixture counts updated); F-011 LOW (EC-001 reworded: fixture_path() may return Some(local-samples/...) when corpus fetched; hard-assert fires via DIRECT Path::exists() on tests/fixtures/ regardless). |
