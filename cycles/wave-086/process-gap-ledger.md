@@ -745,6 +745,30 @@ Carry-forward to wave-086 cycle-close (S-7.02). Codification candidate: template
 in E-11 story template (explicit manual-RED section). DF-VALIDATION-001 research-agent
 validation required before filing upstream vsdd-factory issue.
 
+### Pass-13 Evidence Extension (D-530, 2026-07-26)
+
+The D-528 re-anchor sweep (which introduced the mitigation) only checked intra-document
+citations in sections that were **changed** in the D-528 burst. It did not re-verify
+sections that were untouched but whose line numbers were shifted by prior-section insertions.
+
+Three stale self-anchors survived into v2.2 (F-W86S-P13-002):
+- :740-745 (tdd_mode RED-procedure) — shifted further by D-529 insertions after D-528 re-anchored it
+- :698 (move-aside cross-reference) — added in D-528, not in a changed section during D-529
+- :612 (AC-182-003 intra-AC cite) — accumulated cumulative drift across D-527/D-528/D-529
+
+**Structural fix (D-530):** Rather than applying a third re-anchor sweep, all intra-document
+:NNN self-citations in STORY-182 and STORY-183 were eliminated and replaced with
+content-based locators (task names, AC identifiers, section headings). Zero :NNN
+self-citations remain in either story post-v2.3.
+
+**Codification sharpened:** The D-528 mitigation prose said "list all :NNN citations and
+verify". This is insufficient — the sweep must be CORPUS-WIDE within the document, not
+scoped to changed sections. The structural fix (self-anchor elimination) is the definitive
+solution. Recommend as E-11 template convention at S-7.02: intra-document :NNN
+self-citations prohibited in E-11 stories; use content-based locators.
+
+---
+
 ### Pass-11 Evidence Extension (D-528, 2026-07-26)
 
 The v2.0 E-11 tdd_mode note (added per F-W86S-P10-010) was itself defective boilerplate:
@@ -877,6 +901,32 @@ other than the intended subject failure is in this class.
 
 ---
 
+## Truth-Inversion-During-Reword Class (Pass-13 New Observation, D-530)
+
+**Class:** Story-writer / remediation discipline — truth-preservation when rewording technical claims
+**First instance:** F-W86S-P13-001 (HIGH, pass 13) — pass-12 pathspec "correction" inverted a load-bearing v1.9 claim
+**Severity:** HIGH (inverted claim risks implementers dropping the load-bearing src/*.rs glob)
+**Standing discipline imposed D-530:** When rewording any technical semantics claim (tool
+behavior, glob semantics, CLI argument behavior, etc.):
+1. Re-derive the claim from first principles (e.g., run git ls-files to verify glob coverage)
+2. Enumerate all loci in the document that state the claim and verify all-loci agreement
+3. Do not accept a wording that is "technically true from one angle" if it obscures the
+   load-bearing semantics from another angle
+
+**Root cause:** The pass-12 correction of "src/*.rs covers top-level only" to "both globs
+cover the same files" was technically accurate (dedup makes file lists equal) but conflated
+the file-set result with the glob-precedence semantics. The load-bearing fact is that
+src/*.rs is the BROADER pattern — an implementer reading "both cover the same files" could
+conclude both are redundant and drop one.
+
+**Codification target at S-7.02:** Add to story-writer remediation discipline:
+> When correcting a semantics claim, verify the correction preserves the load-bearing
+> interpretation, not just the literal truth value. Test: "Could an implementer, reading
+> only the corrected text, make the wrong implementation decision?" If yes, the correction
+> is insufficient.
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -894,4 +944,5 @@ other than the intended subject failure is in this class.
 | PG-W86-011 | HIGH | candidate, S-7.02 | Root cause of STORY-182 oscillation: behavioral-altitude refactor required (strategy decision pending) |
 | PG-W86-012 | MEDIUM | candidate, fix-vehicle decision pending | Local tooling fix: src/**/*.rs blind spot in bin/check-green-doc-tense:477 |
 | PG-W86-013 | LOW | carry-forward, S-7.02 (EXTENDED D-528) | E-11 template: per-story demonstrated RED claim required; generic boilerplate prohibited (DF-VALIDATION-001 before filing upstream) |
-| PG-W86-014 | MEDIUM | carry-forward, S-7.02 | Intra-story :NNN self-citation drift; extend DF-SIBLING-SWEEP-001 (mitigation imposed D-528) |
+| PG-W86-014 | MEDIUM | carry-forward, S-7.02 (EXTENDED D-530) | Intra-story :NNN self-citation drift; structural fix D-530: self-anchors eliminated in both stories; recommend as E-11 template convention at S-7.02 |
+| Truth-Inversion-During-Reword | HIGH | new class D-530 | Standing discipline imposed: re-derive + all-loci agreement check when rewording semantics claims (F-P13-001 pathspec truth inversion) |

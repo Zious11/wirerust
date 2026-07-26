@@ -543,4 +543,59 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-529 pass-12 remediated, pass 13 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.08 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v2.2 (pass-12 remediated; HIGH = 5th self-referential-predicate recurrence: AC-183-007 fixture annotations); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-12 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 13 (fresh-context; STORY-182 v2.2 + STORY-183 v2.2) |
+
+### Resume Prompt
+
+```
+D-529 WAVE-86 ADVERSARIAL PASS 12 REMEDIATED (2026-07-26). 10 findings
+0C/1H/4M/5L + 5 NITs; all fixed. HIGH = 5th self-referential-predicate
+recurrence (AC-183-007 fixture-block annotations at :572/:583/:597/:604/:611
+quoted 5 literal TIER-1 flagged phrases; locus class: story-prescribed
+fixture annotations). Orchestrator rulings: F-002 delete inert zero-SKIP
+line; F-003 Task-3 pre-RED ordering; F-006 keep-4-glob/fix-docs; F-010
+three-item PG-W84-012-extended scope. No-literal-phrase sweep imposed as
+standing discipline (D-529). STORY-INDEX v4.07→v4.08.
+Canonical hashes: 9a0f34c/9c9b12f. Streak 0/3. Pass 13 next.
+trajectory-tail →12→11→14→10.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire
+    test_lint_cycle_artifact.py/test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
