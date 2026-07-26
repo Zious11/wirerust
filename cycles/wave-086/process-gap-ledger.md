@@ -181,12 +181,14 @@ the canonical tracking entry. This row notes the scope extension only.
 ## PG-W86-004 — policy tier/token assertions must carry grep-verified evidence at ruling time
 
 **Class:** PO policy-discipline / evidence grounding
-**Caught by:** Wave-86 adversarial pass 3 (F-W86S-P3-001 CRIT) + pass 2 arc (F-W86S-P2-006 HIGH)
+**Caught by:** Wave-86 adversarial pass 3 (F-W86S-P3-001 CRIT) + pass 2 arc (F-W86S-P2-006 HIGH);
+  SECOND INSTANCE: wave-86 adversarial pass 6 (F-W86S-P6-009/010 MED — bare-RED v5 assignment)
 **Severity:** CRIT (the CRIT finding it produced — F-W86S-P3-001 — falsified 3 TIER-1 tokens
   that would have generated 16 false positives on a deployed tool)
-**Occurrences:** 2 consecutive passes (P2 F-W86S-P2-006 identified the policy gap; P3
-  F-W86S-P3-001 found the v3 policy had not fixed it — asserted "0 live uses" without grep)
-**Source findings:** F-W86S-P2-006 (HIGH, pass 2) + F-W86S-P3-001 (CRIT, pass 3)
+**Occurrences:** Standing rule applied twice in wave-86 (P2→P3 arc; P5→P6 arc — see Second
+  Instance below)
+**Source findings:** F-W86S-P2-006 (HIGH, pass 2) + F-W86S-P3-001 (CRIT, pass 3) +
+  F-W86S-P6-009/010 (MED, pass 6 — second instance)
 **Vehicle:** Local carry-forward (DF-VALIDATION-001 required before filing upstream)
 
 ### Description
@@ -207,6 +209,37 @@ This is a recurring defect: pass-2 F-W86S-P2-006 identified the lack of grep ver
 pass-3 F-W86S-P3-001 found the v3 policy had not remedied it. The v4 standing rule is now
 the policy-level codification; this PG entry tracks the process-improvement obligation.
 
+### Second Instance — Pass 5→6 Arc (2026-07-25)
+
+DF-GREEN-DOC-TENSE-SWEEP v5 (pass-5 remediation burst, D-521) assigned four bare-RED tokens
+(`RED:`, `RED-phase`, `RED reason`, `RED because`) as TIER-1 with a blanket claim that they
+had legitimate-provenance exceptions GOOD_CASE-handled — but did not include grep output to
+verify the actual live-hit count and provenance distribution.
+
+Pass-6 adversary ran full grep evidence:
+
+```
+grep -r '"RED:"' tests/ src/ bin/       # 15 hits (2026-07-25)
+grep -r 'RED-phase' tests/ src/ bin/    # 2 hits — both legitimate test-harness context
+grep -r 'RED reason' tests/ src/ bin/   # 0 hits
+grep -r 'RED because' tests/ src/ bin/  # 0 hits
+```
+
+Result: 15/17 total hits were legitimate provenance (test headers, narrative, harness
+description). The tool allowlists `RED-phase:` with a shipped `GOOD_CASE` but does NOT
+implement bare `RED:` / `RED-phase` / `RED reason` / `RED because` as TIER-1 patterns.
+Calling them TIER-1 was wrong — the tool never enforced them.
+
+Policy v6 (2026-07-25): all 4 tokens re-tiered TIER-2 (context-dependent) with grep
+evidence recorded inline. Pattern 30 (`Expected RED:`) retained TIER-1 (0 live hits
+confirmed by grep). 2 live stale sites adjudicated: `iec104_analyzer_tests.rs:6271` +
+`modbus_detection_tests.rs:2472/:2480` — PO reword prescriptions in policy v6; deferred
+to next maintenance sweep (DRIFT-stale-red-scrub).
+
+**Standing rule applied twice:** v3 bare claim → v4 codification; v5 bare claim → v6
+grep-verified re-tier. The standing rule (un-grepped tier = policy violation) has now
+caught the same defect class in two consecutive policy revisions.
+
 ### Proposed Fix
 
 Add to the PO agent's policy-authoring checklist:
@@ -215,12 +248,16 @@ Add to the PO agent's policy-authoring checklist:
 > `grep -r "phrase" src/ tests/ bin/` and record the command + output (including 0-match
 > output) inline in the policy document. An asserted count without a recorded grep command
 > is a policy violation per DF-GREEN-DOC-TENSE-SWEEP v4 standing rule.
+>
+> Additionally: verify that the tool ACTUALLY IMPLEMENTS the token as a pattern before
+> assigning TIER-1. A token not in the tool's `_VIOLATION_PATTERNS` registry cannot be
+> TIER-1 regardless of live-hit count.
 
 ### Disposition
 
-Carry-forward to wave-086 cycle-close (S-7.02). Now codified as standing rule in
-DF-GREEN-DOC-TENSE-SWEEP v4 (policies.yaml). DF-VALIDATION-001 required before filing
-upstream vsdd-factory issue.
+Carry-forward to wave-086 cycle-close (S-7.02). Standing rule codified in
+DF-GREEN-DOC-TENSE-SWEEP v4 (policies.yaml); applied again in v6 (second instance).
+DF-VALIDATION-001 required before filing upstream vsdd-factory issue.
 
 ---
 

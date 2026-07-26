@@ -1064,16 +1064,18 @@ policies:
             "scaffold", "Red Gate", "RED GATE", "RED gate", "todo!()", "stub",
             "uncalled", "skeleton"
 
-          Bare RED markers (expanded — PROP-FE001-01):
-            "RED:"                  # bare per-test-body marker, e.g. "/// RED: reason"
-            "RED-phase"             # variant phrasing in provenance comments
-            "RED reason"            # "RED reason:" style
-            "RED because"           # "RED because..." style
+          Bare RED markers (originally expanded — PROP-FE001-01; RE-TIERED v6
+          F-W86S-P6-009/010 2026-07-25 — these are now TIER-2, not TIER-1):
+            "RED:"                  # bare per-test-body marker — TIER-2 (context-dep.)
+            "RED-phase"             # variant phrasing in provenance — TIER-2
+            "RED reason"            # "RED reason:" style — TIER-2
+            "RED because"           # "RED because..." style — TIER-2
             Note: "was RED", "turned GREEN", "passed their Red Gate phase", "before the
             <X> arm existed" are PAST-TENSE PROVENANCE — CORRECT and MUST NOT be flagged.
+            See TIER-1/TIER-2 sections below for grep evidence and adjudications.
 
           TWO-TIER ENFORCEMENT MODEL (DF-GREEN-DOC-TENSE-SWEEP v4,
-          F-W86S-P3-001/007/017 ruling 2026-07-25):
+          F-W86S-P3-001/007/017 ruling 2026-07-25; updated v6 F-W86S-P6-009/010):
 
           STANDING VERIFICATION RULE (F-W86S-P3-001, 2026-07-25):
           Every TIER assignment MUST be verified by grep at ruling time.
@@ -1102,8 +1104,13 @@ policies:
             "todo!()" [bare form; existing allowlist excludes past-tense]
             "are/is todo!() stub(s)" [not bare 'stub']
 
-            Bare RED marker patterns:
-            "RED:" / "RED-phase" / "RED reason" / "RED because"
+            Retained zero-FP TIER-1 subset of RED-heading class
+            (F-W86S-P6-009/010 v6 ruling 2026-07-25):
+            "Expected RED:"     # grep -rni "Expected RED:" --include="*.rs": 0 hits
+                                # (2026-07-25); safe for Pattern 30 (STORY-183 AC-183-003)
+                                # MOVED TO TIER-2: "RED:" / "RED-phase" /
+                                # "RED reason" / "RED because" — see TIER-1 FALSIFIED
+                                # section below and TIER-2 section for evidence.
 
             Wave-86 verified-zero TIER-1 additions (STORY-183;
             grep-verified 0 live hits on 2026-07-25):
@@ -1131,6 +1138,65 @@ policies:
             "currently fall"          # tool explicitly excludes "falls through
                                       # to" via GOOD_CASE in
                                       # test_check_green_doc_tense.py
+
+          TIER-1 TOKENS FALSIFIED BY ADVERSARY GREP — originally listed
+          TIER-1 without sufficient grep evidence; adversary-run greps found
+          live legitimate uses; moved to TIER-2:
+
+            "RED:" / "RED-phase" /  # FALSIFIED 2026-07-25 (F-W86S-P6-009/010
+            "RED reason" /          # v6 ruling); grep evidence (2026-07-25):
+            "RED because"           # grep -rn "\bRED:" --include="*.rs" tests/: 1 hit
+                                    #   → tests/iec104_analyzer_tests.rs:6271
+                                    #     (TRUE positive — stale; see adjudication below)
+                                    # grep -rn "\bRED:" --include="*.rs" src/: 0 hits
+                                    # grep -rn "\bRED-phase" --include="*.rs" tests/: 15 hits
+                                    #   → ALL in tests/bc_2_01_story126_spb_tests.rs
+                                    #     (lines 425/467/502/537/604/647/681/713/759/798/
+                                    #     1281/1397/1443 + 2 negative refs in
+                                    #     bc_2_16_e17_macsec_offset_tests.rs:94 /
+                                    #     bc_2_16_qinq_macsec_offset_tests.rs:90)
+                                    #   ALL are "/// RED-phase: before the SPB arm
+                                    #   existed..." — legitimate past-tense provenance
+                                    # grep -rni "\bRED reason" --include="*.rs" .: 0 hits
+                                    # grep -rni "\bRED because" --include="*.rs" .: 1 hit
+                                    #   → tests/modbus_detection_tests.rs:2480
+                                    #     (TRUE positive — stale; see adjudication below)
+                                    # CRITICAL CONFLICT: bin/check-green-doc-tense:192
+                                    # explicitly allowlists "RED-phase:" as provenance;
+                                    # GOOD_CASE at bin/test_check_green_doc_tense.py:382-384
+                                    # asserts "/// RED-phase: before the SPB arm existed..."
+                                    # is NOT flagged. TIER-1 as written in v5 is un-
+                                    # implementable: it would require breaking this shipped
+                                    # GOOD_CASE. Tool does NOT implement bare RED: / RED-phase
+                                    # / RED reason / RED because patterns; calling them TIER-1
+                                    # (tool-enforced) was incorrect.
+                                    # → TIER-2 (context-dependent), see below.
+                                    #
+                                    # LIVE SITE ADJUDICATIONS (F-W86S-P6-009/010):
+                                    # Site 1: tests/iec104_analyzer_tests.rs:6271
+                                    #   "/// RED: current code sets direction: None."
+                                    #   Test: test_fix_p4_001_track_ns_desync_direction_c2s
+                                    #   Test asserts: finding.direction == Some(ClientToServer)
+                                    #   FIX-P4-001 has shipped. "current code sets direction:
+                                    #   None" is FALSE — current code sets Some(ClientToServer).
+                                    #   VERDICT: STALE. Scrub obligation deferred from
+                                    #   STORY-183 (tests/**/* excluded); owner: next
+                                    #   maintenance sweep. Required reword: past-tense
+                                    #   provenance "Before FIX-P4-001, code set direction:
+                                    #   None; fix sets direction: Some(ClientToServer)."
+                                    # Site 2: tests/modbus_detection_tests.rs:2480
+                                    #   "RED because: stub uses wrapping_sub at"
+                                    #   Context: block comment lines 2472-2491 headed
+                                    #   "// RED conditions (vs. current stub):"
+                                    #   The pre-STORY-141 stub (wrapping_sub) has been
+                                    #   replaced by saturating_sub; stub no longer exists.
+                                    #   VERDICT: STALE. Both header (line 2472) and inline
+                                    #   "RED because:" (line 2480) describe historical stub
+                                    #   state. Scrub obligation deferred from STORY-183
+                                    #   (tests/**/* excluded); owner: next maintenance sweep.
+                                    #   Required reword: "// RED conditions (vs. the
+                                    #   pre-STORY-141 stub):" and inline "Before the fix,
+                                    #   stub used wrapping_sub at".
 
           TIER-1 TOKENS FALSIFIED BY ADVERSARY GREP (F-W86S-P3-001,
           2026-07-25) — originally listed TIER-1 in v3 without grep
@@ -1172,6 +1238,35 @@ policies:
           MUST check these, but bin/check-green-doc-tense MUST NOT flag
           them (high FP risk). A phrase listed here that the tool does
           not flag is NOT a tool defect:
+
+            "RED:" (bare)            # [MOVED FROM TIER-1, v5→v6, F-W86S-P6-009]
+                                     # 1 live hit (TRUE positive, stale):
+                                     # tests/iec104_analyzer_tests.rs:6271
+                                     # Dominant use is past-tense provenance.
+                                     # Adversary checks: if on a PASSING test and
+                                     # description is false about current code → MEDIUM;
+                                     # if past-tense provenance ("was RED", "turned
+                                     # GREEN") or part of two-part RED/GREEN doc →
+                                     # review context before flagging.
+            "RED-phase"              # [MOVED FROM TIER-1, v5→v6, F-W86S-P6-009]
+                                     # 15 live hits ALL legitimate past-tense provenance:
+                                     # tests/bc_2_01_story126_spb_tests.rs ×13
+                                     # Tool explicitly allowlists "RED-phase:" headers
+                                     # (bin/check-green-doc-tense:192;
+                                     #  GOOD_CASE test:382-384 asserts not-flagged).
+                                     # Adversary checks: "RED-phase: before X existed"
+                                     # form → skip (past-tense provenance); bare
+                                     # "RED-phase" claiming current state → MEDIUM.
+            "RED reason"             # [MOVED FROM TIER-1, v5→v6, F-W86S-P6-009]
+                                     # 0 live hits (2026-07-25). Adversary checks
+                                     # context if any future hit appears.
+            "RED because"            # [MOVED FROM TIER-1, v5→v6, F-W86S-P6-010]
+                                     # 1 live hit (TRUE positive, stale):
+                                     # tests/modbus_detection_tests.rs:2480
+                                     # Adversary checks: if on GREEN code describing
+                                     # a stub that no longer exists → MEDIUM; if in
+                                     # a section header for genuinely-failing RED-gate
+                                     # tests → skip.
 
             "falls through to"       # 10 live legitimate uses in *.rs files
                                      # across 6 files (corrected from v3's "12";
@@ -1337,17 +1432,25 @@ policies:
           tool's registry; the policy names tokens by text only, never by
           number (F-W86S-P4-004, v5). Current TIER-1 token set (text-only):
           Red Gate / RED GATE / RED gate; todo!() phrase forms;
-          are/is todo!() stub(s); RED: / RED-phase / RED reason / RED because;
+          are/is todo!() stub(s); Expected RED: [zero-FP retained subset —
+          grep-verified 0 hits 2026-07-25; Pattern 30 per STORY-183 AC-183-003];
           currently asserts; falls to the wildcard; does not exist yet;
           doesn't exist yet; currently has NO; currently satisfied by;
           will be GREEN currently; currently fall[s].
+          NOTE (v6, F-W86S-P6-009/010 2026-07-25): "RED:" / "RED-phase" /
+          "RED reason" / "RED because" are REMOVED from the TIER-1 text list
+          and moved to TIER-2. The tool never implemented them as patterns;
+          the tool's shipped GOOD_CASE (test:382-384) asserts "RED-phase:" is
+          NOT flagged; 15 of 17 tree hits are legitimate past-tense provenance.
           When present on GREEN code, no context check is required — flag
           immediately as MEDIUM.
         - TIER-2 (context-dependent; NO automatic flagging): MUST apply
           context-check BEFORE filing any finding for these tokens:
           "falls through to", "falls to `_`", "is expected to",
           "no .* arm", "not yet implemented",
-          "currently FAILS" / "currently fails", "MUST FAIL" (bare).
+          "currently FAILS" / "currently fails", "MUST FAIL" (bare),
+          "RED:" (bare), "RED-phase", "RED reason", "RED because"
+          [all moved from TIER-1 v5→v6, F-W86S-P6-009/010, 2026-07-25].
           For each TIER-2 hit: if the phrase accurately describes shipped
           behavior or appears in an explicitly-excluded context (§(a)
           exclusions: past-tense provenance, regression-guard framing,
@@ -1402,12 +1505,15 @@ policies:
       newly-added test functions, at ALL comment depths (module doc, function doc, AND
       per-statement inline lines in test bodies). Grep for the TIER-1 token set from
       DF-GREEN-DOC-TENSE-SWEEP section (a) — phrase patterns only (bare 'scaffold',
-      'stub', 'skeleton' are NOT bare-word TIER-1): Red Gate, RED GATE, RED:,
-      RED-phase, todo!() phrase forms, are/is todo!() stub(s), currently asserts,
+      'stub', 'skeleton' are NOT bare-word TIER-1): Red Gate, RED GATE, Expected RED:,
+      todo!() phrase forms, are/is todo!() stub(s), currently asserts,
       falls to the wildcard, doesn't exist yet, does not exist yet, currently has NO,
       currently fall, currently satisfied by, will be GREEN currently — plus any stale
       count values this story changes. Fix ALL TIER-1 hits.
-      Additionally, check TIER-2 tokens (falls through to, falls to `_`, is expected to,
+      NOTE (v6 F-W86S-P6-009/010): "RED:", "RED-phase", "RED reason", "RED because"
+      are TIER-2 — do NOT treat as zero-FP TIER-1; check context before flagging.
+      Additionally, check TIER-2 tokens (RED:, RED-phase, RED reason, RED because,
+      falls through to, falls to `_`, is expected to,
       no .* arm, not yet implemented, currently FAILS/currently fails, MUST FAIL bare)
       with context: fix only if the phrase falsely claims an absent implementation on
       PASSING code; skip if it accurately describes shipped behavior, appears in a
@@ -1421,7 +1527,7 @@ policies:
       2 and 3 caught via fresh-context + BC-completeness sweep.
     added: "2026-06-15"
     last-extended: "2026-07-25"
-    version: v5
+    version: v6
     derived-from: >
       PG-ARP-F4-REDBANNER-SWEEP (STORY-112); PG-ARP-F4-STALE-SKELETON-DOC (STORY-113);
       STORY-114 Step-4.5 F-1/F-2/F-3 (codified 2026-06-15 in lessons.md);
@@ -1478,7 +1584,31 @@ policies:
       currently" adjudicated KEEP — 0 live hits confirmed, phrase ungrammatical
       and cannot produce FPs, origin was D-506/wave-85 pass-2 expansion not a
       real D-506 stale phrase, retained because STORY-183 v1.3 already specifies
-      it; adjudication note added inline)
+      it; adjudication note added inline); extended v6 2026-07-25
+      (F-W86S-P6-009 MEDIUM + F-W86S-P6-010 MEDIUM [process-gap]:
+      moved "RED:" / "RED-phase" / "RED reason" / "RED because" from
+      TIER-1 to TIER-2 — tool never implemented these as patterns;
+      tool's shipped GOOD_CASE [bin/test_check_green_doc_tense.py:382-384]
+      asserts "RED-phase:" is NOT flagged; 15 of 17 tree hits are legitimate
+      past-tense provenance in bc_2_01_story126_spb_tests.rs; TIER-1 as v5
+      written was un-implementable without breaking a shipped GOOD_CASE;
+      grep evidence recorded per STANDING VERIFICATION RULE [2026-07-25]:
+      "\bRED:" tests/: 1 hit [iec104_analyzer_tests.rs:6271 stale],
+      "\bRED-phase" tests/: 15 hits [ALL legitimate provenance],
+      "\bRED reason" all: 0 hits, "\bRED because" all: 1 hit
+      [modbus_detection_tests.rs:2480 stale];
+      retained zero-FP TIER-1 subset: "Expected RED:" [grep-verified 0 hits;
+      Pattern 30 per STORY-183 AC-183-003];
+      live-site adjudications: iec104_analyzer_tests.rs:6271 STALE [FIX-P4-001
+      shipped; "current code sets direction: None" is false; scrub deferred,
+      owner next maintenance sweep]; modbus_detection_tests.rs:2480 STALE
+      [pre-STORY-141 stub replaced; "RED because: stub uses wrapping_sub"
+      + header "RED conditions (vs. current stub):" stale; scrub deferred];
+      "Expected RED:" added to §(d) TIER-1 text; bare RED tokens added to
+      §(d) TIER-2 text and enforcement grep list; enforcement grep list
+      updated: "RED:", "RED-phase" removed from TIER-1 list, moved to TIER-2
+      NOTE; STORY-183 Notes must add 2 deferred scrub sites [story-writer
+      propagation required])
 
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment
