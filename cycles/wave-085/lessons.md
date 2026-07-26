@@ -37,6 +37,17 @@ Process-gaps: 5 entries (PG-W85-001..005); 0 FIXED in-cycle; 5 deferred to DF-VA
 3. **Gitignored machine-local e2e fixtures produce false-green cargo test in clean worktrees (PG-W85-005)** — Gate 1 initially failed with ITI e2e count 31-vs-66. Root cause: machine-local IEC-104 ITI corpus files are git-ignored (large real-capture files). On the fixture host, cargo test sees 66 timed tests; in any clean worktree or CI environment it silently runs only 31 without warning. The discrepancy was invisible until the gate evaluation on the fixture-bearing host.
    _Discovered: D-510, 2026-07-24. Disposition: deferred → DF-VALIDATION-001 batch. Candidate fixes: (a) gate-entry fixture-count sweep step; (b) fixture manifest with skip-reporting; (c) committed small representative fixtures (licensing/size decision required)._
 
+> **CORRECTION (2026-07-25, F-W86S-P3-014):** The phrase "cargo test sees 66 timed tests; in
+> any clean worktree or CI environment it silently runs only 31" mischaracterizes the failure
+> mode. The numbers 31 and 66 are **finding counts from a single test's assertion** (the ITI
+> timed-capture assertion asserting 31 captures vs. the actual 66 present on the fixture host),
+> not the number of test functions run. The D-510 G1 FAIL occurred **on the fixture-bearing
+> host** (the test asserted 31 but found 66 in the locally-populated corpus). A clean-worktree
+> or CI environment produces the opposite failure: the git-ignored corpus files are absent, so
+> the iterated tests are silently skipped and the count assertion never fires — producing a
+> **false PASS** (zero failures), not a 31-test run. The lesson's intent (false-green on clean
+> checkout) is correct; the mechanism description was inverted.
+
 ---
 
 ## Infrastructure-Level
@@ -46,6 +57,18 @@ Process-gaps: 5 entries (PG-W85-001..005); 0 FIXED in-cycle; 5 deferred to DF-VA
 
 5. **green-doc-tense gate misses "Expected RED:" / "currently falls through" stale-phrasing class (PG-W85-003)** — The `bin/check-green-doc-tense` pattern set does not cover the `Expected RED:` heading pattern or the `"currently falls through"` body-phrase class. During STORY-180 per-story adversarial pass 1, the adversary found 9 stale present-tense sites that had passed the Step-4 gate. The gate exited 0 with no flag.
    _Discovered: D-506, 2026-07-24. Disposition: deferred → DF-VALIDATION-001 batch. Tooling fix required: extend bin/check-green-doc-tense with zero-false-positive patterns for both phrase classes._
+
+> **CORRECTION (2026-07-25, F-W86S-P3-014):** The phrase classes stated above are inaccurate.
+> The 9 stale D-506 sites used **`currently asserts`** and **`is expected to`** (per
+> `cycles/wave-085/STORY-180/convergence-report.md` lines 63-66: "9 sites in the IEC-104 test
+> file retained `currently asserts`, `is expected to`, and similar RED-phase phrasing").
+> The labels `Expected RED:` and `currently falls through` originated in the PG-W85-003
+> process-gap observation appended to the same convergence report — they described a
+> **broader** phrase class the gate should cover, not the exact text of the 9 stale sites.
+> The lesson summary conflated the two, and STORY-183 v1.0/v1.1 inherited the inaccurate
+> labels, leading to F-W86S-P2-001 CRIT (Patterns 30/31 matched zero of the 9 real stale
+> sites). Corrected in wave-86 pass-2/pass-3 (STORY-183 v1.2/v1.3,
+> DF-GREEN-DOC-TENSE-SWEEP v3/v4 policy).
 
 ---
 

@@ -526,6 +526,29 @@ zero-false-positive patterns for the `Expected RED:` heading class and the
 composed scope) — and consider contributing the resulting pattern set back to #682 as
 field data, since #682's own pattern list omits both classes.
 
+> **CORRECTION (2026-07-25, F-W86S-P3-014):** The causal claim "which is why the gate exited
+> 0 on the 9 stale sites the STORY-180 pass-1 adversary found" is **falsified by the primary
+> finding record**. `cycles/wave-085/STORY-180/convergence-report.md` lines 63-66 documents
+> that the 9 stale sites used `currently asserts`, `is expected to`, and similar RED-phase
+> phrasing — phrase classes that `bin/check-green-doc-tense` does **not** cover, but are
+> distinct from `Expected RED:` and `currently falls through`. The grep confirmation in this
+> section ("grepping the script for `Expected RED` and `falls through` returns no matches")
+> verified the gap for those two labels without verifying them as the actual stale text.
+>
+> The broader verdict (LOCAL-CARRY-FORWARD, same script, deliver with PG-W84-010) remains
+> valid. The scope was corrected in wave-86 pass-2/pass-3: STORY-183 v1.2 (DF-GREEN-DOC-
+> TENSE-SWEEP v3) dropped Patterns 30/31 (`currently falls through`, `is expected to`) from
+> the TIER-1 automated set, re-tiered them TIER-2, and STORY-183 v1.3 (DF-GREEN-DOC-TENSE-
+> SWEEP v4) re-anchored the TIER-1 set to patterns verified by grep evidence.
+>
+> **This is the third instance of the lesson-summary-vs-finding-record failure mode** flagged
+> in Cross-Finding Observation 3 of this report (§3, finding 3): "Two findings' stated
+> mechanisms did not survive verification." PG-W85-003 was captured from the lesson-summary
+> description rather than from the convergence-report primary record, causing the mechanism
+> ("phrase class") to diverge from ground truth. The proposed fix — requiring a
+> *verified locus* field (file path + line, read at capture time) — would have prevented this
+> propagation.
+
 ---
 
 ### PG-W85-004 — pr-manager must not attempt self-approval on its own PR

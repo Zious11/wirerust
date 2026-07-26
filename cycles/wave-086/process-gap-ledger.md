@@ -176,6 +176,99 @@ the canonical tracking entry. This row notes the scope extension only.
 
 ---
 
+---
+
+## PG-W86-004 — policy tier/token assertions must carry grep-verified evidence at ruling time
+
+**Class:** PO policy-discipline / evidence grounding
+**Caught by:** Wave-86 adversarial pass 3 (F-W86S-P3-001 CRIT) + pass 2 arc (F-W86S-P2-006 HIGH)
+**Severity:** CRIT (the CRIT finding it produced — F-W86S-P3-001 — falsified 3 TIER-1 tokens
+  that would have generated 16 false positives on a deployed tool)
+**Occurrences:** 2 consecutive passes (P2 F-W86S-P2-006 identified the policy gap; P3
+  F-W86S-P3-001 found the v3 policy had not fixed it — asserted "0 live uses" without grep)
+**Source findings:** F-W86S-P2-006 (HIGH, pass 2) + F-W86S-P3-001 (CRIT, pass 3)
+**Vehicle:** Local carry-forward (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+When the PO authors or updates a phrase-tier policy document (DF-GREEN-DOC-TENSE-SWEEP or
+analogous), tier assignments must be supported by grep-verified evidence recorded inline.
+"TIER-1: zero live uses" is not a valid assertion unless accompanied by:
+
+```
+grep -r "phrase" src/ tests/ bin/   # → 0 matches (YYYY-MM-DD)
+```
+
+In wave-86, the PO authored DF-GREEN-DOC-TENSE-SWEEP v3 with three "0 live uses" TIER-1
+assertions that were falsified by a 30-second grep (16 live hits). The v4 policy established
+a standing rule: **un-grepped tier assignment is itself a policy violation**.
+
+This is a recurring defect: pass-2 F-W86S-P2-006 identified the lack of grep verification,
+pass-3 F-W86S-P3-001 found the v3 policy had not remedied it. The v4 standing rule is now
+the policy-level codification; this PG entry tracks the process-improvement obligation.
+
+### Proposed Fix
+
+Add to the PO agent's policy-authoring checklist:
+
+> For every TIER-1 token asserted as "zero live uses" or "zero false positives": execute
+> `grep -r "phrase" src/ tests/ bin/` and record the command + output (including 0-match
+> output) inline in the policy document. An asserted count without a recorded grep command
+> is a policy violation per DF-GREEN-DOC-TENSE-SWEEP v4 standing rule.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Now codified as standing rule in
+DF-GREEN-DOC-TENSE-SWEEP v4 (policies.yaml). DF-VALIDATION-001 required before filing
+upstream vsdd-factory issue.
+
+---
+
+## PG-W86-005 — fictional-invocation class recurred within one story across revisions
+
+**Class:** Story-writer / AC discipline — tool invocation contract verification
+**Caught by:** Wave-86 adversarial pass 3 (F-W86S-P3-003 HIGH)
+**Severity:** HIGH (AC specified a non-existent CLI surface; would fail immediately on delivery)
+**Occurrences:** Pass-1 remediated one fictional-invocation (F-W86S-P1-001 CRIT — fictional
+  CLI arg surface). Pass-3 found a second, different fictional invocation in the same story
+  (F-W86S-P3-003 — `changelog-gate-check --stdin` flag does not exist).
+**Source finding:** F-W86S-P3-003 (HIGH, pass 3)
+**Vehicle:** Local carry-forward (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+L-W84-002 (wave-84 lessons) codified the fictional-invocation class: story-writer must
+verify the CLI surface of every cited tool by reading the tool's help text or source before
+writing ACs. STORY-183 demonstrated that this class can recur within a single story across
+multiple revisions:
+
+- **Pass-1 F-W86S-P1-001 (CRIT):** Fictional `--glob bin/*.py` CLI argument — fixed in v1.1.
+- **Pass-3 F-W86S-P3-003 (HIGH):** Fictional `changelog-gate-check --stdin` flag — not caught
+  in v1.1 or v1.2 because the pass-1 fix targeted a different tool invocation.
+
+The class is tool-specific: fixing one fictional invocation does not guarantee other cited
+tools in the same story have been verified. The story-writer needs a per-tool verification
+step, not a per-finding fix.
+
+### Proposed Fix
+
+Extend L-W84-002 to explicitly state: **"verify the invocation contract of every cited tool
+in the story, not only the tool whose invocation was flagged."** After pass-1 remediation of
+a fictional-invocation finding, the story-writer must sweep all other `bin/` tool references
+in the same story and verify each one against the tool's actual CLI surface (help text or
+source) before declaring the story remediated.
+
+This is an extension of the existing L-W84-002 class, not a new class. The extension
+ensures the verification scope is story-wide, not finding-local.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Extends L-W84-002 scope. DF-VALIDATION-001
+required before determining vehicle (local story-writer checklist vs. upstream vsdd-factory
+issue).
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -183,3 +276,5 @@ the canonical tracking entry. This row notes the scope extension only.
 | PG-W86-001 | HIGH | carry-forward, S-7.02 | Local (DF-VALIDATION-001 before filing) |
 | PG-W86-002 | HIGH | carry-forward, S-7.02 | Local, extends PG-W84-010 (DF-VALIDATION-001 before filing) |
 | PG-W86-003 | MEDIUM | adjacent, scope extension of PG-W84-012 | Ops task (devops-engineer, separate from STORY-183) |
+| PG-W86-004 | CRIT | carry-forward, S-7.02 | Local (DF-VALIDATION-001 before filing upstream) |
+| PG-W86-005 | HIGH | carry-forward, S-7.02 | Local, extends L-W84-002 (DF-VALIDATION-001 before filing) |
