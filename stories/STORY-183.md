@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.1"
+version: "2.2"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -96,7 +96,8 @@ Pattern 1 through Pattern 29 in the module docstring token list. **Ground truth 
 stale sites used `currently asserts` and `is expected to` — NOT `Expected RED:` /
 `currently falls through`. The lesson summary AND the PG-W85-003 paragraph at
 convergence-report.md lines 68-70 both carried broader (incorrect) labels. Lines 63-66 are
-the sole authoritative source for the specific D-506 token set.
+the primary citation for the specific D-506 token set; the citation is non-exhaustive and
+the zero-live-hit greps are the mechanical backstop for confirming token absence.
 
 The following TIER-1 tokens (zero-FP automatable, 0 live legitimate uses each) are absent
 from the existing 28 tuples (confirmed by grep of `bin/check-green-doc-tense`):
@@ -194,15 +195,16 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
 
 - Given `_collect_rust_files()` at line ~466 currently runs `git ls-files -- tests/*.rs src/**/*.rs`
   and filters with `line.endswith(".rs")`, excluding all Python files including `bin/*.py`;
-  additionally `src/**/*.rs` NEVER matches top-level `src/*.rs` files (git wildmatch `**`
-  requires an intermediate directory component — `src/mitre.rs`, `src/lib.rs`, etc. are
-  silently unscanned; F-W86S-P9-009, wave-86)
+  additionally, under git's default pathspec matching (without `:(glob)` magic), `src/*.rs`
+  crosses directory separators and covers all `.rs` files under `src/`, subsuming
+  `src/**/*.rs`; `src/**/*.rs` is retained in the merged invocation for explicit-intent
+  redundancy; git ls-files de-duplicates index entries so no double-count (F-W86S-P12-006)
 - When the function is renamed from `_collect_rust_files` to `_collect_source_files` and
   extended to use a SINGLE merged invocation `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py`
-  and include entries ending with `.py` (for Python); the merged invocation also corrects the
-  `src/**/*.rs` blind spot for top-level `src/*.rs` files (F-W86S-P9-009, wave-86); a single
-  invocation is required — the collector does NOT de-duplicate, so two separate invocations
-  would double-count files matched by multiple globs
+  and include entries ending with `.py` (for Python); under git's default pathspec matching,
+  `src/*.rs` crosses directory separators and covers all of src/, subsuming `src/**/*.rs`;
+  `src/**/*.rs` is retained for explicit-intent redundancy; git ls-files de-duplicates index
+  entries so the merged invocation cannot double-count (F-W86S-P12-006)
 - And the rename is propagated to 13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total) in `bin/test_check_green_doc_tense.py`
   (6 functional monkey-patch sites at approximately :699/:707/:726/:859/:872/:905;
   7 `_collect_rust_files` prose sites at approximately :688,:705,:711,:718,:839,:843,:891;
@@ -223,8 +225,9 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   one entry satisfying `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
   `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` (class assertion;
   `mitre.rs` is the illustrative example but any top-level `src/*.rs` file satisfies it).
-  This assertion CANNOT pass unless `src/*.rs` is in the glob, because `src/**/*.rs` alone
-  would never match `src/mitre.rs` (git wildmatch blind spot, F-W86S-P9-009)
+  This assertion verifies that top-level `src/*.rs` files appear in the scanned set;
+  under git's default pathspec matching, `src/*.rs` crosses directory separators so both
+  globs cover the same files — `src/*.rs` is explicitly listed for readability (F-W86S-P12-006)
 
 - Then `python3 bin/check-green-doc-tense` (bare invocation — no file arguments; main() uses
   git ls-files internally) exits non-zero when any `bin/*.py` file contains a pattern match
@@ -569,7 +572,7 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   ("Pattern 32: currently asserts violation (.py form)",
    "# the iec104 decoder currently asserts a valid ASDU header\n",
    "Pattern 32", ".py"),
-  # Pattern 32 GOOD (no "currently asserts"):
+  # Pattern 32 GOOD (allowlist — present-tense assertion-state phrase absent):
   ("Pattern 32 allowlist: past tense — the decoder verified the header",
    "// the decoder verifies that each ASDU header is valid after processing\n"),
   # Pattern 33 BAD (.rs):
@@ -580,7 +583,7 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   ("Pattern 33: falls to the wildcard violation (.py form)",
    "# the unrecognized packet falls to the wildcard arm for logging\n",
    "Pattern 33", ".py"),
-  # Pattern 33 GOOD (no "falls to the wildcard"):
+  # Pattern 33 GOOD (allowlist — wildcard-arm fallthrough phrase absent):
   ("Pattern 33 allowlist: different routing — forwarded to default handler",
    "// the unrecognized packet is forwarded to the default handler branch\n"),
   # Pattern 34 BAD (.rs):
@@ -594,21 +597,21 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   ("Pattern 35: currently has NO violation (.rs form)",
    "// the TLS dissector currently has no SNI extraction logic\n",
    "Pattern 35"),
-  # Pattern 35 GOOD (no "currently has no"):
+  # Pattern 35 GOOD (allowlist — present-tense absence claim absent):
   ("Pattern 35 allowlist: different phrasing — lacks",
    "// the TLS dissector lacks SNI extraction for DTLS traffic\n"),
   # Pattern 36 BAD (.rs):
   ("Pattern 36: currently satisfied by violation (.rs form)",
    "// the invariant is currently satisfied by the no-op stub placeholder\n",
    "Pattern 36"),
-  # Pattern 36 GOOD (no "currently satisfied by"):
+  # Pattern 36 GOOD (allowlist — passive stub-status phrase absent):
   ("Pattern 36 allowlist: production implementation",
    "// the invariant is enforced by the production TCP-state machine\n"),
   # Pattern 37 BAD (.rs):
   ("Pattern 37: will be GREEN currently violation (.rs form)",
    "// this gate will be GREEN currently because the check is bypassed\n",
    "Pattern 37"),
-  # Pattern 37 GOOD (no "will be GREEN currently"):
+  # Pattern 37 GOOD (allowlist — conditional present-RED tense claim absent):
   ("Pattern 37 allowlist: future tense without currently",
    "// this gate will be GREEN after the implementation ships\n"),
   ```
@@ -650,6 +653,15 @@ clean-pass requirement.
 
 - Then `python3 bin/test_check_green_doc_tense.py` exits 0 with all Pattern 32–37 BAD cases
   flagged and all three TIER-2 GOOD_CASEs clean (tool does NOT flag them)
+
+**No-literal-phrase sweep obligation (F-001 — 5th recurrence prevention):** The Task-4/Task-6
+rule (no literal flagged phrase in any in-source `#` comment) applies to EVERY `#` comment
+this story prescribes for `bin/test_check_green_doc_tense.py`. No annotation line in the
+fixture block above may match any of the 36 patterns (8 new Patterns 30–37 + 28 existing
+Patterns 1–29). The fixture-block annotations have been worded to DESCRIBE the allowlist
+condition without quoting the literal phrase (e.g., "allowlist — present-tense assertion-state
+phrase absent" instead of `no "currently asserts"`). Implementer obligation: verify the
+prescribed Python block for every TIER-1 token — zero `#` annotation lines may match.
 
 Verification:
 ```bash
@@ -714,11 +726,12 @@ python3 bin/check-green-doc-tense
 
 `python3 bin/test_lint_cycle_artifact.py` MUST exit 0 (all self-tests pass) at delivery time.
 CI wiring for this selftest file is tracked under PG-W84-012 AS EXTENDED at D-525 per
-F-W86S-P9-012, which covers both: (a) required-status-check registration for the
-`bin-selftest` job, and (b) adding `bin/test_lint_cycle_artifact.py` as a step in that job.
-The selftest runs locally only until part (b) lands — do NOT add a CI wiring task for this
-story; that remains the PG-W84-012 (D-525) ops task pending devops-engineer dispatch and
-human authorization.
+F-W86S-P9-012, which covers all three: (a) required-status-check registration for the
+`bin-selftest` job, (b) adding `bin/test_lint_cycle_artifact.py` as a step in that job,
+AND (c) adding `bin/test_compute_input_hash.py` as a step in that job.
+The selftest runs locally only until parts (b) and (c) land — do NOT add a CI wiring task
+for this story; that remains the PG-W84-012 (D-525) ops task pending devops-engineer
+dispatch and human authorization.
 
 - Given `bin/test_lint_cycle_artifact.py` is modified by Task 13 (4-line scrub at lines :3, :5,
   :6, :125) as part of this story
@@ -726,16 +739,34 @@ human authorization.
   scrub
 - Then the command MUST exit 0 with the same pass count as before the scrub (the scrub is a
   pure text rewording — no test logic changes; the TC count remains 21)
+- And the following mechanical grep predicates ALL return 0 — these fail exactly when
+  Task 13 is skipped:
+  ```bash
+  grep -c "RED GATE version" bin/test_lint_cycle_artifact.py       # MUST be 0
+  grep -c "MUST FAIL until bin/lint-cycle-artifact" bin/test_lint_cycle_artifact.py  # MUST be 0
+  grep -c "TC1–TC8" bin/test_lint_cycle_artifact.py                # MUST be 0
+  ```
+  (The en-dash in `TC1–TC8` must match the literal character in the file; use the exact
+  phrase from the source. These three checks fail if and only if Task 13's 4-line scrub
+  was not applied — lines :3, :5, :6, and :125 of `bin/test_lint_cycle_artifact.py`.)
 - And CI wiring for this file is explicitly NOT added in this story's PR (see PG-W84-012
-  extended at D-525 for the ops-task tracking both (a) `bin-selftest` required-status-check
-  registration and (b) adding `bin/test_lint_cycle_artifact.py` as a step)
+  extended at D-525 for the ops-task tracking all three: (a) `bin-selftest`
+  required-status-check registration, (b) adding `bin/test_lint_cycle_artifact.py` as a
+  step, and (c) adding `bin/test_compute_input_hash.py` as a step)
 
 Verification:
 ```bash
 python3 bin/test_lint_cycle_artifact.py
 # Must exit 0; pass count must be 21 (TC1–TC21 unchanged by the scrub)
+
+grep -c "RED GATE version" bin/test_lint_cycle_artifact.py       # Must output: 0
+grep -c "MUST FAIL until bin/lint-cycle-artifact" bin/test_lint_cycle_artifact.py  # Must output: 0
+grep -c "TC1–TC8" bin/test_lint_cycle_artifact.py                # Must output: 0
+# All three MUST be 0 — fail exactly when Task 13 scrub was skipped
+
 # CI wiring: NOT wired in this story — deferred to PG-W84-012 (D-525) ops task
-# covers (a) required-status-check registration + (b) bin/test_lint_cycle_artifact.py step
+# covers (a) required-status-check registration + (b) bin/test_lint_cycle_artifact.py
+#   step + (c) bin/test_compute_input_hash.py step
 ```
 
 ## Architecture Mapping
@@ -807,9 +838,11 @@ Well within context window. No story split required.
 2. **Rename and extend `_collect_source_files()` glob (AC-183-001):** Rename
    `_collect_rust_files` to `_collect_source_files` (mandatory — no "(or annotate)"
    alternative). Replace the existing Rust-only glob with a SINGLE merged invocation
-   `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py` (correcting the `src/**/*.rs`
-   blind spot for top-level src files — F-W86S-P9-009; a single invocation prevents
-   double-counting since the collector does NOT de-duplicate). Accept `.py` endings.
+   `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py` (under git's default pathspec
+   matching, `src/*.rs` crosses directory separators and covers all of src/, subsuming
+   `src/**/*.rs`; `src/**/*.rs` is retained for explicit-intent redundancy; git ls-files
+   de-duplicates index entries so the merged invocation cannot double-count —
+   F-W86S-P12-006). Accept `.py` endings.
    Update `main()` call site. Update the pass-message at ~591: rename the local variable
    from `rust_files` to `source_files` (variable rename only).
    Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
@@ -826,10 +859,11 @@ Well within context window. No story split required.
    avoids mitre.rs-literal fragility; `mitre.rs` is illustrative only). This assertion
    cannot pass with only `src/**/*.rs` in the glob — see AC-183-001 F-W86S-P9-009.
    **Propagate rename inside `bin/check-green-doc-tense` itself:**
-   - Function docstring at lines :466-473 (and module docstring at line :4) — update scope
+   - Function docstring at lines :466-474 (and module docstring at line :4) — update scope
      descriptions to enumerate the full pathspec: "tests/*.rs, src/**/*.rs, src/*.rs, and
-     bin/*.py" (all four globs must be listed so src/*.rs coverage is explicit — matching
-     the single `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py` invocation)
+     bin/*.py" (under git's default pathspec, `src/*.rs` crosses directory separators and
+     covers all of src/; `src/**/*.rs` is retained for explicit-intent redundancy; git
+     ls-files de-duplicates — all four globs listed for clarity — F-W86S-P12-006)
    - Local variable `rust_files` at :556 → rename to `source_files` throughout the function
    - Error string at :558-560 (`"no tracked Rust files found"`) → update to
      `"no tracked source files found"` (covers both `.rs` and `.py`)
@@ -952,11 +986,23 @@ Well within context window. No story split required.
    the df-validation self-application smoke test confirming PG-W84-010 is exercised end-to-end.
 
 10. **Sibling-prose sweep (F-009):**
-    - `bin/check-green-doc-tense` module docstring (lines 2–4 scope text, lines 26–30 TOKEN LIST
-      preamble, lines 87–88 comment-anchoring note, ALLOWLIST heading at ~:90): update scope
-      declarations from "tests/*.rs and src/**/*.rs" to enumerate all four globs: "tests/*.rs,
-      src/**/*.rs, src/*.rs, and bin/*.py" (src/*.rs must appear explicitly — it was the missing
-      glob from the F-W86S-P9-009 blind spot). Update token list to document Patterns 30–37.
+    - `bin/check-green-doc-tense` module docstring (line 4 scope text, lines 26–30 TOKEN LIST
+      preamble, ALLOWLIST heading at ~:90): update scope declarations from "tests/*.rs and
+      src/**/*.rs" to enumerate all four globs: "tests/*.rs, src/**/*.rs, src/*.rs, and
+      bin/*.py" (under git's default pathspec, `src/*.rs` crosses directory separators and
+      covers all of src/; `src/**/*.rs` is retained for explicit-intent redundancy; git
+      ls-files de-duplicates — all four globs listed for clarity — F-W86S-P12-006).
+      Update token list to document Patterns 30–37.
+    - Lines 87–88 (comment-anchoring note in `bin/check-green-doc-tense`): rewrite to
+      describe suffix-aware comment anchoring (F-007 / F-W86S-P12-007). The current text
+      falsely claims anchoring is "to comment lines (leading `//` or `//!`) ... to avoid
+      false-positives ... inside string literals." After this story: anchors are `//`
+      (all files) and `#` (`.py` files, suffix-scoped); string-literal false-positives DO
+      occur — the 42-site remediation (Tasks 4 and 5) exists precisely because of them.
+      Rewrite :87-88 to: (a) state that `_is_comment_line` now accepts a `suffix` parameter
+      and returns True for `//` on all files and `#` on `.py` files only; (b) note that
+      string-literal comment-shaped lines (e.g., BAD_CASES fixtures with `//` content lines)
+      ARE flagged by design — see EC-005 and Task 5 for the remediation protocol.
     - Lines :577 ("in test files" failure summary) and :581–585 (explanatory prose): update
       scope descriptions from "test files" to "source files" to include `bin/*.py`.
     - `.github/workflows/ci.yml` stale prose sites (COMMENT-ONLY changes; functional job
@@ -1077,14 +1123,23 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   intermediate state — the self-test FAILS (RED) because BAD_CASES contain TIER-1 phrases
   that no yet-added pattern matches. Then add the 8 pattern tuples (Task 6) and re-run —
   the self-test passes (GREEN). Required task ordering: Task 1 (baseline confirm) →
-  Tasks 7/8 (BAD_CASES — creates RED) → run self-test (observe FAIL) → Task 6 (pattern
-  tuples — clears RED) → run self-test (GREEN) → remaining Tasks 2–5/9–13.
+  Task 3 (suffix-aware `_is_comment_line` extension — required BEFORE RED, because 4 of
+  the 12 BAD_CASES are `.py` 4-tuples that cannot clear until the `suffix` param exists;
+  without Task 3 those cases never flag even after Task 6 adds the patterns, making the
+  GREEN checkpoint unreachable) → Tasks 7/8 (BAD_CASES — creates RED) → run self-test
+  (observe FAIL) → Task 6 (pattern tuples — clears RED) → run self-test (GREEN) →
+  remaining Tasks 2/4/5/9–13.
 - **Points rationale (5 pts):** Expanded from 3 pts (v1.0/v1.1) due to: (a) 8 new patterns
   (vs 2 originally; 11 proposed in v3, 3 falsified to TIER-2 in v4), (b) ~40 multi-line
   fixture conversions to single-line form, (c) 20+ new BAD/GOOD self-test cases. The
   40-fixture restructure is the primary scope driver. Point count unchanged from v1.2.
 - **Develop PR:** All ACs can be batched in a single develop PR. CHANGELOG entry required
   (`bin/` changes trigger AC-158-001). No new CI step added.
+  **Sibling story (STORY-182) also touches `.github/workflows/ci.yml`** in disjoint
+  regions: STORY-183 edits comment lines :434/:442 + step-name line :462 only (non-functional);
+  STORY-182 edits the test job ~:40-47 adding an additive `cargo test` run step.
+  Merge order is irrelevant — the two edit regions do not overlap — but a rebase is required
+  if both PRs are in flight simultaneously to avoid merge conflicts from adjacent line changes.
 - **Story scope clarification (F-007, F-W86S-P3-001):** Retitled from "Full TIER-1 Token
   Coverage" to "TIER-1 Behavioral-Absence Token Coverage". Residual TIER-1 tokens NOT covered
   by this story:
@@ -1102,15 +1157,18 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 - **Deferred scrub obligation (F-W86S-P6-009/010, v6 ruling):** Two live stale sites
   adjudicated at wave-86 pass-6: `iec104_analyzer_tests.rs:6271` and
   `modbus_detection_tests.rs:2472/:2480` — owner: next maintenance sweep.
-- **FP budget for newly-in-scope `src/*.rs` files (F-P11-012):** The 10 top-level `src/*.rs`
-  files brought in-scope by the `src/*.rs` glob extension were audited: grep of `^\s*//`
-  comment lines against all 36 TIER-1 patterns → 0 matches as of commit `e8841d76`. The glob
-  extension introduces no new false positives.
+- **FP budget for `src/*.rs` glob (F-P11-012, F-W86S-P12-006):** Under git's default pathspec
+  matching, `src/*.rs` crosses directory separators and covers all `.rs` files under `src/`
+  (not only top-level files); `src/**/*.rs` is retained for explicit-intent redundancy; git
+  ls-files de-duplicates so no double-count. The top-level `src/*.rs` files were spot-checked
+  as the primary newly-explicit entries: grep of `^\s*//` comment lines against all 36 TIER-1
+  patterns → 0 matches as of commit `e8841d76`. No new false positives.
 
 ## Changelog
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.2 | 2026-07-26 | story-writer | WAVE-86 PASS-12 REMEDIATION — F-W86S-P12-001 HIGH (AC-183-007 fixture-block #-annotations at 5 loci reworded to DESCRIBE without quoting literal flagged phrases: Pattern 32 GOOD → "allowlist — present-tense assertion-state phrase absent"; Pattern 33 GOOD → "allowlist — wildcard-arm fallthrough phrase absent"; Pattern 35 GOOD → "allowlist — present-tense absence claim absent"; Pattern 36 GOOD → "allowlist — passive stub-status phrase absent"; Pattern 37 GOOD → "allowlist — conditional present-RED tense claim absent"; sweep clause added to AC-183-007 mandating no-literal-phrase discipline for every # comment prescribed for bin/test_check_green_doc_tense.py); F-W86S-P12-003 MED (tdd_mode RED ordering: Task 3 inserted into pre-RED segment — "Task 1 → Task 3 → Tasks 7/8 → RED → Task 6 → GREEN → remaining Tasks 2/4/5/9-13"; rationale: 4 of 12 BAD_CASES are .py 4-tuples that cannot clear until Task 3 suffix param exists); F-W86S-P12-005 MED (AC-183-009 Then-clause: 3 mechanical grep predicates added — grep -c "RED GATE version", "MUST FAIL until bin/lint-cycle-artifact", "TC1–TC8" each MUST be 0; stated as failing exactly when Task 13 is skipped); F-W86S-P12-006 LOW (git pathspec semantics corrected at 5 loci: AC-183-001 Given clause, AC-183-001 When clause, AC-183-001 assertion note, Task 2 invocation rationale, Task 2 docstring scope — false claim that src/**/*.rs has a top-level blind spot replaced with correct semantics: src/*.rs under git wildmatch crosses directory separators and covers all of src/, src/**/*.rs retained for explicit-intent redundancy, git ls-files de-duplicates; Notes FP budget note updated); F-W86S-P12-007 LOW (Task 10: instruction added to rewrite bin/check-green-doc-tense:87-88 to describe suffix-aware comment anchoring // + # and note string-literal false-positives are flagged by design per EC-005/Task 5); F-W86S-P12-010 LOW (AC-183-009: "covers both (a)/(b)" → "covers all three: (a) required-status-check registration, (b) bin/test_lint_cycle_artifact.py step, (c) bin/test_compute_input_hash.py step"; "until part (b) lands" → "until parts (b) and (c) land"; Verification comment updated); NIT-1 (Task 2 :466-473 → :466-474); NIT-2 (Task 10 "lines 2–4 scope text" → "line 4 scope text"); NIT-3 (Background §PG-W85-003 "sole authoritative source" softened to "primary citation; citation is non-exhaustive; zero-live-hit greps are the mechanical backstop"); F-W86S-P12-009 LOW (Notes §Develop PR: sibling story note added — STORY-182 also touches ci.yml in disjoint regions; rebase required if both PRs in flight). |
 | 2.1 | 2026-07-26 | story-writer | WAVE-86 PASS-11 REMEDIATION — F-P11-005 MED (AC-183-001 + Task 2: collapsed two-invocation pattern to single merged `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py`; explicit no-dedup note; Task 2 docstring scope updated to cite single invocation); NIT-fix 2 (AC-183-001 + Task 2: pass-message claim corrected to variable-rename-only); F-P11-014 LOW (AC-183-001: "N > previous Rust-only count" replaced with baseline-derivation command + class assertion `any(p.suffix == ".py" for p in files)`); F-P11-006 MED (AC-183-009: PG-W84-012 attribution extended to cite D-525 per F-W86S-P9-012, covering both (a) required-status-check registration and (b) bin/test_lint_cycle_artifact.py step; selftest-runs-locally-until-(b)-lands note added; Then clause + verification comment updated); NIT-fix 1 (ACR: "comment-only updates" → "non-functional edits only (lines :434, :442 comment lines + :462 step-name line)"); F-P11-007 MED (tdd_mode note rewritten: prescribes real automated RED via Tasks 7/8 BAD_CASES-first before Task 6 patterns; inverted-order manual-RED text removed); F-P11-012 LOW (Notes: zero-FP budget note added — 10 src/*.rs files audited, 0 matches against 36 patterns as of e8841d76); F-P11-013 LOW (Task 9: `git add <tmp>/...` → `git -C <tmp> add ...` with cwd note, both occurrences). |
 | 2.0 | 2026-07-26 | story-writer | WAVE-86 PASS-10 REMEDIATION — F-P10-002 MED (src/*.rs glob widening not propagated to three scope-prose sweep instructions: Task 2 :808-812 docstring scope updated to "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py"; Task 10 :931-934 scope declarations updated to include src/*.rs; Task 10 :939-943 ci.yml comment instructions updated to enumerate src/*.rs); F-P10-011 LOW (AC-183-001 :211-220 + Task 2 :800-807 self-test assertions clarified: repo_root derivation stated explicitly as `mod._find_repo_root(Path(mod.__file__).resolve().parent)` with hermetic-section monkey-patch note; mitre.rs-literal assertion replaced with class assertion `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` keeping mitre.rs as illustrative prose example); F-P10-010 LOW (tdd_mode: strict E-11 template note added in Notes). |
 | 1.9 | 2026-07-26 | story-writer | WAVE-86 PASS-9 REMEDIATION — F-P9-009 MED (AC-183-001 + Task 2: pathspec `src/**/*.rs` extended with `src/*.rs` to cover top-level src/*.rs files that git wildmatch `**` skips; self-test assertion added verifying a top-level src file is in the scanned set; points unchanged at 5); F-P9-010 MED (AC-183-007: explicit fixture strings added for all 8 BAD_CASE entries lacking them (Patterns 32 .rs/.py, 33 .rs/.py, 34 .rs, 35 .rs, 36 .rs, 37 .rs) and all 6 GOOD_CASE entries lacking them (Patterns 32-37); first-match-wins break-on-first pattern-priority constraint documented); F-P9-012 LOW (AC-183-009 added: `python3 bin/test_lint_cycle_artifact.py` MUST pass locally at delivery; CI wiring deferred to PG-W84-012 ops task); NIT-03 (AC-183-003 verification: added explicit `MUST exit non-zero` assertion for gate behavior when encountering a Pattern 30 match — aligns modal verb with AC-183-001 language). |

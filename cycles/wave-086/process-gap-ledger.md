@@ -837,7 +837,7 @@ Codification via DF-SIBLING-SWEEP-001 extension or story-writer skill update.
 
 ## Inert/Self-Referential-Predicate Class — Codification Tracking
 
-**Recurrence count: 4** (updated D-528, 2026-07-26)
+**Recurrence count: 5** (updated D-529, 2026-07-26)
 
 | Pass | Finding | Story | Direction | Description |
 |------|---------|-------|-----------|-------------|
@@ -845,10 +845,20 @@ Codification via DF-SIBLING-SWEEP-001 extension or story-writer skill update.
 | P5 | F-W86S-P5-001 | STORY-182 | vacuous-pass | fixture_path() test always-succeeds; no false-negative possible |
 | P9 | F-W86S-P9-003 | STORY-182 | vacuous-pass | include_str!(file!()) self-referential coupling — predicate tests itself |
 | P11 | F-W86S-P11-001 | STORY-182 | **false-FAIL** | concat!-needle: predicate fails for WRONG reason (prose occurrence in comments, not call-site count) |
+| P12 | F-W86S-P12-001 | STORY-183 | **false-FAIL** | AC-183-007 fixture-block annotations (:572/:583/:597/:604/:611) quoted 5 literal flagged phrases → story file in-scan post-delivery → 5 false FAILs; locus class: story-prescribed fixture annotations |
 
 **Class now covers both directions:**
-- **Vacuous-pass direction:** Predicate cannot fail regardless of subject state (prior 3 instances).
-- **False-FAIL direction:** Predicate fails but for spurious reasons unrelated to the subject (P11 instance).
+- **Vacuous-pass direction:** Predicate cannot fail regardless of subject state (instances P3/P5/P9).
+- **False-FAIL direction:** Predicate fails but for spurious reasons unrelated to the subject (P11/P12 instances).
+
+**P12 new locus class:** Story-prescribed fixture-block annotations quoting literal flagged phrases.
+Root cause: pass-9-added AC-183-007 block (F-P9-010) was never re-swept with the Task-4/6
+no-literal-phrase rule. Any pass that ADDS prose naming a scanned pattern must run the
+no-literal-phrase sweep over the added text before commit.
+
+**Standing discipline imposed D-529:** Any story-writer dispatch that adds prose naming a TIER-1
+scanned pattern MUST run the no-literal-phrase sweep over the added text before declaring the
+burst complete. This is now a mandatory dispatch step, not an optional one.
 
 **Mandatory codification question at S-7.02:** "What makes this predicate fail, and ONLY that?"
 Any predicate that either (a) cannot fail regardless of subject state OR (b) can fail for reasons
@@ -860,6 +870,10 @@ other than the intended subject failure is in this class.
 > intended behavior? List: (a) what must be true for it to fail, (b) what must be true for it
 > to pass. Any path to failure/pass not involving the intended subject is a self-referential
 > predicate defect."
+>
+> Additionally: for any AC prose that NAMES or QUOTES a phrase matching a TIER-1 pattern in
+> DF-GREEN-DOC-TENSE-SWEEP, run the no-literal-phrase sweep before committing. A phrase
+> quoted in a fixture annotation IS a literal occurrence in the scanned corpus.
 
 ---
 

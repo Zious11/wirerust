@@ -488,4 +488,59 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-528 pass-11 remediated, pass 12 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.07 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v2.1 (pass-11 remediated; HIGH = 4th self-referential-predicate recurrence); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-11 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 12 (fresh-context; STORY-182 v2.1 + STORY-183 v2.1) |
+
+### Resume Prompt
+
+```
+D-528 WAVE-86 ADVERSARIAL PASS 11 REMEDIATED (2026-07-26). 14 findings
+0C/1H/6M/7L (HIGH = 4th self-referential-predicate recurrence, pass-10-induced
+false-FAIL from prose needle in comments at :688/:692-693; fix = concat!
+("fixture_present", "(\"")); all 14 + 2 NIT-fixes applied (grep evidence
+PG-W86-010 + DF-SIBLING-SWEEP-001 + line-citation re-anchor sweep). Orchestrator
+rulings: F-002 factory-artifacts branch, F-005 single merged glob, F-006
+PG-W84-012-as-extended, F-007 real automated RED. PG-W86-013 extended +
+PG-W86-014 added. STORY-182 v2.1 (9a0f34c). STORY-183 v2.1 (9c9b12f).
+STORY-INDEX v4.06→v4.07. Canonical hashes 9a0f34c/9c9b12f. Streak 0/3.
+Pass 12 next. trajectory-tail →12→12→11→14.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire
+    test_lint_cycle_artifact.py/test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
