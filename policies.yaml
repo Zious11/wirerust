@@ -1091,29 +1091,46 @@ policies:
           MUST be enforced by bin/check-green-doc-tense in CI (add to
           _VIOLATION_PATTERNS when wave-86 stories deliver):
 
-            Core RED-gate phrase patterns (tool patterns 1-11):
+            NOTE (F-W86S-P4-004 v5 ruling 2026-07-25): Pattern numbering
+            is owned by bin/check-green-doc-tense's _VIOLATION_PATTERNS
+            registry. The policy names tokens by literal text, never by
+            number. All pattern-number annotations removed here to prevent
+            label-registry divergence when the tool renumbers.
+
+            Core RED-gate phrase patterns:
             "Red Gate" / "RED GATE" / "RED gate"
             "todo!()" [bare form; existing allowlist excludes past-tense]
-            "are/is todo!() stub(s)" [Pattern 25; not bare 'stub']
+            "are/is todo!() stub(s)" [not bare 'stub']
 
-            Bare RED marker patterns (tool patterns 12-15):
+            Bare RED marker patterns:
             "RED:" / "RED-phase" / "RED reason" / "RED because"
 
-            Wave-86 verified-zero TIER-1 additions (patterns 32-33, 35,
-            37-39; STORY-183; grep-verified 0 live hits on 2026-07-25):
-            "currently asserts"       # Pattern 32
-                                      # grep -rni "currently asserts" *.rs: 0 hits
-            "falls to the wildcard"   # Pattern 33
-                                      # grep -rni "falls to the wildcard" *.rs: 0 hits
-            "does not exist yet"      # Pattern 35
-                                      # grep -rni "does not exist yet" *.rs: 0 hits
-            "doesn't exist yet"       # Pattern 35 variant; 0 hits
-            "currently has NO"        # Pattern 37; 0 hits
-            "currently satisfied by"  # Pattern 38; 0 hits
-            "will be GREEN currently" # Pattern 39; 0 hits
-            "currently fall"          # Pattern 31 (currently fall[s]); 0 hits;
-                                      # tool explicitly excludes "falls through to"
-                                      # via GOOD_CASE in test_check_green_doc_tense.py
+            Wave-86 verified-zero TIER-1 additions (STORY-183;
+            grep-verified 0 live hits on 2026-07-25):
+            "currently asserts"       # grep -rni "currently asserts" *.rs: 0 hits
+            "falls to the wildcard"   # grep -rni "falls to the wildcard" *.rs: 0 hits
+            "does not exist yet"      # grep -rni "does not exist yet" *.rs: 0 hits
+            "doesn't exist yet"       # 0 hits
+            "currently has NO"        # 0 hits
+            "currently satisfied by"  # 0 hits
+            "will be GREEN currently" # 0 hits; F-W86S-P4-024 ADJUDICATION
+                                      # (v5 2026-07-25): KEEP as harmless
+                                      # dead weight. Grep-verified: 0 live
+                                      # hits anywhere in repo. Origin: added
+                                      # in v3 pass-2 expansion as one of the
+                                      # "currently X" pattern class; the real
+                                      # D-506 stale phrases were "currently
+                                      # asserts"/"is expected to" — this
+                                      # phrase never appeared in real output.
+                                      # Phrase is ungrammatical; cannot
+                                      # produce false positives. Retained
+                                      # because STORY-183 v1.3 already
+                                      # specifies it; removing would require
+                                      # story modification (out of scope).
+                                      # Flag for future rationalization.
+            "currently fall"          # tool explicitly excludes "falls through
+                                      # to" via GOOD_CASE in
+                                      # test_check_green_doc_tense.py
 
           TIER-1 TOKENS FALSIFIED BY ADVERSARY GREP (F-W86S-P3-001,
           2026-07-25) — originally listed TIER-1 in v3 without grep
@@ -1121,7 +1138,11 @@ policies:
           moved to TIER-2 in v4:
 
             "no .* arm"           # FALSIFIED 2026-07-25; 3 live hits:
-                                  # grep -rn "no \w* arm" --include="*.rs"
+                                  # grep -rni "no \w* arm" --include="*.rs"
+                                  # (corrected from -rn to -rni per F-W86S-P4-021
+                                  # v5 2026-07-25; case-sensitive form found only 2
+                                  # hits, missing dispatcher_tests.rs:1986 "No"
+                                  # capital-N)
                                   # → src/analyzer/modbus.rs:1271 ("no unreachable arm")
                                   #   src/mitre.rs:284 ("no wildcard arm is needed")
                                   #   tests/dispatcher_tests.rs:1986 ("No wildcard arm:")
@@ -1206,19 +1227,54 @@ policies:
                                      # tests/issue_342_flow_leak_regression_tests.rs:21
                                      # tests/bc_silent_resource_caps_tests.rs:13
                                      # Both are RED-gate test-file headers. Tool catches
-                                     # specific phrases ("All tests MUST FAIL" = Pattern 23,
-                                     # "FAIL(S) Red Gate" = Pattern 24); bare "they MUST
-                                     # FAIL" has no pattern yet. Adversary checks: if on
-                                     # a PASSING test, MEDIUM; if genuinely failing
-                                     # RED-gate header, skip.
+                                     # specific phrases "All tests MUST FAIL" and
+                                     # "FAIL(S) Red Gate" as TIER-1 forms (pattern
+                                     # labels are tool-registry-owned per F-W86S-P4-004);
+                                     # bare "they MUST FAIL" has no tool pattern yet.
+                                     # Adversary checks: if on a PASSING test, MEDIUM;
+                                     # if genuinely failing RED-gate header, skip.
 
           Pending-TIER-1 stub marker (grep-verified 0 live hits 2026-07-25;
           no tool pattern yet; pending addition after STORY-183):
             "unimplemented!()"      # Rust macro stub; grep -rni "unimplemented!()"
                                     # --include="*.rs": 0 hits (2026-07-25)
-          Note: bare "MUST FAIL" is TIER-2 per v4 ruling — see TIER-2 section above.
-          The tool catches "All tests MUST FAIL" (Pattern 23) and "FAIL(S) Red Gate"
-          (Pattern 24) as TIER-1 phrase forms.
+          Note: bare "MUST FAIL" is TIER-2 per v5 ruling — see TIER-2 section above.
+          The tool catches "All tests MUST FAIL" and "FAIL(S) Red Gate" as TIER-1
+          phrase forms (authoritative labels are in the tool's _VIOLATION_PATTERNS).
+
+          KNOWN-RESIDUAL CLASS — Python docstrings (F-W86S-P4-002 ruling
+          v5 2026-07-25): Multi-line Python docstrings (triple-quote strings
+          in bin/*.py) are OUT OF SCOPE for bin/check-green-doc-tense in
+          wave-86. The comment-line detection mechanism — which checks whether
+          stripped lines begin with `//` (.rs) or `#` (.py) — cannot see
+          docstring interior lines (they are plain string content). Multi-line
+          string scanning plus fixture-file false-positive risk make this a
+          separate design problem, deferred to a future story.
+          Tracked follow-up: STATE.md drift item to be added by state-manager
+          (label: "docstring-scan: Python docstring RED-tense scanning not yet
+          implemented in check-green-doc-tense; deferred from wave-86").
+          STORY-183 DIRECT-SCRUB OBLIGATION (F-W86S-P4-002): STORY-183
+          MUST scrub the following confirmed-stale docstring site (verified
+          stale 2026-07-25 — tool exists, all tests pass):
+            bin/test_lint_cycle_artifact.py:3 — "— RED GATE version." and
+            :6 — "All tests MUST FAIL until bin/lint-cycle-artifact is
+            created." — bin/lint-cycle-artifact EXISTS (ls -la confirmed),
+            all 21 self-tests PASS (python3 confirmed). The present-tense
+            "MUST FAIL until... is created" claim is provably stale. Reword
+            as past-tense provenance or remove.
+          NOT-stale docstring sites — do NOT mandate scrub (verified
+          2026-07-25):
+            bin/test_gitignore_mutants_glob.py:12 — "Red Gate provenance:
+            FAILED until .gitignore was updated with mutants.out*/" is
+            PAST-TENSE PROVENANCE per §(a) explicit exclusion list ("FAILED
+            until X was updated" is the exact pattern that MUST NOT be
+            flagged). .gitignore confirmed to contain mutants.out*/; tests
+            pass (2/2). NOT stale.
+            bin/test_validate_citations.py:645 — "NOTE: this is a control,
+            not a Red Gate probe." — explicitly negates Red Gate association;
+            factual description of test role. :647 — "backward-compat control
+            during the Red Gate run" — past-tense historical context. Tests
+            pass (27/27). NOT stale.
 
           Stale counts:
             Any numeric counts this story explicitly changes (e.g., "23 IDs" post a
@@ -1272,18 +1328,19 @@ policies:
         - Where present-tense transitional language is unavoidable in RED phase,
           annotate: "// TODO-GREEN: update this comment at GREEN step."
 
-      (d) Adversary doc-accuracy axis (v4 — TIER-1/TIER-2 separated):
+      (d) Adversary doc-accuracy axis (v5 — TIER-1/TIER-2 separated):
         - TIER-1 (tool-enforced patterns): MUST explicitly flag any TIER-1
           token that the tool did not catch — at module-level, test-banner,
           OR in-test per-line doc-comment depth — as MEDIUM (not LOW cosmetic).
           TIER-1 patterns are defined by bin/check-green-doc-tense's
-          `_VIOLATION_PATTERNS` list (patterns 1-29 currently; patterns 30-40
-          after STORY-183 delivers, minus falsified patterns 34/36/40).
-          These are: Red Gate / RED GATE / RED gate; todo!() phrase forms;
+          `_VIOLATION_PATTERNS` list. Pattern numbering is owned by the
+          tool's registry; the policy names tokens by text only, never by
+          number (F-W86S-P4-004, v5). Current TIER-1 token set (text-only):
+          Red Gate / RED GATE / RED gate; todo!() phrase forms;
           are/is todo!() stub(s); RED: / RED-phase / RED reason / RED because;
           currently asserts; falls to the wildcard; does not exist yet;
           doesn't exist yet; currently has NO; currently satisfied by;
-          will be GREEN currently; currently fall[s] (Pattern 31).
+          will be GREEN currently; currently fall[s].
           When present on GREEN code, no context check is required — flag
           immediately as MEDIUM.
         - TIER-2 (context-dependent; NO automatic flagging): MUST apply
@@ -1364,7 +1421,7 @@ policies:
       2 and 3 caught via fresh-context + BC-completeness sweep.
     added: "2026-06-15"
     last-extended: "2026-07-25"
-    version: v4
+    version: v5
     derived-from: >
       PG-ARP-F4-REDBANNER-SWEEP (STORY-112); PG-ARP-F4-STALE-SKELETON-DOC (STORY-113);
       STORY-114 Step-4.5 F-1/F-2/F-3 (codified 2026-06-15 in lessons.md);
@@ -1401,7 +1458,27 @@ policies:
       _VIOLATION_PATTERNS list not bare-word enumeration; added bare "MUST FAIL" to
       TIER-2 [2 live hits 2026-07-25]; F-W86S-P3-017 LOW: corrected "falls through
       to" hit count from 12 to 10 in *.rs files across 6 files [grep
-      2026-07-25])
+      2026-07-25]); extended v5 2026-07-25 (F-W86S-P4-004 HIGH: made policy
+      number-agnostic — all pattern-number annotations removed from TIER-1 token
+      list and §(d); added governing statement "pattern numbering is owned by
+      bin/check-green-doc-tense's _VIOLATION_PATTERNS registry; policy names tokens
+      by text, never by number"; stale annotations "patterns 32-33, 35, 37-39",
+      "Pattern 25", "Pattern 31", "patterns 1-29/30-40", "Pattern 31" in §(d)
+      all retired; F-W86S-P4-002 HIGH: docstring scanning ruled OUT OF SCOPE
+      for wave-86; added KNOWN-RESIDUAL CLASS section with tracked drift-item
+      pointer; STORY-183 DIRECT-SCRUB OBLIGATION recorded for confirmed-stale
+      site bin/test_lint_cycle_artifact.py:3,6 [bin/lint-cycle-artifact EXISTS,
+      21/21 tests PASS — "RED GATE version" / "MUST FAIL until" provably stale];
+      NOT-stale ruling for test_gitignore_mutants_glob.py:12 [past-tense
+      provenance "FAILED until" per §(a) exclusion] and test_validate_citations.py:
+      645,647 [negates Red Gate / past-tense historical]; F-W86S-P4-021 LOW:
+      corrected grep command for "no .* arm" from -rn to -rni [case-sensitive
+      missed dispatcher_tests.rs:1986 "No wildcard arm:" capital-N; hit count
+      3 was already correct in prior prose]; F-W86S-P4-024 LOW: "will be GREEN
+      currently" adjudicated KEEP — 0 live hits confirmed, phrase ungrammatical
+      and cannot produce FPs, origin was D-506/wave-85 pass-2 expansion not a
+      real D-506 stale phrase, retained because STORY-183 v1.3 already specifies
+      it; adjudication note added inline)
 
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment

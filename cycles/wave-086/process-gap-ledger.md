@@ -269,6 +269,94 @@ issue).
 
 ---
 
+---
+
+## PG-W86-006 (candidate) — adversary dispatch must glob-verify artifact paths before sending
+
+**Class:** Dispatch discipline / artifact path verification
+**Caught by:** Wave-86 adversarial pass 4 (F-W86S-P4-025 MED)
+**Severity:** MEDIUM
+**Occurrences:** 1 instance in wave-86 (adversary cited STORY-INDEX.md at wrong path)
+**Source finding:** F-W86S-P4-025 ([process-gap, route orchestrator], pass 4)
+**Vehicle:** Orchestrator/dispatch discipline (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+The adversary's pass-4 dispatch cited `STORY-INDEX.md` at an incorrect path (not the canonical
+`.factory/stories/STORY-INDEX.md`). The adversary operated without confirming the current
+STORY-INDEX version, which could have led to stale-citation findings that reference the wrong
+story version context.
+
+This is a dispatch-discipline gap: orchestrator dispatch instructions must glob-verify artifact
+paths before including them as context for the adversary. For story-index and story files,
+the canonical paths are:
+- `.factory/stories/STORY-INDEX.md`
+- `.factory/stories/STORY-NNN.md`
+- `.factory/cycles/wave-086/adversarial/pass-N-findings.md`
+
+### Proposed Fix
+
+Add to orchestrator dispatch checklist: before sending context paths to the adversary agent,
+run `ls .factory/stories/STORY-INDEX.md` (or equivalent glob-verify) to confirm the path
+exists and is the current version. If the path does not exist, do not include it in the
+dispatch — instead report the missing path and resolve before dispatching.
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). Orchestrator acknowledged and corrected in
+subsequent dispatches. DF-VALIDATION-001 research-agent validation required before filing
+upstream vsdd-factory issue.
+
+---
+
+## PG-W86-007 (candidate) — new .factory/maintenance/ protocol docs require CLAUDE.md Project References row at creation time
+
+**Class:** Discovery / documentation discipline
+**Caught by:** Wave-86 adversarial pass 4 (F-W86S-P4-015 HIGH + F-W86S-P4-010 HIGH)
+**Severity:** HIGH (gate-entry artifacts become undiscoverable to future sessions)
+**Occurrences:** Identified as structural gap in wave-86 — any .factory/maintenance/ doc created
+  without a CLAUDE.md row is invisible to the next session's `/factory-health` check
+**Source findings:** F-W86S-P4-010 (HIGH, pass 4) + F-W86S-P4-015 (HIGH, pass 4)
+**Vehicle:** Local carry-forward (STORY-182 v1.4 adds a task to address the immediate instance;
+  structural fix requires DF-VALIDATION-001 before filing upstream)
+
+### Description
+
+When a new `.factory/maintenance/` protocol document is created (e.g., as part of a story
+delivery or gate-close), there is no obligation to add a corresponding row to the
+`CLAUDE.md` Project References table. This makes the document undiscoverable to future
+sessions that rely on `CLAUDE.md` to enumerate active protocol documents.
+
+The wave-86 adversary identified two HIGH findings related to this gap:
+- F-W86S-P4-010: STORY-182 lacked an acceptance criterion asserting that the delivered
+  CI-visible fixture coverage report step is discoverable from CLAUDE.md.
+- F-W86S-P4-015: Gate-entry artifacts created in `.factory/maintenance/` have no CLAUDE.md
+  row obligation, making them structurally invisible at the next gate entry.
+
+STORY-182 v1.4 addresses the immediate instance with a task that adds the CLAUDE.md row.
+The structural gap remains open for all future deliveries that create `.factory/maintenance/`
+documents.
+
+### Proposed Fix
+
+Add to story-writer's delivery checklist for any story that creates a new
+`.factory/maintenance/` document:
+
+> For every new `.factory/maintenance/` protocol document created by this story, include a
+> task to add a row to `CLAUDE.md` Project References table. The row must include: path,
+> document purpose, and the initiating PG/AC that motivated its creation.
+
+This should be a mandatory delivery step, not an optional one — without it, the document
+is inaccessible to the `CLAUDE.md`-guided next-session setup.
+
+### Disposition
+
+Candidate for wave-086 cycle-close (S-7.02). STORY-182 v1.4 addresses the STORY-182
+instance (adds Task for CLAUDE.md reference row). Structural policy fix requires
+DF-VALIDATION-001 validation before filing upstream vsdd-factory issue.
+
+---
+
 ## Summary
 
 | ID | Severity | Status | Vehicle |
@@ -278,3 +366,5 @@ issue).
 | PG-W86-003 | MEDIUM | adjacent, scope extension of PG-W84-012 | Ops task (devops-engineer, separate from STORY-183) |
 | PG-W86-004 | CRIT | carry-forward, S-7.02 | Local (DF-VALIDATION-001 before filing upstream) |
 | PG-W86-005 | HIGH | carry-forward, S-7.02 | Local, extends L-W84-002 (DF-VALIDATION-001 before filing) |
+| PG-W86-006 | MEDIUM | candidate, S-7.02 | Orchestrator/dispatch discipline (DF-VALIDATION-001 before filing upstream) |
+| PG-W86-007 | HIGH | candidate, S-7.02 | Local (STORY-182 v1.4 immediate instance; structural fix pending DF-VALIDATION-001) |
