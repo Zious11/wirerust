@@ -326,4 +326,63 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-525 session wrap, pass-9 unremediated (PAUSED)
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.04 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 PAUSED; STORY-182/183 at v1.8; pass-9 UNREMEDIATED; streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-9 unremediated; need 3 consecutive clean passes after remediation) |
+| **Status** | Pipeline PAUSED at strategy fork |
+
+### Resume Prompt
+
+```
+D-525 SESSION WRAP — WAVE-86 ADVERSARIAL PASS 9 UNREMEDIATED + PIPELINE PAUSED
+(2026-07-26). 12 findings 0C/5H/5M/2L. All 5 HIGH = pass-8 regressions on STORY-182
+(F-001 COMMITTED_FIXTURES two-entry residue :264; F-002 include_str!(file!())
+non-compilable; F-003 include_str! coupling self-referential predicate; F-004
+retired discriminator survives :134/:193-195/:385; F-005 Task 7/FSR false
+both-committed claim). 5 MED + 2 LOW [process-gap] also open. Human decision:
+PAUSE at strategy fork. Strategy (a) behavioral-altitude refactor [RECOMMENDED]
+/ (b) mechanical remediation / (c) split gates. PG-W86-011/012 added.
+DRIFT-src-glob-blindspot added. Streak 0/3. Pipeline PAUSED.
+trajectory-tail →20→14→12→12
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING HUMAN DECISION on resume: Strategy (a)/(b)/(c) [REQUIRED before
+any remediation]. Then: remediate pass-9 findings per chosen strategy.
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest + wire test_lint_cycle_artifact.py/
+    test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+(h) DRIFT-src-glob-blindspot fix vehicle decision
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

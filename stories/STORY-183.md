@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -193,9 +193,15 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
 `bin/check-green-doc-tense` is extended to include `bin/*.py` files in its prose scan.
 
 - Given `_collect_rust_files()` at line ~466 currently runs `git ls-files -- tests/*.rs src/**/*.rs`
-  and filters with `line.endswith(".rs")`, excluding all Python files including `bin/*.py`
+  and filters with `line.endswith(".rs")`, excluding all Python files including `bin/*.py`;
+  additionally `src/**/*.rs` NEVER matches top-level `src/*.rs` files (git wildmatch `**`
+  requires an intermediate directory component — `src/mitre.rs`, `src/lib.rs`, etc. are
+  silently unscanned; F-W86S-P9-009, wave-86)
 - When the function is renamed from `_collect_rust_files` to `_collect_source_files` and
-  extended to additionally run `git ls-files -- bin/*.py` and include entries ending with `.py`
+  extended to additionally run `git ls-files -- bin/*.py src/*.rs` and include entries ending
+  with `.py` (for Python) while the existing Rust glob is corrected to
+  `git ls-files -- tests/*.rs src/**/*.rs src/*.rs` (adding `src/*.rs` to cover top-level
+  src files that `src/**/*.rs` misses)
 - And the rename is propagated to 13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total) in `bin/test_check_green_doc_tense.py`
   (6 functional monkey-patch sites at approximately :699/:707/:726/:859/:872/:905;
   7 `_collect_rust_files` prose sites at approximately :688,:705,:711,:718,:839,:843,:891;
@@ -207,6 +213,11 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   (collector returns `Path` objects with absolute paths; comparison by `.name` avoids
   repo-root-prefix fragility — do NOT compare to a repo-relative string like
   `"bin/test_check_green_doc_tense.py"`)
+- And a self-test assertion verifies `_collect_source_files(repo_root)` returns a path set
+  containing at least one entry whose `.name` attribute equals a known top-level `src/*.rs`
+  file (e.g., `mitre.rs`) — this assertion CANNOT pass unless `src/*.rs` is in the glob,
+  because `src/**/*.rs` alone would never match `src/mitre.rs` (git wildmatch blind spot,
+  F-W86S-P9-009)
 
 - Then `python3 bin/check-green-doc-tense` (bare invocation — no file arguments; main() uses
   git ls-files internally) exits non-zero when any `bin/*.py` file contains a pattern match
@@ -345,10 +356,15 @@ ext = entry[3] if len(entry) > 3 else ".rs"
 p = _tmpfile(content, tmp, f"bad_{passed}{ext}")
 ```
 
+- And `python3 bin/check-green-doc-tense` MUST exit non-zero when any scanned source file
+  contains a line matching Pattern 30 — this is the gate semantics per AC-183-001; the
+  BAD_CASE mechanism above exercises this path via the test runner
+
 Verification:
 ```bash
 python3 bin/test_check_green_doc_tense.py
 # Must exit 0; both Pattern 30 BAD cases must appear in output as PASS
+# (The gate MUST exit non-zero when encountering a Pattern 30 match — exercised by BAD_CASEs)
 ```
 
 ### AC-183-004 (traces to PG-W85-003 — "currently fall" body-phrase pattern, Pattern 31)
@@ -533,7 +549,70 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   ),
   ```
 - And each new pattern has at least one BAD_CASE (`.rs` form) and one GOOD_CASE in
-  `bin/test_check_green_doc_tense.py`; Patterns 32/33 additionally have `.py` BAD_CASES
+  `bin/test_check_green_doc_tense.py`; Patterns 32/33 additionally have `.py` BAD_CASES.
+  The prescribed fixture strings (mechanically verifiable) are:
+  ```python
+  # Pattern 32 BAD (.rs):
+  ("Pattern 32: currently asserts violation (.rs form)",
+   "// the iec104 decoder currently asserts a valid ASDU header\n",
+   "Pattern 32"),
+  # Pattern 32 BAD (.py):
+  ("Pattern 32: currently asserts violation (.py form)",
+   "# the iec104 decoder currently asserts a valid ASDU header\n",
+   "Pattern 32", ".py"),
+  # Pattern 32 GOOD (no "currently asserts"):
+  ("Pattern 32 allowlist: past tense — the decoder verified the header",
+   "// the decoder verifies that each ASDU header is valid after processing\n"),
+  # Pattern 33 BAD (.rs):
+  ("Pattern 33: falls to the wildcard violation (.rs form)",
+   "// the unrecognized packet falls to the wildcard arm for logging\n",
+   "Pattern 33"),
+  # Pattern 33 BAD (.py):
+  ("Pattern 33: falls to the wildcard violation (.py form)",
+   "# the unrecognized packet falls to the wildcard arm for logging\n",
+   "Pattern 33", ".py"),
+  # Pattern 33 GOOD (no "falls to the wildcard"):
+  ("Pattern 33 allowlist: different routing — forwarded to default handler",
+   "// the unrecognized packet is forwarded to the default handler branch\n"),
+  # Pattern 34 BAD (.rs):
+  ("Pattern 34: does not exist yet violation (.rs form)",
+   "// this error-handling path does not exist yet in the decoder\n",
+   "Pattern 34"),
+  # Pattern 34 GOOD (no "exist yet"):
+  ("Pattern 34 allowlist: past tense — path was added",
+   "// this code path was added in response to the missing handler report\n"),
+  # Pattern 35 BAD (.rs):
+  ("Pattern 35: currently has NO violation (.rs form)",
+   "// the TLS dissector currently has no SNI extraction logic\n",
+   "Pattern 35"),
+  # Pattern 35 GOOD (no "currently has no"):
+  ("Pattern 35 allowlist: different phrasing — lacks",
+   "// the TLS dissector lacks SNI extraction for DTLS traffic\n"),
+  # Pattern 36 BAD (.rs):
+  ("Pattern 36: currently satisfied by violation (.rs form)",
+   "// the invariant is currently satisfied by the no-op stub placeholder\n",
+   "Pattern 36"),
+  # Pattern 36 GOOD (no "currently satisfied by"):
+  ("Pattern 36 allowlist: production implementation",
+   "// the invariant is enforced by the production TCP-state machine\n"),
+  # Pattern 37 BAD (.rs):
+  ("Pattern 37: will be GREEN currently violation (.rs form)",
+   "// this gate will be GREEN currently because the check is bypassed\n",
+   "Pattern 37"),
+  # Pattern 37 GOOD (no "will be GREEN currently"):
+  ("Pattern 37 allowlist: future tense without currently",
+   "// this gate will be GREEN after the implementation ships\n"),
+  ```
+
+**First-match-wins / break-on-first constraint:** The `_VIOLATION_PATTERNS` list is evaluated
+in sequential order for each line; the FIRST matching pattern wins and subsequent patterns are
+not checked for that line (break-on-first semantics). Pattern priority is determined by list
+position (Pattern 30 before 31 before 32, etc.), preserved by the append-only policy. A BAD
+fixture that happens to match two patterns (e.g., a line with both "currently asserts" and
+"Expected RED:") will be reported under the LOWER-numbered pattern that appears first in the
+list. GOOD_CASE fixtures must not match ANY pattern — pattern order does not affect their
+clean-pass requirement.
+
 - And the three TIER-2-confirmed tokens have GOOD_CASEs asserting NOT-flagged, each with a
   TIER-2 citation comment per DF-GREEN-DOC-TENSE-SWEEP v6 F-W86S-P3-001 ruling:
   ```python
@@ -622,6 +701,29 @@ python3 bin/check-green-doc-tense
 # sites are clean — zero false positives from Patterns 30-37.
 ```
 
+### AC-183-009 (process-gap PG-W84-012 — bin/test_lint_cycle_artifact.py MUST pass locally)
+
+`python3 bin/test_lint_cycle_artifact.py` MUST exit 0 (all self-tests pass) at delivery time.
+CI wiring for this selftest file is tracked under PG-W84-012 (pending devops-engineer dispatch
+and human authorization) — do NOT add a CI wiring task for this story; that remains the
+PG-W84-012 ops task.
+
+- Given `bin/test_lint_cycle_artifact.py` is modified by Task 13 (4-line scrub at lines :3, :5,
+  :6, :125) as part of this story
+- When the implementer runs `python3 bin/test_lint_cycle_artifact.py` locally after the Task 13
+  scrub
+- Then the command MUST exit 0 with the same pass count as before the scrub (the scrub is a
+  pure text rewording — no test logic changes; the TC count remains 21)
+- And CI wiring for this file is explicitly NOT added in this story's PR (see PG-W84-012 for
+  the ops-task tracking the `bin-selftest` required-status-check wiring)
+
+Verification:
+```bash
+python3 bin/test_lint_cycle_artifact.py
+# Must exit 0; pass count must be 21 (TC1–TC21 unchanged by the scrub)
+# CI wiring: NOT wired in this story — deferred to PG-W84-012 ops task
+```
+
 ## Architecture Mapping
 
 | Component | File | Branch |
@@ -690,10 +792,19 @@ Well within context window. No story split required.
 
 2. **Rename and extend `_collect_source_files()` glob (AC-183-001):** Rename
    `_collect_rust_files` to `_collect_source_files` (mandatory — no "(or annotate)"
-   alternative). Add `git ls-files -- bin/*.py` alongside the existing Rust globs. Accept
-   `.py` endings. Update `main()` call site. Update the pass-message at ~591 to reflect both
-   file types. Add a self-test assertion confirming `_collect_source_files(repo_root)` returns
-   a path set containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py` (comparison by `.name` avoids repo-root-prefix fragility — do NOT compare to a repo-relative string like `"bin/test_check_green_doc_tense.py"`).
+   alternative). Add `git ls-files -- bin/*.py` alongside the existing Rust globs AND add
+   `src/*.rs` to the Rust glob invocation (correcting the `src/**/*.rs` blind spot for
+   top-level src files — F-W86S-P9-009). The corrected Rust glob becomes
+   `git ls-files -- tests/*.rs src/**/*.rs src/*.rs`. Accept `.py` endings.
+   Update `main()` call site. Update the pass-message at ~591 to reflect both file types.
+   Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
+   containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
+   (comparison by `.name` avoids repo-root-prefix fragility — do NOT compare to a
+   repo-relative string like `"bin/test_check_green_doc_tense.py"`).
+   Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
+   containing at least one entry whose `.name` equals a known top-level src file such as
+   `mitre.rs` (asserts `src/*.rs` is working; this assertion cannot pass with only
+   `src/**/*.rs` in the glob — see AC-183-001 F-W86S-P9-009 note).
    **Propagate rename inside `bin/check-green-doc-tense` itself:**
    - Function docstring at lines :466-473 — update scope description to include `bin/*.py`
    - Local variable `rust_files` at :556 → rename to `source_files` throughout the function
@@ -961,6 +1072,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.9 | 2026-07-26 | story-writer | WAVE-86 PASS-9 REMEDIATION — F-P9-009 MED (AC-183-001 + Task 2: pathspec `src/**/*.rs` extended with `src/*.rs` to cover top-level src/*.rs files that git wildmatch `**` skips; self-test assertion added verifying a top-level src file is in the scanned set; points unchanged at 5); F-P9-010 MED (AC-183-007: explicit fixture strings added for all 8 BAD_CASE entries lacking them (Patterns 32 .rs/.py, 33 .rs/.py, 34 .rs, 35 .rs, 36 .rs, 37 .rs) and all 6 GOOD_CASE entries lacking them (Patterns 32-37); first-match-wins break-on-first pattern-priority constraint documented); F-P9-012 LOW (AC-183-009 added: `python3 bin/test_lint_cycle_artifact.py` MUST pass locally at delivery; CI wiring deferred to PG-W84-012 ops task); NIT-03 (AC-183-003 verification: added explicit `MUST exit non-zero` assertion for gate behavior when encountering a Pattern 30 match — aligns modal verb with AC-183-001 language). |
 | 1.8 | 2026-07-26 | story-writer | WAVE-86 PASS-8 REMEDIATION — F-009 MED (bin/test_lint_cycle_artifact.py row added to Architecture Mapping table and FSR table: "Modify (Task 13 — 4 lines only)"); F-010 MED (Task 13 updated: scrub list extended to :3/:5/:6/:125; "Three lines"→"Four lines"; line :125 is a #-comment line newly scan-eligible under this story); F-011 LOW (EC-011 :655 confirmed-stale scrub targets updated from :3/:6 to :3/:5/:6/:125; :125 noted as #-comment line); F-012 LOW (Task 2 adjudication note extended: "Similarly, historical references in delivered story specs (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep .factory/stories/ history."). |
 | 1.7 | 2026-07-26 | story-writer | WAVE-86 PASS-7 REMEDIATION — F-002 HIGH (17 governing cites DF-GREEN-DOC-TENSE-SWEEP v5→v6 via replace_all; 3 standalone: "The v5 two-tier"→v6, "(F-W86S-P4-004, v5)"→v6, "TIER-1 per v5"→v6; grep confirms zero residual governing cites; historical provenance at :856 "per v5 classification" preserved); F-003 HIGH (Task 6: deleted "quoted phrases prevent flagging" claim; replaced with "In-source `# Pattern NN:` comments MUST NOT contain the literal flagged phrase (quoting does not prevent regex match — see Task 4)"); F-004 MED (Task 13 :847/:848 TC1–TC17→TC1–TC21 both occurrences, "and 21 self-tests"→"(21 self-tests)"); F-005 MED (AC-183-001 :201 + Task 2 heading :701: "13 references"→"13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total)"; :721 added to prose list with type clarification); F-006 MED (4 ci.yml scope loci :187/:635/:882/:911: "comment line ~442 only"→"comment lines :434 and :442 + step-name line :462 (non-functional edits only)"); F-010 LOW (Task 2 :693: "path set containing `bin/test_check_green_doc_tense.py`"→.name-based comparison with fragility note); F-012 LOW (AC-183-005 :431-432: two-dot→three-dot `origin/develop...HEAD -- CHANGELOG.md`; two-dot divergence noted); F-013 LOW (Task 10 :821: added ":577 ('in test files' failure summary) and :581–585 (explanatory prose)" to bin/check-green-doc-tense scope-prose sweep); F-014 LOW (EC-011 :655 + Task 13 :856: "Log advisory STATE.md drift row DRIFT-docstring-scan"→"DRIFT-docstring-scan row is recorded by state-manager (already present in STATE.md; no action in this story's PR)"). |
 | 1.6 | 2026-07-25 | story-writer | WAVE-86 PASS-6 REMEDIATION — F-005 MED (AC-183-001: removed "and 1 reference in CHANGELOG.md (see Task 2)" — historical entry preserved per DF-SIBLING-SWEEP-001, outside the 13 test-file refs); F-006 MED (Task 9: removed "and create a minimal commit so the index is non-empty" — git add only; no commit required for git ls-files); F-007 MED (Task 9 FAIL format: FAIL [bin/violating.py:1]: Pattern 32 — not "FAIL  bin/violating.py: Pattern 32"); F-008 MED (Task 13 TC count: TC1–21 (21 self-tests)); F-009+F-010 PO PROPAGATION (Notes: bare RED markers re-tiered TIER-2 per DF-GREEN-DOC-TENSE-SWEEP v6; Pattern 30 retained TIER-1; deferred scrub obligation F-W86S-P6-009/010 added — iec104_analyzer_tests.rs:6271 + modbus_detection_tests.rs:2472/:2480; owner: next maintenance sweep); F-011 MED (Task 2: add :721 prose site — failure-message citing if not rust_files: guard); F-012 MED (input-hash NOTE: "Stored value is the canonical Python hash (9c9b12f); bash hook reports 5598136 — advisory only per PG-HASH-HOOK-DIVERGENCE"); F-013 MED (traces_to: add CHANGELOG.md + .github/workflows/ci.yml + bin/test_lint_cycle_artifact.py); F-017 LOW (Task 10 ci.yml sweep: :434 job comment + :462 step name added as stale prose sites); F-018 LOW (Task 5 quote-escaping: "Two fixtures in BAD_CASES (:91, :97)" — :402 is GOOD_CASE); F-019 LOW (Task 13: "state-manager records DRIFT-docstring-scan"); F-020 NIT (AC-183-007: 37 items / 36 tuples — item 5 shares tuple 4). |

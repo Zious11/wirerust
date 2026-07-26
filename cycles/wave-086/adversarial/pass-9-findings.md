@@ -2,7 +2,7 @@
 document_type: adversarial-findings
 level: ops
 version: "1.0"
-status: open
+status: remediated
 producer: adversary
 timestamp: 2026-07-26T18:30:00Z
 cycle: "wave-086"
@@ -254,3 +254,39 @@ remediation. Human decision as of 2026-07-26: PAUSE at strategy fork. Pipeline P
 
 Pass tallies (P1–P9): 23 / 23 / 21 / 25 / 28 / 20 / 14 / 12 / 12. Total across all passes:
 178 findings. Remediated: 166. Open: 12.
+
+---
+
+## Remediation (D-526)
+
+**Date:** 2026-07-26
+**Strategy:** (b) mechanical remediation — chosen by human at session resume
+**Burst:** D-526 STATE BURST — WAVE-86 ADVERSARIAL PASS 9 REMEDIATED + PIPELINE RESUMED
+
+All 12 findings FIXED at STORY-182 v1.9 / STORY-183 v1.9 with per-fix grep evidence
+per PG-W86-010 mandate.
+
+| Finding | Status | Story | Fix Summary |
+|---------|--------|-------|-------------|
+| F-W86S-P9-001 (HIGH) | FIXED | STORY-182 v1.9 | COMMITTED_FIXTURES two-entry residue removed from AC-182-001:264 |
+| F-W86S-P9-002 (HIGH) | FIXED | STORY-182 v1.9 | include_str!(file!()) non-compilable pattern replaced |
+| F-W86S-P9-003 (HIGH) | FIXED | STORY-182 v1.9 | include_str! self-referential coupling rewritten to check harness against story function names |
+| F-W86S-P9-004 (HIGH) | FIXED | STORY-182 v1.9 | Retired discriminator instances at :134/:193-195/:385 removed |
+| F-W86S-P9-005 (HIGH) | FIXED | STORY-182 v1.9 | Task 7/FSR rewritten to reflect only iec104-iti-diverse.pcap committed |
+| F-W86S-P9-006 (MED) | FIXED | STORY-182 v1.9 | sha256 gate REINSTATED scoped to CI download-and-verify path (orchestrator ruling: hash at E2E-PCAPS.md:359) |
+| F-W86S-P9-007 (MED) | FIXED | STORY-182 v1.9 | AC-182-004 item 1/4 WITHOUT-local-samples precondition added |
+| F-W86S-P9-008 (MED) | FIXED | STORY-182 v1.9 | FIXTURE_GATED_TESTS + E2E-PCAPS.md rows added to Arch Mapping/FSR tables |
+| F-W86S-P9-009 (MED) [process-gap] | FIXED | STORY-183 v1.9 | src-glob fold-in per human ruling (D-526): pathspec src/*.rs added alongside src/**/*.rs; mitre.rs scan assertion added (DRIFT-src-glob-blindspot RESOLVED-FOLDED) |
+| F-W86S-P9-010 (MED) | FIXED | STORY-183 v1.9 | All 12 new BAD_CASES + 14 GOOD_CASES prescribed fixture strings added; break-on-first constraint documented |
+| F-W86S-P9-011 (LOW) | FIXED | STORY-182 v1.9 | coverage-out.txt added to .gitignore task step |
+| F-W86S-P9-012 (LOW) [process-gap] | FIXED | STORY-183 v1.9 | AC-183-009 local-selftest-pass AC added; CI wiring stays PG-W84-012 ops task per orchestrator ruling (no CI-wiring tasks added to this story) |
+| NIT-03 | FIXED | STORY-183 v1.9 | AC-183-003 "should fail" → "MUST exit non-zero" |
+| NIT-04 | FIXED | STORY-182 v1.9 | iec104-iti-diverse.pcap / iec104_iti_diverse.pcap spelling normalized |
+
+**Canonical input-hashes preserved:** STORY-182 9a0f34c / STORY-183 9c9b12f (canonical Python
+tool; bin/compute-input-hash --write run by story-writer; hook hash warnings advisory-only
+per PG-HASH-HOOK-DIVERGENCE).
+
+**STORY-INDEX:** v4.04→v4.05 (wave-86 row v1.8→v1.9 both stories; no numeric totals changed).
+
+**Streak:** 0/3. Pass 10 pending adversary dispatch.
