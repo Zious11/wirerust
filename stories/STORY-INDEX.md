@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "4.13"
+version: "4.14"
 status: draft
 producer: story-writer
-timestamp: 2026-07-27T09:00:00Z
+timestamp: 2026-07-27T00:00:00Z
 phase: f4
 total_stories: 136
 total_waves: 86
 total_points: 792  # = 792; wave-table scheduled: 709 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85 + STORY-182/183 wave 86); epic-table grand total: 792 (+4 STORY-182 E-11 + +5 STORY-183 E-11)
+# v4.14 (2026-07-27): WAVE-86 PASS-18 REMEDIATION — sixth zero-HIGH pass (0C/0H/6M/3L + 2 NITs), all fixed; tautological gate predicate replaced with discriminating N/M; attribution single-destination scheme; STORY-182 v2.7→v2.8 + STORY-183 v2.7→v2.8; no numeric totals changed.
 # v4.13 (2026-07-27): WAVE-86 PASS-17 REMEDIATION — fifth zero-HIGH pass (0C/0H/7M/5L + 1 NIT), all fixed; Env-B evidence pinned to 1/4+test-result-ok; attribution destination fixed; inert gate obligation reworded to evidence-artifact; human re-confirmed strategy (b) at escalation; STORY-182 v2.6→v2.7 + STORY-183 v2.6→v2.7; no numeric totals changed.
 # v4.12 (2026-07-27): WAVE-86 PASS-16 REMEDIATION — fourth zero-HIGH pass (0C/0H/6M/3L + 4 NITs), all fixed; Pattern-31 blind-spot site deferred to DRIFT-stale-red-scrub (regex widening declined mid-convergence); bare-token residual class documented (phrase-level-by-design); STORY-182 v2.5→v2.6 + STORY-183 v2.5→v2.6; no numeric totals changed.
 # v4.11 (2026-07-26): WAVE-86 PASS-15 REMEDIATION — third zero-HIGH pass (0C/0H/5M/6L + 3 NITs), all fixed; false-GREEN verification blocks hardened (set -euo + test-result-ok check); sibling-class misanchor corrected (also STATE.md DRIFT row); STORY-182 v2.4→v2.5 + STORY-183 v2.4→v2.5; no numeric totals changed.
@@ -575,7 +576,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
 | 85 | STORY-180, STORY-181 | **2/2 DELIVERED — STORY-180 (D-507, PR #437 421bf572, 2026-07-24) + STORY-181 (D-509, PR #438 5555495b, 2026-07-24) — CLOSED-PENDING-GATE** | #437 (STORY-180), #438 (STORY-181) | 421bf572, 5555495b | 2026-07-24 |
-| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.7, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.7, draft) — OPEN (pass-17 REMEDIATED D-534, pass-18 pending)** | — | — | — |
+| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.8, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.8, draft) — OPEN (pass-18 REMEDIATED D-535, pass-19 pending)** | — | — | — |
 
 ## Coverage Verification
 

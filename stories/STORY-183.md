@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.7"
+version: "2.8"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -845,7 +845,7 @@ No new `bin/test_*.py` file — L-W84-003 / AC-165-001 CI-wiring obligation does
 |---------------|-----------------|
 | Story spec (this file) | ~7.0 k |
 | `bin/check-green-doc-tense` (full script, ~690-700 lines after additions) | ~5.5 k |
-| `bin/test_check_green_doc_tense.py` (full file, ~950-960 lines after additions) | ~7.5 k |
+| `bin/test_check_green_doc_tense.py` (full file, ~1000-1050 lines after additions) | ~7.5 k |
 | `.github/workflows/ci.yml` (comment-only change, surrounding lines) | ~0.5 k |
 | `CHANGELOG.md` (recent unreleased section only) | ~0.5 k |
 | Tool outputs overhead | ~1.0 k |
@@ -1041,6 +1041,12 @@ Well within context window. No story split required.
    - If the process exits 1 (violation detected): print
      `  PASS  [hermetic-e2e: exit 1 on violation]` and increment `passed`;
      otherwise print `  FAIL  [hermetic-e2e: exit 1 on violation]` and increment `failures`
+   - If the process output does NOT contain "no tracked source files found" (verifies
+     exit-1 was a genuine violation, not the empty-collection guard in `main()` at
+     :557-563 — both paths exit 1, so this negative assertion distinguishes them): print
+     `  PASS  [hermetic-e2e: not empty-collection exit]` and increment `passed`;
+     otherwise print `  FAIL  [hermetic-e2e: not empty-collection exit]` and increment
+     `failures`
    - If the output contains a FAIL line naming `bin/violating.py` and the pattern label
      (e.g., `"FAIL [bin/violating.py:1]: Pattern 32 ..."`): print
      `  PASS  [hermetic-e2e: output names violating.py]` and increment `passed`;
@@ -1051,13 +1057,23 @@ Well within context window. No story split required.
    the df-validation self-application smoke test confirming PG-W84-010 is exercised end-to-end.
 
 10. **Sibling-prose sweep (F-009):**
-    - `bin/check-green-doc-tense` module docstring (line 4 scope text, lines 26–30 TOKEN LIST
-      preamble, ALLOWLIST heading at ~:90): update scope declarations from "tests/*.rs and
-      src/**/*.rs" to enumerate all four globs: "tests/*.rs, src/**/*.rs, src/*.rs, and
-      bin/*.py" (under git's default pathspec, `src/*.rs` crosses directory separators and
-      covers all of src/; `src/**/*.rs` is retained for explicit-intent redundancy; git
-      ls-files de-duplicates — all four globs listed for clarity — F-W86S-P12-006).
-      Update token list to document Patterns 30–37.
+    - `bin/check-green-doc-tense` line :4 (module docstring scope text): update the scope
+      declaration from "tests/*.rs and src/**/*.rs" to enumerate all four globs:
+      "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py" (under git's default pathspec,
+      `src/*.rs` crosses directory separators and covers all of src/; `src/**/*.rs` is
+      retained for explicit-intent redundancy; git ls-files de-duplicates — all four
+      globs listed for clarity — F-W86S-P12-006).
+    - `bin/check-green-doc-tense` lines :26-30 (TOKEN LIST preamble — contains the
+      comment-marker claim, NOT glob text): the current text states anchoring is to lines
+      whose non-whitespace content starts with `//` or `//!`. After AC-183-002, anchors
+      are `//` (all files) and `#` (`.py` files, suffix-scoped). Update lines :28-29 to
+      state: "matches `//` comment lines in all scanned files; `#` comment lines in
+      `.py` files."
+    - `bin/check-green-doc-tense` lines :31-85 (TOKEN LIST body): update to document
+      Patterns 30–37 (8 new tokens added by this story).
+    - `bin/check-green-doc-tense` ALLOWLIST heading at ~:90: no glob update required
+      here — the glob scope lives in the function body and docstring, not in the
+      ALLOWLIST heading.
     - Lines :87-88 (baseline develop@e8841d76, pre-edit — re-locate by content after each
       insertion) and line :97: The current :87-88 text falsely claims anchoring is "to
       comment lines (leading `//` or `//!`) ... to avoid false-positives ... inside string
@@ -1072,13 +1088,14 @@ Well within context window. No story split required.
       for patterns 30-37 are added to that section, update the range label to include them;
       otherwise add a one-line inline note that Patterns 30-37 carry inline `# Allowlist:`
       comments in their tuple comments, so the "12-29" heading remains literally accurate.
-    - Lines :212-215 (`_is_comment_line()` docstring, baseline develop@e8841d76, pre-edit —
-      re-locate by content): the current docstring states "A comment line is one where the
-      stripped content starts with `//` or `//!`". After AC-183-002, this is false — the
-      function also accepts `suffix` and returns True for `#`-prefixed lines when
-      `suffix == ".py"`. Rewrite to: "`suffix`-aware: returns True for `//`-prefixed lines
-      (all files) and `#`-prefixed lines when `suffix == \".py\"`; anchors detection to
-      language-specific comment syntax".
+    - Lines :212-215 (module-level pattern-registry comment block introducing
+      `_VIOLATION_PATTERNS` at :217, baseline develop@e8841d76, pre-edit — re-locate by
+      content): the current comment describes which lines the patterns match against using
+      `//` or `//!` only. After AC-183-002 extends comment-line eligibility to `#` for
+      `.py` files, update this block to state that patterns match `//` comment lines in
+      all scanned files and `#` comment lines in `.py` files. (Note: `_is_comment_line()`
+      at :~460 has its own one-line docstring at :461 that is rewritten wholesale by
+      AC-183-002's block — no contradiction with Task 1's `:~460` reference.)
     - Lines :577 (baseline develop@e8841d76, pre-edit; "in test files" failure summary) and
       :581–585 (baseline develop@e8841d76, pre-edit; explanatory prose) — re-locate by
       content after each insertion: update scope descriptions from "test files" to
@@ -1252,6 +1269,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-001 MED (Task 10 :212-215 bullet relabeled from "_is_comment_line() docstring" to "module-level pattern-registry comment block introducing _VIOLATION_PATTERNS at :217"; prescription updated from suffix-aware _is_comment_line docstring rewrite to updating the comment block to state patterns match "// in all scanned files; # in .py files"; added clarification that _is_comment_line() at :~460 has its own docstring at :461 rewritten wholesale by AC-183-002 — no contradiction with Task 1's :~460 reference); P18-002 MED (Task 10 bullet 1 split into 4 bullets: (i) :4 only for glob-scope text update; (ii) :26-30 for comment-marker claim fix — "lines whose non-whitespace content starts with // or //!" → "matches // comment lines in all scanned files; # comment lines in .py files"; (iii) :31-85 for token list update; (iv) :90 ALLOWLIST heading — no glob update required, noted explicitly); P18-007 LOW (Task 9 negative assertion added: process output must NOT contain "no tracked source files found" to distinguish genuine violation exit-1 from empty-collection guard exit-1 at main() :557-563); P18-009 LOW (token budget: ~950-960 lines corrected to ~1000-1050 lines; baseline 914 + net delta ≈ 1000-1050). |
 | 2.7 | 2026-07-26 | story-writer | WAVE-86 PASS-17 REMEDIATION — P17-006 MED (Task 10 sweep: new bullet added for lines :212-215 `_is_comment_line()` docstring — current "starts with `//` or `//!`" claim is false after AC-183-002; rewrite with suffix-aware description); P17-007a MED (AC-183-001 :228 placement instruction: "Place the assertions after :905" → "Insert the assertions immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907 — ensures checks feed passed/failures counters and Results: line"); P17-007b MED (Task 9 :1017-1019 placement instruction corrected to match: "Insert both immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907"); P17-011 MED (Task 9 hermetic assert/exit checks respecified in runner convention: `  PASS  [hermetic-e2e: exit 1 on violation]` / `  FAIL  [...]` with counters for both exit-code and output-contents checks); P17-012 LOW (AC-183-001 baseline count: split into pre-story `git ls-files -- tests/*.rs src/**/*.rs | wc -l` and post-story `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py | wc -l` — prior single command incorrectly included `src/*.rs` in the pre-story baseline). |
 | 2.6 | 2026-07-26 | story-writer | WAVE-86 PASS-16 REMEDIATION — F-W86S-P16-003 MED (Notes §Deferred scrub obligation extended with P16-003 contiguity blind spot: `tests/iec104_analyzer_tests.rs:6948-6953` "currently these fall through the `_` catch-all" added; reword prescription (past-tense: "before STORY-180, these fell through the `_` catch-all"); contiguity limitation of Patterns 31/32 documented — interposed words defeat `currently\s+falls?\b`/`currently\s+asserts?\b`; widening deferred to avoid FP risk against 10 TIER-2 `falls through to` sites; sibling patterns at :325/:376/:455 cited as eventual model; D-533 vehicle noted); F-W86S-P16-004 MED (Pattern 35 FP-note comment at :562-564 rewrote to eliminate contiguous "currently has no" — replaced with "the pattern also matches a hyphenated no-prefix token immediately after the phrase, because \b fires at the hyphen (e.g. a 'no-op' continuation). 0 live hits."; verified no `# `-line in replacement matches any of 36 patterns); F-W86S-P16-005 MED (Task 2 :872 wrapped single-space `PASS [_collect_source_files:` fixed to `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` — collapsed onto one line; full story `PASS [`/`FAIL [` sweep: 0 remaining single-space forms); F-W86S-P16-006 MED (Notes §Story scope clarification: new bullet added for bare `Red Gate`/`RED GATE`/`todo!()` tokens — NOT covered, phrase-level design deliberate, 32 live `RED GATE:` headings across 10 test files are accepted residual section labels; AC-183-008 heading/body amended to scope as "phrase-level" only with P16-006 note referencing §Story scope clarification); P16-009 LOW (Task 9 :1023-1024: `git -C <tmp> add bin/check-green-doc-tense` annotated as optional — extension-less file never collected by suffix-filter; only bin/violating.py must be indexed); NIT-1 ("path set" → "path list (list[Path])" at both loci :217/:871 via replace_all). |
 | 2.5 | 2026-07-26 | story-writer | WAVE-86 PASS-15 REMEDIATION — F-W86S-P15-005 MED (two loci corrected: (a) AC-183-001 :222-226 repo_root note rewritten — Task 9 subprocess cannot see parent patches; monkey-patchers are PRE-EXISTING AC-158-005 (:698-726, patch :704) and AC-162-003 (:858-905, patch :871); placement load-bearing only for in-process _collect_source_files assertions — hermetic tempdir → empty set → spurious FAIL if placed inside monkey-patch block; (b) Task 9 :998-1003 placement constraint rewritten — non-hermetic assertions must be outside :698-726/:858-905; subprocess cannot see parent patches; subprocess placement relative to finally blocks has no effect); F-W86S-P15-006 LOW (PASS/FAIL strings at :215-233 and :863-880 corrected to runner convention: `  PASS  [label]` / `  FAIL  [label]` — 2-space indent, 2 spaces after PASS/FAIL; 4 occurrences updated via replace_all); F-W86S-P15-007 LOW (Task 9 imports :1000-1001: subprocess and shutil are new top-level imports; tempfile already at function scope :640 — top-level add shadows; note added); F-W86S-P15-011 LOW (Pattern 35 comment: known theoretical FP added — `currently\s+has\s+no\b` matches "currently has no-op" at \b/hyphen boundary; 0 live hits wave-86); NIT-3 (Task 1 :851 line count: wc -l confirms 913 — value already correct, no change). |

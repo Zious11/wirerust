@@ -824,4 +824,49 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-27) — D-534 pass-17 remediated, pass 18 next
+
+Archived from STATE.md D-534 burst. Session D-526..D-534 (9 cycles), passes 9-17 remediated.
+
+```
+D-534 STATE BURST — WAVE-86 ADVERSARIAL PASS 17 REMEDIATED (2026-07-27). 13 findings 0C/0H/7M/5L
++ 1 NIT, all fixed. FIFTH zero-HIGH pass. STORY-182 v2.7, STORY-183 v2.7. STORY-INDEX v4.13.
+Canonical hashes 9a0f34c/9c9b12f. Streak 0/3. Pass 18 next.
+
+Date: 2026-07-27. Position: wave-086 story-level adversarial convergence IN-PROGRESS; pass-17
+REMEDIATED (D-534); streak 0/3; STORY-182 v2.7 draft, STORY-183 v2.7 draft. NO worktrees; NO
+in-flight PRs; no abandoned sub-agent steps.
+
+Convergence counters: Wave-86 story adversarial streak 0/3. Pass-18 pending adversary dispatch.
+
+In-flight: None. D-534 state burst COMPLETE. pass-17-findings.md created + remediated. STORY-INDEX
+v4.13. D-533 checkpoint archived. Pipeline running.
+
+NEXT STEP: Wave-86 adversarial pass 18 (fresh-context; STORY-182 v2.7 + STORY-183 v2.7).
+trajectory-tail →8→14→13→13; streak 0/3.
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire test_lint_cycle_artifact.py/
+    test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; Dependabot #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+(h) DRIFT-py-surface-outside-bin scope decision
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058, main=9601d711baf72ca30d29be2c289271ade5d027cc
+(v0.13.2). No open product worktrees.
+
+Session summary D-514..D-534 (exhaustive): DF-VALIDATION-001 batch, wave-86 scoped, STORY-182/183
+drafted, policy v2→v6 hardening arc, 17 adversarial passes + pass-17 remediation (276 findings total,
+all remediated). Pass tallies P1-P17: 23/23/21/25/28/20/14/12/12/11/14/10/15/8/14/13/13.
+Zero-HIGH passes: P10, P14, P15, P16, P17 (five consecutive). Human re-confirmed strategy (b) at D-534.
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
