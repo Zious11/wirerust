@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-182
 epic_id: E-11
-version: "2.3"
+version: "2.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -347,6 +347,7 @@ cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixtur
 
 # Environment B: clean-worktree equivalent (produces the 1/4 output)
 # Temporarily move local-samples out of scope:
+[ ! -e /tmp/ls-bak ] || { echo "backup path occupied — clean up first"; exit 1; }
 mv tests/fixtures/local-samples /tmp/ls-bak
 trap 'mv /tmp/ls-bak tests/fixtures/local-samples' EXIT  # unconditional restore under set -e
 cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture 2>&1 | grep "Fixture coverage"
@@ -537,7 +538,7 @@ cargo test --test iec104_e2e_real_pcaps_tests
 set -o pipefail
 cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
 grep -qE "Fixture coverage: [1-9][0-9]*/[0-9]+" coverage-out.txt
-# Must print "Fixture coverage: N/M fixtures present ..." (if: always() — visible incl. after test failures)
+# Must print "Fixture coverage: N/M fixtures present ..." (if: ${{ !cancelled() }} — visible after TEST failures but NOT after workflow cancellation)
 # pipefail (cargo|tee stage) + grep on file: step FAILS (GATES) if cargo test exits non-zero OR no coverage line
 # Denominator is [0-9]+ (not hardcoded /4) — loosened so adding fixtures only requires updating
 # the FIXTURE_MANIFEST.len() assertion, ci.yml step, and Task 9 Env A 4/4 expected value together.
@@ -763,6 +764,7 @@ cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixtur
 
 # Verify the hard-assert fires by temporarily renaming a committed capture:
 # (manual test only — do not automate file removal in CI)
+[ ! -e /tmp/iec104-iti-diverse.pcap.bak ] || { echo "backup path occupied — clean up first"; exit 1; }
 mv tests/fixtures/iec104-iti-diverse.pcap /tmp/iec104-iti-diverse.pcap.bak
 # This block EXPECTS cargo test to FAIL (hard-assert fires); || true ensures the restore
 # line runs unconditionally under set -e (expected-failure block must use || true or trap):
@@ -781,7 +783,7 @@ mv /tmp/iec104-iti-diverse.pcap.bak tests/fixtures/iec104-iti-diverse.pcap  # re
 | `FIXTURE_MANIFEST` const + `COMMITTED_FIXTURES` const + `FIXTURE_GATED_TESTS` const (all inside `mod iec104_e2e_real_pcaps`; `FIXTURE_GATED_TESTS` maps test function names to fixture filenames enabling bidirectional manifest-coupling assertions) | `tests/iec104_e2e_real_pcaps_tests.rs` (amend) | develop |
 | `test_fixture_manifest_report()` with hard-assert partition | `tests/iec104_e2e_real_pcaps_tests.rs` (amend) | develop |
 | Committed ITI capture (timed-command BC-2.19.029/030) | `tests/fixtures/iec104-iti-diverse.pcap` (new binary) | develop |
-| Document `iec104-iti-diverse.pcap` as committed + `iec104-iti-dissect.pcap` as gitignored CI-download-only | `tests/fixtures/E2E-PCAPS.md` (amend) | develop |
+| Sweep E2E-PCAPS.md stale loci: document `iec104-iti-diverse.pcap` as committed and `iec104-iti-dissect.pcap` as gitignored; amend IEC-104 section intro (:337-340), Captures table :358 row (:352-359), Attribution (:374-380), document-scope (:3-6), committed-captures section (:48-50), and Adding-a-capture procedure (:391-396) | `tests/fixtures/E2E-PCAPS.md` (amend) | develop |
 | Provenance row + attribution + CC-BY-4.0 licensing sweep | `tests/fixtures/README.md` (amend) | develop |
 | Additive CI step "IEC-104 fixture coverage report (visible)" | `.github/workflows/ci.yml` (amend — additive step only; no functional job changes) | develop |
 | Project References row for `.factory/maintenance/fixture-count-gate-entry.md` | `CLAUDE.md` (amend) | develop |
@@ -967,6 +969,16 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
      - Lines :48-50 (committed-captures section): update to enumerate `iec104-iti-diverse.pcap`
        as a newly committed capture (add the diverse filename only; `iec104-iti-dissect.pcap`
        remains gitignored — NOT committed per F-009 D-524 ruling; do NOT list it as committed)
+     - Lines :337-340 (IEC-104 section intro): amend the "All are auto-fetchable" claim to
+       state that one capture (`iec104-iti-diverse.pcap`) is now committed directly in
+       `tests/fixtures/` and always available without fetching; the remaining captures
+       require `bin/fetch-e2e-pcaps` or manual download into `local-samples/`
+     - Lines :352-359 (§Captures table): annotate the :358 `iec104-iti-diverse.pcap` row
+       with committed status (e.g., add an inline note "committed at `tests/fixtures/`");
+       the :359 `iec104-iti-dissect.pcap` row remains annotated as gitignored+CI-downloaded
+     - Lines :374-380 (§Attribution): note that `iec104-iti-diverse.pcap` is committed
+       (always available) while `iec104-iti-dissect.pcap` remains gitignored and is
+       CI-downloaded by `bin/fetch-e2e-pcaps`
      - Lines :391-396 (Adding-a-capture procedure): update to document when a capture goes
        directly in `tests/fixtures/` (committed, ≤100 KB, redistributable license) vs
        `local-samples/` (gitignored, large, non-redistributable)
@@ -1059,6 +1071,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
    **Environment B: WITHOUT local-samples** — verify 1/4 coverage output (precondition:
    `tests/fixtures/local-samples/` must be absent or moved out of scope):
    ```bash
+   [ ! -e /tmp/ls-bak ] || { echo "backup path occupied — clean up first"; exit 1; }
    mv tests/fixtures/local-samples /tmp/ls-bak  # remove local-samples
    trap 'mv /tmp/ls-bak tests/fixtures/local-samples' EXIT  # unconditional restore under set -e
    cargo test --test iec104_e2e_real_pcaps_tests -- --nocapture 2>&1 | \
@@ -1177,7 +1190,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
 | `tests/iec104_e2e_real_pcaps_tests.rs` | Modify | Add `COMMITTED_SAMPLES` const, `fixture_path()` fn, update `fixture_present()` and `run_iec104_pipeline()`, add `FIXTURE_MANIFEST`/`COMMITTED_FIXTURES`/`FIXTURE_GATED_TESTS` consts inside `mod iec104_e2e_real_pcaps` (alongside `:39`), add `test_fixture_manifest_report()`, update module docstring + pipeline doc-comment |
 | `tests/fixtures/iec104-iti-diverse.pcap` | New (binary) | ITI CC-BY-4.0; ≤100 KB; exercises TypeIDs 58–64; goes DIRECTLY in tests/fixtures/ |
 | `tests/fixtures/README.md` | Modify | Add IEC-104 committed-capture provenance row (licensing notice lines 7–22 sweep + source URL + direct download URL + attribution) |
-| `tests/fixtures/E2E-PCAPS.md` | Modify | Note that `iec104-iti-diverse.pcap` is now committed under `tests/fixtures/`; `iec104-iti-dissect.pcap` remains gitignored (CI download-and-verify path only, not committed) |
+| `tests/fixtures/E2E-PCAPS.md` | Modify | Sweep all stale loci: IEC-104 section intro (:337-340), Captures table :358 row (:352-359), Attribution (:374-380), document-scope (:3-6), committed-captures section (:48-50), Adding-a-capture procedure (:391-396) — `iec104-iti-diverse.pcap` noted as committed in `tests/fixtures/`; `iec104-iti-dissect.pcap` remains gitignored (CI download-and-verify path only, not committed) |
 | `.factory/maintenance/fixture-count-gate-entry.md` | New (factory-artifacts branch — committed by state-manager, NOT in develop PR) | Gate-entry evidence: manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective |
 | `.github/workflows/ci.yml` | Modify (additive step only) | Add "IEC-104 fixture coverage report (visible)" step in test job — makes `Fixture coverage:` println!() CI-visible (F-014 orchestrator ruling) |
 | `CLAUDE.md` | Modify | Add Project References row for `.factory/maintenance/fixture-count-gate-entry.md` (F-015 process-gap) |
@@ -1261,6 +1274,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.4 | 2026-07-26 | story-writer | WAVE-86 PASS-14 REMEDIATION — F-W86S-P14-002 MED (4th unswept if: always() locus fixed at :540 → if: ${{ !cancelled() }} with correct visibility wording; full-story always()-sweep: 0 live loci remain — :505/:1148 are explanatory contrast references; changelog rows exempt); F-W86S-P14-003 MED (Task 7 E2E-PCAPS.md sweep list extended with three missing loci: :337-340 IEC-104 section intro, :352-359 Captures table :358 row, :374-380 Attribution section; Arch Mapping and FSR E2E-PCAPS.md rows updated for consistency — enumerate all 6 sweep loci); F-W86S-P14-006 LOW (three move-aside procedures at :350-354, :766-771, :1062-1068 each have pre-existence guard added — `[ ! -e <backup-path> ] || { echo "backup path occupied — clean up first"; exit 1; }` before the mv; approach consistent across all three). |
 | 2.3 | 2026-07-26 | story-writer | WAVE-86 PASS-13 REMEDIATION — F-W86S-P13-002 HIGH (three stale self-anchors fixed: (a) :1216 tdd_mode note removed stale ":740-745" ref, replaced with description-based reference to AC-182-005 hard-assert block; (b)+(c) :1045 stale ":461-463 / :1008-1010" replaced with content-based locators — "locate by content: set -o pipefail ... tee coverage-out.txt ... 2>&1"); F-W86S-P13-005 MED (merge-order note: "irrelevant" scoped to conflict purposes; ci.yml line anchors labeled as baseline develop@e8841d76 order-dependent); F-W86S-P13-007 LOW (TypeIDs overclaim: "exercises TypeIDs 58–64" → "exercises timed control-command TypeIDs 58/59/61/63 (of the 58–64 detection range)" at 3 loci including permanent README row); F-W86S-P13-008 LOW (three move-aside procedures: added trap/|| true for unconditional restore — procedures 1 and 3 use trap EXIT, procedure 2 uses || true (expected-failure block); rationale stated per fix); F-W86S-P13-015 LOW (if: always() → if: ${{ !cancelled() }} at all 3 loci — AC-182-004 outcome (e), CI-visible signals list, ACR — with scope note: visible after TEST failures but NOT after compile failures); NIT-4 (bare prose comments converted to gating forms at 4 loci: wc -c → stat -f%z gating with portability note; shasum → test "$(shasum ... \| cut ...)" = "<sha>" gating forms); NIT-5 (EC-003: noted that iec104.pcap / iec104-sq.pcapng additionally emit [iec104-e2e] SKIP: stderr notice from fixture_present() when their own tests run). |
 | 2.2 | 2026-07-26 | story-writer | WAVE-86 PASS-12 REMEDIATION — F-W86S-P12-002 MED (Task 9 Env A discriminator block: deleted zero-SKIP assertion `test "$(grep -c "\[iec104-e2e\] SKIP:" coverage-out.txt)" -eq 0` and "ZERO SKIP lines" comment — (a) no 2>&1 so SKIP eprintln! output never reaches coverage-out.txt; (b) test_fixture_manifest_report never calls fixture_present(); discriminator is `grep -qE "Fixture coverage: 4/4"` alone; added sequential-overwrite note clarifying coverage-out.txt is overwritten by this second block); F-W86S-P12-004 MED (resolver-coupling comment at AC-182-005 :649-651 corrected: "mistyped COMMITTED_SAMPLES const causes this check to fail in CI; inverted ordering in fixture_path() is caught only on a fixture-bearing host (Task 9 Env A), because local-samples/ is absent in CI"; swept sibling locus in ACR §Shared resolver contract); F-W86S-P12-008 LOW (fixture_present() SKIP diagnostic: branched on COMMITTED_FIXTURES.contains(&filename) — committed-eligible fixtures show committed path; non-committable fixtures show local-samples path with "do not commit to tests/fixtures/ (licensing)" clause; inert-predicate disciplines preserved with concat! for needle); F-W86S-P12-009 LOW (Notes §Develop PR: sibling story note added — STORY-183 also touches ci.yml in disjoint regions: STORY-182 edits test job ~:40-47 additive step; STORY-183 edits comment lines :434/:442 + step name :462; merge order irrelevant; rebase required if both in flight); NIT-4 (AC-182-004 :479/:491, ACR :1123: N/4 prose annotated with "(currently 4 — tracks FIXTURE_MANIFEST.len())" to signal co-update obligation); NIT-5 (Task 7: explicit note added that test_fixture_manifest_report is deliberately NOT added to the pcap-mapping table — table maps tests to pcaps; manifest test is not pcap-bound; DF-TEST-CITATION-SWEEP-001 item 4 considered). |
 | 2.1 | 2026-07-26 | story-writer | WAVE-86 PASS-11 REMEDIATION — F-P11-001 HIGH (fixture_present call-site count assertion: replaced `harness_src.matches("fixture_present(\"")` with concat!-built needle so file's own prose cannot match it; rewritten comments eliminate all contiguous needle occurrences; justification updated to cite source-self-scanning hazard; concrete failure conditions (a)/(b)/(c) stated); F-P11-002 MED (factory-artifacts branch: gate-entry Arch Mapping row branch develop→factory-artifacts; FSR row annotated "factory-artifacts branch — committed by state-manager, NOT in develop PR"; Notes §Develop PR removes gate-entry doc from develop list + adds factory-artifacts note; traces_to entry annotated with inline comment); F-P11-003 MED (tdd_mode note re-anchored: :669-674→:740-745 post-edit lines; reworded as per-story claim, not epic-wide assertion; "do not reorder tasks" absolutism removed); F-P11-004 MED (ACR §Constants placement: FIXTURE_GATED_TESTS added as third mandatory module-level const alongside FIXTURE_MANIFEST and COMMITTED_FIXTURES); F-P11-008 LOW (duplicate Arch Mapping rows merged: FIXTURE_GATED_TESTS registry-detail description folded into the three-constants row; redundant row deleted; row count reduced by 1); F-P11-009 LOW (EC-008 added: harness self-read via CARGO_MANIFEST_DIR requires source tree; accepted for this repo's CI; no #[ignore] added); F-P11-010 LOW (sha256 dissect-download gate clause relocated from AC-182-003 to AC-182-002 with one-line cross-reference in AC-182-003); F-P11-011 LOW (Task 10a CLAUDE.md row extended: wave-gate-entry obligation stated — count below committed-partition size BLOCKS gate entry). |

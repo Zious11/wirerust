@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.3"
+version: "2.4"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -212,21 +212,26 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   plus :721 — a `rust_files` prose site, failure-message string citing `if not rust_files:` guard — update to `source_files`)
 - And the `main()` function (line ~549) is updated to call the new/renamed collector function
 - And the pass-message at line ~591 is updated: rename the local variable from `rust_files` to `source_files` only (variable rename only — no "both file types" prose change required)
-- And a self-test assertion verifies `_collect_source_files(repo_root)` returns a path set
-  containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
-  (collector returns `Path` objects with absolute paths; comparison by `.name` avoids
-  repo-root-prefix fragility — do NOT compare to a repo-relative string like
-  `"bin/test_check_green_doc_tense.py"`).
+- And a self-test check using the runner's PASS/FAIL convention prints
+  `PASS [_collect_source_files: test_check_green_doc_tense.py found]` and increments
+  `passed` when `_collect_source_files(repo_root)` returns a path set containing an entry
+  whose `.name` attribute equals `test_check_green_doc_tense.py`; prints
+  `FAIL [_collect_source_files: test_check_green_doc_tense.py found]` and increments
+  `failures` otherwise (comparison by `.name` avoids repo-root-prefix fragility — do NOT
+  compare to a repo-relative string like `"bin/test_check_green_doc_tense.py"`).
   **`repo_root` derivation:** use `mod._find_repo_root(Path(mod.__file__).resolve().parent)`
   where `mod` is the imported `check-green-doc-tense` module. Note: the hermetic test
   functions (Task 9) monkey-patch `_find_repo_root`, so the derivation choice is
   load-bearing for non-hermetic self-tests — using the script's own location ensures the
   correct repo root is resolved.
-- And a self-test assertion verifies `_collect_source_files(repo_root)` contains at least
-  one entry satisfying `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
+- And a self-test check using the runner's PASS/FAIL convention prints
+  `PASS [_collect_source_files: src/*.rs file found]` and increments `passed` when
+  `_collect_source_files(repo_root)` contains at least one entry satisfying
+  `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
   `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` (class assertion;
-  `mitre.rs` is the illustrative example but any top-level `src/*.rs` file satisfies it).
-  This assertion verifies that top-level `src/*.rs` files appear in the scanned set;
+  `mitre.rs` is the illustrative example but any top-level `src/*.rs` file satisfies it);
+  prints `FAIL [_collect_source_files: src/*.rs file found]` and increments `failures`
+  otherwise. This check verifies that top-level `src/*.rs` files appear in the scanned set;
   `src/**/*.rs` requires a literal `/` after the star segment and NEVER matches top-level
   files like `src/mitre.rs` (10 top-level files); `src/*.rs` (star crosses /) covers all
   `.rs` files under `src/` and strictly SUBSUMES `src/**/*.rs` — `src/*.rs` is
@@ -534,10 +539,10 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   ),
   (
       # Pattern 33: wildcard-arm fallthrough phrase; TIER-1 per v6; 0 live legitimate uses.
-      # NOT the same as the TIER-2 "falls through to" token — the discriminator is the
-      # intervening word "through": TIER-2 "falls through to" contains "through" after "falls",
-      # breaking this pattern which requires "to" immediately after "falls"; "falls to the
-      # wildcard" (without "through") IS TIER-1 with 0 live uses.
+      # The TIER-1 form omits the intervening word present in TIER-2.
+      # Discriminator: TIER-2 inserts "through" between the verb and the wildcard destination
+      # ("falls through to" — 10 live uses); the TIER-1 form lacks that intermediary word.
+      # Pattern fires when "through" is absent between the verb and the destination phrase.
       "Pattern 33 (PG-W85-003): 'falls to the wildcard' — RED-phase wildcard-arm fallthrough (AC-183-007)",
       re.compile(r"falls\s+to\s+the\s+wildcard", re.IGNORECASE),
   ),
@@ -855,19 +860,26 @@ Well within context window. No story split required.
    F-W86S-P12-006). Accept `.py` endings.
    Update `main()` call site. Update the pass-message at ~591: rename the local variable
    from `rust_files` to `source_files` (variable rename only).
-   Add a self-test assertion confirming `_collect_source_files(repo_root)` returns a path set
-   containing an entry whose `.name` attribute equals `test_check_green_doc_tense.py`
-   (comparison by `.name` avoids repo-root-prefix fragility — do NOT compare to a
-   repo-relative string like `"bin/test_check_green_doc_tense.py"`).
+   Add a self-test check using the runner's PASS/FAIL convention confirming
+   `_collect_source_files(repo_root)` returns a path set containing an entry whose `.name`
+   attribute equals `test_check_green_doc_tense.py`; prints `PASS [_collect_source_files:
+   test_check_green_doc_tense.py found]` and increments `passed` on success, prints
+   `FAIL [_collect_source_files: test_check_green_doc_tense.py found]` and increments
+   `failures` on failure (comparison by `.name` avoids repo-root-prefix fragility — do NOT
+   compare to a repo-relative string like `"bin/test_check_green_doc_tense.py"`).
    **`repo_root` derivation:** use `mod._find_repo_root(Path(mod.__file__).resolve().parent)`
    (where `mod` is the imported module). The hermetic test functions (Task 9) monkey-patch
    `_find_repo_root`, so the derivation choice is load-bearing for non-hermetic self-tests —
    using the script's own file location ensures correct repo root resolution.
-   Add a self-test assertion confirming `_collect_source_files(repo_root)` contains at least
-   one entry satisfying `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
+   Add a self-test check using the runner's PASS/FAIL convention confirming
+   `_collect_source_files(repo_root)` contains at least one entry satisfying
+   `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
    `any(p.parent.name == "src" and p.suffix == ".rs" for p in files)` (class assertion;
-   avoids mitre.rs-literal fragility; `mitre.rs` is illustrative only). This assertion
-   cannot pass with only `src/**/*.rs` in the glob — see AC-183-001 F-W86S-P9-009.
+   avoids mitre.rs-literal fragility; `mitre.rs` is illustrative only); prints
+   `PASS [_collect_source_files: src/*.rs file found]` and increments `passed` on success,
+   prints `FAIL [_collect_source_files: src/*.rs file found]` and increments `failures` on
+   failure. This check cannot pass with only `src/**/*.rs` in the glob — see AC-183-001
+   F-W86S-P9-009.
    **Propagate rename inside `bin/check-green-doc-tense` itself:**
    - Function docstring at lines :466-474 (baseline develop@e8841d76, pre-edit — re-locate
      by content after each insertion; and module docstring at line :4) — update scope
@@ -958,18 +970,26 @@ Well within context window. No story split required.
    unwieldy, add `# type: ignore` on the BAD_CASES assignment line rather than introducing
    a complex Union type.
 
-8. **Add Patterns 32–37 and self-test cases (AC-183-007):** Append 6 new tuples to
-   `_VIOLATION_PATTERNS` as detailed in AC-183-007 (Patterns 32–37; Patterns 34/36/40 from
-   v3 are TIER-2 and are NOT added). For each pattern add at minimum one BAD_CASE `.rs` form
-   and one GOOD_CASE. For Patterns 32/33 also add `.py` BAD_CASES.
-   Add the three TIER-2 zero-FP GOOD_CASEs (for `no .* arm`, `not yet implemented`,
-   `currently fails`) asserting the tool does NOT flag them (per F-W86S-P3-001 ruling).
-   Add the efficacy GOOD_CASE for `is expected to` (AC-183-008) confirming the tool does
-   NOT flag it.
-   **Also add the suffix-scoping negative-guard GOOD_CASE (AC-183-006):** the case where a
-   `# Expected RED:` line written to a `.rs` temp file is NOT flagged (suffix `.rs` →
-   `_is_comment_line` returns False for `#` prefix). This confirms `.py` scan eligibility
-   is suffix-scoped, not global.
+8a. **Add self-test BAD_CASES and GOOD_CASES for Patterns 32–37 (AC-183-007 — pre-RED step):**
+    Add the 8 BAD_CASES prescribed in AC-183-007: Pattern 32 (`.rs` and `.py` forms),
+    Pattern 33 (`.rs` and `.py` forms), Pattern 34 (`.rs`), Pattern 35 (`.rs`), Pattern 36
+    (`.rs`), Pattern 37 (`.rs`). Add the 6 GOOD_CASEs (one per pattern). Add the three
+    TIER-2 zero-FP GOOD_CASEs (for `no .* arm`, `not yet implemented`, `currently fails`)
+    asserting the tool does NOT flag them (per F-W86S-P3-001 ruling). Add the efficacy
+    GOOD_CASE for `is expected to` (AC-183-008). Add the suffix-scoping negative-guard
+    GOOD_CASE (AC-183-006): the case where a `# Expected RED:` line written to a `.rs` temp
+    file is NOT flagged. DO NOT append any tuples to `_VIOLATION_PATTERNS` in this step —
+    that is Task 8b. **Run self-test after this step:** the self-test MUST FAIL (RED) because
+    no pattern yet matches the new BAD_CASES. If it passes, the BAD_CASES are wrong or the
+    patterns already exist.
+
+8b. **Append Patterns 32–37 tuples to `_VIOLATION_PATTERNS` (AC-183-007 — GREEN step, run
+    together with Task 6):** Append the 6 new tuples as detailed in AC-183-007 (Patterns
+    32–37; prior-v3 candidates `no .* arm`, `not yet implemented`, `currently FAILS` are
+    TIER-2 per F-W86S-P3-001 ruling and are NOT added). Run self-test after this step (and
+    Task 6) — MUST PASS (GREEN), clearing all new BAD_CASES. In-source `# Pattern NN:`
+    comments MUST NOT contain the literal flagged phrase (quoting does not prevent regex
+    match — see Task 4).
 
 9. **E2E positive-coverage self-test (F-010):** Add a test function to
    `bin/test_check_green_doc_tense.py` that verifies the full collect→scan→exit pipeline
@@ -1012,21 +1032,20 @@ Well within context window. No story split required.
       covers all of src/; `src/**/*.rs` is retained for explicit-intent redundancy; git
       ls-files de-duplicates — all four globs listed for clarity — F-W86S-P12-006).
       Update token list to document Patterns 30–37.
-    - Lines 87–88 (baseline develop@e8841d76, pre-edit — re-locate by content after each insertion):
-      comment-anchoring note in `bin/check-green-doc-tense` — rewrite to describe suffix-aware
-      comment anchoring (F-007 / F-W86S-P12-007).
-    - Line :97 ("Pattern-specific allowlist notes (patterns 12-29):"): if allowlist notes for
-      patterns 30-37 are added to that section, update the range label to include them;
+    - Lines :87-88 (baseline develop@e8841d76, pre-edit — re-locate by content after each
+      insertion) and line :97: The current :87-88 text falsely claims anchoring is "to
+      comment lines (leading `//` or `//!`) ... to avoid false-positives ... inside string
+      literals." After this story: anchors are `//` (all files) and `#` (`.py` files,
+      suffix-scoped); string-literal false-positives DO occur — the 42-site remediation
+      (Tasks 4 and 5) exists precisely because of them. Rewrite :87-88 to: (a) state that
+      `_is_comment_line` now accepts a `suffix` parameter and returns True for `//` on all
+      files and `#` on `.py` files only; (b) note that string-literal comment-shaped lines
+      (e.g., BAD_CASES fixtures with `//` content lines) ARE flagged by design — see EC-005
+      and Task 5 for the remediation protocol (F-007 / F-W86S-P12-007). Separately, for
+      line :97 ("Pattern-specific allowlist notes (patterns 12-29):"): if allowlist notes
+      for patterns 30-37 are added to that section, update the range label to include them;
       otherwise add a one-line inline note that Patterns 30-37 carry inline `# Allowlist:`
-      comments in their tuple comments, so the "12-29" heading remains literally accurate. The current text
-      falsely claims anchoring is "to comment lines (leading `//` or `//!`) ... to avoid
-      false-positives ... inside string literals." After this story: anchors are `//`
-      (all files) and `#` (`.py` files, suffix-scoped); string-literal false-positives DO
-      occur — the 42-site remediation (Tasks 4 and 5) exists precisely because of them.
-      Rewrite :87-88 to: (a) state that `_is_comment_line` now accepts a `suffix` parameter
-      and returns True for `//` on all files and `#` on `.py` files only; (b) note that
-      string-literal comment-shaped lines (e.g., BAD_CASES fixtures with `//` content lines)
-      ARE flagged by design — see EC-005 and Task 5 for the remediation protocol.
+      comments in their tuple comments, so the "12-29" heading remains literally accurate.
     - Lines :577 (baseline develop@e8841d76, pre-edit; "in test files" failure summary) and
       :581–585 (baseline develop@e8841d76, pre-edit; explanatory prose) — re-locate by
       content after each insertion: update scope descriptions from "test files" to
@@ -1144,16 +1163,16 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   DF-VALIDATION-001 (mirroring STORY-182's Notes pattern).
 - **No behavioral contract required:** E-11 convention.
 - **tdd_mode: strict — automated RED procedure for this story:** `tdd_mode: strict` is satisfied
-  by a genuine automated RED: add the 12 new BAD_CASES (Tasks 7 and 8) BEFORE adding the 8
-  new pattern tuples (Task 6). Run `python3 bin/test_check_green_doc_tense.py` at that
+  by a genuine automated RED: add the 12 new BAD_CASES (Tasks 7 and 8a) BEFORE adding the 8
+  new pattern tuples (Tasks 6 and 8b). Run `python3 bin/test_check_green_doc_tense.py` at that
   intermediate state — the self-test FAILS (RED) because BAD_CASES contain TIER-1 phrases
-  that no yet-added pattern matches. Then add the 8 pattern tuples (Task 6) and re-run —
+  that no yet-added pattern matches. Then add all 8 pattern tuples (Tasks 6 + 8b) and re-run —
   the self-test passes (GREEN). Required task ordering: Task 1 (baseline confirm) →
   Task 3 (suffix-aware `_is_comment_line` extension — required BEFORE RED, because 4 of
   the 12 BAD_CASES are `.py` 4-tuples that cannot clear until the `suffix` param exists;
-  without Task 3 those cases never flag even after Task 6 adds the patterns, making the
-  GREEN checkpoint unreachable) → Tasks 7/8 (BAD_CASES — creates RED) → run self-test
-  (observe FAIL) → Task 6 (pattern tuples — clears RED) → run self-test (GREEN) →
+  without Task 3 those cases never flag even after Tasks 6+8b add the patterns, making the
+  GREEN checkpoint unreachable) → Tasks 7/8a (BAD/GOOD cases — creates RED) → run self-test
+  (observe FAIL) → Tasks 6 + 8b (all 8 pattern tuples — clears RED) → run self-test (GREEN) →
   remaining Tasks 2/4/5/9–13.
 - **Points rationale (5 pts):** Expanded from 3 pts (v1.0/v1.1) due to: (a) 8 new patterns
   (vs 2 originally; 11 proposed in v3, 3 falsified to TIER-2 in v4), (b) ~40 multi-line
@@ -1175,7 +1194,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   - §(d)/§(a) bare-word markers with phrase-level coverage only: `scaffold`, `uncalled`,
     `stub`, `skeleton` — phrase patterns (e.g., Pattern 25) cover the actionable form; bare
     words have ~91 legitimate uses and are excluded per the policy's phrase-level design
-  - Bare `MUST FAIL` — TIER-2 per v4; tool catches specific phrases (Patterns 23-24) only
+  - Bare `MUST FAIL` — TIER-2 per v6; tool catches specific phrases (Patterns 23-24) only
   - Three tokens falsified and moved to TIER-2 in v4 (F-W86S-P3-001): `no .* arm`,
     `not yet implemented`, `currently FAILS` — see Background §PG-W85-003 TIER-2 section
   - Pending-TIER-1 follow-up: `unimplemented!()` — 0 live hits per v4 grep (2026-07-25);
@@ -1197,6 +1216,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.4 | 2026-07-26 | story-writer | WAVE-86 PASS-14 REMEDIATION — F-W86S-P14-001 MED (Task 8 split into 8a/8b: 8a covers BAD_CASES+GOOD_CASES as pre-RED step consumed with Task 7; 8b appends 6 Patterns 32-37 tuples as GREEN step run with Task 6; Notes ordering updated: "Tasks 7/8a (BAD/GOOD cases — RED) → Tasks 6+8b (all 8 pattern tuples — GREEN)"; "Tasks 7 and 8" → "Tasks 7 and 8a"; "Task 6" → "Tasks 6 + 8b" in GREEN clause; GREEN checkpoint unreachable note updated to cite Tasks 6+8b); F-W86S-P14-004 LOW (Pattern 33 comment :539-540 reworded: eliminated contiguous "falls to the wildcard" across line wrap — new 5-line comment describes discriminator without placing "falls" adjacent to "to the wildcard" on any single line); F-W86S-P14-005 LOW (two _collect_source_files self-test assertions at :215-233 and Task 2 :858-870 respecified in runner's PASS/FAIL convention — each check prints PASS/FAIL with a label and increments passed/failures counters; no bare asserts); NIT-1 (P14-007: Task 10 bullets 2+3 merged into single bullet — :87-88 rewrite content combined, :97 range-label instruction kept distinct at end); NIT-2 (P14-008: Notes :1178 "TIER-2 per v4" → "TIER-2 per v6"). |
 | 2.3 | 2026-07-26 | story-writer | WAVE-86 PASS-13 REMEDIATION — F-W86S-P13-001 HIGH (AC-183-001 :228-230: false "both globs cover same files" claim corrected — `src/**/*.rs` requires literal `/` after star segment, NEVER matches top-level src/*.rs (10 files); `src/*.rs` (star crosses /) covers all src/ and strictly SUBSUMES `src/**/*.rs`; `src/*.rs` is LOAD-BEARING and MUST NOT be dropped; consistent with six already-correct loci); F-W86S-P13-003 MED (Pattern 33 comment :534: wrong discriminator "bare form without to the wildcard" replaced with correct one: intervening word "through" breaks `falls\s+to\s+the\s+wildcard` pattern); F-W86S-P13-004 MED (AC-183-009: two inverted-gate loci fixed — grep -c exits 1 when count is 0, replaced with `test "$(grep -c ...)" -eq 0` gating form at both :743-748 and :762-765; "return 0" → "print 0"); F-W86S-P13-005 MED (merge-order note: "irrelevant" scoped to conflict purposes; ci.yml line anchors labeled "baseline develop@e8841d76, pre-STORY-182 — re-locate by content match if STORY-182 merged first"); F-W86S-P13-006 MED (convergence-report.md path-qualified at all 7 loci to `.factory/cycles/wave-085/STORY-180/convergence-report.md`; file added to traces_to); F-W86S-P13-009 LOW (Task 9: required imports subprocess/shutil/tempfile stated as explicit deliverables; placement constraint stated — hermetic section MUST be outside monkey-patch `finally` blocks; placement is load-bearing); F-W86S-P13-010 LOW (Pattern 34 regex: `doesn'?t` → `doesn['']?t` typographic-apostrophe variant); F-W86S-P13-011 LOW (Task 10: bin/check-green-doc-tense:97 added to sweep list with range-update instruction); F-W86S-P13-012 LOW (Task 2 and Task 10 tool-file anchors :87-88/:466-474/:556/:558-560/:577 labeled "baseline develop@e8841d76 (pre-edit) — re-locate by content after each insertion"); F-W86S-P13-013 LOW (Pattern 34 GOOD annotation :593: no-literal-phrase discipline — `no "exist yet"` → "negative-capability phrase absent"); F-W86S-P13-014 LOW (AC-183-008: all 10 "falls through to" sites enumerated, not just 4); NIT-1 (docstring: "// or //! (inner doc)" → "// (including /// outer doc and //! inner doc)"); NIT-2 (token budget: ~620 lines → ~690-700); NIT-3 (:393: "catches both singular and plural" → "matches both fall and falls (verb inflection)"); process-gap (EC-010 extended: .py files outside bin/ added as also OUT OF SCOPE; DRIFT-py-surface-outside-bin noted). |
 | 2.2 | 2026-07-26 | story-writer | WAVE-86 PASS-12 REMEDIATION — F-W86S-P12-001 HIGH (AC-183-007 fixture-block #-annotations at 5 loci reworded to DESCRIBE without quoting literal flagged phrases: Pattern 32 GOOD → "allowlist — present-tense assertion-state phrase absent"; Pattern 33 GOOD → "allowlist — wildcard-arm fallthrough phrase absent"; Pattern 35 GOOD → "allowlist — present-tense absence claim absent"; Pattern 36 GOOD → "allowlist — passive stub-status phrase absent"; Pattern 37 GOOD → "allowlist — conditional present-RED tense claim absent"; sweep clause added to AC-183-007 mandating no-literal-phrase discipline for every # comment prescribed for bin/test_check_green_doc_tense.py); F-W86S-P12-003 MED (tdd_mode RED ordering: Task 3 inserted into pre-RED segment — "Task 1 → Task 3 → Tasks 7/8 → RED → Task 6 → GREEN → remaining Tasks 2/4/5/9-13"; rationale: 4 of 12 BAD_CASES are .py 4-tuples that cannot clear until Task 3 suffix param exists); F-W86S-P12-005 MED (AC-183-009 Then-clause: 3 mechanical grep predicates added — grep -c "RED GATE version", "MUST FAIL until bin/lint-cycle-artifact", "TC1–TC8" each MUST be 0; stated as failing exactly when Task 13 is skipped); F-W86S-P12-006 LOW (git pathspec semantics corrected at 5 loci: AC-183-001 Given clause, AC-183-001 When clause, AC-183-001 assertion note, Task 2 invocation rationale, Task 2 docstring scope — false claim that src/**/*.rs has a top-level blind spot replaced with correct semantics: src/*.rs under git wildmatch crosses directory separators and covers all of src/, src/**/*.rs retained for explicit-intent redundancy, git ls-files de-duplicates; Notes FP budget note updated); F-W86S-P12-007 LOW (Task 10: instruction added to rewrite bin/check-green-doc-tense:87-88 to describe suffix-aware comment anchoring // + # and note string-literal false-positives are flagged by design per EC-005/Task 5); F-W86S-P12-010 LOW (AC-183-009: "covers both (a)/(b)" → "covers all three: (a) required-status-check registration, (b) bin/test_lint_cycle_artifact.py step, (c) bin/test_compute_input_hash.py step"; "until part (b) lands" → "until parts (b) and (c) land"; Verification comment updated); NIT-1 (Task 2 :466-473 → :466-474); NIT-2 (Task 10 "lines 2–4 scope text" → "line 4 scope text"); NIT-3 (Background §PG-W85-003 "sole authoritative source" softened to "primary citation; citation is non-exhaustive; zero-live-hit greps are the mechanical backstop"); F-W86S-P12-009 LOW (Notes §Develop PR: sibling story note added — STORY-182 also touches ci.yml in disjoint regions; rebase required if both PRs in flight). |
 | 2.1 | 2026-07-26 | story-writer | WAVE-86 PASS-11 REMEDIATION — F-P11-005 MED (AC-183-001 + Task 2: collapsed two-invocation pattern to single merged `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py`; explicit no-dedup note; Task 2 docstring scope updated to cite single invocation); NIT-fix 2 (AC-183-001 + Task 2: pass-message claim corrected to variable-rename-only); F-P11-014 LOW (AC-183-001: "N > previous Rust-only count" replaced with baseline-derivation command + class assertion `any(p.suffix == ".py" for p in files)`); F-P11-006 MED (AC-183-009: PG-W84-012 attribution extended to cite D-525 per F-W86S-P9-012, covering both (a) required-status-check registration and (b) bin/test_lint_cycle_artifact.py step; selftest-runs-locally-until-(b)-lands note added; Then clause + verification comment updated); NIT-fix 1 (ACR: "comment-only updates" → "non-functional edits only (lines :434, :442 comment lines + :462 step-name line)"); F-P11-007 MED (tdd_mode note rewritten: prescribes real automated RED via Tasks 7/8 BAD_CASES-first before Task 6 patterns; inverted-order manual-RED text removed); F-P11-012 LOW (Notes: zero-FP budget note added — 10 src/*.rs files audited, 0 matches against 36 patterns as of e8841d76); F-P11-013 LOW (Task 9: `git add <tmp>/...` → `git -C <tmp> add ...` with cwd note, both occurrences). |
