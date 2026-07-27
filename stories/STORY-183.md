@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.6"
+version: "2.7"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -225,7 +225,9 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   and AC-162-003 (:858-905, patch at :871) patch `_find_repo_root` to return hermetic
   tempdirs — if the `_collect_source_files(repo_root)` assertions added by this story are
   placed inside those blocks, they resolve to a hermetic tempdir → empty file set → spurious
-  FAIL. Place the assertions after :905 (outside all monkey-patch finally blocks). The Task 9
+  FAIL. Insert the assertions immediately after the `finally` block ending at :905 and BEFORE
+  the `print()` at :907 — this ensures the checks execute and feed the passed/failures counters
+  and the Results: line (outside all monkey-patch finally blocks). The Task 9
   hermetic test runs a fresh subprocess and cannot see parent-process monkey patches; its
   placement relative to the finally blocks does not affect it.
 - And a self-test check using the runner's PASS/FAIL convention prints
@@ -245,9 +247,10 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
   git ls-files internally) exits non-zero when any `bin/*.py` file contains a pattern match
   in a `#`-prefixed comment line, and exits 0 when no such violations exist
 - And the scanned-file count in the pass-message includes `.py` files (e.g., "N files scanned"
-  where N includes at least one `.py` entry; baseline Rust-only count derivation:
-  `git ls-files -- tests/*.rs src/**/*.rs src/*.rs | wc -l`; use a class assertion —
-  `any(p.suffix == ".py" for p in files)` — not a brittle exact-count check)
+  where N includes at least one `.py` entry; pre-story baseline Rust-only count:
+  `git ls-files -- tests/*.rs src/**/*.rs | wc -l`; post-story count (after this story adds
+  `src/*.rs` and `bin/*.py` globs): `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py | wc -l`;
+  use a class assertion — `any(p.suffix == ".py" for p in files)` — not a brittle exact-count check)
 
 Verification:
 ```bash
@@ -1016,7 +1019,9 @@ Well within context window. No story split required.
    resolve to a hermetic tempdir → empty file set → spurious FAIL.
    The Task 9 hermetic test runs a fresh subprocess and cannot see parent-process monkey
    patches; placement of the hermetic test relative to the finally blocks does NOT affect
-   the subprocess. Place both (hermetic test and non-hermetic assertions) after :905.
+   the subprocess. Insert both (hermetic test and non-hermetic assertions) immediately after
+   the `finally` block ending at :905 and BEFORE the `print()` at :907, so the checks
+   execute and feed the passed/failures counters and the Results: line.
    - Create a temporary directory `<tmp>` and run `git init` inside it to make it a valid
      git repo (`_find_repo_root` walks upward from the **script's own location** to find the
      root — there is NO `WIRERUST_REPO_ROOT` env override; do NOT use it)
@@ -1033,10 +1038,14 @@ Well within context window. No story split required.
      vacuously
    - Run `python3 <tmp>/bin/check-green-doc-tense` (the copy in the temp repo, not the
      live script from the working tree)
-   - Assert the process exits 1 (violation detected)
-   - Assert the output contains a FAIL line naming `bin/violating.py` and the pattern
-     label (e.g., `"FAIL [bin/violating.py:1]: Pattern 32 ..."`); check the literal
-     violation output prefix, not just the exit code
+   - If the process exits 1 (violation detected): print
+     `  PASS  [hermetic-e2e: exit 1 on violation]` and increment `passed`;
+     otherwise print `  FAIL  [hermetic-e2e: exit 1 on violation]` and increment `failures`
+   - If the output contains a FAIL line naming `bin/violating.py` and the pattern label
+     (e.g., `"FAIL [bin/violating.py:1]: Pattern 32 ..."`): print
+     `  PASS  [hermetic-e2e: output names violating.py]` and increment `passed`;
+     otherwise print `  FAIL  [hermetic-e2e: output names violating.py]` and increment
+     `failures`
    This validates the full integration path: `_collect_source_files()` discovers the `.py`
    file, `_is_comment_line()` returns True for the `#` line, and the pattern fires. This is
    the df-validation self-application smoke test confirming PG-W84-010 is exercised end-to-end.
@@ -1063,6 +1072,13 @@ Well within context window. No story split required.
       for patterns 30-37 are added to that section, update the range label to include them;
       otherwise add a one-line inline note that Patterns 30-37 carry inline `# Allowlist:`
       comments in their tuple comments, so the "12-29" heading remains literally accurate.
+    - Lines :212-215 (`_is_comment_line()` docstring, baseline develop@e8841d76, pre-edit —
+      re-locate by content): the current docstring states "A comment line is one where the
+      stripped content starts with `//` or `//!`". After AC-183-002, this is false — the
+      function also accepts `suffix` and returns True for `#`-prefixed lines when
+      `suffix == ".py"`. Rewrite to: "`suffix`-aware: returns True for `//`-prefixed lines
+      (all files) and `#`-prefixed lines when `suffix == \".py\"`; anchors detection to
+      language-specific comment syntax".
     - Lines :577 (baseline develop@e8841d76, pre-edit; "in test files" failure summary) and
       :581–585 (baseline develop@e8841d76, pre-edit; explanatory prose) — re-locate by
       content after each insertion: update scope descriptions from "test files" to
@@ -1236,6 +1252,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.7 | 2026-07-26 | story-writer | WAVE-86 PASS-17 REMEDIATION — P17-006 MED (Task 10 sweep: new bullet added for lines :212-215 `_is_comment_line()` docstring — current "starts with `//` or `//!`" claim is false after AC-183-002; rewrite with suffix-aware description); P17-007a MED (AC-183-001 :228 placement instruction: "Place the assertions after :905" → "Insert the assertions immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907 — ensures checks feed passed/failures counters and Results: line"); P17-007b MED (Task 9 :1017-1019 placement instruction corrected to match: "Insert both immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907"); P17-011 MED (Task 9 hermetic assert/exit checks respecified in runner convention: `  PASS  [hermetic-e2e: exit 1 on violation]` / `  FAIL  [...]` with counters for both exit-code and output-contents checks); P17-012 LOW (AC-183-001 baseline count: split into pre-story `git ls-files -- tests/*.rs src/**/*.rs | wc -l` and post-story `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py | wc -l` — prior single command incorrectly included `src/*.rs` in the pre-story baseline). |
 | 2.6 | 2026-07-26 | story-writer | WAVE-86 PASS-16 REMEDIATION — F-W86S-P16-003 MED (Notes §Deferred scrub obligation extended with P16-003 contiguity blind spot: `tests/iec104_analyzer_tests.rs:6948-6953` "currently these fall through the `_` catch-all" added; reword prescription (past-tense: "before STORY-180, these fell through the `_` catch-all"); contiguity limitation of Patterns 31/32 documented — interposed words defeat `currently\s+falls?\b`/`currently\s+asserts?\b`; widening deferred to avoid FP risk against 10 TIER-2 `falls through to` sites; sibling patterns at :325/:376/:455 cited as eventual model; D-533 vehicle noted); F-W86S-P16-004 MED (Pattern 35 FP-note comment at :562-564 rewrote to eliminate contiguous "currently has no" — replaced with "the pattern also matches a hyphenated no-prefix token immediately after the phrase, because \b fires at the hyphen (e.g. a 'no-op' continuation). 0 live hits."; verified no `# `-line in replacement matches any of 36 patterns); F-W86S-P16-005 MED (Task 2 :872 wrapped single-space `PASS [_collect_source_files:` fixed to `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` — collapsed onto one line; full story `PASS [`/`FAIL [` sweep: 0 remaining single-space forms); F-W86S-P16-006 MED (Notes §Story scope clarification: new bullet added for bare `Red Gate`/`RED GATE`/`todo!()` tokens — NOT covered, phrase-level design deliberate, 32 live `RED GATE:` headings across 10 test files are accepted residual section labels; AC-183-008 heading/body amended to scope as "phrase-level" only with P16-006 note referencing §Story scope clarification); P16-009 LOW (Task 9 :1023-1024: `git -C <tmp> add bin/check-green-doc-tense` annotated as optional — extension-less file never collected by suffix-filter; only bin/violating.py must be indexed); NIT-1 ("path set" → "path list (list[Path])" at both loci :217/:871 via replace_all). |
 | 2.5 | 2026-07-26 | story-writer | WAVE-86 PASS-15 REMEDIATION — F-W86S-P15-005 MED (two loci corrected: (a) AC-183-001 :222-226 repo_root note rewritten — Task 9 subprocess cannot see parent patches; monkey-patchers are PRE-EXISTING AC-158-005 (:698-726, patch :704) and AC-162-003 (:858-905, patch :871); placement load-bearing only for in-process _collect_source_files assertions — hermetic tempdir → empty set → spurious FAIL if placed inside monkey-patch block; (b) Task 9 :998-1003 placement constraint rewritten — non-hermetic assertions must be outside :698-726/:858-905; subprocess cannot see parent patches; subprocess placement relative to finally blocks has no effect); F-W86S-P15-006 LOW (PASS/FAIL strings at :215-233 and :863-880 corrected to runner convention: `  PASS  [label]` / `  FAIL  [label]` — 2-space indent, 2 spaces after PASS/FAIL; 4 occurrences updated via replace_all); F-W86S-P15-007 LOW (Task 9 imports :1000-1001: subprocess and shutil are new top-level imports; tempfile already at function scope :640 — top-level add shadows; note added); F-W86S-P15-011 LOW (Pattern 35 comment: known theoretical FP added — `currently\s+has\s+no\b` matches "currently has no-op" at \b/hyphen boundary; 0 live hits wave-86); NIT-3 (Task 1 :851 line count: wc -l confirms 913 — value already correct, no change). |
 | 2.4 | 2026-07-26 | story-writer | WAVE-86 PASS-14 REMEDIATION — F-W86S-P14-001 MED (Task 8 split into 8a/8b: 8a covers BAD_CASES+GOOD_CASES as pre-RED step consumed with Task 7; 8b appends 6 Patterns 32-37 tuples as GREEN step run with Task 6; Notes ordering updated: "Tasks 7/8a (BAD/GOOD cases — RED) → Tasks 6+8b (all 8 pattern tuples — GREEN)"; "Tasks 7 and 8" → "Tasks 7 and 8a"; "Task 6" → "Tasks 6 + 8b" in GREEN clause; GREEN checkpoint unreachable note updated to cite Tasks 6+8b); F-W86S-P14-004 LOW (Pattern 33 comment :539-540 reworded: eliminated contiguous "falls to the wildcard" across line wrap — new 5-line comment describes discriminator without placing "falls" adjacent to "to the wildcard" on any single line); F-W86S-P14-005 LOW (two _collect_source_files self-test assertions at :215-233 and Task 2 :858-870 respecified in runner's PASS/FAIL convention — each check prints PASS/FAIL with a label and increments passed/failures counters; no bare asserts); NIT-1 (P14-007: Task 10 bullets 2+3 merged into single bullet — :87-88 rewrite content combined, :97 range-label instruction kept distinct at end); NIT-2 (P14-008: Notes :1178 "TIER-2 per v4" → "TIER-2 per v6"). |
