@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.9"
+version: "2.10"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -254,6 +254,7 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
 
 Verification:
 ```bash
+set -euo pipefail
 # The gate is verified via its self-test runner — no file arguments exist:
 python3 bin/test_check_green_doc_tense.py
 # Must pass (exit 0), including new .py fixture cases added in AC-183-003/004/007
@@ -264,6 +265,11 @@ python3 bin/check-green-doc-tense
 
 # Positive .py coverage proof: self-test runner exercises bad_N.py files
 # (via runner extension in Task 7) — confirmed by ".py form" PASS lines in output
+
+# ci.yml scope-update verification (F-003 process-gap):
+test "$(grep -c 'in test files' .github/workflows/ci.yml)" -eq 0
+grep -qF 'src/*.rs' .github/workflows/ci.yml
+grep -qF 'bin/*.py' .github/workflows/ci.yml
 ```
 
 ### AC-183-002 (traces to PG-W84-010 — Python comment-line scan eligibility)
@@ -308,13 +314,14 @@ bin/check-green-doc-tense` exits 0. See Tasks 4 and 5 for the concrete remediati
 
 Verification:
 ```bash
+set -euo pipefail
 # After all scrubs and rewording, full bin/*.py scan must exit 0:
 python3 bin/check-green-doc-tense
-echo "Exit code: $?"  # Must be 0
+# Must exit 0 (non-zero exit causes set -e to abort — no echo needed)
 
 # Self-test must pass:
 python3 bin/test_check_green_doc_tense.py
-echo "Exit code: $?"  # Must be 0
+# Must exit 0
 ```
 
 ### AC-183-003 (traces to PG-W85-003 — "Expected RED:" heading pattern, Pattern 30)
@@ -518,6 +525,7 @@ exercises the full pipeline: collect → scan with suffix-scoped comment detecti
 
 Verification:
 ```bash
+set -euo pipefail
 python3 bin/test_check_green_doc_tense.py
 # In output: ".py form" PASS entries confirm suffix-scoped positive .py coverage
 
@@ -549,7 +557,9 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
       # The TIER-1 form omits the intervening word present in TIER-2.
       # Discriminator: TIER-2 inserts "through" between the verb and the wildcard destination
       # ("falls through to" — 10 live uses); the TIER-1 form lacks that intermediary word.
-      # Pattern fires when "through" is absent between the verb and the destination phrase.
+      # Pattern fires only on the contiguous phrase `falls to the wildcard`; the TIER-2 form
+      # `falls through to` is not matched because the interposed `through` breaks the
+      # `falls\s+to` adjacency.
       "Pattern 33 (PG-W85-003): 'falls to the wildcard' — RED-phase wildcard-arm fallthrough (AC-183-007)",
       re.compile(r"falls\s+to\s+the\s+wildcard", re.IGNORECASE),
   ),
@@ -742,6 +752,7 @@ serve as the combined regression guard.
 
 Verification:
 ```bash
+set -euo pipefail
 # Run self-test — all Pattern 30-37 GOOD_CASES must pass:
 python3 bin/test_check_green_doc_tense.py
 
@@ -771,6 +782,7 @@ dispatch and human authorization.
 - And the following mechanical grep predicates ALL print 0 — these fail exactly when
   Task 13 is skipped:
   ```bash
+  set -euo pipefail
   test "$(grep -c "RED GATE version" bin/test_lint_cycle_artifact.py)" -eq 0
   test "$(grep -c "MUST FAIL until bin/lint-cycle-artifact" bin/test_lint_cycle_artifact.py)" -eq 0
   test "$(grep -c "TC1–TC8" bin/test_lint_cycle_artifact.py)" -eq 0
@@ -785,6 +797,7 @@ dispatch and human authorization.
 
 Verification:
 ```bash
+set -euo pipefail
 python3 bin/test_lint_cycle_artifact.py
 # Must exit 0; pass count must be 21 (TC1–TC21 unchanged by the scrub)
 
@@ -881,9 +894,11 @@ Well within context window. No story split required.
    `failures` on failure (comparison by `.name` avoids repo-root-prefix fragility — do NOT
    compare to a repo-relative string like `"bin/test_check_green_doc_tense.py"`).
    **`repo_root` derivation:** use `mod._find_repo_root(Path(mod.__file__).resolve().parent)`
-   (where `mod` is the imported module). The hermetic test functions (Task 9) monkey-patch
-   `_find_repo_root`, so the derivation choice is load-bearing for non-hermetic self-tests —
-   using the script's own file location ensures correct repo root resolution.
+   (where `mod` is the imported module). Using the script's own file location (not `Path.cwd()`)
+   ensures correct repo root resolution regardless of the caller's working directory. The hermetic
+   test functions (Task 9) use subprocess isolation — they do NOT monkey-patch `_find_repo_root`;
+   monkey-patching of `_find_repo_root` is pre-existing in AC-158-005 (`:698-726`) and
+   AC-162-003 (`:858-905`) and is NOT introduced by Task 9.
    Add a self-test check using the runner's PASS/FAIL convention confirming
    `_collect_source_files(repo_root)` contains at least one entry satisfying
    `p.parent.name == "src" and p.suffix == ".rs"` — expressed as
@@ -942,8 +957,10 @@ Well within context window. No story split required.
    trigger word, so the text reads `…buntil` / `…bwired` and Pattern 29's `\b` assertion
    cannot fire (the preceding `b` is a word character). **Do NOT "clean up" these lines by
    removing the `\b` escapes** — `#  (d) until … wired` DOES match Pattern 29 and will
-   fail the gate. Sibling lines `:213` and `:259` in the same comment blocks are already
-   safe by the same mechanism and are deliberately left unchanged.
+   fail the gate. Sibling line `:213` is already safe by the same `\b`-escape mechanism.
+   Sibling lines `:259` and `:260` are safe for a different reason — Patterns 27/28 require
+   an `exposes|is a|are` verb immediately before `compile-only`, which is absent — so they
+   need no `\b` guard. All three are deliberately left unchanged.
 
 5. **Resolve string-literal false positives in `bin/test_check_green_doc_tense.py`
    (AC-183-002 zero-FP obligation):** The BAD_CASES section contains multi-line string
@@ -964,6 +981,10 @@ Well within context window. No story split required.
    multi-line fixtures in BAD_CASES. The `bin/test_check_green_doc_tense.py` self-test file
    MUST remain in the scan set (no skip-file pragma — that would invert the PG-W84-010
    self-application requirement).
+   **GOOD_CASES are deliberately NOT converted** — a GOOD_CASE whose content matches any
+   pattern is a test-design error the self-test already catches via the GOOD_CASE assertion.
+   Residual: ~46 `//`-prefixed source lines remain in the scanned file from GOOD_CASES multi-line
+   fixtures and must be re-checked whenever a new pattern is appended.
    **Quote-escaping note (F-018):** Two fixtures in BAD_CASES (approximately at lines :91
    and :97) contain a literal `"` character inside the string. (:402 is a GOOD_CASE
    non-comment line and is NOT in BAD_CASES.) Converting these to
@@ -1040,8 +1061,11 @@ Well within context window. No story split required.
    - `git -C <tmp> add bin/check-green-doc-tense` (optional — has no effect on
      `_collect_source_files`; the suffix-filter for `.py` means this extension-less file is
      never collected; only `bin/violating.py` must be indexed)
-   - Create `<tmp>/bin/violating.py` with a `#`-prefixed comment line containing a TIER-1
-     phrase (e.g., `"# currently asserts the implementation is complete\n"`)
+   - Create `<tmp>/bin/violating.py` with a **single-line** `#`-prefixed comment line
+     containing a TIER-1 phrase (e.g., `"# currently asserts the implementation is complete\n"`).
+     **Must be single-line**: after AC-183-002 extends the scan to `bin/*.py`, a multi-line
+     fixture in this file would be a `#`-prefixed line itself eligible for scanning, causing
+     Pattern 32 to self-flag on `# currently asserts` — keeping it single-line avoids this.
    - `git -C <tmp> add bin/violating.py` (cwd=`<tmp>`) — `git ls-files` is index-only; an
      untracked file is invisible to `_collect_source_files()` and the harness would exit 0
      vacuously
@@ -1151,6 +1175,7 @@ Well within context window. No story split required.
 
 12. **Run full self-test and zero-FP gate check (AC-183-001/002/006):**
     ```bash
+    set -euo pipefail
     python3 bin/test_check_green_doc_tense.py  # must exit 0
     python3 bin/check-green-doc-tense           # must exit 0 (no new violations)
     ```
@@ -1304,6 +1329,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.10 | 2026-07-27 | story-writer | WAVE-86 PASS-20 REMEDIATION — F-001 MED (Task 2 `repo_root` derivation paragraph: wrong attribution ("hermetic test functions monkey-patch `_find_repo_root`") replaced — Task 9 uses subprocess isolation, NOT monkey-patching; monkey-patching of `_find_repo_root` is pre-existing in AC-158-005 (`:698-726`) and AC-162-003 (`:858-905`) and is NOT introduced by Task 9); F-003 MED (AC-183-001 Verification: ci.yml scope-update predicates added — `test "$(grep -c 'in test files' .github/workflows/ci.yml)" -eq 0`, `grep -qF 'src/*.rs'`, `grep -qF 'bin/*.py'`); F-005 MED (AC-183-002 Verification: non-gating `echo "Exit code: $?"` forms replaced with `set -euo pipefail` at fence head — `set -e` causes non-zero exit to abort without needing echo); F-006 MED (seven missing `set -euo pipefail` first lines added: AC-183-001 Verification, AC-183-002 Verification, AC-183-006 Verification, AC-183-008 Verification, AC-183-009 grep block, AC-183-009 Verification, Task 12 bash block); F-009 MED (Task 9 hermetic fixture: single-line mandate added for `#`-prefixed content — multi-line would make the fixture's own `# currently asserts` line scan-eligible via Pattern 32 after AC-183-002 extension; mechanism explained); F-011 LOW (Task 4 sibling-line safety explanation corrected: `:213` safe by `\b`-escape mechanism; `:259`/`:260` safe by a DIFFERENT reason — Patterns 27/28 require `exposes|is a|are` verb before `compile-only`, which is absent; all three deliberately left unchanged); F-012 LOW (Task 5: explicit GOOD_CASES deliberate-design note added — GOOD_CASES are NOT converted; deliberate choice because a matching GOOD_CASE is a test-design error; residual of ~46 `//`-prefixed scan-eligible lines noted); F-014 LOW (AC-183-007 Pattern 33 comment: "Pattern fires when 'through' is absent between the verb and the destination phrase" overstates — replaced with "Pattern fires only on the contiguous phrase `falls to the wildcard`; TIER-2 form `falls through to` not matched because interposed `through` breaks `falls\s+to` adjacency"). |
 | 2.9 | 2026-07-27 | story-writer | WAVE-86 PASS-19 REMEDIATION — F-005 MED (Task 9 subprocess capture made explicit: `capture_output=True, text=True` required in subprocess.run call; `combined = proc.stdout + proc.stderr` added; all output assertions changed from checking "output" to checking `combined`; added note that bin/check-green-doc-tense:558-562 writes "no tracked source files found" to `file=sys.stderr` so it appears in proc.stderr/combined; 4th positively-discriminating assertion added: `len(_collect_source_files(tmp)) == 1`); F-006 MED (Task 10 :4 bullet expanded: now prescribes rewriting the FULL headline sentence — not only the glob list; "test files" noun phrase → "source files"; "(tests/*.rs and src/**/*.rs cfg(test) modules)" → "(tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py)" with explicit note that "cfg(test) modules" parenthetical is FALSE post-story and MUST be removed; two new bullets added: :467 docstring first line "Collect test-scope Rust files:" → "Collect scanned source files:" + src/*.rs and bin/*.py bullets; :472 "newly-added test files" → "newly-added source files"; FSR Notes for bin/check-green-doc-tense updated to enumerate :4/:467/:472 loci); F-007 MED (Task 4 safety criterion rewritten from phrase-level to match-level rule: MUST NOT match any of 36 patterns; mechanism documented — writing pattern in regex-literal form places \b before trigger word so Pattern 29 \b assertion cannot fire; Do NOT remove \b escapes warning added; sibling lines :213/:259 already safe by same mechanism noted); F-008 MED (Task 9 tempfile import rationale corrected: "top-level import would shadow function-scope import" is backwards — the function-local binding at :640 shadows the module-level name, not the reverse); F-009 MED (Task 2 CHANGELOG preservation note extended: both CHANGELOG.md loci covered — :741 cites _collect_rust_files by name (STORY-162/176 provenance); :851 cites pre-rename error-string prose "no tracked Rust files are found" (AC-158-005 zero-file guard as shipped); both must remain as-is per DF-SIBLING-SWEEP-001); F-010 MED (Task 2 "8 prose/comment sites" corrected to "7 _collect_rust_files prose/comment sites (:688,:705,:711,:718,:839,:843,:891) plus 1 rust_files-only prose site at :721 (failure-message string)"). |
 | 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-001 MED (Task 10 :212-215 bullet relabeled from "_is_comment_line() docstring" to "module-level pattern-registry comment block introducing _VIOLATION_PATTERNS at :217"; prescription updated from suffix-aware _is_comment_line docstring rewrite to updating the comment block to state patterns match "// in all scanned files; # in .py files"; added clarification that _is_comment_line() at :~460 has its own docstring at :461 rewritten wholesale by AC-183-002 — no contradiction with Task 1's :~460 reference); P18-002 MED (Task 10 bullet 1 split into 4 bullets: (i) :4 only for glob-scope text update; (ii) :26-30 for comment-marker claim fix — "lines whose non-whitespace content starts with // or //!" → "matches // comment lines in all scanned files; # comment lines in .py files"; (iii) :31-85 for token list update; (iv) :90 ALLOWLIST heading — no glob update required, noted explicitly); P18-007 LOW (Task 9 negative assertion added: process output must NOT contain "no tracked source files found" to distinguish genuine violation exit-1 from empty-collection guard exit-1 at main() :557-563); P18-009 LOW (token budget: ~950-960 lines corrected to ~1000-1050 lines; baseline 914 + net delta ≈ 1000-1050). |
 | 2.7 | 2026-07-26 | story-writer | WAVE-86 PASS-17 REMEDIATION — P17-006 MED (Task 10 sweep: new bullet added for lines :212-215 `_is_comment_line()` docstring — current "starts with `//` or `//!`" claim is false after AC-183-002; rewrite with suffix-aware description); P17-007a MED (AC-183-001 :228 placement instruction: "Place the assertions after :905" → "Insert the assertions immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907 — ensures checks feed passed/failures counters and Results: line"); P17-007b MED (Task 9 :1017-1019 placement instruction corrected to match: "Insert both immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907"); P17-011 MED (Task 9 hermetic assert/exit checks respecified in runner convention: `  PASS  [hermetic-e2e: exit 1 on violation]` / `  FAIL  [...]` with counters for both exit-code and output-contents checks); P17-012 LOW (AC-183-001 baseline count: split into pre-story `git ls-files -- tests/*.rs src/**/*.rs | wc -l` and post-story `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py | wc -l` — prior single command incorrectly included `src/*.rs` in the pre-story baseline). |

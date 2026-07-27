@@ -947,6 +947,10 @@ conclude both are redundant and drop one.
 | PG-W86-014 | MEDIUM | carry-forward, S-7.02 (EXTENDED D-530) | Intra-story :NNN self-citation drift; structural fix D-530: self-anchors eliminated in both stories; recommend as E-11 template convention at S-7.02 |
 | Truth-Inversion-During-Reword | HIGH | new class D-530 | Standing discipline imposed: re-derive + all-loci agreement check when rewording semantics claims (F-P13-001 pathspec truth inversion) |
 | PG-W86-ADVERSARY-WRITE-PROFILE | LOW | dispatch template fix (D-536, 2026-07-27) | Adversary dispatch must NOT instruct adversary to write files; read-only profile; return-as-text + state-manager route |
+| PG-W86-STORY-BASH-NONGATING | HIGH | carry-forward, batch with PG-W84-012 ops task | Five consecutive passes manual-remediated non-gating bash blocks; codification vehicle: bin/lint-story-bash-blocks + bin-selftest CI job (D-537, 2026-07-27) |
+| PG-W86-BASELINE-TAUTOLOGY-CHECK | HIGH | carry-forward, batch with PG-W84-012 ops task | Grep-count predicates repeatedly authored to pass on baseline; codification vehicle: extend bin/lint-story-bash-blocks to execute-and-reject already-passing predicates (D-537, 2026-07-27) |
+| PG-W86-AM-FSR-AC-COVERAGE | MEDIUM | carry-forward, S-7.02 | No template rule requires AM/FSR row → AC predicate mapping; two independent instances in one wave; codification vehicle: story template compliance skill (D-537, 2026-07-27) |
+| PG-W86-SELF-REPORTED-SWEEP | HIGH | carry-forward, batched to PG-W84-012 dispatch | Self-reported sweeps accepted as evidence; mechanical exhaustion required; orchestrator must supply locus list for enumerable classes (D-537, 2026-07-27) |
 
 ---
 
@@ -1003,3 +1007,279 @@ Fix in orchestrator dispatch template for future wave adversarial passes. No DF-
 required (purely local orchestrator template fix; no upstream vsdd-factory issue warranted —
 this is a dispatch-template wording error, not a factory engine defect). Severity LOW: no data
 lost, adversary self-corrected, one extra orchestrator routing hop.
+
+---
+
+## PG-W86-STORY-BASH-NONGATING — story-spec bash verification blocks are non-gating (primary gap of pass 20)
+
+**Class:** Story artifact quality / bash verification block discipline
+**Caught by:** Wave-86 adversarial passes P15, P16, P17, P19, P20 (five consecutive passes; F-W86S-P20-006 is the primary pass-20 finding)
+**Severity:** HIGH (five consecutive manual remediations failed to converge the class; no mechanical enforcement exists)
+**Occurrences:** 5 consecutive passes: P15 (F-W86S-P15-003), P16 (F-W86S-P16-001/002), P17 (P17-001/002), P19 (v2.9 F-002 reported "2 missing" against 5 actual), P20 (F-W86S-P20-006 — 3 remaining after v2.9 reported complete)
+**Source finding:** F-W86S-P20-006 (MED [process-gap], pass 20); F-W86S-P15-003; F-W86S-P16-001/002; P17-001/002
+**Vehicle:** Codification via `bin/lint-story-bash-blocks` + wire into `bin-selftest` CI job (batch with PG-W84-012, D-525)
+
+### Description
+
+No hook, linter, or checklist step mechanically checks fenced `bash` blocks in `.factory/stories/*.md`
+for a head `set -euo pipefail`. Five consecutive adversarial passes manually remediated
+"verification block is non-gating" without converging the class.
+
+The v2.9 burst (D-536) reported the class closed at 2 loci. The pass-20 adversary found
+3 remaining loci (AC-182-001 Verification `:342`, AC-182-003 Verification `:480`, Task 9
+Env A `:1145`). Self-reported sweeps systematically under-count this class.
+
+The orchestrator ran a mechanical enumeration before the D-537 remediation dispatch:
+
+**AUDIT 1 (executable spec — every ```bash fence with >1 command whose first non-blank line is not `set -euo pipefail`):**
+
+```bash
+# Run from repo root (where .factory/ is mounted)
+python3 - << 'EOF'
+import re, pathlib, sys
+
+findings = []
+for story_path in sorted(pathlib.Path('.factory/stories').glob('STORY-*.md')):
+    text = story_path.read_text()
+    # Find all ```bash fences
+    fence_re = re.compile(r'```bash\n(.*?)```', re.DOTALL)
+    for m in fence_re.finditer(text):
+        body = m.group(1)
+        # Count non-blank lines
+        lines = [l for l in body.splitlines() if l.strip()]
+        if len(lines) <= 1:
+            continue
+        # Check first non-blank line
+        if not lines[0].strip().startswith('set -euo pipefail'):
+            # Find approximate line number in file
+            pos = text[:m.start()].count('\n') + 1
+            findings.append(f'{story_path.name}:{pos}')
+
+print(f'Found {len(findings)} bash fences lacking head set -euo pipefail:')
+for f in findings:
+    print(f'  {f}')
+sys.exit(1 if findings else 0)
+EOF
+```
+
+**Before D-537:** 13 loci (6 in STORY-182 at ~:342/:480/:533/:798/:1145/:1184; 7 in STORY-183
+at ~:256/:310/:520/:744/:773/:787/:1153). Agent-reported: 2. Adversary-reported: 3. Mechanical: 13.
+
+**After D-537:** 0 (all 13 hardened).
+
+**Methodological result:** For this enumerable class, mechanical audit was the only exhaustive
+method. Both self-sweep (2) and adversary review (3) significantly under-counted (see
+PG-W86-SELF-REPORTED-SWEEP). This is the strongest available argument for codifying the
+audit as tooling.
+
+Also flag as non-gating: `|| true` patterns and `echo "Exit code: $?"` patterns in bash
+verification blocks.
+
+### Codification Vehicle
+
+Implement `bin/lint-story-bash-blocks`:
+- Assert every multi-command ```` ```bash ```` fence in `.factory/stories/*.md` begins with
+  `set -euo pipefail`
+- Flag `|| true` as a non-gating idiom (exception: explicitly-documented expected-failure blocks
+  with subsequent predicate)
+- Flag `echo "…$?"` / `echo "Exit code: $?"` as non-gating (prints but does not gate)
+- Selftest-backed (own `bin/test_lint_story_bash_blocks.py`)
+
+**Batch with PG-W84-012 (D-525):** one devops dispatch covers both PG-W84-012 (bin-selftest
+required-status-check for existing bin/*.py tests) and this new linter. Do NOT dispatch two
+separate devops tasks.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Codification vehicle: `bin/lint-story-bash-blocks`
+wired into `bin-selftest` CI job alongside PG-W84-012. Batched to the PG-W84-012 devops dispatch /
+next planning cycle per S-7.02 Cycle-Closing Checklist step 3.
+
+---
+
+## PG-W86-BASELINE-TAUTOLOGY-CHECK — grep-count predicates pass on baseline before implementation
+
+**Class:** Story artifact quality / tautological-predicate discipline (extends D-535 ban)
+**Caught by:** Wave-86 adversarial pass 20 (F-W86S-P20-002; also F-W86S-P20-004/005 are related axis-3/4 instances)
+**Severity:** HIGH (D-535 banned the tautological-predicate class; v2.9 introduced a brand-new tautology in AC-182-006 one pass after D-535 banned one)
+**Occurrences:** AC-182-006 was created in v2.9 to close F-19-004; it immediately reintroduced the banned class
+**Source finding:** F-W86S-P20-002 (MED, pass 20)
+**Vehicle:** Extend `bin/lint-story-bash-blocks` to execute-and-reject already-passing predicates
+
+### Description
+
+`grep -c 'tests/fixtures/' E2E-PCAPS.md -ge 1` was written into AC-182-006 in v2.9 as a
+governance-surface completeness predicate. It already passes on baseline develop because
+`tests/fixtures/` appears in `E2E-PCAPS.md` at 4+ pre-existing lines.
+
+D-535 explicitly banned the tautological-predicate class (tautological M==len() form). The
+ban was active when AC-182-006 was drafted, but the new AC was not audited against it.
+
+The orchestrator ran a mechanical execution before the D-537 dispatch:
+
+**AUDIT 2 (executable spec — every `test "$(grep -c …)" <op> N` predicate that already passes on baseline):**
+
+```bash
+# Run from repo root on clean develop checkout
+python3 - << 'EOF'
+import re, subprocess, pathlib, sys
+
+findings = []
+pred_re = re.compile(
+    r'test "\$\(grep -c (\'[^\']+\'|"[^"]+") ([^\)]+)\)" (-eq|-ge|-gt|-ne|-lt|-le) (\d+)'
+)
+
+for story_path in sorted(pathlib.Path('.factory/stories').glob('STORY-*.md')):
+    text = story_path.read_text()
+    for m in pred_re.finditer(text):
+        pattern, target_file, op, n = m.group(1), m.group(2).strip(), m.group(3), int(m.group(4))
+        pattern = pattern.strip("'\"")
+        # Execute grep -c against baseline
+        result = subprocess.run(
+            ['grep', '-c', pattern] + target_file.split(),
+            capture_output=True, text=True
+        )
+        count = int(result.stdout.strip()) if result.returncode in (0, 1) and result.stdout.strip().isdigit() else None
+        if count is None:
+            continue
+        # Evaluate predicate
+        passes = {'-eq': count == n, '-ge': count >= n, '-gt': count > n,
+                  '-ne': count != n, '-lt': count < n, '-le': count <= n}.get(op, False)
+        if passes:
+            lineno = text[:m.start()].count('\n') + 1
+            findings.append(f'{story_path.name}:{lineno} — grep -c "{pattern}" {target_file} = {count} {op} {n} ALREADY PASSES')
+
+print(f'Found {len(findings)} tautological predicates (pass on baseline):')
+for f in findings:
+    print(f'  {f}')
+sys.exit(1 if findings else 0)
+EOF
+```
+
+**Before D-537:** 3 live tautologies (`:492`, `:821`, `:1156`; one MORE than adversary reported).
+One additional tautological form (non-gating `|| true`) at AC-182-005 Verification — covered by
+AUDIT 1.
+
+**After D-537:** 0 live tautologies (only the immutable v2.2 changelog row at `:1445` still
+matches the pattern, correctly left alone as historical record).
+
+### Codification Vehicle
+
+Extend `bin/lint-story-bash-blocks` (see PG-W86-STORY-BASH-NONGATING) with a AUDIT-2 execution
+mode: run every `test "$(grep -c …)" <op> N` predicate against the current tree and fail if the
+predicate already holds. This directly codifies the D-535 standing ban as tooling.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Batch with PG-W84-012 + PG-W86-STORY-BASH-NONGATING
+in the same devops dispatch — one tool covers both audits.
+
+---
+
+## PG-W86-AM-FSR-AC-COVERAGE — Architecture-Mapping / FSR rows with no AC predicate
+
+**Class:** Story template gap / bidirectional AM/FSR-row ↔ AC-predicate coverage
+**Caught by:** Wave-86 adversarial pass 20 (F-W86S-P20-003 [process-gap])
+**Severity:** MEDIUM (two independent instances in one wave; STORY-183's ci.yml row survived 19 passes without AC coverage)
+**Occurrences:** STORY-182 ci.yml deliverable (existed since v1.4 = 16 passes); STORY-183 ci.yml row (existed since v1.1 = 19 passes)
+**Source finding:** F-W86S-P20-003 (MED [process-gap], pass 20)
+**Vehicle:** Add bidirectional AM/FSR-row ↔ AC-predicate coverage check to story template compliance skill
+
+### Description
+
+Both stories declared ci.yml deliverables in their Architecture Mapping and FSR rows, but
+neither story had an AC predicate checking for those ci.yml changes. Specifically:
+
+- **STORY-182** `:855` (AM), `:1328` (FSR) — ci.yml additive step; no AC checked its presence
+  until F-W86S-P20-003 prescribed AC-182-006 additions.
+- **STORY-183** `:811` (AM), `:1236` (FSR) — ci.yml prose edits at `:434`/`:442`/`:462`; no AC
+  covered these until F-W86S-P20-003 prescribed new predicates.
+
+The STORY-183 ci.yml row survived 19 adversarial passes without any AC coverage. The STORY-182
+row survived 16 passes.
+
+### Root Cause
+
+No template rule or agent-prompt explicitly requires that every Architecture-Mapping / FSR
+row map to at least one checkable AC predicate. Story reviewers (adversary and orchestrator)
+check AC→behavior coverage, but not the reverse (declared deliverable→AC coverage).
+
+### Proposed Fix
+
+Add to story-writer's AM/FSR template discipline:
+
+> For every row in the Architecture Mapping and FSR tables, there MUST exist at least one
+> AC predicate that asserts the presence or correct content of that deliverable. A deliverable
+> row with no corresponding AC predicate is an incomplete story specification.
+>
+> Bidirectional coverage check:
+> (a) For each AC: confirm it maps to at least one AM/FSR row (existing check)
+> (b) For each AM/FSR row: confirm at least one AC verifies its presence (new requirement)
+
+Add this bidirectional check to the `vsdd-factory:validate-consistency` skill or the story
+template compliance skill's "AM/FSR coverage" section.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Codification via story template compliance skill
+(story-writer agent instructions update). DF-VALIDATION-001 not required (local template
+discipline, no upstream vsdd-factory filing needed).
+
+---
+
+## PG-W86-SELF-REPORTED-SWEEP — self-reported sweeps accepted as evidence of class closure
+
+**Class:** Orchestrator dispatch discipline / verification completeness
+**Caught by:** Wave-86 adversarial pass 20 (F-W86S-P20-006; also v2.9 false closure of the bash-nongating class)
+**Severity:** HIGH (DF-SIBLING-SWEEP-001 requires the remediating agent to execute a sweep, but nothing verifies the sweep was exhaustive; evidence: v2.9 reported "2 of 5" and declared complete)
+**Occurrences:** Manifested definitively in v2.9 burst (D-536): agent reported 2 loci swept; mechanical AUDIT 1 found 13; adversary found 3. Both under-counts accepted as complete in prior passes.
+**Source finding:** F-W86S-P20-006 (MED [process-gap], pass 20); PG-W86-010 (orchestrator grep-evidence mandate, established D-523) extends this class
+**Vehicle:** Orchestrator dispatch protocol: supply exhaustive locus list for enumerable classes; post-burst mechanical re-enumeration required
+
+### Description
+
+DF-SIBLING-SWEEP-001 requires the remediating agent to execute a sweep and report hits.
+But nothing verifies the sweep was exhaustive — the agent self-selects the sibling set and
+reports completion.
+
+Concrete evidence from wave-86 pass 20:
+- v2.9 reported the `set -euo` class closed at **2 loci**. Mechanical AUDIT 1 found **13**.
+- Adversary (pass 20) reported **3** loci. Still a 10× under-count against mechanical.
+- Only mechanical enumeration was exhaustive.
+
+This is a generalization of PG-W86-010 (per-fix grep-evidence mandate, D-523): PG-W86-010
+requires the story-writer to RETURN grep evidence. PG-W86-SELF-REPORTED-SWEEP requires the
+ORCHESTRATOR to pre-supply exhaustive loci and re-enumerate post-burst.
+
+### Orchestrator Discipline
+
+For any defect class that can be mechanically enumerated:
+
+1. **Pre-dispatch:** orchestrator runs the enumeration script (e.g., AUDIT 1) and includes the
+   exhaustive locus list in the remediation dispatch. Do NOT rely on the agent's own sweep.
+
+2. **Post-burst:** orchestrator re-runs the enumeration script after the burst. Only a zero
+   result authorizes the burst commit.
+
+3. Self-reported sweep counts are recorded but NOT accepted as evidence of class closure
+   for enumerable classes.
+
+This was first applied in the D-537 dispatch: the orchestrator supplied all 13 loci to the
+story-writer, rather than asking the agent to "sweep and fix." The post-burst audit confirmed
+0 remaining.
+
+### Relationship to Existing Policies
+
+- **PG-W86-010 (D-523):** Story-writer must RETURN grep evidence for each HIGH/CRIT fix.
+  PG-W86-SELF-REPORTED-SWEEP is the orchestrator-side complement: orchestrator PRE-SUPPLIES
+  the enumeration and RE-CHECKS post-burst.
+- **DF-SIBLING-SWEEP-001:** Requires a sweep. This PG clarifies that for enumerable classes,
+  the sweep must be mechanical, not manual, and must be verified by the orchestrator.
+
+### Disposition
+
+Carry-forward to wave-086 cycle-close (S-7.02). Codification via orchestrator dispatch protocol
+(update to orchestrator skill checklist for HIGH/enumerable finding classes). Batch with
+PG-W84-012 devops dispatch for the tooling component (`bin/lint-story-bash-blocks`). The
+orchestrator-protocol component (pre-supply loci, post-verify) is an agent-behavior change,
+not a code change — codify in the orchestrator skill dispatch checklist.
