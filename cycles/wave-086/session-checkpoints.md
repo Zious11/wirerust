@@ -709,4 +709,61 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26/27) — D-532 pass-15 remediated, pass 16 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.11 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26/27 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v2.5 (pass-15 remediated; third zero-HIGH pass; false-GREEN blocks hardened; sibling-class bc_2_12_011 corrected); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-15 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 16 (fresh-context; STORY-182 v2.5 + STORY-183 v2.5) |
+
+### Resume Prompt
+
+```
+D-532 WAVE-86 ADVERSARIAL PASS 15 REMEDIATED (2026-07-26/27). 14 findings
+0C/0H/5M/6L + 3 NITs, all fixed. Third zero-HIGH pass. MEDs: README ITI
+CC-BY-4.0 citation absent from prescribed row (STORY-182); move-aside
+source-existence guard missing — bogus trap restore on clean checkout
+(STORY-182); pipefail-without-set-e + println-before-assert false-GREEN blocks
+gate-BLOCKING Task-8 (STORY-183); bc_2_12_011_story127_tests.rs misclassified
+as silent-skip — truth: synthetic-fallback; STATE.md DRIFT row corrected
+(STORY-182); false monkey-patch rationale on list-position-index constraint
+(STORY-183). STORY-182 v2.5 (9a0f34c). STORY-183 v2.5 (9c9b12f).
+STORY-INDEX v4.10→v4.11. Canonical hashes 9a0f34c/9c9b12f.
+Streak 0/3. Pass 16 next. trajectory-tail →10→15→8→14.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire
+    test_lint_cycle_artifact.py/test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+(h) DRIFT-py-surface-outside-bin scope decision
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

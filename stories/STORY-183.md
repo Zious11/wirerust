@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.5"
+version: "2.6"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -214,7 +214,7 @@ change is required for the self-test file. The ci.yml comment lines :434 and :44
 - And the pass-message at line ~591 is updated: rename the local variable from `rust_files` to `source_files` only (variable rename only — no "both file types" prose change required)
 - And a self-test check using the runner's PASS/FAIL convention prints
   `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` and increments
-  `passed` when `_collect_source_files(repo_root)` returns a path set containing an entry
+  `passed` when `_collect_source_files(repo_root)` returns a path list (list[Path]) containing an entry
   whose `.name` attribute equals `test_check_green_doc_tense.py`; prints
   `  FAIL  [_collect_source_files: test_check_green_doc_tense.py found]` and increments
   `failures` otherwise (comparison by `.name` avoids repo-root-prefix fragility — do NOT
@@ -559,9 +559,9 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
   (
       # Pattern 35: present-tense absence claim; 0 live legitimate uses.
       # Renumbered from Pattern 37 (v3).
-      # Known theoretical FP: `currently\s+has\s+no\b` also matches "currently has no-op"
-      # (\b fires at the word boundary before the hyphen character). 0 live hits as of
-      # wave-86; note for future maintainers if "no-op" phrasing is introduced.
+      # Known theoretical FP: the pattern also matches a hyphenated no-prefix token
+      # immediately after the phrase, because \b fires at the hyphen (e.g. a "no-op"
+      # continuation). 0 live hits.
       "Pattern 35 (PG-W85-003): 'currently has NO' — present-tense absence claim (AC-183-007)",
       re.compile(r"currently\s+has\s+no\b", re.IGNORECASE),
   ),
@@ -688,11 +688,15 @@ python3 bin/test_check_green_doc_tense.py
 # three TIER-2 GOOD_CASEs must confirm tool does NOT flag them
 ```
 
-### AC-183-008 (traces to PG-W85-003 — efficacy: TIER-1 D-506 phrasing covered; TIER-2 correctly excluded)
+### AC-183-008 (traces to PG-W85-003 — efficacy: TIER-1 D-506 phrase-level phrasing covered; TIER-2 correctly excluded)
 
 The final pattern set (Patterns 30–37) covers the TIER-1 phrasing from the 9 D-506 stale
 sites and produces zero false positives on live TIER-2 sites, per DF-GREEN-DOC-TENSE-SWEEP v6
 (F-W86S-P2-006 / F-W86S-P3-001 rulings, 2026-07-25).
+
+**Scope note (P16-006):** Patterns 30–37 are phrase-level patterns only; bare tokens
+(`RED GATE:`, `todo!()`) are NOT covered and are accepted residuals — see Notes §Story scope
+clarification.
 
 - Given the 9 D-506 stale sites (STORY-180 F-180-P1-003, `.factory/cycles/wave-085/STORY-180/convergence-report.md` lines 63-66) used:
   - `currently asserts` (TIER-1) — covered by Pattern 32 ✓
@@ -868,9 +872,8 @@ Well within context window. No story split required.
    Update `main()` call site. Update the pass-message at ~591: rename the local variable
    from `rust_files` to `source_files` (variable rename only).
    Add a self-test check using the runner's PASS/FAIL convention confirming
-   `_collect_source_files(repo_root)` returns a path set containing an entry whose `.name`
-   attribute equals `test_check_green_doc_tense.py`; prints `PASS [_collect_source_files:
-   test_check_green_doc_tense.py found]` and increments `passed` on success, prints
+   `_collect_source_files(repo_root)` returns a path list (list[Path]) containing an entry whose `.name`
+   attribute equals `test_check_green_doc_tense.py`; prints `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` and increments `passed` on success, prints
    `  FAIL  [_collect_source_files: test_check_green_doc_tense.py found]` and increments
    `failures` on failure (comparison by `.name` avoids repo-root-prefix fragility — do NOT
    compare to a repo-relative string like `"bin/test_check_green_doc_tense.py"`).
@@ -1020,8 +1023,9 @@ Well within context window. No story split required.
    - Copy `bin/check-green-doc-tense` into `<tmp>/bin/check-green-doc-tense` (creates the
      `<tmp>/bin/` directory) so that `_find_repo_root` resolves to `<tmp>` when the copy
      is invoked
-   - `git -C <tmp> add bin/check-green-doc-tense` (cwd=`<tmp>`; git ls-files reads the index
-     after add; no commit required)
+   - `git -C <tmp> add bin/check-green-doc-tense` (optional — has no effect on
+     `_collect_source_files`; the suffix-filter for `.py` means this extension-less file is
+     never collected; only `bin/violating.py` must be indexed)
    - Create `<tmp>/bin/violating.py` with a `#`-prefixed comment line containing a TIER-1
      phrase (e.g., `"# currently asserts the implementation is complete\n"`)
    - `git -C <tmp> add bin/violating.py` (cwd=`<tmp>`) — `git ls-files` is index-only; an
@@ -1201,7 +1205,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
   (:434/:442/:462) are baseline develop@e8841d76, pre-STORY-182 — re-locate by content
   match if STORY-182 merged first. A rebase is required if both PRs are in flight
   simultaneously to avoid merge conflicts from adjacent line changes.
-- **Story scope clarification (F-007, F-W86S-P3-001):** Retitled from "Full TIER-1 Token
+- **Story scope clarification (F-007, F-W86S-P3-001 + P16-006):** Retitled from "Full TIER-1 Token
   Coverage" to "TIER-1 Behavioral-Absence Token Coverage". Residual TIER-1 tokens NOT covered
   by this story:
   - §(d)/§(a) bare-word markers with phrase-level coverage only: `scaffold`, `uncalled`,
@@ -1212,12 +1216,15 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
     `not yet implemented`, `currently FAILS` — see Background §PG-W85-003 TIER-2 section
   - Pending-TIER-1 follow-up: `unimplemented!()` — 0 live hits per v4 grep (2026-07-25);
     pending addition after this story ships (track as follow-up)
+  - Bare `Red Gate` / `RED GATE` / `todo!()` tokens: NOT covered — existing tuples are
+    phrase-level by design (require context words); 32 live `RED GATE:` section headings
+    across 10 test files are accepted residual (they are section labels, not behavioral-absence
+    claims); phrase-level coverage is the deliberate FP-safety tradeoff; future tightening
+    is a separate story.
 - **Bare `RED` markers re-tiered TIER-2 per DF-GREEN-DOC-TENSE-SWEEP v6:** Pattern 30
   (`Expected RED:` heading with colon) is retained TIER-1; bare standalone `RED` markers
   without semantic phrase context are TIER-2 per the v6 ruling (F-W86S-P6-009/010).
-- **Deferred scrub obligation (F-W86S-P6-009/010, v6 ruling):** Two live stale sites
-  adjudicated at wave-86 pass-6: `iec104_analyzer_tests.rs:6271` and
-  `modbus_detection_tests.rs:2472/:2480` — owner: next maintenance sweep.
+- **Deferred scrub obligation (F-W86S-P6-009/010 + P16-003, v6 ruling):** Live stale sites deferred to next maintenance sweep: `iec104_analyzer_tests.rs:6271` and `modbus_detection_tests.rs:2472/:2480` — owner: next maintenance sweep. Additionally, `tests/iec104_analyzer_tests.rs:6948-6953` ("currently these fall through the `_` catch-all") — reword prescription: past-tense "before STORY-180, these fell through the `_` catch-all"; site absent from the deferred-scrub list because Pattern 31 (`currently\s+falls?\b`) has a contiguity blind spot: the interposed word "these" defeats the regex without triggering a match. **Contiguity limitation (P16-003):** Patterns 31 and 32 are defeated by interposed words between "currently" and the verb; widening is deferred to avoid FP risk against the 10 live `falls through to` TIER-2 sites; sibling patterns in `bin/check-green-doc-tense` at :325/:376/:455 that tolerate interposed words via broader intermediate-word matching are the eventual model for future tightening. Deferred site flows to the same DRIFT-stale-red-scrub vehicle (state-manager records at D-533).
 - **FP budget for `src/*.rs` glob (F-P11-012, F-W86S-P12-006):** Under git's default pathspec
   matching, `src/*.rs` crosses directory separators and covers all `.rs` files under `src/`
   (not only top-level files); `src/**/*.rs` is retained for explicit-intent redundancy; git
@@ -1229,6 +1236,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.6 | 2026-07-26 | story-writer | WAVE-86 PASS-16 REMEDIATION — F-W86S-P16-003 MED (Notes §Deferred scrub obligation extended with P16-003 contiguity blind spot: `tests/iec104_analyzer_tests.rs:6948-6953` "currently these fall through the `_` catch-all" added; reword prescription (past-tense: "before STORY-180, these fell through the `_` catch-all"); contiguity limitation of Patterns 31/32 documented — interposed words defeat `currently\s+falls?\b`/`currently\s+asserts?\b`; widening deferred to avoid FP risk against 10 TIER-2 `falls through to` sites; sibling patterns at :325/:376/:455 cited as eventual model; D-533 vehicle noted); F-W86S-P16-004 MED (Pattern 35 FP-note comment at :562-564 rewrote to eliminate contiguous "currently has no" — replaced with "the pattern also matches a hyphenated no-prefix token immediately after the phrase, because \b fires at the hyphen (e.g. a 'no-op' continuation). 0 live hits."; verified no `# `-line in replacement matches any of 36 patterns); F-W86S-P16-005 MED (Task 2 :872 wrapped single-space `PASS [_collect_source_files:` fixed to `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` — collapsed onto one line; full story `PASS [`/`FAIL [` sweep: 0 remaining single-space forms); F-W86S-P16-006 MED (Notes §Story scope clarification: new bullet added for bare `Red Gate`/`RED GATE`/`todo!()` tokens — NOT covered, phrase-level design deliberate, 32 live `RED GATE:` headings across 10 test files are accepted residual section labels; AC-183-008 heading/body amended to scope as "phrase-level" only with P16-006 note referencing §Story scope clarification); P16-009 LOW (Task 9 :1023-1024: `git -C <tmp> add bin/check-green-doc-tense` annotated as optional — extension-less file never collected by suffix-filter; only bin/violating.py must be indexed); NIT-1 ("path set" → "path list (list[Path])" at both loci :217/:871 via replace_all). |
 | 2.5 | 2026-07-26 | story-writer | WAVE-86 PASS-15 REMEDIATION — F-W86S-P15-005 MED (two loci corrected: (a) AC-183-001 :222-226 repo_root note rewritten — Task 9 subprocess cannot see parent patches; monkey-patchers are PRE-EXISTING AC-158-005 (:698-726, patch :704) and AC-162-003 (:858-905, patch :871); placement load-bearing only for in-process _collect_source_files assertions — hermetic tempdir → empty set → spurious FAIL if placed inside monkey-patch block; (b) Task 9 :998-1003 placement constraint rewritten — non-hermetic assertions must be outside :698-726/:858-905; subprocess cannot see parent patches; subprocess placement relative to finally blocks has no effect); F-W86S-P15-006 LOW (PASS/FAIL strings at :215-233 and :863-880 corrected to runner convention: `  PASS  [label]` / `  FAIL  [label]` — 2-space indent, 2 spaces after PASS/FAIL; 4 occurrences updated via replace_all); F-W86S-P15-007 LOW (Task 9 imports :1000-1001: subprocess and shutil are new top-level imports; tempfile already at function scope :640 — top-level add shadows; note added); F-W86S-P15-011 LOW (Pattern 35 comment: known theoretical FP added — `currently\s+has\s+no\b` matches "currently has no-op" at \b/hyphen boundary; 0 live hits wave-86); NIT-3 (Task 1 :851 line count: wc -l confirms 913 — value already correct, no change). |
 | 2.4 | 2026-07-26 | story-writer | WAVE-86 PASS-14 REMEDIATION — F-W86S-P14-001 MED (Task 8 split into 8a/8b: 8a covers BAD_CASES+GOOD_CASES as pre-RED step consumed with Task 7; 8b appends 6 Patterns 32-37 tuples as GREEN step run with Task 6; Notes ordering updated: "Tasks 7/8a (BAD/GOOD cases — RED) → Tasks 6+8b (all 8 pattern tuples — GREEN)"; "Tasks 7 and 8" → "Tasks 7 and 8a"; "Task 6" → "Tasks 6 + 8b" in GREEN clause; GREEN checkpoint unreachable note updated to cite Tasks 6+8b); F-W86S-P14-004 LOW (Pattern 33 comment :539-540 reworded: eliminated contiguous "falls to the wildcard" across line wrap — new 5-line comment describes discriminator without placing "falls" adjacent to "to the wildcard" on any single line); F-W86S-P14-005 LOW (two _collect_source_files self-test assertions at :215-233 and Task 2 :858-870 respecified in runner's PASS/FAIL convention — each check prints PASS/FAIL with a label and increments passed/failures counters; no bare asserts); NIT-1 (P14-007: Task 10 bullets 2+3 merged into single bullet — :87-88 rewrite content combined, :97 range-label instruction kept distinct at end); NIT-2 (P14-008: Notes :1178 "TIER-2 per v4" → "TIER-2 per v6"). |
 | 2.3 | 2026-07-26 | story-writer | WAVE-86 PASS-13 REMEDIATION — F-W86S-P13-001 HIGH (AC-183-001 :228-230: false "both globs cover same files" claim corrected — `src/**/*.rs` requires literal `/` after star segment, NEVER matches top-level src/*.rs (10 files); `src/*.rs` (star crosses /) covers all src/ and strictly SUBSUMES `src/**/*.rs`; `src/*.rs` is LOAD-BEARING and MUST NOT be dropped; consistent with six already-correct loci); F-W86S-P13-003 MED (Pattern 33 comment :534: wrong discriminator "bare form without to the wildcard" replaced with correct one: intervening word "through" breaks `falls\s+to\s+the\s+wildcard` pattern); F-W86S-P13-004 MED (AC-183-009: two inverted-gate loci fixed — grep -c exits 1 when count is 0, replaced with `test "$(grep -c ...)" -eq 0` gating form at both :743-748 and :762-765; "return 0" → "print 0"); F-W86S-P13-005 MED (merge-order note: "irrelevant" scoped to conflict purposes; ci.yml line anchors labeled "baseline develop@e8841d76, pre-STORY-182 — re-locate by content match if STORY-182 merged first"); F-W86S-P13-006 MED (convergence-report.md path-qualified at all 7 loci to `.factory/cycles/wave-085/STORY-180/convergence-report.md`; file added to traces_to); F-W86S-P13-009 LOW (Task 9: required imports subprocess/shutil/tempfile stated as explicit deliverables; placement constraint stated — hermetic section MUST be outside monkey-patch `finally` blocks; placement is load-bearing); F-W86S-P13-010 LOW (Pattern 34 regex: `doesn'?t` → `doesn['']?t` typographic-apostrophe variant); F-W86S-P13-011 LOW (Task 10: bin/check-green-doc-tense:97 added to sweep list with range-update instruction); F-W86S-P13-012 LOW (Task 2 and Task 10 tool-file anchors :87-88/:466-474/:556/:558-560/:577 labeled "baseline develop@e8841d76 (pre-edit) — re-locate by content after each insertion"); F-W86S-P13-013 LOW (Pattern 34 GOOD annotation :593: no-literal-phrase discipline — `no "exist yet"` → "negative-capability phrase absent"); F-W86S-P13-014 LOW (AC-183-008: all 10 "falls through to" sites enumerated, not just 4); NIT-1 (docstring: "// or //! (inner doc)" → "// (including /// outer doc and //! inner doc)"); NIT-2 (token budget: ~620 lines → ~690-700); NIT-3 (:393: "catches both singular and plural" → "matches both fall and falls (verb inflection)"); process-gap (EC-010 extended: .py files outside bin/ added as also OUT OF SCOPE; DRIFT-py-surface-outside-bin noted). |
