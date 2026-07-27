@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.8"
+version: "2.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -907,16 +907,17 @@ Well within context window. No story split required.
    **Propagate rename to 13 `_collect_rust_files` sites + 1 `rust_files` prose site at :721 (14 total) in `bin/test_check_green_doc_tense.py`:**
    - 6 functional monkey-patch sites (approximately :699/:707/:726 zero-file guard;
      :859/:872/:905 spy) — these MUST be updated or tests will fail
-   - 8 prose/comment sites (approximately :688,:705,:711,:718,:721,:839,:843,:891)
-     (:721 — failure-message string citing `if not rust_files:` guard in `main()`;
-     references `rust_files` by name — update to `source_files`)
-   **Do NOT update** `CHANGELOG.md` line ~741: that entry is a SHIPPED HISTORICAL changelog
-   entry (preserved per DF-SIBLING-SWEEP-001); the `_collect_rust_files` name in that entry
-   documents what shipped in STORY-176 and must remain as-is for audit provenance. A
-   parenthetical annotation like "(renamed _collect_source_files in STORY-183)" may be added
-   inline but is NOT required. Similarly, historical references in delivered story specs
-   (STORY-158, STORY-162) are preserved as shipped spec provenance — do NOT sweep
-   `.factory/stories/` history.
+   - 7 `_collect_rust_files` prose/comment sites (approximately :688,:705,:711,:718,:839,:843,:891)
+   - Plus 1 `rust_files`-only prose site at :721 (failure-message string citing
+     `if not rust_files:` guard in `main()` — update to `source_files`)
+   **Do NOT update either CHANGELOG.md locus affected by this rename** — both are SHIPPED
+   HISTORICAL entries preserved per DF-SIBLING-SWEEP-001:
+   - `:741` — cites `_collect_rust_files` by name (documents what shipped in STORY-162/176);
+     must remain as-is for audit provenance.
+   - `:851` — cites the pre-rename error-string prose "no tracked Rust files are found"
+     (documents the AC-158-005 zero-file guard as shipped); must remain as-is.
+   Similarly, historical references in delivered story specs (STORY-158, STORY-162) are
+   preserved as shipped spec provenance — do NOT sweep `.factory/stories/` history.
 
 3. **Extend `_is_comment_line(stripped, suffix)` (AC-183-002, F-008):** Add a `suffix`
    parameter (default `""`). Return True for `#`-prefixed lines ONLY when `suffix == ".py"`.
@@ -928,14 +929,21 @@ Well within context window. No story split required.
    Two Python `#`-prefixed comment lines at approximately lines ~258 and ~261 contain the
    literal flagged phrases `"harness skeleton compiles"` and `"fails until wired"` inside
    quoted examples. The regex patterns match inside quotes equally — the gate will flag these
-   lines regardless of quoting. The comments MUST NOT contain the literal flagged phrase at all
-   (removing quotes is insufficient):
+   lines regardless of quoting. **Safety criterion (not "no literal phrase" — that is
+   insufficient for regex patterns like 29 and 23):** the rewritten line MUST NOT *match*
+   any of the 36 patterns. Verify mechanically after rewording with
+   `python3 bin/check-green-doc-tense`.
    - Line ~258: reword entirely to eliminate `harness skeleton compiles`, e.g.:
      `#   (a) \bskeleton\s+compiles?\b  — compile-only stub-era assertion (pattern 26)`
    - Line ~261: reword entirely to eliminate `fails until wired`, e.g.:
      `#   (d) \buntil\b[^\n]*\bwired\b   — CI-wiring-incomplete prose (pattern 29)`
-   After rewording, confirm neither line triggers patterns 26 or 29 by running
-   `python3 bin/test_check_green_doc_tense.py` — it must still pass fully.
+   The prescribed replacements are safe by a specific, deliberate mechanism: writing the
+   pattern in regex-literal form places the escape character `\b` immediately before the
+   trigger word, so the text reads `…buntil` / `…bwired` and Pattern 29's `\b` assertion
+   cannot fire (the preceding `b` is a word character). **Do NOT "clean up" these lines by
+   removing the `\b` escapes** — `#  (d) until … wired` DOES match Pattern 29 and will
+   fail the gate. Sibling lines `:213` and `:259` in the same comment blocks are already
+   safe by the same mechanism and are deliberately left unchanged.
 
 5. **Resolve string-literal false positives in `bin/test_check_green_doc_tense.py`
    (AC-183-002 zero-FP obligation):** The BAD_CASES section contains multi-line string
@@ -1009,8 +1017,9 @@ Well within context window. No story split required.
    in a hermetic environment. Required new imports (explicit deliverables): `subprocess`
    and `shutil` — add both at the top of the test file (neither is currently present).
    Note: `tempfile` is already imported at function scope at approximately :640 — do NOT
-   add it as a top-level import; a top-level `import tempfile` would shadow the existing
-   function-scope import.
+   add it as a top-level import; the function-local binding at `:640` shadows the
+   module-level name, not the reverse (a top-level import is shadowed inside any function
+   that rebinds the same name locally).
    **Placement constraint (load-bearing for non-hermetic assertions):** the two
    non-hermetic `_collect_source_files(repo_root)` assertions (from Task 2) MUST be placed
    OUTSIDE (after) the PRE-EXISTING monkey-patch sections at :698-726 (AC-158-005) and
@@ -1036,33 +1045,59 @@ Well within context window. No story split required.
    - `git -C <tmp> add bin/violating.py` (cwd=`<tmp>`) — `git ls-files` is index-only; an
      untracked file is invisible to `_collect_source_files()` and the harness would exit 0
      vacuously
-   - Run `python3 <tmp>/bin/check-green-doc-tense` (the copy in the temp repo, not the
-     live script from the working tree)
+   - Run the copy in the temp repo with explicit stream capture:
+     ```python
+     proc = subprocess.run([sys.executable, str(tmp/"bin"/"check-green-doc-tense")],
+                           capture_output=True, text=True)
+     combined = proc.stdout + proc.stderr
+     ```
+     (`capture_output=True, text=True` is required — without it, stdout and stderr go to
+     the terminal and `proc.stdout`/`proc.stderr` are `None`.)
    - If the process exits 1 (violation detected): print
      `  PASS  [hermetic-e2e: exit 1 on violation]` and increment `passed`;
      otherwise print `  FAIL  [hermetic-e2e: exit 1 on violation]` and increment `failures`
-   - If the process output does NOT contain "no tracked source files found" (verifies
-     exit-1 was a genuine violation, not the empty-collection guard in `main()` at
-     :557-563 — both paths exit 1, so this negative assertion distinguishes them): print
+   - If `combined` does NOT contain `"no tracked source files found"` (verifies exit-1
+     was a genuine violation, not the empty-collection guard in `main()` at :557-563 —
+     both paths exit 1, so this negative assertion distinguishes them; note that
+     `bin/check-green-doc-tense:558-562` writes this message to `file=sys.stderr`, so it
+     appears in `proc.stderr` and therefore in `combined`): print
      `  PASS  [hermetic-e2e: not empty-collection exit]` and increment `passed`;
      otherwise print `  FAIL  [hermetic-e2e: not empty-collection exit]` and increment
      `failures`
-   - If the output contains a FAIL line naming `bin/violating.py` and the pattern label
+   - If `combined` contains a FAIL line naming `bin/violating.py` and the pattern label
      (e.g., `"FAIL [bin/violating.py:1]: Pattern 32 ..."`): print
      `  PASS  [hermetic-e2e: output names violating.py]` and increment `passed`;
      otherwise print `  FAIL  [hermetic-e2e: output names violating.py]` and increment
      `failures`
+   - If `len(_collect_source_files(tmp)) == 1` (the temp repo has exactly one tracked
+     source file — `bin/violating.py`; `bin/check-green-doc-tense` has no `.py` suffix
+     so it is not collected): print
+     `  PASS  [hermetic-e2e: collect finds exactly 1 source file]` and increment `passed`;
+     otherwise print `  FAIL  [hermetic-e2e: collect finds exactly 1 source file]` and
+     increment `failures`
    This validates the full integration path: `_collect_source_files()` discovers the `.py`
    file, `_is_comment_line()` returns True for the `#` line, and the pattern fires. This is
    the df-validation self-application smoke test confirming PG-W84-010 is exercised end-to-end.
 
 10. **Sibling-prose sweep (F-009):**
-    - `bin/check-green-doc-tense` line :4 (module docstring scope text): update the scope
-      declaration from "tests/*.rs and src/**/*.rs" to enumerate all four globs:
-      "tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py" (under git's default pathspec,
-      `src/*.rs` crosses directory separators and covers all of src/; `src/**/*.rs` is
-      retained for explicit-intent redundancy; git ls-files de-duplicates — all four
-      globs listed for clarity — F-W86S-P12-006).
+    - `bin/check-green-doc-tense` line :4 (module docstring headline sentence): rewrite
+      the FULL headline sentence — not only the glob list. Current text:
+      `"Scans tracked **test files** (tests/*.rs and src/**/*.rs **cfg(test) modules**) for"`
+      Required rewrite: `"Scans tracked **source files** (tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py) for"`
+      The noun phrase "test files" changes to "source files"; the parenthetical
+      "(tests/*.rs and src/**/*.rs **cfg(test) modules**)" changes to enumerate all four
+      globs — the "cfg(test) modules" parenthetical is FALSE post-story (it falsely implies
+      only test-annotated modules are scanned); it MUST be removed, not merely amended.
+      (Under git's default pathspec, `src/*.rs` crosses directory separators and covers
+      all of src/; `src/**/*.rs` is retained for explicit-intent redundancy; git
+      ls-files de-duplicates — all four globs listed for clarity — F-W86S-P12-006.)
+    - `bin/check-green-doc-tense` line :467 (`_collect_source_files` docstring first line):
+      current text: `"Collect test-scope Rust files:"` — rewrite to
+      `"Collect scanned source files:"`. Also update the bullet points within the docstring
+      to enumerate src/*.rs and bin/*.py alongside the existing globs.
+    - `bin/check-green-doc-tense` line :472 (docstring exclusion rationale): current text:
+      `"so newly-added test files do not cause false failures"` — rewrite to
+      `"so newly-added source files do not cause false failures"`.
     - `bin/check-green-doc-tense` lines :26-30 (TOKEN LIST preamble — contains the
       comment-marker claim, NOT glob text): the current text states anchoring is to lines
       whose non-whitespace content starts with `//` or `//!`. After AC-183-002, anchors
@@ -1195,7 +1230,7 @@ Well within context window. No story split required.
 
 | File | Action | Notes |
 |------|--------|-------|
-| `bin/check-green-doc-tense` | Modify | Rename `_collect_rust_files`→`_collect_source_files`, extend with `bin/*.py` glob; extend language-scoped `_is_comment_line(stripped, suffix)`; add Patterns 30–37 to `_VIOLATION_PATTERNS`; update module docstring scope text and token list |
+| `bin/check-green-doc-tense` | Modify | Rename `_collect_rust_files`→`_collect_source_files`, extend with `bin/*.py` glob; extend language-scoped `_is_comment_line(stripped, suffix)`; add Patterns 30–37 to `_VIOLATION_PATTERNS`; rewrite :4 headline sentence to "Scans tracked source files (tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py) for" (removes false "cfg(test) modules" parenthetical); update :467 docstring first line to "Collect scanned source files:" (with src/*.rs and bin/*.py bullets); update :472 "newly-added test files" to "newly-added source files"; update token list |
 | `bin/test_check_green_doc_tense.py` | Modify | Runner `.py` extension support; 12 new BAD_CASES + 14 new GOOD_CASES (26 total); scrub lines ~258/~261; convert ~40 multi-line fixtures to single-line form |
 | `CHANGELOG.md` | Modify | Add `[Unreleased]` entry for PG-W84-010 + PG-W85-003 (AC-183-005) |
 | `.github/workflows/ci.yml` | Modify (comment lines :434 and :442 + step-name line :462 only) | Update scope descriptions to include `bin/*.py`; no functional job changes |
@@ -1269,6 +1304,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.9 | 2026-07-27 | story-writer | WAVE-86 PASS-19 REMEDIATION — F-005 MED (Task 9 subprocess capture made explicit: `capture_output=True, text=True` required in subprocess.run call; `combined = proc.stdout + proc.stderr` added; all output assertions changed from checking "output" to checking `combined`; added note that bin/check-green-doc-tense:558-562 writes "no tracked source files found" to `file=sys.stderr` so it appears in proc.stderr/combined; 4th positively-discriminating assertion added: `len(_collect_source_files(tmp)) == 1`); F-006 MED (Task 10 :4 bullet expanded: now prescribes rewriting the FULL headline sentence — not only the glob list; "test files" noun phrase → "source files"; "(tests/*.rs and src/**/*.rs cfg(test) modules)" → "(tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py)" with explicit note that "cfg(test) modules" parenthetical is FALSE post-story and MUST be removed; two new bullets added: :467 docstring first line "Collect test-scope Rust files:" → "Collect scanned source files:" + src/*.rs and bin/*.py bullets; :472 "newly-added test files" → "newly-added source files"; FSR Notes for bin/check-green-doc-tense updated to enumerate :4/:467/:472 loci); F-007 MED (Task 4 safety criterion rewritten from phrase-level to match-level rule: MUST NOT match any of 36 patterns; mechanism documented — writing pattern in regex-literal form places \b before trigger word so Pattern 29 \b assertion cannot fire; Do NOT remove \b escapes warning added; sibling lines :213/:259 already safe by same mechanism noted); F-008 MED (Task 9 tempfile import rationale corrected: "top-level import would shadow function-scope import" is backwards — the function-local binding at :640 shadows the module-level name, not the reverse); F-009 MED (Task 2 CHANGELOG preservation note extended: both CHANGELOG.md loci covered — :741 cites _collect_rust_files by name (STORY-162/176 provenance); :851 cites pre-rename error-string prose "no tracked Rust files are found" (AC-158-005 zero-file guard as shipped); both must remain as-is per DF-SIBLING-SWEEP-001); F-010 MED (Task 2 "8 prose/comment sites" corrected to "7 _collect_rust_files prose/comment sites (:688,:705,:711,:718,:839,:843,:891) plus 1 rust_files-only prose site at :721 (failure-message string)"). |
 | 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-001 MED (Task 10 :212-215 bullet relabeled from "_is_comment_line() docstring" to "module-level pattern-registry comment block introducing _VIOLATION_PATTERNS at :217"; prescription updated from suffix-aware _is_comment_line docstring rewrite to updating the comment block to state patterns match "// in all scanned files; # in .py files"; added clarification that _is_comment_line() at :~460 has its own docstring at :461 rewritten wholesale by AC-183-002 — no contradiction with Task 1's :~460 reference); P18-002 MED (Task 10 bullet 1 split into 4 bullets: (i) :4 only for glob-scope text update; (ii) :26-30 for comment-marker claim fix — "lines whose non-whitespace content starts with // or //!" → "matches // comment lines in all scanned files; # comment lines in .py files"; (iii) :31-85 for token list update; (iv) :90 ALLOWLIST heading — no glob update required, noted explicitly); P18-007 LOW (Task 9 negative assertion added: process output must NOT contain "no tracked source files found" to distinguish genuine violation exit-1 from empty-collection guard exit-1 at main() :557-563); P18-009 LOW (token budget: ~950-960 lines corrected to ~1000-1050 lines; baseline 914 + net delta ≈ 1000-1050). |
 | 2.7 | 2026-07-26 | story-writer | WAVE-86 PASS-17 REMEDIATION — P17-006 MED (Task 10 sweep: new bullet added for lines :212-215 `_is_comment_line()` docstring — current "starts with `//` or `//!`" claim is false after AC-183-002; rewrite with suffix-aware description); P17-007a MED (AC-183-001 :228 placement instruction: "Place the assertions after :905" → "Insert the assertions immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907 — ensures checks feed passed/failures counters and Results: line"); P17-007b MED (Task 9 :1017-1019 placement instruction corrected to match: "Insert both immediately after the `finally` block ending at :905 and BEFORE the `print()` at :907"); P17-011 MED (Task 9 hermetic assert/exit checks respecified in runner convention: `  PASS  [hermetic-e2e: exit 1 on violation]` / `  FAIL  [...]` with counters for both exit-code and output-contents checks); P17-012 LOW (AC-183-001 baseline count: split into pre-story `git ls-files -- tests/*.rs src/**/*.rs | wc -l` and post-story `git ls-files -- tests/*.rs src/**/*.rs src/*.rs bin/*.py | wc -l` — prior single command incorrectly included `src/*.rs` in the pre-story baseline). |
 | 2.6 | 2026-07-26 | story-writer | WAVE-86 PASS-16 REMEDIATION — F-W86S-P16-003 MED (Notes §Deferred scrub obligation extended with P16-003 contiguity blind spot: `tests/iec104_analyzer_tests.rs:6948-6953` "currently these fall through the `_` catch-all" added; reword prescription (past-tense: "before STORY-180, these fell through the `_` catch-all"); contiguity limitation of Patterns 31/32 documented — interposed words defeat `currently\s+falls?\b`/`currently\s+asserts?\b`; widening deferred to avoid FP risk against 10 TIER-2 `falls through to` sites; sibling patterns at :325/:376/:455 cited as eventual model; D-533 vehicle noted); F-W86S-P16-004 MED (Pattern 35 FP-note comment at :562-564 rewrote to eliminate contiguous "currently has no" — replaced with "the pattern also matches a hyphenated no-prefix token immediately after the phrase, because \b fires at the hyphen (e.g. a 'no-op' continuation). 0 live hits."; verified no `# `-line in replacement matches any of 36 patterns); F-W86S-P16-005 MED (Task 2 :872 wrapped single-space `PASS [_collect_source_files:` fixed to `  PASS  [_collect_source_files: test_check_green_doc_tense.py found]` — collapsed onto one line; full story `PASS [`/`FAIL [` sweep: 0 remaining single-space forms); F-W86S-P16-006 MED (Notes §Story scope clarification: new bullet added for bare `Red Gate`/`RED GATE`/`todo!()` tokens — NOT covered, phrase-level design deliberate, 32 live `RED GATE:` headings across 10 test files are accepted residual section labels; AC-183-008 heading/body amended to scope as "phrase-level" only with P16-006 note referencing §Story scope clarification); P16-009 LOW (Task 9 :1023-1024: `git -C <tmp> add bin/check-green-doc-tense` annotated as optional — extension-less file never collected by suffix-filter; only bin/violating.py must be indexed); NIT-1 ("path set" → "path list (list[Path])" at both loci :217/:871 via replace_all). |

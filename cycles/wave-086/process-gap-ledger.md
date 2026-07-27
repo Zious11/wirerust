@@ -946,3 +946,60 @@ conclude both are redundant and drop one.
 | PG-W86-013 | LOW | carry-forward, S-7.02 (EXTENDED D-528) | E-11 template: per-story demonstrated RED claim required; generic boilerplate prohibited (DF-VALIDATION-001 before filing upstream) |
 | PG-W86-014 | MEDIUM | carry-forward, S-7.02 (EXTENDED D-530) | Intra-story :NNN self-citation drift; structural fix D-530: self-anchors eliminated in both stories; recommend as E-11 template convention at S-7.02 |
 | Truth-Inversion-During-Reword | HIGH | new class D-530 | Standing discipline imposed: re-derive + all-loci agreement check when rewording semantics claims (F-P13-001 pathspec truth inversion) |
+| PG-W86-ADVERSARY-WRITE-PROFILE | LOW | dispatch template fix (D-536, 2026-07-27) | Adversary dispatch must NOT instruct adversary to write files; read-only profile; return-as-text + state-manager route |
+
+---
+
+## PG-W86-ADVERSARY-WRITE-PROFILE — adversary dispatch must not instruct adversary to write files
+
+**Class:** Orchestrator dispatch discipline / agent tool-profile awareness
+**Caught by:** Wave-86 adversarial pass 19 dispatch (observed during D-536)
+**Severity:** LOW (no data lost; one extra hop; adversary correctly returned report as text instead)
+**Occurrences:** 1 instance in wave-86 (pass-19 dispatch instructed adversary to write to a
+  `.factory/` path; adversary's tool profile is Read/Grep/Glob only — Write denied)
+**Source finding:** A5 attestation in pass-19-findings.md; adversary self-reported the deviation
+**Vehicle:** Orchestrator dispatch template correction (local; no upstream vsdd-factory issue needed)
+
+### Description
+
+The pass-19 adversary dispatch instructed the adversary agent to write its findings report
+directly to `/Users/zious/Documents/GITHUB/wirerust/.factory/cycles/wave-086/adversarial/pass-19-findings.md`.
+The adversary agent's tool profile is `read-only` — `Read`, `Grep`, `Glob` only. `Write` and
+`Edit` are denied.
+
+The adversary correctly detected the constraint (A5 attestation: "My profile denies Write/Edit,
+and my standing instructions forbid emitting report .md files") and returned the report as its
+final text output instead. The orchestrator routed the file write through state-manager, which
+created the file as part of the D-536 burst. No data was lost.
+
+### Root Cause
+
+Adversary dispatch templates include an instruction to "write findings to
+`.factory/cycles/wave-086/adversarial/pass-NN-findings.md`." This instruction is incompatible
+with the adversary agent's read-only tool profile. The instruction has persisted unnoticed
+because the adversary consistently self-corrects (returns the report as text), but this adds
+an extra orchestrator routing step that is unnecessary when the dispatch is correct.
+
+### Proposed Fix
+
+Update adversary dispatch templates to:
+
+1. Remove any instruction to write files to `.factory/` paths.
+2. Instruct the adversary: "Return your complete findings report as your final response text."
+3. Add a note: "State-manager will persist the report to the cycle adversarial directory."
+
+The dispatch should explicitly name state-manager as the persisting agent so the orchestrator
+knows to route the returned text to state-manager before proceeding.
+
+Example corrected dispatch ending:
+
+> Return your complete findings report as your final response text. Do NOT attempt to write
+> files — your tool profile is read-only. The orchestrator will route your returned text to
+> state-manager for persistence to the cycle adversarial directory.
+
+### Disposition
+
+Fix in orchestrator dispatch template for future wave adversarial passes. No DF-VALIDATION-001
+required (purely local orchestrator template fix; no upstream vsdd-factory issue warranted —
+this is a dispatch-template wording error, not a factory engine defect). Severity LOW: no data
+lost, adversary self-corrected, one extra orchestrator routing hop.

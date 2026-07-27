@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-182
 epic_id: E-11
-version: "2.8"
+version: "2.9"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -435,6 +435,7 @@ The size constraint is not waivable.
 
 Verification:
 ```bash
+set -euo pipefail
 git ls-files --error-unmatch tests/fixtures/iec104-iti-diverse.pcap
 # Must list the file as tracked (exits non-zero on untracked files; plain git ls-files
 # exits 0 even for untracked paths, which would silently pass — --error-unmatch is required)
@@ -810,6 +811,35 @@ cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixtur
 mv /tmp/iec104-iti-diverse.pcap.bak tests/fixtures/iec104-iti-diverse.pcap  # restore
 ```
 
+### AC-182-006 (traces to PG-W85-005 — governance-surface completeness)
+
+The four governance deliverables introduced by this story are all present and consistent.
+
+- Then `tests/fixtures/E2E-PCAPS.md` documents at least one `tests/fixtures/` path reference:
+  ```bash
+  set -euo pipefail
+  test "$(grep -c 'tests/fixtures/' tests/fixtures/E2E-PCAPS.md)" -ge 1
+  grep -q 'iec104-iti-diverse.pcap' tests/fixtures/README.md
+  ```
+- And `coverage-out.txt` is listed in `.gitignore`:
+  ```bash
+  grep -qF 'coverage-out.txt' .gitignore
+  ```
+- And `.factory/maintenance/fixture-count-gate-entry.md` is referenced in `CLAUDE.md`:
+  ```bash
+  grep -qF '.factory/maintenance/fixture-count-gate-entry.md' CLAUDE.md
+  ```
+- And `.factory/maintenance/fixture-count-gate-entry.md` exists on the factory-artifacts branch:
+  ```bash
+  test -f .factory/maintenance/fixture-count-gate-entry.md
+  ```
+- And no doc-comment in `tests/iec104_e2e_real_pcaps_tests.rs` still asserts the silent-skip semantics:
+  ```bash
+  set -euo pipefail
+  test "$(grep -c 'keeps CI green' tests/iec104_e2e_real_pcaps_tests.rs)" -eq 0
+  # Must be 0: currently returns 2 (lines :12 and :62); both rewritten per Task 7
+  ```
+
 ## Architecture Mapping
 
 | Component | File | Branch |
@@ -854,6 +884,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
    temp path and move into place only after the hash verifies (never clobber a verified
    local copy with an unverified download):
    ```bash
+   set -euo pipefail
    # Step 1a: Create local-samples directory if it doesn't exist:
    mkdir -p tests/fixtures/local-samples/
 
@@ -1003,7 +1034,11 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
      unmodified." Place the full attribution text here (not only in the table Notes cell).**
    - `tests/iec104_e2e_real_pcaps_tests.rs` module docstring (lines 10–13): update "Captures
      live in `tests/fixtures/local-samples/`" to acknowledge `tests/fixtures/` (committed) and
-     `tests/fixtures/local-samples/` (gitignored corpus).
+     `tests/fixtures/local-samples/` (gitignored corpus). **Also rewrite the false-green claim
+     at :11-12 — "This keeps CI green without fixtures" is FALSE post-story for the committed
+     partition: iec104-iti-diverse.pcap is always present in `tests/fixtures/` and CI never
+     silently skips it. Rewrite mirroring the :59-62 treatment (committed capture always present
+     in CI; gitignored corpus absent in clean checkouts).**
    - `tests/iec104_e2e_real_pcaps_tests.rs` lines :47-49 ("Fixture root — relative to crate
      root" comment block): update the path description to reflect that committed captures
      reside directly in `tests/fixtures/` (the committed path) with `tests/fixtures/local-samples/`
@@ -1091,13 +1126,15 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
    - **Enforceable wave-gate obligation (F-026):** Before G1 of any wave-gate evaluation that
      includes e2e pcap tests, run:
      `cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture`
-     and record the printed N/M in the gate entry. M MUST equal 4 (the literal) and N MUST
-     equal `COMMITTED_FIXTURES.len()` (currently 1) in a clean checkout; any other N/M pair
-     blocks gate entry pending investigation. Absence of any committed-partition member from
-     `tests/fixtures/` BLOCKS
-     gate entry and is detected by the AC-182-005 hard-assert (`cargo test` failure) — the
-     recorded N/M is the evidence artifact, not an independent gate. No `policies.yaml` entry —
-     sibling convention (see `.factory/maintenance/` for analogous enforcement docs).
+     and record the printed N/M in the gate entry. **M MUST equal 4 (the literal).** **N MUST
+     equal 1 (`COMMITTED_FIXTURES.len()`) when `tests/fixtures/local-samples/` is absent, or
+     4 (`FIXTURE_MANIFEST.len()`) when it is fully populated; an intermediate N is legitimate
+     on a partially-populated host and is recorded as-is.** **Any `M ≠ 4`, or any `N < 1`,
+     blocks gate entry pending investigation.** Absence of a committed-partition member from
+     `tests/fixtures/` is caught independently by the AC-182-005 hard-assert (`cargo test`
+     failure) — that assert, not the recorded N/M, is the blocking gate; the recorded N/M is
+     the evidence artifact. No `policies.yaml` entry — sibling convention (see
+     `.factory/maintenance/` for analogous enforcement docs).
 
 9. **Regression verification (AC-182-004/005) — two-environment protocol (F-006):**
 
@@ -1171,7 +1208,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
     `.factory/maintenance/fixture-count-gate-entry.md`, following the pattern of the 6
     existing protocol-doc rows at the bottom of that table:
     ```
-    | `.factory/maintenance/fixture-count-gate-entry.md` | Fixture manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective; wave-gate-entry obligation: run manifest test before G1 and record N/M — M MUST equal 4 (the literal) and N MUST equal COMMITTED_FIXTURES.len() (currently 1) in a clean checkout; any other N/M pair blocks gate entry pending investigation (the N/M is the evidence artifact, not an independent gate — absence of any committed-partition member is detected by AC-182-005 hard-assert / cargo test failure) |
+    | `.factory/maintenance/fixture-count-gate-entry.md` | Fixture manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective; wave-gate-entry obligation: run manifest test before G1 and record N/M — M MUST equal 4 (the literal); N MUST equal 1 when local-samples is absent or 4 when fully populated; any M ≠ 4 or N < 1 blocks gate entry pending investigation; absence of a committed-partition member is caught by the AC-182-005 hard-assert (cargo test failure) — that assert is the blocking gate; the recorded N/M is the evidence artifact |
     ```
     (b) Add `coverage-out.txt` to `.gitignore` — this file is generated by the additive CI step
     (`tee coverage-out.txt`) and is a transient artifact not meant to be tracked. Append as a new
@@ -1283,7 +1320,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
 
 | File | Action | Notes |
 |------|--------|-------|
-| `tests/iec104_e2e_real_pcaps_tests.rs` | Modify | Add `COMMITTED_SAMPLES` const, `fixture_path()` fn, update `fixture_present()` and `run_iec104_pipeline()`, add `FIXTURE_MANIFEST`/`COMMITTED_FIXTURES`/`FIXTURE_GATED_TESTS` consts inside `mod iec104_e2e_real_pcaps` (alongside `:39`), add `test_fixture_manifest_report()`, update module docstring + pipeline doc-comment; also sweep :47-49 (fixture-root comment — committed-first wording), :53-57 (section banner — dual-location scheme), :59-62 (doc-comment on fixture-checking helper — "local-samples only" claim false post-story; needle guard applies) |
+| `tests/iec104_e2e_real_pcaps_tests.rs` | Modify | Add `COMMITTED_SAMPLES` const, `fixture_path()` fn, update `fixture_present()` and `run_iec104_pipeline()`, add `FIXTURE_MANIFEST`/`COMMITTED_FIXTURES`/`FIXTURE_GATED_TESTS` consts inside `mod iec104_e2e_real_pcaps` (alongside `:39`), add `test_fixture_manifest_report()`, update module docstring :10-13 (false-green claim at :11-12 must be rewritten — "This keeps CI green without fixtures" is FALSE post-story for the committed partition) + pipeline doc-comment; also sweep :47-49 (fixture-root comment — committed-first wording), :53-57 (section banner — dual-location scheme), :59-62 (doc-comment on fixture-checking helper — "local-samples only" claim false post-story; needle guard applies) |
 | `tests/fixtures/iec104-iti-diverse.pcap` | New (binary) | ITI CC-BY-4.0; ≤100 KB; exercises TypeIDs 58–64; goes DIRECTLY in tests/fixtures/ |
 | `tests/fixtures/README.md` | Modify | Add IEC-104 committed-capture provenance row (licensing notice lines 7–26 sweep + source URL + direct download URL + attribution) |
 | `tests/fixtures/E2E-PCAPS.md` | Modify | Sweep all stale loci: IEC-104 section intro (:337-340), Captures table :358 row (:352-359), Attribution (:374-380), document-scope (:3-6), committed-captures section (:48-50), Adding-a-capture procedure (:391-396) — `iec104-iti-diverse.pcap` noted as committed in `tests/fixtures/`; `iec104-iti-dissect.pcap` remains gitignored (CI download-and-verify path only, not committed) |
@@ -1367,6 +1404,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.9 | 2026-07-27 | story-writer | WAVE-86 PASS-19 REMEDIATION — F-001 MED (Task 7 bullet 2: extended to prescribe rewriting false-green claim at :11-12 — "This keeps CI green without fixtures" is FALSE post-story for the committed partition; rewrite mirrors :59-62 treatment; FSR Notes cell for tests/iec104_e2e_real_pcaps_tests.rs updated to enumerate :10-13 with false-green note); F-002 MED (two missing `set -euo pipefail` added: (a) first line of AC-182-002 Verification bash block, after ```bash fence before git ls-files; (b) first line of Task 1 bash block, before # Step 1a:); F-003 MED (Task 8 Enforceable wave-gate obligation paragraph rewritten — environment-explicit N/M: N MUST equal 1 when local-samples absent or 4 when fully populated; intermediate N is legitimate on partially-populated host; blocking condition is M ≠ 4 or N < 1 only — corrects old "any other N/M pair" language that would have blocked N=4 on a fixture-bearing host; Task 10a CLAUDE.md row cell text rewritten to match same enforcement posture); F-004 MED (AC-182-006 added after AC-182-005 and before Architecture Mapping — governance-surface completeness AC covering E2E-PCAPS.md paths reference, .gitignore coverage-out.txt entry, CLAUDE.md fixture-count-gate-entry.md reference, factory-artifacts file existence, and false-green doc-comment elimination). |
 | 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-003 MED (Task 7 sweep: added three new test-file bullets for :47-49 fixture-root comment, :53-57 section banner, :59-62 doc-comment on fixture-checking helper — all prescribe committed-first rewording, needle guard applies to :59-62; FSR row Notes updated to enumerate all three ranges); P18-004 MED (attribution single-destination: Notes cell at :416 reduced from full attribution text to `Attribution: see §Licensing notice` + kept `upstream LICENSE.md (CC-BY-4.0, repo-level)` clause; prose at :418-420 updated to match; Task 2 :931-936 rewritten to state full attribution WITH Source: sentence lives ONLY in README §Licensing notice — single authoritative destination per P18-004 ruling; "7-22" → "7-26" propagated in Task 2 rewrite); P18-005 MED (AC-182-004 outcome (e) :515-517 and ACR ci.yml step :1219: corrected `!cancelled()` visibility claim — "visible after TEST failures; after checkout/compile failures the step runs but cannot emit the coverage line — !cancelled() guarantees execution, not output"); P18-006 MED (Task 8 :1064-1065: replaced tautology "M MUST equal FIXTURE_MANIFEST.len()" with discriminating predicate "M MUST equal 4 (the literal) and N MUST equal COMMITTED_FIXTURES.len() (currently 1) in a clean checkout; any other N/M pair blocks gate entry"; CLAUDE.md row :1142 updated to match); P18-008 LOW (three live "7-22" loci corrected to "7-26": background :115 with added explanation of malware clause :24-26; Task 7 :983; FSR :1253); NIT-1/P18-010 LOW (AC-182-004 verification :536-539: replaced bare `set -euo pipefail` block with full if [ -d tests/fixtures/local-samples ] guard form matching Env-B siblings); NIT-2/P18-011 LOW (Task 7 needle guard :1039-1044 rescoped from "Task 7 sweep targets" to "tests/iec104_e2e_real_pcaps_tests.rs" — count assertion reads only that file; ACR needle guard :1211-1216 rescoped from "any file touched by this story" to "tests/iec104_e2e_real_pcaps_tests.rs"). |
 | 2.7 | 2026-07-26 | story-writer | WAVE-86 PASS-17 REMEDIATION — P17-001 MED (Task 9 Env A :1069 `set -o pipefail` → `set -euo pipefail`; already applied in prior burst); P17-002 MED (5 Env-B blocks hardened to tee+grep-qE "Fixture coverage: 1/4"+grep-qE "test result: ok" gating form; applied in prior burst); P17-003a MED (README table Notes cell: folded full CC-BY attribution text into cell; added §Licensing notice pointer); P17-003b MED (freestanding attribution block after code fence replaced with destination pointer note); P17-003c MED (Task 2 attribution block replaced with destination pointer to README §Licensing notice); P17-003d MED (Task 7 README lines 7–22 bullet: added explicit directive to place full attribution text there as single authoritative destination); P17-004a MED (wave-gate obligation rewritten: N/M is evidence artifact not independent gate; M MUST equal FIXTURE_MANIFEST.len(); absence detected by AC-182-005 hard-assert / cargo test failure); P17-004b MED (CLAUDE.md row updated to match new wave-gate semantics); P17-005a MED (Task 7 needle guard bullet added after last sweep bullet — no edited comment may contain contiguous call-site needle text); P17-005b MED (ACR needle guard rule added before Additive ci.yml step rule); P17-008a MED (outcome (e) `!cancelled()` rationale corrected: visible after TEST failures AND checkout failures; only cancellation prevents the step); P17-008b MED (ACR `!cancelled()` rationale corrected to match); P17-009 LOW (co-update comment extended with "1/4 expected-value literals (Env B blocks, Task 8 obligation, EC rows)"); P17-010 LOW (git ls-files hardened to `git ls-files --error-unmatch tests/fixtures/iec104-iti-diverse.pcap`); NIT-1 (v2.6 changelog row: ".gitignore has no transient-file entries" corrected — .gitignore already has `mutants.out*/`). |
 | 2.6 | 2026-07-26 | story-writer | WAVE-86 PASS-16 REMEDIATION — F-W86S-P16-001 MED (Task 9 Env A :1069 bare `set -o pipefail` → `set -euo pipefail`; this was the byte-identical sibling of the AC-182-003 block upgraded in v2.5 — v2.5 upgrade missed this locus); F-W86S-P16-002 MED (ACR ci.yml step block :1200-1206: (i) `set -o pipefail` → `set -euo pipefail` in prose and code block; (ii) `grep -qE "test result: ok" coverage-out.txt` added to code block so ACR step spec matches AC-182-004 two-grep form); P16-007 LOW (:419-420 "git diff --stat from a fresh clone shows it as a new tracked file" deleted — inert on a fresh clone (clean tree = empty diff); `git ls-files --error-unmatch` gate stands); P16-008 LOW (:1270 stale pointer rewritten: STATE.md:216 locus corrected to D-532-already-applied form; STATE.md line anchor and "state-manager will fix in same burst" language replaced with "STATE.md DRIFT-e2e-sibling-harnesses row corrected at D-532; residual wording alignment (e2e_corpus_smoke as directory-level VARIANT, not same idiom) handled by state-manager at D-533"); NIT-1 (AC-182-002 README row :412: outer `CC-BY-4.0 (upstream \`LICENSE.md\` (CC-BY-4.0, repo-level))` flattened to `upstream \`LICENSE.md\` (CC-BY-4.0, repo-level)` — one occurrence of CC-BY-4.0; AC-182-002 MUST-cite clause :377 matches verbatim); NIT-2 (Task 10(b) :1131: "Add it adjacent to other transient file entries in `.gitignore`" → "Append as a new top-level entry (the file is a transient CI artifact)" — `.gitignore` already has a transient-file entry (`mutants.out*/`); "new top-level entry" is still the correct phrasing but "no transient-file entries" was false). |
