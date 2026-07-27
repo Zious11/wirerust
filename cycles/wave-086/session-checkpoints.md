@@ -653,4 +653,60 @@ Resume command: /vsdd-factory:next-step
 
 ---
 
+## Session Resume Checkpoint (2026-07-26) — D-531 pass-14 remediated, pass 15 next
+
+### Spec Versions
+
+| Artifact | Version |
+|----------|---------|
+| BC-INDEX | v2.37 |
+| VP-INDEX | v2.47 |
+| ARCH-INDEX | v2.20 |
+| PRD | v1.59 |
+| STORY-INDEX | v4.10 |
+| HS-INDEX | v2.17 |
+| dep-graph | v3.10 |
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-26 |
+| **Position** | wave-86 OPEN; STORY-182/183 at v2.4 (pass-14 remediated; second zero-HIGH pass; Task-8 split 8a/8b; 4th if:always() locus fixed; E2E-PCAPS 3→6 loci); streak 0/3 |
+| **Convergence counter** | 0 of 3 (pass-14 remediated; need 3 consecutive clean passes) |
+| **Next step** | Wave-86 adversarial pass 15 (fresh-context; STORY-182 v2.4 + STORY-183 v2.4) |
+
+### Resume Prompt
+
+```
+D-531 WAVE-86 ADVERSARIAL PASS 14 REMEDIATED (2026-07-26). 8 findings
+0C/0H/3M/3L + 2 NITs; all fixed. Second zero-HIGH pass. MEDs: Task-8
+ordering never adds Patterns 32-37 → Task-8 split 8a/8b (STORY-183);
+4th if:always() locus at :540 → !cancelled() at :541 + zero live
+always() confirmed (STORY-182); E2E-PCAPS sweep 3→6 loci + Arch
+Mapping/FSR filename consistency (STORY-182). LOWs: Pattern-33 wrap-safe
+rewording; PASS/FAIL bare asserts respecification; /tmp pre-existence
+guards ×3. NITs: duplicate Task-10 bullet merged; v4→v6 tier cite.
+STORY-INDEX v4.09→v4.10. Canonical hashes: 9a0f34c/9c9b12f.
+Streak 0/3. Pass 15 next. trajectory-tail →14→10→15→8.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2).
+
+PENDING CARRY-FORWARDS (in order):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire
+    test_lint_cycle_artifact.py/test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+(h) DRIFT-py-surface-outside-bin scope decision
+
+Resume command: /vsdd-factory:next-step
+```
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
