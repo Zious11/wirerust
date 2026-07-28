@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "4.17"
+version: "4.18"
 status: draft
 producer: story-writer
 timestamp: 2026-07-28T00:00:00Z
@@ -8,6 +8,7 @@ phase: f4
 total_stories: 136
 total_waves: 86
 total_points: 792  # = 792; wave-table scheduled: 709 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85 + STORY-182/183 wave 86); epic-table grand total: 792 (+4 STORY-182 E-11 + +5 STORY-183 E-11)
+# v4.18 (2026-07-28): WAVE-86 PASS-22 REMEDIATION — tenth zero-HIGH pass (0C/0H/3M/1L/2N — MEDs 4→3, best of wave, 7 of 11 axes clean), all 6 fixed; line-range-drift predicate made content-anchored (F-W86S-P22-001; AC-182-006 sed→awk section-heading form); red-out.txt AC coverage added (F-W86S-P22-002; AC-182-006 + Task 11 + Notes); ci.yml step given actionable Task 10(c) (F-W86S-P22-003); AC-183-006 type corrected list[Path] (F-W86S-P22-004); AUDIT 4 + AUDIT 5 introduced and both clean; STORY-182 v2.11→v2.12 + STORY-183 v2.11→v2.12; four process gaps recorded (PG-W86-PREDICATE-LINE-RANGE/PG-W86-DELIVERABLE-TASK-COVERAGE/PG-W86-SWEEP-CLAIM-VERIFICATION/PG-W86-AUDIT-SEAM-PIPEFAIL); no numeric totals changed.
 # v4.17 (2026-07-28): WAVE-86 PASS-21 REMEDIATION — ninth zero-HIGH pass (0C/0H/4M/5L/1N — MEDs 9→4, best of wave), all 10 fixed; Pattern 33 self-flag reversal corrected (v2.4 fix re-introduced, no live gate breakage); orchestrator-induced set-e assignment-position regression identified and fixed (AUDIT 3 created: 2 loci before, 0 after); Task 8/10a claims-vs-command mismatch closed (phantom grep removed, command made self-gating); AC-182-006 E2E-PCAPS predicate section-scoped (ENIP :279 excluded); ci.yml :436 adjudicated historical-narrative (adjudication note added, not force-edited); GOOD_CASES ~46→~45; STORY-182 v2.10→v2.11 + STORY-183 v2.10→v2.11; three process gaps recorded (PG-W86-AUDIT1-TOO-NARROW/PG-W86-AUDIT2-GUARD-BLINDNESS/PG-W86-CONTRADICTION-ACCUMULATION-REGIONS); no numeric totals changed.
 # v4.16 (2026-07-27): WAVE-86 PASS-20 REMEDIATION — eighth zero-HIGH pass (0C/0H/9M/5L/1N), all 15 fixed; 13 bash fences hardened (set -euo pipefail); 3 baseline tautologies eliminated (AC-182-006 whole rewrite); ci.yml AC coverage added to both stories (F-003 19-pass blind spot closed); Task 8/Task 10a contradiction resolved (F-007); STORY-182 v2.9→v2.10 + STORY-183 v2.9→v2.10; human re-confirmed strategy (b) for third time; four process gaps recorded (PG-W86-STORY-BASH-NONGATING/PG-W86-BASELINE-TAUTOLOGY-CHECK/PG-W86-AM-FSR-AC-COVERAGE/PG-W86-SELF-REPORTED-SWEEP); no numeric totals changed.
 # v4.15 (2026-07-27): WAVE-86 PASS-19 REMEDIATION — seventh zero-HIGH pass (0C/0H/6M/3L/1N), all 10 fixed; AC-182-006 added (governance-surface completeness); whole-region rewrite discipline imposed (D-536); PG-W86-ADVERSARY-WRITE-PROFILE added; STORY-182 v2.8→v2.9 + STORY-183 v2.8→v2.9; no numeric totals changed.
@@ -579,7 +580,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
 | 85 | STORY-180, STORY-181 | **2/2 DELIVERED — STORY-180 (D-507, PR #437 421bf572, 2026-07-24) + STORY-181 (D-509, PR #438 5555495b, 2026-07-24) — CLOSED-PENDING-GATE** | #437 (STORY-180), #438 (STORY-181) | 421bf572, 5555495b | 2026-07-24 |
-| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.11, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.11, draft) — OPEN (pass-21 REMEDIATED D-538, pass-22 pending)** | — | — | — |
+| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.12, draft) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.12, draft) — OPEN (pass-22 REMEDIATED D-539, pass-23 pending)** | — | — | — |
 
 ## Coverage Verification
 

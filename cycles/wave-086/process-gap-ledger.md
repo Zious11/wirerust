@@ -1452,3 +1452,161 @@ Per the S-7.02 Cycle-Closing Checklist, codification vehicle named (future
 `bin/lint-story-bash-blocks` or a region-consistency probe); batched to PG-W84-012 devops
 dispatch / next planning cycle. Checklist step 3 (S-7.02): satisfied by this explicit
 deferral, not silent drop.
+
+---
+
+## PG-W86-PREDICATE-LINE-RANGE — AC predicates must be content-anchored when the target file is a story deliverable
+
+**Class:** AC predicate design / line-range drift
+**Caught by:** Wave-86 adversarial pass 22 (F-W86S-P22-001 MEDIUM) + AUDIT 4 (new this pass)
+**Severity:** MEDIUM
+**Source finding:** F-W86S-P22-001 — AC-182-006 `sed -n '337,345p'` predicate on E2E-PCAPS.md;
+  story's own Task 7 edits above `:337` would push the target sentence out of the window after
+  implementation, making the predicate pass vacuously on the post-implementation tree.
+
+### Description
+
+No standing rule forbade hardcoded absolute line ranges in AC predicates against files the same
+story also edits. A predicate anchored to `sed -n 'N,Mp'` can discriminate on the baseline but go
+inert after the story's own edits grow the file above line N, pushing the target content past M.
+
+This is structurally different from the tautological-baseline class (PG-W86-BASELINE-TAUTOLOGY-CHECK):
+that class covers predicates that pass on the pre-implementation baseline; this class covers predicates
+that pass on the **post-implementation** tree for the wrong reason.
+
+**Discipline to adopt (D-539):**
+AC predicates MUST be content-anchored, never absolute-line-anchored, when the target file is a
+deliverable of the same story. Acceptable anchors include:
+- Section-heading patterns: `awk '/^## Section Name/{f=1;next} /^## /{f=0} f'`
+- Content patterns: `grep -cF 'literal-string'`, `grep -cE 'pattern'`
+- File-existence + content checks: `test -s file && grep -qF 'token' file`
+
+The banned form is `sed -n 'N,Mp'`, `awk 'NR>=N'`, `head -n N | tail`, or any expression that
+embeds a literal line number as the extraction bound.
+
+**AUDIT 4 (executable spec):**
+```bash
+# AUDIT 4: Find hardcoded absolute line-range extractors in AC predicates
+# Covers: sed -n 'N,Mp', awk 'NR>=N' / 'NR==N', head -n N | tail
+grep -nE "sed -n '[0-9]+,[0-9]+p'|awk 'NR>?=[0-9]+|head -n [0-9]+ \| tail" \
+  .factory/stories/STORY-182.md \
+  .factory/stories/STORY-183.md
+```
+Expected post-D-539: 0 results (all predicate line-range extractors removed or converted to
+content-anchored form).
+
+**Vehicle:** DF-SIBLING-SWEEP-001 checklist extension; batch to PG-W84-012 devops dispatch /
+next planning cycle. S-7.02 step 3: satisfied by explicit deferral.
+
+---
+
+## PG-W86-DELIVERABLE-TASK-COVERAGE — Every Architecture-Mapping / FSR deliverable row must have an actionable Task
+
+**Class:** Story-writer checklist gap / deliverable↔task coverage
+**Caught by:** Wave-86 adversarial pass 22 (F-W86S-P22-003 MEDIUM)
+**Severity:** MEDIUM
+**Source finding:** F-W86S-P22-003 — ci.yml additive step declared in five places (AC-182-004(e),
+  AC-182-006, Architecture Mapping, FSR, ACR) but no Task instructed creating it; survived 22 passes
+  because DF-SIBLING-SWEEP-001 covers AC/EC↔Tasks↔ACR↔prose but not "Architecture-Mapping / FSR row
+  has an actionable Task".
+
+### Description
+
+DF-SIBLING-SWEEP-001's story-writer checklist covers AC/EC↔Tasks↔ACR↔prose sweeps but not the
+invariant that every Architecture-Mapping / FSR deliverable row has an actionable Task. The gap
+means a deliverable can be prescribed in all five governance surfaces without the implementer being
+told to create it, because the actionable instruction lives only in the AC predicate (what to verify)
+not in a Task bullet (what to do).
+
+**Discipline to adopt (D-539):**
+Every Architecture-Mapping row and FSR deliverable row MUST have a corresponding actionable Task
+bullet that names the artifact and prescribes its creation verbatim (including critical parameters
+such as step name, placement, and run: block for CI steps). The absence of such a Task is a story
+defect regardless of whether the AC predicate covers the artifact.
+
+**Vehicle:** DF-SIBLING-SWEEP-001 checklist — add row: "Every Architecture-Mapping / FSR deliverable
+row has an actionable Task bullet." Batch to PG-W84-012 devops dispatch / next planning cycle.
+S-7.02 step 3: satisfied by explicit deferral.
+
+---
+
+## PG-W86-SWEEP-CLAIM-VERIFICATION — Changelog rows claiming exhaustiveness must cite a confirming residual grep
+
+**Class:** Evidence discipline / sweep-claim verification
+**Caught by:** Wave-86 adversarial pass 22 (F-W86S-P22-002 MEDIUM)
+**Severity:** MEDIUM
+**Source finding:** F-W86S-P22-002 — v2.11 changelog row claimed "all four loci" for the
+  `red-out.txt` sweep; three live loci remained singular and no confirming residual grep was
+  documented.
+
+### Description
+
+A changelog row asserting "all N loci" or "all four loci" is unverifiable without a confirming
+residual grep that shows the sweep returned the expected count. The v2.11 row claimed four while
+three remained, and the verifying AC had no predicate at all — the exhaustiveness claim existed only
+in prose, not as a machine-checkable assertion.
+
+This class is related to but distinct from PG-W86-BASELINE-TAUTOLOGY-CHECK (that class covers
+predicates that are true at baseline; this class covers prose claims that are stated without any
+predicate at all).
+
+**Discipline to adopt (D-539):**
+Any remediation changelog row claiming exhaustiveness ("all N loci", "all instances", "all four")
+MUST record the confirming residual grep and its expected count inline. Format:
+```
+Confirming residual: `grep -rF 'old-token' <scope>` → expected: 0 (or N historical-only)
+```
+If any file was found with the old token but intentionally NOT updated (e.g., a historical
+changelog entry), it MUST be named explicitly with justification.
+
+**Vehicle:** Story-writer remediation checklist; batch to PG-W84-012 devops dispatch / next
+planning cycle. S-7.02 step 3: satisfied by explicit deferral.
+
+---
+
+## PG-W86-AUDIT-SEAM-PIPEFAIL — Pipeline status masking in single-command pipeline fences
+
+**Class:** AUDIT seam / pipefail discipline
+**Caught by:** Wave-86 adversarial pass 22 (AUDIT 5 introduced this pass; found 2 loci)
+**Severity:** LOW
+**Source:** AUDIT 5 addresses a seam between AUDIT 1 (>1 command fences only) and AUDIT 3
+  ($()-under-set-e only): single-command fences containing a pipeline lack `set -euo pipefail`,
+  which masks failures in non-final pipeline stages.
+
+### Description
+
+AUDIT 1 only inspects fences with >1 command (where `set -euo pipefail` is clearly multi-step
+protection). AUDIT 3 only inspects `$()` assignment under `set -e` (failure at substitution). A
+single-command fence containing a pipeline like `cmd1 | cmd2` has no multi-command guard and no
+assignment form — it falls in a seam. Without `pipefail`, a failure in `cmd1` is silently masked
+by `cmd2`'s exit code.
+
+Both 2 loci found by AUDIT 5 were verified fail-closed by other means (D-539 AUDIT 5 hardening),
+so this gap caused no live defect. However, the discipline must be adopted to prevent future misses.
+
+**Discipline to adopt (D-539):**
+All bash fences in story files that contain a pipeline operator (`|`) MUST open with
+`set -euo pipefail`. This extends AUDIT 1's protection to single-command pipeline fences. AUDIT 5's
+script is the executable spec (see PG-W86-PREDICATE-LINE-RANGE entry for the script — AUDIT 5 uses
+the same Python-based fence scanner).
+
+**AUDIT 5 (executable spec):**
+```bash
+# AUDIT 5: Find bash fences in story files with a pipeline but no set -euo pipefail at head
+python3 - <<'EOF'
+import re, sys
+for fname in sys.argv[1:]:
+    content = open(fname).read()
+    for m in re.finditer(r'```bash\n(.*?)```', content, re.DOTALL):
+        block = m.group(1)
+        has_pipeline = '|' in block
+        has_pipefail = 'set -euo pipefail' in block or 'set -e' in block
+        if has_pipeline and not has_pipefail:
+            start = content[:m.start()].count('\n') + 1
+            print(f"{fname}:{start}: pipeline fence missing set -euo pipefail")
+EOF .factory/stories/STORY-182.md .factory/stories/STORY-183.md
+```
+Expected post-D-539: 0 results.
+
+**Vehicle:** AUDIT 5 added to standing per-burst audit suite; batch to PG-W84-012 devops dispatch /
+next planning cycle. S-7.02 step 3: satisfied by explicit deferral.
