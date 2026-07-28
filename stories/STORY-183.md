@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-183
 epic_id: E-11
-version: "2.10"
+version: "2.11"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -557,9 +557,9 @@ NOT added; their exclusion is validated by GOOD_CASEs below.
       # The TIER-1 form omits the intervening word present in TIER-2.
       # Discriminator: TIER-2 inserts "through" between the verb and the wildcard destination
       # ("falls through to" — 10 live uses); the TIER-1 form lacks that intermediary word.
-      # Pattern fires only on the contiguous phrase `falls to the wildcard`; the TIER-2 form
-      # `falls through to` is not matched because the interposed `through` breaks the
-      # `falls\s+to` adjacency.
+      # Pattern fires only on the contiguous four-token phrase (verb + `to the wildcard`
+      # with no intervening word); the TIER-2 form `falls through to` is not matched
+      # because the interposed `through` breaks the verb→`to` adjacency.
       "Pattern 33 (PG-W85-003): 'falls to the wildcard' — RED-phase wildcard-arm fallthrough (AC-183-007)",
       re.compile(r"falls\s+to\s+the\s+wildcard", re.IGNORECASE),
   ),
@@ -983,7 +983,7 @@ Well within context window. No story split required.
    self-application requirement).
    **GOOD_CASES are deliberately NOT converted** — a GOOD_CASE whose content matches any
    pattern is a test-design error the self-test already catches via the GOOD_CASE assertion.
-   Residual: ~46 `//`-prefixed source lines remain in the scanned file from GOOD_CASES multi-line
+   Residual: ~45 `//`-prefixed source lines remain in the scanned file from GOOD_CASES multi-line
    fixtures and must be re-checked whenever a new pattern is appended.
    **Quote-escaping note (F-018):** Two fixtures in BAD_CASES (approximately at lines :91
    and :97) contain a literal `"` character inside the string. (:402 is a GOOD_CASE
@@ -1168,6 +1168,13 @@ Well within context window. No story split required.
         and bin/*.py)"
       - Line :462: step name "Scan for stale RED-phase comment headers in test files"
         — stale; update to "Scan for stale RED-phase comment headers in source files"
+      - Line :436: "during strict TDD, test files receive module-level or section-level
+        comments..." — **adjudicated historical problem-origin narrative**, deliberately
+        preserved; this sentence describes where the anti-pattern was first observed (test
+        files during TDD), not the current gate scope (stated at :442). Do NOT update this
+        line (F-W86S-P21-009 adjudication). The AC predicate `grep -c 'in test files'` does
+        not match `:436`'s "test files receive" phrase, so the predicate is satisfied without
+        modifying :436.
 
 11. **Add CHANGELOG `[Unreleased]` entry (AC-183-005):** One-line entry describing the
     scan-glob + language-scoped comment-detection + TIER-1 behavioral-absence pattern
@@ -1329,6 +1336,7 @@ for the efficacy zero-FP check (AC-183-008) is read-only and permitted.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.11 | 2026-07-28 | story-writer | WAVE-86 PASS-21 REMEDIATION — F-W86S-P21-001 MED (Pattern 33 comment block reworded: eliminated the contiguous four-token phrase `falls to the wildcard` which Pattern 33's own regex `falls\s+to\s+the\s+wildcard` would match, causing a self-referential-flag hazard; replacement states "fires only on the contiguous four-token phrase (verb + `to the wildcard` with no intervening word)" without placing the flagged phrase contiguously; restores compliance with the comment-safety discipline established at v2.4 F-W86S-P14-004); F-W86S-P21-009 LOW (Task 10 ci.yml sweep: `:436` "test files receive..." adjudicated as historical problem-origin narrative — describes where the anti-pattern was first observed, not the current gate scope (which is at :442); adjudication note added to Task 10 to prevent re-raising; AC predicate `grep -c 'in test files'` correctly does not match `:436`'s "test files receive" phrase); F-W86S-P21-010 NIT (Task 5 GOOD_CASES residual count: ~46 → ~45 — hand-verified by adversary: 45 `//`-prefixed lines in the GOOD_CASES range [332,632]). |
 | 2.10 | 2026-07-27 | story-writer | WAVE-86 PASS-20 REMEDIATION — F-001 MED (Task 2 `repo_root` derivation paragraph: wrong attribution ("hermetic test functions monkey-patch `_find_repo_root`") replaced — Task 9 uses subprocess isolation, NOT monkey-patching; monkey-patching of `_find_repo_root` is pre-existing in AC-158-005 (`:698-726`) and AC-162-003 (`:858-905`) and is NOT introduced by Task 9); F-003 MED (AC-183-001 Verification: ci.yml scope-update predicates added — `test "$(grep -c 'in test files' .github/workflows/ci.yml)" -eq 0`, `grep -qF 'src/*.rs'`, `grep -qF 'bin/*.py'`); F-005 MED (AC-183-002 Verification: non-gating `echo "Exit code: $?"` forms replaced with `set -euo pipefail` at fence head — `set -e` causes non-zero exit to abort without needing echo); F-006 MED (seven missing `set -euo pipefail` first lines added: AC-183-001 Verification, AC-183-002 Verification, AC-183-006 Verification, AC-183-008 Verification, AC-183-009 grep block, AC-183-009 Verification, Task 12 bash block); F-009 MED (Task 9 hermetic fixture: single-line mandate added for `#`-prefixed content — multi-line would make the fixture's own `# currently asserts` line scan-eligible via Pattern 32 after AC-183-002 extension; mechanism explained); F-011 LOW (Task 4 sibling-line safety explanation corrected: `:213` safe by `\b`-escape mechanism; `:259`/`:260` safe by a DIFFERENT reason — Patterns 27/28 require `exposes|is a|are` verb before `compile-only`, which is absent; all three deliberately left unchanged); F-012 LOW (Task 5: explicit GOOD_CASES deliberate-design note added — GOOD_CASES are NOT converted; deliberate choice because a matching GOOD_CASE is a test-design error; residual of ~46 `//`-prefixed scan-eligible lines noted); F-014 LOW (AC-183-007 Pattern 33 comment: "Pattern fires when 'through' is absent between the verb and the destination phrase" overstates — replaced with "Pattern fires only on the contiguous phrase `falls to the wildcard`; TIER-2 form `falls through to` not matched because interposed `through` breaks `falls\s+to` adjacency"). |
 | 2.9 | 2026-07-27 | story-writer | WAVE-86 PASS-19 REMEDIATION — F-005 MED (Task 9 subprocess capture made explicit: `capture_output=True, text=True` required in subprocess.run call; `combined = proc.stdout + proc.stderr` added; all output assertions changed from checking "output" to checking `combined`; added note that bin/check-green-doc-tense:558-562 writes "no tracked source files found" to `file=sys.stderr` so it appears in proc.stderr/combined; 4th positively-discriminating assertion added: `len(_collect_source_files(tmp)) == 1`); F-006 MED (Task 10 :4 bullet expanded: now prescribes rewriting the FULL headline sentence — not only the glob list; "test files" noun phrase → "source files"; "(tests/*.rs and src/**/*.rs cfg(test) modules)" → "(tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py)" with explicit note that "cfg(test) modules" parenthetical is FALSE post-story and MUST be removed; two new bullets added: :467 docstring first line "Collect test-scope Rust files:" → "Collect scanned source files:" + src/*.rs and bin/*.py bullets; :472 "newly-added test files" → "newly-added source files"; FSR Notes for bin/check-green-doc-tense updated to enumerate :4/:467/:472 loci); F-007 MED (Task 4 safety criterion rewritten from phrase-level to match-level rule: MUST NOT match any of 36 patterns; mechanism documented — writing pattern in regex-literal form places \b before trigger word so Pattern 29 \b assertion cannot fire; Do NOT remove \b escapes warning added; sibling lines :213/:259 already safe by same mechanism noted); F-008 MED (Task 9 tempfile import rationale corrected: "top-level import would shadow function-scope import" is backwards — the function-local binding at :640 shadows the module-level name, not the reverse); F-009 MED (Task 2 CHANGELOG preservation note extended: both CHANGELOG.md loci covered — :741 cites _collect_rust_files by name (STORY-162/176 provenance); :851 cites pre-rename error-string prose "no tracked Rust files are found" (AC-158-005 zero-file guard as shipped); both must remain as-is per DF-SIBLING-SWEEP-001); F-010 MED (Task 2 "8 prose/comment sites" corrected to "7 _collect_rust_files prose/comment sites (:688,:705,:711,:718,:839,:843,:891) plus 1 rust_files-only prose site at :721 (failure-message string)"). |
 | 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-001 MED (Task 10 :212-215 bullet relabeled from "_is_comment_line() docstring" to "module-level pattern-registry comment block introducing _VIOLATION_PATTERNS at :217"; prescription updated from suffix-aware _is_comment_line docstring rewrite to updating the comment block to state patterns match "// in all scanned files; # in .py files"; added clarification that _is_comment_line() at :~460 has its own docstring at :461 rewritten wholesale by AC-183-002 — no contradiction with Task 1's :~460 reference); P18-002 MED (Task 10 bullet 1 split into 4 bullets: (i) :4 only for glob-scope text update; (ii) :26-30 for comment-marker claim fix — "lines whose non-whitespace content starts with // or //!" → "matches // comment lines in all scanned files; # comment lines in .py files"; (iii) :31-85 for token list update; (iv) :90 ALLOWLIST heading — no glob update required, noted explicitly); P18-007 LOW (Task 9 negative assertion added: process output must NOT contain "no tracked source files found" to distinguish genuine violation exit-1 from empty-collection guard exit-1 at main() :557-563); P18-009 LOW (token budget: ~950-960 lines corrected to ~1000-1050 lines; baseline 914 + net delta ≈ 1000-1050). |

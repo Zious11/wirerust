@@ -1283,3 +1283,172 @@ Carry-forward to wave-086 cycle-close (S-7.02). Codification via orchestrator di
 PG-W84-012 devops dispatch for the tooling component (`bin/lint-story-bash-blocks`). The
 orchestrator-protocol component (pre-supply loci, post-verify) is an agent-behavior change,
 not a code change — codify in the orchestrator skill dispatch checklist.
+
+---
+
+## PG-W86-AUDIT1-TOO-NARROW — AUDIT 1's set-e-safety definition induced F-W86S-P21-002
+
+**Class:** Mechanical audit definition too narrow — induced defect
+**Caught by:** Wave-86 adversarial pass 21 (F-W86S-P21-002 MEDIUM; process-gap tagged by adversary)
+**Severity:** MEDIUM
+**Source finding:** F-W86S-P21-002 (MEDIUM, pass 21)
+**Vehicle:** Fold AUDIT 3 into `bin/lint-story-bash-blocks` spec (see PG-W86-STORY-BASH-NONGATING); batch to PG-W84-012 devops dispatch / next planning cycle
+
+### Description
+
+The orchestrator's AUDIT 1 checked that `set -euo pipefail` was PRESENT at the head of each
+bash fence — and nothing more. Combined with the pass-20 remediation instruction to fix
+"tautological SKIP-count predicates" by adding a guard + variable-assignment form, this
+**induced** F-W86S-P21-002: the assignment form `SKIP_COUNT="$(grep -c …)"` aborts under
+`set -e` in the expected-pass case (grep exits 1 on zero count), producing a false-RED on
+the success condition.
+
+The adversary caught the regression precisely because the dispatch explicitly invited
+criticism of the audits' definitions. That invitation is what surfaced the gap.
+
+**AUDIT 3 (created D-538)** — executable specification, preserved verbatim:
+
+```bash
+# AUDIT 3: grep -c in ASSIGNMENT POSITION under set -e (can exit non-zero on zero count)
+# Flag any line matching: VAR="$(grep -c ...)" where the assignment is NOT protected by
+# || true or equivalent.
+# Pattern to grep for in bash fence blocks:
+grep -nE '^[[:space:]]*[A-Z_]+="[[:dollar:]][(]grep -c' "$STORY_FILE"
+# Any hit that is NOT followed by "|| true" on the same line is a candidate defect.
+# Safe forms: test "$(grep -c …)" (argument position — set -e cannot fire);
+#             VAR="$(grep -c … || true)"  (explicit exit-0);
+#             ! grep -q … (inverted, no count needed).
+```
+
+**AUDIT 3 — assignment-position command substitution under set -e (orchestrator, D-538):**
+
+```python
+import re
+for f in ['.factory/stories/STORY-182.md','.factory/stories/STORY-183.md']:
+    lines=open(f).read().split('\n'); inblk=False; hasset=False; start=0
+    for i,l in enumerate(lines,1):
+        s=l.strip()
+        if s.startswith('```bash'): inblk=True; hasset=False; start=i; continue
+        if inblk and s.startswith('```'): inblk=False; continue
+        if inblk:
+            if s.startswith('set -euo pipefail'): hasset=True
+            m=re.match(r'^([A-Za-z_][A-Za-z0-9_]*)="?\$\((.+)\)"?\s*$',s)
+            if m and hasset:
+                var,cmd=m.groups()
+                if re.match(r'\s*(grep|git cat-file|test|diff|cmp)\b',cmd) and '|| true' not in cmd and '|| echo' not in cmd:
+                    print(f'  RISK {f}:{i} (fence@:{start}) {var}')
+```
+
+**Empirical verification (D-538):** Before fix — 2 loci (STORY-182 `:496`, `:1184`). After fix — 0.
+Three-way discriminating test: artifact ABSENT → exit 1 (guard fires); artifact present
+with 0 SKIPs → exit 0; artifact present WITH a SKIP → exit 1. Both failure modes closed simultaneously.
+
+### Codification
+
+Fold AUDIT 3 into the `bin/lint-story-bash-blocks` spec already recorded under
+PG-W86-STORY-BASH-NONGATING. The check must flag:
+- Any `VAR="$(grep -c …)"` form not protected by `|| true`
+- Combined with the AUDIT 1 check (fence head has `set -euo pipefail`)
+
+Future adversary dispatches that supply AUDIT results MUST explicitly invite the adversary
+to challenge the audits' definitions — this is what surfaced F-W86S-P21-002.
+
+Carry-forward: batch to PG-W84-012 devops dispatch / next planning cycle.
+Checklist step 3 (S-7.02): satisfied by this explicit deferral, not silent drop.
+
+---
+
+## PG-W86-AUDIT2-GUARD-BLINDNESS — AUDIT 2 cannot see same-fence existence guards
+
+**Class:** Mechanical audit false-positive — context-blindness
+**Caught by:** Wave-86 adversarial pass 21 (orchestrator AUDIT 2 results for pass 21 — 3 hits, all benign)
+**Severity:** LOW
+**Source finding:** Orchestrator AUDIT 2 post-burst analysis, pass 21
+**Vehicle:** Future `bin/lint-story-bash-blocks` implementation; batch to PG-W84-012 devops dispatch
+
+### Description
+
+AUDIT 2 evaluates each `test "$(grep -c …)"` predicate in isolation and cannot see a
+preceding `test -s <same-file>` existence guard in the same fence. This causes false
+positives on correctly-guarded predicates.
+
+Pass-21 evidence: AUDIT 2 found 3 matches, all benign:
+- `:500` and `:1196` — each preceded by a `test -s coverage-out.txt` existence guard inside
+  a `set -euo pipefail` fence, so the block aborts before the count check when the artifact
+  is absent. The non-vacuity requirement is satisfied by the guard.
+- `:1458` — immutable v2.2 changelog row; not executable code.
+
+The two STORY-182 fixes pass the three-way discriminating test: absent → FAIL (guard fires);
+present-and-clean → PASS; present-WITH-violation → FAIL. All correctly guarded.
+
+### Codification
+
+The future checker (`bin/lint-story-bash-blocks`) must:
+1. Treat a same-fence `test -s <file>` existence guard on the same target as satisfying
+   the non-vacuity requirement for subsequent `grep -c` predicates on that file.
+2. Skip changelog-table rows entirely (detect by context: inside a `| vX.Y changelog` table
+   cell, or following a `## Changelog` heading within N lines).
+
+This closes the false-positive class that made AUDIT 2 emit spurious warnings on three
+correctly-written loci in pass 21.
+
+Carry-forward: batch to PG-W84-012 devops dispatch / next planning cycle.
+Checklist step 3 (S-7.02): satisfied by this explicit deferral, not silent drop.
+
+---
+
+## PG-W86-CONTRADICTION-ACCUMULATION-REGIONS — two regions carried findings in three consecutive passes
+
+**Class:** Region-level internal contradiction accumulation despite whole-region rewrites
+**Caught by:** Wave-86 adversarial passes 19, 20, 21 (three consecutive passes, same two regions)
+**Severity:** MEDIUM
+**Source findings:** STORY-182 Task 8 + Task 10a (P19 F-003/F-007, P20 F-007, P21 F-004); AC-182-006 (P19 F-002, P20 F-002/F-008, P21 F-003/F-005)
+**Vehicle:** Codification candidate: region-level "claims-vs-command" consistency check; batch to PG-W84-012 devops dispatch / next planning cycle
+
+### Description
+
+Two STORY-182 regions have each carried findings in three consecutive adversarial passes
+(P19, P20, P21) despite two whole-region rewrites. The failure mode is that a rewrite
+replaces the prose but leaves a superseded clause elsewhere in the region, or introduces a
+claim about a command without verifying the command's actual content.
+
+**Region 1: STORY-182 Task 8 + Task 10a**
+- P19: `F-003` (Task 8/10a stated different mechanisms for the blocking gate)
+- P20: `F-007` (Task 8 and 10a rewrote together but still diverged on blocking/evidence-only)
+- P21: `F-004` (Task 8 cited a `grep -qE "test result: ok"` absent from the command it prescribed)
+
+In each case, the whole-region rewrite fixed the explicitly-cited locus but left a related
+clause that contradicted the fix.
+
+**Region 2: STORY-182 AC-182-006**
+- P19: `F-002` (AC-182-006 added; whole-file predicate was tautological at baseline)
+- P20: `F-002/F-008` (AC-182-006 rewritten; new predicate discriminating but environment-scoped incorrectly)
+- P21: `F-003/F-005` (AC-182-006 predicate section-blind re ENIP :279; preamble left in wrong form)
+
+### Root Cause
+
+When a region contains both (a) prose describing what a command does AND (b) the command
+itself, a rewrite of the prose can leave the command unchanged (or vice versa), producing
+a claims-vs-command mismatch. The whole-region rewrite discipline (D-536) prevents
+single-locus edits but does not require re-reading the command to verify the claim.
+
+### Proposed Codification
+
+**Region-level "claims-vs-command" consistency check:** Every prose claim that a specific
+check exists (e.g., "fails the `grep -qE "test result: ok"` check in this same command")
+must name a command block in the same region that demonstrably contains that check. Before
+committing any whole-region rewrite, explicitly verify:
+
+1. Every sentence of the form "X does Y" names an artifact (command/file/test) in the same
+   region.
+2. That artifact is read verbatim and confirmed to contain the named element Y.
+3. If Y is absent from the artifact, either add Y to the artifact or remove the claim.
+
+This check is the mechanical complement to the whole-region rewrite discipline (D-536): the
+discipline ensures the whole region is rewritten; this check ensures the rewrite is
+internally self-consistent.
+
+Per the S-7.02 Cycle-Closing Checklist, codification vehicle named (future
+`bin/lint-story-bash-blocks` or a region-consistency probe); batched to PG-W84-012 devops
+dispatch / next planning cycle. Checklist step 3 (S-7.02): satisfied by this explicit
+deferral, not silent drop.

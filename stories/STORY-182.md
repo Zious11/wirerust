@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-182
 epic_id: E-11
-version: "2.10"
+version: "2.11"
 status: draft
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
@@ -54,7 +54,10 @@ input-hash: "9a0f34c"
   is absent, to report visible skip notices for gitignored corpus files, AND for the committed ITI
   capture to ensure CI genuinely exercises the timed-command detection path from STORY-180
 - **So that** the clean-worktree silent-skip class behind PG-W85-005 is structurally
-  eliminated for the IEC-104 harness delivered here, and the D-510 stale-expectation class
+  eliminated **for the committed partition of the IEC-104 harness** (the one committed ITI
+  capture always runs in CI); the three gitignored fixtures now emit visible FIXTURE-SKIPPED
+  notices via the additive CI step instead of skipping silently, but their tests still report
+  `ok` on absence; and the D-510 stale-expectation class
   is now detected on every CI run rather than only on fixture-bearing hosts (detection, not
   prevention — accurate expectations remain the implementer's obligation); absence of the
   committed capture is always a visible CI failure, and the timed-command code path always
@@ -157,10 +160,11 @@ local-samples (clean-worktree equivalent).
 `tests/fixtures/` (root) is NOT covered by any `.gitignore` entry. `.gitignore` covers only
 `/tests/fixtures/local-samples/`. Since committed captures go directly in `tests/fixtures/`,
 those pcap files are naturally tracked — no `.gitignore` change is required for the committed
-captures themselves. However, **a `.gitignore` entry IS required for `coverage-out.txt`** —
-the transient CI artifact written by the additive ci.yml step (`tee coverage-out.txt`). This
-file must not be accidentally committed. See Task 10b and the Architecture Mapping + File
-Structure Requirements for the precise `.gitignore` entry.
+captures themselves. However, **`.gitignore` entries ARE required for `coverage-out.txt`
+and `red-out.txt`** — `coverage-out.txt` is the transient CI artifact written by the additive
+ci.yml step (`tee coverage-out.txt`); `red-out.txt` is the transient artifact from the
+AC-182-005 manual RED demonstration. Both must not be accidentally committed. See Task 10b
+and the Architecture Mapping + File Structure Requirements for the precise `.gitignore` entries.
 
 ### Stdout vs. CI visibility — `println!()` requires `--nocapture`
 
@@ -493,8 +497,7 @@ cargo test --test iec104_e2e_real_pcaps_tests \
 # Existence guard: coverage-out.txt must be non-empty before count check (prevents false-GREEN when file absent):
 test -s coverage-out.txt
 # SKIP-count check (non-vacuous — file existence asserted above):
-SKIP_COUNT="$(grep -c '\[iec104-e2e\] SKIP:' coverage-out.txt)"
-test "${SKIP_COUNT}" -eq 0
+test "$(grep -c '\[iec104-e2e\] SKIP:' coverage-out.txt)" -eq 0
 # Expected: 0 SKIP lines (committed fixture always found; pattern catches ANY iec104-e2e SKIP)
 ```
 
@@ -834,7 +837,8 @@ The governance surfaces touched by this story are all present and consistent.
   ```bash
   set -euo pipefail
   grep -qF 'committed at `tests/fixtures/`' tests/fixtures/E2E-PCAPS.md
-  test "$(grep -c 'All are auto-fetchable via `bin/fetch-e2e-pcaps`' tests/fixtures/E2E-PCAPS.md)" -eq 0
+  test "$(sed -n '337,345p' tests/fixtures/E2E-PCAPS.md | grep -c 'All are auto-fetchable via `bin/fetch-e2e-pcaps`')" -eq 0
+  # (IEC-104 section only — :279 is the ENIP section intro, true, do NOT edit)
   grep -q 'iec104-iti-diverse.pcap' tests/fixtures/README.md
   ```
 - And `coverage-out.txt` is listed in `.gitignore`:
@@ -846,11 +850,10 @@ The governance surfaces touched by this story are all present and consistent.
   grep -qF '.factory/maintenance/fixture-count-gate-entry.md' CLAUDE.md
   ```
 - And `.factory/maintenance/fixture-count-gate-entry.md` exists on the factory-artifacts branch
-  (this predicate runs from the main repo root ONLY — `.factory/` is gitignored at
-  `.gitignore:4` and absent from a story worktree or CI develop checkout):
+  (environment: any checkout where the `factory-artifacts` ref has been fetched
+  (`git fetch origin factory-artifacts`); reads the object store, not the working tree, so
+  the `.gitignore:4` exclusion of `.factory/` does not affect it):
   ```bash
-  # Environment: main repo root ONLY (factory-artifacts mounted at .factory/).
-  # Branch-scoped alternative (runnable anywhere the ref is fetched):
   git cat-file -e factory-artifacts:maintenance/fixture-count-gate-entry.md
   ```
 - And the additive CI step for fixture coverage reporting is present in `.github/workflows/ci.yml`:
@@ -882,7 +885,7 @@ The governance surfaces touched by this story are all present and consistent.
 | Additive CI step "IEC-104 fixture coverage report (visible)" | `.github/workflows/ci.yml` (amend — additive step only; no functional job changes) | develop |
 | Project References row for `.factory/maintenance/fixture-count-gate-entry.md` | `CLAUDE.md` (amend) | develop |
 | Gate-entry evidence doc (manifest counts, `#[ignore]` rejection, D-510 G1 retrospective, enforcement obligation) | `.factory/maintenance/fixture-count-gate-entry.md` (new) | factory-artifacts |
-| `coverage-out.txt` gitignore entry (transient CI artifact from additive step) | `.gitignore` (amend — add one entry) | develop |
+| `coverage-out.txt` and `red-out.txt` gitignore entries (transient artifacts: CI step + manual RED demo) | `.gitignore` (amend — add two entries) | develop |
 
 **No `src/` changes, no `bin/` changes, no `Cargo.toml` changes.**
 CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), `CLAUDE.md`, and `.factory/` are all **excluded** from the AC-158-001 changelog-gate trigger set.
@@ -1094,7 +1097,9 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
        `tests/fixtures/` and always available without fetching; the remaining captures
        require `bin/fetch-e2e-pcaps` or manual download into `local-samples/`
      - Lines :352-359 (§Captures table): annotate the :358 `iec104-iti-diverse.pcap` row
-       with committed status (e.g., add an inline note "committed at `tests/fixtures/`");
+       with the **exact literal** inline note `` committed at `tests/fixtures/` `` —
+       AC-182-006 asserts this string with `grep -qF`; equivalent paraphrases will fail the
+       gate. Do NOT edit `:279` (ENIP section intro — true claim, must remain unchanged);
        add the annotation for the :359 `iec104-iti-dissect.pcap` row as gitignored+CI-downloaded
      - Lines :374-380 (§Attribution): note that `iec104-iti-diverse.pcap` is committed
        (always available) while `iec104-iti-dissect.pcap` remains gitignored and is
@@ -1152,14 +1157,21 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
      is always a CI-visible failure.
    - **Enforceable wave-gate obligation (F-026):** Before G1 of any wave-gate evaluation that
      includes e2e pcap tests, run:
-     `cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture`
+     ```bash
+     set -euo pipefail
+     cargo test --test iec104_e2e_real_pcaps_tests \
+       iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
+     grep -qE "test result: ok" coverage-out.txt          # blocks on hard-assert failure
+     grep -qE "Fixture coverage: [0-9]+/4" coverage-out.txt   # M must be 4
+     ```
      and record the printed N/M in the gate entry. **`M ≠ 4` blocks gate entry** (manifest-size
      drift not co-updated here). **`N` is recorded as evidence only**, together with the
      environment declaration (local-samples absent / partially populated / fully populated);
      committed-capture absence is blocked by the AC-182-005 hard-assert, which fails
-     `cargo test` and therefore fails the `grep -qE "test result: ok"` check in this same
-     command — `N` itself is not a blocking datum. No `policies.yaml` entry — sibling
-     convention (see `.factory/maintenance/` for analogous enforcement docs).
+     `cargo test`; the `grep -qE "test result: ok"` in the command above surfaces that failure
+     — a non-zero `cargo test` exit blocks gate entry regardless of the printed N/M.
+     No `policies.yaml` entry — sibling convention (see `.factory/maintenance/` for analogous
+     enforcement docs).
 
 9. **Regression verification (AC-182-004/005) — two-environment protocol (F-006):**
 
@@ -1181,8 +1193,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
    # Existence guard: coverage-out.txt must be non-empty before count check (prevents false-GREEN when file absent):
    test -s coverage-out.txt
    # SKIP-count check (non-vacuous — file existence asserted above):
-   SKIP_COUNT="$(grep -c '\[iec104-e2e\] SKIP:' coverage-out.txt)"
-   test "${SKIP_COUNT}" -eq 0
+   test "$(grep -c '\[iec104-e2e\] SKIP:' coverage-out.txt)" -eq 0
    # Expected: 0 (committed fixture always found; pattern catches ANY iec104-e2e SKIP)
 
    # iec104-iti-dissect.pcap: NOT committed (F-009); skips in CI (gitignored)
@@ -1238,14 +1249,15 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
     `.factory/maintenance/fixture-count-gate-entry.md`, following the pattern of the 6
     existing protocol-doc rows at the bottom of that table:
     ```
-    | `.factory/maintenance/fixture-count-gate-entry.md` | Fixture manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective; wave-gate-entry obligation: run manifest test before G1 and record N/M — `M ≠ 4` blocks gate entry (manifest-size drift); `N` is recorded as evidence only with the environment declaration (local-samples absent / partially populated / fully populated); committed-capture absence is blocked by the AC-182-005 hard-assert (cargo test failure) — that assert is the blocking gate; `N` itself is not a blocking datum |
+    | `.factory/maintenance/fixture-count-gate-entry.md` | Fixture manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective; wave-gate-entry obligation: run manifest test before G1 per Task 8 wave-gate procedure (includes `tee coverage-out.txt` + `grep -qE "test result: ok"`) and record N/M — `M ≠ 4` blocks gate entry (manifest-size drift); `N` is recorded as evidence only with the environment declaration (local-samples absent / partially populated / fully populated); committed-capture absence is blocked by the AC-182-005 hard-assert, which fails `cargo test`; the `grep -qE "test result: ok"` in the Task 8 command surfaces that failure; `N` itself is not a blocking datum |
     ```
-    (b) Add `coverage-out.txt` to `.gitignore` — this file is generated by the additive CI step
-    (`tee coverage-out.txt`) and is a transient artifact not meant to be tracked. Append as a new
-    top-level entry (the file is a transient CI artifact):
+    (b) Add `coverage-out.txt` and `red-out.txt` to `.gitignore` — both are transient artifacts
+    not meant to be tracked. Append as new top-level entries:
     ```
     # Transient CI artifact from IEC-104 fixture coverage report step (STORY-182)
     coverage-out.txt
+    # Transient artifact from the AC-182-005 manual RED demonstration (STORY-182)
+    red-out.txt
     ```
 
 11. **Develop PR:** All changes in `tests/`, committed binary fixtures, additive `ci.yml`
@@ -1357,7 +1369,7 @@ CHANGELOG obligation: `tests/`, `.github/workflows/ci.yml` (additive run step), 
 | `.factory/maintenance/fixture-count-gate-entry.md` | New (factory-artifacts branch — committed by state-manager, NOT in develop PR) | Gate-entry evidence: manifest counts, COMMITTED_FIXTURES members, #[ignore] rejection rationale, D-510 G1 retrospective |
 | `.github/workflows/ci.yml` | Modify (additive step only) | Add "IEC-104 fixture coverage report (visible)" step in test job — makes `Fixture coverage:` println!() CI-visible (F-014 orchestrator ruling) |
 | `CLAUDE.md` | Modify | Add Project References row for `.factory/maintenance/fixture-count-gate-entry.md` (F-015 process-gap) |
-| `.gitignore` | Modify | Add `coverage-out.txt` entry — transient CI artifact from additive step (F-P9-011) |
+| `.gitignore` | Modify | Add `coverage-out.txt` and `red-out.txt` entries — transient artifacts (CI step + manual RED demo) (F-P9-011, F-W86S-P21-006) |
 
 **Forbidden modifications:** `src/**/*`, `Cargo.toml`, `bin/*`, `CHANGELOG.md`
 **Note:** `.github/workflows/ci.yml` is permitted for the ONE additive step described above
@@ -1434,6 +1446,7 @@ Well within context window. No story split required.
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 2.11 | 2026-07-28 | story-writer | WAVE-86 PASS-21 REMEDIATION — F-W86S-P21-007 LOW (Narrative "So that" clause: "eliminated for the IEC-104 harness delivered here" → "eliminated for the committed partition of the IEC-104 harness" with explicit note that the 3 gitignored fixtures emit visible FIXTURE-SKIPPED notices but still report `ok` on absence); F-W86S-P21-002 MED (two `SKIP_COUNT="$(grep -c ...)"` assignment-position forms at AC-182-003 Verification and Task 9 Env A replaced with argument-position `test "$(grep -c ...)" -eq 0` — assignment form propagates grep-c exit status 1 under `set -e` when count=0, causing false abort in the expected-pass case; FIX B restored); F-W86S-P21-003 MED (AC-182-006 E2E-PCAPS.md predicate section-scoped from whole-file to IEC-104 section lines 337-345 via `sed -n '337,345p' | grep -c`; inline note added: ":279 is ENIP section intro — true, do NOT edit"; Task 7 :352-359 bullet: "e.g." removed, exact literal `` committed at `tests/fixtures/` `` made normative with `grep -qF` gate warning; "Do NOT edit :279" directive added); F-W86S-P21-004 MED (Task 8 wave-gate command made self-gating: added `tee coverage-out.txt` + `grep -qE "test result: ok"` + `grep -qE "Fixture coverage: [0-9]+/4"` inside fenced block; prose reworded to reference "the command above"; Task 10a CLAUDE.md row updated to reference Task 8 wave-gate procedure); F-W86S-P21-005 LOW (AC-182-006 factory-artifacts predicate: "runs from main repo root ONLY" and `.gitignore:4` restriction removed — `git cat-file -e` reads the object store, not the working tree, so it is runnable anywhere the ref is fetched; environment note rewritten accordingly); F-W86S-P21-006 LOW (`red-out.txt` gitignore entry added alongside `coverage-out.txt` at all four loci: Background §Gitignore placement, Architecture Mapping row, Task 10b, and FSR `.gitignore` row). |
 | 2.10 | 2026-07-27 | story-writer | WAVE-86 PASS-20 REMEDIATION — F-015 MED (Narrative "So that" clause: "structurally prevented" → "clean-worktree silent-skip class behind PG-W85-005 is structurally eliminated"; "detection, not prevention" caveat added); F-002 MED (AC-182-006: tautological E2E-PCAPS.md predicate `grep -c 'tests/fixtures/' -ge 1` replaced with discriminating `grep -qF 'committed at \`tests/fixtures/\`'` + `grep -c 'All are auto-fetchable via \`bin/fetch-e2e-pcaps\`' -eq 0`); F-003 MED (AC-182-006: additive ci.yml step predicate block added with three `grep -qF` gates for step name, coverage pattern, and `!cancelled()` condition); F-004 MED (AC-182-005 Verification: `cargo test ... \|\| true` no-assert RED demo replaced with inverted-gate form + `grep -qF "REGRESSION: committed fixture ..." red-out.txt` positive assertion; `set -euo pipefail` added); F-006 MED (six missing `set -euo pipefail` first lines added: AC-182-001 Verification, AC-182-003 Verification, AC-182-004 Verification, AC-182-005 Verification, Task 9 Env A, Task 9 Env B); F-007 MED (Task 8 Enforceable wave-gate obligation and Task 10a CLAUDE.md row rewritten: self-contradictory "`N < 1` blocks" / "`N` is evidence only" contradiction resolved — single coherent rule: `M ≠ 4` blocks, `N` is recorded as evidence only with environment declaration); F-008 MED (AC-182-006: environment-blind `test -f .factory/maintenance/fixture-count-gate-entry.md` replaced with environment note + `git cat-file -e factory-artifacts:maintenance/fixture-count-gate-entry.md`); F-010 MED (AC-182-006: "The four governance deliverables" → "The governance surfaces touched by this story"); F-013 LOW (two `:11-12` line anchors corrected to `:12-13`: Task 7 bullet and FSR Notes cell); AUDIT-2 (two tautological SKIP-count predicates at AC-182-003 Verification and Task 9 Env A fixed: `test "$(grep -c ...)" -eq 0` replaced with `test -s coverage-out.txt` guard + variable-assignment form to prevent false-GREEN when coverage-out.txt absent). |
 | 2.9 | 2026-07-27 | story-writer | WAVE-86 PASS-19 REMEDIATION — F-001 MED (Task 7 bullet 2: extended to prescribe rewriting false-green claim at :11-12 — "This keeps CI green without fixtures" is FALSE post-story for the committed partition; rewrite mirrors :59-62 treatment; FSR Notes cell for tests/iec104_e2e_real_pcaps_tests.rs updated to enumerate :10-13 with false-green note); F-002 MED (two missing `set -euo pipefail` added: (a) first line of AC-182-002 Verification bash block, after ```bash fence before git ls-files; (b) first line of Task 1 bash block, before # Step 1a:); F-003 MED (Task 8 Enforceable wave-gate obligation paragraph rewritten — environment-explicit N/M: N MUST equal 1 when local-samples absent or 4 when fully populated; intermediate N is legitimate on partially-populated host; blocking condition is M ≠ 4 or N < 1 only — corrects old "any other N/M pair" language that would have blocked N=4 on a fixture-bearing host; Task 10a CLAUDE.md row cell text rewritten to match same enforcement posture); F-004 MED (AC-182-006 added after AC-182-005 and before Architecture Mapping — governance-surface completeness AC covering E2E-PCAPS.md paths reference, .gitignore coverage-out.txt entry, CLAUDE.md fixture-count-gate-entry.md reference, factory-artifacts file existence, and false-green doc-comment elimination). |
 | 2.8 | 2026-07-27 | story-writer | WAVE-86 PASS-18 REMEDIATION — P18-003 MED (Task 7 sweep: added three new test-file bullets for :47-49 fixture-root comment, :53-57 section banner, :59-62 doc-comment on fixture-checking helper — all prescribe committed-first rewording, needle guard applies to :59-62; FSR row Notes updated to enumerate all three ranges); P18-004 MED (attribution single-destination: Notes cell at :416 reduced from full attribution text to `Attribution: see §Licensing notice` + kept `upstream LICENSE.md (CC-BY-4.0, repo-level)` clause; prose at :418-420 updated to match; Task 2 :931-936 rewritten to state full attribution WITH Source: sentence lives ONLY in README §Licensing notice — single authoritative destination per P18-004 ruling; "7-22" → "7-26" propagated in Task 2 rewrite); P18-005 MED (AC-182-004 outcome (e) :515-517 and ACR ci.yml step :1219: corrected `!cancelled()` visibility claim — "visible after TEST failures; after checkout/compile failures the step runs but cannot emit the coverage line — !cancelled() guarantees execution, not output"); P18-006 MED (Task 8 :1064-1065: replaced tautology "M MUST equal FIXTURE_MANIFEST.len()" with discriminating predicate "M MUST equal 4 (the literal) and N MUST equal COMMITTED_FIXTURES.len() (currently 1) in a clean checkout; any other N/M pair blocks gate entry"; CLAUDE.md row :1142 updated to match); P18-008 LOW (three live "7-22" loci corrected to "7-26": background :115 with added explanation of malware clause :24-26; Task 7 :983; FSR :1253); NIT-1/P18-010 LOW (AC-182-004 verification :536-539: replaced bare `set -euo pipefail` block with full if [ -d tests/fixtures/local-samples ] guard form matching Env-B siblings); NIT-2/P18-011 LOW (Task 7 needle guard :1039-1044 rescoped from "Task 7 sweep targets" to "tests/iec104_e2e_real_pcaps_tests.rs" — count assertion reads only that file; ACR needle guard :1211-1216 rescoped from "any file touched by this story" to "tests/iec104_e2e_real_pcaps_tests.rs"). |
