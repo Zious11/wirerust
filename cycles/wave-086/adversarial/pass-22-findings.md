@@ -225,3 +225,30 @@ live false-GREEN (truth-preservation, D-530).
 All 6 findings remediated in D-539 burst. STORY-182 v2.11→v2.12, STORY-183 v2.11→v2.12.
 Canonical hashes unchanged: `9a0f34c` / `9c9b12f` (inputs: unchanged).
 Streak: 0/3. Pass 23 next.
+
+---
+
+## Per-Axis Disposition (pass 22)
+
+> **Reconstruction note:** This file was constructed from orchestrator-verified ground truth
+> (D-539 brief, §2). The adversary's verbatim transcript was not persisted — the adversary agent
+> operates read-only and returns findings as text to the orchestrator rather than writing files
+> (PG-W86-ADVERSARY-WRITE-PROFILE). All axis dispositions below are authoritative as recorded by
+> the orchestrator.
+
+The adversary evaluated all 11 axes. **7 of 11 axes clean**; findings fell on axes 2, 3, and 6
+only.
+
+| Axis | Label | Disposition | Notes |
+|------|-------|-------------|-------|
+| 1 | Truthfulness | **CLEAN** | ~70 factual claims independently re-derived; zero false |
+| 2 | AC predicate correctness | FINDING | F-W86S-P22-001 (MEDIUM) — line-range drift in AC-182-006 |
+| 3 | AC coverage completeness | FINDING | F-W86S-P22-002 (MEDIUM) — `red-out.txt` sweep incomplete |
+| 4 | False-GREEN / silent-skip | **CLEAN** | No vacuous-pass or always-true predicates found |
+| 5 | Self-referential-flag | **CLEAN** | All 36 patterns hand-simulated against every `#`-comment in all six `bin/*.py` files; exactly 2 match, as the story claims |
+| 6 | Deliverable↔task coverage | FINDING | F-W86S-P22-003 (MEDIUM) — `ci.yml` additive step declared in five places, no Task |
+| 7 | Internal consistency | **CLEAN** | Clean in both regions specifically flagged for scrutiny (STORY-182 Task 8+Task 10a; AC-182-006) — v2.11 contradiction fixes held |
+| 8 | Environment-blindness | **CLEAN** | No environment-dependent claims found |
+| 9 | Arithmetic | **CLEAN** | Every count re-derived exact: 40/2/42, 45, 13+1=14, 12+14=26, 28+8=36, 32 RED-GATE headings, 3625 attribute lines, 10 fallthrough sites, 25 captures, 21 TCs |
+| 10 | Scope integrity | **CLEAN** | No out-of-scope claims found |
+| 11 | CI/gate realism | **CLEAN** | All CI step descriptions match actual job names and conditions |

@@ -1495,6 +1495,13 @@ grep -nE "sed -n '[0-9]+,[0-9]+p'|awk 'NR>?=[0-9]+|head -n [0-9]+ \| tail" \
 Expected post-D-539: 0 results (all predicate line-range extractors removed or converted to
 content-anchored form).
 
+**Note — grep approximation vs. canonical Python form:** The grep one-liner above is a
+convenience approximation. It does NOT exclude changelog table rows (lines beginning with `|`)
+and therefore reports 2 raw hits on v2.12 — both are immutable changelog provenance rows that
+reference removed `sed -n` predicates and MUST NOT be changed. The canonical Python form in
+`PG-W86-AUDIT-SEAM-PIPEFAIL` correctly excludes changelog rows and reports 0. When running
+AUDIT 4 as an acceptance check, use the canonical Python form.
+
 **Vehicle:** DF-SIBLING-SWEEP-001 checklist extension; batch to PG-W84-012 devops dispatch /
 next planning cycle. S-7.02 step 3: satisfied by explicit deferral.
 
@@ -1586,9 +1593,54 @@ so this gap caused no live defect. However, the discipline must be adopted to pr
 
 **Discipline to adopt (D-539):**
 All bash fences in story files that contain a pipeline operator (`|`) MUST open with
-`set -euo pipefail`. This extends AUDIT 1's protection to single-command pipeline fences. AUDIT 5's
-script is the executable spec (see PG-W86-PREDICATE-LINE-RANGE entry for the script — AUDIT 5 uses
-the same Python-based fence scanner).
+`set -euo pipefail`. This extends AUDIT 1's protection to single-command pipeline fences.
+The canonical orchestrator script below implements AUDIT 1, AUDIT 4, and AUDIT 5 in one pass
+(proven on STORY-182/183 v2.12: AUDIT1=0 AUDIT4=0 AUDIT5=0):
+
+```python
+# Orchestrator story-spec bash/predicate audits (D-538/D-539). Proven on v2.12: A1=0 A4=0 A5=0.
+# AUDIT 1: multi-command ```bash fence whose first non-blank line is not `set -euo pipefail`
+# AUDIT 4: hardcoded absolute line-range extractor in a predicate (excludes changelog rows)
+# AUDIT 5: fence containing a pipeline whose head is not `set -euo pipefail`
+import re
+STORIES = ['.factory/stories/STORY-182.md', '.factory/stories/STORY-183.md']
+a1 = a4 = a5 = 0
+for f in STORIES:
+    lines = open(f).read().split('\n')
+    name = f.split('/')[-1]
+    for i, l in enumerate(lines):
+        if not l.strip().startswith('```bash'):
+            continue
+        j = i + 1
+        while j < len(lines) and not lines[j].strip():
+            j += 1
+        head = lines[j].strip() if j < len(lines) else ''
+        k = i + 1
+        cmds = 0
+        pipe = False
+        while k < len(lines) and not lines[k].strip().startswith('```'):
+            t = lines[k].strip()
+            if t and not t.startswith('#'):
+                cmds += 1
+                if '|' in t and '||' not in t:
+                    pipe = True
+            k += 1
+        guarded = head.startswith('set -euo pipefail')
+        if not guarded and cmds > 1:
+            print(f'  AUDIT1 MISSING {name} fence@:{i+1} cmds={cmds}')
+            a1 += 1
+        if not guarded and pipe:
+            print(f'  AUDIT5 PIPE-NO-PIPEFAIL {name} fence@:{i+1}')
+            a5 += 1
+    for i, l in enumerate(lines, 1):
+        s = l.strip()
+        if s.startswith('|'):        # skip immutable changelog table rows
+            continue
+        if re.search(r"sed -n '\d+,\d+p'|awk 'NR\s*[><=]|head -n \d+ \| tail|tail -n \+\d+", s):
+            print(f'  AUDIT4 LINE-RANGE {name}:{i} {s[:90]}')
+            a4 += 1
+print(f'AUDIT1={a1} AUDIT4={a4} AUDIT5={a5}')
+```
 
 **AUDIT 5 (executable spec):**
 ```bash
