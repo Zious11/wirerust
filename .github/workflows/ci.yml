@@ -42,7 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-08-04; channel via toolchain input
+        with:
+          toolchain: stable
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - run: cargo test --all-targets
 
@@ -51,8 +53,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-08-04; channel via toolchain input
         with:
+          toolchain: stable
           components: clippy
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - run: cargo clippy --all-targets -- -D warnings
@@ -62,8 +65,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-08-04; channel via toolchain input
         with:
+          toolchain: stable
           components: rustfmt
       - run: cargo fmt --all --check
 
@@ -94,7 +98,7 @@ jobs:
       RUSTFLAGS: ""
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-08-04; channel via toolchain input
         with:
           # Pin to a specific, known-good dated nightly. See job comment above.
           toolchain: nightly-2026-05-21
@@ -136,7 +140,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-08-04; channel via toolchain input
+        with:
+          toolchain: stable
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
@@ -331,11 +337,10 @@ jobs:
   # Mutable refs (e.g. @v6, @v2.9.1, @stable) can be silently moved by the upstream
   # maintainer, allowing a compromised tag to execute arbitrary code in CI.
   #
-  # Documented exemption: dtolnay/rust-toolchain@stable and @nightly are intentionally
-  # exempt. The rust-toolchain action is a channel-selection installer whose entire
-  # purpose is to track the rolling stable/nightly channel; pinning it to a SHA would
-  # defeat that purpose. These two refs are tracked for separate resolution and are
-  # explicitly allowlisted in the gate script below.
+  # The former dtolnay/rust-toolchain@stable/@nightly exemption is retired: those
+  # sites now pin the action commit and select the rolling channel via the explicit
+  # 'toolchain' input, so channel tracking survives the pin and the gate validates
+  # every remote ref with an empty allowlist.
   action-pin-gate:
     name: Action pin gate
     runs-on: ubuntu-latest
@@ -348,9 +353,9 @@ jobs:
           set -euo pipefail
 
           # Allowlisted branch-ref actions (documented exemptions only).
-          # dtolnay/rust-toolchain@stable and @nightly: channel-selection installer;
-          # pinning to SHA would defeat its purpose of tracking rolling toolchain channels.
-          ALLOWLIST="dtolnay/rust-toolchain@stable dtolnay/rust-toolchain@nightly"
+          # Currently empty: the dtolnay channel refs moved to a pinned action
+          # commit with the channel selected via the explicit 'toolchain' input.
+          ALLOWLIST=""
 
           # PG-W71-CI-SCAN-GUARDS / SEC-001: scan-target existence guard.
           # Mirrors the trust-boundary and help-provenance-gate patterns.
