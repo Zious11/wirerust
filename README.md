@@ -7,13 +7,14 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 ## Features
 
 - **One-pass triage** — hosts, services, protocols, and threat signals from pcap files
-- **Protocol analysis** — DNS, HTTP, TLS, Modbus, DNP3, ARP, and EtherNet/IP (CIP) traffic analysis with extensible analyzer framework
+- **Protocol analysis** — DNS, HTTP, TLS, Modbus, DNP3, ARP, EtherNet/IP (CIP), and IEC 60870-5-104 traffic analysis with extensible analyzer framework
 - **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies; `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection; multi-record handshake-message reassembly (SNI/JA3/JA3S fragmentation-evasion closed; per-direction carry buffer with `buffer_saturation_drops` overflow telemetry); `dropped_map_entries` JSON counter surfaces silently-dropped entries when per-analyzer counter maps reach their cap
 - **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; `dropped_transactions` JSON counter surfaces silently-dropped transactions when the per-flow transaction map reaches its cap; enabled via `--modbus`
 - **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; `dropped_findings`, `master_addrs_dropped`, and `pending_requests_evicted` JSON counters surface cap-related telemetry; enabled via `--dnp3`
 - **ARP security forensics** — link-layer and OT network threat detection; detects ARP spoofing / cache poisoning, gratuitous ARP anomalies, ARP storms, malformed ARP frames, and L2/L3 sender-MAC mismatch; MITRE attribution to T0830 and T1557.002; enabled via `--arp`
 - **EtherNet/IP CIP forensics** — ICS/OT threat detection on port 44818; parses ODVA EtherNet/IP encapsulation header (24-byte, little-endian) and Common Packet Format item walk with CIP service extraction; detects 6 MITRE ATT&CK for ICS techniques (T0836 write-burst, T0846 remote system discovery, T0814 malformed-frame/crash-probe, T0888 error-burst/identity-read, T0858 controller stop, T0816 device reset); configurable write-burst and error-burst thresholds; emits `enip_summary` JSON key; references ADR-010; enabled via `--enip`
+- **IEC 60870-5-104 forensics** — ICS/OT threat detection on port 2404; parses APCI header and ASDU structure; detects MITRE ATT&CK for ICS techniques T1692.001, T0836, T0827, T0881, T0814; U-frame session state machine with STARTDT/STOPDT/TESTFR tracking; N(S) sequence desync detection; `dropped_findings` and `flows_analyzed` JSON counters; enabled via `--iec104`
 - **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
 - **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) in both
   classic pcap and pcapng captures
@@ -118,6 +119,7 @@ Options:
 --enip                                 Analyze EtherNet/IP TCP traffic (port 44818, default-off; included in --all)
 --enip-write-burst-threshold N         CIP write-burst threshold in SetAttribute requests/1s window (default: 50)
 --enip-error-burst-threshold N         CIP error-burst threshold in error responses/10s window (default: 5)
+--iec104                               Analyze IEC 60870-5-104 TCP traffic (port 2404, default-off; included in --all)
 --no-collapse                          Disable collapsing of repeated findings in both flat and grouped (--mitre) terminal output. By default, collapse is enabled in both modes. When --mitre is used, collapse groups identical findings within each MITRE tactic bucket with a (xN) count suffix. Pass --no-collapse to restore one-line-per-finding output in both modes. Has no effect on --json, --csv, or --output-format json|csv output.
 --mitre                                Group findings by MITRE ATT&CK tactic and show technique names; collapses identical findings within each tactic bucket with a (xN) count suffix by default (pass --no-collapse to disable)
 -a, --all                              Run all analyzers
@@ -172,7 +174,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
                          ↓         ↓
                          │    ArpAnalyzer (packet-level)
                          ↓
-                   Reassembly Engine → StreamDispatcher → StreamAnalyzers (HTTP, TLS, Modbus, DNP3, EtherNet/IP)
+                   Reassembly Engine → StreamDispatcher → StreamAnalyzers (HTTP, TLS, Modbus, DNP3, EtherNet/IP, IEC-104)
                          ↓
                       Summary
 ```
@@ -186,6 +188,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
 | Modbus Analyzer | (built-in) | Modbus TCP ICS/OT threat detection (port 502) |
 | DNP3 Analyzer | (built-in) | DNP3 TCP ICS/OT threat detection (port 20000) |
 | ENIP/CIP Analyzer | (built-in) | EtherNet/IP TCP ICS/OT threat detection (port 44818) |
+| IEC-104 Analyzer | (built-in) | IEC 60870-5-104 TCP ICS/OT threat detection (port 2404) |
 | ARP Analyzer | (built-in) | Link-layer ARP spoofing and anomaly detection |
 | Reassembly | (built-in) | TCP stream reassembly engine |
 | CLI | `clap` | Argument parsing |
@@ -201,6 +204,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
 | Modbus TCP | 502 | `--modbus` | off | T1692.001, T0836, T0835, T0831, T0806, T0814, T0888 |
 | DNP3 TCP | 20000 | `--dnp3` | off | T1692.001, T1691.001, T0827, T0814, T0836 |
 | EtherNet/IP TCP | 44818 | `--enip` | off | T0836, T0846, T0814, T0888, T0858, T0816 |
+| IEC 60870-5-104 TCP | 2404 | `--iec104` | off | T1692.001, T0836, T0827, T0881, T0814 |
 | ARP | link-layer | `--arp` | off | T0830, T1557.002 |
 
 ### DNP3 TCP Analyzer
@@ -302,6 +306,39 @@ CLI flags:
   window (default: 50); strict `>` semantics — fires on the (N+1)th write
 - `--enip-error-burst-threshold N` — CIP error-burst threshold in error responses per 10s window
   (default: 5); strict `>` semantics — fires on the (N+1)th error
+
+### IEC 60870-5-104 Analyzer
+
+The IEC-104 analyzer (`--iec104`) processes TCP streams on port 2404. It parses the 6-byte
+APCI header and ASDU structure; classifies I-format, S-format, and U-format frames; and
+maintains a per-flow U-frame session state machine tracking STARTDT/STOPDT/TESTFR command
+sequences. The analyzer is dispatched as Rule 8 in the stream dispatcher — after
+content-signature rules (TLS, HTTP) and port-based rules for TLS, HTTP, Modbus, DNP3, and
+EtherNet/IP — so TLS or HTTP traffic on port 2404 routes correctly before reaching this
+rule. Architecture: ADR-013.
+
+Detections emitted:
+
+| Detection | Technique | Tactic | Trigger |
+|-----------|-----------|--------|---------|
+| Switching control command (C_SC/C_DC/C_RC) | T1692.001 | Impair Process Control | TypeID 45–47 observed on passive monitor |
+| Set-point/bitstring write command (C_SE/C_BO) | T1692.001, T0836 | Impair Process Control | TypeID 48–51 observed on passive monitor |
+| Reset Process command (C_RP_NA_1) | T0827 | Impact | TypeID 105 observed; verdict Likely |
+| STOPDT-act (service stop) | T0881 | Inhibit Response Function | U-frame CF1=0x13; verdict Possible (session was started) or Likely (no prior STARTDT on this flow) |
+| Non-canonical U-frame CF1 | T0814 | Inhibit Response Function | U-frame CF1 not in canonical set {0x07,0x0B,0x13,0x23,0x43,0x83}; potential CVE-2026-1773 denial-of-service attack |
+| N(S) sequence desync | T1692.001 | Impair Process Control | I-format N(S) gap > 12 (15-bit modular); possible replay injection or adversarial manipulation |
+| Malformed LEN byte | T0814 | Inhibit Response Function | 0x68 start byte followed by LEN outside [4, 253]; one finding per direction per flow |
+| Carry-buffer overflow | T0814 | Inhibit Response Function | Directional carry buffer exceeds 255 bytes; adversarial or non-conformant byte sequence |
+| Reserved/invalid TypeID | T0814 | Inhibit Response Function | TypeID=0 (undefined) or TypeID in [128, 255] (private-use/reserved range) |
+
+CLI flags:
+- `--iec104` — enable IEC 60870-5-104 TCP analysis (also included in `-a`/`--all`; default-off)
+
+JSON output counters (present in the IEC-104 analyzer's `detail` object in JSON output, at
+`analyzers[i].detail`, when using `--json` / `--output-format json`):
+- `dropped_findings` — count of findings silently dropped after the `MAX_FINDINGS = 10 000`
+  per-analyzer cap was reached; a non-zero value means some detection events were not emitted
+- `flows_analyzed` — count of flows processed (closed flows plus still-open flows at summarize time)
 
 ## Supported Capture Formats
 

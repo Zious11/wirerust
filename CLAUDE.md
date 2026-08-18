@@ -30,6 +30,20 @@ cargo fmt --check           # CI gate
 
 CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 100`, field-init and try shorthand.
 
+### Mutation testing
+
+Bare `cargo mutants` is already serial by default — that invocation, or an
+explicit `--jobs 1` / `CARGO_MUTANTS_JOBS=1`, is the recommended way to run
+it. **Do not pass a high `--jobs`** (e.g. `--jobs 8`): that is what caused
+the PG-MUTANTS-JOBS-001 incident (fix-tls-clienthello-frag F6, 2026-07-01),
+where infinite-loop mutants pegged all cores, inflating other mutants'
+wall-clock past the auto-timeout and producing a false "0 missed" result. No
+config file can override an explicit CLI `--jobs` flag. The config-file
+defense is `.cargo/mutants.toml`'s `minimum_test_timeout` timeout floor
+(>= 300) — this raises the auto-timeout ceiling, it is NOT a parallelism
+default (`jobs` is not a valid config key at all). Upstream engine-default
+tracking: drbothen/vsdd-factory#654 (informational only).
+
 ## Git Workflow
 
 - **Default branch is `develop`** (git-flow). Branch from `develop`; PRs target `develop`. `main` exists but is the release/stable branch.
@@ -239,7 +253,7 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | Path | Purpose |
 |------|---------|
 | `README.md` | Project overview |
-| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly, 0012 protocols catalog and coverage-gaps system) |
+| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006 multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly, 0012 protocols catalog and coverage-gaps system, 0013 IEC-104 stream dispatch and parser design) |
 | `docs/superpowers/plans/` | Implementation plans (from the superpowers skill) |
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |
