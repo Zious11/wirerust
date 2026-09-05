@@ -13,6 +13,18 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   handling (`src/analyzer/iec104.rs`) to satisfy `clippy::drain_collect` under the
   rolled stable toolchain (rustc/clippy 1.98.1) — restores green CI for all PRs
   (gate-fix, precedent #439).
+- `bin/check-green-doc-tense`: extend the DF-GREEN-DOC-TENSE-SWEEP scan glob to
+  include `bin/*.py` (in addition to `tests/*.rs`, `src/**/*.rs`, and `src/*.rs`)
+  and make `#`-prefixed Python comment lines scan-eligible (language-scoped via a
+  new `_is_comment_line(stripped, suffix)` parameter), closing the gap where stale
+  RED-phase prose in Python tooling scripts was silently skipped by the gate
+  (PG-W84-010). Add 8 new TIER-1 behavioral-absence violation patterns (30-37 —
+  `Expected RED:`, `currently fall(s)`, `currently asserts`, `falls to the
+  wildcard`, `does not / doesn't exist yet`, `currently has NO`, `currently
+  satisfied by`, `will be GREEN currently`) per DF-GREEN-DOC-TENSE-SWEEP v6,
+  covering the `currently asserts` phrasing class found in 9 stale sites during
+  STORY-180 adversarial review (PG-W85-003). `_collect_rust_files` renamed to
+  `_collect_source_files` to reflect the multi-language scan surface (STORY-183).
 
 ## [0.13.2] - 2026-07-25
 
