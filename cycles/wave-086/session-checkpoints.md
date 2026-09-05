@@ -1302,3 +1302,82 @@ HS-INDEX v2.17 / dep-graph v3.10.
 
 Resume command: /vsdd-factory:next-step
 ```
+
+---
+
+## Session Resume Checkpoint (2026-09-04) — D-541 pass-24 REMEDIATED (1 MEDIUM), pass 25 next
+
+Archived from STATE.md D-542 burst.
+
+```
+D-541 STATE BURST — WAVE-86 ADVERSARIAL PASS 24 REMEDIATED (2026-09-04). 1 MEDIUM
+(F-W86S-P24-001: same locus as pass-23's accepted NIT F-W86S-P23-001, independently
+ESCALATED by fresh-context adversary — live-source misquote + Task 10/FSR row
+intra-document contradiction), fixed. STORY-183 v2.12→v2.13 (STORY-182 v2.12
+unchanged). STORY-INDEX v4.18→v4.19 (version bump only). Canonical hashes unchanged
+(9a0f34c/9c9b12f). Clean streak RESET 1/3→0/3. Pass 25 next.
+
+Prior checkpoints archived to cycles/feature-iec104/session-checkpoints.md and
+cycles/wave-084/session-checkpoints.md and cycles/wave-085/session-checkpoints.md
+and cycles/wave-086/session-checkpoints.md.
+
+Date: 2026-09-04. Position: wave-086 story-level adversarial convergence IN-PROGRESS;
+pass-24 REMEDIATED (D-541) — 1 MEDIUM, streak RESET 0/3 (need 3); STORY-182 v2.12
+draft (unchanged), STORY-183 v2.13 draft. NO worktrees; NO in-flight PRs; no
+abandoned sub-agent steps.
+
+Convergence counters: Wave-86 story adversarial streak RESET 1/3→0/3. Pass-25 pending
+adversary dispatch.
+
+In-flight: None. D-541 state burst COMPLETE. pass-24-findings.md created + remediated.
+STORY-INDEX v4.19. D-540 checkpoint archived. Pipeline running.
+
+NEXT STEP: Wave-86 adversarial pass 25 (fresh-context; STORY-182 v2.12 + STORY-183
+v2.13). trajectory-tail →10→6→0(MED-P23-NIT)→1(MED); streak 0/3 (need 3).
+
+PENDING CARRY-FORWARDS (in order, unchanged): (a) PG-W84-012 ops task (bin-selftest
+required-status-check + wire test_lint_cycle_artifact.py/test_compute_input_hash.py
+per F-W86S-P9-012); (b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; Dependabot
+#434/#435/#436); (c) ROUTE-W74-OBS-2; (d) PR #407 governance; (e) PERF-RERUN-001;
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21; (g) STORY-INDEX-IN-INPUTS-CHURN;
+(h) DRIFT-py-surface-outside-bin scope decision.
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058,
+main=9601d711baf72ca30d29be2c289271ade5d027cc (v0.13.2). No open product worktrees.
+Open PRs: external #407 (DEFERRED) + Dependabot #434/#435/#436
+(DEP-SOAK-FOLLOWUP-2026-07-27).
+
+Pending human decisions: DEP-SOAK-FOLLOWUP-2026-07-27; PR #407 governance;
+ROUTE-W74-OBS-2; STORY-INDEX-IN-INPUTS-CHURN; PERF-RERUN-001; ROUTE-BC-DEFER;
+ROUTE-DOC-DEFER-2026-07-21; DRIFT-py-surface-outside-bin scope decision.
+
+Session summary D-526..D-541 (exhaustive): DF-VALIDATION-001 batch (2 upstream issues
+#764/#765 + 4 comments), wave-86 scoped, STORY-182/183 drafted, policy v2→v6
+hardening arc, 24 adversarial passes (22 remediated + pass-23 CONVERGED with 1 NIT
+accepted as residual + pass-24 REMEDIATED with 1 MEDIUM that was the same locus as
+the pass-23 NIT, escalated). Pass tallies P1–P24:
+23/23/21/25/28/20/14/12/12/11/14/10/15/8/14/13/13/11/10/15/10/6/1/1. HIGH recurrences
+P3/P5/P9/P11/P12 (5 total self-referential-predicate class; standing discipline
+imposed D-529). Truth-inversion-during-reword class identified D-530. Zero-HIGH
+passes: P10/P14–P24 — twelve consecutive. FIRST CLEAN (NITPICK_ONLY) PASS: P23
+(streak reset by P24's MEDIUM). Clean streak 0/3 — need 3 consecutive clean passes
+to declare wave-86 story-level adversarial CONVERGED per BC-5.39.001. Lesson
+PG-W86-RESIDUAL-MISQUOTE-ESCALATION recorded (D-541): do not accept as a documented
+residual any finding involving a live-source misquote or an intra-document
+contradiction, even if functionally inert — see cycles/wave-086/lessons.md and
+cycles/wave-086/process-gap-ledger.md.
+
+Also archived this burst — Current Phase Steps row evicted from the last-5 window
+(D-537 STATE BURST — WAVE-86 ADVERSARIAL PASS 20 → REMEDIATED, 2026-07-27; 15
+findings 0C/0H/9M/5L/1N all fixed; EIGHTH zero-HIGH pass; 13 bash fences hardened;
+AC-182-006 whole rewrite; ci.yml AC coverage added; Task 8/Task 10a contradiction
+resolved; STORY-182 v2.9→v2.10 + STORY-183 v2.9→v2.10; STORY-INDEX v4.15→v4.16;
+canonical hashes unchanged; streak 0/3; pass 21 next; trajectory-tail
+→13→11→10→15. Status at eviction: COMPLETE (D-537).) — full text preserved verbatim
+in the Decisions Log D-537 row in STATE.md.
+
+Spec versions: BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 /
+STORY-INDEX v4.19 / HS-INDEX v2.17 / dep-graph v3.10.
+
+Resume command: /vsdd-factory:next-step
+```
