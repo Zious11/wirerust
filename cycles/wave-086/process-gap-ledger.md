@@ -1662,3 +1662,45 @@ Expected post-D-539: 0 results.
 
 **Vehicle:** AUDIT 5 added to standing per-burst audit suite; batch to PG-W84-012 devops dispatch /
 next planning cycle. S-7.02 step 3: satisfied by explicit deferral.
+
+---
+
+## PG-W86-RESIDUAL-MISQUOTE-ESCALATION — a pass-N NIT accepted as "documented residual" was
+independently escalated to MEDIUM by the next fresh-context adversary
+
+**Class:** Residual-acceptance discipline / clean-streak preservation vs. correctness
+**Caught by:** Wave-86 adversarial pass 24 (F-W86S-P24-001 MEDIUM), re-raising the identical
+  locus pass 23 rated NIT (F-W86S-P23-001) and accepted as a documented residual to preserve
+  the first-clean-pass streak.
+**Severity:** MEDIUM (streak-resetting; the deferred item was a factual defect, not a
+  stylistic one)
+
+### Description
+
+Pass 23 found a markdown-emphasis mismatch between a STORY-183 Task-10 bullet and its FSR row
+and rated it NIT, disposing it as "ACCEPTED AS DOCUMENTED RESIDUAL" specifically to let the
+clean-pass streak accumulate (v2.12 kept frozen, no remediation). Pass 24's fresh-context
+adversary — with no visibility into pass 23's disposition rationale — independently found the
+same locus and rated it MEDIUM, because on closer inspection it was not merely a cosmetic
+sibling-loci mismatch: the Task-10 quote of the live docstring contained markdown-bold that
+does not exist in `bin/check-green-doc-tense:4`, and the Task 10 rewrite text contradicted the
+FSR row's plain-text prescription. A "cosmetic" framing had concealed a live-source misquote
+plus an intra-document contradiction.
+
+### LESSON / RULE
+
+Do **NOT** accept as a documented residual any finding that involves:
+(a) a quote that does not match live source, or
+(b) two loci of the same document contradicting each other —
+even when its functional/runtime impact is nil. Remediate such items immediately rather than
+deferring them to protect a clean-pass streak. A fresh-context adversary evaluates the finding
+on its own merits, not on the prior pass's disposition rationale, and will (correctly) re-raise
+a factual defect at a higher severity than a purely stylistic one — resetting the streak that
+the deferral was meant to protect. The correct discriminator for "safe to defer as residual" is
+whether the finding is a preference/stylistic choice with no live-source or intra-document
+factual conflict; misquotes and contradictions fail that test regardless of how narrow-looking
+the diff would be to fix immediately.
+
+**Impact this occurrence:** Non-blocking for delivery (STORY-183 remediated same burst to
+v2.13). Codification-tracking only — DF-VALIDATION-001 research-agent validation required
+before filing as a GitHub issue.

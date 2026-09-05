@@ -1190,3 +1190,115 @@ HS-INDEX v2.17 / dep-graph v3.10.
 
 Resume command: /vsdd-factory:next-step
 ```
+
+## Session Resume Checkpoint (2026-09-04) — D-540 pass-23 CONVERGED (first clean pass), pass 24 next
+
+Archived from STATE.md D-541 burst. Session D-526..D-540 (15 cycles), passes 9-23 remediated/converged.
+
+```
+D-540 STATE BURST — WAVE-86 ADVERSARIAL PASS 23 CONVERGED (2026-09-04). FIRST CLEAN PASS of wave-86
+(NITPICK_ONLY: 0C/0H/0M/0L+1N). NIT F-W86S-P23-001 accepted as documented residual. STORY-182 v2.12,
+STORY-183 v2.12 UNCHANGED. STORY-INDEX v4.18 UNCHANGED. Canonical hashes VERIFIED MATCH
+(9a0f34c/9c9b12f). Clean streak 0/3→1/3. Pass 24 next.
+
+Date: 2026-09-04. Position: wave-086 story-level adversarial convergence IN-PROGRESS; pass-23
+CONVERGED (D-540) — FIRST CLEAN PASS of the wave; streak 1/3 (need 3); STORY-182 v2.12 draft,
+STORY-183 v2.12 draft, both UNCHANGED. NO worktrees; NO in-flight PRs; no abandoned sub-agent steps.
+
+Convergence counters: Wave-86 story adversarial streak 0/3→1/3. Pass-24 pending adversary dispatch.
+
+In-flight: None. D-540 state burst COMPLETE. pass-23-findings.md created (no remediation — NIT
+accepted as documented residual). STORY-INDEX v4.18 unchanged. D-539 checkpoint archived. Pipeline
+running.
+
+NEXT STEP: Wave-86 adversarial pass 24 (fresh-context; STORY-182 v2.12 + STORY-183 v2.12, unchanged).
+trajectory-tail →15→10→6→1 (0 MED — first clean pass); streak 1/3 (need 3).
+
+PENDING CARRY-FORWARDS (in order, unchanged):
+(a) PG-W84-012 ops task (bin-selftest required-status-check + wire test_lint_cycle_artifact.py/
+    test_compute_input_hash.py per F-W86S-P9-012)
+(b) DEP-SOAK-FOLLOWUP-2026-07-27 (eligible 2026-07-27; Dependabot #434/#435/#436)
+(c) ROUTE-W74-OBS-2
+(d) PR #407 governance
+(e) PERF-RERUN-001
+(f) ROUTE-BC-DEFER + ROUTE-DOC-DEFER-2026-07-21
+(g) STORY-INDEX-IN-INPUTS-CHURN
+(h) DRIFT-py-surface-outside-bin scope decision
+
+Ground truth: develop=e8841d761f3f25f320f98977618e506e8b41a058, main=9601d711baf72ca30d29be2c289271ade5d027cc
+(v0.13.2). No open product worktrees. Open PRs: external #407 (DEFERRED) + Dependabot #434/#435/#436
+(DEP-SOAK-FOLLOWUP-2026-07-27).
+
+Pending human decisions: DEP-SOAK-FOLLOWUP-2026-07-27; PR #407 governance; ROUTE-W74-OBS-2;
+STORY-INDEX-IN-INPUTS-CHURN; PERF-RERUN-001; ROUTE-BC-DEFER; ROUTE-DOC-DEFER-2026-07-21;
+DRIFT-py-surface-outside-bin scope decision.
+
+Session summary D-526..D-540 (exhaustive): DF-VALIDATION-001 batch (2 upstream issues #764/#765 +
+4 comments), wave-86 scoped, STORY-182/183 drafted, policy v2→v6 hardening arc, 23 adversarial passes
+(22 remediated + pass-23 CONVERGED with 1 NIT accepted as residual). Pass tallies P1–P23:
+23/23/21/25/28/20/14/12/12/11/14/10/15/8/14/13/13/11/10/15/10/6/1. HIGH recurrences P3/P5/P9/P11/P12
+(5 total self-referential-predicate class; standing discipline imposed D-529). Truth-inversion-during-
+reword class identified D-530. Zero-HIGH passes: P10/P14–P23 — eleven consecutive. FIRST CLEAN
+(NITPICK_ONLY) PASS: P23. Clean streak 1/3 — need 2 more consecutive clean passes to declare wave-86
+story-level adversarial CONVERGED per BC-5.39.001.
+
+Intra-story self-anchor discipline (D-530): Per F-P13-002, all :NNN self-citations eliminated in
+v2.3+; content-based locators used instead.
+
+Truth-preservation discipline (D-530): Per F-P13-001, when rewording a technical claim, re-derive
+from first principles (src/*.rs strictly subsumes src/**/*.rs + mitre.rs; 7-loci agreement required
+before commit).
+
+Task-8 split discipline (D-531): Per F-W86S-P14-001, Task-8 split into 8a (implementation) / 8b
+(verification). Ordering-never-adds claim was unfounded without evidence.
+
+set -euo + predicate-first PASS/FAIL discipline (D-532): Per F-W86S-P15-003, all shell blocks must
+use `set -euo pipefail`; PASS/FAIL blocks must evaluate predicate first.
+
+Scope-containment + accepted-residual disciplines (D-533): Per P16-003 ruling, regex widening NOT
+applied mid-convergence; live stale sites added to DRIFT-stale-red-scrub. Per P16-006, bare-token
+heading class = accepted residual (phrase-level-by-design).
+
+Env-B evidence pinning + attribution destination discipline (D-534): Per P17-002, Env-B grep commands
+must pin to explicit count with test-result-ok check. Per P17-003, attribution text must cite
+destination locus (file path + line anchor).
+
+Tautological-predicate + attribution-pointer-scheme discipline (D-535): Per P18-001, fixture-count
+predicates must compare against a fixed literal N (not manifest.len()); tautological M==len() form is
+banned. Per P18-002, ci.yml step descriptions must include a single-destination pointer; bidirectional
+cross-reference required.
+
+Whole-region rewrite discipline (D-536): Per pass-19 adversary diagnosis, successive single-locus edits
+on paragraphs edited in consecutive passes produce internal contradictions faster than they remove them.
+Mandated for STORY-182 Task 8/10a + STORY-183 Task 9/10 with post-rewrite full-region re-read.
+
+Mechanical-enumeration-over-self-sweep discipline (D-537): Per AUDIT-1 evidence (13 bash fences found
+vs agent-reported 2), agents MUST enumerate candidate sites mechanically (grep/script) rather than
+relying on self-reported sweeps; any self-sweep claim must be cross-checked by orchestrator AUDIT
+before committing.
+
+Canonical guarded-count idiom (D-538): To assert a count under `set -euo pipefail`:
+`test -s <file>` then `test "$(grep -c '<pat>' <file>)" -eq 0`. Do NOT use assignment position —
+`grep -c` exits 1 on zero count and trips `set -e`.
+
+Content-anchored predicates (D-539): AC predicates MUST be content-anchored, never absolute-line-
+anchored, when the target file is also a deliverable of the same story — a line-anchored predicate
+can discriminate before the story's edits and go inert after them. (AUDIT 4 executable spec in
+PG-W86-PREDICATE-LINE-RANGE.)
+
+Sweep-claim verification (D-539): Any changelog row claiming "all N loci" MUST cite the confirming
+residual grep and expected count. (PG-W86-SWEEP-CLAIM-VERIFICATION.)
+
+Deliverable↔Task coverage (D-539): Every Architecture-Mapping / FSR deliverable row MUST have an
+actionable Task bullet. (PG-W86-DELIVERABLE-TASK-COVERAGE.)
+
+Toolchain-pairing resolution (D-540): Per DF-ADVERSARY-TOOLCHAIN-PAIRING-001, when the adversary's
+read-only profile cannot execute a canonical verification tool (e.g. bin/compute-input-hash), the
+orchestrator runs it post-pass and records the result in the pass findings file rather than leaving
+it as an open observation.
+
+Spec versions: BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v4.18 /
+HS-INDEX v2.17 / dep-graph v3.10.
+
+Resume command: /vsdd-factory:next-step
+```
