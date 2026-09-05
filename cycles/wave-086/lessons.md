@@ -53,6 +53,27 @@ than duplicated here.)_
    requires DF-VALIDATION-001 research-agent validation before filing as a GitHub issue. See
    `cycles/wave-086/process-gap-ledger.md` § PG-W86-RESIDUAL-MISQUOTE-ESCALATION._
 
+2. **Edit/Write tool calls resolved to the main repo checkout instead of the story
+   worktree during STORY-183 implementation, leaking a stray uncommitted edit to
+   `bin/check-green-doc-tense` onto `develop` (PG-W86-EDIT-WORKTREE-PATH-HAZARD)** —
+   during STORY-183 implementation, one or more Edit/Write tool invocations resolved
+   against the MAIN repo checkout (branch `develop`) rather than the story's dedicated
+   worktree, leaving a stray uncommitted modification to `bin/check-green-doc-tense` on
+   `develop`. The implementer detected the mismatch via `git status`, reverted the
+   stray change (`git -C <main-repo> checkout -- bin/check-green-doc-tense`), confirmed
+   `develop` clean, and completed the remaining edits via Bash-executed scripts
+   targeting the worktree path directly.
+
+   **LESSON/RULE:** Implementers working in a worktree MUST verify Edit/Write path
+   resolution — run `git -C <main-repo> status` after edits to confirm no leakage to
+   the main checkout; prefer worktree-absolute paths, or Bash-verified writes, when the
+   Edit tool's cwd resolution is ambiguous.
+
+   _Discovered: STORY-183 implementation, 2026-09-05. Disposition: codification-tracking
+   only — STORY-183 shipped correct; no defect reached `develop`. Requires
+   DF-VALIDATION-001 research-agent validation before filing as a GitHub issue. See
+   `cycles/wave-086/process-gap-ledger.md` § PG-W86-EDIT-WORKTREE-PATH-HAZARD._
+
 ## Infrastructure-Level
 
 _(none captured yet this wave.)_

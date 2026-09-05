@@ -1704,3 +1704,40 @@ the diff would be to fix immediately.
 **Impact this occurrence:** Non-blocking for delivery (STORY-183 remediated same burst to
 v2.13). Codification-tracking only — DF-VALIDATION-001 research-agent validation required
 before filing as a GitHub issue.
+
+---
+
+## PG-W86-EDIT-WORKTREE-PATH-HAZARD — Edit/Write tool calls resolved to the main repo
+checkout instead of the story worktree during STORY-183 implementation
+
+**Class:** Implementer tooling / worktree path-resolution discipline
+**Caught by:** STORY-183 implementation self-check (`git status`), 2026-09-05
+**Severity:** Non-blocking observation (no defect reached `develop`; caught and reverted
+  by the implementer before commit)
+**Occurrences:** 1 (STORY-183 implementation)
+**Source finding:** implementer self-observation during STORY-183 TDD implementation
+**Vehicle:** Local carry-forward (DF-VALIDATION-001 required before filing upstream)
+
+### Description
+
+During STORY-183 implementation, one or more Edit/Write tool calls resolved against the
+MAIN repo checkout (branch `develop`) instead of the story's dedicated worktree,
+leaking a stray uncommitted edit to `bin/check-green-doc-tense` onto `develop`. The
+implementer detected the mismatch via `git status`, reverted the stray change
+(`git -C <main-repo> checkout -- bin/check-green-doc-tense`), confirmed `develop` was
+clean, and completed the remaining edits via Bash-executed scripts targeting the
+worktree path directly rather than relying on the Edit tool's ambiguous cwd
+resolution.
+
+### LESSON / RULE
+
+Implementers working in a worktree MUST verify Edit/Write tool path resolution — run
+`git -C <main-repo> status` after edits to confirm no leakage to the main checkout.
+Prefer worktree-absolute paths, or Bash-verified writes (writing via a script invoked
+against an explicit worktree path rather than the Edit tool's inferred cwd), whenever
+the Edit tool's cwd resolution relative to an active worktree is ambiguous.
+
+**Impact this occurrence:** Codification-tracking only. STORY-183 shipped correct — no
+stray edit reached `develop`, the implementer's self-check caught and reverted the
+leak before any commit. DF-VALIDATION-001 research-agent validation required before
+filing as a GitHub issue.
