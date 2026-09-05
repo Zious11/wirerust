@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "2.1"
+version: "2.2"
 status: draft
 producer: story-writer
 phase: 2
@@ -16,7 +16,8 @@ modified:
   - "2026-06-27 v1.9: RULING-DNP3-SIBLING-001 fix story — STORY-140 added to E-15 (wave 63, 8 pts, dep=STORY-139). No new BCs (BC-2.15.016/010/014/015 are pre-existing, amended by ruling). E-15 story count 5→6. E-15 points 47→55. Estimated Story Count Summary E-15 row 5→6, Total 88→89. total_bcs unchanged at 328."
   - "2026-06-28 v2.0: Wave 64 RULING-MODBUS-SIBLING-001 + RULING-DNP3-DESYNC-001 fix stories — STORY-141 added to E-14 (wave 64, 8 pts, dep=[]). STORY-142 added to E-15 (wave 64, 3 pts, dep=STORY-140). No new BCs (BC-2.14.002/016/017/019 and BC-2.15.009 are pre-existing, amended by rulings). E-14 story count 4→5. E-14 points 37→45. E-15 story count 6→7. E-15 points 55→58. Estimated Story Count Summary E-14 row 4→5, E-15 row 6→7, Total 89→91. total_bcs unchanged at 328."
   - "2026-07-02 v2.1: F3 phase gate (feature-protocol-coverage) — E-21 epic added (STORY-151..154, 4 stories, 32 pts, Waves 67–69). 9 new BCs: BC-2.18.001..004 (SS-18 protocol coverage catalog) + BC-2.05.010..011 (SS-05 dispatcher unclassified-port gap counters) + BC-2.12.022..024 (SS-12 protocols subcommand + --coverage-gaps flag). total_bcs 328→337. Post-v2.0 story-count drift reconciled against STORY-INDEX v3.12: E-5 8→11 (+STORY-144/145/146 fix-tls-clienthello-frag F3 2026-06-29); E-8 5→7 (+STORY-120 FindingsRender enum migration + STORY-129 mitre_attack JSON enrichment); E-11 1→6 (+STORY-121/143/147/149/150 process-gap/tooling stories added 2026-06-18..2026-07-01); E-18 2→3 (+STORY-122 enum→struct reshape D-120 split-A 2026-06-18); E-20 10→11 (+STORY-148 on_flow_close wiring + DNP3 flow-map cap maint-2026-07-01). Estimated Story Count Summary Total 91→107. DISCREPANCY NOTE: epics.md pre-E-21 total_bcs 328 was stale by -6 — BC-2.07.038..043 (TLS carry-reassembly BCs, fix-tls-clienthello-frag F3 2026-06-29) are absent from E-5 Per-Epic BC row and Coverage Check table; true pre-E-21 total = 334; this v2.1 corrects for E-21 only (328+9=337), deferring the E-5 BC row update to a subsequent pass. Residual gap vs BC-INDEX v2.13 (345 active) = 8 (= 6 missing TLS BCs + 2 unresolved)."
-total_bcs: 337
+  - "2026-09-04 v2.2: DRIFT-EPICS-STALE-v21 currency reconciliation (wave-86 human story-approval gate D-544, 'fix both now') — epics.md was frozen at v2.1 (2026-07-02) while STORY-INDEX advanced to v4.19 (136 stories). Full per-epic reconciliation against STORY-INDEX v4.19 'Stories by Epic' table and BC-INDEX v2.37: (1) E-11 6→23 stories / pts n/a→75 (+STORY-155/157/158/159/161/162/163/164/165/166/175/176/177/178/179/182/183; superseded/delivered statuses reflected per STORY-INDEX, none deleted from history; STORY-182/183 now correctly listed as E-11 members per D-544); (2) E-8 7→8 stories, BC row 24→27 (+BC-2.11.035/036/037; STORY-160); (3) E-16 5→6 stories, BC row 15→16 (+BC-2.16.016; STORY-156) — E-16 has no full epic section (pre-existing structural gap predating v2.1, left as-is; membership/counts reconciled via Coverage Check + Summary table only); (4) E-20 11→12 stories, points 74→82 (+STORY-181; STORY-148 already counted at v2.1); (5) new Epic E-22 (IEC-104 Passive Analyzer) added in full — 9 stories / 41 pts / 33 BCs (STORY-167..174, STORY-180; did not exist at v2.1, predates feature-iec104 decomposition D-440 2026-07-14); (6) E-18 2→3 stories (STORY-122 was already in the Summary table since v1.7 but never reflected in the E-18 section body — corrected); (7) E-19 and E-21 stale 'in-progress'/'draft' status lines corrected to reflect STORY-INDEX-confirmed delivery. E-5 BC discrepancy (flagged unresolved at v2.1, -6 BCs) RESOLVED this pass, not deferred: BC-2.07.038..043 added to E-5's BC list and the Coverage Check table (37→43 active). total_bcs 337→380, reconciled exactly against BC-INDEX v2.37's canonical derivation chain ('Total BCs on disk: 381. Active: 380.') — 0 unassigned, 0 double-assigned, 0 residual gap. Estimated Story Count Summary Total 107→136, verified against STORY-INDEX v4.19 total_stories=136. No pre-existing structural gaps (E-13/E-14/E-16 lacking full '## Epic' sections) were closed beyond E-16's Coverage/Summary reconciliation — full section authoring for those three is out of scope for a currency pass and is NOT tracked as a residual gap of this reconciliation (it predates v2.1 and predates DRIFT-EPICS-STALE-v21)."
+total_bcs: 380
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -26,8 +27,11 @@ traces_to:
 # wirerust Epic Decomposition
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> The 217 behavioral contracts describe the *current* shipped implementation; 2 additional
-> Feature Mode F2 BCs (BC-2.04.055, BC-2.09.007) bring the total to 219.
+> The original 217 behavioral contracts described the greenfield-ingested shipped
+> implementation (E-1..E-10); every epic from E-12 onward is a Feature Mode F2 addition
+> layered on top of that baseline. As of this document's v2.2 currency pass, the full
+> active-BC count across all epics is 380 (BC-INDEX v2.37 — see Coverage Check for the
+> complete per-epic derivation).
 > Epics are cohesive groupings of user value aligned to PRD capabilities and subsystem
 > boundaries. No epic is a pure 1:1 subsystem copy where capabilities naturally compose
 > into a larger user-visible deliverable.
@@ -146,15 +150,31 @@ and independently deliverable from TLS analysis.
   BC-2.07.019, BC-2.07.020, BC-2.07.021, BC-2.07.022, BC-2.07.023, BC-2.07.024,
   BC-2.07.025, BC-2.07.026, BC-2.07.027, BC-2.07.028, BC-2.07.029, BC-2.07.030,
   BC-2.07.031, BC-2.07.032, BC-2.07.033, BC-2.07.034, BC-2.07.035, BC-2.07.036,
-  BC-2.07.037
+  BC-2.07.037,
+  BC-2.07.038, BC-2.07.039, BC-2.07.040, BC-2.07.041, BC-2.07.042 (TLS carry-reassembly,
+  fix-tls-clienthello-frag F2/F3, 2026-06-29 — TLS-CLIENTHELLO-FRAG-001),
+  BC-2.07.043 (buffer_saturation_drops defense-in-depth observability counter,
+  F-EV-001, fix-tls-clienthello-frag F2 scope addition)
 - **Subsystems touched:** SS-07
-- **Estimated stories:** 8
+- **Estimated stories:** 11 (+3 vs v2.0/v2.1: STORY-144/145/146, TLS-CLIENTHELLO-FRAG-001
+  Parts A/B/C, fix-tls-clienthello-frag F3, 2026-06-29 — carry-buffer reassembly, ServerHello
+  fragmentation symmetry, and buffer_saturation_drops telemetry)
 
-**Rationale:** TLS analysis (37 BCs) covers three distinct analyst needs: handshake
+**Rationale:** TLS analysis (43 BCs — 37 original + 6 carry-reassembly/observability BCs
+added by fix-tls-clienthello-frag) covers four distinct analyst needs: handshake
 parsing + JA3/JA3S computation, SNI anomaly classification (the most security-sensitive
-subsection with 4 arms and boundary tests), and cipher/protocol weakness detection.
-The 37 BCs justify ~8 stories covering: ClientHello parsing, ServerHello/JA3S, SNI
-4-way classification, cipher/version findings, buffer management, and summary.
+subsection with 4 arms and boundary tests), cipher/protocol weakness detection, and
+(added post-v1.0) cross-segment ClientHello/ServerHello fragmentation reassembly with
+saturation telemetry. The original 37 BCs justified ~8 stories covering: ClientHello
+parsing, ServerHello/JA3S, SNI 4-way classification, cipher/version findings, buffer
+management, and summary; the 6 added carry-reassembly BCs justified 3 more stories
+(STORY-144/145/146), bringing the epic to 11 stories / 43 BCs total.
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** v2.1 carried a documented -6 BC
+discrepancy note (BC-2.07.038..043 present in BC-INDEX but absent from this section and
+the Coverage Check table). Resolved this pass by reconciling against BC-INDEX v2.37
+(380 active BCs total; 43 active for SS-07/E-5). See Coverage Check for the corrected
+table row and total_bcs 337→380 reconciliation.
 
 ---
 
@@ -214,15 +234,32 @@ function depend on.
   BC-2.11.001, BC-2.11.002, BC-2.11.003, BC-2.11.004, BC-2.11.005, BC-2.11.006,
   BC-2.11.007, BC-2.11.008, BC-2.11.009, BC-2.11.010, BC-2.11.011, BC-2.11.012,
   BC-2.11.013, BC-2.11.014, BC-2.11.015, BC-2.11.016, BC-2.11.017, BC-2.11.018,
-  BC-2.11.019, BC-2.11.020, BC-2.11.021, BC-2.11.022, BC-2.11.023, BC-2.11.024
+  BC-2.11.019, BC-2.11.020, BC-2.11.021, BC-2.11.022, BC-2.11.023, BC-2.11.024,
+  BC-2.11.035 (mitre_attack JSON-array enrichment, issue #64, STORY-129),
+  BC-2.11.036, BC-2.11.037 (snake_case JSON-enum serialization + schema_version
+  envelope, issue #255, STORY-160)
 - **Subsystems touched:** SS-11
-- **Estimated stories:** 5
+- **Estimated stories:** 8 (+3 vs v2.0/v2.1: STORY-120 FindingsRender enum migration,
+  STORY-129 mitre_attack JSON enrichment, STORY-160 snake_case JSON-enum + schema_version
+  envelope)
+- **Total points:** 40 (STORY-076: 5, STORY-077: 8, STORY-078: 8, STORY-079: 5,
+  STORY-080: 3, STORY-120: 3, STORY-129: 5, STORY-160: 3)
 
-**Rationale:** Reporting (24 BCs) covers three distinct output surfaces (JSON,
+**Rationale:** Reporting (27 BCs — 24 original + BC-2.11.035 mitre_attack enrichment +
+BC-2.11.036/037 snake_case/schema_version) covers three distinct output surfaces (JSON,
 terminal, CSV) plus the MITRE tactic-grouping logic for terminal output. User value
 is clear: the output format is what the analyst or integrator actually sees and
 consumes. Stories decompose naturally into: JsonReporter, TerminalReporter
-(escaping), TerminalReporter (MITRE grouping/sort/colorization), and CsvReporter.
+(escaping), TerminalReporter (MITRE grouping/sort/colorization), and CsvReporter,
+plus later hardening/enrichment stories (enum migration, MITRE array enrichment,
+snake_case + schema_version envelope) that extend the same output-contract BCs
+without changing the epic's subsystem boundary.
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** BC row corrected 24→27
+(BC-2.11.035/036/037 were previously only referenced in a Coverage Check footnote,
+not reflected in this epic's BC list or the Coverage Check table row); story count
+corrected 5→8 (STORY-160 added to the Estimated Story Count Summary but never to
+this section's BC/story-count fields).
 
 ---
 
@@ -281,22 +318,23 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-2: TCP Stream Reassembly Engine | SS-04 | BC-2.04.001..054 | 54 |
 | E-3: Content-First Protocol Dispatch | SS-05 | BC-2.05.001..009 | 9 |
 | E-4: HTTP Traffic Analysis and Threat Detection | SS-06 | BC-2.06.001..026 | 26 |
-| E-5: TLS Traffic Analysis and Fingerprinting | SS-07 | BC-2.07.001..037 | 37 |
+| E-5: TLS Traffic Analysis and Fingerprinting | SS-07 | BC-2.07.001..037, BC-2.07.038..042 (carry-reassembly, fix-tls-clienthello-frag), BC-2.07.043 (buffer_saturation_drops observability) | 43 |
 | E-6: DNS Traffic Statistics | SS-08 | BC-2.08.001..004 | 4 |
 | E-7: Forensic Finding Data Model and MITRE Mapping | SS-09, SS-10 | BC-2.09.001..006, BC-2.10.001..009 | 15 |
-| E-8: Reporting and Output Formats | SS-11 | BC-2.11.001..024 | 24 |
+| E-8: Reporting and Output Formats | SS-11 | BC-2.11.001..024, BC-2.11.035 (mitre_attack enrichment, STORY-129), BC-2.11.036..037 (snake_case + schema_version, STORY-160) | 27 |
 | E-9: CLI, Entry Point, and Analysis Orchestration | SS-12 | BC-2.12.001..021 | 21 |
 | E-10: Absent Behavior Contracts (Flag Rejection) | SS-13 | BC-2.13.001..004 | 4 |
 | E-12: Pcap Timestamp Provenance (issue #100) | SS-04, SS-09 | BC-2.04.055, BC-2.09.007 | 2 |
 | E-13: Multi-Tag Finding Schema Migration | SS-09, SS-10, SS-11 | BC-2.09.001/006 (extensions), BC-2.10.005/007/008 (extensions), BC-2.11.001/013/015/017/020/024 (extensions) | 0 (extensions, not new BCs) |
 | E-14: Modbus TCP Analyzer | SS-14 (new), SS-05, SS-12 | BC-2.14.001..025 | 25 |
 | E-15: DNP3/ICS Analyzer | SS-15 (new), SS-05, SS-12 | BC-2.15.001..024 | 24 |
-| E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
+| E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015, BC-2.16.016 (unbounded-findings-cap doc + regression, STORY-156, fix-pc-013-014-015 D-221) | 16 |
 | E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
 | E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 (flat-mode collapse, STORY-118), BC-2.11.030..034 (grouped-collapse, STORY-119) | 10 |
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer | SS-17 (new), SS-05, SS-12 | BC-2.17.001..026 | 26 |
 | E-21: Protocol Coverage Catalog | SS-18 (new), SS-05, SS-12 | BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024 | 9 |
-| **TOTAL** | | | **337** (328 pre-E-21 + 9: BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024) |
+| E-22: IEC-104 Passive Analyzer | SS-19 (new), SS-05, SS-10, SS-12 | BC-2.19.001..027, BC-2.19.028 (MAX_IEC104_FINDINGS DoS bound), BC-2.19.029..030 (timed control-command, wave-85), BC-2.05.012, BC-2.10.010, BC-2.12.025 | 33 |
+| **TOTAL** | | | **380** (see Arithmetic Verification) |
 
 ### Arithmetic Verification
 
@@ -305,34 +343,38 @@ E-1:  17 active SS-01 (8 original − 1 retired BC-2.01.004 + 10 new BC-2.01.009
 E-2:  54 (SS-04)              = 54
 E-3:  9 (SS-05)               =  9
 E-4:  26 (SS-06)              = 26
-E-5:  37 (SS-07)              = 37
+E-5:  37 (SS-07 original) + 6 (BC-2.07.038..043 carry-reassembly/observability) = 43
 E-6:  4 (SS-08)               =  4
 E-7:  6 (SS-09) + 9 (SS-10)  = 15
-E-8:  24 (SS-11)              = 24
+E-8:  24 (SS-11 original) + 1 (BC-2.11.035 mitre_attack) + 2 (BC-2.11.036..037 snake_case/schema_version) = 27
 E-9:  21 (SS-12)              = 21
 E-10: 4 (SS-13)               =  4
 E-12: 2 (BC-2.04.055, BC-2.09.007) = 2
                       --------
-                      228 (pre-feature subtotal; was 219 + 9 net F2 SS-01)
+                      237 (pre-feature subtotal; was 228 in v2.1, +6 E-5 +3 E-8 = +9)
 E-14: 25 (SS-14, BC-2.14.001..025) = 25
 E-15: 24 (SS-15, BC-2.15.001..024) = 24
-E-16: 15 (SS-16, BC-2.16.001..015) = 15
+E-16: 15 (SS-16 original) + 1 (BC-2.16.016) = 16
                       --------
-                      292 (pre-E-18 subtotal)
+                      302 (pre-E-18 subtotal; was 292 in v2.1, +1 E-16 = 302, matches BC-INDEX 302-active milestone)
 E-18: 10 (SS-11, BC-2.11.025..029 flat-collapse + BC-2.11.030..034 grouped-collapse) = 10
                       --------
-                      302 (pre-E-20 subtotal; includes BC-2.11.035 from issue #64 in E-8 extension)
+                      312 (pre-E-20 subtotal)
 E-20: 26 (SS-17, BC-2.17.001..026 EtherNet/IP ENIP/CIP analyzer) = 26
                       --------
-                      328 (pre-E-21 subtotal)
+                      338 (pre-E-21 subtotal)
 E-21:  9 (SS-18/SS-05/SS-12: BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024 protocol coverage catalog) =  9
                       --------
-                      337 / 337  ✓
+                      347 (pre-E-22 subtotal)
+E-22: 33 (SS-19: BC-2.19.001..030 = 30 + SS-05 BC-2.05.012 + SS-10 BC-2.10.010 + SS-12 BC-2.12.025 = 33) = 33
+                      --------
+                      380 / 380  ✓ (matches BC-INDEX v2.37 total_bcs: 381 on disk / 380 active)
 ```
 
-Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
-additions (BC-2.04.055 extends SS-04; BC-2.09.007 extends SS-09) and do not conflict with
-the greenfield 217-BC assignment.
+Note: E-11 (Tooling) has 0 BCs authored yet across all 23 members (tooling/process/governance
+stories, not production Rust behavior — not expected to ever carry BCs). E-12 BCs are
+feature-mode additions (BC-2.04.055 extends SS-04; BC-2.09.007 extends SS-09) and do not
+conflict with the greenfield 217-BC assignment.
 
 ### No BC Double-Assigned
 
@@ -340,7 +382,7 @@ Each BC-2.NN.NNN maps to exactly one epic by construction: the epic corresponds 
 the subsystem(s) identified in ARCH-INDEX.md, and subsystem assignments are
 non-overlapping. No BC appears in more than one epic row above.
 
-### All 14 Subsystems Covered (SS-14/SS-15/SS-16 pre-existing gap in this table — covered by E-14/E-15/E-16 sections)
+### All 15 Subsystems Covered (SS-14/SS-15/SS-16 pre-existing gap in this table — covered by E-14/E-15/E-16 sections)
 
 | SS-ID | Name | Epic |
 |-------|------|------|
@@ -348,20 +390,29 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-02 | Packet Decoding | E-1 |
 | SS-03 | (absent — merged into SS-02 per ARCH-INDEX ruling) | E-1 |
 | SS-04 | TCP Reassembly | E-2 |
-| SS-05 | Protocol Dispatch | E-3, E-21 |
+| SS-05 | Protocol Dispatch | E-3, E-21, E-22 |
 | SS-06 | HTTP Analysis | E-4 |
 | SS-07 | TLS Analysis | E-5 |
 | SS-08 | DNS Analysis | E-6 |
 | SS-09 | Finding Emission | E-7 |
-| SS-10 | MITRE Mapping | E-7 |
+| SS-10 | MITRE Mapping | E-7, E-22 |
 | SS-11 | Reporting | E-8 |
-| SS-12 | CLI / Entry | E-9, E-21 |
+| SS-12 | CLI / Entry | E-9, E-21, E-22 |
 | SS-13 | Absent Behaviors | E-10 |
 | SS-17 | EtherNet/IP (ENIP/CIP) Analyzer | E-20 |
 | SS-18 | Protocol Coverage Catalog | E-21 |
+| SS-19 | IEC-104 Passive Analyzer | E-22 |
 
-**Coverage confirmed: 337 / 337 active BCs assigned, 0 unassigned, 0 double-assigned.**
-(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] + 26 E-20 EtherNet/IP BC-2.17.001..026 = 328 pre-E-21; + 9 E-21 Protocol Coverage [BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..024] = 337. BC-2.11.035 issue-#64 mitre_attack counted in E-8 extension via STORY-129, included in the 302 pre-E-20 subtotal. NOTE: 6 TLS carry-reassembly BCs (BC-2.07.038..043, fix-tls-clienthello-frag F3 2026-06-29) are absent from the E-5 Per-Epic BC row and not reflected in this total; true total including those BCs = 343; residual gap vs BC-INDEX v2.13 (345 active) = 2 unresolved — deferred to next coverage-check reconciliation pass.)
+**Coverage confirmed: 380 / 380 active BCs assigned, 0 unassigned, 0 double-assigned**
+(per BC-INDEX v2.37, "Total BCs on disk: 381. Active: 380."). See the Arithmetic
+Verification block above for the full running-subtotal derivation.
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** The v2.1 Coverage Check was
+stale at 337 (itself already known-short by the -6 TLS carry-BC gap it flagged). This
+pass reconciles fully against BC-INDEX v2.37's canonical derivation chain (the
+narrative under "Total BCs on disk" in BC-INDEX.md), which independently confirms every
+subtotal above, including the +43 contributed by the newly-added E-22 epic. Residual
+gap: **none** — 380/380 active BCs now accounted for exactly.
 
 ---
 
@@ -369,15 +420,49 @@ non-overlapping. No BC appears in more than one epic row above.
 
 - **Goal:** Build and govern mechanical tooling that catches spec-drift proactively —
   before adversarial passes surface it as findings — so the cost of each successive
-  adversarial cycle falls rather than holding flat. The first deliverable is an
-  anchor-validation CLI (`bin/validate-anchors`) that verifies every `src|tests|fuzz/
-  <path>.rs:NNN` citation in the spec corpus against the current source tree; the
-  second is a codified governance policy (ANCHOR-VALIDATION-001) requiring consistency
-  audits after any fix-burst that shifts code lines or renames functions.
-- **BCs:** _(none authored yet — status: draft; pending PO authorship)_
+  adversarial cycle falls rather than holding flat. The original deliverable was an
+  anchor-validation CLI (`bin/validate-anchors`, STORY-091) verifying every
+  `src|tests|fuzz/<path>.rs:NNN` citation in the spec corpus against the current
+  source tree. Scope has since grown, wave over wave, into the standing home for
+  every S-7.02 cycle-close process-gap codification, wave-gate governance-table
+  hygiene fix, and CI/tooling hardening story that does not belong to a product
+  epic — 23 stories across waves ~ (pre-wave) through 86 as of STORY-INDEX v4.19.
+- **BCs:** _(none authored yet for any E-11 member — status: draft for undelivered
+  members; pending PO authorship. E-11 stories are process/governance/tooling
+  artifacts, not production Rust behavior, so this epic is not expected to ever
+  carry BC-S.SS.NNN entries.)_
 - **Subsystems touched:** none (tooling-only; no production Rust subsystem)
-- **Estimated stories:** 1 (STORY-091)
+- **Estimated stories:** 23
+- **Total points:** 75
 - **Dispositions:** PROCESS-GAP-P5-001 (S-7.02 cycle-close requirement)
+
+**Story roster (ground truth: STORY-INDEX v4.19 "Stories by Epic" + Index Table):**
+
+| Story | Wave | Points | Status | Note |
+|-------|------|--------|--------|------|
+| STORY-091 | ~ | 5 | superseded | Anchor-validation tooling (`bin/validate-anchors`) — disposition OBSOLETE/delivered-by-drift via `bin/validate-citations` (STORY-164) + STORY-166 symbol-at-line assertion; residual `--scan` discovery layer represented upstream (drbothen/vsdd-factory#622/#603/#396 family); human-approved no-filing 2026-07-19 (E-11 upstream re-scope burst #2) |
+| STORY-121 | ~ | 3 | superseded | F1/F2 story-input analysis docs — mandatory numeric self-audit + consuming-surface sweep checklist; routed upstream (drbothen/vsdd-factory#582 evidence comment, x-ref #396) |
+| STORY-143 | ~ | 3 | superseded | Harden release-changelog step (full prev-tag..HEAD range enumeration); routed upstream (drbothen/vsdd-factory#695 new issue, x-ref #580) |
+| STORY-147 | 84 | 2 | delivered | Repo-local mutation-testing defaults: `.cargo/mutants.toml` timeout floor + CLAUDE.md guidance (PG-MUTANTS-JOBS-001, fix-tls-clienthello-frag F6); re-scoped v1.0→v2.0 SPLIT survivor (product half retained; engine half routed drbothen/vsdd-factory#654); pts 3→2 |
+| STORY-149 | 70 | 5 | merged | TLS carry-path performance recovery + fragmented-handshake benchmark fixture (PERF-001/002, maint-2026-07-01) |
+| STORY-150 | 71 | 5 | merged | TLS drain-loop DRY refactor (TLS-DRAIN-DUP-001) with mandatory Kani VP-039 + mutation re-run |
+| STORY-155 | ~ | 3 | superseded | Auto-update STORY-INDEX status draft→merged on story PR merge (PG-INDEX-DRIFT-001); routed upstream (drbothen/vsdd-factory#290 evidence comment, x-ref #600) |
+| STORY-157 | 71 | 5 | merged | Wave-70 process-gap codifications: adversary attestation preamble, demo-evidence scrub gate, input-hash empty-inputs handling, merge-authorization procedure (PG-S149-001 + PG-W70-DEMO-SCRUB + PG-HASH-EMPTY-INPUTS + PG-W70-MERGE-AUTH); amended 3→5 pts |
+| STORY-158 | 72 | 3 | delivered | Wave-71 process-gap codifications: changelog gate, cycle-artifact identity lint, CI scan-guard hardening (PG-W71-CHANGELOG + PG-W71-CYCLE-ARTIFACT-IDENTITY + PG-W71-CI-SCAN-GUARDS) |
+| STORY-159 | 72 | 3 | delivered | Author public ADR-012: Protocols Catalog and Coverage-Gaps System (maint-2026-07-08 NEW-001) |
+| STORY-161 | 72 | 3 | delivered | Codify multi-file `proof_file_hash` mini-Merkle algorithm + re-lock VP-024 (triage-2026-07-08 #252) |
+| STORY-162 | 73 | 3 | completed | Wave-72 S-7.02 cycle-close: LMR-003 template-conformance exemption (F-S161P1-001) + check-green-doc-tense `main()` guard self-tests (F-W72G-P2-OBS-001) |
+| STORY-163 | 73 | 2 | delivered | maint-2026-07-09 S-7.02 cycle-close: docs-dispatch citation mandate (PG-RA-P3-ARP-REC006-INVERSION-001) + subagent merge-halt resolution path (PG-MERGE-AUTH-SUBAGENT-CLASSIFIER) |
+| STORY-164 | 74 | 4 | delivered | Wave-73 S-7.02 cycle-close: STORY-INDEX status-vocabulary legend + `bin/validate-citations` preflight validator + changelog-gate content assertion + CLAUDE.md guidance row + BREAKING-change holdout-sweep obligation (amended AC-164-005, pts 3→4) |
+| STORY-165 | 75 | 3 | delivered | Wave-74 S-7.02 cycle-close: bin-selftest CI wiring + PR-description row-verify mandate + delivery-doc currency sweep + governance-table audit-first rule |
+| STORY-166 | 84 | 3 | delivered | Wave-75 S-7.02 cycle-close: citation symbol-at-line assertion + demo-evidence scrub scope extension (project half); re-scoped v1.1 (2026-07-13) — engine halves routed upstream (#638/#635), PG-HASH-HOOK-DIVERGENCE tracked as #637; pts 5→3 |
+| STORY-175 | ~ | 2 | superseded | Feature-IEC104 cycle-close: demo evidence JSON accuracy protocol; routed upstream 2026-07-19 (drbothen/vsdd-factory#494, confirmed duplicate) |
+| STORY-176 | 84 | 2 | delivered | Feature-IEC104 cycle-close: local gate + tooling hygiene sweeps; re-scoped v2.0 local-gate + tooling-hygiene survivor (absorbed STORY-178 AC-003/AC-004; engine ACs routed #682/#686); pts 3→2 |
+| STORY-177 | ~ | 2 | superseded | Feature-IEC104 cycle-close: agent dispatch and reporting discipline; routed upstream (#461, x-ref #457/#637 confirmed duplicates) |
+| STORY-178 | ~ | 3 | superseded | Feature-IEC104 cycle-close: pre-delivery spec fidelity gate; routed upstream (#655/#305); AC-003/AC-004 survive locally via STORY-176 |
+| STORY-179 | ~ | 2 | superseded | Feature-IEC104 cycle-close: session recovery and multi-worktree verification; routed upstream (#396) |
+| STORY-182 | 86 | 4 | draft | E2E fixture manifest + committed representative ITI captures — eliminate false-green `cargo test` in clean worktrees (PG-W85-005); wave-86 human story-approval gate D-544 |
+| STORY-183 | 86 | 5 | draft | `check-green-doc-tense`: `bin/*.py` prose coverage + TIER-1 behavioral-absence token coverage (PG-W84-010 + PG-W85-003 combined per DF-VALIDATION coupling ruling); wave-86 human story-approval gate D-544 |
 
 **Rationale:** Phase-5 adversarial refinement repeatedly surfaced source-line-anchor
 drift across four dimensions (BC source anchors, BC secondary anchors, consuming
@@ -386,7 +471,19 @@ in one pass alone. Root cause: every sweep was reactive (triggered by an adversa
 finding) rather than preventive. PROCESS-GAP-P5-001 requires a durable-fix
 disposition at cycle close (S-7.02). A dedicated tooling epic separates this
 self-improvement work from product epics and makes future tooling stories easy to
-group here.
+group here. In practice this made E-11 the durable landing zone for every wave's
+S-7.02 cycle-close codification and every research-validated upstream-vs-local
+disposition (STORY-091/121/143/155/175/177/178/179 superseded and routed upstream
+per DF-VALIDATION-001; STORY-147/166/176 re-scoped SPLIT/local-gate survivors) —
+none of this changes the epic's tooling-only subsystem classification.
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** This section was frozen at
+v2.1 (2026-07-02) listing only 6 members (STORY-091/121/143/147/149/150). 17 stories
+added across waves 71-86 (STORY-155, 157-159, 161-166, 175-179, 182, 183) were never
+reflected here even though several already appeared in the STORY-INDEX epic table.
+Reconciled against STORY-INDEX v4.19: 23 stories / 75 points, matching the
+"E-11 | ... | 23 | 75" row exactly. STORY-182 and STORY-183 (wave-86 human
+story-approval gate D-544, "fix both now") are now correctly listed as E-11 members.
 
 ---
 
@@ -479,15 +576,25 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
   BC-2.11.030, BC-2.11.031, BC-2.11.032, BC-2.11.033, BC-2.11.034 (grouped-collapse — STORY-119);
   BC-2.11.010 v1.8, BC-2.11.013 v1.11, BC-2.11.017 v1.13, BC-2.11.019 v1.6 (extended)
 - **Subsystems touched:** SS-11 (reporter/terminal.rs), SS-12 (cli.rs, main.rs — thin wiring)
-- **Estimated stories:** 2 (STORY-118 scheduled Wave 47; STORY-119 deferred)
+- **Estimated stories:** 3 (STORY-118 delivered Wave 47; STORY-122 delivered Wave 49;
+  STORY-119 delivered Wave 50)
+- **Total points:** 16 (STORY-118: 8, STORY-122: 3, STORY-119: 5)
 
 **Rationale:** The collapse feature is a pure display-layer transform confined to
 `src/reporter/terminal.rs`. It shares no subsystem boundary with JSON/CSV reporters
 (BC-2.11.029 invariant 1). The `--no-collapse` CLI flag follows the established
 subcommand-scoped boolean pattern (`--mitre`, `--dns`), making it a thin wiring addition
-to SS-12. The scope is narrow enough for a single story (STORY-118, 8 points). STORY-119
-(grouped-mode collapse) is deferred to a future cycle because grouped mode renders
-findings individually in v0.8.0 and the BC forward-references are satisfied by the stub.
+to SS-12. The scope is narrow enough for a single story (STORY-118, 8 points). STORY-122
+(FindingsRender enum→struct reshape, D-120 split-A) is a byte-identical construction-site
+migration story that sits between STORY-118 and STORY-119 in the dependency chain —
+no new BCs. STORY-119 (grouped-mode collapse, `--mitre` render path + CLI flip) depends
+on STORY-122's reshaped type.
+
+**Currency note (v2.2, 2026-09-04):** This section's story list was stale — it named
+only STORY-118/119 and still marked STORY-119 "deferred" and the epic "Estimated
+stories: 2," even though the Estimated Story Count Summary table already carried
+STORY-122 (added v1.7) and all three E-18 stories show `completed` in STORY-INDEX
+v4.19. Corrected to 3 stories / 16 points, matching the STORY-INDEX "E-18 | ... | 3 | 16" row.
 
 ---
 
@@ -513,7 +620,7 @@ findings individually in v0.8.0 and the BC forward-references are satisfied by t
 - **Feature ID:** FE-001
 - **Total points:** 37 (STORY-123: 5, STORY-124: 8, STORY-125: 8, STORY-126: 8, STORY-127: 5, STORY-128: 3)
 - **Waves:** 51–56
-- **Status:** in-progress
+- **Status:** delivered/complete (6/6 MERGED, D-184; STORY-INDEX v4.19 shows all 6 `completed`)
 
 **Rationale:** pcapng is the modern successor to the legacy pcap format and is the default
 output of Wireshark, tcpdump ≥4.9.3, and most hardware capture appliances. Analysts
@@ -547,13 +654,15 @@ isolation. Each story is independently testable with a stub predecessor.
   BC-2.17.019, BC-2.17.020, BC-2.17.021, BC-2.17.022, BC-2.17.023,
   BC-2.17.024, BC-2.17.025, BC-2.17.026
 - **Subsystems touched:** SS-17 (new EtherNet/IP analyzer), SS-05 (dispatcher Rule 7), SS-12 (CLI flags)
-- **Estimated stories:** 10 (STORY-130..139)
+- **Estimated stories:** 12 (STORY-130..139, STORY-148, STORY-181)
 - **Feature issue:** #316
 - **Feature ID:** feature-enip-v0.11.0
 - **Release target:** v0.11.0
-- **Total points:** 74 (STORY-130: 8, STORY-131: 8, STORY-132: 8, STORY-133: 5, STORY-134: 8, STORY-135: 8, STORY-136: 5, STORY-137: 8, STORY-138: 8, STORY-139: 8)
-- **Waves:** 58–62
+- **Total points:** 82 (STORY-130: 8, STORY-131: 8, STORY-132: 8, STORY-133: 5, STORY-134: 8, STORY-135: 8, STORY-136: 5, STORY-137: 8, STORY-138: 8, STORY-139: 8, STORY-148: 5, STORY-181: 3)
+- **Waves:** 58–62, 85
 - **STORY-139 (wave 62):** EC-X1/EC-X2 detection-correctness fixes — per-direction carry split (`carry_c2s`/`carry_s2c`), `on_data` direction threading, `saturating_sub` window expiry (3 windows), T0814 operator pin (`>= 300` → `> 300`), DRIFT-ENIP-DIRECTION-001 fix-along. BCs: BC-2.17.016 v2.0 + BC-2.17.008 v1.3 + BC-2.17.012 v1.2 + BC-2.17.018 v1.1. VPs: VP-033 + VP-034. Release blocker per RULING-EDGECASE-001 (2026-06-27).
+- **STORY-148 (wave ~, superseded):** Fix analyzer flow-state lifecycle — EnipAnalyzer `on_flow_close` wiring + DNP3 flow-map cap (SEC-005/SEC-006, maint-2026-07-01); 5 pts; superseded by PR #362 (D-383, issue #342 closed 2026-07-06). Per D-477/D-480 convention, supersession alone does not remove the story's points from the epic total.
+- **STORY-181 (wave 85):** Fix SEC-001 ENIP unsafe split-borrow in `on_data` — eliminate `*mut EnipFlowState` raw pointer in PDU dispatch loop (behavior-preserving refactor) + ROUTE-W74 OBS-1; 3 pts; delivered (D-509, PR #438).
 
 **Rationale:** EtherNet/IP (IEEE 802.3 + ODVA) analysis decomposes into a natural
 diamond topology: (1) pure-core ENIP header parse + Kani VP-032 safety proof (STORY-130);
@@ -564,6 +673,14 @@ Decision 7). Wave 60: four parallel detection stories (recon, command, lifecycle
 robustness) all depend on STORY-132+133 — they share CPF/CIP parsing infrastructure
 but emit findings for independent attack patterns. Wave 61: (9) session lifecycle +
 statistics + MAX_FINDINGS guard + summarize() (STORY-138, dep=all four Wave-60 stories).
+STORY-148 and STORY-181 are later maintenance/security-hardening stories against the
+same SS-17 analyzer surface, grouped here rather than in a separate epic because they
+touch no new subsystem boundary.
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** Story count corrected 10→12
+and points corrected 74→82 to add STORY-148 (already noted in the Estimated Story
+Count Summary since v1.8 but never added to this section) and STORY-181 (new, wave 85,
+delivered under D-509), matching the STORY-INDEX "E-20 | ... | 12 | 82" row.
 The diamond topology enables 4-way parallelism in Wave 60, reducing total delivery time
 vs. a linear chain by 3 waves.
 
@@ -591,7 +708,7 @@ vs. a linear chain by 3 waves.
 - **Feature ID:** feature-protocol-coverage
 - **Total points:** 32 (STORY-151: 8, STORY-152: 8, STORY-153: 8, STORY-154: 8)
 - **Waves:** 67–69
-- **Status:** draft
+- **Status:** delivered (4/4 `merged` per STORY-INDEX v4.19)
 
 **Rationale:** Protocol coverage visibility was the last major gap in wirerust's analyst
 UX: analysts could not tell which protocols wirerust knows without reading source code, and
@@ -613,9 +730,72 @@ without unnecessary serialization.
 
 ---
 
+## Epic E-22: IEC-104 Passive Analyzer (feature-iec104)
+
+- **Goal:** A forensic analyst or ICS/OT security engineer can point wirerust at a pcap
+  containing IEC 60870-5-104 traffic (TCP port 2404) and receive structured findings for
+  unauthorized/timed control commands (T1692.001, TypeIDs 45–51 and 58–64), restart/stop
+  session-control commands, reserved-TypeID and interrogation anomalies, and T0881
+  Impair Process Control technique attribution — with per-flow APCI/ASDU parsing,
+  N(S)/N(R) sequence-tracking desync detection, per-direction carry buffers for
+  segment-spanning frame reassembly, a MAX_IEC104_FINDINGS DoS bound, and an opt-in
+  `--iec104` CLI flag — mirroring the passive-analysis pattern already established for
+  Modbus (E-14) and DNP3 (E-15).
+- **BCs:**
+  BC-2.19.001, BC-2.19.002, BC-2.19.003, BC-2.19.004, BC-2.19.005, BC-2.19.006,
+  BC-2.19.007, BC-2.19.008, BC-2.19.009, BC-2.19.010, BC-2.19.011, BC-2.19.012,
+  BC-2.19.013, BC-2.19.014, BC-2.19.015, BC-2.19.016, BC-2.19.017, BC-2.19.018,
+  BC-2.19.019, BC-2.19.020, BC-2.19.021, BC-2.19.022, BC-2.19.023, BC-2.19.024,
+  BC-2.19.025, BC-2.19.026, BC-2.19.027 (SS-19 IEC-104 passive analyzer core, 27 BCs),
+  BC-2.19.028 (SS-19 MAX_IEC104_FINDINGS DoS bound, SR-173-02 blocking addition),
+  BC-2.19.029, BC-2.19.030 (SS-19 timed control-command detection TypeIDs 58–64,
+  wave-85-spec-evolution, IEC104-TIMED-CMD-GAP-001 closure) — 30 BCs total for SS-19;
+  BC-2.05.012 (SS-05 dispatcher Rule 8 — IEC-104 content-first classification extension);
+  BC-2.10.010 (SS-10 MITRE mapping — T0881 technique seeding extension);
+  BC-2.12.025 (SS-12 CLI — `--iec104` flag extension)
+- **Subsystems touched:** SS-19 (new — IEC-104 passive analyzer), SS-05 (dispatcher
+  Rule 8), SS-10 (MITRE mapping extension), SS-12 (CLI `--iec104` flag)
+- **Estimated stories:** 9 (STORY-167..174, STORY-180)
+- **Feature ID:** feature-iec104
+- **Total points:** 41 (STORY-167: 5, STORY-168: 5, STORY-169: 3, STORY-170: 5,
+  STORY-171: 3, STORY-172: 5, STORY-173: 5, STORY-174: 5, STORY-180: 5)
+- **Waves:** 76–83, 85
+- **Status:** delivered (9/9 `delivered` per STORY-INDEX v4.19)
+- **VPs:** VP-044 (Kani), VP-045/VP-046 (proptest), VP-047 (fuzz)
+
+**STORY-180 (wave 85):** IEC-104 timed control-command detection, TypeIDs 58–64
+(BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 regression guard); 5 pts; delivered.
+
+**Rationale:** IEC-104 (IEC 60870-5-104, the TCP/IP-routable companion to IEC 60870-5-101)
+follows the same diamond-free, strictly linear decomposition already proven for DNP3
+(E-15) and ENIP (E-20), because `src/analyzer/iec104.rs` is a single-file target with
+no independent-file parallelism opportunity: (1) pure-core APCI header parse + VP-044
+Kani skeleton (STORY-167, wave 76); (2) frame-format discrimination + U-format session
+state machine — STARTDT/STOPDT/TESTFR (STORY-168, wave 77, dep=167); (3) ASDU header
+extraction — TypeID/VSQ/COT/CASDU/IOA (STORY-169, wave 78, dep=168); (4) control-command
+detection, TypeIDs 45–51 + C_RP + interrogation + reserved TypeIDs (STORY-170, wave 79,
+dep=169); (5) N(S)/N(R) sequence tracking + desync detection (STORY-171, wave 80,
+dep=168+170, file-seq edge); (6) carry buffers + frame-walk loop + flow lifecycle
+(STORY-172, wave 81, dep=170+171); (7) dispatcher integration — DispatchTarget::Iec104,
+T0881 six-part atomic, `--iec104` flag, SUPPORTED_PORTS (STORY-173, wave 82, dep=172);
+(8) formal hardening — Kani/proptest/fuzz/mutation (STORY-174, wave 83, dep=173).
+STORY-180 (wave 85) extends the control-command detection layer to the timed-command
+TypeID range (58–64) once the wave-85-spec-evolution addressed IEC104-TIMED-CMD-GAP-001.
+Serialization is enforced throughout by file contention on `src/analyzer/iec104.rs`
+(F-F3P2-005 precedent, matching the STORY-170→171 file-sequencing edge).
+
+**DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** This epic did not exist in
+epics.md v2.1 (frozen 2026-07-02, before feature-iec104 was decomposed at D-440,
+2026-07-14). Added in full this pass, reconciled against STORY-INDEX v4.19 ("E-22 | ...
+| 9 | 41" row) and BC-INDEX v2.37's canonical BC-count derivation chain (feature-iec104
+v2.23 adds 27 rows to SS-19 + 1 row each to SS-05/SS-10/SS-12; v2.32 adds 1 more SS-19
+row; v2.35 adds 2 more SS-19 rows — 30 SS-19 + 3 cross-subsystem extensions = 33 BCs).
+
+---
+
 ## Estimated Story Count Summary
 
-| Epic | Stories (STORY-INDEX v3.12) | Notes |
+| Epic | Stories (STORY-INDEX v4.19) | Notes |
 |------|----------------------------|-------|
 | E-1  | 5  | |
 | E-2  | 11 | |
@@ -624,18 +804,19 @@ without unnecessary serialization.
 | E-5  | 11 | +3 vs v2.0: STORY-144/145/146 (fix-tls-clienthello-frag F3, 2026-06-29) |
 | E-6  | 1  | |
 | E-7  | 3  | |
-| E-8  | 7  | +2 vs v2.0: STORY-120 (FindingsRender enum migration) + STORY-129 (mitre_attack enrichment) |
+| E-8  | 8  | +2 vs v2.0: STORY-120 (FindingsRender enum migration) + STORY-129 (mitre_attack enrichment); +1 vs v2.1: STORY-160 (snake_case JSON-enum + schema_version envelope, 2026-07-08) — DRIFT-EPICS-STALE-v21 remediation |
 | E-9  | 5  | |
 | E-10 | 1  | |
-| E-11 | 6  | +5 vs v2.0: STORY-121/143/147/149/150 (process-gap/tooling stories, 2026-06-18..2026-07-01) |
+| E-11 | 23 | +17 vs v2.1: STORY-155, 157, 158, 159, 161, 162, 163, 164, 165, 166 (waves 71-75 S-7.02 cycle-close codifications), STORY-175/176/177/178/179 (feature-iec104 cycle-close, 2026-07-18), STORY-182/183 (wave-86, D-544 human story-approval gate, 2026-07-25) — DRIFT-EPICS-STALE-v21 remediation |
 | E-12 | 3  | |
 | E-13 | 2  | |
 | E-14 | 5  | |
 | E-15 | 7  | |
-| E-16 | 5  | |
+| E-16 | 6  | +1 vs v2.1: STORY-156 (ARP findings unbounded-cap doc + regression test, BC-2.16.016, maint-2026-07-06) — DRIFT-EPICS-STALE-v21 remediation |
 | E-17 | 2  | |
 | E-18 | 3  | +1 vs v2.0: STORY-122 (enum→struct reshape, D-120 split-A, 2026-06-18) |
 | E-19 | 6  | |
-| E-20 | 11 | +1 vs v2.0: STORY-148 (on_flow_close wiring + DNP3 flow-map cap, maint-2026-07-01) |
+| E-20 | 12 | +1 vs v2.1 (v2.1's 11 already included STORY-148): STORY-181 (SEC-001 ENIP split-borrow refactor, wave 85, D-509) — DRIFT-EPICS-STALE-v21 remediation |
 | E-21 | 4  | NEW: STORY-151/152/153/154 (feature-protocol-coverage, 2026-07-02) |
-| **Total** | **107** | Verified against STORY-INDEX v3.12 total_stories=107 |
+| E-22 | 9  | NEW epic (v2.2): STORY-167..174 (feature-iec104 F3 decomposition, D-440, waves 76-83) + STORY-180 (timed control-command TypeIDs 58-64, wave 85, D-493) — DRIFT-EPICS-STALE-v21 remediation |
+| **Total** | **136** | Verified against STORY-INDEX v4.19 total_stories=136 |

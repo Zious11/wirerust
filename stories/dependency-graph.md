@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.9"
+version: "3.10"
 status: draft
 producer: story-writer
 phase: 3
@@ -32,11 +32,12 @@ modified:
   - "2026-07-07 v3.7: v0.12.0 wave-71 planning gate — waves 70+71 scheduled. Wave 70: STORY-149 (E-11, dep=[], 5pts, already delivered PR #374). Wave 71: STORY-150 (E-11, dep=[], 5pts), STORY-156 (E-16, dep=[STORY-115], 3pts), STORY-157 (E-11, dep=[], 5pts). New intra-E-16 edge: STORY-115→STORY-156 (file-ordering: ArpAnalyzer::new(spoof_threshold, storm_rate) + 13-key summarize() contract finalized by STORY-115 before STORY-156 regression tests can compile against it). total_stories 107→110 (+STORY-155/156/157 added to STORY-INDEX since v3.6). total_edges 124→125. intra_epic_edges 103→104. number_of_waves 69→71. total_points 662→680 (+5 wave-70, +13 wave-71)."
   - "2026-07-08 v3.8: F-W72-P10-M01 file-sequencing edges (F-F3P2-005 precedent) — 3 new edges: STORY-158→STORY-159 (intra-E-11; CLAUDE.md shared by AC-158-006 + AC-159-004), STORY-158→STORY-160 (cross-epic E-11→E-8; CHANGELOG.md shared by AC-158-007 + AC-160-008), STORY-159→STORY-161 (intra-E-11; CLAUDE.md shared by AC-159-004 + STORY-161 CLAUDE.md note). All are FILE-SEQUENCING edges only (no semantic dependency). Chains: STORY-158→STORY-159→STORY-161 and STORY-158→STORY-160; trivially acyclic (forward-only). total_edges 125→128 (+3). intra_epic_edges 104→106 (+2: 158→159, 159→161). cross_epic_edges 21→22 (+1: 158→160). Wave-72 stories not yet added to wave schedule table in this doc (STORY-INDEX authoritative for scheduling)."
   - "2026-07-14 v3.9: Phase F3 INTEGRATE — E-22 IEC-104 Passive Analyzer (feature-iec104) — STORY-167..174 added (8 new product stories, 36 pts). 9 new intra-E-22 edges: 167→168 (APCI core→frame discrimination), 168→169 (frame discrimination→ASDU extraction), 169→170 (ASDU extraction→control command detection), 168→171 (frame discrimination→N(S)/N(R) tracking; parallel branch), 170→171 (FILE-SEQ: src/analyzer/iec104.rs shared by STORY-170+171; F-F3P2-005 precedent; prevents merge conflict in same-wave dispatch), 170→172 (control detection→carry buffers+frame-walk), 171→172 (N(S)/N(R) tracking→carry buffers+frame-walk), 172→173 (frame-walk loop→dispatcher integration+T0881 atomic), 173→174 (dispatcher integration→formal hardening). total_stories 110→118. total_edges 128→137 (+9 intra-E-22). intra_epic_edges 106→115. cross_epic_edges unchanged at 22. number_of_waves 71→83 (waves 76-83; one story per wave due to near-linear chain + file-seq serialization; F1 estimated ~3 waves but 9-edge near-linear chain requires 8 waves). Wave assignments: 167=76, 168=77, 169=78, 170=79, 171=80, 172=81, 173=82, 174=83. File-seq note: original parallel branch (STORY-169 and STORY-171 both depended only on STORY-168, both editing src/analyzer/iec104.rs) would place them in wave 78 — merge conflict. Adding 170→171 edge shifts STORY-171 to wave 80 (max(77,79)+1). total_points 680→716 (+36). Acyclicity re-verified (Kahn: topological order 167→168→169→170→171→172→173→174, all forward-only, no back-edges)."
-total_stories: 118  # STORY-INDEX authoritative (118); wave tables cover waves 1-83; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-147+STORY-148+STORY-155 tracked in STORY-INDEX but not in wave schedule
-total_edges: 137
-intra_epic_edges: 115
+  - "2026-09-04 v3.10: DRIFT-DEPGRAPH-STALE-v39 remediation (wave-86 human story-approval gate D-544) — waves 84/85/86 added, closing the gap between this file (stale at waves 1-83) and STORY-INDEX/STATE's claimed 'v3.10 (STORY-174→STORY-180 edge, 138 edges)'. Wave 84 (E-11 mini-wave, wave-84 human gate): STORY-147 (2pts, dep=[]), STORY-166 (3pts, dep=[]), STORY-176 (2pts, dep=[]) — all three ISOLATED vertices (no new edges); all three were already counted in total_stories via the v3.3/v3.7-era wave-TBD registry (STORY-147 explicitly named; STORY-166/176 were NOT explicitly named in any prior stanza and are treated as newly counted here — see total_stories delta below) and are now moved out of wave-TBD into the scheduled wave table. Wave 85: STORY-180 (E-22, 5pts, dep=[STORY-174]) + STORY-181 (E-20, 3pts, dep=[]). New intra-E-22 edge: STORY-174→STORY-180 (STORY-180 extends `detect_iec104_threats` with timed control-command detection (TypeIDs 58-64) and builds against the fully-hardened `Iec104Analyzer` surface — VP-044/045/046/047 proofs complete — established by STORY-174, the terminal story of the original E-22 chain; wave 85 is scheduled after the unrelated wave-84 E-11 mini-wave rather than immediately at max(83)+1, per human wave-assignment at the D-516/D-544 gates). STORY-181 is an ISOLATED vertex (behavior-preserving refactor; depends_on=[]; BC-2.17.016 used as regression-guard anchor only, not a new BC). Wave 86 (E-11, D-516): STORY-182 (4pts, dep=[]) + STORY-183 (5pts, dep=[]) — both ISOLATED vertices. total_stories 118→124 (+6: STORY-166, STORY-176, STORY-180, STORY-181, STORY-182, STORY-183 newly counted; STORY-147 was already counted per the v3.9 wave-TBD note and is only re-classified from wave-TBD to scheduled here — NOTE: this file's total_stories (124) remains BEHIND STORY-INDEX's grand authoritative total (136 as of this stanza) by 12 stories; the residual gap corresponds to waves 62-66 (STORY-139..146) and most of waves 72-75 (STORY-158..165) which this file has historically deferred to STORY-INDEX ('see STORY-INDEX wave table' — v3.2/v3.8 precedent) and which this pass does NOT backfill — that backfill is explicitly OUT OF SCOPE for this wave-84/85/86 currency pass and is flagged as a residual DRIFT item for a dedicated future pass). total_edges 137→138 (+1: STORY-174→STORY-180, matching STORY-INDEX/STATE's claimed 138). intra_epic_edges 115→116 (+1, intra-E-22). cross_epic_edges unchanged at 22. number_of_waves 83→86. total_points 716→740 (+24: STORY-147 +2, STORY-166 +3, STORY-176 +2, STORY-180 +5, STORY-181 +3, STORY-182 +4, STORY-183 +5 — all seven now counted in total_points for the first time since total_points tracks only wave-SCHEDULED stories, unlike total_stories which tracks the STORY-INDEX-authoritative registry regardless of scheduling). Acyclicity re-verified (Kahn): all three wave-84 vertices have in-degree 0 (isolated); STORY-180 has in-degree 1 from STORY-174 (already processed at wave 83, forward-pointing edge, no back-edge); STORY-181 has in-degree 0 (isolated); both wave-86 vertices have in-degree 0 (isolated). No cycle introduced. BC/VP-to-Stories matrices: NOT updated in this pass — E-22's BC-2.19.xxx rows and VP-044..047 rows are ALREADY entirely absent from both matrices as a pre-existing gap predating this stanza (STORY-167..174 were never backfilled into either matrix; see Gap Register); adding only STORY-180's BC-2.19.029/030/022 rows without the rest of E-22 would be inconsistent, so this is left as explicit pre-existing scope for a dedicated BC/VP-matrix backfill pass, not guessed at here. STORY-181's BC-2.17.016 already has a STORY-137 row in the BC-to-Stories matrix (line ~1199); STORY-181 is a regression-guard consumer of that BC, not a new BC owner — out of scope to append here without a broader convention decision on regression-guard-anchor rows."
+total_stories: 124  # STORY-INDEX grand total is 136; this file's total_stories tracks stories represented in this file's edge-list/wave-schedule/wave-TBD registry, which lags STORY-INDEX by 12 (waves 62-66 STORY-139..146 + most of waves 72-75 STORY-158..165 — deferred to STORY-INDEX per v3.2/v3.8 precedent, NOT backfilled by this pass); wave tables cover waves 1-86; wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-148+STORY-155 tracked in STORY-INDEX but not in wave schedule
+total_edges: 138
+intra_epic_edges: 116
 cross_epic_edges: 22
-number_of_waves: 83
+number_of_waves: 86
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -48,10 +49,13 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 118 stories (STORY-INDEX authoritative) formalize behavioral contracts for existing and new shipped code
-> (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage/feature-iec104 feature additions
-> across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21, E-22; wave tables in this file cover waves 1-83;
-> wave-TBD stories STORY-091 + STORY-121 + STORY-143/147/148/155 tracked in STORY-INDEX — all-stories total = 118).
+> 124 stories are represented in this file (edge-list + wave-schedule + wave-TBD registry combined; STORY-INDEX's
+> grand authoritative total is 136 — this file lags by 12 for waves 62-66/most-of-72-75, deferred to STORY-INDEX
+> per v3.2/v3.8 precedent and NOT backfilled by this pass) formalize behavioral contracts for existing and new
+> shipped code (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage/feature-iec104/
+> wave-84-86-tooling feature additions across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21, E-22, E-11;
+> wave tables in this file cover waves 1-86; wave-TBD stories STORY-091 + STORY-121 + STORY-143/148/155 tracked
+> in STORY-INDEX — this file's total = 124).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -62,13 +66,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 118 (STORY-INDEX authoritative; wave tables cover waves 1-83; wave-TBD stories STORY-091+STORY-121+STORY-143/147/148/155 tracked in STORY-INDEX but not yet in wave schedule) |
-| Total dependency edges | 137 |
-| Intra-epic edges | 115 |
+| Total stories | 124 (this file's edge-list/wave-schedule/wave-TBD registry; STORY-INDEX grand authoritative total is 136 — 12-story residual gap for waves 62-66/most-of-72-75, deferred to STORY-INDEX per v3.2/v3.8 precedent, NOT backfilled by this pass; wave tables cover waves 1-86; wave-TBD stories STORY-091+STORY-121+STORY-143/148/155 tracked in STORY-INDEX but not yet in wave schedule) |
+| Total dependency edges | 138 |
+| Intra-epic edges | 116 |
 | Cross-epic edges | 22 |
-| Number of parallel waves | 83 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–69 for E-21 Protocol Coverage Catalog; Wave 70 STORY-149 E-11; Wave 71 STORY-150∥STORY-156∥STORY-157 E-11/E-16; Waves 76–83 for E-22 IEC-104 Passive Analyzer) |
-| Graph is acyclic | Yes (Kahn topological sort verified; E-22 chain: STORY-167 (wave 76, no deps) → 168 (77) → 169 (78) → 170 (79) → 171 (80, dep=[168,170]) → 172 (81, dep=[170,171]) → 173 (82) → 174 (83); all forward-only, no back-edges) |
-| Total story points | 716 (product scheduled through wave 83; +36 waves 76–83 [E-22: STORY-167+5, 168+5, 169+3, 170+5, 171+5, 172+5, 173+5, 174+3]) |
+| Number of parallel waves | 86 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for post-v3.1 fix stories STORY-139..146; Waves 67–69 for E-21 Protocol Coverage Catalog; Wave 70 STORY-149 E-11; Wave 71 STORY-150∥STORY-156∥STORY-157 E-11/E-16; Waves 76–83 for E-22 IEC-104 Passive Analyzer; Wave 84 STORY-147∥STORY-166∥STORY-176 E-11 mini-wave; Wave 85 STORY-180 (E-22) ∥ STORY-181 (E-20); Wave 86 STORY-182∥STORY-183 E-11) |
+| Graph is acyclic | Yes (Kahn topological sort verified; E-22 chain: STORY-167 (wave 76, no deps) → 168 (77) → 169 (78) → 170 (79) → 171 (80, dep=[168,170]) → 172 (81, dep=[170,171]) → 173 (82) → 174 (83) → 180 (85, dep=[174]); all forward-only, no back-edges; wave-84/86 vertices and STORY-181 are isolated, in-degree 0) |
+| Total story points | 740 (product scheduled through wave 86; +24 waves 84–86 [STORY-147+2, STORY-166+3, STORY-176+2, STORY-180+5, STORY-181+3, STORY-182+4, STORY-183+5]) |
 
 ---
 
@@ -95,7 +99,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (115 edges)
+### Intra-Epic Edges (116 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -294,6 +298,7 @@ Dependencies in this graph respect the layer rules from
 | STORY-171 | STORY-172 | STORY-172 references `Iec104FlowState` fields introduced by STORY-171 (`ns_last: Option<u16>`, `nr_last: Option<u16>`, and the first-frame guard logic). The `on_data` frame-walk loop in STORY-172 updates these fields; the carry-buffer assembly also consults session state from STORY-168. Compile-order dependency: `Iec104FlowState` must contain all fields before the frame-walk loop can access them. |
 | STORY-172 | STORY-173 | STORY-173 (dispatcher integration: `DispatchTarget::Iec104` Rule 8 + T0881 six-part atomic + `--iec104` CLI flag + `SUPPORTED_PORTS`) builds on the complete `Iec104Analyzer` type with `on_data` and `on_flow_close` methods established in STORY-172. The dispatcher `StreamAnalyzer` trait implementation must call a fully-defined analyzer surface. Compile-order + VP-007 catalog-drift dependency. |
 | STORY-173 | STORY-174 | STORY-174 (formal hardening: VP-044 Kani proof + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 re-run + cargo-mutants) exercises the entire `Iec104Analyzer` surface including the dispatcher arm and T0881 atomic. All behavioral and structural code must be in place before formal verification and mutation testing can be run against it. Post-implementation dependency: STORY-173 is the terminal implementation story; STORY-174 is the verification story. |
+| STORY-174 | STORY-180 | STORY-180 (wave 85 — IEC-104 Timed Control Command Detection: TypeIDs 58–64, BC-2.19.029/030 + BC-2.19.022 v1.1 regression guard) extends `detect_iec104_threats` with timed control-command detection and is the direct sequel to STORY-174 (wave 83, formal hardening — the terminal story of the original E-22 implementation chain). STORY-180 builds against the fully-hardened `Iec104Analyzer` surface (VP-044/045/046/047 proofs complete) established by STORY-174; the ground-truth ITI capture (`iec104-iti-diverse.pcap`) exercises TypeIDs 58/59/61/63 and produces 66 findings with STORY-180's detection live. Post-implementation + verification-sequencing dependency: STORY-180 adds new detection behavior only after the analyzer's formal-verification surface is complete. Wave 85 is scheduled after the unrelated wave-84 E-11 mini-wave (STORY-147/166/176) rather than immediately at max(83)+1 — a human wave-assignment choice (D-516/D-544 gates), not a dependency requirement. |
 
 ---
 
@@ -336,7 +341,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 118 product stories (STORY-INDEX authoritative; wave tables cover waves 1–83). No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 124 product stories represented in this file (this file's own edge-list/wave-schedule/wave-TBD registry; STORY-INDEX's grand authoritative total is 136 — see Summary Statistics for the residual gap; wave tables cover waves 1–86). No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -923,6 +928,34 @@ and can be dispatched in parallel.
 
 > **Note:** STORY-174 depends on STORY-173 (wave 82). Post-implementation formal verification story: VP-044 Kani proof of `parse_apci_header`, VP-045/046 Proptest property tests, VP-047 fuzz harness, VP-004/007 catalog re-run, and cargo-mutants mutation gate. Wave 83 = max(82)+1.
 
+### Wave 84 — 3 stories | Epic: E-11 (mini-wave; wave-84 human gate; all isolated vertices)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-147 | E-11 | 2 | — | Repo-Local Mutation-Testing Defaults: `.cargo/mutants.toml` Timeout Floor + CLAUDE.md Guidance |
+| STORY-166 | E-11 | 3 | — | Wave-75 Cycle-Closing: Citation Symbol-at-Line Assertion, Demo-Evidence Scrub Scope Extension (project half) |
+| STORY-176 | E-11 | 2 | — | Feature-IEC104 Cycle-Close: Local Gate + Tooling Hygiene Sweeps |
+
+> **Note:** All three stories have `depends_on=[]` — ISOLATED vertices, no edges added to the graph. Each touches disjoint tooling surfaces: STORY-147 (`.cargo/mutants.toml` + CLAUDE.md), STORY-166 (`bin/validate-citations` + `bin/lint-cycle-artifact` + `.factory/maintenance/demo-evidence-scrub-gate.md` + `.factory/maintenance/delivery-doc-currency-protocol.md` + `.factory/policies.yaml`), STORY-176 (`bin/check-green-doc-tense` + `bin/test_gitignore_mutants_glob.py` + `.gitignore` + CHANGELOG.md + `.github/workflows/ci.yml`) — no merge-conflict risk; all three can dispatch in the same wave. All three are E-11 governance-only stories (`behavioral_contracts: []` per E-11 convention). `level: feature` on all three (STORY-147/166/176 predate and set the E-11 convention that STORY-182/183 were aligned to at the wave-86 gate, D-544).
+
+### Wave 85 — 2 stories | Epics: E-22 (1 story), E-20 (1 story)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-180 | E-22 | 5 | SS-19 | IEC-104 Timed Control Command Detection: TypeIDs 58–64 (BC-2.19.029 + BC-2.19.030 + BC-2.19.022 v1.1 Regression Guard) |
+| STORY-181 | E-20 | 3 | SS-17 | Fix SEC-001 ENIP Unsafe Split-Borrow in `on_data`: Eliminate `*mut EnipFlowState` Raw Pointer in PDU Dispatch Loop (Behavior-Preserving Refactor) |
+
+> **Note:** STORY-180 depends on STORY-174 (wave 83, E-22 — see new intra-E-22 edge above); it extends `detect_iec104_threats` with timed control-command detection for TypeIDs 58–64 and builds against the fully-hardened `Iec104Analyzer` surface established by STORY-174. STORY-181 has `depends_on=[]` — an ISOLATED vertex; it is a behavior-preserving refactor of `src/analyzer/enip.rs` `on_data` (SEC-001: eliminates an unsafe `*mut EnipFlowState` split-borrow) that uses BC-2.17.016 only as a regression-guard anchor (no new BC introduced). STORY-180 and STORY-181 touch disjoint files (`src/analyzer/iec104.rs` vs `src/analyzer/enip.rs`) — no merge-conflict risk; both can dispatch in the same wave despite belonging to different epics.
+
+### Wave 86 — 2 stories | Epic: E-11 (D-516; both isolated vertices)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-182 | E-11 | 4 | — | E2E Fixture Manifest + Committed Representative Captures: Eliminate False-Green `cargo test` in Clean Worktrees |
+| STORY-183 | E-11 | 5 | — | `check-green-doc-tense`: `bin/*.py` Prose Coverage + TIER-1 Behavioral-Absence Token Coverage |
+
+> **Note:** Both stories have `depends_on=[]` — ISOLATED vertices, no edges added to the graph (per D-516). STORY-182 touches `tests/iec104_e2e_real_pcaps_tests.rs` + `tests/fixtures/` + `.github/workflows/ci.yml` + `.gitignore`; STORY-183 touches `bin/check-green-doc-tense` + `bin/test_check_green_doc_tense.py` + `bin/test_lint_cycle_artifact.py` + CHANGELOG.md + `.github/workflows/ci.yml` (disjoint ci.yml regions from STORY-182 per the sibling-story note recorded in both stories' own changelogs — merge order irrelevant, rebase required if both PRs are in flight simultaneously). No merge-conflict risk between STORY-182 and STORY-183 themselves. Both are E-11 governance-only stories (`behavioral_contracts: []` per E-11 convention); `level: feature` on both (aligned to the STORY-147/166/176 E-11 convention at the wave-86 human story-approval gate, D-544 — metadata-only, no version bump, adversarial convergence 3/3 preserved per each story's own changelog ADDENDUM).
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -962,7 +995,7 @@ STORY-116 -> STORY-117
 [Wave 69: STORY-154 (dep=151+152+153)]
 [Wave 70 (independent): STORY-149]
 [Wave 71: STORY-150 (dep=[]) ∥ STORY-157 (dep=[]) ∥ STORY-156 (dep=[STORY-115, already W44])]
-[Waves 72-75 (STORY-INDEX authoritative; STORY-158..166 — see STORY-INDEX wave table)]
+[Waves 72-75 (STORY-INDEX authoritative; STORY-158..165 — see STORY-INDEX wave table; STORY-166 is scheduled below at Wave 84, not in this range — corrected v3.10, per STORY-166's own frontmatter `wave: "84"`)]
 [Wave 76 (independent): STORY-167] ->
 [Wave 77: STORY-168 (dep=167)] ->
 [Wave 78: STORY-169 (dep=168)] ->
@@ -970,11 +1003,18 @@ STORY-116 -> STORY-117
 [Wave 80: STORY-171 (dep=168+170; file-seq: 170→171)] ->
 [Wave 81: STORY-172 (dep=170+171)] ->
 [Wave 82: STORY-173 (dep=172)] ->
-[Wave 83: STORY-174 (dep=173)]
+[Wave 83: STORY-174 (dep=173)] ->
+[Wave 84 (independent, E-11 mini-wave): STORY-147 ∥ STORY-166 ∥ STORY-176] ->
+[Wave 85: STORY-180 (dep=174) ∥ STORY-181 (dep=[])] ->
+[Wave 86 (independent, E-11): STORY-182 ∥ STORY-183]
 ```
 
-> **Cycle check:** All 118 product nodes processed by Kahn's algorithm (STORY-INDEX authoritative). No node remained
-> in the queue with non-zero in-degree after processing. Graph is acyclic.
+> **Cycle check:** All 124 product nodes represented in this file processed by Kahn's algorithm (this file's own
+> registry; STORY-INDEX's grand authoritative total is 136 — see Summary Statistics for the 12-story residual gap,
+> out of scope for this pass). No node remained in the queue with non-zero in-degree after processing. Graph is
+> acyclic. Wave 84 vertices (STORY-147, STORY-166, STORY-176) and wave-86 vertices (STORY-182, STORY-183) are
+> isolated (in-degree 0, out-degree 0). STORY-181 (wave 85) is isolated. STORY-180 (wave 85) has in-degree 1 from
+> STORY-174 (wave 83, already processed — forward-pointing edge, no back-edge).
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
 > ordering). E-16 chain (STORY-111→112→113→114→115) with wave-71 branch (STORY-115→STORY-156); STORY-111
@@ -1013,7 +1053,7 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 118 product stories processed, queue empty, no cycle detected (STORY-INDEX authoritative)
+- Final output: all 124 product stories represented in this file processed, queue empty, no cycle detected (this file's own registry; STORY-INDEX's grand authoritative total is 136 — see Summary Statistics for the residual gap, out of scope for this pass)
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
@@ -1106,6 +1146,23 @@ iteratively. Result:
   decrement 171 (in=0 now), 172 (in=1) → process 171 → decrement 172 (in=0 now) →
   process 172 → decrement 173 (in=0) → process 173 → decrement 174 (in=0) → process 174.
   All 8 E-22 nodes processed. Queue empty. Acyclic.
+- Wave 84 extension (STORY-147, STORY-166, STORY-176 — E-11 mini-wave, wave-84 human gate):
+  all three have `depends_on=[]` (in-degree=0). Isolated vertices in the dependency subgraph;
+  no edges added to the graph. No cycle possible.
+- Wave 85 extension (STORY-180, STORY-181): STORY-180 depends_on=[STORY-174] (Wave 85,
+  in-degree=1). The STORY-174→STORY-180 edge points forward from Wave 83 to Wave 85 (STORY-174
+  already processed); no back-edge is created. STORY-181 has `depends_on=[]` (Wave 85,
+  in-degree=0) — an isolated vertex, independent of STORY-180 (disjoint files: `analyzer/iec104.rs`
+  vs `analyzer/enip.rs`). All edges strictly forward (83 < 85). No cycle is possible.
+- Wave 86 extension (STORY-182, STORY-183 — E-11, D-516): both have `depends_on=[]`
+  (in-degree=0). Isolated vertices; no edges added to the graph. No cycle possible.
+- Combined Kahn's pass for waves 84–86: after Wave 83 completes (STORY-174 processed, queue
+  empty of E-22 successors), the three Wave-84 isolated vertices (STORY-147, STORY-166,
+  STORY-176) enter the queue with in-degree 0 and are processed together; this decrements
+  STORY-180's in-degree from 1 (STORY-174 already processed) — STORY-180 and the isolated
+  STORY-181 then process at Wave 85; finally the two Wave-86 isolated vertices (STORY-182,
+  STORY-183) process. All 7 new nodes processed, queue empty, no node remains with
+  non-zero in-degree. Graph remains acyclic.
 
 ---
 
@@ -1383,7 +1440,7 @@ E-21 (SS-18 protocol catalog + SS-05 gap counters + SS-12 CLI) — linear chain 
   parallel edit of src/cli.rs + src/main.rs + tests/integration_tests.rs).
   STORY-154 is the terminal leaf, integrating both the catalog module and the counters.
 
-E-22 (SS-19 IEC-104 passive analyzer) — near-linear chain topology (Waves 76-83, feature-iec104):
+E-22 (SS-19 IEC-104 passive analyzer) — near-linear chain topology (Waves 76-83 + Wave 85 tail, feature-iec104):
   STORY-167 (Wave 76) [APCI core parser + VP-044 Kani skeleton, depends_on=[]]
     -> STORY-168 (Wave 77) [frame discrimination + U-format session SM; depends_on=[167]]
       -> STORY-169 (Wave 78) [ASDU header extraction; depends_on=[168]]
@@ -1405,7 +1462,11 @@ E-22 (SS-19 IEC-104 passive analyzer) — near-linear chain topology (Waves 76-8
   STORY-173 depends_on=[STORY-172]: wires the complete Iec104Analyzer into
   StreamDispatcher as Rule 8; adds --iec104 CLI flag and T0881 mitre seeding.
   STORY-174 depends_on=[STORY-173]: post-implementation formal verification story.
-  STORY-174 is the terminal leaf of the E-22 chain.
+  STORY-174 (Wave 83) -> STORY-180 (Wave 85): STORY-180 depends_on=[STORY-174]; extends
+  detect_iec104_threats with timed control-command detection (TypeIDs 58-64) against the
+  fully-hardened Iec104Analyzer surface. STORY-180 is now the terminal leaf of the E-22 chain
+  (wave 85 is scheduled after the intervening, unrelated wave-84 E-11 mini-wave — a human
+  wave-assignment choice, not a dependency requirement).
 ```
 
 ---
@@ -1414,6 +1475,22 @@ E-22 (SS-19 IEC-104 passive analyzer) — near-linear chain topology (Waves 76-8
 
 No story-decomposition gaps identified. All pre-E-20 BCs are covered (302 through v2.7); E-20 adds 26 new BC-2.17.001..026 across STORY-130..138 (excl. STORY-133 VP-007 obligation). All 26 SS-17 BCs are assigned exactly once with no double-coverage (see BC coverage map above). BC-2.02.009 is revised in STORY-111, not a new BC; BC-2.11.010/013/014/015/016/017/019 are extended/versioned — coverage assigned to STORY-078 and extended by STORY-118/STORY-120. E-21 adds 9 new BCs: BC-2.18.001..004 (SS-18 Protocol Coverage Catalog — STORY-151 owns BC-2.18.003/004; STORY-152 owns BC-2.12.022/BC-2.18.001/002) + BC-2.05.010/011 (SS-05 gap counters — STORY-153) + BC-2.12.023/024 (SS-12 --coverage-gaps + CoverageGapsSummary — STORY-154). All 9 SS-18/SS-05/SS-12 E-21 BCs are assigned exactly once with no double-coverage. New VPs: VP-041 (catalog partition + oracle cross-check, STORY-151 anchor), VP-042 (TCP counter exactness, STORY-153 anchor), VP-043 (UDP counter exactness + DNS exclusion, STORY-153 anchor).
 E-22 adds BC-2.19.001..027 across STORY-167..174: BC-2.19.011–014 (SS-19 APCI core parser — STORY-167), BC-2.19.001–004 (frame discrimination + session SM — STORY-168), BC-2.19.015–018 (ASDU extraction — STORY-169), BC-2.19.019–022 (control command detection — STORY-170), BC-2.19.005–007 (N(S)/N(R) sequence tracking — STORY-171), BC-2.19.008–010 (carry buffers + frame-walk loop — STORY-172), BC-2.19.023–025 (dispatcher integration + T0881 atomic — STORY-173), BC-2.19.026–027 (formal hardening — STORY-174). New VPs: VP-044 (Kani proof of parse_apci_header, STORY-167 skeleton + STORY-174 proof), VP-045 (Proptest frame-discrimination invariants, STORY-174 anchor), VP-046 (Proptest ASDU-extraction invariants, STORY-174 anchor), VP-047 (fuzz harness on_data, STORY-170 skeleton + STORY-174 proof).
+E-22 wave-85 extension (STORY-180, wave-86 human gate D-544 currency pass, 2026-09-04): STORY-180
+adds BC-2.19.029 and BC-2.19.030 (timed control-command detection, TypeIDs 58-64) and revises
+BC-2.19.022 to v1.1 (regression guard) — these are OUTSIDE the BC-2.19.001..027 range documented
+in the E-22 gap note above, which predates STORY-180. KNOWN PRE-EXISTING GAP (not introduced by
+this pass, only newly documented here): the BC-to-Stories Traceability Matrix and VP-to-Stories
+Matrix sections of this file contain NO rows at all for any E-22 story (STORY-167..174 were never
+backfilled into either matrix after v3.9, despite owning BC-2.19.001..027 and VP-044..047).
+Adding rows for only STORY-180's BC-2.19.029/030/022 without backfilling the rest of E-22 would
+be inconsistent and was judged OUT OF SCOPE for this wave-84/85/86 graph-currency pass — flagged
+here as a residual item for a dedicated BC/VP-matrix backfill pass covering all of STORY-167..180.
+STORY-181 (wave 85, E-20) uses BC-2.17.016 (already owned by STORY-137, BC-to-Stories matrix line
+~1199) purely as a regression-guard anchor for its behavior-preserving refactor; it introduces no
+new BC and is not appended to that row in this pass (no established convention yet for
+regression-guard-anchor co-listing; also out of scope here). STORY-147/166/176/182/183 (E-11,
+waves 84 and 86) carry `behavioral_contracts: []` by E-11 governance-only-story convention — not
+a gap.
 All L2 domain capabilities (CAP-NNN) are covered by at least one story.
 All cross-epic architectural dependencies are captured in this graph.
 
@@ -1448,6 +1525,8 @@ E-18/E-8 Terminal Finding-Collapse + Enum Migration specific gap notes (D-120 sp
 | Gap ID | Level | Source | Justification | Resolution Target |
 |--------|-------|--------|---------------|-------------------|
 | GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | ~~RESOLVED (2026-06-18).~~ Grouped-mode collapse delivered in STORY-119/B (wave 50, D-120 split). BC-2.11.030..034 authored for the feature. STORY-122/A (wave 49) establishes the struct type prerequisite. GAP-001 closed. | STORY-122 wave 49 + STORY-119/B wave 50 (CLOSED) |
+| GAP-002 | L1 | BC-2.19.001..030 (E-22, STORY-167..174 + STORY-180) | BC-to-Stories and VP-to-Stories matrices carry zero rows for E-22 despite 30 BCs and 4 VPs (VP-044..047) owned across STORY-167..174 and STORY-180; deferred at v3.9 (E-22 INTEGRATE) and not backfilled at v3.10 (wave-84/85/86 currency pass) to avoid a partial/inconsistent patch — full E-22 matrix backfill needs a dedicated pass. | Dedicated BC/VP-matrix backfill pass (OPEN) |
+| GAP-003 | L3 | total_stories (frontmatter) | This file's total_stories (124 as of v3.10) is 12 short of STORY-INDEX's grand authoritative total (136): waves 62-66 (STORY-139..146) and most of waves 72-75 (STORY-158..165) are deferred to STORY-INDEX per v3.2/v3.8 precedent and were not backfilled by the v3.10 wave-84/85/86 currency pass, which was scoped only to waves 84/85/86. | Dedicated waves-62-75 backfill pass (OPEN) |
 
 E-20 ENIP/CIP Analyzer specific notes:
 - BC-2.17.023 (`--enip-write-burst-threshold` CLI Flag Configures T0836 Write Detection Sensitivity) is assigned to STORY-131 (dispatcher wiring / CLI flag plumbing); the flag is wired at dispatcher level and passed into the analyzer — BC-2.17.023 covers the CLI-to-analyzer configuration obligation.
