@@ -1,10 +1,10 @@
 ---
 document_type: lessons-learned
 level: ops
-version: "1.0"
-status: in-progress
+version: "1.1"
+status: complete
 producer: state-manager
-timestamp: 2026-09-04T00:00:00Z
+timestamp: 2026-09-05T00:00:00Z
 cycle: "wave-086"
 inputs: [STATE.md]
 input-hash: "[live-state]"
@@ -13,11 +13,11 @@ traces_to: STATE.md
 
 # Lessons Learned — wave-086
 
-Captured during the wave-86 story-level adversarial convergence loop (in-progress). Final
-S-7.02 cycle-closing consolidation happens at wave-86 gate close; this file accumulates
-in-cycle process insights as they occur.
+Captured during the wave-86 story-level adversarial convergence loop and finalized at the
+wave-86 gate close (D-550). This file's S-7.02 cycle-closing consolidation is at the bottom
+(§ Cycle-Close Disposition).
 
-Wave: 86 | Status: IN-PROGRESS (streak 0/3, pass 25 next as of D-541, 2026-09-04).
+Wave: 86 | Status: **CLOSED (D-550, 2026-09-05)** — gate CLOSED 6/6, S-7.02 SATISFIED.
 
 ---
 
@@ -89,3 +89,49 @@ _(none captured yet this wave.)_
 Prior wave-86 process gaps (PG-W86-001 through PG-W86-AUDIT-SEAM-PIPEFAIL) are tracked in
 `cycles/wave-086/process-gap-ledger.md`, not duplicated here. This file records the narrative
 lesson; the ledger records the codification-tracking entry.
+
+---
+
+## Cycle-Close Disposition (S-7.02) — D-550, 2026-09-05
+
+Every wave-86 process-gap finding is dispositioned. No finding is left without a remediation,
+codification, or justified-deferral disposition.
+
+**Remediated in-wave.** The bulk of the PG-W86-* spec-convergence findings (PG-W86-001
+through PG-W86-014, plus the bash-nongating / baseline-tautology / self-referential-predicate
+/ audit-seam families) were fixed directly in STORY-182/STORY-183 (final versions v2.12/v2.13)
+across the 27-pass story-level adversarial convergence loop, or codified as standing
+disciplines recorded across D-527..D-539 (sample) — see `STATE.md` § Decisions Log
+D-527..D-544 (exhaustive) for the full range: content-anchored predicates (D-539),
+whole-region rewrite discipline (D-536), mechanical-enumeration-over-self-sweep discipline
+(D-537), and the canonical guarded-count idiom (D-538) — see STATE.md § Session Resume
+Checkpoint for the full standing-discipline list. These disciplines are now load-bearing
+practice for all future wave-level story remediation, not merely wave-86-scoped notes.
+
+**Session lessons codified.** PG-W86-RESIDUAL-MISQUOTE-ESCALATION (§ Process-Level item 1
+above — do not accept as a documented residual any finding involving a live-source misquote
+or intra-document contradiction) and PG-W86-EDIT-WORKTREE-PATH-HAZARD (§ Process-Level item 2
+above — verify Edit/Write tool path resolution in worktrees via `git status`) are both
+recorded here and in `cycles/wave-086/process-gap-ledger.md`. Both require DF-VALIDATION-001
+research-agent validation before either is filed as a GitHub issue.
+
+**Deferred / tracked (target named).** The following remain open with a named target — none
+are silently dropped:
+
+| Item | Target |
+|------|--------|
+| PG-W84-012 (bin-selftest required-status-check gap; also wire `bin/test_lint_cycle_artifact.py` + `bin/test_compute_input_hash.py` into CI) | Ops task — devops-engineer dispatch + human authorization, next planning cycle |
+| DRIFT-e2e-sibling-harnesses (ENIP e2e harness pair shares STORY-182's fixture-manifest fix class) | Next planning cycle (follow-up story candidate) |
+| DRIFT-STORY183-INHERITED-PATTERN-DOC-COMMENTS (F-S183-IMPL-P3-001 — inherited pattern-doc comments in `bin/test_check_green_doc_tense.py` are latently gate-fragile) | Future maintenance sweep |
+| DRIFT-docstring-scan (Python docstring RED-tense scanning not implemented) | Future wave/maintenance |
+| DRIFT-stale-red-scrub (3 adjudicated stale RED-prose sites, PO reword prescriptions pending) | Next maintenance sweep |
+| DRIFT-py-surface-outside-bin (fixture-generator/fuzz Python surface outside STORY-183's `bin/*.py` glob scope) | Next wave or maintenance — human scope decision |
+| DRIFT-TOOLCHAIN-ROLL-CLIPPY (no-pin rolling `rust-toolchain@stable` periodically breaks develop CI on new clippy lints) | Next maintenance/planning pass — human infra decision |
+
+Per DF-VALIDATION-001, any of the above that would become a GitHub issue MUST be
+research-agent-validated first; that validation is itself deferred to the next maintenance
+sweep (mirrors the wave-84 PG-W84-LOCAL/UPSTREAM-BATCH pattern — validate in a batch at the
+next maintenance run rather than one-off per finding).
+
+**Conclusion.** S-7.02 SATISFIED — no wave-86 process-gap finding is left without a
+remediation, codification, or justified-deferral disposition.
