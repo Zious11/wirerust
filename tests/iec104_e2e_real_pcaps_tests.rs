@@ -84,7 +84,10 @@ mod iec104_e2e_real_pcaps {
     /// calling `fixture_present()` MUST register here.
     #[allow(dead_code)]
     const FIXTURE_GATED_TESTS: &[(&str, &str)] = &[
-        ("test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation", "iec104.pcap"),
+        (
+            "test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation",
+            "iec104.pcap",
+        ),
         (
             "test_e2e_BC_2_19_iec104_sq_pcapng_zero_findings_benign_uframes",
             "iec104-sq.pcapng",
@@ -762,7 +765,7 @@ mod iec104_e2e_real_pcaps {
     /// test_fixture_manifest_report
     ///
     /// Combines the AC-182-001 skip-reporting half (advisory `println!()` coverage summary
-    /// + per-fixture `FIXTURE-SKIPPED` notices, visible only with `--nocapture`) with the
+    /// and per-fixture `FIXTURE-SKIPPED` notices, visible only with `--nocapture`) with the
     /// AC-182-005 hard-assert half (committed-fixture presence, manifest/registry
     /// consistency, resolver coupling, and the forbidden-committed negative guard — all of
     /// which ARE visible in standard CI output because panics bypass stdout capture).
@@ -890,7 +893,9 @@ mod iec104_e2e_real_pcaps {
         let harness_src = std::fs::read_to_string(
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/iec104_e2e_real_pcaps_tests.rs"),
         )
-        .expect("[iec104-e2e] failed to read harness source for FIXTURE_GATED_TESTS coupling check");
+        .expect(
+            "[iec104-e2e] failed to read harness source for FIXTURE_GATED_TESTS coupling check",
+        );
         for (test_name, _) in FIXTURE_GATED_TESTS {
             assert!(
                 harness_src.contains(&format!("fn {}", test_name)),
