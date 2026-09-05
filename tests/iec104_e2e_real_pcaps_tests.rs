@@ -7,10 +7,13 @@
 //!
 //! ## Fixture management
 //!
-//! Captures live in `tests/fixtures/local-samples/` (gitignored — see E2E-PCAPS.md). When
-//! that directory is absent or a specific fixture file is missing, the affected test prints a
-//! skip notice and returns immediately. This keeps CI green without fixtures while still
-//! failing loudly (assertion-level) when fixtures are present. `#[ignore]` is NOT used.
+//! Fixtures resolve from two locations, checked in order: `tests/fixtures/` (committed —
+//! always present in any checkout) then `tests/fixtures/local-samples/` (gitignored corpus
+//! — see E2E-PCAPS.md). The committed ITI capture (`iec104-iti-diverse.pcap`) is always
+//! present and its test always runs in CI; it never takes the skip path. When a gitignored
+//! corpus fixture is absent, the affected test prints a skip notice and returns immediately
+//! while `test_fixture_manifest_report()` hard-fails if a *committed* fixture goes missing
+//! (broken checkout) — see AC-182-005. `#[ignore]` is NOT used.
 //!
 //! To populate fixtures locally:
 //!
@@ -24,7 +27,7 @@
 //! |------|------|-----------------|
 //! | `test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation` | `iec104.pcap` (Wireshark Foundation) | T0836 ×24 + T1692.001 ×42 = 66 total; flows_analyzed=1; dropped_findings=0 |
 //! | `test_e2e_BC_2_19_iec104_sq_pcapng_zero_findings_benign_uframes` | `iec104-sq.pcapng` (Wireshark Foundation) | 0 findings (benign STARTDT/TESTFR-only SQ-bit fixture); flows_analyzed=1; dropped_findings=0 |
-//! | `test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu` | `iec104-iti-diverse.pcap` (ITI CC-BY-4.0) | T0836 ×20 + T1692.001 ×46 = 66 total; flows_analyzed=1; dropped_findings=0 |
+//! | `test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu` | `iec104-iti-diverse.pcap` (ITI CC-BY-4.0; committed at `tests/fixtures/`) | T0836 ×20 + T1692.001 ×46 = 66 total; flows_analyzed=1; dropped_findings=0 |
 //! | `test_e2e_BC_2_19_iec104_iti_dissect_T0814_T1692_001_control_coverage` | `iec104-iti-dissect.pcap` (ITI CC-BY-4.0) | T0814 ×2 + T1692.001 ×9 = 11 total; flows_analyzed=6; dropped_findings=0 |
 //!
 //! ## Traces
@@ -45,45 +48,61 @@ mod iec104_e2e_real_pcaps {
     use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 
     // -------------------------------------------------------------------------
-    // Fixture root — relative to the crate root (same convention as other E2E tests)
+    // Fixture roots — committed captures resolve from `tests/fixtures/` first (always
+    // present in any checkout); the gitignored corpus resolves from
+    // `tests/fixtures/local-samples/` as the secondary search location.
     // -------------------------------------------------------------------------
 
     const LOCAL_SAMPLES: &str = "tests/fixtures/local-samples";
+    const COMMITTED_SAMPLES: &str = "tests/fixtures";
 
     // -------------------------------------------------------------------------
-    // STORY-182 stubs (AC-182-001/002/003/005) — STUB ARCHITECT placeholders only.
-    //
-    // These consts and `fixture_path()` are compilable placeholders. Real values and
-    // logic are the implementer's job (Red Gate: `test_fixture_manifest_report()` below
-    // MUST fail via `todo!()` until implemented).
+    // STORY-182 fixture manifest (AC-182-001/002/003/005) — dual-location scheme:
+    // `tests/fixtures/` for committed captures (always present in CI), and
+    // `tests/fixtures/local-samples/` for the gitignored corpus (absent in clean
+    // checkouts). See `fixture_path()` below for the shared resolver.
     // -------------------------------------------------------------------------
 
-    /// Placeholder — implementer populates with the committed-fixtures root (AC-182-003).
+    /// All 4 fixture filenames used by the fixture-gated tests in this module.
     #[allow(dead_code)]
-    const COMMITTED_SAMPLES: &str = "";
+    const FIXTURE_MANIFEST: &[&str] = &[
+        "iec104.pcap",
+        "iec104-sq.pcapng",
+        "iec104-iti-diverse.pcap",
+        "iec104-iti-dissect.pcap",
+    ];
 
-    /// Placeholder — implementer populates with the 4 expected fixture filenames (AC-182-001/005).
+    /// Fixtures committed directly to `tests/fixtures/` (redistributable license,
+    /// no positive evidence of third-party-of-ITI origin — F-009 D-524 ruling).
+    /// `iec104-iti-dissect.pcap` is NOT committed — POSITIVE EVIDENCE OF
+    /// UPSTREAM-OF-ITI ORIGIN (upstream filename `TestDissectIec104.pcap` +
+    /// E2E-PCAPS.md "Wireshark-dissector test capture"); stays gitignored.
     #[allow(dead_code)]
-    const FIXTURE_MANIFEST: &[&str] = &[];
+    const COMMITTED_FIXTURES: &[&str] = &["iec104-iti-diverse.pcap"];
 
-    /// Placeholder — implementer populates with the committed-eligible fixture filenames (AC-182-005).
+    /// Maps every fixture-gated test function to its fixture filename. New tests
+    /// calling `fixture_present()` MUST register here.
     #[allow(dead_code)]
-    const COMMITTED_FIXTURES: &[&str] = &[];
-
-    /// Placeholder — implementer populates with (test_fn_name, fixture_filename) pairs (AC-182-005).
-    #[allow(dead_code)]
-    const FIXTURE_GATED_TESTS: &[(&str, &str)] = &[];
+    const FIXTURE_GATED_TESTS: &[(&str, &str)] = &[
+        ("test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation", "iec104.pcap"),
+        (
+            "test_e2e_BC_2_19_iec104_sq_pcapng_zero_findings_benign_uframes",
+            "iec104-sq.pcapng",
+        ),
+        (
+            "test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu",
+            "iec104-iti-diverse.pcap",
+        ),
+        (
+            "test_e2e_BC_2_19_iec104_iti_dissect_T0814_T1692_001_control_coverage",
+            "iec104-iti-dissect.pcap",
+        ),
+    ];
 
     /// Resolve the path of a fixture file, checking `tests/fixtures/` (committed) before
     /// `tests/fixtures/local-samples/` (gitignored corpus).
     ///
     /// Returns `Some(path)` if the file exists in either location, `None` if absent in both.
-    ///
-    /// NOTE (test-writer, Red Gate): this is the shared resolver's real body per AC-182-001 —
-    /// given now so `test_fixture_manifest_report()` can reach and fail on its ASSERTIONS
-    /// rather than a `todo!()` panic. `COMMITTED_SAMPLES` is still the implementer's
-    /// placeholder (`""`) — that is intentional and is what keeps the manifest-count
-    /// assertions red until the implementer populates the real consts.
     #[allow(dead_code)]
     fn fixture_path(filename: &str) -> Option<std::path::PathBuf> {
         let base = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -102,26 +121,48 @@ mod iec104_e2e_real_pcaps {
     // Skip-if-absent guard (mirrors enip_e2e_real_pcaps_tests.rs pattern)
     //
     // Returns true if the fixture is present, false if the test should be skipped.
+    // Uses the shared `fixture_path()` resolver: committed captures in
+    // `tests/fixtures/` (always present in CI) are checked before the gitignored
+    // corpus in `tests/fixtures/local-samples/` (absent in clean checkouts).
     // -------------------------------------------------------------------------
 
-    /// Check whether a fixture file is present in `tests/fixtures/local-samples/`.
+    /// Check whether a fixture file is present via the shared `fixture_path()` resolver.
     ///
-    /// When the file is absent the caller prints a skip notice and returns early.
-    /// This keeps CI green when the gitignored local-samples directory is not populated.
+    /// When the file is absent from both search locations, the caller prints a skip
+    /// notice and returns early. Committed-eligible fixtures never take this path in a
+    /// clean checkout (they always resolve from `tests/fixtures/`); only the gitignored
+    /// corpus fixtures can legitimately be missing.
     fn fixture_present(filename: &str) -> bool {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join(LOCAL_SAMPLES)
-            .join(filename);
-        if !path.exists() {
-            eprintln!(
-                "[iec104-e2e] SKIP: fixture '{}' not found at {}. \
-                 Run `bin/fetch-e2e-pcaps` to populate local-samples.",
-                filename,
-                path.display()
-            );
-            false
-        } else {
-            true
+        match fixture_path(filename) {
+            Some(_) => true,
+            None => {
+                let base = Path::new(env!("CARGO_MANIFEST_DIR"));
+                if COMMITTED_FIXTURES.contains(&filename) {
+                    // Committed-eligible fixture: show the committed path in the diagnostic.
+                    // Absence here means a broken checkout — the hard-assert in
+                    // test_fixture_manifest_report() catches this at test time.
+                    let committed_path = base.join(COMMITTED_SAMPLES).join(filename);
+                    eprintln!(
+                        "[iec104-e2e] SKIP: fixture '{}' not found at {} (or in local-samples). \
+                         Run `bin/fetch-e2e-pcaps` to populate local-samples.",
+                        filename,
+                        committed_path.display()
+                    );
+                } else {
+                    // Gitignored corpus fixture (Wireshark "not redistributed" or
+                    // origin-unclear — see COMMITTED_FIXTURES and module docs above).
+                    // Show local-samples path; do NOT suggest tests/fixtures/ as a target.
+                    let local_path = base.join(LOCAL_SAMPLES).join(filename);
+                    eprintln!(
+                        "[iec104-e2e] SKIP: fixture '{}' not found at {} \
+                         (do not commit to tests/fixtures/ — licensing/redistribution \
+                          constraint; run `bin/fetch-e2e-pcaps` to populate local-samples).",
+                        filename,
+                        local_path.display()
+                    );
+                }
+                false
+            }
         }
     }
 
@@ -135,17 +176,24 @@ mod iec104_e2e_real_pcaps {
 
     /// Run the full IEC-104 analysis pipeline on a pcap/pcapng file.
     ///
-    /// The file must exist under `tests/fixtures/local-samples/`. This function panics
-    /// if `PcapSource::from_file` fails — the fixture was present but unreadable, which
-    /// is a test infrastructure failure, not a skip condition.
+    /// The file is resolved via the shared `fixture_path()` resolver — committed captures
+    /// under `tests/fixtures/` or gitignored corpus under `tests/fixtures/local-samples/`.
+    /// Panics if the resolver returns `None` (a broken pre-condition: the caller must have
+    /// verified presence via `fixture_present()` first — this is not a skip condition) or if
+    /// `PcapSource::from_file` fails (the fixture was present but unreadable, which is a
+    /// test infrastructure failure, not a skip condition).
     ///
     /// Returns the `Iec104Analyzer` after `reassembler.finalize(&mut dispatcher)` so that
     /// all per-flow state has been flushed and `on_flow_close` has been called for every
     /// completed stream, making `summarize()` return the full aggregate.
     fn run_iec104_pipeline(filename: &str) -> Iec104Analyzer {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join(LOCAL_SAMPLES)
-            .join(filename);
+        let path = fixture_path(filename).unwrap_or_else(|| {
+            panic!(
+                "[iec104-e2e] fixture_path returned None for '{}' — \
+                 fixture_present() must be called before run_iec104_pipeline()",
+                filename
+            )
+        });
 
         let source = PcapSource::from_file(&path)
             .unwrap_or_else(|e| panic!("[iec104-e2e] failed to open {filename}: {e:#}"));
@@ -400,6 +448,7 @@ mod iec104_e2e_real_pcaps {
     // Traces: BC-2.19 (IEC-104 analyzer pipeline).
     // License: ITI/ICS-Security-Tools CC-BY-4.0. Attribution: ICS Security Tools,
     //          Illinois Institute of Technology (ITI).
+    // Capture committed to tests/fixtures/ — always available in CI (STORY-182).
     // =========================================================================
 
     /// test_e2e_BC_2_19_iec104_iti_diverse_T0836_T1692_001_mixed_asdu
@@ -703,11 +752,11 @@ mod iec104_e2e_real_pcaps {
     // =========================================================================
     // Test 5 — test_fixture_manifest_report (STORY-182, AC-182-001 + AC-182-005)
     //
-    // RED GATE: FIXTURE_MANIFEST / COMMITTED_FIXTURES / FIXTURE_GATED_TESTS are still the
-    // stub-architect's empty placeholders (see consts above). The implementer populates
-    // them (and commits `tests/fixtures/iec104-iti-diverse.pcap`) to turn this test green.
-    // Until then this test MUST fail on `FIXTURE_MANIFEST.len() == 4` (currently 0) — a
-    // genuine assertion failure, not a `todo!()` panic.
+    // FIXTURE_MANIFEST / COMMITTED_FIXTURES / FIXTURE_GATED_TESTS are populated per
+    // AC-182-001/005, and `tests/fixtures/iec104-iti-diverse.pcap` is committed per
+    // AC-182-002. In a clean checkout this test PASSES (committed fixture present,
+    // manifest/registry consistent); it FAILS via hard-assert if the committed
+    // fixture is ever absent (broken checkout — see AC-182-005).
     // =========================================================================
 
     /// test_fixture_manifest_report
