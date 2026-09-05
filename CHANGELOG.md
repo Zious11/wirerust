@@ -7,6 +7,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Replace `Vec::drain(..).collect()` with `std::mem::take` in IEC-104 carry-buffer
+  handling (`src/analyzer/iec104.rs`) to satisfy `clippy::drain_collect` under the
+  rolled stable toolchain (rustc/clippy 1.98.1) — restores green CI for all PRs
+  (gate-fix, precedent #439).
+
 ## [0.13.2] - 2026-07-25
 
 ### Changed
