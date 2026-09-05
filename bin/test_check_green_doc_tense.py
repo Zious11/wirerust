@@ -48,7 +48,9 @@ def _tmpfile(content: str, tmp_path: Path, name: str = "fixture.rs") -> Path:
 # Known-BAD fixtures — each line must be flagged
 # ---------------------------------------------------------------------------
 
-BAD_CASES: list[tuple[str, str] | tuple[str, str, str]] = [
+BAD_CASES: list[
+    tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str]
+] = [
     (
         "module-level MUST FAIL header",
         """\
@@ -322,6 +324,78 @@ BAD_CASES: list[tuple[str, str] | tuple[str, str, str]] = [
         // CI job fails until wired — see STORY-NNN
         """,
         "AC-176-001 pattern d",
+    ),
+    # ------------------------------------------------------------------
+    # STORY-183 (wave-86): Patterns 30-37 TIER-1 behavioral-absence tokens
+    # (DF-GREEN-DOC-TENSE-SWEEP v6, F-W86S-P2-006/P3-001/P4-004 rulings).
+    # These BAD_CASES are prescribed by AC-183-003/004/007 and MUST FAIL
+    # (Red Gate) until Patterns 30-37 are added to _VIOLATION_PATTERNS.
+    # Single-line string form avoids the multi-line string-literal
+    # false-positive mechanism (see EC-005 / Task 5) — no conversion needed.
+    # ------------------------------------------------------------------
+    (
+        "Pattern 30: 'Expected RED:' heading violation (.rs form)",
+        "// Expected RED: all assertions fail before implementation\n",
+        "Pattern 30",
+    ),
+    (
+        "Pattern 30: 'Expected RED:' heading violation (.py form — Python comment)",
+        "# Expected RED: all assertions fail before implementation\n",
+        "Pattern 30",
+        ".py",
+    ),
+    (
+        "Pattern 31: currently falls through violation (.rs form)",
+        "// the packet currently falls through the dispatcher to the wildcard arm\n",
+        "Pattern 31",
+    ),
+    (
+        "Pattern 31: currently falls through violation (.py form — Python comment)",
+        "# the packet currently falls through the dispatcher to the wildcard arm\n",
+        "Pattern 31",
+        ".py",
+    ),
+    (
+        "Pattern 32: currently asserts violation (.rs form)",
+        "// the iec104 decoder currently asserts a valid ASDU header\n",
+        "Pattern 32",
+    ),
+    (
+        "Pattern 32: currently asserts violation (.py form)",
+        "# the iec104 decoder currently asserts a valid ASDU header\n",
+        "Pattern 32",
+        ".py",
+    ),
+    (
+        "Pattern 33: falls to the wildcard violation (.rs form)",
+        "// the unrecognized packet falls to the wildcard arm for logging\n",
+        "Pattern 33",
+    ),
+    (
+        "Pattern 33: falls to the wildcard violation (.py form)",
+        "# the unrecognized packet falls to the wildcard arm for logging\n",
+        "Pattern 33",
+        ".py",
+    ),
+    (
+        "Pattern 34: does not exist yet violation (.rs form)",
+        "// this error-handling path does not exist yet in the decoder\n",
+        "Pattern 34",
+    ),
+    (
+        "Pattern 35: currently has NO violation (.rs form)",
+        "// the TLS dissector currently has no SNI extraction logic\n",
+        "Pattern 35",
+    ),
+    (
+        "Pattern 36: currently satisfied by violation (.rs form)",
+        "// the invariant is currently satisfied by the no-op stub placeholder\n",
+        "Pattern 36",
+    ),
+    (
+        "Pattern 37: will be GREEN currently violation (.rs form)",
+        "// this gate will be GREEN currently because the check is bypassed\n",
+        "Pattern 37",
     ),
 ]
 
@@ -629,6 +703,81 @@ GOOD_CASES: list[tuple[str, str]] = [
         // was compile-only until STORY-153 wired the handler
         """,
     ),
+    # ------------------------------------------------------------------
+    # STORY-183 (wave-86): Patterns 30-37 allowlist / TIER-2 zero-FP /
+    # efficacy / suffix-scoping GOOD_CASES (AC-183-003/004/006/007/008).
+    # Single-line string form — see note above BAD_CASES additions.
+    # ------------------------------------------------------------------
+    (
+        "Pattern 30 allowlist: past-tense — was expected to fail (RED phase), no colon",
+        "// This test was expected to fail (RED phase) before the implementation shipped.\n",
+    ),
+    (
+        "Pattern 31 allowlist: past tense — fell through before the fix",
+        "// Before the fix, the packet fell through the dispatcher to the wildcard arm.\n",
+    ),
+    (
+        # Per DF-GREEN-DOC-TENSE-SWEEP v6 (F-W86S-P2-006/P3-001/P4-004 rulings, 2026-07-25),
+        # `falls through to` is a TIER-2 context-dependent token that bin/check-green-doc-tense
+        # MUST NOT flag; asserting the tool does not flag it is correct behavior, not a defect.
+        "Pattern 31 zero-FP: falls through to (TIER-2 — MUST NOT be flagged per F-W86S-P2-006 PO ruling)",
+        "// The lax path falls through to the wildcard arm when no analyzer matches.\n",
+    ),
+    (
+        # Suffix-scoping negative guard (F-009): `#`-prefixed line in a .rs file is NOT
+        # scan-eligible; `_is_comment_line(stripped, suffix=".rs")` returns False for `#` prefix.
+        # Proves `.py` eligibility is suffix-scoped, not global.
+        "Suffix-scoping negative guard: '# Expected RED:' in .rs file NOT flagged (# is not a Rust comment)",
+        "# Expected RED: all assertions fail before implementation\n",
+    ),
+    (
+        "Pattern 32 allowlist: past tense — the decoder verified the header",
+        "// the decoder verifies that each ASDU header is valid after processing\n",
+    ),
+    (
+        "Pattern 33 allowlist: different routing — forwarded to default handler",
+        "// the unrecognized packet is forwarded to the default handler branch\n",
+    ),
+    (
+        "Pattern 34 allowlist: past tense — path was added",
+        "// this code path was added in response to the missing handler report\n",
+    ),
+    (
+        "Pattern 35 allowlist: different phrasing — lacks",
+        "// the TLS dissector lacks SNI extraction for DTLS traffic\n",
+    ),
+    (
+        "Pattern 36 allowlist: production implementation",
+        "// the invariant is enforced by the production TCP-state machine\n",
+    ),
+    (
+        "Pattern 37 allowlist: future tense without currently",
+        "// this gate will be GREEN after the implementation ships\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'no .* arm' FALSIFIED as TIER-1 (F-W86S-P3-001).
+        # 3 live legitimate uses document exhaustive-match design. Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'No wildcard arm' NOT flagged (moved TIER-2 v4 per F-W86S-P3-001)",
+        "// No wildcard arm: compiler enforces exhaustiveness.\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'not yet implemented' FALSIFIED (F-W86S-P3-001).
+        # 17 live uses (historical error-string quotes, RED-gate messages). Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'not yet implemented' in error string NOT flagged (TIER-2 v4 F-W86S-P3-001)",
+        '// Err("ARP extraction not yet implemented")\n',
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'currently fails' FALSIFIED (F-W86S-P3-001).
+        # 1 live legitimate RED-guard use (D-078 D11 fix not shipped). Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'currently fails' NOT flagged (moved TIER-2 v4 per F-W86S-P3-001)",
+        "// which currently fails.\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'is expected to' has 6+ live legitimate uses.
+        # Tool MUST NOT flag it — manual/adversarial sweep only. NOT a tool defect.
+        "Efficacy: 'is expected to' NOT flagged (TIER-2 per F-W86S-P2-006 / F-W86S-P3-001 rulings)",
+        "// this test is expected to PASS on the current codebase\n",
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -649,7 +798,12 @@ def run_tests() -> int:
         for entry in BAD_CASES:
             label, content = entry[0], entry[1]
             expected_pattern: str | None = entry[2] if len(entry) > 2 else None  # type: ignore[misc]
-            p = _tmpfile(content, tmp, f"bad_{passed}.rs")
+            # Runner .py extension support (STORY-183, AC-183-003/004/006): a
+            # 4-element BAD_CASES entry carries an explicit file extension
+            # (e.g. ".py") as entry[3] so the fixture is written and scanned
+            # with Python `#`-comment semantics instead of the default `.rs`.
+            ext: str = entry[3] if len(entry) > 3 else ".rs"  # type: ignore[misc]
+            p = _tmpfile(content, tmp, f"bad_{passed}{ext}")
             violations = scan_file(p)
             if violations:
                 if expected_pattern is not None:
