@@ -12,6 +12,8 @@ Run: python3 bin/test_check_green_doc_tense.py
 
 import importlib.machinery
 import importlib.util
+import shutil
+import subprocess
 import sys
 import textwrap
 import types
@@ -48,162 +50,114 @@ def _tmpfile(content: str, tmp_path: Path, name: str = "fixture.rs") -> Path:
 # Known-BAD fixtures — each line must be flagged
 # ---------------------------------------------------------------------------
 
-BAD_CASES: list[tuple[str, str] | tuple[str, str, str]] = [
+BAD_CASES: list[
+    tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str]
+] = [
     (
         "module-level MUST FAIL header",
-        """\
-        //! All tests MUST FAIL (todo!() panic) before implementation — Red Gate per BC-5.38.001.
-        """,
+        "//! All tests MUST FAIL (todo!() panic) before implementation — Red Gate per BC-5.38.001.\n",
     ),
     (
         "ALL tests must fail header (mixed case)",
-        """\
-        //! RED GATE: ALL tests must fail (todo!() panics) before implementation begins.
-        """,
+        "//! RED GATE: ALL tests must fail (todo!() panics) before implementation begins.\n",
     ),
     (
         "designed to FAIL header",
-        """\
-        //! All tests in this file are designed to FAIL (Red Gate) until the implementation.
-        """,
+        "//! All tests in this file are designed to FAIL (Red Gate) until the implementation.\n",
     ),
     (
         "RED GATE: ... tests must fail (section header)",
-        """\
-        // RED GATE: all tests must fail (todo!() panics) before implementation begins.
-        """,
+        "// RED GATE: all tests must fail (todo!() panics) before implementation begins.\n",
     ),
     (
         "All stubs panic to satisfy the Red Gate",
-        """\
-        // All stubs panic to satisfy the Red Gate: every test must FAIL before implementation.
-        """,
+        "// All stubs panic to satisfy the Red Gate: every test must FAIL before implementation.\n",
     ),
     (
         "All test bodies panic — Red Gate",
-        """\
-        // All test bodies panic — Red Gate (Part A stubs).
-        """,
+        "// All test bodies panic — Red Gate (Part A stubs).\n",
     ),
     (
         "PART A: stub-only bodies — panic",
-        """\
-        // PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
-        """,
+        '// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").\n',
     ),
     (
         "stub-only bodies — panic — Red Gate",
-        """\
-        // stub-only bodies — panic!("stub") — Red Gate.
-        """,
+        '// stub-only bodies — panic!("stub") — Red Gate.\n',
     ),
     (
         "Every test body panics; all must FAIL before",
-        """\
-        // Every test body panics; all must FAIL before implementation begins.
-        """,
+        "// Every test body panics; all must FAIL before implementation begins.\n",
     ),
     (
         "All stubs MUST fail before",
-        """\
-        // All stubs MUST fail before Part B fills real assertions.
-        """,
+        "// All stubs MUST fail before Part B fills real assertions.\n",
     ),
     # ------------------------------------------------------------------
     # Patterns 12-17: feature-enip stale RED phrasings (F-135-002)
     # ------------------------------------------------------------------
     (
         "RED — stubs only (em-dash variant)",
-        """\
-        // STORY-135 command detection tests (RED — stubs only; todo!() enforces Red Gate).
-        """,
+        "// STORY-135 command detection tests (RED — stubs only; todo!() enforces Red Gate).\n",
     ),
     (
         "RED -- stubs only (double-hyphen variant)",
-        """\
-        // STORY-135 command detection tests (RED -- stubs only; todo!() enforces Red Gate).
-        """,
+        "// STORY-135 command detection tests (RED -- stubs only; todo!() enforces Red Gate).\n",
     ),
     (
         "All tests are RED until",
-        """\
-        // All tests are RED until STORY-135 detection logic is implemented.
-        """,
+        "// All tests are RED until STORY-135 detection logic is implemented.\n",
     ),
     (
         "RED (STORY-135 stub) per-test docstring",
-        """\
-        /// RED (STORY-135 stub): process_pdu reaches todo!() for Stop detection.
-        """,
+        "/// RED (STORY-135 stub): process_pdu reaches todo!() for Stop detection.\n",
     ),
     (
         "RED (STORY-134 stub) per-test docstring",
-        """\
-        /// RED (STORY-134 stub): todo!() hit on first write.
-        """,
+        "/// RED (STORY-134 stub): todo!() hit on first write.\n",
     ),
     (
         "todo!() until STORY-NNN implements",
-        """\
-        // Red Gate: all tests exercise `process_pdu`, which is `todo!()` until STORY-134 implements detection.
-        """,
+        "// Red Gate: all tests exercise `process_pdu`, which is `todo!()` until STORY-134 implements detection.\n",
     ),
     (
         "will panic at … until the implementation lands",
-        """\
-        // Each test will panic at `process_pdu` until the implementation lands.
-        """,
+        "// Each test will panic at `process_pdu` until the implementation lands.\n",
     ),
     (
         "test will panic … until … implements",
-        """\
-        // Each test will panic at the stub until STORY-134 implements detection.
-        """,
+        "// Each test will panic at the stub until STORY-134 implements detection.\n",
     ),
     (
         "Each test will panic at … until (recon-style wrapped header)",
-        """\
-        // Each test will panic at `process_pdu` until the
-        """,
+        "// Each test will panic at `process_pdu` until the\n",
     ),
     # ------------------------------------------------------------------
     # Patterns 19-22: stale GREEN-BY-DESIGN todo!() references (F-135-P3-001)
     # ------------------------------------------------------------------
     (
         "before reaching todo!() Stop-detection block (pattern 19+22)",
-        """\
-        /// gate fires in the CPF loop before reaching the todo!() Stop-detection block.
-        """,
+        "/// gate fires in the CPF loop before reaching the todo!() Stop-detection block.\n",
     ),
     (
         "before reaching todo!() Reset block (pattern 19)",
-        """\
-        /// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.
-        """,
+        "/// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.\n",
     ),
     (
         "no todo!() is reached — lowercase (pattern 20)",
-        """\
-        /// only — no todo!() is reached.
-        """,
+        "/// only — no todo!() is reached.\n",
     ),
     (
         "No todo!() is reached — sentence-initial uppercase (pattern 20)",
-        """\
-        /// No todo!() is reached because the function returns at line 1 of its body.
-        """,
+        "/// No todo!() is reached because the function returns at line 1 of its body.\n",
     ),
     (
         "before any todo!() block (pattern 21)",
-        """\
-        /// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.
-        """,
+        "/// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.\n",
     ),
     (
         "todo!() Stop-detection block standalone (pattern 22)",
-        """\
-        /// The test exercises the path before the todo!() Stop-detection block runs.
-        """,
+        "/// The test exercises the path before the todo!() Stop-detection block runs.\n",
     ),
     # ------------------------------------------------------------------
     # AC-174-008 patterns (a)-(c): IEC-104 stale Red-Gate headers that
@@ -216,112 +170,154 @@ BAD_CASES: list[tuple[str, str] | tuple[str, str, str]] = [
     # ------------------------------------------------------------------
     (
         "AC-174-008 pattern (a): All tests in this module MUST FAIL (interposed words)",
-        """\
-        // All tests in this module MUST FAIL (Red Gate) because classify_frame_format is a stub.
-        """,
+        "// All tests in this module MUST FAIL (Red Gate) because classify_frame_format is a stub.\n",
     ),
     (
         "AC-174-008 pattern (a): All tests in this section MUST FAIL (section header variant)",
-        """\
-        //! All tests in this section MUST FAIL because parse_asdu is todo!().
-        """,
+        "//! All tests in this section MUST FAIL because parse_asdu is todo!().\n",
     ),
     (
         "AC-174-008 pattern (b): FAILS Red Gate",
-        """\
-        // This skeleton compiles and FAILS Red Gate because the function is a todo!() stub.
-        """,
+        "// This skeleton compiles and FAILS Red Gate because the function is a todo!() stub.\n",
     ),
     (
         "AC-174-008 pattern (b): FAIL Red Gate (singular form)",
-        """\
-        // Harnesses FAIL Red Gate by design until the implementation phase ships.
-        """,
+        "// Harnesses FAIL Red Gate by design until the implementation phase ships.\n",
     ),
     (
         "AC-174-008 pattern (c): are todo!() stubs",
-        """\
-        // All bodies are todo!() stubs — they will panic on any call before implementation.
-        """,
+        "// All bodies are todo!() stubs — they will panic on any call before implementation.\n",
     ),
     (
         "AC-174-008 pattern (c): are todo!() stub (singular)",
-        """\
-        // The harness body is todo!() stub until STORY-174 wires the assertion.
-        """,
+        "// The harness body is todo!() stub until STORY-174 wires the assertion.\n",
     ),
     # ------------------------------------------------------------------
     # AC-176-001 patterns (a)-(d): phrase-level stub-era vocabulary for
     # skeleton/seam compile-only assertions and CI-wiring-incomplete prose
     # (PG-GATE-VOCAB-BLINDSPOT). These known-bad cases FAILED (Red Gate, STORY-176) until
     # the gate was extended with four phrase patterns:
-    #   (a) skeleton\s+compiles?        — "harness skeleton compiles" stub-era
+    #   (a) \bskeleton\s+compiles?\b  — compile-only stub-era assertion (pattern 26)
     #   (b) compile-only\s+seams?       — "compile-only seam(s)" present-tense
     #   (c) (?:are|is)\s+(?:currently\s+)?compile-only — present-tense compile-only claim
-    #   (d) \buntil\b[^\n]*\bwired\b    — "fails until wired" CI-wiring prose
+    #   (d) \buntil\b[^\n]*\bwired\b   — CI-wiring-incomplete prose (pattern 29)
     # ------------------------------------------------------------------
     (
         "AC-176-001 pattern (a): harness skeleton compiles only (stub-era compile-only header)",
-        """\
-        // harness skeleton compiles only — wiring deferred to STORY-176
-        """,
+        "// harness skeleton compiles only — wiring deferred to STORY-176\n",
         "AC-176-001 pattern a",
     ),
     (
         "AC-176-001 pattern (a): VP-044 Kani skeleton compiles, no assertions (stub-era header)",
-        """\
-        // VP-044 Kani skeleton compiles — no proof assertions added yet
-        """,
+        "// VP-044 Kani skeleton compiles — no proof assertions added yet\n",
         "AC-176-001 pattern a",
     ),
     (
         "AC-176-001 pattern (b): compile-only seams module header (present-tense stub assertion)",
-        """\
-        // this module exposes compile-only seams — assertions pending in STORY-174
-        """,
+        "// this module exposes compile-only seams — assertions pending in STORY-174\n",
         "AC-176-001 pattern b",
     ),
     (
         "AC-176-001 pattern (b): harness is a compile-only seam (present-tense stub label)",
-        """\
-        // harness body is a compile-only seam during red-gate phase
-        """,
+        "// harness body is a compile-only seam during red-gate phase\n",
         "AC-176-001 pattern b",
     ),
     (
         "AC-176-001 pattern (c): are currently compile-only (present-tense no-assertions claim)",
-        """\
-        // all harness bodies are currently compile-only — no real assertions
-        """,
+        "// all harness bodies are currently compile-only — no real assertions\n",
         "AC-176-001 pattern c",
     ),
     (
         "AC-176-001 pattern (c): is compile-only (present-tense stub-boundary claim, no 'currently')",
-        """\
-        // this function is compile-only at the red-gate boundary
-        """,
+        "// this function is compile-only at the red-gate boundary\n",
         "AC-176-001 pattern c",
     ),
     (
         "AC-176-001 pattern (d): fails until wired (CI-wiring incomplete prose)",
-        """\
-        // CI test fails until the IEC-104 handler is wired
-        """,
+        "// CI test fails until the IEC-104 handler is wired\n",
         "AC-176-001 pattern d",
     ),
     (
         "AC-176-001 pattern (d): returns early until STORY-NNN is wired (CI-wiring incomplete prose)",
-        """\
-        // function returns early until STORY-176 is wired
-        """,
+        "// function returns early until STORY-176 is wired\n",
         "AC-176-001 pattern d",
     ),
     (
         "AC-176-001 pattern (d): CI job fails until wired (bare motivating phrase, no object clause)",
-        """\
-        // CI job fails until wired — see STORY-NNN
-        """,
+        "// CI job fails until wired — see STORY-NNN\n",
         "AC-176-001 pattern d",
+    ),
+    # ------------------------------------------------------------------
+    # STORY-183 (wave-86): Patterns 30-37 TIER-1 behavioral-absence tokens
+    # (DF-GREEN-DOC-TENSE-SWEEP v6, F-W86S-P2-006/P3-001/P4-004 rulings).
+    # These BAD_CASES are prescribed by AC-183-003/004/007 and MUST FAIL
+    # (Red Gate) until Patterns 30-37 are added to _VIOLATION_PATTERNS.
+    # Single-line string form avoids the multi-line string-literal
+    # false-positive mechanism (see EC-005 / Task 5) — no conversion needed.
+    # ------------------------------------------------------------------
+    (
+        "Pattern 30: 'Expected RED:' heading violation (.rs form)",
+        "// Expected RED: all assertions fail before implementation\n",
+        "Pattern 30",
+    ),
+    (
+        "Pattern 30: 'Expected RED:' heading violation (.py form — Python comment)",
+        "# Expected RED: all assertions fail before implementation\n",
+        "Pattern 30",
+        ".py",
+    ),
+    (
+        "Pattern 31: currently falls through violation (.rs form)",
+        "// the packet currently falls through the dispatcher to the wildcard arm\n",
+        "Pattern 31",
+    ),
+    (
+        "Pattern 31: currently falls through violation (.py form — Python comment)",
+        "# the packet currently falls through the dispatcher to the wildcard arm\n",
+        "Pattern 31",
+        ".py",
+    ),
+    (
+        "Pattern 32: currently asserts violation (.rs form)",
+        "// the iec104 decoder currently asserts a valid ASDU header\n",
+        "Pattern 32",
+    ),
+    (
+        "Pattern 32: currently asserts violation (.py form)",
+        "# the iec104 decoder currently asserts a valid ASDU header\n",
+        "Pattern 32",
+        ".py",
+    ),
+    (
+        "Pattern 33: falls to the wildcard violation (.rs form)",
+        "// the unrecognized packet falls to the wildcard arm for logging\n",
+        "Pattern 33",
+    ),
+    (
+        "Pattern 33: falls to the wildcard violation (.py form)",
+        "# the unrecognized packet falls to the wildcard arm for logging\n",
+        "Pattern 33",
+        ".py",
+    ),
+    (
+        "Pattern 34: does not exist yet violation (.rs form)",
+        "// this error-handling path does not exist yet in the decoder\n",
+        "Pattern 34",
+    ),
+    (
+        "Pattern 35: currently has NO violation (.rs form)",
+        "// the TLS dissector currently has no SNI extraction logic\n",
+        "Pattern 35",
+    ),
+    (
+        "Pattern 36: currently satisfied by violation (.rs form)",
+        "// the invariant is currently satisfied by the no-op stub placeholder\n",
+        "Pattern 36",
+    ),
+    (
+        "Pattern 37: will be GREEN currently violation (.rs form)",
+        "// this gate will be GREEN currently because the check is bypassed\n",
+        "Pattern 37",
     ),
 ]
 
@@ -629,6 +625,81 @@ GOOD_CASES: list[tuple[str, str]] = [
         // was compile-only until STORY-153 wired the handler
         """,
     ),
+    # ------------------------------------------------------------------
+    # STORY-183 (wave-86): Patterns 30-37 allowlist / TIER-2 zero-FP /
+    # efficacy / suffix-scoping GOOD_CASES (AC-183-003/004/006/007/008).
+    # Single-line string form — see note above BAD_CASES additions.
+    # ------------------------------------------------------------------
+    (
+        "Pattern 30 allowlist: past-tense — was expected to fail (RED phase), no colon",
+        "// This test was expected to fail (RED phase) before the implementation shipped.\n",
+    ),
+    (
+        "Pattern 31 allowlist: past tense — fell through before the fix",
+        "// Before the fix, the packet fell through the dispatcher to the wildcard arm.\n",
+    ),
+    (
+        # Per DF-GREEN-DOC-TENSE-SWEEP v6 (F-W86S-P2-006/P3-001/P4-004 rulings, 2026-07-25),
+        # `falls through to` is a TIER-2 context-dependent token that bin/check-green-doc-tense
+        # MUST NOT flag; asserting the tool does not flag it is correct behavior, not a defect.
+        "Pattern 31 zero-FP: falls through to (TIER-2 — MUST NOT be flagged per F-W86S-P2-006 PO ruling)",
+        "// The lax path falls through to the wildcard arm when no analyzer matches.\n",
+    ),
+    (
+        # Suffix-scoping negative guard (F-009): `#`-prefixed line in a .rs file is NOT
+        # scan-eligible; `_is_comment_line(stripped, suffix=".rs")` returns False for `#` prefix.
+        # Proves `.py` eligibility is suffix-scoped, not global.
+        "Suffix-scoping negative guard: '# Expected RED:' in .rs file NOT flagged (# is not a Rust comment)",
+        "# Expected RED: all assertions fail before implementation\n",
+    ),
+    (
+        "Pattern 32 allowlist: past tense — the decoder verified the header",
+        "// the decoder verifies that each ASDU header is valid after processing\n",
+    ),
+    (
+        "Pattern 33 allowlist: different routing — forwarded to default handler",
+        "// the unrecognized packet is forwarded to the default handler branch\n",
+    ),
+    (
+        "Pattern 34 allowlist: past tense — path was added",
+        "// this code path was added in response to the missing handler report\n",
+    ),
+    (
+        "Pattern 35 allowlist: different phrasing — lacks",
+        "// the TLS dissector lacks SNI extraction for DTLS traffic\n",
+    ),
+    (
+        "Pattern 36 allowlist: production implementation",
+        "// the invariant is enforced by the production TCP-state machine\n",
+    ),
+    (
+        "Pattern 37 allowlist: future tense without currently",
+        "// this gate will be GREEN after the implementation ships\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'no .* arm' FALSIFIED as TIER-1 (F-W86S-P3-001).
+        # 3 live legitimate uses document exhaustive-match design. Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'No wildcard arm' NOT flagged (moved TIER-2 v4 per F-W86S-P3-001)",
+        "// No wildcard arm: compiler enforces exhaustiveness.\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'not yet implemented' FALSIFIED (F-W86S-P3-001).
+        # 17 live uses (historical error-string quotes, RED-gate messages). Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'not yet implemented' in error string NOT flagged (TIER-2 v4 F-W86S-P3-001)",
+        '// Err("ARP extraction not yet implemented")\n',
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'currently fails' FALSIFIED (F-W86S-P3-001).
+        # 1 live legitimate RED-guard use (D-078 D11 fix not shipped). Tool MUST NOT flag.
+        "TIER-2 zero-FP: 'currently fails' NOT flagged (moved TIER-2 v4 per F-W86S-P3-001)",
+        "// which currently fails.\n",
+    ),
+    (
+        # DF-GREEN-DOC-TENSE-SWEEP v6 TIER-2: 'is expected to' has 6+ live legitimate uses.
+        # Tool MUST NOT flag it — manual/adversarial sweep only. NOT a tool defect.
+        "Efficacy: 'is expected to' NOT flagged (TIER-2 per F-W86S-P2-006 / F-W86S-P3-001 rulings)",
+        "// this test is expected to PASS on the current codebase\n",
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -649,7 +720,12 @@ def run_tests() -> int:
         for entry in BAD_CASES:
             label, content = entry[0], entry[1]
             expected_pattern: str | None = entry[2] if len(entry) > 2 else None  # type: ignore[misc]
-            p = _tmpfile(content, tmp, f"bad_{passed}.rs")
+            # Runner .py extension support (STORY-183, AC-183-003/004/006): a
+            # 4-element BAD_CASES entry carries an explicit file extension
+            # (e.g. ".py") as entry[3] so the fixture is written and scanned
+            # with Python `#`-comment semantics instead of the default `.rs`.
+            ext: str = entry[3] if len(entry) > 3 else ".rs"  # type: ignore[misc]
+            p = _tmpfile(content, tmp, f"bad_{passed}{ext}")
             violations = scan_file(p)
             if violations:
                 if expected_pattern is not None:
@@ -685,7 +761,7 @@ def run_tests() -> int:
 
     # ------------------------------------------------------------------
     # AC-158-005: zero-file guard — must exit non-zero when
-    # _collect_rust_files returns [].
+    # _collect_source_files returns [].
     #
     # Behavior shipped with AC-158-005: exits non-zero when no files found.
     # Originally authored RED for AC-158-005 (pre-fix: printed WARNING,
@@ -696,34 +772,34 @@ def run_tests() -> int:
     print("=== AC-158-005 zero-file guard (must exit non-zero when no files found) ===")
 
     _orig_find_005 = mod._find_repo_root  # type: ignore[attr-defined]
-    _orig_collect = mod._collect_rust_files  # type: ignore[attr-defined]
+    _orig_collect = mod._collect_source_files  # type: ignore[attr-defined]
     try:
         with tempfile.TemporaryDirectory() as _td_005:
             _hermetic_005 = Path(_td_005)
             (_hermetic_005 / ".factory").mkdir()
             mod._find_repo_root = lambda _s: _hermetic_005  # type: ignore[attr-defined]
-            # Patch _collect_rust_files to return [] — simulates a repo with no
-            # tracked Rust files (e.g., src/ renamed or git ls-files returns nothing).
-            mod._collect_rust_files = lambda _repo_root: []  # type: ignore[attr-defined]
+            # Patch _collect_source_files to return [] — simulates a repo with no
+            # tracked source files (e.g., src/ renamed or git ls-files returns nothing).
+            mod._collect_source_files = lambda _repo_root: []  # type: ignore[attr-defined]
             exit_code = mod.main()  # type: ignore[attr-defined]
             if exit_code == 1:
                 print(
-                    "  PASS  [zero-file guard: exits 1 exactly when _collect_rust_files "
+                    "  PASS  [zero-file guard: exits 1 exactly when _collect_source_files "
                     "returns [] (AC-158-005)]"
                 )
                 passed += 1
             else:
                 print(
                     "  FAIL  [zero-file guard: expected exit 1 when "
-                    "_collect_rust_files returns [], got "
+                    "_collect_source_files returns [], got "
                     + repr(exit_code)
                     + " — REGRESSION: zero-file guard (AC-158-005) no longer exits 1 — "
-                    "check the `if not rust_files:` guard in main()]"
+                    "check the `if not source_files:` guard in main()]"
                 )
                 failures += 1
     finally:
         mod._find_repo_root = _orig_find_005  # type: ignore[attr-defined]
-        mod._collect_rust_files = _orig_collect  # type: ignore[attr-defined]
+        mod._collect_source_files = _orig_collect  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     # AC-162-004: _find_repo_root hermetic sentinel tests
@@ -836,11 +912,11 @@ def run_tests() -> int:
     # (F-W72G-P2-OBS-001 + AC-162-003)
     #
     # Patches _find_repo_root to return a hermetic repo root, and installs
-    # a spy on _collect_rust_files that records the repo_root argument and
+    # a spy on _collect_source_files that records the repo_root argument and
     # returns [].
     #
     # Primary assertion: spy confirms main() passes the hermetic root to
-    # _collect_rust_files, verifying that main() delegates repo-root
+    # _collect_source_files, verifying that main() delegates repo-root
     # detection to _find_repo_root.
     #
     # Secondary assertion: exit_code == 1 exactly (zero-file guard fires,
@@ -856,7 +932,7 @@ def run_tests() -> int:
     )
 
     _orig_find = mod._find_repo_root  # type: ignore[attr-defined]
-    _orig_collect3 = mod._collect_rust_files  # type: ignore[attr-defined]
+    _orig_collect3 = mod._collect_source_files  # type: ignore[attr-defined]
     try:
         with tempfile.TemporaryDirectory() as _td_main:
             _hermetic_root = Path(_td_main)
@@ -869,7 +945,7 @@ def run_tests() -> int:
                 return []
 
             mod._find_repo_root = lambda _start: _hermetic_root  # type: ignore[attr-defined]
-            mod._collect_rust_files = _spy_collect  # type: ignore[attr-defined]
+            mod._collect_source_files = _spy_collect  # type: ignore[attr-defined]
             _exit_code = mod.main()  # type: ignore[attr-defined]
 
             _root_used_ok = bool(_collect_calls) and _collect_calls[0] == _hermetic_root
@@ -888,7 +964,7 @@ def run_tests() -> int:
                         _collect_calls[0] if _collect_calls else "<not called>"
                     )
                     _reasons.append(
-                        f"main() passed {_actual_root!r} to _collect_rust_files "
+                        f"main() passed {_actual_root!r} to _collect_source_files "
                         f"(expected hermetic root {_hermetic_root}; "
                         f"main() must delegate to _find_repo_root)"
                     )
@@ -902,7 +978,116 @@ def run_tests() -> int:
                 failures += 1
     finally:
         mod._find_repo_root = _orig_find  # type: ignore[attr-defined]
-        mod._collect_rust_files = _orig_collect3  # type: ignore[attr-defined]
+        mod._collect_source_files = _orig_collect3  # type: ignore[attr-defined]
+
+    # ------------------------------------------------------------------
+    # AC-183-001 (Task 2): _collect_source_files non-hermetic self-test
+    # checks. These run against the REAL repo (no monkey-patched
+    # _find_repo_root) and MUST be placed outside/after the AC-158-005 and
+    # AC-162-003 monkey-patch blocks above, which patch _find_repo_root to
+    # resolve to a hermetic tempdir — placing these assertions inside those
+    # blocks would resolve _collect_source_files against an empty tempdir
+    # and produce a spurious FAIL.
+    # ------------------------------------------------------------------
+    print()
+    print("=== AC-183-001 _collect_source_files non-hermetic checks (STORY-183) ===")
+
+    _real_repo_root = mod._find_repo_root(  # type: ignore[attr-defined]
+        Path(mod.__file__).resolve().parent  # type: ignore[attr-defined]
+    )
+    _real_source_files = mod._collect_source_files(_real_repo_root)  # type: ignore[attr-defined]
+
+    if any(p.name == "test_check_green_doc_tense.py" for p in _real_source_files):
+        print("  PASS  [_collect_source_files: test_check_green_doc_tense.py found]")
+        passed += 1
+    else:
+        print("  FAIL  [_collect_source_files: test_check_green_doc_tense.py found]")
+        failures += 1
+
+    if any(p.parent.name == "src" and p.suffix == ".rs" for p in _real_source_files):
+        print("  PASS  [_collect_source_files: src/*.rs file found]")
+        passed += 1
+    else:
+        print("  FAIL  [_collect_source_files: src/*.rs file found]")
+        failures += 1
+
+    # ------------------------------------------------------------------
+    # F-010 (Task 9): hermetic end-to-end self-test of the full
+    # collect -> scan -> exit pipeline, run as a fresh subprocess against a
+    # throwaway git repo containing exactly one tracked bin/*.py file with a
+    # single-line stale TIER-1 comment. This is the df-validation
+    # self-application smoke test confirming PG-W84-010 is exercised
+    # end-to-end (AC-183-006 wiring assertion).
+    # ------------------------------------------------------------------
+    print()
+    print("=== F-010 hermetic e2e self-test (collect -> scan -> exit, STORY-183) ===")
+
+    with tempfile.TemporaryDirectory() as _td_e2e:
+        _e2e_root = Path(_td_e2e)
+        subprocess.run(
+            ["git", "init", "--quiet"], cwd=_e2e_root, check=True, capture_output=True
+        )
+        _e2e_bin = _e2e_root / "bin"
+        _e2e_bin.mkdir()
+        shutil.copy(_SCRIPT, _e2e_bin / "check-green-doc-tense")
+        (_e2e_bin / "violating.py").write_text(
+            "# currently asserts the implementation is complete\n", encoding="utf-8"
+        )
+        subprocess.run(
+            ["git", "add", "bin/violating.py"],
+            cwd=_e2e_root,
+            check=True,
+            capture_output=True,
+        )
+
+        _e2e_proc = subprocess.run(
+            [sys.executable, str(_e2e_bin / "check-green-doc-tense")],
+            cwd=_e2e_root,
+            capture_output=True,
+            text=True,
+        )
+        _e2e_combined = _e2e_proc.stdout + _e2e_proc.stderr
+
+        if _e2e_proc.returncode == 1:
+            print("  PASS  [hermetic-e2e: exit 1 on violation]")
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [hermetic-e2e: exit 1 on violation] — got exit "
+                f"{_e2e_proc.returncode!r}; output: {_e2e_combined!r}"
+            )
+            failures += 1
+
+        if "no tracked source files found" not in _e2e_combined:
+            print("  PASS  [hermetic-e2e: not empty-collection exit]")
+            passed += 1
+        else:
+            print(
+                "  FAIL  [hermetic-e2e: not empty-collection exit] — got the "
+                "empty-collection guard message instead of a genuine violation"
+            )
+            failures += 1
+
+        if "bin/violating.py" in _e2e_combined and "Pattern 32" in _e2e_combined:
+            print("  PASS  [hermetic-e2e: output names violating.py]")
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [hermetic-e2e: output names violating.py] — output: "
+                f"{_e2e_combined!r}"
+            )
+            failures += 1
+
+        _e2e_collected = mod._collect_source_files(_e2e_root)  # type: ignore[attr-defined]
+        if len(_e2e_collected) == 1:
+            print("  PASS  [hermetic-e2e: collect finds exactly 1 source file]")
+            passed += 1
+        else:
+            print(
+                f"  FAIL  [hermetic-e2e: collect finds exactly 1 source file] — "
+                f"found {len(_e2e_collected)}: {_e2e_collected!r}"
+            )
+            failures += 1
 
     print()
     print(f"Results: {passed} passed, {failures} failed.")

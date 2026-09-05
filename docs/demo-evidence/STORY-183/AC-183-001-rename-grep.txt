@@ -1,0 +1,2 @@
+bin/check-green-doc-tense:574:def _collect_source_files(repo_root: Path) -> list[Path]:
+bin/check-green-doc-tense:669:    source_files = _collect_source_files(repo_root)

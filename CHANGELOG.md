@@ -7,6 +7,27 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-09-05
+
+### Changed
+
+- Replace `Vec::drain(..).collect()` with `std::mem::take` in IEC-104 carry-buffer
+  handling (`src/analyzer/iec104.rs`) to satisfy `clippy::drain_collect` under the
+  rolled stable toolchain (rustc/clippy 1.98.1) — restores green CI for all PRs
+  (gate-fix, precedent #439).
+- `bin/check-green-doc-tense`: extend the DF-GREEN-DOC-TENSE-SWEEP scan glob to
+  include `bin/*.py` (in addition to `tests/*.rs`, `src/**/*.rs`, and `src/*.rs`)
+  and make `#`-prefixed Python comment lines scan-eligible (language-scoped via a
+  new `_is_comment_line(stripped, suffix)` parameter), closing the gap where stale
+  RED-phase prose in Python tooling scripts was silently skipped by the gate
+  (PG-W84-010). Add 8 new TIER-1 behavioral-absence violation patterns (30-37 —
+  `Expected RED:`, `currently fall(s)`, `currently asserts`, `falls to the
+  wildcard`, `does not / doesn't exist yet`, `currently has NO`, `currently
+  satisfied by`, `will be GREEN currently`) per DF-GREEN-DOC-TENSE-SWEEP v6,
+  covering the `currently asserts` phrasing class found in 9 stale sites during
+  STORY-180 adversarial review (PG-W85-003). `_collect_rust_files` renamed to
+  `_collect_source_files` to reflect the multi-language scan surface (STORY-183).
+
 ## [0.13.2] - 2026-07-25
 
 ### Changed
@@ -1885,7 +1906,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.2...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.3...HEAD
+[0.13.3]: https://github.com/Zious11/wirerust/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/Zious11/wirerust/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/Zious11/wirerust/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
