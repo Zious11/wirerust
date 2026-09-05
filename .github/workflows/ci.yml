@@ -47,6 +47,8 @@ jobs:
       - run: cargo test --all-targets
       - name: IEC-104 fixture coverage report (visible)
         if: ${{ !cancelled() }}
+        env:
+          CARGO_TERM_COLOR: never
         run: |
           set -euo pipefail
           cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
