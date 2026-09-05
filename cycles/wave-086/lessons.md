@@ -1,10 +1,10 @@
 ---
 document_type: lessons-learned
 level: ops
-version: "1.1"
+version: "1.2"
 status: complete
 producer: state-manager
-timestamp: 2026-09-05T00:00:00Z
+timestamp: 2026-09-05T21:30:00Z
 cycle: "wave-086"
 inputs: [STATE.md]
 input-hash: "[live-state]"
@@ -15,9 +15,12 @@ traces_to: STATE.md
 
 Captured during the wave-86 story-level adversarial convergence loop and finalized at the
 wave-86 gate close (D-550). This file's S-7.02 cycle-closing consolidation is at the bottom
-(§ Cycle-Close Disposition).
+(§ Cycle-Close Disposition). One additional process-level lesson (item 3 below) was captured
+during the v0.13.3 release delivery that followed gate-close (D-551, 2026-09-05) — the wave
+remains CLOSED; this is a release-process observation appended after the fact, not a reopening
+of wave-86 work.
 
-Wave: 86 | Status: **CLOSED (D-550, 2026-09-05)** — gate CLOSED 6/6, S-7.02 SATISFIED.
+Wave: 86 | Status: **CLOSED (D-550, 2026-09-05); RELEASED as v0.13.3 (D-551, 2026-09-05)** — gate CLOSED 6/6, S-7.02 SATISFIED.
 
 ---
 
@@ -73,6 +76,29 @@ than duplicated here.)_
    only — STORY-183 shipped correct; no defect reached `develop`. Requires
    DF-VALIDATION-001 research-agent validation before filing as a GitHub issue. See
    `cycles/wave-086/process-gap-ledger.md` § PG-W86-EDIT-WORKTREE-PATH-HAZARD._
+
+3. **pr-manager's default `gh pr merge --admin` was BLOCKED by the Claude Code permission
+   classifier on the v0.13.3 back-merge PR #464, even though the PR was fully mergeable** —
+   during the v0.13.3 release delivery (D-551, 2026-09-05), the pr-manager template's
+   standard back-merge step defaults to `gh pr merge --admin --merge` (admin bypass, used
+   historically because back-merges sometimes hit branch-protection edge cases). On PR #464
+   (`main`→`develop`, `mergeStateStatus: CLEAN`), the Claude Code permission classifier
+   BLOCKED the `--admin` invocation. No protection bypass was actually needed — a standard
+   non-admin `gh pr merge --merge` succeeded immediately, producing the same TRUE-MERGE
+   result (`0b1ea806`) with ancestry verified clean.
+
+   **LESSON/RULE:** Before defaulting to `gh pr merge --admin`, check `mergeStateStatus` via
+   `gh pr view <n> --json mergeStateStatus`. If it reports `CLEAN`, use the non-admin
+   `gh pr merge --merge` (or `--squash`, per PR type) — reserve `--admin` for cases where
+   the PR is genuinely protection-blocked (e.g. failing required status checks that are
+   known-spurious, or a review requirement that doesn't apply to this merge path). This
+   avoids unnecessary classifier friction on merges that need no bypass at all.
+
+   _Discovered: D-551 v0.13.3 release, back-merge PR #464, 2026-09-05. Disposition:
+   non-blocking — PR #464 merged successfully via the non-admin fallback; no delivery
+   impact. Relates to the queued product-feedback about the classifier flagging authorized
+   `--admin` merges; codification-tracking only, requires DF-VALIDATION-001 research-agent
+   validation before filing as a GitHub issue or amending the pr-manager template default._
 
 ## Infrastructure-Level
 
