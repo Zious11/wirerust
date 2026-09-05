@@ -51,6 +51,40 @@ mod iec104_e2e_real_pcaps {
     const LOCAL_SAMPLES: &str = "tests/fixtures/local-samples";
 
     // -------------------------------------------------------------------------
+    // STORY-182 stubs (AC-182-001/002/003/005) — STUB ARCHITECT placeholders only.
+    //
+    // These consts and `fixture_path()` are compilable placeholders. Real values and
+    // logic are the implementer's job (Red Gate: `test_fixture_manifest_report()` below
+    // MUST fail via `todo!()` until implemented).
+    // -------------------------------------------------------------------------
+
+    /// Placeholder — implementer populates with the committed-fixtures root (AC-182-003).
+    #[allow(dead_code)]
+    const COMMITTED_SAMPLES: &str = "";
+
+    /// Placeholder — implementer populates with the 4 expected fixture filenames (AC-182-001/005).
+    #[allow(dead_code)]
+    const FIXTURE_MANIFEST: &[&str] = &[];
+
+    /// Placeholder — implementer populates with the committed-eligible fixture filenames (AC-182-005).
+    #[allow(dead_code)]
+    const COMMITTED_FIXTURES: &[&str] = &[];
+
+    /// Placeholder — implementer populates with (test_fn_name, fixture_filename) pairs (AC-182-005).
+    #[allow(dead_code)]
+    const FIXTURE_GATED_TESTS: &[(&str, &str)] = &[];
+
+    /// Resolve the path of a fixture file, checking `tests/fixtures/` (committed) before
+    /// `tests/fixtures/local-samples/` (gitignored corpus).
+    ///
+    /// STUB — implementer fills in the body per AC-182-001. Returns `Some(path)` if the
+    /// file exists in either location, `None` if absent in both.
+    #[allow(dead_code)]
+    fn fixture_path(_filename: &str) -> Option<std::path::PathBuf> {
+        todo!("STORY-182 AC-182-001: implement fixture_path() shared resolver")
+    }
+
+    // -------------------------------------------------------------------------
     // Skip-if-absent guard (mirrors enip_e2e_real_pcaps_tests.rs pattern)
     //
     // Returns true if the fixture is present, false if the test should be skipped.
@@ -650,5 +684,21 @@ mod iec104_e2e_real_pcaps {
             "iec104-iti-dissect.pcap: dropped_findings must be 0; got {:?}",
             detail["dropped_findings"]
         );
+    }
+
+    // =========================================================================
+    // Test 5 — test_fixture_manifest_report (STORY-182, AC-182-001 + AC-182-005)
+    //
+    // STUB — implementer fills in the manifest-report + hard-assert body. This
+    // `todo!()` placeholder intentionally FAILS (Red Gate) until implemented.
+    // =========================================================================
+
+    /// test_fixture_manifest_report
+    ///
+    /// STUB — see AC-182-001 (skip-reporting half) and AC-182-005 (hard-assert half)
+    /// for the full required behavior. Not yet implemented.
+    #[test]
+    fn test_fixture_manifest_report() {
+        todo!("STORY-182 AC-182-001/AC-182-005: implement fixture manifest report + hard-assert")
     }
 } // mod iec104_e2e_real_pcaps
