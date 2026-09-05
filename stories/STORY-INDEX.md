@@ -1,13 +1,14 @@
 ---
 document_type: story-index
-version: "4.21"
+version: "4.22"
 status: draft
 producer: story-writer
-timestamp: 2026-09-04T00:00:00Z
+timestamp: 2026-09-05T00:00:00Z
 phase: f4
 total_stories: 136
 total_waves: 86
 total_points: 792  # = 792; wave-table scheduled: 709 (STORY-091/121/143/155 wave-TBD + STORY-111..117/148/175/177/178/179 superseded excluded; incl. STORY-167..174 waves 76-83 + STORY-166/176/147v2 wave 84 + STORY-180/181 wave 85 + STORY-182/183 wave 86); epic-table grand total: 792 (+4 STORY-182 E-11 + +5 STORY-183 E-11)
+# v4.22 (2026-09-05): D-548 STORY-182 DELIVERED (state-manager single-commit burst) — PR #460 squash-merged to develop as 35ffa135 (2026-09-05); develop e8841d76→bd244ddf(D-547 gate-fix #461)→35ffa135. status ready→delivered (index-table row + story frontmatter/body); per-story Step-4.5 adversarial CONVERGED 3/3, pr-reviewer APPROVE (0 blocking), security CLEAN (NONE). Wave-86 Delivery Progress row 0/2→1/2 (STORY-182 DELIVERED; STORY-183 delivery next). Gate-entry evidence (fixture-count-gate-entry.md), red-gate-log.md, and convergence-report.md written to factory-artifacts. STORY-182 v2.12 UNCHANGED (status is not a hashed input; canonical hash unchanged 9a0f34c). No numeric story/points/wave totals changed (136 stories / 86 waves / 792 pts; delivered 118→119).
 # v4.21 (2026-09-04): D-546 WAVE-86 HUMAN STORY-APPROVAL GATE PASSED + residual-drift backfill reconciliation (state-manager single-commit burst) — dependency-graph.md bumped v3.10→v3.12 (GAP-002 E-22 BC/VP-matrix backfill + GAP-003 waves-62-75 total_stories backfill, both RESOLVED; total_edges 138→143; total_points headline reconciled 807→792 exact match against this index's total_points: 792, zero residual) and epics.md bumped v2.2→v2.3 (E-13/E-14/E-16 full narrative sections authored, DRIFT-EPICS-NARRATIVE-SECTIONS RESOLVED; no numeric counts changed). STORY-182/183 status draft→ready (human gate approval; STORY-182 v2.12 + STORY-183 v2.13 UNCHANGED — no re-convergence required, BC-5.39.001 3/3 preserved, canonical hashes unchanged 9a0f34c/9c9b12f). E-22 epic-table row dep-graph citation updated v3.10/138 edges→v3.12/143 edges. Wave-86 Delivery Progress row status cells draft→ready. No numeric story/points/wave/delivered totals changed (136 stories / 86 waves / 792 pts / 118 delivered, all unchanged from v4.20).
 # v4.20 (2026-09-04): D-545 WAVE-86 GATE PERIMETER-FIX BURST reconciliation verification (human gate D-544 "fix both now" + level-alignment decision, actioned by state-manager) — dependency-graph.md bumped v3.9→v3.10 (waves 84/85/86 backfilled, STORY-174→STORY-180 edge, 138 acyclic edges, GAP-002/GAP-003 residuals recorded) and epics.md bumped v2.1→v2.2 (currency to 136 stories, E-11 6→23 stories/75 pts, total_bcs 337→380); this index's pre-existing claims (E-11 row = 23/75; E-22 row citing "dep-graph v3.10 acyclic 138 edges") are now VERIFIED TRUE against the reconciled artifacts — no residual mismatch found, no index-body edit required. STORY-182/183 `level: maintenance`→`level: feature` (E-11 convention alignment matching STORY-147/166/176, D-544 human decision): METADATA-ONLY, no version bump (still v2.12/v2.13), no re-convergence required (BC-5.39.001 3/3 preserved), canonical hashes re-verified unchanged (9a0f34c/9c9b12f). No numeric story/points/wave totals changed (136 stories / 86 waves / 792 pts / 118 delivered, all unchanged from v4.19).
 # v4.19 (2026-09-04): WAVE-86 PASS-24 REMEDIATION — 1 MEDIUM (F-W86S-P24-001: same locus as pass-23's accepted NIT, independently ESCALATED by fresh-context adversary — Task 10 markdown-bold misquote against live `bin/check-green-doc-tense:4` docstring + Task 10↔FSR row intra-document contradiction), fixed; 3 loci corrected to plain form (Task 10 current-text quote, Task 10 rewrite, Task 10 duplicate parenthetical); DF-SIBLING-SWEEP-001 sweep clean; STORY-183 v2.12→v2.13 (STORY-182 v2.12 unchanged); canonical hashes unchanged 9a0f34c/9c9b12f; clean streak RESET 1/3→0/3 (pass 24 had a MEDIUM); pass 25 next; no numeric totals changed.
@@ -300,7 +301,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | STORY-177 | Feature-IEC104 Cycle-Close: Agent Dispatch and Reporting Discipline | E-11 | ~ | 2 | superseded | — |
 | STORY-178 | Feature-IEC104 Cycle-Close: Pre-Delivery Spec Fidelity Gate | E-11 | ~ | 3 | superseded | — |
 | STORY-179 | Feature-IEC104 Cycle-Close: Session Recovery and Multi-Worktree Verification | E-11 | ~ | 2 | superseded | — |
-| STORY-182 | E2E Fixture Manifest + Committed Representative Captures: Eliminate False-Green cargo test in Clean Worktrees | E-11 | 86 | 4 | ready | — |
+| STORY-182 | E2E Fixture Manifest + Committed Representative Captures: Eliminate False-Green cargo test in Clean Worktrees | E-11 | 86 | 4 | delivered | — |
 | STORY-183 | check-green-doc-tense: bin/*.py Prose Coverage + TIER-1 Behavioral-Absence Token Coverage | E-11 | 86 | 5 | ready | — |
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
@@ -583,7 +584,7 @@ Correcting one cell and submitting before auditing siblings is **non-conforming*
 | 83 | STORY-174 | **DELIVERED (D-463, 2026-07-17)** | #409 | 547deba | 2026-07-17 |
 | 84 | STORY-166, STORY-176, STORY-147 | **3/3 DELIVERED + GATE CLOSED (D-486, 2026-07-21)** | #421 (STORY-147), #426 (STORY-166), #427 (STORY-176) + gate-fix #428/429/430 | f0cb7374, fa9be701, 595cdba8, 82105d02, 39b30cb1, 1e967bad | 2026-07-21 |
 | 85 | STORY-180, STORY-181 | **2/2 DELIVERED — STORY-180 (D-507, PR #437 421bf572, 2026-07-24) + STORY-181 (D-509, PR #438 5555495b, 2026-07-24) — CLOSED-PENDING-GATE** | #437 (STORY-180), #438 (STORY-181) | 421bf572, 5555495b | 2026-07-24 |
-| 86 | STORY-182, STORY-183 | **0/2 — STORY-182 (PG-W85-005 fixture manifest + committed ITI captures, 4 pts, v2.12, ready) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.13, ready) — OPEN (adversarial convergence 3/3 SATISFIED D-544 [passes 25/26/27]; human story-approval gate PASSED D-546 — per-story delivery next, STORY-182 first)** | — | — | — |
+| 86 | STORY-182, STORY-183 | **1/2 — STORY-182 DELIVERED (D-548, PR #460 35ffa135, 2026-09-05) + STORY-183 (PG-W84-010+PG-W85-003 check-green-doc-tense bin/*.py + TIER-1 Behavioral-Absence Token Coverage patterns 30-37, 5 pts, v2.13, ready) — OPEN (STORY-183 per-story delivery next)** | #460 (STORY-182) | 35ffa135 | 2026-09-05 |
 
 ## Coverage Verification
 
