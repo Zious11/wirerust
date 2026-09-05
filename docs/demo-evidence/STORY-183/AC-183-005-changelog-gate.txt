@@ -1,0 +1,3 @@
+$ git diff origin/develop...HEAD -- CHANGELOG.md | bin/changelog-gate-check
+PASS: CHANGELOG.md updated with 12 content line(s).
+exit: 0

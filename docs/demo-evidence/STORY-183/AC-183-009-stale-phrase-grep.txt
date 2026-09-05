@@ -1,0 +1,2 @@
+$ grep -n "RED GATE\|TC1.TC8\|MUST FAIL until" bin/test_lint_cycle_artifact.py
+(no matches — stale phrases absent)
