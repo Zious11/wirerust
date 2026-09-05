@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-183
 epic_id: E-11
 version: "2.13"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
 phase: f7
@@ -44,7 +44,7 @@ input-hash: "9c9b12f"
 # STORY-183: check-green-doc-tense: bin/*.py Prose Coverage + TIER-1 Behavioral-Absence Token Coverage
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** ready
 **Wave:** 86
 **Points:** 5
 **Priority:** P2

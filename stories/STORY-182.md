@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-182
 epic_id: E-11
 version: "2.12"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-07-25T00:00:00Z
 phase: f7
@@ -42,7 +42,7 @@ input-hash: "9a0f34c"
 # STORY-182: E2E Fixture Manifest + Committed Representative Captures: Eliminate False-Green cargo test in Clean Worktrees
 
 **Epic:** E-11 (Tooling and Self-Improvement)
-**Status:** draft
+**Status:** ready
 **Wave:** 86
 **Points:** 4
 **Priority:** P2

@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "2.2"
+version: "2.3"
 status: draft
 producer: story-writer
 phase: 2
@@ -17,6 +17,7 @@ modified:
   - "2026-06-28 v2.0: Wave 64 RULING-MODBUS-SIBLING-001 + RULING-DNP3-DESYNC-001 fix stories — STORY-141 added to E-14 (wave 64, 8 pts, dep=[]). STORY-142 added to E-15 (wave 64, 3 pts, dep=STORY-140). No new BCs (BC-2.14.002/016/017/019 and BC-2.15.009 are pre-existing, amended by rulings). E-14 story count 4→5. E-14 points 37→45. E-15 story count 6→7. E-15 points 55→58. Estimated Story Count Summary E-14 row 4→5, E-15 row 6→7, Total 89→91. total_bcs unchanged at 328."
   - "2026-07-02 v2.1: F3 phase gate (feature-protocol-coverage) — E-21 epic added (STORY-151..154, 4 stories, 32 pts, Waves 67–69). 9 new BCs: BC-2.18.001..004 (SS-18 protocol coverage catalog) + BC-2.05.010..011 (SS-05 dispatcher unclassified-port gap counters) + BC-2.12.022..024 (SS-12 protocols subcommand + --coverage-gaps flag). total_bcs 328→337. Post-v2.0 story-count drift reconciled against STORY-INDEX v3.12: E-5 8→11 (+STORY-144/145/146 fix-tls-clienthello-frag F3 2026-06-29); E-8 5→7 (+STORY-120 FindingsRender enum migration + STORY-129 mitre_attack JSON enrichment); E-11 1→6 (+STORY-121/143/147/149/150 process-gap/tooling stories added 2026-06-18..2026-07-01); E-18 2→3 (+STORY-122 enum→struct reshape D-120 split-A 2026-06-18); E-20 10→11 (+STORY-148 on_flow_close wiring + DNP3 flow-map cap maint-2026-07-01). Estimated Story Count Summary Total 91→107. DISCREPANCY NOTE: epics.md pre-E-21 total_bcs 328 was stale by -6 — BC-2.07.038..043 (TLS carry-reassembly BCs, fix-tls-clienthello-frag F3 2026-06-29) are absent from E-5 Per-Epic BC row and Coverage Check table; true pre-E-21 total = 334; this v2.1 corrects for E-21 only (328+9=337), deferring the E-5 BC row update to a subsequent pass. Residual gap vs BC-INDEX v2.13 (345 active) = 8 (= 6 missing TLS BCs + 2 unresolved)."
   - "2026-09-04 v2.2: DRIFT-EPICS-STALE-v21 currency reconciliation (wave-86 human story-approval gate D-544, 'fix both now') — epics.md was frozen at v2.1 (2026-07-02) while STORY-INDEX advanced to v4.19 (136 stories). Full per-epic reconciliation against STORY-INDEX v4.19 'Stories by Epic' table and BC-INDEX v2.37: (1) E-11 6→23 stories / pts n/a→75 (+STORY-155/157/158/159/161/162/163/164/165/166/175/176/177/178/179/182/183; superseded/delivered statuses reflected per STORY-INDEX, none deleted from history; STORY-182/183 now correctly listed as E-11 members per D-544); (2) E-8 7→8 stories, BC row 24→27 (+BC-2.11.035/036/037; STORY-160); (3) E-16 5→6 stories, BC row 15→16 (+BC-2.16.016; STORY-156) — E-16 has no full epic section (pre-existing structural gap predating v2.1, left as-is; membership/counts reconciled via Coverage Check + Summary table only); (4) E-20 11→12 stories, points 74→82 (+STORY-181; STORY-148 already counted at v2.1); (5) new Epic E-22 (IEC-104 Passive Analyzer) added in full — 9 stories / 41 pts / 33 BCs (STORY-167..174, STORY-180; did not exist at v2.1, predates feature-iec104 decomposition D-440 2026-07-14); (6) E-18 2→3 stories (STORY-122 was already in the Summary table since v1.7 but never reflected in the E-18 section body — corrected); (7) E-19 and E-21 stale 'in-progress'/'draft' status lines corrected to reflect STORY-INDEX-confirmed delivery. E-5 BC discrepancy (flagged unresolved at v2.1, -6 BCs) RESOLVED this pass, not deferred: BC-2.07.038..043 added to E-5's BC list and the Coverage Check table (37→43 active). total_bcs 337→380, reconciled exactly against BC-INDEX v2.37's canonical derivation chain ('Total BCs on disk: 381. Active: 380.') — 0 unassigned, 0 double-assigned, 0 residual gap. Estimated Story Count Summary Total 107→136, verified against STORY-INDEX v4.19 total_stories=136. No pre-existing structural gaps (E-13/E-14/E-16 lacking full '## Epic' sections) were closed beyond E-16's Coverage/Summary reconciliation — full section authoring for those three is out of scope for a currency pass and is NOT tracked as a residual gap of this reconciliation (it predates v2.1 and predates DRIFT-EPICS-STALE-v21)."
+  - "2026-09-04 v2.3: DRIFT-EPICS-NARRATIVE-SECTIONS closure (wave-86 gate, pre-delivery fix) — authored the three missing full '## Epic' narrative sections flagged (and deliberately deferred) by the v2.2 changelog entry above: Epic E-13 (Multi-Tag Finding Schema Migration, v0.3.0/issue #7 — grounded in STORY-100/STORY-101 + PRD v1.2/v1.3 f2-bundle-vs-split.md), Epic E-14 (Modbus TCP Analyzer, v0.4.0/issue #7 — grounded in STORY-102/103/104/105/141 + PRD §2.14/ADR-005/ADR-006), and Epic E-16 (ARP Security Analyzer, issue #9 — grounded in STORY-111/112/113/114/115/156 + PRD §2.16/ADR-008). Each new section was inserted at its correct ordinal position (E-13 and E-14 between E-12 and E-15; E-16 between E-15 and E-17) and follows the Goal/BCs/Subsystems-touched/Estimated-stories/Rationale structure used by every other epic section. NO numbers were changed: E-13 remains 2 stories / 0 new BCs (extensions only) / 21 pts; E-14 remains 5 stories / 25 BCs / 45 pts; E-16 remains 6 stories / 16 BCs / 50 pts — all identical to the v2.2 Estimated Story Count Summary and Coverage Check table values, which remain the source of truth for counts. total_bcs unchanged at 380."
 total_bcs: 380
 traces_to:
   - .factory/specs/prd.md
@@ -501,6 +502,96 @@ story-approval gate D-544, "fix both now") are now correctly listed as E-11 memb
 
 ---
 
+## Epic E-13: Multi-Tag Finding Schema Migration (v0.3.0 / issue #7)
+
+- **Goal:** A SIEM integrator or SOC analyst consuming wirerust JSON/CSV/terminal output sees
+  every `Finding` carry `mitre_techniques: Vec<String>` in place of the old
+  `mitre_technique: Option<String>` scalar — so that a single finding can be co-attributed to
+  multiple MITRE ATT&CK techniques (e.g. `["T1692.001","T0836"]` for a Modbus write command),
+  while every pre-existing single-technique finding continues to serialize correctly as a
+  singleton vec. The JSON report envelope gains `mitre_domain`/`mitre_attack_version` fields,
+  the CSV reporter semicolon-joins multi-technique cells (empty string for no techniques), and
+  the terminal reporter groups findings by `mitre_techniques[0]` tactic. The MITRE technique
+  catalog is seeded with 6 new ICS technique IDs (15 → 21 total) so the type-system change and
+  the catalog have no unresolved IDs on day one.
+- **BCs:** BC-2.09.001 (extension), BC-2.09.006 (extension), BC-2.10.005 (extension),
+  BC-2.10.007 (extension), BC-2.10.008 (extension), BC-2.11.001 (extension),
+  BC-2.11.013 (extension), BC-2.11.015 (extension), BC-2.11.017 (extension),
+  BC-2.11.020 (extension), BC-2.11.024 (extension) — 0 new BCs (all are amended versions of
+  pre-existing E-7/E-8 BCs; see Coverage Check for the authoritative 0-count).
+- **Subsystems touched:** SS-09, SS-10, SS-11
+- **Estimated stories:** 2 (STORY-100, STORY-101)
+- **Total points:** 21 (STORY-100: 13, STORY-101: 8)
+- **Feature issue:** #7 (schema half of the Feature #7 Modbus decomposition)
+
+**Rationale:** Per PRD v1.2/v1.3 (`f2-bundle-vs-split.md` Decision B2), the multi-tag Finding
+schema change is independent of the Modbus analyzer that motivates it and is deliberately
+released first as its own breaking-change version (v0.3.0), with Modbus itself landing
+purely additively in v0.4.0 (E-14) on top of the stabilized contract. The migration
+decomposes into exactly two stories along the pure-model/reporter-surface boundary:
+STORY-100 performs the atomic field rename (`mitre_technique` → `mitre_techniques`) across
+all ~21 emission sites plus the MITRE catalog seed expansion (15 → 21 IDs), and STORY-101
+updates the three reporter surfaces (JSON envelope fields, CSV semicolon-join encoding,
+terminal MITRE-tactic grouping) to consume the new `Vec<String>` field. STORY-101 depends on
+STORY-100 because it operates on the type STORY-100 introduces. No new subsystem is touched;
+all 11 BC references are version-bumped amendments of existing SS-09/SS-10/SS-11 contracts,
+which is why this epic contributes 0 new BCs to the total_bcs count despite unblocking every
+downstream multi-technique detection (Modbus, DNP3, ARP, ENIP, IEC-104).
+
+**Currency note (v2.3, 2026-09-04):** This section was missing from epics.md prior to this
+pass (DRIFT-EPICS-NARRATIVE-SECTIONS) — the epic's story/BC counts were previously visible
+only via the Estimated Story Count Summary and Coverage Check tables. Narrative added; no
+counts changed (2 stories / 0 new BCs / 21 points, unchanged from v2.2).
+
+---
+
+## Epic E-14: Modbus TCP Analyzer (v0.4.0 / issue #7)
+
+- **Goal:** An ICS/OT security analyst can point wirerust at a pcap containing Modbus TCP
+  traffic (port 502, built on the multi-tag `Finding` contract established in E-13) and
+  receive structured, multi-tag findings for all 7 MITRE ATT&CK for ICS detection patterns
+  the analyzer supports: write-class command co-emission (T1692.001 + applicable technique
+  tags), coordinated-write sequences (T0831), dual-window (burst/sustained) write-rate
+  anomalies (T0806), diagnostics-function DoS bursts (T0814), exception-response bursts, and
+  reconnaissance reads — with a bounded per-flow pending-transaction table correlating
+  requests to responses/exceptions, a MAX_FINDINGS cap with poison-skip behavior, a
+  `--modbus` CLI flag (`--all` includes it, default off, requires stream reassembly), and
+  tunable `--modbus-write-burst-threshold`/`--modbus-write-sustained-threshold` flags —
+  formally verified panic-free by Kani proofs over the pure-core MBAP/FC parsing layer.
+- **BCs:**
+  BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006,
+  BC-2.14.007, BC-2.14.008, BC-2.14.009, BC-2.14.010, BC-2.14.011, BC-2.14.012,
+  BC-2.14.013, BC-2.14.014, BC-2.14.015, BC-2.14.016, BC-2.14.017, BC-2.14.018,
+  BC-2.14.019, BC-2.14.020, BC-2.14.021, BC-2.14.022, BC-2.14.023, BC-2.14.024,
+  BC-2.14.025
+- **Subsystems touched:** SS-14 (new), SS-05, SS-12
+- **Estimated stories:** 5 (STORY-102, STORY-103, STORY-104, STORY-105, STORY-141)
+- **Total points:** 45 (STORY-102: 8, STORY-103: 8, STORY-104: 13, STORY-105: 8, STORY-141: 8)
+- **Feature issue:** #7 (Modbus half of the Feature #7 decomposition; ADR-005/ADR-006)
+
+**Rationale:** Modbus/ICS analysis (25 BCs) decomposes into four strictly linear layers,
+matching the pattern later reused for DNP3 (E-15) and ENIP (E-20): (1) pure-core MBAP header
+parse + all-256-function-code classification, Kani-verified panic-free (STORY-102, wave 32);
+(2) per-flow state — a bounded pending-transaction table keyed on (Transaction ID, Unit ID)
+correlating requests to responses/exceptions (STORY-103, wave 33, dep=102); (3) the seven
+MITRE detection rules plus `summarize()` and the MAX_FINDINGS cap (STORY-104, wave 33,
+dep=103); (4) `StreamDispatcher` Rule 5 integration and the `--modbus`/threshold CLI flags
+(STORY-105, wave 34, dep=104). STORY-141 (wave 64) is a later release-blocking hardening fix
+— RULING-MODBUS-SIBLING-001 (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001) — that
+splits the carry buffer per TCP direction (`carry_c2s`/`carry_s2c`) and switches window-expiry
+arithmetic to `saturating_sub`, so bidirectional flows and adversarially injected
+backwards-clock timestamps cannot produce phantom findings or suppress in-progress burst
+windows. It is grouped in this epic rather than a separate one because it touches no new
+subsystem boundary (SS-14 only). The analyzer is purely additive on top of the v0.3.0
+multi-tag schema (E-13): no BC outside SS-14/SS-05/SS-12 changes.
+
+**Currency note (v2.3, 2026-09-04):** This section was missing from epics.md prior to this
+pass (DRIFT-EPICS-NARRATIVE-SECTIONS) — the epic's story/BC counts were previously visible
+only via the Estimated Story Count Summary and Coverage Check tables. Narrative added; no
+counts changed (5 stories / 25 BCs / 45 points, unchanged from v2.2).
+
+---
+
 ## Epic E-15: DNP3/ICS Analyzer (issue #8)
 
 - **Goal:** A forensic analyst or ICS/OT security engineer can point wirerust at a pcap
@@ -531,6 +622,60 @@ memory safety bounds, (3) direct detection emissions (T1692.001, T0814 restart, 
 VP-007 atomic-update anchor), (5) dispatcher integration + CLI flag (VP-004 oracle
 obligation). Each layer is independently testable; the dependency chain is strictly linear
 with no parallelism (each story builds on the previous one's produced types and state).
+
+---
+
+## Epic E-16: ARP Security Analyzer (issue #9)
+
+- **Goal:** A forensic analyst or ICS/OT security engineer can enable `--arp` against a pcap
+  containing Ethernet/IPv4 ARP traffic and receive findings across 5 detection types: ARP
+  spoofing via IP→MAC rebind (D1, MEDIUM then HIGH, MITRE T0830/T1557.002), Gratuitous ARP
+  (D2, LOW normally / MEDIUM when it conflicts with an existing binding and co-emits a D1
+  finding — "GARP-that-conflicts"), ARP packet storms via per-source-MAC rate tracking over a
+  60-second flap window (D3), malformed non-Ethernet/IPv4 ARP frames (D11), and Ethernet/ARP
+  sender-MAC L2/L3 mismatches (D12) — backed by a bounded (LRU-evicted) IP→MAC binding table,
+  a `summarize()` surface with 13 canonical keys, and tunable `--arp-spoof-threshold` /
+  `--arp-storm-rate` CLI flags. ARP analysis is link-layer only (bypasses the stream
+  dispatcher, does not require reassembly) and is opt-in — `--all` does not enable it.
+- **BCs:** BC-2.16.001, BC-2.16.002, BC-2.16.003, BC-2.16.004, BC-2.16.005, BC-2.16.006,
+  BC-2.16.007, BC-2.16.008, BC-2.16.009, BC-2.16.010, BC-2.16.011, BC-2.16.012, BC-2.16.013,
+  BC-2.16.014, BC-2.16.015, BC-2.16.016 (unbounded-findings-cap doc + regression, STORY-156,
+  fix-pc-013-014-015 D-221)
+- **Subsystems touched:** SS-16 (new)
+- **Estimated stories:** 6 (STORY-111, STORY-112, STORY-113, STORY-114, STORY-115, STORY-156)
+- **Total points:** 50 (STORY-111: 5, STORY-112: 8, STORY-113: 13, STORY-114: 13,
+  STORY-115: 8, STORY-156: 3)
+- **Feature issue:** #9 (ADR-008)
+- **Status:** DELIVERED/CLOSED — STORY-111..115 shipped v0.7.0; twice research-validated as
+  superseded / DELIVERED-BY-DRIFT (D-487, 2026-07-21; DF-VALIDATION-001;
+  `planning/e16-e17-arp-draft-disposition-plan.md`) because the code landed on `develop`
+  ahead of formal story-PR closure. STORY-156 (wave 71) shipped separately as `merged`.
+
+**Rationale:** ARP security analysis (16 BCs) decomposes into five layers that mirror the
+decode-vs-analysis separation mandated by ADR-008 Decisions 1/3: (1) decode-pipeline
+scaffolding — upgrading etherparse 0.16→0.20, introducing the `DecodedFrame`/`ArpFrame`
+types, and adding symmetric `unreachable!` compile-safety arms for the new three-way dispatch,
+with a non-panicking `extract_arp_frame` placeholder (STORY-111, depends on the DNP3 chain's
+STORY-110 purely for `develop` sequencing, not an ARP-domain dependency); (2) the real
+`extract_arp_frame` implementation wired into both the strict and lax decode paths plus an
+`ArpAnalyzer` stub (STORY-112, dep=111); (3) the full stateless/stateful detection surface —
+binding table, D2 GARP, D11 malformed, D12 mismatch, `summarize()`, and the `--arp` flag
+(STORY-113, dep=112); (4) D1 spoof escalation, GARP-that-conflicts, and the co-committed
+5-part MITRE catalog update for T0830/T1557.002 (STORY-114, dep=113); (5) D3 storm detection
+and the `--arp-storm-rate` flag, completing the v0.7.0 release scope (STORY-115, dep=114).
+This strictly linear chain reflects that decode-layer scaffolding must land before any
+ARP-specific analysis can be written, and each detection layer builds on state (the binding
+table, the MITRE catalog) introduced by its predecessor. STORY-156 (wave 71) is a later
+maintenance story documenting and regression-testing the analyzer's deliberately unbounded
+findings output (`process_arp` carries no MAX_FINDINGS cap, unlike every other analyzer) —
+grouped here because it touches no new subsystem boundary (SS-16 only) and closes a
+spec-coherence gap (BC-2.16.016, F-NEW-MAJ-003) rather than adding new detection behavior.
+
+**Currency note (v2.3, 2026-09-04):** This section was missing from epics.md prior to this
+pass (DRIFT-EPICS-NARRATIVE-SECTIONS) — the epic's story/BC counts were previously visible
+only via the Estimated Story Count Summary and Coverage Check tables (the v2.2 changelog
+entry explicitly flagged this three-epic gap and deferred full-section authoring for E-16).
+Narrative added; no counts changed (6 stories / 16 BCs / 50 points, unchanged from v2.2).
 
 ---
 
