@@ -64,7 +64,6 @@ mod iec104_e2e_real_pcaps {
     // -------------------------------------------------------------------------
 
     /// All 4 fixture filenames used by the fixture-gated tests in this module.
-    #[allow(dead_code)]
     const FIXTURE_MANIFEST: &[&str] = &[
         "iec104.pcap",
         "iec104-sq.pcapng",
@@ -77,12 +76,10 @@ mod iec104_e2e_real_pcaps {
     /// `iec104-iti-dissect.pcap` is NOT committed — POSITIVE EVIDENCE OF
     /// UPSTREAM-OF-ITI ORIGIN (upstream filename `TestDissectIec104.pcap` +
     /// E2E-PCAPS.md "Wireshark-dissector test capture"); stays gitignored.
-    #[allow(dead_code)]
     const COMMITTED_FIXTURES: &[&str] = &["iec104-iti-diverse.pcap"];
 
     /// Maps every fixture-gated test function to its fixture filename. New tests
     /// calling `fixture_present()` MUST register here.
-    #[allow(dead_code)]
     const FIXTURE_GATED_TESTS: &[(&str, &str)] = &[
         (
             "test_e2e_BC_2_19_iec104_pcap_T0836_T1692_001_interrogation",
@@ -106,7 +103,6 @@ mod iec104_e2e_real_pcaps {
     /// `tests/fixtures/local-samples/` (gitignored corpus).
     ///
     /// Returns `Some(path)` if the file exists in either location, `None` if absent in both.
-    #[allow(dead_code)]
     fn fixture_path(filename: &str) -> Option<std::path::PathBuf> {
         let base = Path::new(env!("CARGO_MANIFEST_DIR"));
         let committed = base.join(COMMITTED_SAMPLES).join(filename);
