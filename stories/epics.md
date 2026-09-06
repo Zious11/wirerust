@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "2.3"
+version: "2.4"
 status: draft
 producer: story-writer
 phase: 2
@@ -18,7 +18,8 @@ modified:
   - "2026-07-02 v2.1: F3 phase gate (feature-protocol-coverage) — E-21 epic added (STORY-151..154, 4 stories, 32 pts, Waves 67–69). 9 new BCs: BC-2.18.001..004 (SS-18 protocol coverage catalog) + BC-2.05.010..011 (SS-05 dispatcher unclassified-port gap counters) + BC-2.12.022..024 (SS-12 protocols subcommand + --coverage-gaps flag). total_bcs 328→337. Post-v2.0 story-count drift reconciled against STORY-INDEX v3.12: E-5 8→11 (+STORY-144/145/146 fix-tls-clienthello-frag F3 2026-06-29); E-8 5→7 (+STORY-120 FindingsRender enum migration + STORY-129 mitre_attack JSON enrichment); E-11 1→6 (+STORY-121/143/147/149/150 process-gap/tooling stories added 2026-06-18..2026-07-01); E-18 2→3 (+STORY-122 enum→struct reshape D-120 split-A 2026-06-18); E-20 10→11 (+STORY-148 on_flow_close wiring + DNP3 flow-map cap maint-2026-07-01). Estimated Story Count Summary Total 91→107. DISCREPANCY NOTE: epics.md pre-E-21 total_bcs 328 was stale by -6 — BC-2.07.038..043 (TLS carry-reassembly BCs, fix-tls-clienthello-frag F3 2026-06-29) are absent from E-5 Per-Epic BC row and Coverage Check table; true pre-E-21 total = 334; this v2.1 corrects for E-21 only (328+9=337), deferring the E-5 BC row update to a subsequent pass. Residual gap vs BC-INDEX v2.13 (345 active) = 8 (= 6 missing TLS BCs + 2 unresolved)."
   - "2026-09-04 v2.2: DRIFT-EPICS-STALE-v21 currency reconciliation (wave-86 human story-approval gate D-544, 'fix both now') — epics.md was frozen at v2.1 (2026-07-02) while STORY-INDEX advanced to v4.19 (136 stories). Full per-epic reconciliation against STORY-INDEX v4.19 'Stories by Epic' table and BC-INDEX v2.37: (1) E-11 6→23 stories / pts n/a→75 (+STORY-155/157/158/159/161/162/163/164/165/166/175/176/177/178/179/182/183; superseded/delivered statuses reflected per STORY-INDEX, none deleted from history; STORY-182/183 now correctly listed as E-11 members per D-544); (2) E-8 7→8 stories, BC row 24→27 (+BC-2.11.035/036/037; STORY-160); (3) E-16 5→6 stories, BC row 15→16 (+BC-2.16.016; STORY-156) — E-16 has no full epic section (pre-existing structural gap predating v2.1, left as-is; membership/counts reconciled via Coverage Check + Summary table only); (4) E-20 11→12 stories, points 74→82 (+STORY-181; STORY-148 already counted at v2.1); (5) new Epic E-22 (IEC-104 Passive Analyzer) added in full — 9 stories / 41 pts / 33 BCs (STORY-167..174, STORY-180; did not exist at v2.1, predates feature-iec104 decomposition D-440 2026-07-14); (6) E-18 2→3 stories (STORY-122 was already in the Summary table since v1.7 but never reflected in the E-18 section body — corrected); (7) E-19 and E-21 stale 'in-progress'/'draft' status lines corrected to reflect STORY-INDEX-confirmed delivery. E-5 BC discrepancy (flagged unresolved at v2.1, -6 BCs) RESOLVED this pass, not deferred: BC-2.07.038..043 added to E-5's BC list and the Coverage Check table (37→43 active). total_bcs 337→380, reconciled exactly against BC-INDEX v2.37's canonical derivation chain ('Total BCs on disk: 381. Active: 380.') — 0 unassigned, 0 double-assigned, 0 residual gap. Estimated Story Count Summary Total 107→136, verified against STORY-INDEX v4.19 total_stories=136. No pre-existing structural gaps (E-13/E-14/E-16 lacking full '## Epic' sections) were closed beyond E-16's Coverage/Summary reconciliation — full section authoring for those three is out of scope for a currency pass and is NOT tracked as a residual gap of this reconciliation (it predates v2.1 and predates DRIFT-EPICS-STALE-v21)."
   - "2026-09-04 v2.3: DRIFT-EPICS-NARRATIVE-SECTIONS closure (wave-86 gate, pre-delivery fix) — authored the three missing full '## Epic' narrative sections flagged (and deliberately deferred) by the v2.2 changelog entry above: Epic E-13 (Multi-Tag Finding Schema Migration, v0.3.0/issue #7 — grounded in STORY-100/STORY-101 + PRD v1.2/v1.3 f2-bundle-vs-split.md), Epic E-14 (Modbus TCP Analyzer, v0.4.0/issue #7 — grounded in STORY-102/103/104/105/141 + PRD §2.14/ADR-005/ADR-006), and Epic E-16 (ARP Security Analyzer, issue #9 — grounded in STORY-111/112/113/114/115/156 + PRD §2.16/ADR-008). Each new section was inserted at its correct ordinal position (E-13 and E-14 between E-12 and E-15; E-16 between E-15 and E-17) and follows the Goal/BCs/Subsystems-touched/Estimated-stories/Rationale structure used by every other epic section. NO numbers were changed: E-13 remains 2 stories / 0 new BCs (extensions only) / 21 pts; E-14 remains 5 stories / 25 BCs / 45 pts; E-16 remains 6 stories / 16 BCs / 50 pts — all identical to the v2.2 Estimated Story Count Summary and Coverage Check table values, which remain the source of truth for counts. total_bcs unchanged at 380."
-total_bcs: 380
+  - "2026-09-06 v2.4: Phase F3 INTEGRATE — E-23 S7comm / ISO-on-TCP Protocol Dissection (feature-s7comm, ADR-014) added — STORY-184..194 (11 stories, 71 pts, Waves 87–97). 60 new BCs: BC-2.20.001..016 (SS-20 ISO-on-TCP framing, new subsystem, 16 BCs) + BC-2.21.001..041 (SS-21 S7comm domain analysis, new subsystem, 41 BCs) + BC-2.18.005..006 (SS-18 Support-enum catalog extension, 2 BCs) + BC-2.05.013 (SS-05 dispatcher Rule 9 extension, 1 BC). BC-2.18.003/004 are AMENDED (v1.3→v1.4, v1.2→v1.3 for port 102/S7comm entries per STORY-193), not new BC IDs — already counted in E-21's row. total_bcs 380→440, reconciled exactly against BC-INDEX v2.38.1's canonical derivation chain ('Total BCs on disk: 441. Active: 440.') — 0 unassigned, 0 double-assigned, 0 residual gap. Estimated Story Count Summary Total 136→147, verified against dependency-graph.md v3.13 total_stories=147. Per-Epic BC Assignment table: new E-23 row (SS-20/SS-21/SS-05/SS-18, 60 BCs). Arithmetic Verification: new E-23 line, running total 380→440. All 15+2=17 subsystems table: added SS-20, SS-21 rows. Coverage confirmed updated 380/380→440/440."
+total_bcs: 440
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -30,8 +31,8 @@ traces_to:
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
 > The original 217 behavioral contracts described the greenfield-ingested shipped
 > implementation (E-1..E-10); every epic from E-12 onward is a Feature Mode F2 addition
-> layered on top of that baseline. As of this document's v2.2 currency pass, the full
-> active-BC count across all epics is 380 (BC-INDEX v2.37 — see Coverage Check for the
+> layered on top of that baseline. As of this document's v2.4 pass, the full
+> active-BC count across all epics is 440 (BC-INDEX v2.38.1 — see Coverage Check for the
 > complete per-epic derivation).
 > Epics are cohesive groupings of user value aligned to PRD capabilities and subsystem
 > boundaries. No epic is a pure 1:1 subsystem copy where capabilities naturally compose
@@ -335,7 +336,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer | SS-17 (new), SS-05, SS-12 | BC-2.17.001..026 | 26 |
 | E-21: Protocol Coverage Catalog | SS-18 (new), SS-05, SS-12 | BC-2.18.001..004, BC-2.05.010..011, BC-2.12.022..024 | 9 |
 | E-22: IEC-104 Passive Analyzer | SS-19 (new), SS-05, SS-10, SS-12 | BC-2.19.001..027, BC-2.19.028 (MAX_IEC104_FINDINGS DoS bound), BC-2.19.029..030 (timed control-command, wave-85), BC-2.05.012, BC-2.10.010, BC-2.12.025 | 33 |
-| **TOTAL** | | | **380** (see Arithmetic Verification) |
+| E-23: S7comm / ISO-on-TCP Protocol Dissection | SS-20 (new), SS-21 (new), SS-05, SS-18 | BC-2.20.001..016 (ISO-on-TCP framing), BC-2.21.001..041 (S7comm domain analysis), BC-2.05.013, BC-2.18.005..006 | 60 |
+| **TOTAL** | | | **440** (see Arithmetic Verification) |
 
 ### Arithmetic Verification
 
@@ -369,13 +371,18 @@ E-21:  9 (SS-18/SS-05/SS-12: BC-2.18.001..004 + BC-2.05.010..011 + BC-2.12.022..
                       347 (pre-E-22 subtotal)
 E-22: 33 (SS-19: BC-2.19.001..030 = 30 + SS-05 BC-2.05.012 + SS-10 BC-2.10.010 + SS-12 BC-2.12.025 = 33) = 33
                       --------
-                      380 / 380  ✓ (matches BC-INDEX v2.37 total_bcs: 381 on disk / 380 active)
+                      380 (pre-E-23 subtotal; matches BC-INDEX v2.37 total_bcs: 381 on disk / 380 active)
+E-23: 60 (SS-20: BC-2.20.001..016 = 16 + SS-21: BC-2.21.001..041 = 41 + SS-05 BC-2.05.013 + SS-18 BC-2.18.005..006 = 2) = 60
+                      --------
+                      440 / 440  ✓ (matches BC-INDEX v2.38.1 total_bcs: 441 on disk / 440 active)
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet across all 23 members (tooling/process/governance
 stories, not production Rust behavior — not expected to ever carry BCs). E-12 BCs are
 feature-mode additions (BC-2.04.055 extends SS-04; BC-2.09.007 extends SS-09) and do not
-conflict with the greenfield 217-BC assignment.
+conflict with the greenfield 217-BC assignment. E-23's BC-2.18.003/004 amendments (v1.3→v1.4,
+v1.2→v1.3, port 102/S7comm entries per STORY-193) are version bumps on BCs already counted in
+E-21's row, not new BC IDs — not double-counted here.
 
 ### No BC Double-Assigned
 
@@ -383,7 +390,7 @@ Each BC-2.NN.NNN maps to exactly one epic by construction: the epic corresponds 
 the subsystem(s) identified in ARCH-INDEX.md, and subsystem assignments are
 non-overlapping. No BC appears in more than one epic row above.
 
-### All 15 Subsystems Covered (SS-14/SS-15/SS-16 pre-existing gap in this table — covered by E-14/E-15/E-16 sections)
+### All 17 Subsystems Covered (SS-14/SS-15/SS-16 pre-existing gap in this table — covered by E-14/E-15/E-16 sections)
 
 | SS-ID | Name | Epic |
 |-------|------|------|
@@ -391,7 +398,7 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-02 | Packet Decoding | E-1 |
 | SS-03 | (absent — merged into SS-02 per ARCH-INDEX ruling) | E-1 |
 | SS-04 | TCP Reassembly | E-2 |
-| SS-05 | Protocol Dispatch | E-3, E-21, E-22 |
+| SS-05 | Protocol Dispatch | E-3, E-21, E-22, E-23 |
 | SS-06 | HTTP Analysis | E-4 |
 | SS-07 | TLS Analysis | E-5 |
 | SS-08 | DNS Analysis | E-6 |
@@ -401,11 +408,13 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9, E-21, E-22 |
 | SS-13 | Absent Behaviors | E-10 |
 | SS-17 | EtherNet/IP (ENIP/CIP) Analyzer | E-20 |
-| SS-18 | Protocol Coverage Catalog | E-21 |
+| SS-18 | Protocol Coverage Catalog | E-21, E-23 |
 | SS-19 | IEC-104 Passive Analyzer | E-22 |
+| SS-20 | ISO-on-TCP Transport Framing | E-23 |
+| SS-21 | S7comm Domain Analysis | E-23 |
 
-**Coverage confirmed: 380 / 380 active BCs assigned, 0 unassigned, 0 double-assigned**
-(per BC-INDEX v2.37, "Total BCs on disk: 381. Active: 380."). See the Arithmetic
+**Coverage confirmed: 440 / 440 active BCs assigned, 0 unassigned, 0 double-assigned**
+(per BC-INDEX v2.38.1, "Total BCs on disk: 441. Active: 440."). See the Arithmetic
 Verification block above for the full running-subtotal derivation.
 
 **DRIFT-EPICS-STALE-v21 correction (v2.2, 2026-09-04):** The v2.1 Coverage Check was
@@ -938,6 +947,102 @@ row; v2.35 adds 2 more SS-19 rows — 30 SS-19 + 3 cross-subsystem extensions = 
 
 ---
 
+## Epic E-23: S7comm / ISO-on-TCP Protocol Dissection (feature-s7comm, ADR-014)
+
+- **Goal:** An ICS/OT security analyst can point wirerust at a pcap containing S7comm
+  traffic (Siemens S7-300/400/1200/1500 PLC protocol, TCP port 102, ISO-on-TCP/RFC 1006
+  transport) and receive structured, multi-tag findings for engineering-workstation
+  activity that indicates reconnaissance, unauthorized configuration changes, or
+  firmware/program tampering — Read/Write Var operations, program Download/Upload
+  session correlation (T0843 Program Download, T0889 Modify Program, T0821 Modify
+  Controller Tasking), PLC Control/Stop commands, and Setup Comm negotiation — with a
+  frozen ISO-on-TCP (TPKT/COTP) transport-framing layer shared by any future ISO-on-TCP
+  protocol (S7comm-plus is observed via DetectionOnly framing only, never dissected),
+  per-flow and cross-flow correlation state, an opt-in `--s7comm` CLI flag, and full
+  formal verification (Kani bounds-safety proofs, proptest totality properties, and a
+  combined-module fuzz harness) — mirroring the passive-analysis pattern already
+  established for Modbus (E-14), DNP3 (E-15), ENIP (E-20), and IEC-104 (E-22).
+- **BCs:**
+  BC-2.20.001, BC-2.20.002, BC-2.20.003, BC-2.20.004, BC-2.20.005, BC-2.20.006,
+  BC-2.20.007, BC-2.20.008, BC-2.20.009, BC-2.20.010, BC-2.20.011, BC-2.20.012,
+  BC-2.20.013, BC-2.20.014, BC-2.20.015, BC-2.20.016 (SS-20 ISO-on-TCP framing —
+  TPKT/COTP pure-core parse, carry-buffer reassembly, resync, frozen module boundary,
+  16 BCs, new subsystem);
+  BC-2.21.001, BC-2.21.002, BC-2.21.003, BC-2.21.004, BC-2.21.005, BC-2.21.006,
+  BC-2.21.007, BC-2.21.008, BC-2.21.009, BC-2.21.010, BC-2.21.011, BC-2.21.012,
+  BC-2.21.013, BC-2.21.014, BC-2.21.015, BC-2.21.016, BC-2.21.017, BC-2.21.018,
+  BC-2.21.019, BC-2.21.020, BC-2.21.021, BC-2.21.022, BC-2.21.023, BC-2.21.024,
+  BC-2.21.025, BC-2.21.026, BC-2.21.027, BC-2.21.028, BC-2.21.029, BC-2.21.030,
+  BC-2.21.031, BC-2.21.032, BC-2.21.033, BC-2.21.034, BC-2.21.035, BC-2.21.036,
+  BC-2.21.037, BC-2.21.038, BC-2.21.039, BC-2.21.040, BC-2.21.041 (SS-21 S7comm domain
+  analysis — flow state, four-way protocol_id dispatch, function-code classification,
+  Userdata parsing, session correlation, cross-flow correlation, MITRE emissions, 41 BCs,
+  new subsystem);
+  BC-2.05.013 (SS-05 dispatcher Rule 9 — content-first TCP port 102 classification
+  extension);
+  BC-2.18.005, BC-2.18.006 (SS-18 protocol coverage catalog — Support enum promotion +
+  S7comm/S7comm-plus/port-102 catalog entries)
+- **Subsystems touched:** SS-20 (new — ISO-on-TCP transport framing), SS-21 (new —
+  S7comm domain analysis), SS-05 (dispatcher Rule 9), SS-10 (MITRE mapping — T0843/
+  T0889/T0821 seeding), SS-12 (CLI `--s7comm` flag), SS-18 (protocol coverage catalog
+  Support enum + BC-2.18.003/004 amendments)
+- **Estimated stories:** 11 (STORY-184..194)
+- **Feature ID:** feature-s7comm
+- **Total points:** 71 (STORY-184: 3, STORY-185: 5, STORY-186: 5, STORY-187: 8,
+  STORY-188: 8, STORY-189: 5, STORY-190: 5, STORY-191: 8, STORY-192: 8, STORY-193: 8,
+  STORY-194: 8)
+- **Waves:** 87–97
+- **Status:** draft (11/11 `draft` per STORY-INDEX — pre-F3-gate; human F3 gate will
+  move to `ready`)
+- **VPs:** VP-048 (Kani, TPKT bounds safety), VP-049 (Kani, COTP bounds safety +
+  protocol_id totality), VP-050 (proptest, carry-buffer reassembly), VP-051 (Kani,
+  S7comm header bounds safety), VP-052 (proptest, function-code/Userdata-group
+  classification totality), VP-053 (proptest, protocol_id four-way dispatch totality),
+  VP-054 (proptest, program-download/upload structural disjointness), VP-055 (fuzz,
+  combined ISO-on-TCP/S7comm parse chain), plus amended VP-004 (dispatcher oracle),
+  VP-007 (MITRE catalog completeness), and VP-041 (protocol coverage partition)
+
+**Rationale:** S7comm follows the same diamond-free, strictly linear decomposition
+already proven for DNP3 (E-15), ENIP (E-20), and IEC-104 (E-22): a single new-protocol
+epic touching two new files (`src/analyzer/iso_on_tcp.rs`, `src/analyzer/s7comm.rs`)
+with no independent-file parallelism opportunity across the whole chain. Unlike the
+other ICS analyzers, S7comm's transport is not raw TCP payload but a nested framing
+stack (TPKT over TCP, COTP over TPKT, S7comm/S7comm-plus over COTP's `protocol_id`
+discriminator byte) — so the epic splits into a dedicated ISO-on-TCP transport-framing
+layer (SS-20, stories 184-186) that is explicitly frozen as reusable infrastructure for
+any future ISO-on-TCP protocol, followed by the S7comm domain-analysis layer (SS-21,
+stories 187-193) built on top of it: (1) TPKT core parser + VP-048 Kani skeleton
+(STORY-184, wave 87, dep=[]); (2) COTP TPDU-type parser + protocol_id extraction +
+VP-049 Kani skeleton (STORY-185, wave 88, dep=184); (3) carry-buffer reassembly,
+walk-first frame extraction, resync, and the frozen SS-20/SS-21 module boundary
+(STORY-186, wave 89, dep=185); (4) flow-state completion, four-way protocol_id dispatch
+skeleton, and `parse_s7comm_header` (STORY-187, wave 90, dep=186); (5) Job/Ack_Data
+function-code classification — Setup Comm, Read/Write Var, Download/Upload triads, PLC
+Control, PLC Stop (STORY-188, wave 91, dep=187); (6) Userdata structural parse and
+function-group classification, including the load-bearing Group 0x03/0x04/0x07
+correction (STORY-189, wave 92, dep=188); (7) S7comm-plus DetectionOnly framing +
+session-setup metadata + dispatch totality (STORY-190, wave 93, dep=189); (8)
+download-session correlation state machine + T0843/T0889/T0821 new MITRE techniques,
+six-part atomic (STORY-191, wave 94, dep=190); (9) cross-flow correlation state + reused
+MITRE emissions + excluded-technique non-goals (STORY-192, wave 95, dep=191); (10)
+dispatcher integration — `DispatchTarget::S7comm` Rule 9, Support enum catalog
+promotion, `--s7comm` flag (STORY-193, wave 96, dep=192); (11) formal hardening —
+Kani/proptest/fuzz/mutation, VP-048..055 full runs + VP-004/007/041 re-verification
+(STORY-194, wave 97, dep=193). Serialization is enforced throughout by file contention:
+`src/analyzer/iso_on_tcp.rs` for stories 184-186, then `src/analyzer/s7comm.rs` for
+stories 186-193 (STORY-186 straddles both files at the module boundary), with STORY-193
+additionally touching `src/dispatcher.rs`/`src/cli.rs`/`src/main.rs`/`src/protocols.rs`
+and STORY-194 touching both analyzer files plus `src/mitre.rs` for re-verification —
+matching the F-F3P2-005 single-file-serialization precedent already established for
+IEC-104 (E-22) and the Protocol Coverage Catalog (E-21). ADR-014 Decision 3 (human
+ratification) also resolves the port-102 catalog-model fix: `KnownProtocol` gains a
+per-entry `Support` enum (Supported/KnownUnsupported/DetectionOnly, reusing ADR-0012
+Decision 2's vocabulary) — S7comm=Supported, S7comm-plus=DetectionOnly ("observed, not
+dissected") — delivered in STORY-193 as BC-2.18.005/006 plus amendments to the existing
+BC-2.18.003/004 catalog-partition BCs from E-21.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories (STORY-INDEX v4.19) | Notes |
@@ -964,4 +1069,5 @@ row; v2.35 adds 2 more SS-19 rows — 30 SS-19 + 3 cross-subsystem extensions = 
 | E-20 | 12 | +1 vs v2.1 (v2.1's 11 already included STORY-148): STORY-181 (SEC-001 ENIP split-borrow refactor, wave 85, D-509) — DRIFT-EPICS-STALE-v21 remediation |
 | E-21 | 4  | NEW: STORY-151/152/153/154 (feature-protocol-coverage, 2026-07-02) |
 | E-22 | 9  | NEW epic (v2.2): STORY-167..174 (feature-iec104 F3 decomposition, D-440, waves 76-83) + STORY-180 (timed control-command TypeIDs 58-64, wave 85, D-493) — DRIFT-EPICS-STALE-v21 remediation |
-| **Total** | **136** | Verified against STORY-INDEX v4.19 total_stories=136 |
+| E-23 | 11 | NEW epic (v2.4): STORY-184..194 (feature-s7comm F3 decomposition, ADR-014, waves 87-97) |
+| **Total** | **147** | Verified against dependency-graph.md v3.13 total_stories=147 |

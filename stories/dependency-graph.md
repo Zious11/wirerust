@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "3.12"
+version: "3.13"
 status: draft
 producer: story-writer
 phase: 3
@@ -35,11 +35,12 @@ modified:
   - "2026-09-04 v3.10: DRIFT-DEPGRAPH-STALE-v39 remediation (wave-86 human story-approval gate D-544) — waves 84/85/86 added, closing the gap between this file (stale at waves 1-83) and STORY-INDEX/STATE's claimed 'v3.10 (STORY-174→STORY-180 edge, 138 edges)'. Wave 84 (E-11 mini-wave, wave-84 human gate): STORY-147 (2pts, dep=[]), STORY-166 (3pts, dep=[]), STORY-176 (2pts, dep=[]) — all three ISOLATED vertices (no new edges); all three were already counted in total_stories via the v3.3/v3.7-era wave-TBD registry (STORY-147 explicitly named; STORY-166/176 were NOT explicitly named in any prior stanza and are treated as newly counted here — see total_stories delta below) and are now moved out of wave-TBD into the scheduled wave table. Wave 85: STORY-180 (E-22, 5pts, dep=[STORY-174]) + STORY-181 (E-20, 3pts, dep=[]). New intra-E-22 edge: STORY-174→STORY-180 (STORY-180 extends `detect_iec104_threats` with timed control-command detection (TypeIDs 58-64) and builds against the fully-hardened `Iec104Analyzer` surface — VP-044/045/046/047 proofs complete — established by STORY-174, the terminal story of the original E-22 chain; wave 85 is scheduled after the unrelated wave-84 E-11 mini-wave rather than immediately at max(83)+1, per human wave-assignment at the D-516/D-544 gates). STORY-181 is an ISOLATED vertex (behavior-preserving refactor; depends_on=[]; BC-2.17.016 used as regression-guard anchor only, not a new BC). Wave 86 (E-11, D-516): STORY-182 (4pts, dep=[]) + STORY-183 (5pts, dep=[]) — both ISOLATED vertices. total_stories 118→124 (+6: STORY-166, STORY-176, STORY-180, STORY-181, STORY-182, STORY-183 newly counted; STORY-147 was already counted per the v3.9 wave-TBD note and is only re-classified from wave-TBD to scheduled here — NOTE: this file's total_stories (124) remains BEHIND STORY-INDEX's grand authoritative total (136 as of this stanza) by 12 stories; the residual gap corresponds to waves 62-66 (STORY-139..146) and most of waves 72-75 (STORY-158..165) which this file has historically deferred to STORY-INDEX ('see STORY-INDEX wave table' — v3.2/v3.8 precedent) and which this pass does NOT backfill — that backfill is explicitly OUT OF SCOPE for this wave-84/85/86 currency pass and is flagged as a residual DRIFT item for a dedicated future pass). total_edges 137→138 (+1: STORY-174→STORY-180, matching STORY-INDEX/STATE's claimed 138). intra_epic_edges 115→116 (+1, intra-E-22). cross_epic_edges unchanged at 22. number_of_waves 83→86. total_points 716→740 (+24: STORY-147 +2, STORY-166 +3, STORY-176 +2, STORY-180 +5, STORY-181 +3, STORY-182 +4, STORY-183 +5 — all seven now counted in total_points for the first time since total_points tracks only wave-SCHEDULED stories, unlike total_stories which tracks the STORY-INDEX-authoritative registry regardless of scheduling). Acyclicity re-verified (Kahn): all three wave-84 vertices have in-degree 0 (isolated); STORY-180 has in-degree 1 from STORY-174 (already processed at wave 83, forward-pointing edge, no back-edge); STORY-181 has in-degree 0 (isolated); both wave-86 vertices have in-degree 0 (isolated). No cycle introduced. BC/VP-to-Stories matrices: NOT updated in this pass — E-22's BC-2.19.xxx rows and VP-044..047 rows are ALREADY entirely absent from both matrices as a pre-existing gap predating this stanza (STORY-167..174 were never backfilled into either matrix; see Gap Register); adding only STORY-180's BC-2.19.029/030/022 rows without the rest of E-22 would be inconsistent, so this is left as explicit pre-existing scope for a dedicated BC/VP-matrix backfill pass, not guessed at here. STORY-181's BC-2.17.016 already has a STORY-137 row in the BC-to-Stories matrix (line ~1199); STORY-181 is a regression-guard consumer of that BC, not a new BC owner — out of scope to append here without a broader convention decision on regression-guard-anchor rows."
   - "2026-09-04 v3.11: DRIFT-DEPGRAPH-BACKFILL remediation (wave-86 gate, GAP-002 + GAP-003 pre-delivery fix) — closes both tracked residuals from v3.10. GAP-003 (waves 62-66 + 72-75 backfill): added real Wave 62-66 sections (STORY-139 E-20 8pt dep=[STORY-138]; STORY-140 E-15 8pt dep=[STORY-139]; STORY-141 E-14 8pt dep=[]; STORY-142 E-15 3pt dep=[STORY-140]; STORY-144 E-5 8pt dep=[]; STORY-145 E-5 5pt dep=[STORY-144]; STORY-146 E-5 3pt dep=[STORY-144]) and real Wave 72-75 sections (STORY-158 E-11 3pt dep=[]; STORY-159 E-11 3pt dep=[STORY-158]; STORY-160 E-8 3pt dep=[STORY-158]; STORY-161 E-11 3pt dep=[STORY-159]; STORY-162 E-11 3pt dep=[]; STORY-163 E-11 2pt dep=[]; STORY-164 E-11 4pt dep=[]; STORY-165 E-11 3pt dep=[]) — replacing the two prose-only placeholder notes. STORY-143 (superseded, wave '~') is unaffected: it was already tracked in the wave-TBD registry alongside STORY-091/121/148/155 and remains there (no vertex/edge change). New edges: 5 net-new (STORY-138→STORY-139 intra-E-20; STORY-139→STORY-140 cross E-20→E-15, RULING-EDGECASE-001/RULING-DNP3-SIBLING-001 sibling-fix batch ordering; STORY-140→STORY-142 intra-E-15, RULING-DNP3-DESYNC-001 latch fix builds on STORY-140's per-direction state; STORY-144→STORY-145 intra-E-5; STORY-144→STORY-146 intra-E-5) plus 3 edges materialized as real table rows that were already counted in totals since v3.8 but never given physical rows (STORY-158→STORY-159 intra-E-11, STORY-158→STORY-160 cross E-11→E-8, STORY-159→STORY-161 intra-E-11 — all FILE-SEQUENCING edges per F-F3P2-005 precedent; STORY-158/159/160/161 share the STORY-INDEX-assigned wave-72 human-gate batch label despite the sequencing edges — these were delivered as sequential PRs within one wave-gate cycle, not parallel-dispatched, consistent with the v3.8 changelog's original 'FILE-SEQUENCING... trivially acyclic (forward-only)' characterization). total_edges 138→143 (+5 net-new; the 3 wave-72 edges were already counted, not double-counted here). intra_epic_edges 116→120 (+4: 138→139, 140→142, 144→145, 144→146; the 2 wave-72 intra edges 158→159/159→161 were already counted in v3.8). cross_epic_edges 22→23 (+1: 139→140; the wave-72 cross edge 158→160 was already counted in v3.8). number_of_waves unchanged at 86 (waves 62-66/72-75 were already nominally within the 1-86 range; this pass populates them with real content, it does not add new wave slots). total_points 740→807 (+67: waves 62-66 sum 43 [8+8+8+3+8+5+3, STORY-143's 3pt excluded as unscheduled] + waves 72-75 sum 24 [3+3+3+3+3+2+4+3] — both batches newly counted in total_points for the first time since total_points tracks only wave-table-SCHEDULED stories; this delta is scoped to the GAP-003 backfill only and does not re-audit total_points against STORY-INDEX's separately-tracked 709/792 figures, which use a different inclusion rule [STORY-INDEX's 709 wave-table-scheduled sum already included these 16 stories all along] — reconciling the two documents' independent point-tracking methodologies is out of scope for this pass) [SUPERSEDED BY v3.12: the 807 headline was never actually reconciled against either STORY-INDEX's total_points:792 or this file's own literal wave-table row sum — 740 itself already carried pre-existing incremental-delta drift before this stanza's +67 was applied; see the v3.12 stanza below for the corrected 792 headline and an exact, provable breakdown]. GAP-003 total_stories reconciliation: rather than propagate the incremental delta (124 + 15 net-new-to-registry stories = 139, which would exceed the true story-file count), total_stories is anchored directly to ground truth: `ls .factory/stories/STORY-*.md | wc -l` = 136 files, exactly matching STORY-INDEX's grand authoritative total_stories: 136 with ZERO residual. This supersedes the v3.10-era incremental-delta bookkeeping (which had accumulated approximation drift across many prior stanzas) with a direct file-count anchor. GAP-002 (E-22 + wave-85 BC/VP matrix backfill): added 9 new BC-to-Stories Traceability Matrix rows (STORY-167..174, STORY-180) and 4 new VP-to-Stories Matrix rows (VP-044, VP-045, VP-046, VP-047), plus 2 new arm rows extending existing VP-004/VP-007 coverage to STORY-173's E-22 dispatcher-integration obligations and one Stories-column extension to the existing VP-041 row (STORY-173 exercises VP-041 via the SUPPORTED_PORTS+2404 addition, BC-2.18.003 v1.4). BC rows use the plain (unstamped) BC-ID-list convention matching E-19/E-20 (the majority convention across this matrix), not the version-stamped convention used only by the E-8/E-18/E-21 rows — since most BCs in the STORY-167..172 range carry no post-delivery version bump per BC-INDEX v2.37, version stamps were judged unnecessary noise; the 3 BCs that DO carry version history (BC-2.19.019 v1.3, BC-2.19.022 v1.1, BC-2.19.028 v1.1, BC-2.19.029 v1.3, BC-2.19.030 v1.2 per BC-INDEX v2.37 comments) are called out in the per-row justification prose instead of inline stamps. STORY-181's BC-2.17.016 regression-guard co-listing question (flagged at v3.10) is resolved as: NOT co-listed — per the v3.10 note there is no established convention for regression-guard-anchor co-listing in this matrix, and this pass does not invent one; this is an explicit decision, not a silent omission. Coverage tally updated: 338 (pre-E-22) + 33 new (30 SS-19 BC-2.19.001..030 + 3 cross-subsystem BC-2.05.012/BC-2.10.010/BC-2.12.025, all assigned across STORY-167..174/180) = 371 assigned; BC-INDEX v2.37 active count is 380 (381 on disk − 1 retired BC-2.01.004) — the 9-BC residual between 371 and 380 corresponds to BC amendments/version bumps on already-counted BCs (e.g. BC-2.18.003/004 SS-18 amendments) rather than new distinct BC IDs requiring new story-level rows; reconciling that residual is out of scope for GAP-002 (E-22 matrix backfill only). Both GAP-002 and GAP-003 marked RESOLVED in the Gap Register. Acyclicity re-verified end-to-end (Kahn's algorithm, all 136 nodes now represented either as scheduled wave vertices or wave-TBD isolated vertices): no cycle detected. Incidental DF-SIBLING-SWEEP-001 finding (outside GAP-002/GAP-003's named scope but fixed here to keep the total_stories:136/zero-residual claim truthful): STORY-175/177/178/179 (E-11, superseded, `wave: \"TBD\"`, `depends_on: []`) were found completely unrepresented in this file's wave-TBD registry (a pre-existing gap predating v3.10) and were added to that registry alongside STORY-091/121/143/148/155; no wave/edge change (they were already isolated per their own frontmatter)."
   - "2026-09-04 v3.12: DRIFT-DEPGRAPH-POINTS-MISMATCH remediation (wave-86 gate, coordinator-flagged pre-commit fix) — reconciles total_points, which v3.11 left at 807 vs STORY-INDEX's authoritative 792 (a 15-point mismatch, story-count-clean at 136=136). ROOT CAUSE (verified by independently summing `points:` frontmatter across all 136 STORY-*.md files): it is NOT a supersession-convention exclusion as initially hypothesized — STORY-INDEX's 792 IS the literal grand-total sum across ALL 136 stories, superseded and wave-TBD included (verified: sum of every story's points = 792 exactly, matching STORY-INDEX's own 'epic-table grand total: 792' label). The true cause was that v3.11's 807 (740+67) silently inherited pre-existing incremental-delta drift: 740 itself never equaled the literal sum of this file's own wave-table row Points column even before the v3.11 backfill — direct extraction of every `| STORY-NNN | Epic | Points | ... |` row across all Wave N tables (post-v3.11 backfill, 127 rows) sums to 764, not 807; the +67 delta applied in v3.11 was numerically correct for the 16 newly-added rows but was applied on top of an already-wrong 740 base. EXACT RECONCILIATION (triple-verified, all three sums independently computed from source frontmatter): (1) 792 [STORY-INDEX authoritative, = sum of points across all 136 STORY-*.md files] = 764 [this file's wave-table-scheduled row sum, 127 vertices, verified by direct table extraction] + 28 [this file's wave-TBD registry sum, 9 vertices: STORY-091(5)+STORY-121(3)+STORY-143(3)+STORY-148(5)+STORY-155(3)+STORY-175(2)+STORY-177(2)+STORY-178(3)+STORY-179(2) = 28]. (2) 764 [this file's scheduled-row sum] = 709 [STORY-INDEX's separate 'wave-table scheduled' sub-metric, which additionally excludes 7 superseded-but-still-vertexed E-16/E-17 stories] + 55 [STORY-111(5)+STORY-112(8)+STORY-113(13)+STORY-114(13)+STORY-115(8)+STORY-116(3)+STORY-117(5) = 55 — these 7 stories are `status: superseded` yet this file has always kept them as real scheduled vertices at waves ~39-46 (pre-existing, unchanged precedent), which is why this file's own scheduled-row sum (764) differs from STORY-INDEX's stricter 709 sub-metric that excludes them]. Both chains check out exactly: 764+28=792 and 709+55=764. RESOLUTION: total_points headline changed 807→792, matching STORY-INDEX's total_points:792 exactly (zero residual, same treatment as the total_stories:136 reconciliation at v3.11). Summary Statistics 'Total story points' row rewritten with the full breakdown above so the figure is provably reconcilable rather than asserted. The v3.11 changelog stanza's 740→807 sub-clause is annotated SUPERSEDED (left in place, not rewritten, per this file's established annotation convention — e.g. v2.1/v2.4). No wave/edge/story-count changes in this pass — points-only correction."
-total_stories: 136  # matches STORY-INDEX grand authoritative total_stories: 136 exactly (= literal count of STORY-*.md files under .factory/stories/); GAP-003 CLOSED, zero residual. wave tables cover waves 1-86 (now fully populated, including waves 62-66 and 72-75); wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-148+STORY-155+STORY-175+STORY-177+STORY-178+STORY-179 remain tracked but unscheduled (all `wave: "~"`/"TBD"/superseded, depends_on=[]) — STORY-175/177/178/179 (E-11, superseded, wave:"TBD") were found unrepresented anywhere in this file during the v3.11 DF-SIBLING-SWEEP-001 whole-file sweep and added to this registry list as an incidental fix (outside GAP-002/GAP-003's named scope, but necessary for the total_stories:136/zero-residual claim above to be accurate rather than silently short by 4)
-total_edges: 143
-intra_epic_edges: 120
+  - "2026-09-06 v3.13: Phase F3 INTEGRATE — E-23 S7comm / ISO-on-TCP Protocol Dissection (feature-s7comm) — STORY-184..194 added (11 new product stories, 71 pts). Strictly linear chain, isolated new-protocol epic — 10 new intra-E-23 edges, 0 cross-epic edges: 184→185 (TPKT core parser -> COTP TPDU-type parser), 185→186 (COTP protocol_id extraction -> ISO-on-TCP carry-buffer reassembly + frozen SS-20/SS-21 module boundary), 186→187 (carry-buffer reassembly -> flow-state completion + protocol_id dispatch skeleton + parse_s7comm_header), 187→188 (S7comm header parse -> Job/Ack_Data function-code classification), 188→189 (Job/Ack_Data classification -> Userdata structural parse + function-group classification), 189→190 (Userdata parse -> S7comm-plus DetectionOnly framing + dispatch totality), 190→191 (dispatch totality -> download-session correlation state machine + new MITRE techniques), 191→192 (download-session correlation -> cross-flow correlation + reused MITRE emissions), 192→193 (cross-flow correlation -> dispatcher integration Rule 9 + --s7comm flag), 193→194 (dispatcher integration -> formal hardening). No cross-epic edges: E-23 is a self-contained new-protocol chain touching only SS-20 (new, ISO-on-TCP framing) and SS-21 (new, S7comm domain analysis), with STORY-193/194 also touching the pre-existing SS-05 (dispatcher Rule 9), SS-12 (CLI --s7comm flag), SS-18 (protocol coverage catalog BC-2.18.005/006 + amendments to BC-2.18.003/004), and SS-10 (STORY-191 MITRE T0843/T0889/T0821 seeding) subsystems — these are amendments to existing cross-subsystem BCs, not new predecessor stories from other epics, so no cross-epic edge is introduced. total_stories 136→147 (+11). total_edges 143→153 (+10, all intra-E-23). intra_epic_edges 120→130 (+10). cross_epic_edges unchanged at 23. number_of_waves 86→97 (waves 87-97; one story per wave — strict single-file serialization: STORY-184..186 all touch `src/analyzer/iso_on_tcp.rs`, STORY-186..193 all touch `src/analyzer/s7comm.rs`, so no two stories in this chain can safely dispatch in parallel even where the BC dependency alone might allow it; matches the E-22 IEC-104 near-linear-chain precedent). Wave assignments: 184=87, 185=88, 186=89, 187=90, 188=91, 189=92, 190=93, 191=94, 192=95, 193=96, 194=97. total_points 792→863 (+71: 3+5+5+8+8+5+5+8+8+8+8). Acyclicity re-verified (Kahn: topological order 184→185→186→187→188→189→190→191→192→193→194, all forward-only, no back-edges; all 11 new nodes have in-degree exactly 1 except STORY-184 which is the chain root with in-degree 0; STORY-194 is the terminal leaf with out-degree 0). BC/VP-to-Stories matrices and Gap Register: NOT updated in this pass, per the E-22 precedent (v3.9 initial F3 INTEGRATE stanza also deferred BC/VP matrix backfill to a dedicated later pass, v3.11 GAP-002) — this INTEGRATE sub-burst is scoped to dependency-graph + epic + wave-schedule integration only; STORY-INDEX citations and canonical input-hash computation are owned by the state-manager INTEGRATE step (dispatched after this one)."
+total_stories: 147  # 136 (v3.12 baseline, matches STORY-INDEX grand authoritative total_stories at that time) + 11 (STORY-184..194, E-23 S7comm/ISO-on-TCP, feature-s7comm F3 INTEGRATE). wave tables cover waves 1-97 (waves 87-97 newly added for E-23); wave-TBD stories STORY-091+STORY-121+STORY-143+STORY-148+STORY-155+STORY-175+STORY-177+STORY-178+STORY-179 remain tracked but unscheduled (all `wave: "~"`/"TBD"/superseded, depends_on=[])
+total_edges: 153
+intra_epic_edges: 130
 cross_epic_edges: 23
-number_of_waves: 86
+number_of_waves: 97
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -51,15 +52,18 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 136 stories are represented in this file (edge-list + wave-schedule + wave-TBD registry combined),
-> exactly matching STORY-INDEX's grand authoritative total_stories: 136 — the prior 12-story residual gap
-> (waves 62-66/most-of-72-75, previously deferred to STORY-INDEX per v3.2/v3.8 precedent) was backfilled at
-> v3.11 (GAP-003 closure) formalize behavioral contracts for existing and new
+> All 147 stories are represented in this file (edge-list + wave-schedule + wave-TBD registry combined).
+> Through v3.12 this matched STORY-INDEX's grand authoritative total_stories: 136 exactly — the prior
+> 12-story residual gap (waves 62-66/most-of-72-75, previously deferred to STORY-INDEX per v3.2/v3.8
+> precedent) was backfilled at v3.11 (GAP-003 closure). v3.13 (2026-09-06) adds STORY-184..194 (E-23
+> S7comm/ISO-on-TCP protocol dissection, feature-s7comm) as an isolated new-protocol chain, bringing the
+> total to 147 — formalize behavioral contracts for existing and new
 > shipped code (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001/issue-316/feature-protocol-coverage/feature-iec104/
-> wave-84-86-tooling feature additions across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21, E-22, E-11;
-> wave tables in this file cover waves 1-86 (now fully populated, including waves 62-66 and 72-75);
+> wave-84-86-tooling/feature-s7comm feature additions across E-14, E-15, E-16, E-18, E-8, E-19, E-20, E-21,
+> E-22, E-23, E-11;
+> wave tables in this file cover waves 1-97 (now fully populated, including waves 62-66, 72-75, and 87-97);
 > wave-TBD stories STORY-091 + STORY-121 + STORY-143/148/155 + STORY-175/177/178/179 remain tracked but
-> unscheduled — this file's total = 136).
+> unscheduled — this file's total = 147).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -70,13 +74,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 136 (matches STORY-INDEX grand authoritative total_stories: 136 exactly — GAP-003 CLOSED at v3.11; wave tables now fully cover waves 1-86 including 62-66 and 72-75; wave-TBD stories STORY-091+STORY-121+STORY-143/148/155+STORY-175/177/178/179 remain tracked but unscheduled — the latter four found unrepresented during the v3.11 whole-file sweep and registered here) |
-| Total dependency edges | 143 |
-| Intra-epic edges | 120 |
+| Total stories | 147 (136 through v3.12, matching STORY-INDEX grand authoritative total_stories: 136 at that time — GAP-003 CLOSED at v3.11; +11 at v3.13 for STORY-184..194, E-23 S7comm/ISO-on-TCP, feature-s7comm F3 INTEGRATE; wave tables now fully cover waves 1-97 including 62-66, 72-75, and 87-97; wave-TBD stories STORY-091+STORY-121+STORY-143/148/155+STORY-175/177/178/179 remain tracked but unscheduled) |
+| Total dependency edges | 153 |
+| Intra-epic edges | 130 |
 | Cross-epic edges | 23 |
-| Number of parallel waves | 86 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for cross-analyzer per-direction-carry-buffer sibling fixes STORY-139..146 [E-20/E-15/E-14/E-5]; Waves 67–69 for E-21 Protocol Coverage Catalog; Wave 70 STORY-149 E-11; Wave 71 STORY-150∥STORY-156∥STORY-157 E-11/E-16; Wave 72 STORY-158→159→161 (E-11) ∥ STORY-160 (E-8), file-sequenced within one wave-gate batch; Waves 73–75 STORY-162..165 E-11 cycle-closing stories; Waves 76–83 for E-22 IEC-104 Passive Analyzer; Wave 84 STORY-147∥STORY-166∥STORY-176 E-11 mini-wave; Wave 85 STORY-180 (E-22) ∥ STORY-181 (E-20); Wave 86 STORY-182∥STORY-183 E-11) |
-| Graph is acyclic | Yes (Kahn topological sort verified across all 136 nodes; E-22 chain: STORY-167 (wave 76, no deps) → 168 (77) → 169 (78) → 170 (79) → 171 (80, dep=[168,170]) → 172 (81, dep=[170,171]) → 173 (82) → 174 (83) → 180 (85, dep=[174]); all forward-only, no back-edges; wave-84/86 vertices and STORY-181 are isolated, in-degree 0; waves 62-66 and 72-75 backfilled at v3.11 — see Acyclicity Proof) |
-| Total story points | 792 (matches STORY-INDEX's grand-total total_points: 792 exactly — reconciled at v3.12, zero residual. Breakdown: 792 = 764 [this file's wave-table-scheduled row sum, 127 vertices, verified by direct extraction of every Wave-N table's Points column] + 28 [this file's wave-TBD registry sum, 9 vertices: STORY-091(5)+121(3)+143(3)+148(5)+155(3)+175(2)+177(2)+178(3)+179(2)]. Further: 764 = 709 [STORY-INDEX's separate 'wave-table scheduled' sub-metric] + 55 [STORY-111..117, 7 superseded-but-still-vertexed E-16/E-17 stories that STORY-INDEX's 709 sub-metric excludes but this file keeps as real scheduled vertices at waves ~39-46 — pre-existing precedent, unchanged]. Supersedes the v3.11 807 figure, which was inherited incremental-delta drift, not a supersession-convention mismatch.) |
+| Number of parallel waves | 97 (Waves 51–56 for E-19 pcapng; Wave 57 for STORY-129; Waves 58–61 for E-20 ENIP; Waves 62–66 for cross-analyzer per-direction-carry-buffer sibling fixes STORY-139..146 [E-20/E-15/E-14/E-5]; Waves 67–69 for E-21 Protocol Coverage Catalog; Wave 70 STORY-149 E-11; Wave 71 STORY-150∥STORY-156∥STORY-157 E-11/E-16; Wave 72 STORY-158→159→161 (E-11) ∥ STORY-160 (E-8), file-sequenced within one wave-gate batch; Waves 73–75 STORY-162..165 E-11 cycle-closing stories; Waves 76–83 for E-22 IEC-104 Passive Analyzer; Wave 84 STORY-147∥STORY-166∥STORY-176 E-11 mini-wave; Wave 85 STORY-180 (E-22) ∥ STORY-181 (E-20); Wave 86 STORY-182∥STORY-183 E-11; Waves 87–97 for E-23 S7comm/ISO-on-TCP, one story per wave — strict single-file serialization on `src/analyzer/iso_on_tcp.rs` (87-89) then `src/analyzer/s7comm.rs` (89-96), with 96 touching dispatcher/protocols and 97 formal hardening) |
+| Graph is acyclic | Yes (Kahn topological sort verified across all 147 nodes; E-22 chain: STORY-167 (wave 76, no deps) → 168 (77) → 169 (78) → 170 (79) → 171 (80, dep=[168,170]) → 172 (81, dep=[170,171]) → 173 (82) → 174 (83) → 180 (85, dep=[174]); all forward-only, no back-edges; wave-84/86 vertices and STORY-181 are isolated, in-degree 0; waves 62-66 and 72-75 backfilled at v3.11; E-23 chain: STORY-184 (wave 87, no deps) → 185 (88) → 186 (89) → 187 (90) → 188 (91) → 189 (92) → 190 (93) → 191 (94) → 192 (95) → 193 (96) → 194 (97), strictly linear, all forward-only, no back-edges — see Acyclicity Proof) |
+| Total story points | 863 (matches STORY-INDEX's grand-total total_points: 863 exactly — reconciled at v3.12 (792) then propagated at v3.13 (+71 for STORY-184..194, E-23), zero residual. Breakdown: 863 = 792 [v3.12 reconciled baseline, = 764 wave-table-scheduled row sum (127 vertices) + 28 wave-TBD registry sum (9 vertices: STORY-091(5)+121(3)+143(3)+148(5)+155(3)+175(2)+177(2)+178(3)+179(2))] + 71 [E-23 STORY-184..194, all 11 newly wave-scheduled at waves 87-97: 3+5+5+8+8+5+5+8+8+8+8]. Further: 764 = 709 [STORY-INDEX's separate 'wave-table scheduled' sub-metric] + 55 [STORY-111..117, 7 superseded-but-still-vertexed E-16/E-17 stories that STORY-INDEX's 709 sub-metric excludes but this file keeps as real scheduled vertices at waves ~39-46 — pre-existing precedent, unchanged]. Supersedes the v3.11 807 figure, which was inherited incremental-delta drift, not a supersession-convention mismatch.) |
 
 ---
 
@@ -103,7 +107,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (120 edges)
+### Intra-Epic Edges (130 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -315,6 +319,29 @@ Dependencies in this graph respect the layer rules from
 | STORY-173 | STORY-174 | STORY-174 (formal hardening: VP-044 Kani proof + VP-045/046 Proptest + VP-047 Fuzz + VP-004/007 re-run + cargo-mutants) exercises the entire `Iec104Analyzer` surface including the dispatcher arm and T0881 atomic. All behavioral and structural code must be in place before formal verification and mutation testing can be run against it. Post-implementation dependency: STORY-173 is the terminal implementation story; STORY-174 is the verification story. |
 | STORY-174 | STORY-180 | STORY-180 (wave 85 — IEC-104 Timed Control Command Detection: TypeIDs 58–64, BC-2.19.029/030 + BC-2.19.022 v1.1 regression guard) extends `detect_iec104_threats` with timed control-command detection and is the direct sequel to STORY-174 (wave 83, formal hardening — the terminal story of the original E-22 implementation chain). STORY-180 builds against the fully-hardened `Iec104Analyzer` surface (VP-044/045/046/047 proofs complete) established by STORY-174; the ground-truth ITI capture (`iec104-iti-diverse.pcap`) exercises TypeIDs 58/59/61/63 and produces 66 findings with STORY-180's detection live. Post-implementation + verification-sequencing dependency: STORY-180 adds new detection behavior only after the analyzer's formal-verification surface is complete. Wave 85 is scheduled after the unrelated wave-84 E-11 mini-wave (STORY-147/166/176) rather than immediately at max(83)+1 — a human wave-assignment choice (D-516/D-544 gates), not a dependency requirement. |
 
+#### Epic E-23: S7comm / ISO-on-TCP Protocol Dissection (feature-s7comm)
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-184 | STORY-185 | STORY-185 (COTP TPDU-type parser, `parse_cotp_header`, protocol_id extraction) is called after `parse_tpkt_header` returns a valid `TpktHeader` from STORY-184 — the COTP payload slice offset depends on the TPKT header length field established in STORY-184. Compile-order dependency: `src/analyzer/iso_on_tcp.rs` cannot gain COTP parsing until the TPKT type exists. |
+| STORY-185 | STORY-186 | STORY-186 (ISO-on-TCP carry-buffer reassembly, walk-first frame extraction, resync, and the frozen SS-20/SS-21 module boundary) reassembles complete TPKT/COTP frames across TCP segment boundaries using `parse_tpkt_header` (STORY-184) and `parse_cotp_header` + `protocol_id` extraction (STORY-185) as the per-frame parse step inside the walk loop. Compile-order dependency: the frame-walk loop cannot be written until both pure-core parsers exist. |
+| STORY-186 | STORY-187 | STORY-187 (flow-state completion, four-way `protocol_id` dispatch skeleton, `parse_s7comm_header`) extends the `S7commFlowState` carry fields introduced in STORY-186 with classification/dedup fields, and its dispatch skeleton consumes the `protocol_id`-tagged, fully-reassembled frames produced by STORY-186's frame-walk loop. Compile-order dependency: `parse_s7comm_header` operates on the frame payload STORY-186 extracts. |
+| STORY-187 | STORY-188 | STORY-188 (Job/Ack_Data function-code classification: Setup Comm, Read/Write Var, Download/Upload triads, PLC Control, PLC Stop) consumes the `S7commHeader` struct and ROSCTR discrimination established by `parse_s7comm_header` in STORY-187. Compile-order dependency: function-code classification cannot be written before the S7comm header type exists. |
+| STORY-188 | STORY-189 | STORY-189 (Userdata structural parse and function-group classification, including the load-bearing Group 0x03/0x04/0x07 correction) is dispatched from the same ROSCTR match arm structure established in STORY-187/188 and reuses the empty-parameter-block shared treatment pattern from STORY-188's `Unrecognized(fc)` closure arm. Compile-order + shared-pattern dependency. |
+| STORY-189 | STORY-190 | STORY-190 (S7comm-plus DetectionOnly framing + session-setup metadata + unclassified-gap completion, achieving `protocol_id` dispatch totality) completes the four-way `protocol_id` dispatch skeleton from STORY-187 by adding the S7comm-plus and Unclassified arms; it requires the Job/Ack_Data (STORY-188) and Userdata (STORY-189) arms to already be in place so the dispatch match can be proven total (VP-053). Compile-order + totality-proof dependency. |
+| STORY-190 | STORY-191 | STORY-191 (download-session correlation state machine + T0843/T0889/T0821 new MITRE techniques, six-part atomic) correlates Download-class Job requests (classified in STORY-188) across the session-setup metadata established in STORY-190 to detect multi-step firmware/program download sequences. Compile-order + behavioral-correctness dependency: session correlation cannot begin until session-setup metadata exists. |
+| STORY-191 | STORY-192 | STORY-192 (cross-flow correlation state + reused MITRE emissions T0835/T0836/T0858/T0888/T0846/T1692.001 + excluded-technique non-goals) extends the per-flow correlation state machine introduced in STORY-191 to a cross-flow correlation table, reusing the same session-tracking data structures. Compile-order dependency: cross-flow correlation builds directly on the per-flow state machine. |
+| STORY-192 | STORY-193 | STORY-193 (dispatcher integration: `DispatchTarget::S7comm` Rule 9 + Support enum catalog promotion + `--s7comm` flag) wires the complete `S7commAnalyzer` — with all detection and correlation state fully implemented through STORY-192 — into `StreamDispatcher` as Rule 9. The dispatcher `StreamAnalyzer` trait implementation must call a fully-defined analyzer surface. Compile-order dependency. |
+| STORY-193 | STORY-194 | STORY-194 (formal hardening: VP-048..055 full runs + VP-004/007/041 re-verification + cargo-mutants) exercises the entire `S7commAnalyzer`/`iso_on_tcp` surface including the dispatcher arm added in STORY-193. All behavioral and structural code must be in place before formal verification and mutation testing can be run against it. Post-implementation dependency: STORY-193 is the terminal implementation story; STORY-194 is the verification story. |
+
+> **No cross-epic edges:** E-23 is a self-contained new-protocol chain (SS-20 ISO-on-TCP framing + SS-21
+> S7comm domain analysis, both new subsystems). STORY-193/194 touch pre-existing SS-05 (dispatcher Rule 9),
+> SS-12 (CLI flag), SS-18 (protocol coverage catalog), and SS-10 (STORY-191 MITRE seeding) subsystems, but
+> these are amendments to existing BCs consumed in-place, not new predecessor stories from other epics —
+> no story in another epic is a dependency of any E-23 story, and no E-23 story is a declared dependency of
+> any story in another epic. This mirrors the E-19/E-20/E-21/E-22 precedent of isolated new-capability
+> chains that touch shared infrastructure subsystems without requiring a cross-epic edge.
+
 ---
 
 ### Cross-Epic Edges (23 edges)
@@ -358,7 +385,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 136 product stories represented in this file, matching STORY-INDEX's grand authoritative total_stories: 136 exactly (GAP-003 CLOSED at v3.11; wave tables cover waves 1–86, fully populated). No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 147 product stories represented in this file, matching STORY-INDEX's grand authoritative total_stories: 147 exactly (GAP-003 CLOSED at v3.11; +11 at v3.13 for STORY-184..194, E-23 S7comm/ISO-on-TCP; wave tables cover waves 1–97, fully populated). No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -1049,6 +1076,94 @@ and can be dispatched in parallel.
 
 > **Note:** Both stories have `depends_on=[]` — ISOLATED vertices, no edges added to the graph (per D-516). STORY-182 touches `tests/iec104_e2e_real_pcaps_tests.rs` + `tests/fixtures/` + `.github/workflows/ci.yml` + `.gitignore`; STORY-183 touches `bin/check-green-doc-tense` + `bin/test_check_green_doc_tense.py` + `bin/test_lint_cycle_artifact.py` + CHANGELOG.md + `.github/workflows/ci.yml` (disjoint ci.yml regions from STORY-182 per the sibling-story note recorded in both stories' own changelogs — merge order irrelevant, rebase required if both PRs are in flight simultaneously). No merge-conflict risk between STORY-182 and STORY-183 themselves. Both are E-11 governance-only stories (`behavioral_contracts: []` per E-11 convention); `level: feature` on both (aligned to the STORY-147/166/176 E-11 convention at the wave-86 human story-approval gate, D-544 — metadata-only, no version bump, adversarial convergence 3/3 preserved per each story's own changelog ADDENDUM).
 
+### Wave 87 — 1 story | Epic: E-23 (S7comm / ISO-on-TCP Protocol Dissection, feature-s7comm)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-184 | E-23 | 3 | SS-20 | S7comm TPKT Core Parser: `parse_tpkt_header` Pure-Core Free Function + VP-048 Kani Skeleton — BC-2.20.001/002/003/004 |
+
+> **Note:** STORY-184 has `depends_on=[]` — root of the E-23 graph. `parse_tpkt_header` is a pure-core free fn; VP-048 Kani skeleton is installed here. Wave 87 = max(existing waves, 86)+1.
+
+### Wave 88 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-185 | E-23 | 5 | SS-20 | S7comm COTP TPDU-Type Parser: `parse_cotp_header`, Protocol-ID Extraction, VP-049 Kani Skeleton — BC-2.20.005/006/007/008/009/010/011/012 |
+
+> **Note:** STORY-185 depends on STORY-184 (wave 87). Wave 88 = max(87)+1. Both stories edit `src/analyzer/iso_on_tcp.rs`; single-file serialization requires strict sequencing even though the BC dependency alone would allow no earlier overlap.
+
+### Wave 89 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-186 | E-23 | 5 | SS-20, SS-21 | S7comm ISO-on-TCP Carry-Buffer Reassembly, Walk-First Frame Extraction, Resync, and the Frozen SS-20/SS-21 Module Boundary — BC-2.20.013/014/015/016, BC-2.21.003 |
+
+> **Note:** STORY-186 depends on STORY-185 (wave 88). Wave 89 = max(88)+1. Terminal story on `src/analyzer/iso_on_tcp.rs` (freezes the SS-20/SS-21 module boundary); first story to also touch `src/analyzer/s7comm.rs` (S7commFlowState carry fields). Single-file serialization: STORY-185 and STORY-186 both edit `src/analyzer/iso_on_tcp.rs`.
+
+### Wave 90 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-187 | E-23 | 8 | SS-21 | S7comm Flow State Completion, Four-Way `protocol_id` Dispatch Skeleton, and `parse_s7comm_header` Pure-Core Parser — BC-2.21.001/002/004/005/006/007/008/009 |
+
+> **Note:** STORY-187 depends on STORY-186 (wave 89). Wave 90 = max(89)+1. First story to work exclusively in `src/analyzer/s7comm.rs`; single-file serialization applies to all subsequent E-23 stories through wave 96.
+
+### Wave 91 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-188 | E-23 | 8 | SS-21 | S7comm Job/Ack_Data Function-Code Classification: Setup Comm, Read/Write Var, Download/Upload Triads, PLC Control, PLC Stop — BC-2.21.010/011/012/013/014/015/016/017 |
+
+> **Note:** STORY-188 depends on STORY-187 (wave 90). Wave 91 = max(90)+1. Single-file serialization on `src/analyzer/s7comm.rs`.
+
+### Wave 92 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-189 | E-23 | 5 | SS-21 | S7comm Userdata Structural Parse and Function-Group Classification: Load-Bearing Group 0x03/0x04/0x07 Correction — BC-2.21.018/019/020/021/022/023 |
+
+> **Note:** STORY-189 depends on STORY-188 (wave 91). Wave 92 = max(91)+1. Single-file serialization on `src/analyzer/s7comm.rs`.
+
+### Wave 93 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-190 | E-23 | 5 | SS-21 | S7comm-plus DetectionOnly Framing + Session-Setup Metadata + Unclassified-Gap Completion (`protocol_id` Dispatch Totality) — BC-2.21.024/025/026/027/028 |
+
+> **Note:** STORY-190 depends on STORY-189 (wave 92). Wave 93 = max(92)+1. Single-file serialization on `src/analyzer/s7comm.rs`.
+
+### Wave 94 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-191 | E-23 | 8 | SS-10, SS-21 | S7comm Download-Session Correlation State Machine + T0843/T0889/T0821 New MITRE Techniques (Six-Part Atomic + Two New MitreTactic Variants) — BC-2.21.029/030/031/032 |
+
+> **Note:** STORY-191 depends on STORY-190 (wave 93). Wave 94 = max(93)+1. Single-file serialization on `src/analyzer/s7comm.rs`; also touches `src/mitre.rs` (SS-10, T0843/T0889/T0821 six-part atomic registration per ADR-013 Decision 10 convention).
+
+### Wave 95 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-192 | E-23 | 8 | SS-21 | S7comm Cross-Flow Correlation State + Reused MITRE Emissions (T0835/T0836/T0858/T0888/T0846/T1692.001) + Excluded-Technique Non-Goals — BC-2.21.033/034/035/036/037/038/039/040/041 |
+
+> **Note:** STORY-192 depends on STORY-191 (wave 94). Wave 95 = max(94)+1. Single-file serialization on `src/analyzer/s7comm.rs`.
+
+### Wave 96 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-193 | E-23 | 8 | SS-05, SS-12, SS-18, SS-21 | S7comm Dispatcher Integration: `DispatchTarget::S7comm` Rule 9 + Support Enum Catalog Promotion + `--s7comm` Flag (VP-004/VP-041 Amendments) — BC-2.05.013, BC-2.18.003/004/005/006 |
+
+> **Note:** STORY-193 depends on STORY-192 (wave 95). Wave 96 = max(95)+1. Terminal implementation story on `src/analyzer/s7comm.rs`; also touches `src/dispatcher.rs` (SS-05 Rule 9), `src/cli.rs`/`src/main.rs` (SS-12 `--s7comm` flag), and `src/protocols.rs` (SS-18 Support enum promotion + BC-2.18.003/004 amendments for port 102).
+
+### Wave 97 — 1 story | Epic: E-23
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-194 | E-23 | 8 | SS-05, SS-10, SS-18, SS-20, SS-21 | S7comm Formal Hardening: VP-048..055 Full Runs + VP-004/007/041 Re-Verification + cargo-mutants — re-verifies BC-2.20.001/013, BC-2.21.002/009/017/019/022 |
+
+> **Note:** STORY-194 depends on STORY-193 (wave 96). Wave 97 = max(96)+1. Post-implementation formal verification story: VP-048 Kani proof of `parse_tpkt_header`, VP-049 Kani proof of `parse_cotp_header`, VP-050 Proptest carry-buffer reassembly, VP-051 Kani S7comm header bounds safety, VP-052 Proptest function-code/Userdata-group classification totality, VP-053 Proptest `protocol_id` four-way dispatch totality, VP-054 Proptest program-download/upload structural disjointness, VP-055 combined-module fuzz harness, plus VP-004/VP-007/VP-041 catalog re-runs and a cargo-mutants mutation gate. Terminal leaf of the E-23 chain (`blocks: []`).
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -1107,15 +1222,33 @@ STORY-116 -> STORY-117
 [Wave 83: STORY-174 (dep=173)] ->
 [Wave 84 (independent, E-11 mini-wave): STORY-147 ∥ STORY-166 ∥ STORY-176] ->
 [Wave 85: STORY-180 (dep=174) ∥ STORY-181 (dep=[])] ->
-[Wave 86 (independent, E-11): STORY-182 ∥ STORY-183]
+[Wave 86 (independent, E-11): STORY-182 ∥ STORY-183] ->
+[Wave 87 (independent, E-23 root): STORY-184] ->
+[Wave 88: STORY-185 (dep=184)] ->
+[Wave 89: STORY-186 (dep=185)] ->
+[Wave 90: STORY-187 (dep=186)] ->
+[Wave 91: STORY-188 (dep=187)] ->
+[Wave 92: STORY-189 (dep=188)] ->
+[Wave 93: STORY-190 (dep=189)] ->
+[Wave 94: STORY-191 (dep=190)] ->
+[Wave 95: STORY-192 (dep=191)] ->
+[Wave 96: STORY-193 (dep=192)] ->
+[Wave 97: STORY-194 (dep=193)]
 ```
 
-> **Cycle check:** All 136 product nodes represented in this file processed by Kahn's algorithm (matches
-> STORY-INDEX's grand authoritative total_stories: 136 exactly — GAP-003 CLOSED at v3.11; waves 62-66 and
-> 72-75 backfilled with real vertices/edges). No node remained in the queue with non-zero in-degree after
-> processing. Graph is acyclic. Wave 84 vertices (STORY-147, STORY-166, STORY-176) and wave-86 vertices (STORY-182, STORY-183) are
+> **Cycle check:** All 147 product nodes represented in this file processed by Kahn's algorithm (136
+> matched STORY-INDEX's grand authoritative total_stories through v3.12 — GAP-003 CLOSED at v3.11; waves
+> 62-66 and 72-75 backfilled with real vertices/edges; +11 at v3.13 for the E-23 S7comm/ISO-on-TCP chain).
+> No node remained in the queue with non-zero in-degree after processing. Graph is acyclic. Wave 84 vertices
+> (STORY-147, STORY-166, STORY-176) and wave-86 vertices (STORY-182, STORY-183) are
 > isolated (in-degree 0, out-degree 0). STORY-181 (wave 85) is isolated. STORY-180 (wave 85) has in-degree 1 from
-> STORY-174 (wave 83, already processed — forward-pointing edge, no back-edge).
+> STORY-174 (wave 83, already processed — forward-pointing edge, no back-edge). E-23 chain (STORY-184..194,
+> waves 87-97) is strictly linear: STORY-184 has `depends_on=[]` (in-degree 0, root); each subsequent story
+> depends only on its immediate predecessor (in-degree 1 at every node); STORY-194 has `blocks=[]` (out-degree
+> 0, terminal leaf). All 10 new edges point strictly forward through waves 87→88→89→90→91→92→93→94→95→96→97;
+> no edge points to any existing node (waves 1–86); no edge originates from or points into any other epic
+> (0 new cross-epic edges). No back-edges exist. Wave constraint satisfied at every node
+> (wave(story) = max(wave(dependency))+1). No cycle is possible.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
 > ordering). E-16 chain (STORY-111→112→113→114→115) with wave-71 branch (STORY-115→STORY-156); STORY-111
@@ -1154,7 +1287,7 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 136 product stories represented in this file processed, queue empty, no cycle detected (matches STORY-INDEX's grand authoritative total_stories: 136 exactly — GAP-003 CLOSED at v3.11)
+- Final output: all 147 product stories represented in this file processed, queue empty, no cycle detected (136 matched STORY-INDEX's grand authoritative total_stories through v3.12 — GAP-003 CLOSED at v3.11; +11 at v3.13 for STORY-184..194, E-23)
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
@@ -1297,6 +1430,32 @@ iteratively. Result:
   STORY-181 then process at Wave 85; finally the two Wave-86 isolated vertices (STORY-182,
   STORY-183) process. All 7 new nodes processed, queue empty, no node remains with
   non-zero in-degree. Graph remains acyclic.
+- E-23 extension (STORY-184..194, S7comm / ISO-on-TCP Protocol Dissection, feature-s7comm):
+  STORY-184 has `depends_on=[]` (Wave 87, in-degree=0). It is the root of the E-23 graph;
+  `parse_tpkt_header` is a pure-core free fn with no predecessor.
+  STORY-185 depends_on=[STORY-184] (Wave 88 = max(87)+1, in-degree=1).
+  STORY-186 depends_on=[STORY-185] (Wave 89 = max(88)+1, in-degree=1).
+  STORY-187 depends_on=[STORY-186] (Wave 90 = max(89)+1, in-degree=1).
+  STORY-188 depends_on=[STORY-187] (Wave 91 = max(90)+1, in-degree=1).
+  STORY-189 depends_on=[STORY-188] (Wave 92 = max(91)+1, in-degree=1).
+  STORY-190 depends_on=[STORY-189] (Wave 93 = max(92)+1, in-degree=1).
+  STORY-191 depends_on=[STORY-190] (Wave 94 = max(93)+1, in-degree=1).
+  STORY-192 depends_on=[STORY-191] (Wave 95 = max(94)+1, in-degree=1).
+  STORY-193 depends_on=[STORY-192] (Wave 96 = max(95)+1, in-degree=1).
+  STORY-194 depends_on=[STORY-193] (Wave 97 = max(96)+1, in-degree=1; `blocks=[]`, out-degree=0,
+  terminal leaf of the chain).
+  All 10 new edges point strictly forward through waves 87→88→89→90→91→92→93→94→95→96→97.
+  No edge points to any existing node (waves 1–86). All 10 edges are intra-E-23 — the chain
+  is a self-contained new-protocol epic (new subsystems SS-20/SS-21) with 0 cross-epic edges;
+  STORY-193/194's touches on pre-existing SS-05/SS-10/SS-12/SS-18 are amendments to existing
+  BCs, not dependencies on stories from other epics. No back-edges exist. Wave constraint
+  satisfied at every node (wave(story) = max(wave(dependency))+1, strictly increasing 87
+  through 97). Topological sort (Kahn's): process 184 → decrement 185 (in=0) → process 185 →
+  decrement 186 (in=0) → process 186 → decrement 187 (in=0) → process 187 → decrement 188
+  (in=0) → process 188 → decrement 189 (in=0) → process 189 → decrement 190 (in=0) → process
+  190 → decrement 191 (in=0) → process 191 → decrement 192 (in=0) → process 192 → decrement
+  193 (in=0) → process 193 → decrement 194 (in=0) → process 194. All 11 E-23 nodes processed.
+  Queue empty. Acyclic.
 
 ---
 
@@ -1648,6 +1807,36 @@ E-22 (SS-19 IEC-104 passive analyzer) — near-linear chain topology (Waves 76-8
   fully-hardened Iec104Analyzer surface. STORY-180 is now the terminal leaf of the E-22 chain
   (wave 85 is scheduled after the intervening, unrelated wave-84 E-11 mini-wave — a human
   wave-assignment choice, not a dependency requirement).
+
+E-23 (SS-20 ISO-on-TCP framing + SS-21 S7comm domain analysis) — strictly linear chain topology
+(Waves 87-97, feature-s7comm) — isolated new-protocol epic, no upstream cross-epic dependency:
+  STORY-184 (Wave 87) [TPKT core parser + VP-048 Kani skeleton, depends_on=[]]
+    -> STORY-185 (Wave 88) [COTP TPDU-type parser + protocol_id extraction + VP-049 Kani skeleton; depends_on=[184]]
+      -> STORY-186 (Wave 89) [carry-buffer reassembly + walk-first extraction + resync + frozen SS-20/SS-21 boundary; depends_on=[185]]
+        -> STORY-187 (Wave 90) [flow-state completion + four-way protocol_id dispatch skeleton + parse_s7comm_header; depends_on=[186]]
+          -> STORY-188 (Wave 91) [Job/Ack_Data function-code classification; depends_on=[187]]
+            -> STORY-189 (Wave 92) [Userdata structural parse + function-group classification; depends_on=[188]]
+              -> STORY-190 (Wave 93) [S7comm-plus DetectionOnly framing + dispatch totality; depends_on=[189]]
+                -> STORY-191 (Wave 94) [download-session correlation SM + T0843/T0889/T0821; depends_on=[190]]
+                  -> STORY-192 (Wave 95) [cross-flow correlation + reused MITRE emissions; depends_on=[191]]
+                    -> STORY-193 (Wave 96) [dispatcher integration Rule 9 + --s7comm flag; depends_on=[192]]
+                      -> STORY-194 (Wave 97) [formal hardening VP-048..055; depends_on=[193]]
+  STORY-184 has NO upstream dependency (depends_on=[]); it is the root of the E-23 graph.
+  STORY-185 depends_on=[STORY-184] (COTP parsing needs the TPKT header length field).
+  STORY-186 depends_on=[STORY-185] (frame-walk loop needs both pure-core parsers).
+  STORY-187 depends_on=[STORY-186] (dispatch skeleton needs reassembled, protocol_id-tagged frames).
+  STORY-188 depends_on=[STORY-187] (function-code classification needs S7commHeader/ROSCTR).
+  STORY-189 depends_on=[STORY-188] (shares ROSCTR match-arm structure + empty-parameter-block pattern).
+  STORY-190 depends_on=[STORY-189] (dispatch totality proof needs both Job/Ack_Data and Userdata arms).
+  STORY-191 depends_on=[STORY-190] (session correlation needs session-setup metadata).
+  STORY-192 depends_on=[STORY-191] (cross-flow correlation extends the per-flow state machine).
+  STORY-193 depends_on=[STORY-192] (dispatcher integration needs the complete analyzer surface).
+  STORY-194 depends_on=[STORY-193]: post-implementation formal verification story; terminal
+  leaf of the E-23 chain (blocks=[]).
+  Every edge in this chain is intra-E-23; single-file serialization (src/analyzer/iso_on_tcp.rs
+  for 184-186, then src/analyzer/s7comm.rs for 186-193) forces one story per wave even where the
+  BC dependency graph alone might have permitted parallel dispatch — matching the E-22 IEC-104
+  near-linear-chain precedent.
 ```
 
 ---
