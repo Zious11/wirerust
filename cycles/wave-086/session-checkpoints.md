@@ -1828,3 +1828,19 @@ Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and
 - **WIP branch list:** none (all story/release/gate-fix worktrees + branches cleaned up).
 - **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
 - Status at eviction: COMPLETE (D-552) — full narrative preserved verbatim in the Decisions Log D-552 row in STATE.md; superseded by MAINTENANCE-SWEEP maint-2026-09-05 checkpoint (D-553) in STATE.md.
+
+---
+
+## Archived Checkpoint — D-554 MAINT-2026-09-05 POST-RUN EXECUTION RECONCILIATION (evicted at D-555, SESSION-WRAP-PAUSE-2026-09-06)
+
+**D-554 MAINT-2026-09-05 POST-RUN EXECUTION RECONCILIATION — factory remains at a clean state after reconciling the maintenance-sweep record to executed truth. All 5 authorized Rust-dep Dependabot merges landed; develop tip `0b1ea806`→`adc9428d` (CI fully green); main unchanged `46ebd6e3`; no new release (still v0.13.3). `stories_delivered`=120; backlog empty. No in-flight work; no open worktrees. RESUME: `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.**
+
+Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and `cycles/wave-084/session-checkpoints.md` and `cycles/wave-085/session-checkpoints.md` and `cycles/wave-086/session-checkpoints.md` and `cycles/maint-2026-09-05/session-checkpoints.md` (D-553).
+
+- **Date:** 2026-09-05. Position: steady-state, maint-2026-09-05 post-run execution reconciliation COMPLETE. NEXT = await human directive on the 3 remaining held GH-Actions PRs (#455/#449/#436), PR #451 (needs rebase + policy-contradiction resolution), PR #407 governance, and the queued doc-fix — or new wave / next maintenance run / discovery / wrap.
+- **Convergence counter:** N/A — no active convergence loop.
+- **In-flight work:** NONE — no stories mid-TDD, no open story PRs awaiting review/CI, no worktrees. This burst merged 0 new PRs itself (it records 7 merges the human already executed: 5 Rust-dep + 2 Actions-bump).
+- **Pending human decisions / carry-forwards (none blocking):** MAINT-2026-09-05-ACTIONS-BUMPS-HELD (3 remaining Actions-bump PRs #455/#449/#436 pending supply-chain review); PR-451-DTOLNAY-PIN-CONFLICT (now DIRTY, needs rebase + policy-contradiction resolution); PR-407-FORK-RELEASE-OPS (governance pending); MAINT-2026-09-05-DOCFIX-QUEUED (2-edit docs fix, PR not yet opened); MAINT-2026-09-05-HOLDOUT-GAPS (5 gaps + 1 opportunity, product-owner triage); PG-W84-012; ROUTE-W74-OBS-2; PERF-RERUN-001; DRIFT-TOOLCHAIN-ROLL-CLIPPY; DRIFT-e2e-sibling-harnesses; DRIFT-STORY183-INHERITED-PATTERN-DOC-COMMENTS; DRIFT-docstring-scan; DRIFT-stale-red-scrub; DRIFT-py-surface-outside-bin; STORY-INDEX-IN-INPUTS-CHURN; ROUTE-DOC-DEFER-2026-07-21. All tracked. (DEP-SOAK-FOLLOWUP-2026-07-27 + ROUTE-BC-DEFER-2026-07-11 CLEARED this burst — no longer pending.)
+- **WIP branch list:** none (no worktrees or branches opened this burst).
+- **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
+- Status at eviction: COMPLETE (D-554) — full narrative preserved verbatim in the Decisions Log D-554 row in STATE.md; superseded by SESSION-WRAP-PAUSE-2026-09-06 checkpoint (pipeline PAUSED, session-wrap, D-555) in STATE.md.
