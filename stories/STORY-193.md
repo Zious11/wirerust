@@ -5,7 +5,7 @@ story_id: STORY-193
 title: "S7comm Dispatcher Integration: DispatchTarget::S7comm Rule 9 + Support Enum Catalog Promotion + --s7comm Flag (VP-004/VP-041 Amendments)"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.006.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f2-port102-model-validation.md
-input-hash: "4f2267d"
+input-hash: "4a8261b"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

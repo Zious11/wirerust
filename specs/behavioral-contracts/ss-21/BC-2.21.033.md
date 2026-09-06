@@ -181,11 +181,13 @@ not replace this Setup-Communication-based proxy.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-192
 
 ## VP Anchors
 
-(Deferred — proptest P1, anticipated VP-048 range.)
+(None dedicated — no VP-NNN was registered for the `expected_source_by_destination`
+first-write-wins monotonicity property in the F2 INTEGRATE sub-burst; VP-INDEX.md
+v2.48 registers no VP with this BC in its source_bc.)
 
 ## Purity Classification
 

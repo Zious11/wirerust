@@ -123,7 +123,7 @@ emitted. T0836 is **already seeded and already emitted** in `src/mitre.rs` (Modb
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-192
 
 ## VP Anchors
 

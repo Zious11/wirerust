@@ -114,11 +114,14 @@ for malformed or non-conformant classic S7comm traffic at the ROSCTR layer.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187
 
 ## VP Anchors
 
-(Deferred — proptest P1, VP allocation pending.)
+(None dedicated — no VP-NNN was registered for ROSCTR-byte totality in the F2
+INTEGRATE sub-burst; VP-INDEX.md v2.48 registers no VP with this BC in its source_bc.
+No-panic behavior across all 256 ROSCTR byte values is exercised generically by
+VP-055's combined fuzz harness.)
 
 ## Purity Classification
 

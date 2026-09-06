@@ -143,12 +143,14 @@ this BC's four branches.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst, anticipated VP-048
-range. This BC is a proptest P1 candidate for dispatch totality.)
+- VP-053 (proptest P0) — `protocol_id` Four-Way Dispatch Totality and Unclassified
+  Never-Force-Fit; registered F2 INTEGRATE sub-burst per VP-INDEX.md v2.48; traces
+  BC-2.21.002, BC-2.21.027, BC-2.21.028 (this is the BC's protocol_id-dispatch
+  concern, superseding the earlier "anticipated VP-048 range" speculation)
 
 ## Purity Classification
 

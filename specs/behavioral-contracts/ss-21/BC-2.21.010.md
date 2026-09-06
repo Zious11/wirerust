@@ -120,7 +120,7 @@ BC-2.21.017, the terminal `Unrecognized` fallback arm.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-188
 
 ## VP Anchors
 

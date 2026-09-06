@@ -179,7 +179,7 @@ classifier.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-193
 
 ## VP Anchors
 

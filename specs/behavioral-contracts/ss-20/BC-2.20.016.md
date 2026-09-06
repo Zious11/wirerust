@@ -132,7 +132,7 @@ IEC-104 precedent.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-186
 
 ## VP Anchors
 

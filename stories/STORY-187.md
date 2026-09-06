@@ -5,7 +5,7 @@ story_id: STORY-187
 title: "S7comm Flow State Completion, Four-Way protocol_id Dispatch Skeleton, and parse_s7comm_header Pure-Core Parser"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -36,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-21/BC-2.21.009.md
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "ffc51b4"
+input-hash: "4d0e7aa"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

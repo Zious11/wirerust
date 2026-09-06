@@ -138,7 +138,7 @@ observation gate.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-190
 
 ## VP Anchors
 

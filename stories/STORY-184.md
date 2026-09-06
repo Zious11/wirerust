@@ -5,7 +5,7 @@ story_id: STORY-184
 title: "S7comm TPKT Core Parser: parse_tpkt_header Pure-Core Free Function + VP-048 Kani Skeleton"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f1-delta-analysis.md
-input-hash: "b89b06b"
+input-hash: "f8042db"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced (`todo!()` bodies + Red Gate density

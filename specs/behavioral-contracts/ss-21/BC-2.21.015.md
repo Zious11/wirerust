@@ -137,11 +137,13 @@ fuzz-matching totality, mirroring the area-code totality treatment in BC-2.21.01
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-188
 
 ## VP Anchors
 
-(Deferred — proptest P1 for service-string matching totality.)
+(None dedicated — no VP-NNN was registered for service-string matching totality in
+the F2 INTEGRATE sub-burst; VP-INDEX.md v2.48 registers no VP with this BC in its
+source_bc.)
 
 ## Purity Classification
 

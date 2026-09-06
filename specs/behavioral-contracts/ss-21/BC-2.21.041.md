@@ -142,7 +142,8 @@ silent gap an adversarial reviewer should have to rediscover.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition; likely satisfied by absence rather than a dedicated implementation story)
+STORY-192 (no dedicated implementation call-site — this BC is a negative-space
+constraint satisfied by absence; STORY-192 is the decomposition anchor of record)
 
 ## VP Anchors
 

@@ -71,3 +71,18 @@ Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and
 **Superseded by:** D-560 F3 incremental-stories COMPLETE, awaiting human F3 completion gate checkpoint (current, see STATE.md). F3 dispatch (the "NEXT" step noted above) was executed in full this burst — 11 stories STORY-184..194 registered (epic E-23, waves 87-97, 71 pts), integrated into dependency-graph.md v3.13 + epics.md v2.4 + STORY-INDEX v4.24 with three-way total agreement 147/863/97 verified exact, and canonical input-hash sweep 11/11 MATCH.
 
 ---
+
+## Session Resume Checkpoint (2026-09-06) — D-560 F3 incremental-stories COMPLETE, awaiting human F3 completion gate
+
+**D-560 F3 INCREMENTAL-STORIES COMPLETE, AWAITING HUMAN F3 COMPLETION GATE — 11 new stories STORY-184..194 registered (epic E-23, waves 87-97, 71 pts, strictly-linear acyclic chain). dependency-graph.md v3.13 (147/153/863/97) + epics.md v2.4 (E-23) + STORY-INDEX.md v4.24 — three-way total agreement 147 stories/863 pts/97 waves verified EXACT. Canonical input-hash sweep 11/11 MATCH; background-stale 22-story set unchanged. develop=`97361cd4` (unchanged), main=`46ebd6e3` (unchanged), `stories_delivered`=120 (unchanged — 11 new stories draft). Pipeline IN-PROGRESS — awaiting human F3 completion gate before F4. RESUME: `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.**
+
+- **Date:** 2026-09-06. Position: mode=feature-s7comm, IN-PROGRESS; F1 APPROVED (D-557) + F2 COMPLETE + gate APPROVED (D-559); F3 incremental-stories COMPLETE (D-560, epic E-23, waves 87-97); NEXT = human F3 completion gate.
+- **Convergence counter:** N/A — not in an adversarial/convergence loop (F3 story registration is pre-adversarial; per-story adversarial loops begin in F4/wave delivery).
+- **In-flight work:** none mid-TDD; no story worktrees; no code branch yet (factory-only). This burst registered 11 new stories (STORY-184..194) into STORY-INDEX + dependency-graph.md + epics.md and rebaselined their canonical input-hashes. Deferred human PRs unchanged from D-556: #451 (DEFERRED, DIRTY/conflicting + policy contradiction); #407 (`CHANGES_REQUESTED` posted, OPEN awaiting contributor response). ADR-014 + CLAUDE.md port-102 edit remain uncommitted/inert on the develop working tree (HELD for F4, F4-OBLIGATION-ADR014-CLAUDEMD carried forward).
+- **Pending human decisions / blockers:** human F3 completion gate (review + approve the 11 new stories before F4 dispatch). #451 rebase + policy-contradiction resolution; #407 contributor response; ADR-014/CLAUDE.md F4-commit obligation — all carried forward, unaffected by this burst. STATE.md is ~118KB / NEEDS-COMPACT — a `/compact-state` pass is advisable before the next burst (not performed this burst).
+- **WIP branch list:** none.
+- **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
+
+**Superseded by:** D-561 F3 gate APPROVED, F4 OPENED checkpoint (current, see STATE.md). The human F3 completion gate noted as pending above was APPROVED this burst; STORY-184..194 promoted draft→ready; F4 delta-implementation OPENED (epic E-23, waves 87-97, beginning STORY-184).
+
+---

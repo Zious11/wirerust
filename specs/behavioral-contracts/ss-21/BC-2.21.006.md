@@ -123,11 +123,14 @@ ROSCTR == Ack, two additional bytes follow (BC-2.21.008).
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187
 
 ## VP Anchors
 
-(Deferred — cargo-fuzz P1, combined harness.)
+(None dedicated — not in VP-051's registered source_bc {BC-2.21.004, BC-2.21.009}.
+No-panic behavior on this field-extraction path is expected to be exercised
+generically by VP-055's combined fuzz harness, but no individual VP-NNN forward-anchor
+is registered for this specific BC in VP-INDEX.md v2.48.)
 
 ## Purity Classification
 

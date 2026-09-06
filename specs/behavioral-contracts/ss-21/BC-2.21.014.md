@@ -112,7 +112,7 @@ and `0x1D..=0x1F` sub-ranges never share a match arm.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-188
 
 ## VP Anchors
 

@@ -164,7 +164,7 @@ express — required because S7comm-plus (BC-2.18.006) needs it.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-193
 
 ## VP Anchors
 

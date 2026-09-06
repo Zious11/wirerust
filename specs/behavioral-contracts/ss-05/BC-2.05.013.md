@@ -178,7 +178,7 @@ renumbered Rule 10 by this change; no existing rule's behavior changes.
 
 ## Story Anchor
 
-(TBD — F3 story decomposition)
+STORY-193
 
 ## VP Anchors
 

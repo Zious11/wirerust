@@ -121,11 +121,14 @@ instead of ASDU's implicit body length.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 
-(Deferred — Kani P0 candidate, VP allocation pending, anticipated VP-048 range.)
+- VP-051 (Kani P0) — S7comm Header Bounds-Before-Slice Safety; registered F2
+  INTEGRATE sub-burst per VP-INDEX.md v2.48; traces BC-2.21.004, BC-2.21.009
+- VP-055 (cargo-fuzz P1) — S7comm/ISO-on-TCP combined parse-chain no-panic fuzz
+  (`fuzz_s7comm_parser`); registered representative-subset source_bc includes this BC
 
 ## Purity Classification
 

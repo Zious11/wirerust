@@ -116,13 +116,14 @@ payload exists at this TPDU type).
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-185
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range. This BC is a proptest P1 candidate for the protocol-ID branch
-totality property alongside BC-2.20.008..011.)
+- VP-049 (Kani P0) — COTP Header Parse Safety, TPDU-Type Exhaustiveness, and
+  Protocol-ID Extraction Totality; registered F2 INTEGRATE sub-burst per VP-INDEX.md
+  v2.48; traces BC-2.20.005..012 (supersedes this BC's own speculative "proptest P1"
+  candidate note — the registered VP-049 is Kani and covers this property)
 
 ## Purity Classification
 

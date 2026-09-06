@@ -41,7 +41,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-19/BC-2.19.028.md
   - docs/adr/0013-iec104-stream-dispatch-and-parser-design.md
   - .factory/phase-f1-delta-analysis/feature-iec104-delta-analysis.md
-input-hash: "c0cb50f"
+input-hash: "d04afd8"
 ---
 
 # STORY-173: IEC-104 Dispatcher Integration: DispatchTarget::Iec104 + T0881 Six-Part Atomic + --iec104 Flag + SUPPORTED_PORTS

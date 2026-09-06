@@ -5,7 +5,7 @@ story_id: STORY-186
 title: "S7comm ISO-on-TCP Carry-Buffer Reassembly, Walk-First Frame Extraction, Resync, and the Frozen SS-20/SS-21 Module Boundary"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -34,7 +34,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f2-pcap-fixture-sourcing.md
-input-hash: "a9cc2e0"
+input-hash: "7a4a145"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

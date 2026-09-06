@@ -5,7 +5,7 @@ story_id: STORY-192
 title: "S7comm Cross-Flow Correlation State + Reused MITRE Emissions (T0835/T0836/T0858/T0888/T0846/T1692.001) + Excluded-Technique Non-Goals"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -38,7 +38,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/research/s7comm-mitre-ics-tagging.md
-input-hash: "385e446"
+input-hash: "e445d91"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

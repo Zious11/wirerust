@@ -118,7 +118,7 @@ timestamp, mirroring BC-2.21.024's regression-guard style.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-190
 
 ## VP Anchors
 

@@ -173,11 +173,15 @@ this BC produces.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-191
 
 ## VP Anchors
 
-(Deferred — proptest P1, anticipated VP-048 range.)
+(None dedicated — no VP-NNN was registered for the download-state transition-table
+totality property in the F2 INTEGRATE sub-burst; VP-INDEX.md v2.48 registers no VP
+with this BC in its source_bc. VP-007 (amended, see BC-2.21.030/031/032) covers the
+downstream MITRE-emission consequences of session completion, not this BC's own
+state-machine totality.)
 
 ## Purity Classification
 

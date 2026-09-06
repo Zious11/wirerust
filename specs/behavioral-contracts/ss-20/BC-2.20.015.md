@@ -122,12 +122,13 @@ applied here to the TPKT version byte instead of IEC-104's `0x68` start byte.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-186
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range.)
+- VP-050 (proptest P1) — TPKT/COTP Carry-Buffer Residual-Bound Reassembly, Overflow
+  Isolation, and 1-Byte Resync; registered F2 INTEGRATE sub-burst per VP-INDEX.md
+  v2.48; traces BC-2.20.013..015
 
 ## Purity Classification
 

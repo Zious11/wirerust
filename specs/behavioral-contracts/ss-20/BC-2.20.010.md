@@ -113,12 +113,13 @@ TPDU type structurally never carrying one).
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-185
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range.)
+- VP-049 (Kani P0) — COTP Header Parse Safety, TPDU-Type Exhaustiveness, and
+  Protocol-ID Extraction Totality; registered F2 INTEGRATE sub-burst per VP-INDEX.md
+  v2.48; traces BC-2.20.005..012
 
 ## Purity Classification
 

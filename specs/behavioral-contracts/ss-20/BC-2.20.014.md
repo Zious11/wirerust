@@ -137,14 +137,17 @@ from any malformed-length dedup flag.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-186
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range. This BC is a Kani P0 candidate for the bound-arithmetic
-off-by-one property and a proptest P1 candidate for dedup-flag correctness, mirroring
-VP-045's IEC-104 treatment.)
+- VP-050 (proptest P1) — TPKT/COTP Carry-Buffer Residual-Bound Reassembly, Overflow
+  Isolation, and 1-Byte Resync; registered F2 INTEGRATE sub-burst per VP-INDEX.md
+  v2.48; traces BC-2.20.013..015 (supersedes this BC's own speculative separate
+  "Kani P0" note — the registered VP-050 is a single proptest VP covering both the
+  bound-arithmetic and dedup-flag sub-properties)
+- VP-055 (cargo-fuzz P1) — S7comm/ISO-on-TCP combined parse-chain no-panic fuzz
+  (`fuzz_s7comm_parser`); registered representative-subset source_bc includes this BC
 
 ## Purity Classification
 

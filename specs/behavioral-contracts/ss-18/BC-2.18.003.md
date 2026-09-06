@@ -163,7 +163,8 @@ these two functions and the `Support` value declared on each `KNOWN_PROTOCOLS` l
 
 ## Story Anchor
 
-TBD (F3 story decomposition for feature-protocol-coverage)
+STORY-193 (feature-s7comm amendment; original feature-protocol-coverage
+implementation story remains STORY-151 per the Traceability table above)
 
 ## VP Anchors
 

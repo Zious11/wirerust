@@ -120,11 +120,13 @@ outcome space.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-190
 
 ## VP Anchors
 
-(Deferred — shares BC-2.21.027's proptest P1 obligation.)
+- VP-053 (proptest P0) — `protocol_id` Four-Way Dispatch Totality and Unclassified
+  Never-Force-Fit; registered F2 INTEGRATE sub-burst per VP-INDEX.md v2.48; traces
+  BC-2.21.002, BC-2.21.027, BC-2.21.028
 
 ## Purity Classification
 

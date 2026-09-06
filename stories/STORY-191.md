@@ -5,7 +5,7 @@ story_id: STORY-191
 title: "S7comm Download-Session Correlation State Machine + T0843/T0889/T0821 New MITRE Techniques (Six-Part Atomic + Two New MitreTactic Variants)"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/research/s7comm-mitre-ics-tagging.md
-input-hash: "61fdbe2"
+input-hash: "7f92ff1"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

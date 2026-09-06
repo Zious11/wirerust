@@ -134,7 +134,7 @@ proptest/cargo-fuzz harnesses anchored to the specific BCs that mutate each fiel
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187
 
 ## VP Anchors
 

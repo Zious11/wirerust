@@ -146,7 +146,7 @@ Invariant 3; BC-2.21.037 defines the separate, gated T0816 restart path).
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-192
 
 ## VP Anchors
 

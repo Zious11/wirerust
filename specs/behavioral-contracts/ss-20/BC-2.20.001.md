@@ -116,14 +116,14 @@ length-reject path; the accept path is BC-2.20.004.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-184 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range. This BC is a Kani P0 candidate for arithmetic/bounds safety
-and a cargo-fuzz P1 candidate as part of the combined TPKT→COTP→S7comm no-panic
-harness.)
+- VP-048 (Kani P0) — TPKT Header Parse Safety and Four-Way Totality; registered F2
+  INTEGRATE sub-burst per VP-INDEX.md v2.48; traces BC-2.20.001..004
+- VP-055 (cargo-fuzz P1) — S7comm/ISO-on-TCP combined parse-chain no-panic fuzz
+  (`fuzz_s7comm_parser`); registered representative-subset source_bc includes this BC
 
 ## Purity Classification
 

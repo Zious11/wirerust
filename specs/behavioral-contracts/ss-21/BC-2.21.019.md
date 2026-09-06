@@ -116,7 +116,7 @@ important test vector in this feature given ADR-014's explicit correction flag.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-189 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 

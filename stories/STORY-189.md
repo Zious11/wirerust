@@ -5,7 +5,7 @@ story_id: STORY-189
 title: "S7comm Userdata Structural Parse and Function-Group Classification: Load-Bearing Group 0x03/0x04/0x07 Correction"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -35,7 +35,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/research/s7comm-mitre-ics-tagging.md
-input-hash: "6ba7a8b"
+input-hash: "1d59de6"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

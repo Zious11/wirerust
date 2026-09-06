@@ -5,7 +5,7 @@ story_id: STORY-188
 title: "S7comm Job/Ack_Data Function-Code Classification: Setup Comm, Read/Write Var, Download/Upload Triads, PLC Control, PLC Stop"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/research/s7comm-mitre-ics-tagging.md
-input-hash: "d3efaa1"
+input-hash: "25bc687"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

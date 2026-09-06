@@ -5,7 +5,7 @@ story_id: STORY-185
 title: "S7comm COTP TPDU-Type Parser: parse_cotp_header, Protocol-ID Extraction, VP-049 Kani Skeleton"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -36,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-20/BC-2.20.012.md
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "54ebb24"
+input-hash: "275ae46"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

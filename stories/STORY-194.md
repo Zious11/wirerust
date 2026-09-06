@@ -5,7 +5,7 @@ story_id: STORY-194
 title: "S7comm Formal Hardening: VP-048..055 Full Runs + VP-004/007/041 Re-Verification + cargo-mutants"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -35,7 +35,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-21/BC-2.21.022.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/verification-properties/VP-INDEX.md
-input-hash: "14b132c"
+input-hash: "8fdd307"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced. This story writes NO new

@@ -100,7 +100,7 @@ anchored to BC-2.21.023.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-189
 
 ## VP Anchors
 

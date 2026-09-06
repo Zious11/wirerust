@@ -5,7 +5,7 @@ story_id: STORY-190
 title: "S7comm-plus DetectionOnly Framing + Session-Setup Metadata + Unclassified-Gap Completion (protocol_id Dispatch Totality)"
 epic_id: E-23
 version: "1.0"
-status: draft
+status: ready
 producer: story-writer
 timestamp: 2026-09-06T00:00:00Z
 phase: f3
@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-21/BC-2.21.028.md
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "b4173aa"
+input-hash: "64414bc"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced.

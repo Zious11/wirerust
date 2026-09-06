@@ -146,11 +146,13 @@ reflecting that OB-ness could not be ruled out. T0821 reuses the existing
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-191
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst, anticipated VP-048 range.)
+- VP-007 (Kani P0, amended) — MITRE Technique ID Format and Catalog Completeness;
+  registered F2 INTEGRATE sub-burst per VP-INDEX.md v2.48; source_bc extended to
+  include BC-2.21.032 (T0843/T0889/T0821 seeding, SEEDED_TECHNIQUE_ID_COUNT 29→32)
 
 ## Purity Classification
 

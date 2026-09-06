@@ -157,7 +157,9 @@ with T0858 for the common start/run case, which this BC deliberately avoids).
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition; blocked on INTEGRATE's Invariant 2 resolution)
+STORY-192 (no dedicated implementation call-site this cycle — Invariant 2's RESOLVED
+outcome (b) yields zero S7comm emission call-sites; STORY-192 is the decomposition
+anchor of record)
 
 ## VP Anchors
 

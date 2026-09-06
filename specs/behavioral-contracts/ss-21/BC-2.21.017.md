@@ -125,11 +125,14 @@ distinct condition from "FC byte present but unrecognized."
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-188 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 
-(Deferred — proptest P1, anticipated VP-048 range.)
+- VP-052 (proptest P1) — S7comm Function-Code and Userdata-Group Classification
+  Totality (Including the Load-Bearing 0x03/0x04/0x07 Group Correction); registered
+  F2 INTEGRATE sub-burst per VP-INDEX.md v2.48; traces BC-2.21.017, BC-2.21.019,
+  BC-2.21.022, BC-2.21.023
 
 ## Purity Classification
 

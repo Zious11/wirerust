@@ -120,7 +120,7 @@ dispatch branch, mirroring BC-2.20.016's static-grep regression-guard style.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-190
 
 ## VP Anchors
 

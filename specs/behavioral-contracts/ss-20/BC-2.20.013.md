@@ -140,14 +140,15 @@ aggregate carry-plus-delivery pre-check.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-186 (also a formal-hardening re-verification anchor for STORY-194)
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst per ADR-014 Decision 9,
-anticipated VP-048 range. This BC is a proptest P1 candidate for directional
-carry-buffer isolation and walk-first equivalence, mirroring VP-045's IEC-104
-treatment.)
+- VP-050 (proptest P1) — TPKT/COTP Carry-Buffer Residual-Bound Reassembly, Overflow
+  Isolation, and 1-Byte Resync; registered F2 INTEGRATE sub-burst per VP-INDEX.md
+  v2.48; traces BC-2.20.013..015
+- VP-055 (cargo-fuzz P1) — S7comm/ISO-on-TCP combined parse-chain no-panic fuzz
+  (`fuzz_s7comm_parser`); registered representative-subset source_bc includes this BC
 
 ## Purity Classification
 

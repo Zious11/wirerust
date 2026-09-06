@@ -111,7 +111,8 @@ candidate.)
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-186 (moved from its originating BC-2.21.NNN block per the F3 decomposition, per
+consistency-audit-verified mapping)
 
 ## VP Anchors
 

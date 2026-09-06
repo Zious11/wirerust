@@ -130,12 +130,14 @@ returns `None` immediately without accessing any field beyond the length check.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-187
 
 ## VP Anchors
 
-(Deferred — VP allocation happens in the F2 INTEGRATE sub-burst, anticipated VP-048
-range. cargo-fuzz P1 candidate.)
+- VP-051 (Kani P0) — S7comm Header Bounds-Before-Slice Safety; registered F2
+  INTEGRATE sub-burst per VP-INDEX.md v2.48; traces BC-2.21.004, BC-2.21.009
+- VP-055 (cargo-fuzz P1) — S7comm/ISO-on-TCP combined parse-chain no-panic fuzz
+  (`fuzz_s7comm_parser`); registered representative-subset source_bc includes this BC
 
 ## Purity Classification
 

@@ -136,7 +136,7 @@ emission call-sites.
 
 ## Story Anchor
 
-(TBD — assigned during F3 story decomposition)
+STORY-192
 
 ## VP Anchors
 
