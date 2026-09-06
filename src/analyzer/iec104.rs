@@ -1327,9 +1327,9 @@ impl Iec104Analyzer {
             // Build working buffer: drain directional carry first, then append delivery.
             // BC-2.19.025 invariant 1: carries are never mixed across directions.
             let mut buf: Vec<u8> = if direction == Direction::ClientToServer {
-                state.carry_c2s.drain(..).collect()
+                std::mem::take(&mut state.carry_c2s)
             } else {
-                state.carry_s2c.drain(..).collect()
+                std::mem::take(&mut state.carry_s2c)
             };
             buf.extend_from_slice(data);
 

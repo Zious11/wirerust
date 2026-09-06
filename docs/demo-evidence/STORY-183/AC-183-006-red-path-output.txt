@@ -1,0 +1,15 @@
+=== AC-183-006: RED-path demo (hermetic throwaway repo, not the wirerust tree) ===
+--- Running: python3 bin/check-green-doc-tense (cwd = throwaway repo) ---
+FAIL [bin/violating.py:1]: Pattern 32 (PG-W85-003): 'currently asserts' — RED-phase present-tense claim (AC-183-007)
+     # currently asserts the implementation is complete
+
+Found 1 stale RED-phase comment(s) in tracked source files (DF-GREEN-DOC-TENSE-SWEEP).
+These comment lines assert that tests currently fail (Red Gate / stub-phase),
+but the test bodies beneath them contain real assertions (the code is GREEN).
+Scrub or replace each comment to reflect current GREEN status before merging.
+--- exit code: 1 ---
+
+=== Negative control: same '#' line in a .rs file is NOT scan-eligible (suffix-scoped) ===
+--- Running: python3 bin/check-green-doc-tense (cwd = second throwaway repo, .rs file) ---
+PASS: no stale RED-phase comment headers found (1 files scanned).
+--- exit code: 0 ---
