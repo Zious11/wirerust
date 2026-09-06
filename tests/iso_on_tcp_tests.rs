@@ -447,6 +447,11 @@ mod story_184 {
     /// only the first frame's declared length; it does not attempt to consume or validate
     /// trailing bytes (frame-walk advance is a STORY-186 concern).
     ///
+    /// The first assertion below is the genuine EC-004 case (declared `length == 10`,
+    /// `data.len() == 14` — a second frame's header trails the first). The second
+    /// assertion is the EC-005 exact-length-match case (declared `length == 10`,
+    /// `data.len() == 10`), kept alongside it as a companion boundary check.
+    ///
     /// Canonical vector from BC-2.20.004:
     ///   `[0x03, 0x00, 0x00, 0x0A, ...6 more payload bytes]` (10 bytes total)
     ///   -> `Some(TpktHeader { version: 3, length: 10 })`.
@@ -454,25 +459,8 @@ mod story_184 {
     /// Traces: BC-2.20.004 postcondition 4, EC-004; AC-184-004; canonical test vector.
     #[test]
     fn test_BC_2_20_004_trailing_bytes_beyond_declared_length_still_accepted_canonical_vector() {
-        // 4-byte header (length=10) + 6 arbitrary payload/trailing bytes = 10 bytes total,
-        // matching the canonical vector's total length exactly.
-        let data: &[u8] = &[0x03, 0x00, 0x00, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
-        assert_eq!(data.len(), 10, "canonical vector must be exactly 10 bytes");
-        let result = parse_tpkt_header(data);
-        let header =
-            result.expect("input with trailing bytes must still return Some (BC-2.20.004 EC-004)");
-        assert_eq!(
-            header,
-            TpktHeader {
-                version: 3,
-                length: 10
-            },
-            "must decode version=3, length=10 regardless of any additional trailing bytes \
-             beyond the declared frame (BC-2.20.004 postcondition 4, EC-004)"
-        );
-
-        // Now supply strictly more trailing bytes than the previous vector (a second full
-        // frame's worth) and confirm the same first-frame-only decode still holds.
+        // EC-004: strictly more trailing bytes than the declared length (a second full
+        // frame's worth) — confirm first-frame-only decode holds regardless of trailer.
         let data_with_second_frame: &[u8] = &[
             0x03, 0x00, 0x00, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, // frame 1 (10 bytes)
             0x03, 0x00, 0x00, 0x04, // frame 2 header (4 bytes)
@@ -489,6 +477,24 @@ mod story_184 {
             },
             "must decode only the first frame's header/length, ignoring the second frame's \
              bytes entirely (BC-2.20.004 postcondition 4)"
+        );
+
+        // EC-005 companion check: 4-byte header (length=10) + 6 arbitrary payload bytes =
+        // 10 bytes total, matching the canonical vector's total length exactly (no
+        // trailing bytes at all — data.len() == length).
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
+        assert_eq!(data.len(), 10, "canonical vector must be exactly 10 bytes");
+        let result = parse_tpkt_header(data);
+        let header = result.expect(
+            "input with data.len() == length exactly must return Some (BC-2.20.004 EC-005)",
+        );
+        assert_eq!(
+            header,
+            TpktHeader {
+                version: 3,
+                length: 10
+            },
+            "must decode version=3, length=10 with data.len() == length exactly (EC-005)"
         );
     }
 
@@ -553,6 +559,54 @@ mod story_184 {
     }
 
     // =========================================================================
+    // DF-CANONICAL-FRAME-HOLDOUT-001: independent RFC-1006-derived holdout vector(s).
+    // Unlike every other vector in this file (which traces to this project's own
+    // BC-2.20.001-004 text), the vectors below are derived directly from the RFC 1006
+    // spec document, independently of any BC.
+    // =========================================================================
+
+    /// Per RFC 1006 §5: octet 0 = version = 0x03; octet 1 = reserved; octets 2-3 =
+    /// big-endian TPKTLength INCLUDING the 4-byte header; minimum legal length = 4.
+    /// Derived from RFC 1006 §5, independently of BC-2.20.00x.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
+    #[test]
+    fn test_rfc1006_s5_canonical_minimal_tpkt_holdout() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x04];
+        let result = parse_tpkt_header(data);
+        assert_eq!(
+            result,
+            Some(TpktHeader {
+                version: 0x03,
+                length: 4
+            }),
+            "RFC 1006 §5 minimal legal TPKT header (version=0x03, length=4, the 4-byte \
+             header with no payload) must be accepted"
+        );
+    }
+
+    /// Per RFC 1006 §5: a TPKT header declaring a length larger than the 4-byte header
+    /// itself (here: header + 6 payload octets = 10 total) must decode `length` as the
+    /// full big-endian TPKTLength value, independently of any payload byte contents.
+    /// Derived from RFC 1006 §5, independently of BC-2.20.00x.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
+    #[test]
+    fn test_rfc1006_s5_canonical_ten_byte_tpkt_holdout() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let result = parse_tpkt_header(data);
+        assert_eq!(
+            result,
+            Some(TpktHeader {
+                version: 0x03,
+                length: 10
+            }),
+            "RFC 1006 §5 TPKT header declaring length=10 (4-byte header + 6 payload \
+             octets) must decode version=0x03, length=10"
+        );
+    }
+
+    // =========================================================================
     // Property-based test: independent oracle re-implementation of the four-way
     // partition, checked against parse_tpkt_header across randomized inputs.
     // =========================================================================
@@ -564,11 +618,14 @@ mod story_184 {
         /// of `parse_tpkt_header`'s implementation code. It is logically equivalent to
         /// the function under test (both implement the same BC), so this proptest is a
         /// mutation-catcher rather than a proof of independent correctness: it flags
-        /// implementation drift when one side changes without the other. The concrete
-        /// canonical-vector unit tests above, whose expected values come from the BC
-        /// spec text (not from this oracle or the implementation), are what guard
-        /// against a shared logic error -- e.g. endianness or boundary mistakes -- that
-        /// this oracle and `parse_tpkt_header` might otherwise make in the same way.
+        /// implementation drift when one side changes without the other. Because both this
+        /// oracle and the canonical-vector unit tests above are ultimately derived from the
+        /// same BC-2.20.001-004 spec text, neither guards against a shared logic error --
+        /// e.g. endianness or boundary mistakes -- inherited from that spec text itself.
+        /// Spec-independent grounding against such an error comes from
+        /// `test_rfc1006_s5_canonical_minimal_tpkt_holdout` below, whose vector is derived
+        /// directly from RFC 1006 §5 rather than from this project's BCs
+        /// (DF-CANONICAL-FRAME-HOLDOUT-001).
         fn oracle(data: &[u8]) -> Option<TpktHeader> {
             if data.len() < 4 {
                 return None;

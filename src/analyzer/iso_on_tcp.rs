@@ -94,9 +94,11 @@ pub struct TpktHeader {
 ///   big-endian `u16` decoded from `data[2..4]`, in `[4, 65535]` (BC-2.20.004). The
 ///   reserved byte at `data[1]` is never inspected.
 ///
-/// These four outcomes are jointly exhaustive and mutually exclusive over all possible
-/// `data` inputs (BC-2.20.004 invariant 3; AC-184-005). Full exhaustiveness is proven by
-/// the VP-048 Kani harness below (full proof run: STORY-194).
+/// These four outcomes are jointly exhaustive and mutually exclusive by construction
+/// (BC-2.20.004 invariant 3; AC-184-005). Formalizing that partition is the VP-048 Kani
+/// obligation: the assertions are added and executed in STORY-194 (formal hardening); the
+/// `#[cfg(kani)]` skeleton below currently proves only no-panic/bounds-safety over
+/// symbolic input.
 pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
     if data.len() < 4 {
         return None;
