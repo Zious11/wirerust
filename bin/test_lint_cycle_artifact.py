@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Self-test for bin/lint-cycle-artifact — RED GATE version.
+Self-test for bin/lint-cycle-artifact — delivered pre-implementation; all
+tests were red until bin/lint-cycle-artifact landed (STORY-158).
 
-TC1–TC8 implement all eight test cases from STORY-158 Task 3 / AC-158-003.
-All tests MUST FAIL until bin/lint-cycle-artifact is created.
+TC1–TC21 implement 21 self-tests covering STORY-158 Task 3 / AC-158-003 and
+follow-on hardening.
+Tests were written to fail before bin/lint-cycle-artifact was created.
 
 Hermetic fixtures: each TC constructs its own fixture tree under
 tempfile.TemporaryDirectory() and passes the root via WIRERUST_REPO_ROOT.
@@ -122,7 +124,7 @@ def make_bc_file(tmp_dir: Path, bc_id: str) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Test cases (TC1–TC8)
+# Test cases (TC1–TC21)
 # ---------------------------------------------------------------------------
 
 

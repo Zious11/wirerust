@@ -11,3 +11,8 @@ demo-evidence/
 # cargo-mutants output directories (standard runs and F6 targeted hardening runs)
 mutants.out*/
 mutants-f6*/
+
+# Transient CI artifact from IEC-104 fixture coverage report step (STORY-182)
+coverage-out.txt
+# Transient artifact from the AC-182-005 manual RED demonstration (STORY-182)
+red-out.txt
