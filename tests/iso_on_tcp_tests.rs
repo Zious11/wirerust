@@ -18,10 +18,11 @@
 //! The non_snake_case lint fires on uppercase BC IDs — suppressed intentionally.
 //!
 //! ## Provenance
-//! Authored Red-first as TDD stubs (STORY-184 `tdd_mode: strict`) against the
-//! `todo!()` stub in `src/analyzer/iso_on_tcp.rs`. Every test below MUST fail (panic on
-//! `todo!()`) until the STORY-184 implementer delivers `parse_tpkt_header`. Red Gate
-//! verification: `cargo test --test iso_on_tcp_tests` (BC-5.38.001).
+//! Originally authored Red-first as TDD stubs (STORY-184 `tdd_mode: strict`;
+//! BC-2.20.001-004) against a `todo!()` stub in `src/analyzer/iso_on_tcp.rs`. Red Gate
+//! was verified via `cargo test --test iso_on_tcp_tests` (BC-5.38.001) before the
+//! `todo!()` stub was replaced by the STORY-184 implementation of
+//! `parse_tpkt_header`. These tests are now GREEN.
 //!
 //! Canonical test vectors from BC-2.20.001-004 are used verbatim
 //! (DF-CANONICAL-FRAME-HOLDOUT-001).
@@ -559,9 +560,15 @@ mod story_184 {
         use super::*;
         use proptest::prelude::*;
 
-        /// Independent oracle mirroring BC-2.20.001-004's classification logic, kept
-        /// deliberately separate from the implementation under test so the property test
-        /// is not vacuously true.
+        /// Re-derivation of BC-2.20.001-004's classification logic, written independently
+        /// of `parse_tpkt_header`'s implementation code. It is logically equivalent to
+        /// the function under test (both implement the same BC), so this proptest is a
+        /// mutation-catcher rather than a proof of independent correctness: it flags
+        /// implementation drift when one side changes without the other. The concrete
+        /// canonical-vector unit tests above, whose expected values come from the BC
+        /// spec text (not from this oracle or the implementation), are what guard
+        /// against a shared logic error -- e.g. endianness or boundary mistakes -- that
+        /// this oracle and `parse_tpkt_header` might otherwise make in the same way.
         fn oracle(data: &[u8]) -> Option<TpktHeader> {
             if data.len() < 4 {
                 return None;
