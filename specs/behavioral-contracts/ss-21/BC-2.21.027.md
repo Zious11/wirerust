@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.21.027: DT Frame With `protocol_id: Some(other)` (Neither 0x32 Nor 0x72) Left Unclassified — Never Force-Fit to S7comm (MMS/ICCP/Unrecognized)

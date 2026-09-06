@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.21.033: Cross-Flow Global Correlation State on `S7commAnalyzer` — Port-102 Sweep Tracking and Per-Destination Expected-Source Baseline

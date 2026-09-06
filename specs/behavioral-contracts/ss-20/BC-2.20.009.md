@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.20.009: `parse_cotp_header` Recognizes Data Transfer (DT) TPDU With Non-Empty Payload — Extracts `protocol_id`

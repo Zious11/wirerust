@@ -24,7 +24,7 @@ inputs:
   - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
   - docs/adr/0012-protocols-catalog-and-coverage-gaps.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "4e9573e"
+input-hash: "f156347"
 ---
 
 # BC-2.18.006: Port-102 Four-Way `Support` Assignment (S7comm=Supported, S7comm-plus=DetectionOnly, MMS/ICCP=KnownUnsupported) — Static-Catalog-Only Fix, Dynamic Gap Classifier Explicitly Deferred to F4

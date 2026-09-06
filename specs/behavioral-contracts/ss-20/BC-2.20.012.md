@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.20.012: `parse_cotp_header`'s `protocol_id` Is Extracted Verbatim, Never Interpreted (Frozen SS-20→SS-21 Boundary)

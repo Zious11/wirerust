@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.20.014: Carry Buffer Bounded at `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535`; Overflow Triggers Clear-and-Resync With One T0814 Per Direction

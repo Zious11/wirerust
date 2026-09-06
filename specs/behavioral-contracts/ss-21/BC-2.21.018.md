@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.21.018: Userdata (ROSCTR 0x07) Parameter Block Structural Parse — Parameter Head, Group/Subfunction Extraction, Bounds-Safe Reject

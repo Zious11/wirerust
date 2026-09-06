@@ -30,7 +30,7 @@ inputs:
   - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
   - docs/adr/0012-protocols-catalog-and-coverage-gaps.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "4e9573e"
+input-hash: "f156347"
 ---
 
 # BC-2.18.003: `supported_protocols()` Returns Exactly the `Support::Supported`-Tagged Entries; `unsupported_protocols()` Returns the Complement (`!= Supported`)

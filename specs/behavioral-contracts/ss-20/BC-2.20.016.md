@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.20.016: Frozen `iso_on_tcp.rs` Module Boundary — Pure Free Functions Only, No `StreamAnalyzer` Impl, No Per-Flow State of Its Own

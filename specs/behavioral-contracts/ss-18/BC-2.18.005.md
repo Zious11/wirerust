@@ -24,7 +24,7 @@ inputs:
   - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
   - docs/adr/0012-protocols-catalog-and-coverage-gaps.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
-input-hash: "4e9573e"
+input-hash: "f156347"
 ---
 
 # BC-2.18.005: `Support` Enum on `KnownProtocol` — Exhaustive, Compile-Time-Enforced Per-Entry Assignment

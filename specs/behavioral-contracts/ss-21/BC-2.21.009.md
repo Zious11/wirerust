@@ -23,7 +23,7 @@ removal_reason: null
 inputs:
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "8f268fc"
+input-hash: "cf116b5"
 ---
 
 # BC-2.21.009: Declared `param_length`/`data_length` Are Bounds-Checked Against Remaining Bytes Before Parameter/Data Block Access (Safe-Reject on Inconsistency)
