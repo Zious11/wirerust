@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-09-05
+
 ### Changed
 
 - Replace `Vec::drain(..).collect()` with `std::mem::take` in IEC-104 carry-buffer
@@ -1904,7 +1906,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.2...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.13.3...HEAD
+[0.13.3]: https://github.com/Zious11/wirerust/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/Zious11/wirerust/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/Zious11/wirerust/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Zious11/wirerust/compare/v0.12.1...v0.13.0
