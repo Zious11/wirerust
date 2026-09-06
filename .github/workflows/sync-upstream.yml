@@ -1,0 +1,146 @@
+# Sync Upstream — keep a fork's branches merged with its upstream repository.
+#
+# FORK-SUPPORT INFRASTRUCTURE: this workflow is a no-op unless the
+# SYNC_UPSTREAM_REPO repository variable is set (e.g. "Zious11/jira-cli" in a
+# downstream fork). Hosting it here means forks stay aligned without each one
+# carrying a divergent copy. Fork-local files that should survive a sync are
+# listed in .github/local-workflows.txt. See
+# docs/specs/fork-friendly-release-ops.md.
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  # No issues:write — conflicts are reported via GITHUB_STEP_SUMMARY + exit 1
+  # instead of issue creation, so this works even when the Issues feature is
+  # disabled or the workflow token is read-only. See "Report unresolved
+  # conflict".
+
+jobs:
+  sync:
+    # No-op unless this repo is a fork that opted in by setting the variable.
+    if: vars.SYNC_UPSTREAM_REPO != ''
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # main + develop: fork authors local CI/release commits on top of
+        # upstream, so the merge logic + protected-files handling applies.
+        # factory-artifacts: upstream-only content (spec snapshots feeding
+        # ci.yml's spec-guard job). Fork has no local edits; merge is
+        # always a fast-forward.
+        branch: [main, develop, factory-artifacts]
+      fail-fast: false
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: ${{ matrix.branch }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.SYNC_UPSTREAM_SSH_KEY }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream "https://github.com/${{ vars.SYNC_UPSTREAM_REPO }}.git"
+          git fetch upstream ${{ matrix.branch }} --tags
+
+      - name: Check if sync needed
+        id: check
+        run: |
+          if git merge-base --is-ancestor "upstream/${{ matrix.branch }}" HEAD; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge upstream
+        if: steps.check.outputs.needed == 'true'
+        id: merge
+        run: |
+          set -euo pipefail
+
+          # Read protected files list before merge attempt
+          PROTECTED=""
+          if [[ -f .github/local-workflows.txt ]]; then
+            PROTECTED=$(grep -v '^#' .github/local-workflows.txt | grep -v '^[[:space:]]*$')
+          fi
+
+          # Attempt merge
+          if git merge "upstream/${{ matrix.branch }}" --no-edit; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Merge failed — check if all conflicts are in protected files
+          CONFLICTED=$(git diff --name-only --diff-filter=U)
+          UNRESOLVED=""
+
+          for file in $CONFLICTED; do
+            if [[ -n "$PROTECTED" ]] && echo "$PROTECTED" | grep -qxF "$file"; then
+              echo "::notice::Protected file conflict resolved (ours): $file"
+              git checkout --ours "$file"
+              git add "$file"
+            else
+              UNRESOLVED="${UNRESOLVED:+$UNRESOLVED }$file"
+            fi
+          done
+
+          if [[ -n "$UNRESOLVED" ]]; then
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            echo "files=$UNRESOLVED" >> "$GITHUB_OUTPUT"
+            git merge --abort
+          else
+            git commit --no-edit
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report unresolved conflict
+        if: steps.merge.outputs.result == 'conflict'
+        run: |
+          {
+            echo "# :warning: Upstream sync conflict on \`${{ matrix.branch }}\`"
+            echo
+            echo "Automated upstream sync hit merge conflicts in non-protected files."
+            echo
+            echo "**Branch:** \`${{ matrix.branch }}\`"
+            echo "**Conflicted files:** \`${{ steps.merge.outputs.files }}\`"
+            echo
+            echo "## Resolve manually"
+            echo '```sh'
+            echo 'git fetch upstream'
+            echo 'git checkout ${{ matrix.branch }}'
+            echo 'git merge upstream/${{ matrix.branch }}'
+            echo '# resolve conflicts (cherry-pick upstream improvements,'
+            echo '# keep fork hardening; do NOT add to local-workflows.txt)'
+            echo 'git push'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Exit non-zero so the run fails visibly in the Actions tab and
+          # the repo owner's notifications fire. We do NOT call gh issue
+          # create: forks may have the Issues feature disabled, and with
+          # default_workflow_permissions "read" the GITHUB_TOKEN can't create
+          # issues even with permissions: issues:write declared. The job
+          # summary above is the durable signal; the run failure is the alert.
+          exit 1
+
+      - name: Push branch
+        if: steps.merge.outputs.result == 'success'
+        run: |
+          git push origin ${{ matrix.branch }}
+
+      - name: Sync tags
+        run: |
+          git push origin --tags

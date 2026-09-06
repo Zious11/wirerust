@@ -1,0 +1,458 @@
+# Backfill Release — build, release, sign, and publish for an existing tag.
+#
+# Use this to create full releases for tags that predate release.yml (or the
+# signing pipeline). Trigger once per tag via workflow_dispatch, or let
+# release-gap-fill.yml dispatch it automatically.
+#
+# OPT-IN signing: the sign and homebrew jobs are gated on repository
+# variables (SIGNING_ENABLED, HOMEBREW_TAP_REPO) and skip cleanly when
+# unset. Without them this workflow still backfills unsigned releases.
+# See docs/specs/fork-friendly-release-ops.md.
+name: Backfill Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to build and release (e.g. v0.3.0)'
+        required: true
+        type: string
+      skip_signing:
+        description: 'Skip signing and just create the unsigned release'
+        required: false
+        type: boolean
+        default: false
+      update_homebrew:
+        description: 'Update Homebrew tap formula (only for latest stable)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build — same targets as release.yml
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Install Rust
+        # Pinned to master, which accepts an explicit `toolchain` input. The
+        # SHA-pinned versioned-branch snapshot used in jira-cli hardcodes its
+        # toolchain (1.85.0) and ignores the input; jira-cli gets away with it
+        # because its rust-toolchain.toml pins channel = stable, but wirerust
+        # carries no rust-toolchain.toml (requires rustc 1.91+).
+        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88  # master
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      # rust-toolchain.toml pins channel = "stable", which overrides the
+      # toolchain dtolnay/rust-toolchain installs above. Without this step,
+      # native (non-cross) builds fail with `error[E0463]: can't find
+      # crate for 'core'`. Same defensive fix as release.yml.
+      - name: Ensure target installed (defensive)
+        shell: bash
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        shell: bash
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf "../../../wirerust-${RELEASE_TAG}-${{ matrix.target }}.tar.gz" wirerust
+          cd ../../..
+          if command -v sha256sum &>/dev/null; then
+            sha256sum "wirerust-${RELEASE_TAG}-${{ matrix.target }}.tar.gz" > "wirerust-${RELEASE_TAG}-${{ matrix.target }}.tar.gz.sha256"
+          else
+            shasum -a 256 "wirerust-${RELEASE_TAG}-${{ matrix.target }}.tar.gz" > "wirerust-${RELEASE_TAG}-${{ matrix.target }}.tar.gz.sha256"
+          fi
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: Compress-Archive -Path "target/${{ matrix.target }}/release/wirerust.exe" -DestinationPath "wirerust-${env:RELEASE_TAG}-${{ matrix.target }}.zip"
+
+      - name: Checksum (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: sha256sum "wirerust-${RELEASE_TAG}-${{ matrix.target }}.zip" > "wirerust-${RELEASE_TAG}-${{ matrix.target }}.zip.sha256"
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'   # Catches Set-Location failure (directory missing)
+          Set-Location "target/${{ matrix.target }}/release"
+          # Use `.\wirerust.exe` (explicit current-directory prefix) — PowerShell does NOT
+          # search CWD for executables without it, unlike cmd.exe.
+          # NOTE: $ErrorActionPreference does NOT catch non-zero exit from native
+          # executables in PS7; the explicit LASTEXITCODE check below is load-bearing.
+          .\wirerust.exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: wirerust-${{ matrix.target }}
+          path: |
+            wirerust-*.tar.gz
+            wirerust-*.zip
+            wirerust-*.sha256
+
+  # ---------------------------------------------------------------------------
+  # Release — create or update GitHub Release with unsigned binaries
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create Release
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          PRERELEASE=""
+          if [[ "$TAG" == *-* ]]; then
+            PRERELEASE="--prerelease"
+          fi
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            # Release already exists — upload/replace assets without touching notes or flags
+            DRAFT_STATUS=$(gh release view "$TAG" \
+              --repo "${{ github.repository }}" \
+              --json isDraft --jq '.isDraft')
+            if [ "$DRAFT_STATUS" = "true" ]; then
+              echo "::warning::Release $TAG is a draft. Uploading assets but NOT publishing — curator must manually publish."
+            fi
+            gh release upload "$TAG" \
+              --repo "${{ github.repository }}" \
+              --clobber \
+              wirerust-*.tar.gz \
+              wirerust-*.zip \
+              wirerust-*.sha256
+          else
+            # No release yet — safe to create with auto-generated notes
+            gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "$TAG" \
+              --generate-notes \
+              $PRERELEASE \
+              wirerust-*.tar.gz \
+              wirerust-*.zip \
+              wirerust-*.sha256
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Sign — same as sign-and-publish.yml stable channel
+  # ---------------------------------------------------------------------------
+  sign:
+    name: Sign & Notarize
+    needs: release
+    if: inputs.skip_signing == false && vars.SIGNING_ENABLED == 'true'
+    permissions:
+      contents: write
+    environment: release
+    runs-on: macos-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: develop  # need packaging scripts from develop, not the old tag
+          persist-credentials: false
+
+      - name: Extract version
+        id: meta
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download release binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          for target in x86_64-apple-darwin aarch64-apple-darwin; do
+            ASSET="wirerust-${TAG}-${target}.tar.gz"
+            echo "Downloading $ASSET..."
+            gh release download "$TAG" --pattern "$ASSET" --dir .
+            tar xzf "$ASSET"
+            mv wirerust "wirerust-darwin-$(echo $target | sed 's/x86_64.*/amd64/;s/aarch64.*/arm64/')"
+            rm "$ASSET"
+          done
+
+      - name: Import certificates
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_INSTALLER_CERTIFICATE_P12: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_P12 }}
+          APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > cert.p12
+          security import cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm cert.p12
+
+          echo "$APPLE_INSTALLER_CERTIFICATE_P12" | base64 --decode > installer-cert.p12
+          security import installer-cert.p12 -k build.keychain -P "$APPLE_INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/pkgbuild -T /usr/bin/productbuild -T /usr/bin/productsign
+          rm installer-cert.p12
+
+          curl -sfo /tmp/DeveloperIDG2CA.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security add-certificates -k build.keychain /tmp/DeveloperIDG2CA.cer
+          rm /tmp/DeveloperIDG2CA.cer
+
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Sign binaries
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --options runtime --sign "$APPLE_SIGNING_IDENTITY" --timestamp wirerust-darwin-arm64
+          codesign --force --options runtime --sign "$APPLE_SIGNING_IDENTITY" --timestamp wirerust-darwin-amd64
+          codesign --verify --deep --strict wirerust-darwin-arm64
+          codesign --verify --deep --strict wirerust-darwin-amd64
+
+      - name: Build packaging artifacts
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          VERSION="$RELEASE_VERSION"
+          chmod +x scripts/create-app.sh scripts/create-dmg.sh scripts/create-pkg.sh
+
+          for arch in arm64 amd64; do
+            ./scripts/create-app.sh "wirerust-darwin-${arch}" "$VERSION" .
+            codesign --force --deep --options runtime --sign "$APPLE_SIGNING_IDENTITY" --timestamp Wirerust.app
+            ./scripts/create-dmg.sh Wirerust.app "$VERSION" "wirerust-${arch}.dmg"
+            # Sign the DMG container itself. Required for stapler to attach a
+            # Gatekeeper-recognized notarization ticket, and routes the
+            # notarytool submission through Apple's fast path (signed-image
+            # validation) instead of the slow "discovery" path that hangs at
+            # pre-submission under burst load.
+            codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp "wirerust-${arch}.dmg"
+            ./scripts/create-pkg.sh "wirerust-darwin-${arch}" "$VERSION" "$APPLE_INSTALLER_IDENTITY" "wirerust-${arch}.pkg"
+            rm -rf Wirerust.app
+          done
+
+      - name: Notarize
+        env:
+          APPLE_NOTARIZATION_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+          APPLE_NOTARIZATION_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          APPLE_NOTARIZATION_TEAM_ID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+        run: |
+          for ARTIFACT in wirerust-arm64.pkg wirerust-amd64.pkg wirerust-arm64.dmg wirerust-amd64.dmg; do
+            echo "Notarizing $ARTIFACT..."
+            xcrun notarytool submit "$ARTIFACT" \
+              --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
+              --password "$APPLE_NOTARIZATION_PASSWORD" \
+              --team-id "$APPLE_NOTARIZATION_TEAM_ID" \
+              --wait --timeout 14400
+            xcrun stapler staple "$ARTIFACT"
+          done
+
+      - name: Verify signatures (Gatekeeper + codesign)
+        run: |
+          set -eo pipefail
+          CS_OUT=$(mktemp)
+          SPCTL_OUT=$(mktemp)
+          trap 'rm -f "$CS_OUT" "$SPCTL_OUT"' EXIT
+          # Bare Mach-O binaries: stapler can't attach to a bare binary
+          # (Apple TN3147), so `spctl --assess --type execute` would
+          # report "Unnotarized Developer ID". Verify the load-bearing
+          # properties directly via codesign: Developer ID Application
+          # identity, stable Team Identifier, and hardened runtime flag.
+          for BIN in wirerust-darwin-arm64 wirerust-darwin-amd64; do
+            echo "::group::Verify $BIN"
+            codesign -dvv "$BIN" 2>&1 | tee "$CS_OUT"
+            # GHA log-masks the leaf cert CN (it matches APPLE_SIGNING_IDENTITY
+            # secret), so `Authority=Developer ID Application: ...` becomes
+            # `Authority=***`. Anchor instead on the intermediate cert in the
+            # Developer ID chain, which is a public Apple CA name and never
+            # masked. Its presence proves the chain.
+            grep -q "^Authority=Developer ID Certification Authority$" "$CS_OUT" \
+              || { echo "::error::$BIN missing Developer ID chain (intermediate CA)"; exit 1; }
+            # TeamIdentifier value matches APPLE_NOTARIZATION_TEAM_ID and is
+            # masked to "***" — accept either a real team-id format or the
+            # masked marker, but reject "not set" (the ad-hoc sentinel).
+            grep -qE "^TeamIdentifier=([A-Z0-9]{6,}|\*+)$" "$CS_OUT" \
+              || { echo "::error::$BIN: TeamIdentifier missing, ad-hoc, or unexpected format"; exit 1; }
+            grep -qE "^CodeDirectory.*flags=0x[0-9a-f]+\(.*runtime.*\)" "$CS_OUT" \
+              || { echo "::error::$BIN missing hardened runtime (--options runtime) flag"; exit 1; }
+            echo "::endgroup::"
+          done
+          # Stapled containers: spctl --assess returns "accepted
+          # source=Notarized Developer ID" when signed + notarized +
+          # stapled. .pkg → --type install; .dmg → --type open.
+          for PKG in wirerust-arm64.pkg wirerust-amd64.pkg; do
+            echo "::group::Verify $PKG"
+            spctl --assess --type install --verbose=4 "$PKG" 2>&1 | tee "$SPCTL_OUT"
+            grep -q "source=Notarized Developer ID" "$SPCTL_OUT" \
+              || { echo "::error::$PKG not notarized (spctl source unexpected)"; exit 1; }
+            echo "::endgroup::"
+          done
+          # `spctl --assess --type open` on a notarized .dmg returns
+          # "rejected: source=Insufficient Context" on macOS 15+ — Gatekeeper
+          # assesses the *mounted* contents, not the .dmg file. `stapler
+          # validate` is the canonical check: it verifies the notarization
+          # ticket is locally attached to the .dmg and references a valid
+          # Apple notarization record. Non-zero exit on missing/invalid
+          # staple fails the step.
+          for DMG in wirerust-arm64.dmg wirerust-amd64.dmg; do
+            echo "::group::Verify $DMG"
+            xcrun stapler validate "$DMG"
+            echo "::endgroup::"
+          done
+
+      - name: Generate checksums
+        run: |
+          for f in wirerust-darwin-arm64 wirerust-darwin-amd64 wirerust-arm64.pkg wirerust-amd64.pkg wirerust-arm64.dmg wirerust-amd64.dmg; do
+            shasum -a 256 "$f" > "${f}.sha256"
+          done
+
+      - name: Upload signed artifacts to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          gh release upload "$TAG" \
+            wirerust-darwin-arm64 \
+            wirerust-darwin-amd64 \
+            wirerust-arm64.pkg \
+            wirerust-amd64.pkg \
+            wirerust-arm64.dmg \
+            wirerust-amd64.dmg \
+            wirerust-*.sha256 \
+            --clobber
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain build.keychain || true
+
+  # ---------------------------------------------------------------------------
+  # Homebrew — update stable tap formula
+  # ---------------------------------------------------------------------------
+  homebrew:
+    name: Update Homebrew Tap
+    needs: sign
+    if: needs.sign.result == 'success' && inputs.update_homebrew == true && vars.HOMEBREW_TAP_REPO != ''
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: develop  # need Formula/wirerust.rb template from develop
+          persist-credentials: false
+
+      - name: Download signed binaries from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          gh release download "$TAG" --pattern "wirerust-darwin-arm64" --dir .
+          gh release download "$TAG" --pattern "wirerust-darwin-amd64" --dir .
+
+      - name: Update stable formula
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          HOMEBREW_TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO }}
+          RELEASE_VERSION: ${{ needs.sign.outputs.version }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          VERSION="$RELEASE_VERSION"
+          TAG="$RELEASE_TAG"
+
+          TAP_SHORT="${HOMEBREW_TAP_REPO#*/}"
+          TAP_NAME="${HOMEBREW_TAP_REPO%%/*}/${TAP_SHORT#homebrew-}"
+
+          SHA256_ARM64=$(shasum -a 256 wirerust-darwin-arm64 | cut -d' ' -f1)
+          SHA256_AMD64=$(shasum -a 256 wirerust-darwin-amd64 | cut -d' ' -f1)
+
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${HOMEBREW_TAP_REPO}.git" homebrew-tap-repo
+          cd homebrew-tap-repo
+
+          mkdir -p Formula
+          cp ../Formula/wirerust.rb Formula/wirerust.rb
+
+          sed -i "s|REPO_PLACEHOLDER|${GITHUB_REPOSITORY}|g" Formula/wirerust.rb
+          sed -i "s|TAP_PLACEHOLDER|${TAP_NAME}|g" Formula/wirerust.rb
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" Formula/wirerust.rb
+          sed -i "s/TAG_PLACEHOLDER/$TAG/g" Formula/wirerust.rb
+          sed -i "s/SHA256_ARM64_PLACEHOLDER/$SHA256_ARM64/g" Formula/wirerust.rb
+          sed -i "s/SHA256_AMD64_PLACEHOLDER/$SHA256_AMD64/g" Formula/wirerust.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/wirerust.rb
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "Update wirerust to $VERSION"
+          git push

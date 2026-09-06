@@ -1,0 +1,31 @@
+# Fork-local files — protected during upstream sync.
+#
+# Used by .github/workflows/sync-upstream.yml: when a scheduled upstream
+# merge conflicts on a file listed here, the fork's version wins
+# automatically ("ours"); conflicts in any other file stop the sync for
+# manual resolution. One path per line, relative to repo root. Comments (#)
+# and blank lines are ignored.
+#
+# These entries are insurance, not divergence: each file below carries the
+# opt-in release-ops pipeline (Apple code signing, notarization, Homebrew
+# tap publishing, fork sync) in a form offered upstream verbatim, following
+# the fork-friendly release-ops design from the jira-cli project
+# (docs/specs/fork-friendly-release-ops.md there). While the two copies are
+# identical, no conflict can occur; entries can be pruned as upstream
+# adopts them. This file lists itself so the fork's list survives upstream
+# template changes.
+.github/local-workflows.txt
+.github/workflows/sign-and-publish.yml
+.github/workflows/sync-upstream.yml
+.github/workflows/backfill-release.yml
+.github/workflows/signing-guard.yml
+Formula/wirerust.rb
+Formula/wirerust-a.rb
+Formula/wirerust-b.rb
+Formula/wirerust-d.rb
+Formula/wirerust-rc.rb
+packaging/Info.plist
+scripts/create-app.sh
+scripts/create-dmg.sh
+scripts/create-pkg.sh
+scripts/check-signing-workflow-injection.sh
