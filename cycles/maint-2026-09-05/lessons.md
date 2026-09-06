@@ -37,9 +37,39 @@
 
 ---
 
+### L-3 — pr-manager Wrong-Path Lookup Bypasses the Governed Merge Wrapper (PG-MERGE-WRAPPER-BYPASS)
+
+**Status:** [observation] — carry forward; document wrapper location for pr-manager; no codification this run
+
+**Observation:** During the D-556 carry-over-PR cleanup sweep (2026-09-06), PR #455 (github/codeql-action/upload-sarif bump) was merged via a direct `gh pr merge --squash` instead of the governed `check-stale-verdict.sh` / `enforce-merge-strategy.sh` wrapper. pr-manager looked for the wrapper scripts in the project tree and did not find them — they live in the plugin cache directory, not under the project's own `bin/` or `.factory/`. PR #449 and #436 used the proper wrapper in the same sweep, so the miss was path-lookup-specific to #455, not systemic.
+
+**Root cause:** No documented, discoverable path for the wrapper scripts inside the project; pr-manager's lookup assumed a project-local location that does not exist.
+
+**Outcome:** Functionally identical result (squash merge, CI-gated, base `develop`) — no process-integrity gap in the actual merge, only in the bypassed governance step.
+
+**Lesson:** Document the wrapper script location for pr-manager (plugin cache dir, not project tree) so future dispatches resolve it on the first lookup rather than falling back to a direct `gh pr merge`.
+
+**No story needed:** Engine/dispatch-path documentation gap, not a product defect.
+
+---
+
+### L-4 — Auto-Mode Classifier Merge-Block Recurrence on Author-Driven PRs (PG-MAINT-CLASSIFIER-MERGE-BLOCK, recurrence)
+
+**Status:** [observation] — recurrence of L-1; recommend confirming permission posture up front on future sessions
+
+**Observation:** During the same D-556 sweep, the Claude Code permission classifier hard-denied the agent `gh pr merge` for author-driven PR #465 (docs-only fix), forcing the human to execute the merge directly — consistent with L-1's finding in this same maintenance run. Notably, the three Dependabot-authored bump merges (#455/#449/#436) in the same session were NOT blocked, indicating the block is specific to author-driven (non-Dependabot) PRs under the current classifier posture.
+
+**Lesson:** Recommendation from L-1 stands and is reinforced by this recurrence: confirm `gh pr merge`/`gh pr create` permission posture up front on future sessions, distinguishing Dependabot-authored from author-driven merge paths if the classifier continues to treat them differently.
+
+**No story needed:** Engine/permission-classifier behavior, not a product defect.
+
+---
+
 ## Summary Table
 
 | ID | Type | Codified? | Story/AC |
 |----|------|-----------|----------|
 | L-1 | Auto-mode classifier blocks maintenance-authorized merges | Observation (carry to next kickoff checklist) | — |
 | L-2 | Review-only pr-reviewer dispatch trips delivery-only hook | Observation (engine-level hook fix recommended) | — |
+| L-3 | pr-manager wrong-path lookup bypasses governed merge wrapper (D-556) | Observation (document wrapper location) | — |
+| L-4 | Classifier merge-block recurrence on author-driven PR #465 (D-556) | Observation (confirm permissions up front, recurrence of L-1) | — |
