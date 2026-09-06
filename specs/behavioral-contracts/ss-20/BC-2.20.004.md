@@ -74,6 +74,20 @@ accept path composing the three reject paths of BC-2.20.001/002/003.
    accept path are jointly exhaustive and mutually exclusive over all possible `data`
    inputs — every call to `parse_tpkt_header` falls into exactly one of these four BCs.
 
+### Rationale Note: Accept Floor of `length >= 4` vs. RFC 1006 §6's Stated `min=7`
+
+RFC 1006 §6 states the TPKT packet-length minimum as `7` (4-byte TPKT header + 3-byte
+minimum COTP unit), yet this BC's accept path (precondition 3) admits any `length` in
+`[4, 65535]`, including `4`, `5`, and `6` — below the RFC's semantic minimum. This is an
+intentional ADR-014 layering choice, not an oversight: `parse_tpkt_header` enforces only
+the TPKT layer's own structural floor (does the declared length at least cover the
+4-byte header it prefixes); it has no visibility into COTP contents and therefore cannot
+enforce COTP-presence. That semantic validity check (RFC §6's `min=7`) is the
+responsibility of the COTP layer (SS-21), which consumes this function's `Some` output
+and rejects a too-short COTP payload on its own terms. This divergence is recorded here
+for traceability; it does not change the `[4, 65535]` accept range or any postcondition
+of this BC.
+
 ## Edge Cases
 
 | ID | Description | Expected Behavior |

@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f1-delta-analysis.md
-input-hash: "f8042db"
+input-hash: "a97f298"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced (`todo!()` bodies + Red Gate density
@@ -69,7 +69,7 @@ valid 4-byte TPKT header.
 - When `parse_tpkt_header(data)` is called
 - Then returns `None` without accessing any byte in `data`; no panics
   (traces to BC-2.20.001 postcondition 2)
-- **Test:** `test_BC_2_20_001_len_shorter_than_4_returns_none`
+- **Test:** `test_BC_2_20_001_returns_none_for_three_bytes_canonical_vector`
 
 ### AC-184-002: `parse_tpkt_header` returns None for version byte != 0x03
 (traces to BC-2.20.002 postcondition 1)
@@ -78,7 +78,7 @@ valid 4-byte TPKT header.
 - Then returns `None`; the length field (`data[2..4]`) is never decoded
   (traces to BC-2.20.002 postcondition 2)
 - No panic for any `u8` value of `data[0]` (traces to BC-2.20.002 invariant 2)
-- **Test:** `test_BC_2_20_002_bad_version_byte_returns_none`
+- **Test:** `test_BC_2_20_002_returns_none_for_version_0x04_off_by_one_canonical_vector`
 
 ### AC-184-003: `parse_tpkt_header` returns None for decoded length < 4
 (traces to BC-2.20.003 postcondition 1)
@@ -86,7 +86,7 @@ valid 4-byte TPKT header.
 - When `parse_tpkt_header(data)` is called
 - Then returns `None`; no panic or overflow for any `u16` length value, including `0`
   (traces to BC-2.20.003 invariant 2)
-- **Test:** `test_BC_2_20_003_length_field_below_4_returns_none`
+- **Test:** `test_BC_2_20_003_returns_none_for_length_three_off_by_one_canonical_vector`
 
 ### AC-184-004: `parse_tpkt_header` returns Some(TpktHeader) for valid input
 (traces to BC-2.20.004 postcondition 1)
@@ -98,7 +98,7 @@ valid 4-byte TPKT header.
   (traces to BC-2.20.004 invariant 1)
 - `length == 65535` (the maximum representable `u16`, the "oversized-length-field" edge
   case) is a legal accept (traces to BC-2.20.004 invariant 2)
-- **Test:** `test_BC_2_20_004_valid_input_returns_some_header`
+- **Test:** `test_BC_2_20_004_valid_input_returns_some_header_length_4_canonical_vector`
 
 ### AC-184-005: The four `parse_tpkt_header` outcomes are jointly exhaustive and mutually exclusive
 (traces to BC-2.20.004 invariant 3)

@@ -33,7 +33,7 @@ input-hash: "cf116b5"
 Per ADR-014 Decision 8, the residual partial-frame carry left after the frame-walk
 loop (BC-2.20.013) is bounded at `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535` — derived
 from the TPKT `length` field's own maximum representable value (`u16::MAX`, RFC 1006
-§5), **not** from COTP's single-byte Length Indicator (max 254). This is two orders of
+§6), **not** from COTP's single-byte Length Indicator (max 254). This is two orders of
 magnitude larger than every prior binary-ICS carry cap (IEC-104: 255 bytes; DNP3: 292
 bytes; ENIP: 600 bytes) because it reflects S7comm's actual on-wire ceiling — classic
 block-download PDUs are the traffic class most likely to approach it — not an

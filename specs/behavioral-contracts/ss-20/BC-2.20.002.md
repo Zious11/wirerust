@@ -30,7 +30,7 @@ input-hash: "cf116b5"
 
 ## Description
 
-RFC 1006 §5 fixes the TPKT version byte (offset 0) at `0x03`. When `data.len() >= 4`
+RFC 1006 §6 fixes the TPKT version byte (offset 0) at `0x03`. When `data.len() >= 4`
 but `data[0] != 0x03`, `parse_tpkt_header` returns `None` without decoding the length
 field. This non-`0x03` version byte is also the resync candidate the frame-walk loop
 searches for after a bound-trip (BC-2.20.015) — it is the ISO-on-TCP analogue of

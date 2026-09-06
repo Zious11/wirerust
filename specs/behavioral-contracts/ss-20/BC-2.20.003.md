@@ -30,7 +30,7 @@ input-hash: "cf116b5"
 
 ## Description
 
-The TPKT `length` field (`data[2..4]`, big-endian `u16`) is defined by RFC 1006 §5 as
+The TPKT `length` field (`data[2..4]`, big-endian `u16`) is defined by RFC 1006 §6 as
 "length of entire packet in octets, including packet header." Since the header itself
 is 4 bytes, no valid TPKT packet can declare a length smaller than 4 — a length of `0`,
 `1`, `2`, or `3` is structurally impossible and is rejected as malformed. This is the
@@ -63,6 +63,19 @@ zero-length / degenerate-length edge case called out in the F2 authoring scope.
 3. **Independent of version check**: this function evaluates the length-field bound
    only after the version byte (BC-2.20.002) has already been confirmed `0x03`; the two
    checks are independent preconditions that must both pass for BC-2.20.004's accept path.
+
+### Rationale Note: `>= 4` Threshold vs. RFC 1006 §6's Stated `min=7`
+
+RFC 1006 §6 states the TPKT packet-length minimum as `7` (the 4-byte TPKT header plus a
+3-byte minimum COTP unit). `parse_tpkt_header` deliberately validates against `>= 4`
+instead — the TPKT header's own structural floor — not the RFC's semantic packet-level
+minimum. This is an intentional ADR-014 layering choice: the TPKT layer (this function)
+validates only structural framing (does the 4-byte header fit, is the declared length at
+least large enough to contain the header it prefixes); COTP-presence and full semantic
+packet validity (the `min=7` floor) are enforced by the COTP layer (SS-21), which
+composes on top of this function's output. This divergence from RFC §6's `min=7` is
+intentional and documented here for traceability; it does not change the `>= 4`
+threshold or any postcondition of this BC.
 
 ## Edge Cases
 

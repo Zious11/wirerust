@@ -56,7 +56,7 @@ length-reject path; the accept path is BC-2.20.004.
 
 ## Invariants
 
-1. **Minimum-header guard**: the 4-byte minimum is fixed by RFC 1006 §5 (version + reserved +
+1. **Minimum-header guard**: the 4-byte minimum is fixed by RFC 1006 §6 (version + reserved +
    2-byte length). It is not configurable.
 2. **Purity**: `parse_tpkt_header` is a pure-core free function — Kani P0 target per
    ADR-014 Decision 9. No state mutation occurs inside this function.
