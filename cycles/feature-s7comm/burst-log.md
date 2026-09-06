@@ -81,7 +81,7 @@ Concurrent Cycles, Current Phase Steps, Decisions Log, Active Carry-Forwards,
 and Session Resume Checkpoint. STATE.md remains ~118KB/NEEDS-COMPACT —
 advisory noted, `/compact-state` not performed this burst.
 
-**Files touched (Dim-1): 64 unique files**
+**Files touched (Dim-1): 66 unique files**
 
 - .factory/specs/behavioral-contracts/ss-05/BC-2.05.013.md (`input-hash` `8f268fc`→`cf116b5`, canonical rebaseline; no content change)
 - .factory/specs/behavioral-contracts/ss-18/BC-2.18.003.md (`input-hash` `4e9573e`→`f156347`, canonical rebaseline; no content change)
@@ -147,6 +147,8 @@ advisory noted, `/compact-state` not performed this burst.
 - .factory/STATE.md (D-559 transition: frontmatter version/last_amended/phase/current_step/current_cycle, EXACT RESUME POINT, Project Metadata Mode cell + Last-Updated row, Phase Progress F2 row→APPROVED + new F3 row OPEN, Concurrent Cycles feature-s7comm row, Current Phase Steps D-559 added + D-554 evicted, Decisions Log D-559 row, Active Carry-Forwards `F4-OBLIGATION-ADR014-CLAUDEMD` row added, Session Resume Checkpoint replaced, size-budget banner reconciled)
 - .factory/cycles/feature-s7comm/session-checkpoints.md (created; D-558 checkpoint archived verbatim)
 - .factory/cycles/feature-s7comm/burst-log.md (this file, created)
+- .factory/stories/STORY-151.md (`input-hash` cascade-corrected `ebb35fc`→`e6626dc`: BC-2.18.003/004 rebaseline in this burst changed those files' raw bytes, transitively invalidating STORY-151's own hash since it lists them as `inputs:`; no content change)
+- .factory/stories/STORY-173.md (`input-hash` cascade-corrected `00757f7`→`c0cb50f`: same BC-2.18.003/004 cascade as STORY-151; no content change)
 
 **Codifications:** None — this burst is a canonical-hash-rebaseline +
 human-gate-decision reconciliation burst, not a process-gap codification
@@ -168,6 +170,8 @@ explicit human decision (HELD for F4) — this burst does not touch develop.
 integrity verified via `bin/compute-input-hash --scan` (all 62 feature-s7comm
 BCs MATCH post-rebaseline; pre-existing 22-story background-stale set
 unchanged) per the state-burst Single-Commit Protocol (TD-VSDD-053).
+
+**Post-verification cascade correction:** rebaselining `BC-2.18.003`/`004` (Task 1) changed those files' raw bytes. `STORY-151.md` and `STORY-173.md` both list `BC-2.18.003.md`/`BC-2.18.004.md` as `inputs:` (per the canonical algorithm, `input-hash` is computed over the raw bytes of every declared input file), so the BC rebaseline transitively invalidated their own input-hash values (both had been correctly rebaselined to MATCH at D-558, before this burst's further BC edits). A post-commit `--scan` re-verification caught this (MATCH count dropped 114→112, STALE rose 22→24). Both stories were re-rebaselined via the canonical tool (`STORY-151` `ebb35fc`→`e6626dc`; `STORY-173` `00757f7`→`c0cb50f`), restoring the background-stale set to exactly the original 22-story identity (verified byte-for-byte set-equal via diff against the pre-burst scan). No other story's hash was affected — confirmed via full `.factory/stories/STORY-*.md` re-scan.
 
 **Closes:** feature-s7comm F2 completion gate (D-559, 2026-09-06) — human
 approved F2→F3 transition with MITRE dispositions accepted, ADR-014/CLAUDE.md

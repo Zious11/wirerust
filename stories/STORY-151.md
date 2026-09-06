@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-18/BC-2.18.004.md
   - .factory/specs/architecture/decisions/ADR-012-protocol-coverage-catalog.md
   - .factory/specs/architecture/ss-18-protocol-coverage-catalog.md
-input-hash: "ebb35fc"
+input-hash: "e6626dc"
 ---
 
 # STORY-151: `src/protocols.rs` — KNOWN_PROTOCOLS Static Catalog + Pure-Core Functions + VP-041
