@@ -12,8 +12,8 @@ skip_reasons:
   sweep_6_dtu: "dtu_required: false — no DTU clones to validate"
   sweep_9_a11y: "CLI-only project — no UI surface for accessibility audit"
 develop_head_open: 0b1ea806
-develop_head_close: 0b1ea806
-prs_merged: []
+develop_head_close: adc9428d  # D-554 post-run execution reconciliation (2026-09-05)
+prs_merged: [458, 443, 442, 444, 459, 457, 456]  # D-554: 5 authorized Rust-dep + 2 human Actions-bump merges, post-sweep
 ---
 
 # Maintenance Sweep Report — maint-2026-09-05
@@ -193,3 +193,37 @@ Both observations are also recorded in `.factory/cycles/maint-2026-09-05/lessons
 3. Next dedicated supply-chain review pass triages the 5 held GitHub-Actions Dependabot PRs (#457/#456/#455/#449/#436).
 4. Product-owner triages the 5 holdout coverage gaps + 1 HS-133..136 fixture-wiring opportunity from Sweep 4.
 5. Pipeline returns to a CLEAN RELEASED / PAUSED posture at `v0.13.3` (`0b1ea806`/`46ebd6e3`) awaiting the next human directive (new wave / next maintenance run / discovery / wrap).
+
+---
+
+## Post-run execution (D-554, 2026-09-05)
+
+This section reconciles the disposition record above (recorded at sweep-close time as "human-authorized, pending execution") to executed-and-verified truth.
+
+**All 5 authorized Rust-dep Dependabot PRs MERGED to `develop`:**
+
+| PR | Package | Merge commit |
+|----|---------|--------------|
+| #458 | clap | `52681a45` |
+| #443 | serde_json | `fac7f3a6` |
+| #442 | anyhow | `03c3c560` |
+| #444 | serde | `b5444077` |
+| #459 | owo-colors | `adc9428d` |
+
+`develop` tip is now `adc9428d` (was `0b1ea806` at run start / sweep close). `develop` CI is **FULLY GREEN** on `adc9428d` — Test success, Fuzz build success, all other gates green or skipped; zero regression introduced by the dependency bumps. (#459's transient Test failure observed on its own PR branch resolved on rebase before merge — not a regression on `develop`.)
+
+**Carry-forwards cleared:** `DEP-SOAK-FOLLOWUP-2026-07-27` and `ROUTE-BC-DEFER-2026-07-11` are now **CLEARED** — all soaked Rust-dep PRs eligible for this cadence have landed.
+
+**Scope note — Actions-bump merges beyond the authorized set:** 2 of the 5 "held for supply-chain review" Dependabot GitHub-Actions bumps were **also merged by the human** this run, beyond the Rust-dep-only authorization: #457 (`Swatinem/rust-cache`, merged 02:42Z) and #456 (`step-security/harden-runner`, merged 01:44Z). Both are green-CI, SHA-pinned action-version bumps with no supply-chain concern identified post-hoc. The held-set for the next dedicated supply-chain review pass narrows from 5 to the 3 that remain genuinely open: **#455** (`codeql-action/upload-sarif`), **#449** (`ossf/scorecard-action`), **#436** (`actions/checkout`).
+
+**Still-open PRs after this run** (all deferred to human decision, unchanged disposition from D-553 except where noted):
+
+- #455, #449, #436 — held GitHub-Actions bumps (supply-chain review pending).
+- #451 — human dtolnay-toolchain pin. **Status changed:** now **DIRTY/conflicting** (develop moved to `adc9428d` underneath it) — needs a rebase in addition to the still-unresolved CLAUDE.md policy contradiction (dtolnay allowlist vs. documented exemption text) before it can merge.
+- #407 — human fork-friendly release ops. Unchanged: BEHIND/mergeable, governance decision pending (`PR-407-FORK-RELEASE-OPS`).
+
+**Doc-fix PR:** still **QUEUED**, not executed this run either — PR-create remained classifier-blocked this session.
+
+**Release posture:** no new release. `released_version` unchanged at `v0.13.3`; `main_head` unchanged `46ebd6e3`. `develop_head` moved forward (`0b1ea806`→`adc9428d`) with dependency bumps only — no user-facing product behavior change, no version bump. Pipeline remains at the CLEAN / PAUSED posture, awaiting the next human directive.
+
+Full narrative recorded in `STATE.md` Decisions Log D-554 and `STATE.md` frontmatter `develop_head`.
