@@ -3,12 +3,15 @@ artifact: architecture-section
 section: ss-18-protocol-coverage-catalog
 subsystem_id: SS-18
 traces_to: ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-07-01T00:00:00Z
 feature_cycle: feature-protocol-coverage
 modified:
+  - date: "2026-09-06"
+    actor: product-owner
+    reason: "feature-s7comm F2 INTEGRATE sub-burst — stale prose refresh flagged by F2 part A/B: this doc still described the pre-Support-enum `SUPPORTED_PORTS`-intersection derivation and the undifferentiated 'none of the four port-102 protocols are supported' caveat. Refreshed §Data Model (added `support: Support` field and enum), §`supported_protocols()` Derivation (rewritten around the ratified `Support` enum, ADR-014 Decision 3, RATIFIED option (d); retired `SUPPORTED_PORTS` derivation retained as historical footnote), and §Port 102 Collision (split into the now-resolved *static* catalog partition — S7comm `Supported`, S7comm-plus `DetectionOnly`, MMS/ICCP `KnownUnsupported` — versus the still-open *dynamic* `main.rs::lookup_protocol_state` gap-classifier limitation, explicitly deferred to F4 per ADR-014 Decision 3's critical caveat / Decision 10). §Dynamic Detection Scope's port-102 bullet updated to cross-reference the same static/dynamic split. All other content preserved verbatim. Version bump 1.5→1.6."
   - date: "2026-07-01"
     actor: architect
     reason: "F2 adversarial Pass-9 remediation (F-F2P9-002/F-F2P9-003): (F-F2P9-002) changelog entry corrected — 'the 5th port_detectable:false catalog entry' → 'the 5th L2/multicast (port_detectable:false) catalog entry'; ARP is a 6th port_detectable:false entry overall (supported L2 protocol); POWERLINK is correctly the 5th within the L2/multicast group only. (F-F2P9-003 cross-reference) Bounded-Resource Note TCP counter description updated — unclassified_port_counts increment is placed INSIDE the same analyzer-present guard as unclassified_flows += 1; both counters increment together when ≥1 analyzer configured AND coverage_gaps_enabled=true; see ADR-012 Decision 6 Clarification; VP-042(d) precondition documented. Version bump 1.4→1.5."
@@ -71,6 +74,17 @@ pub enum ProtocolCategory { ICS, IT }   // NO L2 variant — L2 detection is exp
 
 pub enum Transport { Tcp, Udp, LinkLayer }
 
+/// Per-entry static-support state (ADR-014 Decision 3, RATIFIED option (d);
+/// feature-s7comm F2). Reuses the Suricata-derived tri-state vocabulary ADR-012
+/// Decision 2 established for the *dynamic* coverage-gap report, applied here for
+/// the first time to the *static* catalog partition.
+pub enum Support {
+    Supported,        // a full dissector exists for this protocol
+    KnownUnsupported, // no dissector exists at all
+    DetectionOnly,    // framing-level classification/observation only — never a
+                       // full dissector (e.g. S7comm-plus, ADR-014 Decision 6)
+}
+
 pub struct KnownProtocol {
     pub name:            &'static str,
     pub category:        ProtocolCategory,
@@ -78,6 +92,11 @@ pub struct KnownProtocol {
     pub canonical_ports: &'static [u16],   // empty for L2 protocols
     pub ethertype:       Option<u16>,       // Some only for L2 protocols
     pub port_detectable: bool,              // false for L2/multicast entries
+    pub support:         Support,           // NEW (feature-s7comm F2, ADR-014 Decision 3):
+                                             // struct-expression rules require every
+                                             // literal to supply this field — "forgot to
+                                             // decide this entry's support state" is a
+                                             // compile error, not a silent default
     pub description:     &'static str,
 }
 ```
@@ -87,6 +106,12 @@ is knowable from the static catalog (`protocols --unsupported` lists it) but the
 dynamic gap detector will **never** flag it, because the detector keys on
 `(transport, port)` pairs and L2/multicast protocols have no port. The spec and
 CLI help text MUST state this distinction explicitly (see ADR-012 Decision 3).
+
+`support` is now the *sole* source of truth for whether `supported_protocols()`/
+`unsupported_protocols()` place an entry in the supported or unsupported set (see
+§`supported_protocols()` Derivation below) — `port_detectable` is a separate,
+orthogonal property governing only the *dynamic* gap detector's reach, not static
+support status.
 
 ---
 
@@ -176,31 +201,66 @@ documented in ADR-012.
 `supported_protocols()` MUST NOT be a separate hand-maintained name list. Drift
 between it and the actual dispatcher would silently misreport coverage.
 
-**Implementation:** `protocols.rs` declares a `SUPPORTED_PORTS: &[u16]` compile-time
-constant equal to the full set of ports wirerust actively dissects — the TCP
-port-fallback rules in `dispatcher.rs::classify()` PLUS the decode-loop DNS path
-(port 53, dissected in `main.rs` outside `classify()`, as with ARP; port 53 has no
-`DispatchTarget` variant — this is intentional, not drift; ADR-012 Decision 5):
+**Current implementation (feature-s7comm F2, ADR-014 Decision 3, RATIFIED option
+(d)):** every `KNOWN_PROTOCOLS` literal carries an explicit `support: Support`
+field (§Data Model). `supported_protocols()` and `unsupported_protocols()` filter
+directly on this field — no port-list intersection, no name-keyed special case:
 
 ```rust
-const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53];
-// ARP: handled via DecodedFrame::Arp outside the dispatcher; flagged separately.
+pub fn supported_protocols() -> Vec<&'static KnownProtocol> {
+    KNOWN_PROTOCOLS.iter().filter(|p| p.support == Support::Supported).collect()
+}
+
+pub fn unsupported_protocols() -> Vec<&'static KnownProtocol> {
+    // MUST be `!= Support::Supported`, NEVER `== Support::KnownUnsupported` — the
+    // latter would silently drop every `DetectionOnly` entry (S7comm-plus, this
+    // cycle) from the result, breaking the two-set partition invariant (VP-041 /
+    // BC-2.18.004). See BC-2.18.003 Invariant 3.
+    KNOWN_PROTOCOLS.iter().filter(|p| p.support != Support::Supported).collect()
+}
 ```
 
-`supported_protocols()` returns entries from `KNOWN_PROTOCOLS` where any
-`canonical_ports` value is in `SUPPORTED_PORTS`, plus the ARP entry (L2 protocol
-matched outside the dispatcher). This is a pure-core set-intersection over constants.
+This is a direct, compiler-checked field filter, not a derived set-intersection:
+adding a new `KNOWN_PROTOCOLS` literal without an explicit `support:` value is a
+compile error (struct-expression rules), eliminating the "forgot to update the
+port list" drift class the prior derivation was exposed to.
 
-**Drift risk:** If a new DispatchTarget variant is added to `dispatcher.rs`, the
-implementer MUST update `SUPPORTED_PORTS` in `protocols.rs`. This obligation is
-recorded in ADR-012 Decision 5. VP-041 (`proptest_vp041_oracle_cross_check`)
-detects `supported_protocols()`-vs-`SUPPORTED_PORTS` implementation drift only —
-it verifies that `supported_protocols()` returns exactly the entries whose ports are
-in `SUPPORTED_PORTS` (plus ARP). The `classify()`-vs-`SUPPORTED_PORTS` obligation
-(keeping `SUPPORTED_PORTS` accurately mirroring the port-fallback rules in
-`classify()`) is a **documented convention, NOT compile-time enforcement**
-(ADR-012 Decision 5). A compile-time assertion may optionally enforce the count
-relationship.
+**Superseded derivation (pre-feature-s7comm, retained here for historical
+context).** Prior to ADR-014 Decision 3, `protocols.rs` derived support from a
+`SUPPORTED_PORTS: &[u16]` compile-time constant — the full set of ports wirerust
+actively dissects (the TCP port-fallback rules in `dispatcher.rs::classify()` plus
+the decode-loop DNS path, port 53, dissected in `main.rs` outside `classify()`) —
+intersected against each entry's `canonical_ports`, plus a hand-coded `|| p.name ==
+"ARP"` special case (ARP has `canonical_ports: &[]` and could not be detected by
+port intersection at all):
+
+```rust
+// RETIRED as the derivation mechanism for supported_protocols()/unsupported_protocols()
+// as of feature-s7comm F2 (ADR-014 Decision 3). May persist elsewhere as
+// informational/legacy documentation; no longer load-bearing for these two functions.
+const SUPPORTED_PORTS: &[u16] = &[502, 20000, 44818, 443, 8443, 80, 8080, 53, 2404];
+```
+
+That derivation's drift risk (the implementer forgetting to update
+`SUPPORTED_PORTS` when adding a `dispatcher.rs` rule, an unsafe default-allow
+polarity for any new port sharing an already-supported port) is exactly what
+motivated the `Support`-enum replacement — see ADR-014 Decision 3's
+Wireshark/Suricata/Zeek prior-art analysis and `PORT_102_UNSUPPORTED_SIBLINGS`
+alternatives-considered discussion. **This is precisely the port-102 four-way
+collision case** (§Port 102 Collision, below): the pure-intersection model could
+only say "S7comm's port is in `SUPPORTED_PORTS`, so treat every port-102 entry as
+supported" or "keep all four unsupported" — it had no way to express "one of the
+four is supported, one is partially observed, two are neither" until the `Support`
+enum existed.
+
+VP-041 (amended scope, F2 INTEGRATE sub-burst) now guards
+`supported_protocols()`/`unsupported_protocols()`-vs-`support`-field consistency
+directly (an independently-computed oracle cross-check, non-vacuous) plus the
+two-set partition invariant, exercised with at least one `Support::DetectionOnly`
+entry present. The `classify()`-vs-catalog consistency obligation (a new
+dispatcher rule's port should eventually gain a corresponding `Support::Supported`
+catalog entry) remains a **documented convention, not compile-time enforcement** —
+unchanged by this feature.
 
 ---
 
@@ -208,15 +268,63 @@ relationship.
 
 Four protocols share TCP port 102 in the ICS catalog: **S7comm, S7comm-plus,
 IEC 61850 MMS, and ICCP/TASE.2**. All use ISO-on-TCP / TPKT framing (RFC 1006).
+The collision is unchanged in *count* by feature-s7comm — what changes is the
+catalog's ability to express *resolution granularity* among the four. This
+section is split into the two halves ADR-014 Decision 3 (RATIFIED) draws: the
+**static catalog partition**, now resolved, and the **dynamic gap classifier**,
+still unresolved and explicitly deferred (BC-2.18.006).
 
-Consequences for the catalog:
-- Port 102 maps to a *family* of protocols, not a single one.
+**Static partition — RESOLVED (feature-s7comm F2, ADR-014 Decision 3).** Each of
+the four port-102 entries now carries an explicit, per-entry `support: Support`
+value (§Data Model):
+
+| Entry | `Support` value | Rationale |
+|---|---|---|
+| S7comm | `Supported` | Full classic-S7comm dissection (SS-21, ADR-014 Decisions 1/2) |
+| S7comm-plus | `DetectionOnly` | Framing-level classification + unencrypted session-setup metadata only — "observed, not dissected" (ADR-014 Decision 6) |
+| IEC 61850 MMS | `KnownUnsupported` | Out of scope this cycle (ADR-014 Decision 10) |
+| ICCP/TASE.2 | `KnownUnsupported` | Out of scope this cycle (ADR-014 Decision 10) |
+
+`supported_protocols()` therefore now includes S7comm; `unsupported_protocols()`
+includes all three of S7comm-plus, MMS, and ICCP/TASE.2 (S7comm-plus's
+`DetectionOnly` value is retained in the unsupported set via the `!=
+Support::Supported` complement — see §`supported_protocols()` Derivation). This
+is a genuine improvement over the pre-feature-s7comm catalog, which could only
+say "none of the four port-102 protocols are supported" — the static surface can
+now correctly distinguish "dissected," "partially observed," and "neither" among
+the four.
+
+**Dynamic gap classifier — NOT resolved, explicitly deferred to F4 (ADR-014
+Decision 3 critical caveat / Decision 10 consequence).** `main.rs::lookup_
+protocol_state` — the *dynamic* `CoverageGapsSummary` tri-state classifier
+(`known-supported` / `known-unsupported` / `unknown`) — keys purely on the raw
+`(TransportProto, u16)` port pair, with **no per-flow protocol identity
+available**. Once port 102 is reachable by `lookup_protocol_state` (it matches
+whichever port-102 `KNOWN_PROTOCOLS` entry comes first by declaration order), an
+unclassified TCP/102 gap-flow is misattributed regardless of whether the
+underlying traffic is genuinely S7comm-plus, MMS, or ICCP — **no catalog-model
+option, including the `Support` enum, can fix this**, because the fix requires
+information (the analyzer's parsed COTP `protocol_id`, produced by SS-20/SS-21)
+that does not exist at the point `lookup_protocol_state` runs. This is a
+pre-existing, documented limitation (ADR-012's original port-102 caveat) that
+feature-s7comm's static-catalog fix does not and cannot resolve; it is correctly
+deferred to a future F4 cycle (BC-2.18.006 Postcondition 7/Invariant 1). The
+`CoverageGapsSummary` output's `PORT_102_NOTE`/`collision_note` footnote text
+revision to name the now-differentiated remaining port-102 gap (S7comm-plus/MMS/
+ICCP, not "all four") is itself an F4 implementation consequence (ADR-014
+Decision 10), not a new architectural decision.
+
+Consequences for the catalog, updated:
+- Port 102 maps to a *family* of protocols, not a single one — unchanged.
 - The `protocols` subcommand lists all four entries independently (each with
-  `canonical_ports: &[102]`).
-- The dynamic gap detector cannot distinguish between them — a port 102 gap
-  report means "one or more of S7comm/S7comm-plus/MMS/ICCP was present and
-  not dissected." The `CoverageGapsSummary` output MUST include a footnote
-  citing the four-way collision (per ADR-012 Decision 3).
+  `canonical_ports: &[102]`), now each with a distinct, correct `support` value
+  instead of a uniform "unsupported."
+- The dynamic gap detector still cannot distinguish between the four — a port 102
+  gap report still means "one or more of S7comm-plus/MMS/ICCP was present and not
+  dissected" (S7comm itself no longer contributes to this gap, since it is now
+  dissected). The `CoverageGapsSummary` output MUST include a footnote citing the
+  remaining collision (per ADR-012 Decision 3, footnote text revision deferred to
+  F4 per ADR-014 Decision 10).
 
 ---
 
@@ -244,9 +352,15 @@ report MUST include a fixed caveat:
 > port and are not represented in the gap report. Consult
 > `wirerust protocols --unsupported` for L2 protocol coverage."
 
-**Port-102 collision still applies to TCP:** The four-way TCP/102 collision (S7comm,
-S7comm-plus, IEC 61850 MMS, ICCP-TASE.2) is unresolved at the port level; a gap on
-`(Tcp, 102)` cannot be attributed to a single protocol (see §Port 102 Collision).
+**Port-102 collision still applies to TCP, at the dynamic-gap-classifier layer
+only:** the four-way TCP/102 collision (S7comm, S7comm-plus, IEC 61850 MMS,
+ICCP-TASE.2) remains unresolved at the *dynamic* `lookup_protocol_state` layer — a
+gap on `(Tcp, 102)` still cannot be attributed to a single protocol among the
+three remaining unsupported entries (S7comm-plus/MMS/ICCP), and S7comm itself no
+longer contributes to this gap now that it is dissected. This is unaffected by
+feature-s7comm's `Support`-enum fix to the *static* catalog partition, which
+resolves a separate surface entirely (see §Port 102 Collision for the full
+static-vs-dynamic split; F4-deferred per ADR-014 Decision 3/10).
 
 ---
 

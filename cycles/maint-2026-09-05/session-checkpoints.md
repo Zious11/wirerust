@@ -27,3 +27,16 @@ Archived verbatim from `STATE.md`'s Session Resume Checkpoint section when super
 - **Pending human decisions / blockers:** disposition of #455/#449/#436, #451 (rebase + policy), #407 (governance); whether to apply the queued doc-fix; SESSION BLOCKER logged this run — the auto-mode classifier blocked `gh pr merge` and settings-edits, so authorized merges were human-executed (PG-MAINT-CLASSIFIER-MERGE-BLOCK, `cycles/maint-2026-09-05/lessons.md`); granting `Bash(gh pr merge:*)`/`Bash(gh pr create:*)` up front would let a future maintenance run complete end-to-end. Also PG-MAINT-REVIEWONLY-HOOK-TRIP (review-only pr-reviewer dispatch tripped the delivery-only `validate-pr-review-posted` hook).
 - **WIP branch list:** none.
 - **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
+
+---
+
+## D-556 (superseded by D-558, 2026-09-06)
+
+**D-556 CARRY-OVER-PR CLEANUP maint-2026-09-05 — factory remains at a clean released state (v0.13.3) after clearing the carry-over PR set. develop=`97361cd4` (CI green, 3 Actions bumps + docs fix #465 merged, zero regression), main=`46ebd6e3` (unchanged). `stories_delivered`=120; backlog empty (only deferred #451 + tracked #407 remain open). No in-flight work; no open worktrees. RESUME: `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.**
+
+- **Date:** 2026-09-06. Position: mode=maintenance, PAUSED at clean released state (v0.13.3); wave-86 CLOSED; maint-2026-09-05 sweep + carry-over-PR cleanup (D-556) COMPLETE; backlog empty; NEXT = await human directive (new wave / maintenance / discovery).
+- **Convergence counter:** N/A — not in an adversarial/convergence loop.
+- **In-flight work:** none mid-TDD; no story worktrees. Open PRs deferred to human decision: #451 human dtolnay-pin PR (DEFERRED per human decision this run — still DIRTY/conflicting AND unresolved CLAUDE.md policy contradiction); #407 human fork-friendly-release-ops PR (full review done, `CHANGES_REQUESTED` posted to contributor, remains OPEN awaiting response). Held Actions-bump set and queued docs fix both RESOLVED this burst (#455/#449/#436 merged; #465 merged).
+- **Pending human decisions / blockers:** #451 rebase + policy-contradiction resolution; #407 contributor response to posted review. STATE.md is ~118KB / NEEDS-COMPACT — a `/compact-state` pass is advisable before the next burst (not performed this burst). Standing process observations (unchanged): PG-MAINT-CLASSIFIER-MERGE-BLOCK (recurred this run — classifier hard-denied agent `gh pr merge` for author-driven PR #465; Dependabot merges were not blocked); PG-MERGE-WRAPPER-BYPASS (new, D-556 — pr-manager wrong-path lookup bypassed the governed merge wrapper for #455); PG-MAINT-REVIEWONLY-HOOK-TRIP (review-only pr-reviewer dispatch tripped the delivery-only `validate-pr-review-posted` hook).
+- **WIP branch list:** none.
+- **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.

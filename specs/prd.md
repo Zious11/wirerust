@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.59"
+version: "1.61"
 status: draft
 producer: product-owner
-timestamp: 2026-07-13T00:00:00Z
+timestamp: 2026-09-06T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 288 BCs → 380 active (381 on disk, BC-2.01.004 retired; +BC-2.19.028 SR-173-02 v2.32; +BC-2.19.029/030 wave-85 v2.35).**
+> **→ Current total after all deltas: 288 BCs → 440 active (441 on disk, BC-2.01.004 retired; +BC-2.19.028 SR-173-02 v2.32; +BC-2.19.029/030 wave-85 v2.35; +60 feature-s7comm F2 INTEGRATE v2.38 — BC-2.20.001..016, BC-2.21.001..041, BC-2.18.005..006, BC-2.05.013).**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -424,6 +424,35 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.61 delta (2026-09-06 — feature-s7comm F2 spec-evolution, product-owner narrative/RTM
+> authorship closing spec-steward's flagged orphan #1 from the v1.60 registration burst):**
+> Added §2.20 ISO-on-TCP Framing (CAP-20) — full narrative subsection (protocol overview, frozen
+> SS-20→SS-21 interface, TPKT/COTP carry-buffer reassembly, licensing, formal verification)
+> mirroring the §2.18/§2.19 convention, with Groups A-D covering all 16 BC-2.20.001..016. Added
+> §2.21 S7comm Analysis (CAP-21) — full narrative subsection (four-way protocol_id dispatch table,
+> function-code/Userdata-group classification, S7comm-plus scope boundary, MITRE ATT&CK for ICS
+> technique set incl. the 2 NEW `MitreTactic` variants `IcsLateralMovement`/TA0109 and
+> `IcsPersistence`/TA0110, licensing, formal verification) with Groups A-I covering all 41
+> BC-2.21.001..041, plus Group X (Cross-Subsystem Extensions) covering BC-2.05.013. Added §2.18
+> Group D (S7comm/Port-102 Support-Enum Extension) covering BC-2.18.005..006, with a new delta
+> blockquote documenting the ratified ADR-014 Decision 3 Option (d) `Support` enum, the four-way
+> port-102 assignment (S7comm=Supported, S7comm-plus=DetectionOnly, MMS/ICCP=KnownUnsupported),
+> the AMENDED BC-2.18.003/004 re-derivation, and the F4-deferred `lookup_protocol_state`
+> dynamic-gap-classifier caveat. Added 60 new §7 RTM rows (BC-2.05.013 inserted in BC-ID sequence
+> after BC-2.05.011; BC-2.18.005..006 appended after BC-2.18.004; BC-2.20.001..016 and
+> BC-2.21.001..041 appended in BC-ID order) tracing each new BC to its L2 CAP, architecture
+> module, priority, and verification-property test type (VP-048..055 per VP-INDEX v2.48; unit for
+> BCs without a dedicated VP anchor). No BC/VP/ADR/CAP files, other indices (BC-INDEX/VP-INDEX/
+> ARCH-INDEX), or input-hashes modified by this burst — PRD content only, per spec-steward's
+> registration-burst/content-authorship separation. This closes the orphan flagged in the
+> Version 1.60 delta note below: "this PRD has no §2.20/§2.21 narrative subsections ... and no
+> §7 RTM rows for any of the 60 BCs above." Pre-existing template-compliance gap (PRD missing
+> template section "5b. Test Vectors") is NOT resolved by this burst — out of this burst's
+> narrative/RTM scope; remains flagged for a separate remediation pass.
+>
+> **Version 1.60 delta (2026-09-06 — feature-s7comm F2 INTEGRATE step 2, spec-steward registration — 60 new BCs: SS-20 (16) + SS-21 (41) + SS-18 (2) + SS-05 cross-subsystem (1); BC-INDEX v2.38, VP-INDEX v2.48, ARCH-INDEX v2.23):**
+> NEW SS-20 (ISO-on-TCP Framing, CAP-20, ADR-014): BC-2.20.001..016 — 16 greenfield BCs covering TPKT header parse safety (4-way totality, VP-048 Kani P0), COTP header parse safety and TPDU-type exhaustiveness (VP-049 Kani P0), directional carry-buffer walk-first-residual-bound reassembly (MAX_S7_ISO_ON_TCP_CARRY_BYTES=65,535, VP-050 proptest P1), and the frozen pure-free-fn module boundary (BC-2.20.016). NEW SS-21 (S7comm Analysis, CAP-21, ADR-014): BC-2.21.001..041 — 41 greenfield BCs covering S7comm common-header bounds-before-slice parse safety (VP-051 Kani P0), Job/Ack_Data and Userdata function-code/group classification totality incl. the load-bearing group-0x03=Block/group-0x07=Time correction (VP-052 proptest P1), protocol_id four-way dispatch totality with never-force-fit unclassified-gap handling (VP-053 proptest P0, load-bearing), download/upload structural disjointness (VP-054 proptest P1), and MITRE T0843/T0889/T0821 (NEW) + T0835/T0836/T0858/T0816/T0888/T0846/T1692.001 (reused) finding emission. NEW cross-subsystem: BC-2.05.013 (`classify()` Rule 9: TCP port 102 → single `DispatchTarget::S7comm`). NEW SS-18: BC-2.18.005 (`Support` enum exhaustiveness) and BC-2.18.006 (port-102 four-way `Support` assignment — S7comm=Supported, S7comm-plus=DetectionOnly, MMS/ICCP=KnownUnsupported). AMENDED (body files already updated by product-owner F2 part A, versions unchanged by this registration burst): BC-2.18.003 v1.6, BC-2.18.004 v1.4 (Support-enum re-derivation, ADR-014 Decision 3) — BC-INDEX title-column propagation applied for BC-2.18.003's H1 title change. VP-INDEX: VP-048..VP-055 registered (8 new); VP-004/VP-007/VP-041 amended (source_bc extended, no new-VP count). ARCH-INDEX SS-20/SS-21 rows' "CAP-20/21 (pending)"/"TBD BC count" markers resolved (both CAP files confirmed present on disk). BC count: 381→441 on disk; 380→440 active. **FLAGGED (not performed by this registration burst — out of spec-steward's content-authoring scope):** this PRD has no §2.20/§2.21 narrative subsections (mirroring the §2.18/§2.19 convention: feature summary, Key caveats, Formal verification prose) and no §7 RTM rows for any of the 60 BCs above — recommend a follow-up product-owner pass before the consistency-validator audit is considered fully clean. Pre-existing template-compliance gap also noted (independent of this delta): `validate-template-compliance` reports this PRD is missing template section "5b. Test Vectors" (prd-template.md) — not resolved by this burst, flagged for the record.
 >
 > **Version 1.59 delta (2026-07-23 — pre-existing drift corrections — §2.19 TypeID-105 verdict + §2.19 header re-tense):**
 > F-W85S-P6-001 (MEDIUM): §2.19 TypeID-105 verdict corrected — T0827 "Possible" → "Likely" (BC-2.19.020 v1.1 correction F-P2-M2 2026-07-13; matches `iec104.rs` TypeID-105 arm `Verdict::Likely` and STORY-170 AC-170-002/EC-006). Pre-existing drift; not a wave-85 behavior change.
@@ -1937,6 +1966,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.05.009 | CAP-05 | SS-05 (dispatcher.rs) | P0 | inferred |
 | BC-2.05.010 | CAP-05 | SS-05 (dispatcher.rs) + SS-12 (main.rs) | P0 | unit+proptest VP-042 (TCP) + VP-043 (UDP) |
 | BC-2.05.011 | CAP-05 | SS-05 (dispatcher.rs) + SS-12 (main.rs) | P0 | proptest VP-042 (TCP) + VP-043 (UDP) |
+| BC-2.05.013 | CAP-05 | SS-05 (dispatcher.rs) + SS-21 (analyzer/s7comm.rs) | P0 | unit+VP-004 (amended; dispatch-precedence oracle anchor) |
 | BC-2.06.001 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.002 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
 | BC-2.06.003 | CAP-06 | SS-06 (analyzer/http.rs) | P0 | unit |
@@ -2174,6 +2204,65 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.18.002 | CAP-18 | SS-18 (protocols.rs) | P1 | unit |
 | BC-2.18.003 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 (`proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`) |
 | BC-2.18.004 | CAP-18 | SS-18 (protocols.rs) | P0 | proptest VP-041 (`proptest_vp041_oracle_cross_check` + `proptest_vp041_partition_invariant`) |
+| BC-2.18.005 | CAP-18 | SS-18 (protocols.rs) | P0 | unit |
+| BC-2.18.006 | CAP-18 | SS-18 (protocols.rs) | P0 | unit+proptest VP-041 (amended) |
+| BC-2.20.001 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-048 + cargo-fuzz VP-055 |
+| BC-2.20.002 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-048 |
+| BC-2.20.003 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-048 |
+| BC-2.20.004 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-048 |
+| BC-2.20.005 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 + cargo-fuzz VP-055 |
+| BC-2.20.006 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.007 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.008 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.009 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.010 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.011 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.012 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P0 | kani VP-049 |
+| BC-2.20.013 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P1 | proptest VP-050 + cargo-fuzz VP-055 |
+| BC-2.20.014 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P1 | proptest VP-050 + cargo-fuzz VP-055 |
+| BC-2.20.015 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P1 | proptest VP-050 |
+| BC-2.20.016 | CAP-20 | SS-20 (analyzer/iso_on_tcp.rs) | P1 | unit+VP-004 (amended; architectural boundary anchor) |
+| BC-2.21.001 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.002 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-053 (load-bearing) |
+| BC-2.21.003 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.004 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | kani VP-051 + cargo-fuzz VP-055 |
+| BC-2.21.005 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.006 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.007 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.008 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.009 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | kani VP-051 + cargo-fuzz VP-055 |
+| BC-2.21.010 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.011 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.012 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.013 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | proptest VP-054 |
+| BC-2.21.014 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | proptest VP-054 |
+| BC-2.21.015 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.016 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.017 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-052 |
+| BC-2.21.018 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.019 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-052 (load-bearing) |
+| BC-2.21.020 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.021 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.022 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-052 |
+| BC-2.21.023 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-052 |
+| BC-2.21.024 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.025 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.026 | CAP-21 | SS-21 (analyzer/s7comm.rs) + SS-07 (analyzer/tls.rs) | P1 | unit |
+| BC-2.21.027 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-053 (load-bearing) |
+| BC-2.21.028 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | proptest VP-053 (load-bearing) |
+| BC-2.21.029 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.030 | CAP-21 | SS-21 (analyzer/s7comm.rs) + SS-10 (mitre.rs) | P0 | unit |
+| BC-2.21.031 | CAP-21 | SS-21 (analyzer/s7comm.rs) + SS-10 (mitre.rs) | P0 | unit |
+| BC-2.21.032 | CAP-21 | SS-21 (analyzer/s7comm.rs) + SS-10 (mitre.rs) | P0 | unit |
+| BC-2.21.033 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.034 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.035 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.036 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.037 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.038 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.039 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P0 | unit |
+| BC-2.21.040 | CAP-21 | SS-21 (analyzer/s7comm.rs) | P1 | unit |
+| BC-2.21.041 | CAP-21 | SS-21 (analyzer/s7comm.rs) + SS-10 (mitre.rs) | P1 | unit (negative-space/drift-guard, VP-007) |
 
 
 ### 2.18 Protocol Coverage Catalog (CAP-18) [Feature — ADR-012, feature-protocol-coverage]
@@ -2223,7 +2312,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 |-------|-------|----------|--------|
 | BC-2.18.001 | `protocols` Subcommand Terminal Catalog Output Lists All KNOWN_PROTOCOLS Entries | P0 | feature-protocol-coverage-F2 |
 | BC-2.18.002 | `protocols` Subcommand JSON Mode Outputs Structured Protocol Array | P1 | feature-protocol-coverage-F2 |
-| BC-2.18.003 | `supported_protocols()` Returns Exactly the SUPPORTED_PORTS-Intersecting Entries Plus ARP; `unsupported_protocols()` Returns the Complement | P0 | feature-protocol-coverage-F2 |
+| BC-2.18.003 | `supported_protocols()` Returns Exactly the `Support::Supported`-Tagged Entries; `unsupported_protocols()` Returns the Complement (`!= Supported`) (v1.6: H1 retitled — derivation mechanism replaced with the `Support` enum, BC-2.18.005, ADR-014 Decision 3) | P0 | feature-protocol-coverage-F2 |
 | BC-2.18.004 | Catalog Partition Invariant — Supported ∪ Unsupported == KNOWN_PROTOCOLS and Disjoint | P0 | feature-protocol-coverage-F2 |
 
 #### 2.18.B Dispatcher Extension — TCP+UDP Dynamic Gap Counting (Group B, SS-05)
@@ -2241,8 +2330,54 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.12.023 | `--coverage-gaps` Flag Is Opt-In; NOT Auto-Enabled Under `analyze --all`; Appends CoverageGapsSummary When Set | P0 | feature-protocol-coverage-F2 |
 | BC-2.12.024 | `CoverageGapsSummary` Includes Mandatory Caveat Text — L2/Multicast Structural Limitation, Port-102 Collision Ambiguity | P1 | feature-protocol-coverage-F2 |
 
+> **Feature Mode F2 spec-layer (2026-09-06 — feature-s7comm port-102 Support-enum extension,
+> ADR-014 Decision 3, RATIFIED Option (d)).** 2 new BCs (BC-2.18.005..006) add a per-entry
+> `Support` enum (`Supported` / `KnownUnsupported` / `DetectionOnly`) to `KnownProtocol`,
+> replacing the `canonical_ports ∩ SUPPORTED_PORTS` derivation as the mechanism behind
+> `supported_protocols()`/`unsupported_protocols()`. Ratified after
+> `.factory/cycles/feature-s7comm/f2-port102-model-validation.md` stress-tested this ADR's
+> originally-recommended Option (b) (name-keyed exclusion list) against Wireshark/Suricata/Zeek
+> prior art and the extensibility axis: (b) has an unsafe default-allow polarity — a new catalog
+> entry sharing an already-supported port is silently promoted to `supported` unless a human
+> remembers to update a separate deny-list — and cannot express S7comm-plus's `DetectionOnly`
+> state at all. Option (d) uses safe positive polarity: Rust struct-expression rules make
+> "forgot to decide this entry's support state" a compile error, not a silent behavior.
+>
+> **Port-102 four-way assignment:** S7comm = `Supported`; S7comm-plus = `DetectionOnly`
+> (observed, not dissected — §2.21 Decision 6); IEC 61850 MMS and ICCP/TASE.2 =
+> `KnownUnsupported` (out of scope this cycle, §2.21 Decision 10). All other 26
+> `KnownProtocol` literals get their pre-existing supported/unsupported status made explicit
+> as an enum value — no behavioral change for these 26.
+>
+> **AMENDED:** BC-2.18.003 v1.6 (H1 retitled; derivation mechanism replaced with the `Support`
+> enum) and BC-2.18.004 v1.4 (partition invariant re-derived: `unsupported_protocols()` now
+> filters `support != Support::Supported`, retaining `DetectionOnly` entries in the complement —
+> using `== KnownUnsupported` would silently drop S7comm-plus from `unsupported_protocols()`,
+> breaking the VP-041 two-set partition invariant). VP-041 amended: `source_bc` extended
+> +BC-2.18.005/006.
+>
+> **Critical caveat — static catalog only (ADR-014 Decision 3).** The `Support` enum fixes
+> `supported_protocols()`/`unsupported_protocols()` only. `SUPPORTED_PORTS` independently
+> drives `main.rs::lookup_protocol_state`, the *dynamic* coverage-gap tri-state classifier
+> (§2.18 `--coverage-gaps` above), keyed on the raw `(transport, port)` pair with no protocol
+> identity available — once `102` is added to `SUPPORTED_PORTS`, every unclassified TCP/102 gap
+> flow matches the *first* port-102 catalog entry by declaration order (S7comm) and is
+> misreported `known-supported` regardless of whether the underlying traffic is genuine
+> MMS/ICCP/S7comm-plus. This dynamic-classifier gap is explicitly **deferred to F4** —
+> unaffected by the catalog-model choice, since `lookup_protocol_state` has no per-flow
+> protocol identity to filter on until the analyzer's parsed COTP `protocol_id` (§2.21
+> Decision 2) is threaded through.
+
+#### 2.18.D S7comm / Port-102 Support-Enum Extension (Group D, SS-18) [feature-s7comm, ADR-014 Decision 3]
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.18.005 | `Support` Enum on `KnownProtocol` — Exhaustive, Compile-Time-Enforced Per-Entry Assignment | P0 | feature-s7comm |
+| BC-2.18.006 | Port-102 Four-Way `Support` Assignment (S7comm=Supported, S7comm-plus=DetectionOnly, MMS/ICCP=KnownUnsupported) — Static-Catalog-Only Fix, Dynamic Gap Classifier Explicitly Deferred to F4 | P0 | feature-s7comm |
+
 > Full contracts:
 > - `behavioral-contracts/ss-18/BC-2.18.001.md` through `BC-2.18.004.md` (SS-18 catalog)
+> - `behavioral-contracts/ss-18/BC-2.18.005.md` through `BC-2.18.006.md` (SS-18 Support-enum extension, feature-s7comm)
 > - `behavioral-contracts/ss-05/BC-2.05.010.md` through `BC-2.05.011.md` (SS-05 dispatcher extension)
 > - `behavioral-contracts/ss-12/BC-2.12.022.md` through `BC-2.12.024.md` (SS-12 CLI surface)
 
@@ -2364,6 +2499,295 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 > - `behavioral-contracts/ss-05/BC-2.05.012.md` (SS-05 dispatch Rule 8)
 > - `behavioral-contracts/ss-10/BC-2.10.010.md` (SS-10 MITRE catalog T0881)
 > - `behavioral-contracts/ss-12/BC-2.12.025.md` (SS-12 --iec104 flag)
+
+
+### 2.20 ISO-on-TCP Framing (CAP-20) [Feature — ADR-014, feature-s7comm]
+
+> **Feature Mode F2 spec-layer (2026-09-06).** 16 new greenfield BCs (BC-2.20.001..016) covering
+> the ISO-on-TCP framing capability (SS-20, `src/analyzer/iso_on_tcp.rs`, planned — not yet in
+> src tree) — a reusable, protocol-agnostic TPKT (RFC 1006) + COTP (ISO 8073 / ITU-T X.224)
+> parsing layer factored out of the S7comm PDU dissector (CAP-21, §2.21) so that a future IEC
+> 61850 MMS or ICCP/TASE.2 cycle can consume the same parsing functions unmodified — "build once,
+> benefit three times" (ADR-014 Decision 1). Release target: v0.14.0 (not yet shipped; F3/F4
+> pending).
+
+> **Protocol overview:** ISO-on-TCP is the TPKT/COTP substrate shared by every protocol riding
+> TCP port 102 — S7comm (this feature) and, in the future, IEC 61850 MMS and ICCP/TASE.2. Two
+> layers of framing: outer **TPKT** (RFC 1006, 4-byte header: version byte fixed at `0x03`, 1
+> reserved byte, 2-byte big-endian length field covering the *entire* packet including the header
+> itself, valid range `[4, 65535]`), and inner **COTP** (ISO 8073 / ITU-T X.224) carrying one of
+> three recognized TPDU types — Connect Request (CR) and Connect Confirm (CC), both
+> session-establishment TPDUs with no upper-layer payload, and Data Transfer (DT), which carries
+> the steady-state upper-layer payload prefixed by a single protocol-ID byte (`0x32` classic
+> S7comm, `0x72` S7comm-plus, or any other observed value). Any other TPDU-type code is left
+> unparsed (`None`) rather than force-fit into one of the three recognized variants.
+
+> **Frozen SS-20 → SS-21 interface (ADR-014 Decision 1):** `iso_on_tcp.rs` exports pure,
+> stateless free functions only — `parse_tpkt_header(data: &[u8]) -> Option<TpktHeader>` and
+> `parse_cotp_header(tpkt_payload: &[u8]) -> Option<CotpHeader>` — with **no** `StreamAnalyzer`
+> implementation of its own and **no** per-flow state (the TPKT/COTP directional carry buffers
+> live on `S7commFlowState` in SS-21, not on a separate `IsoOnTcpFlowState` — BC-2.20.016). The
+> `protocol_id` byte extracted by `parse_cotp_header` is passed through **verbatim, never
+> interpreted** (BC-2.20.012) — SS-20 has no knowledge of what `0x32`/`0x72` mean; that
+> interpretation is entirely SS-21's responsibility (§2.21 Decision 2). No
+> `DispatchTarget::IsoOnTcp` variant exists — SS-20 is a parsing library consumed by SS-21, not
+> an independent dispatch target.
+
+> **TPKT/COTP reassembly (ADR-014 Decision 8):** directional carry buffers (`carry_c2s`/
+> `carry_s2c`, sized on `S7commFlowState`) use walk-first, residual-bound semantics — the
+> frame-walk loop extracts every complete TPKT frame from `carry ++ incoming_data` before any
+> byte-count bound is applied to the leftover residual (mirrors ADR-013's IEC-104
+> WALK-FIRST-RESIDUAL-BOUND ruling; rejects the aggregate-pre-check evasion channel). Carry is
+> bounded at `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535` — derived from the TPKT `length` field's
+> own 16-bit ceiling (RFC 1006 §5), not COTP's 254-byte Length Indicator — dramatically larger
+> than IEC-104 (255 bytes), DNP3 (292 bytes), or ENIP (600 bytes) because block-download PDUs can
+> legitimately approach the full TPKT ceiling. On overflow, the offending direction's carry is
+> CLEARED (never truncated) and the resync walk advances the cursor by exactly 1 byte per
+> iteration on a bad TPKT version byte (BC-2.20.015), emitting exactly one T0814
+> (Anomaly/Possible/Medium) per direction via a dedicated carry-overflow dedup flag (BC-2.20.014).
+
+> **Licensing (ADR-014 Decision 4):** TPKT (RFC 1006) and COTP (ISO 8073 / ITU-T X.224) are
+> implemented directly from their open, freely-implementable specifications. No external
+> TPKT/COTP crate (`rusty-cotp`, `rusty-tpkt`, `tpkt`, `copt` — unclear/non-standard licensing)
+> appears in `Cargo.toml`/`Cargo.lock` — original Rust parser only, zero lines borrowed.
+
+> **Formal verification:** VP-048 (Kani P0, draft — `parse_tpkt_header` 4-way totality: `len < 4`
+> reject / `version != 0x03` reject / decoded `length < 4` reject / happy-path accept with no
+> overflow on `h.length`; traces BC-2.20.001..004). VP-049 (Kani P0, draft — `parse_cotp_header`
+> bounds safety and TPDU-type exhaustiveness over all 16 high-nibble values (CR/CC/
+> DT-with-payload/DT-empty/13-value reject arm) plus the frozen verbatim `protocol_id` extraction
+> guarantee; traces BC-2.20.005..012). VP-050 (proptest P1, draft — walk-first-residual-bound
+> reassembly, directional carry isolation, 65,535-byte overflow-clear-and-resync, 1-byte
+> resync-cursor termination guarantee; traces BC-2.20.013..015). VP-055 (cargo-fuzz P1, draft —
+> combined TPKT→COTP→S7comm parse-chain no-panic fuzz harness, shared with SS-21; representative
+> `source_bc` subset includes BC-2.20.001/005/013/014). VP-004 (Kani, dispatcher `classify()`,
+> P0) amended to add BC-2.20.016 and BC-2.05.013 as `source_bc` (Rule 9 port-102 dispatch
+> precedence oracle now has a concrete SS-05 anchor).
+
+#### 2.20.A TPKT Header Parsing (Group A — SS-20)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.20.001 | `parse_tpkt_header` Returns None for Input Shorter Than 4 Bytes | P0 | feature-s7comm |
+| BC-2.20.002 | `parse_tpkt_header` Returns None for Version Byte ≠ 0x03 | P0 | feature-s7comm |
+| BC-2.20.003 | `parse_tpkt_header` Returns None for Length Field < 4 (Malformed, Includes Zero-Length) | P0 | feature-s7comm |
+| BC-2.20.004 | `parse_tpkt_header` Returns Some(TpktHeader) for Valid Input (Happy Path) | P0 | feature-s7comm |
+
+#### 2.20.B COTP Header Parsing (Group B — SS-20)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.20.005 | `parse_cotp_header` Returns None for Input Shorter Than 2 Bytes | P0 | feature-s7comm |
+| BC-2.20.006 | `parse_cotp_header` Returns None When the Length Indicator Declares More Bytes Than Are Present (Truncated COTP Header) | P0 | feature-s7comm |
+| BC-2.20.007 | `parse_cotp_header` Recognizes Connect Request (CR) TPDU | P0 | feature-s7comm |
+| BC-2.20.008 | `parse_cotp_header` Recognizes Connect Confirm (CC) TPDU | P0 | feature-s7comm |
+| BC-2.20.009 | `parse_cotp_header` Recognizes Data Transfer (DT) TPDU With Non-Empty Payload — Extracts `protocol_id` | P0 | feature-s7comm |
+| BC-2.20.010 | `parse_cotp_header` Recognizes Data Transfer (DT) TPDU With Empty Payload — `protocol_id: None` | P0 | feature-s7comm |
+| BC-2.20.011 | `parse_cotp_header` Returns None for an Unrecognized TPDU-Type Code (Not CR/CC/DT) | P0 | feature-s7comm |
+| BC-2.20.012 | `parse_cotp_header`'s `protocol_id` Is Extracted Verbatim, Never Interpreted (Frozen SS-20→SS-21 Boundary) | P0 | feature-s7comm |
+
+#### 2.20.C TPKT/COTP Carry-Buffer Reassembly (Group C — SS-20)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.20.013 | TPKT Frames Spanning TCP Segment Boundaries Are Reassembled via Directional Carry Buffers Using Walk-First, Residual-Bound Semantics | P1 | feature-s7comm |
+| BC-2.20.014 | Carry Buffer Bounded at `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535`; Overflow Triggers Clear-and-Resync With One T0814 Per Direction | P1 | feature-s7comm |
+| BC-2.20.015 | Resync Anchor Advances Exactly 1 Byte Per Iteration on a Bad TPKT Version Byte (Never 2) | P1 | feature-s7comm |
+
+#### 2.20.D Frozen Module Boundary (Group D — SS-20)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.20.016 | Frozen `iso_on_tcp.rs` Module Boundary — Pure Free Functions Only, No `StreamAnalyzer` Impl, No Per-Flow State of Its Own | P1 | feature-s7comm |
+
+> Full contracts:
+> - `behavioral-contracts/ss-20/BC-2.20.001.md` through `BC-2.20.016.md` (SS-20 ISO-on-TCP framing)
+
+
+### 2.21 S7comm Analysis (CAP-21) [Feature — ADR-014, feature-s7comm]
+
+> **Feature Mode F2 spec-layer (2026-09-06).** 41 new greenfield BCs (BC-2.21.001..041) plus 1
+> cross-subsystem BC (BC-2.05.013) covering passive analysis of Siemens S7comm — the proprietary
+> PLC-programming/HMI-communication protocol used by S7-300/400 (classic S7comm, COTP
+> `protocol_id 0x32`) and S7-1200/1500 (S7comm-plus, `protocol_id 0x72`) controllers on TCP port
+> 102. Release target: v0.14.0 (not yet shipped; F3/F4 pending).
+
+> **`S7commAnalyzer` is the consumer of CAP-20** (§2.20): on every TPKT frame extracted from a
+> port-102 flow it calls `iso_on_tcp::parse_tpkt_header` then `iso_on_tcp::parse_cotp_header`,
+> then branches on the parsed `CotpHeader::protocol_id` (ADR-014 Decision 2) — the four-way
+> dispatch table:
+>
+> | `protocol_id` | Meaning | Analyzer behavior |
+> |---|---|---|
+> | `Some(0x32)` | Classic S7comm | Full S7comm PDU dissection (ROSCTR, PDU reference, parameter/data blocks, function codes) |
+> | `Some(0x72)` | S7comm-plus | Framing-level classification + unencrypted session-setup metadata only (Decision 6 — "observed, not dissected"); no function-code dissector |
+> | `None` (CR/CC TPDU) | Session establishment | Track connection state; defer classification until the first DT frame |
+> | `Some(other)` / unparseable | MMS, ICCP, or unrecognized ISO-on-TCP traffic | Left unclassified — NEVER misattributed to S7comm (load-bearing correctness property, VP-053) |
+
+> **Dispatch (ADR-014 Decision 2):** port TCP/102 traffic is classified using a single new
+> dispatcher Rule 9 (after Rule 8, port 2404/IEC-104; the former Rule 9 "no match" arm is
+> renumbered Rule 10), mapping to **one** new `DispatchTarget::S7comm` variant (BC-2.05.013,
+> cross-subsystem — §2.21.X). There is no separate dispatcher rule for S7comm-plus, MMS, or ICCP
+> — the dispatcher cannot cheaply distinguish COTP protocol-IDs without doing the TPKT/COTP parse
+> itself, and that parse is `S7commAnalyzer`'s job. This is the first wirerust dispatcher rule
+> where post-classification disambiguation inside the analyzer is load-bearing for correctness,
+> not merely defense-in-depth.
+
+> **Function-code classification (Job/Ack_Data, ROSCTR-driven):** Setup Communication (`0xF0`),
+> Read Var (`0x04`), Write Var (`0x05`, with area-code extraction feeding T0835/T0836), the
+> Program-Download triad (Request Download `0x1A` / Download Block `0x1B` / Download Ended
+> `0x1C`) and the structurally disjoint Upload triad (Start Upload `0x1D` / Upload `0x1E` / End
+> Upload `0x1F`, VP-054), PLC Control (`0x28`, with PI-service string decode —
+> `P_PROGRAM`/`_INSE`/`_DELE`/`_GARB`/`_MODU`) and PLC Stop (`0x29`), and the
+> `Unrecognized(fc)` totality-closure arm. **Userdata (ROSCTR `0x07`)** function-group
+> classification over the low nibble: group `0x03` = **Block functions** (List Blocks/List
+> Blocks of Type/Get Block Info) and group `0x04` = CPU functions (subfunction `0x01` = Read
+> SZL) and group `0x07` = **Time functions** — the load-bearing correction that group `0x03`,
+> not `0x07`, is Block functions (VP-052 non-vacuity requirement; a transposed implementation
+> would otherwise pass a naive totality check), plus the `OtherGroup(group, subfn)` closure arm.
+
+> **S7comm-plus scope (ADR-014 Decision 6):** bounded to framing-level classification (observed
+> session, contributes to gap-report visibility, does NOT register as `known-supported` in
+> `protocols.rs` — §2.18.D) plus unencrypted session-setup handshake metadata (message-type/
+> opcode byte, sequence markers) prior to any TLS upgrade. Explicit non-goals: no
+> `S7commPlusAnalyzer`, no function-code catalog, no object/service dissection, no TLS
+> decryption attempt (TLS-wrapped S7comm-plus defers entirely to SS-07, BC-2.21.026).
+
+> **MITRE ATT&CK for ICS (ADR-014 Decision 5, ics-attack-19.1, live-page verified 2026-09-06):**
+> 3 NEW catalog entries (`SEEDED_TECHNIQUE_ID_COUNT` 29→32) — **T0843** Program Download
+> (Lateral Movement, **TA0109** — NEW `MitreTactic::IcsLateralMovement` variant, no existing
+> variant covered TA0109), **T0889** Modify Program (Persistence, **TA0110** — NEW
+> `MitreTactic::IcsPersistence` variant, no existing variant covered TA0110), **T0821** Modify
+> Controller Tasking (Execution, TA0104 — reuses existing `MitreTactic::IcsExecution`, no new
+> variant). 8 REUSED techniques (emission call-sites only, no catalog change): T0835 (Manipulate
+> I/O Image), T0836 (Modify Parameter), T0858 (Change Operating Mode), T0816 (Device
+> Restart/Shutdown), T0888 (Remote System Information Discovery), T0846 (Remote System
+> Discovery, multi-host TCP/102 sweep evidence), T0814 (Denial of Service), T1692.001
+> (Unauthorized Message). Excluded (no wire-field evidence): T0851 Rootkit, T0873/T0873.001
+> Project File Infection. Deferred (no clean emission predicate): T0813 Denial of Control.
+> Version pin `ics-attack-19.1` retained (live `ics-attack-v19.2` touches only Enterprise
+> Groups/Software — zero ICS technique-catalog changes).
+
+> **Licensing constraint (BLOCKING, ADR-014 Decision 4 — mirrors ADR-013 Decision 7):**
+> Wireshark `packet-s7comm.c`/`packet-s7comm_plus.c` (GPL-2.0-or-later) BANNED. Snap7
+> (LGPL-3.0-or-later) BANNED. libnodave (LGPL-2.0-or-later) BANNED. `s7`/`s7-comm`/`s7-client`
+> crates (non-standard grant) AVOID. Classic S7comm has no official public Siemens
+> specification — fields are derived from free-to-read prose/behavioral sources only
+> (Wireshark wiki prose, Kleinmann & Wool 2014, Orange-Cyberdefense
+> `awesome-industrial-protocols`). Design-reference-only (no verbatim copy):
+> `cisagov/icsnpp-s7comm` (BSD-3-Clause), `kprovost/libs7comm` (BSD-2-Clause), `python-snap7`
+> (MIT). Original Rust parser only; zero lines borrowed.
+
+> **Formal verification:** VP-051 (Kani P0, draft — `parse_s7comm_header` bounds-before-slice
+> safety for `data.len() < 10`, plus the caller-side `param_length`/`data_length` bounds
+> obligation verified before any parameter/data-block slice; traces BC-2.21.004, BC-2.21.009).
+> VP-052 (proptest P1, draft — Job/Ack_Data function-code match totality and Userdata
+> function-group match totality over all 16 nibble values including the load-bearing
+> group-0x03/0x07 correction; traces BC-2.21.017/019/022/023). VP-053 (proptest P0, draft,
+> LOAD-BEARING — `protocol_id` four-way dispatch totality and never-force-fit unclassified-gap
+> property over all 254 non-`0x32`/`0x72` byte values; traces BC-2.21.002/027/028). VP-054
+> (proptest P1, draft — Program-Download/Upload triad structural disjointness, load-bearing for
+> T0843/T0889 never firing from an Upload-classified sequence; traces BC-2.21.013/014). VP-055
+> (cargo-fuzz P1, draft — combined TPKT→COTP→S7comm parse-chain no-panic fuzz, shared with
+> SS-20; traces BC-2.21.004/009 among others). VP-007 (MITRE catalog, P0) amended to add
+> BC-2.21.030/031/032/041 as `source_bc` (T0843/T0889/T0821 seeding obligation,
+> `SEEDED_TECHNIQUE_ID_COUNT` 29→32).
+
+#### 2.21.A Flow State and Dispatch (Group A — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.001 | `S7commFlowState` Owns TPKT/COTP Carry Buffers, S7comm Classification State, and Per-Direction Dedup Flags | P1 | feature-s7comm |
+| BC-2.21.002 | `S7commAnalyzer::on_data` Four-Way Dispatch on `CotpHeader::protocol_id` | P0 | feature-s7comm |
+| BC-2.21.003 | `on_flow_close` Removes `S7commFlowState` and Discards All Carry Bytes | P0 | feature-s7comm |
+
+#### 2.21.B S7comm Common-Header Parsing (Group B — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.004 | `parse_s7comm_header` Returns None for Input Shorter Than 10 Bytes | P0 | feature-s7comm |
+| BC-2.21.005 | `parse_s7comm_header` Defensively Rejects `data[0] != 0x32` | P0 | feature-s7comm |
+| BC-2.21.006 | `parse_s7comm_header` Extracts ROSCTR, PDU Reference, Parameter Length, and Data Length from a Valid 10-byte Common Header (Happy Path) | P0 | feature-s7comm |
+| BC-2.21.007 | `parse_s7comm_header` Returns None for an Unrecognized ROSCTR Byte (Safe-Reject, No Force-Fit) | P0 | feature-s7comm |
+| BC-2.21.008 | `parse_s7comm_header` for ROSCTR=Ack (0x02) Requires 12 Bytes (Error Class + Error Code) | P0 | feature-s7comm |
+| BC-2.21.009 | Declared `param_length`/`data_length` Are Bounds-Checked Against Remaining Bytes Before Parameter/Data Block Access (Safe-Reject on Inconsistency) | P0 | feature-s7comm |
+
+#### 2.21.C Job/Ack_Data Function-Code Classification (Group C — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.010 | Job/Ack_Data Function-Code Byte Classifies Setup Communication (FC 0xF0) | P1 | feature-s7comm |
+| BC-2.21.011 | Job/Ack_Data Function-Code Byte Classifies Read Var (FC 0x04) | P1 | feature-s7comm |
+| BC-2.21.012 | Job/Ack_Data Function-Code Byte Classifies Write Var (FC 0x05) With Area-Code Extraction | P1 | feature-s7comm |
+| BC-2.21.013 | Program-Download Sequence Classified — Request Download (0x1A), Download Block (0x1B), Download Ended (0x1C) | P1 | feature-s7comm |
+| BC-2.21.014 | Upload Sequence Classified — Start Upload (0x1D), Upload (0x1E), End Upload (0x1F) — Distinguished From Program Download | P1 | feature-s7comm |
+| BC-2.21.015 | PLC Control (FC 0x28) Classified With PI-Service String Decode — `P_PROGRAM`/`_INSE`/`_DELE`/`_GARB`/`_MODU` | P1 | feature-s7comm |
+| BC-2.21.016 | PLC Stop (FC 0x29) Classified — Dedicated STOP Request, No Service-String Ambiguity | P1 | feature-s7comm |
+| BC-2.21.017 | Unrecognized Job/Ack_Data Function Code Classified `Unrecognized(fc)` — Totality of the FC Match; Empty-Parameter-Block Shared Treatment | P0 | feature-s7comm |
+
+#### 2.21.D Userdata Function-Group Classification (Group D — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.018 | Userdata (ROSCTR 0x07) Parameter Block Structural Parse — Parameter Head, Group/Subfunction Extraction, Bounds-Safe Reject | P0 | feature-s7comm |
+| BC-2.21.019 | Userdata Block Functions (Group 0x03) Classified — List Blocks / List Blocks of Type / Get Block Info (Load-Bearing Group-0x03 Correction) | P0 | feature-s7comm |
+| BC-2.21.020 | Userdata CPU Functions (Group 0x04) Subfunction 0x01 Classified as Read SZL | P1 | feature-s7comm |
+| BC-2.21.021 | Userdata CPU Functions (Group 0x04) Other Subfunctions Classified `CpuOther(subfn)` — No Force-Fit to Read SZL | P1 | feature-s7comm |
+| BC-2.21.022 | Userdata Time Functions (Group 0x07) Classified `TimeFunctions(subfn)` — Corrected Group Meaning, NOT Block Functions | P0 | feature-s7comm |
+| BC-2.21.023 | Unrecognized Userdata Function Group Classified `OtherGroup(group, subfn)` — Totality of the Userdata Group Match; No Invented Security-Group ID | P0 | feature-s7comm |
+
+#### 2.21.E S7comm-plus Scope (Group E — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.024 | S7comm-plus DT Frame (`protocol_id: Some(0x72)`) Classified as Observed Session — Framing-Level Only, No Function-Code Decode | P1 | feature-s7comm |
+| BC-2.21.025 | S7comm-plus Unencrypted Session-Setup Handshake Metadata Observation — Bounded to Message-Type/Opcode Byte and Sequence Marker, Pre-TLS Only | P1 | feature-s7comm |
+| BC-2.21.026 | TLS-Wrapped S7comm-plus Defers Entirely to SS-07 — No Decryption, No Interpretation Attempt | P1 | feature-s7comm |
+
+#### 2.21.F Protocol-ID Dispatch Totality and Unclassified-Gap Handling (Group F — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.027 | DT Frame With `protocol_id: Some(other)` (Neither 0x32 Nor 0x72) Left Unclassified — Never Force-Fit to S7comm (MMS/ICCP/Unrecognized) | P0 | feature-s7comm |
+| BC-2.21.028 | Unparseable COTP DT Payload Reaching `S7commAnalyzer` Receives the Same Unclassified-Gap Treatment as an Unrecognized `protocol_id` | P0 | feature-s7comm |
+
+#### 2.21.G Download/Upload Session Correlation and MITRE Emission (Group G — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.029 | Download-Session Correlation State Machine on `S7commFlowState`, With Block-Type Hint Capture | P1 | feature-s7comm |
+| BC-2.21.030 | Completed Download Session Emits T0843 Program Download Finding | P0 | feature-s7comm |
+| BC-2.21.031 | T0889 Modify Program Co-Tagged on Download Completion, or Standalone on Block Activate/Delete | P0 | feature-s7comm |
+| BC-2.21.032 | T0821 Modify Controller Tasking Co-Tagged on Download Completion, Gated by Block-Type Decodability | P0 | feature-s7comm |
+
+#### 2.21.H Cross-Flow Correlation and Remaining MITRE Emission (Group H — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.033 | Cross-Flow Global Correlation State on `S7commAnalyzer` — Port-102 Sweep Tracking and Per-Destination Expected-Source Baseline | P1 | feature-s7comm |
+| BC-2.21.034 | Write Var to I/O Area Emits T0835 Manipulate I/O Image Finding | P0 | feature-s7comm |
+| BC-2.21.035 | Write Var to Data Block or Marker Area Emits T0836 Modify Parameter Finding | P0 | feature-s7comm |
+| BC-2.21.036 | PLC Stop or PLC Control Program-Start Emits T0858 Change Operating Mode Finding | P0 | feature-s7comm |
+| BC-2.21.037 | Decoded Restart Sub-Operation Within PLC Control Program-Start Co-Tags T0816 Device Restart/Shutdown | P1 | feature-s7comm |
+| BC-2.21.038 | Read SZL or Block-List Userdata Emits T0888 Remote System Information Discovery Finding | P0 | feature-s7comm |
+| BC-2.21.039 | Multi-Host Setup-Communication Sweep Emits T0846 Remote System Discovery Finding | P0 | feature-s7comm |
+| BC-2.21.040 | Command-Class Frame From an Unexpected Source Co-Tags T1692.001 Unauthorized Message | P1 | feature-s7comm |
+
+#### 2.21.I Excluded and Deferred Techniques (Group I — SS-21)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.21.041 | Excluded and Deferred MITRE Techniques Are Explicit Non-Goals; ics-attack-19.1 Version Pin Retained | P1 | feature-s7comm |
+
+#### 2.21.X Cross-Subsystem Extensions
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.05.013 | `classify()` Rule 9 — TCP Port 102 Returns a Single `DispatchTarget::S7comm`; Disambiguation Deferred to the Analyzer | P0 | feature-s7comm |
+
+> Full contracts:
+> - `behavioral-contracts/ss-21/BC-2.21.001.md` through `BC-2.21.041.md` (SS-21 S7comm analysis)
+> - `behavioral-contracts/ss-05/BC-2.05.013.md` (SS-05 dispatch Rule 9)
 
 
 ## 8. Domain Debt Index
