@@ -1,0 +1,2 @@
+PASS: no stale RED-phase comment headers found (130 files scanned).
+exit: 0

@@ -1,0 +1,4 @@
+45:  PASS  [Pattern 30: 'Expected RED:' heading violation (.py form — Python comment)]
+49:  PASS  [Pattern 32: currently asserts violation (.py form)]
+51:  PASS  [Pattern 33: falls to the wildcard violation (.py form)]
+108:  PASS  [Suffix-scoping negative guard: '# Expected RED:' in .rs file NOT flagged (# is not a Rust comment)]

@@ -43,8 +43,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - run: cargo test --all-targets
+      - name: IEC-104 fixture coverage report (visible)
+        if: ${{ !cancelled() }}
+        env:
+          CARGO_TERM_COLOR: never
+        run: |
+          set -euo pipefail
+          cargo test --test iec104_e2e_real_pcaps_tests iec104_e2e_real_pcaps::test_fixture_manifest_report -- --exact --nocapture | tee coverage-out.txt
+          grep -qE "Fixture coverage: [1-9][0-9]*/[0-9]+" coverage-out.txt
+          grep -qE "test result: ok" coverage-out.txt
 
   clippy:
     name: Clippy
@@ -54,7 +63,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - run: cargo clippy --all-targets -- -D warnings
 
   fmt:
@@ -98,7 +107,7 @@ jobs:
         with:
           # Pin to a specific, known-good dated nightly. See job comment above.
           toolchain: nightly-2026-05-21
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           # Use a separate cache key so the nightly fuzz build does not
           # pollute the stable-toolchain cache shared by test/clippy/fmt.
@@ -137,7 +146,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Run cargo audit
@@ -431,7 +440,8 @@ jobs:
           fi
           echo "PASS: ${VALIDATED} remote action ref(s) validated, 0 mutable."
 
-  # DF-GREEN-DOC-TENSE-SWEEP gate: detect stale RED-phase comment headers in test files.
+  # DF-GREEN-DOC-TENSE-SWEEP gate: detect stale RED-phase comment headers in
+  # tracked source files (tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py).
   #
   # Problem: during strict TDD, test files receive module-level or section-level comments
   # asserting that tests "MUST FAIL" or "are designed to FAIL (Red Gate)". After the
@@ -439,7 +449,8 @@ jobs:
   # assertions but the headers still claim RED stub behaviour. This pattern recurred on all
   # 4 stories of feature-enip-v0.11.0, prompting a mechanical gate (DF-GREEN-DOC-TENSE-SWEEP).
   #
-  # Implementation: bin/check-green-doc-tense scans tracked tests/*.rs and src/**/*.rs
+  # Implementation: bin/check-green-doc-tense scans tracked tests/*.rs, src/**/*.rs,
+  # src/*.rs, and bin/*.py
   # comment lines for a curated set of current-state RED assertions. It exits 1 with a
   # file:line + token message per violation, and exits 0 when clean. A self-test
   # (bin/test_check_green_doc_tense.py) verifies a fixture suite of known-bad patterns
@@ -459,7 +470,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Self-test the gate script
         run: python3 bin/test_check_green_doc_tense.py
-      - name: Scan for stale RED-phase comment headers in test files
+      - name: Scan for stale RED-phase comment headers in source files
         run: python3 bin/check-green-doc-tense
 
   # AC-165-001 / PG-W74-CI-BIN-SELFTEST: run Python self-test suites for bin/ gate scripts.

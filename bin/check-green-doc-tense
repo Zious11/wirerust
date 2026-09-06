@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check-green-doc-tense — DF-GREEN-DOC-TENSE-SWEEP enforcement gate.
 
-Scans tracked test files (tests/*.rs and src/**/*.rs cfg(test) modules) for
+Scans tracked source files (tests/*.rs, src/**/*.rs, src/*.rs, and bin/*.py) for
 comment lines that assert current-state RED/stub behaviour on code that is
 now GREEN. These are "stale RED-phase headers" — section or file-level
 comments written during the TDD Red Gate phase that were never removed when
@@ -25,8 +25,8 @@ This gate catches those stale headers so they are scrubbed before merge.
 
 TOKEN LIST (lines to flag — current-state assertions)
 ------------------------------------------------------
-The following patterns are matched against COMMENT LINES ONLY
-(lines whose non-whitespace content starts with // or //!):
+The following patterns are matched against COMMENT LINES ONLY: `//` comment
+lines in all scanned files; `#` comment lines in `.py` files.
 
   1. All tests MUST FAIL
   2. ALL tests must fail
@@ -83,9 +83,35 @@ The following patterns are matched against COMMENT LINES ONLY
                                     to "until … is wired"; "wired it" / "wired the handler"
                                     verb-object forms excluded by negative lookahead on object
                                     pronouns/articles (it, the, a, that, this, them)
+ 30. Expected RED: heading        — stale pre-pass RED heading with colon (test doc phase
+                                    marker); colon is the discriminator; bare form without
+                                    colon is allowlisted (DF-GREEN-DOC-TENSE-SWEEP v6, TIER-1)
+ 31. currently fall(s)            — present-tense in-progress dispatch fallthrough description;
+                                    "currently" is the discriminator (TIER-1); bare fallthrough
+                                    phrasing without the modifier is TIER-2 and not flagged
+ 32. currently asserts            — present-tense assertion-state claim (D-506 primary class,
+                                    TIER-1)
+ 33. falls to the wildcard        — wildcard-arm fallthrough phrase with no interposed word
+                                    between the verb and "to the wildcard" (TIER-1); the
+                                    TIER-2 form with an interposed word is not matched
+ 34. does not / doesn't exist yet — negative-capability claim (TIER-1)
+ 35. currently has NO             — present-tense absence claim (TIER-1)
+ 36. currently satisfied by       — passive stub-status phrase (TIER-1)
+ 37. will be GREEN currently      — conditional present-RED tense claim (TIER-1)
 
-All patterns are anchored to comment lines (leading // or //!) to avoid
-false-positives inside doc-test code blocks or inside string literals.
+Patterns 30-37 implement the TIER-1 behavioral-absence tokens from
+DF-GREEN-DOC-TENSE-SWEEP v6 (F-W86S-P2-006 / F-W86S-P3-001 / F-W86S-P4-004
+rulings, STORY-183, wave-86). TIER-2 tokens (context-dependent phrasing
+classes named in the DF-GREEN-DOC-TENSE-SWEEP v6 policy) are deliberately
+excluded from this list per policy — see the GOOD_CASES in the self-test for
+the zero-FP proof, not a numbered pattern here.
+
+_is_comment_line(stripped, suffix) returns True for `//`-prefixed lines in any
+scanned file and for `#`-prefixed lines ONLY when suffix == ".py" — this makes
+Python comment lines scan-eligible while leaving Rust `#[attr]` lines untouched.
+String-literal lines that happen to start with `//` or `#` after stripping ARE
+scan-eligible by this same mechanism (comment-shaped, not comment-verified) —
+see EC-005 and the single-line fixture-conversion remediation in the self-test.
 
 ALLOWLIST (lines NOT flagged — legitimate past-tense or contextual prose)
 --------------------------------------------------------------------------
@@ -95,6 +121,8 @@ to FAIL", "stub-only bodies", "stubs only", "are RED until", etc.) that
 cannot appear in past-tense provenance narration.
 
 Pattern-specific allowlist notes (patterns 12-29):
+(Patterns 30-37 carry their own inline allowlist notes as tuple comments in
+_VIOLATION_PATTERNS — see STORY-183 — so this numbered range is unchanged.)
   12. "RED — stubs only": The dash+phrase combination is specific to stub-phase
       headers. Past-tense equivalents use "originated as stubs" or "were stubs".
       Allowlisted: "originated as Red-Gate stubs", "(was RED)", patterns without
@@ -211,7 +239,8 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Token patterns — each is a regex matched against a comment line.
-# A "comment line" is one where the stripped content starts with // or //!
+# A "comment line" is one where the stripped content starts with // (all
+# scanned files) or # (in .py files only, suffix-scoped — see _is_comment_line).
 # ---------------------------------------------------------------------------
 
 _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -454,27 +483,111 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "until … wired (CI-wiring-incomplete stub-era prose; AC-176-001 pattern d)",
         re.compile(r"\buntil\b.*\bwired\b(?!\s+(?:it|the|a|that|this|them)\b)", re.IGNORECASE),
     ),
+    # -----------------------------------------------------------------------
+    # Patterns 30+: added to implement TIER-1 behavioral-absence tokens
+    # from DF-GREEN-DOC-TENSE-SWEEP v6 (F-W86S-P2-006/P3-001/P4-004 rulings, 2026-07-25)
+    # absent from the existing _VIOLATION_PATTERNS set (STORY-183, wave-86).
+    # -----------------------------------------------------------------------
+    (
+        # Pattern 30: stale pre-pass RED heading with colon (test doc phase marker).
+        # The colon is the discriminator (marks heading form); bare form without colon is OK.
+        # 0 live legitimate uses (as of wave-86). NOT in the D-506 9 stale sites.
+        # Allowlist: bare form without colon; past-tense provenance (was expected to fail).
+        "Pattern 30 (PG-W85-003): 'Expected RED:' heading — stale pre-pass state (AC-183-003)",
+        re.compile(r"Expected RED:", re.IGNORECASE),
+    ),
+    (
+        # Pattern 31: stale present-tense dispatch description (in-progress fallthrough variants).
+        # Word "currently" is the discriminator; falls?\b matches both fall and falls (verb inflection).
+        # 0 live legitimate uses of the present-tense "currently + falls?" form.
+        # Allowlist: past-tense "fell through to"; bare fallthrough phrasing without the
+        # modifier (TIER-2 per DF-GREEN-DOC-TENSE-SWEEP v6 F-W86S-P2-006/P3-001/P4-004 rulings
+        # — MUST NOT be flagged).
+        "Pattern 31 (PG-W85-003): currently fall(s) — stale in-progress dispatch description (AC-183-004)",
+        re.compile(r"currently\s+falls?\b", re.IGNORECASE),
+    ),
+    (
+        # Pattern 32: present-tense assertion-state claim (D-506 primary, 9 stale sites,
+        # STORY-180 F-180-P1-003). 0 live legitimate uses.
+        "Pattern 32 (PG-W85-003): 'currently asserts' — RED-phase present-tense claim (AC-183-007)",
+        re.compile(r"currently\s+asserts?\b", re.IGNORECASE),
+    ),
+    (
+        # Pattern 33: wildcard-arm fallthrough phrase; TIER-1 per v6; 0 live legitimate uses.
+        # The TIER-1 form omits the intervening word present in the TIER-2 form.
+        # Discriminator: the TIER-2 phrasing inserts a word between the verb and the
+        # wildcard destination; the TIER-1 form lacks that intermediary word — the pattern
+        # fires only on the contiguous four-token phrase (verb + `to the wildcard` with no
+        # intervening word).
+        "Pattern 33 (PG-W85-003): 'falls to the wildcard' — RED-phase wildcard-arm fallthrough (AC-183-007)",
+        re.compile(r"falls\s+to\s+the\s+wildcard", re.IGNORECASE),
+    ),
+    (
+        # Pattern 34: negative-capability claim (not-yet-extant feature); 0 live legitimate uses.
+        "Pattern 34 (PG-W85-003): 'does not / doesn't exist yet' — negative-capability claim (AC-183-007)",
+        re.compile(
+            r"does\s+not\s+exist\s+yet|doesn['’']?t\s+exist\s+yet", re.IGNORECASE
+        ),
+    ),
+    (
+        # Pattern 35: present-tense absence claim; 0 live legitimate uses.
+        # Known theoretical FP: the pattern also matches a hyphenated no-prefix token
+        # immediately after the phrase, because \b fires at the hyphen. 0 live hits.
+        "Pattern 35 (PG-W85-003): 'currently has NO' — present-tense absence claim (AC-183-007)",
+        re.compile(r"currently\s+has\s+no\b", re.IGNORECASE),
+    ),
+    (
+        # Pattern 36: passive stub-status phrase; 0 live legitimate uses.
+        "Pattern 36 (PG-W85-003): 'currently satisfied by' — passive stub-status phrase (AC-183-007)",
+        re.compile(r"currently\s+satisfied\s+by\b", re.IGNORECASE),
+    ),
+    (
+        # Pattern 37: conditional present-RED tense claim; 0 live legitimate uses.
+        "Pattern 37 (PG-W85-003): 'will be GREEN currently' — conditional present-RED claim (AC-183-007)",
+        re.compile(r"will\s+be\s+GREEN\s+currently", re.IGNORECASE),
+    ),
 ]
 
 
-def _is_comment_line(stripped: str) -> bool:
-    """Return True if the stripped line starts with a Rust comment marker."""
-    return stripped.startswith("//")
+def _is_comment_line(stripped: str, suffix: str = "") -> bool:
+    """Return True if the line is a comment — eligible to be scanned for violations.
 
+    Rust: lines starting with // (including /// outer doc and //! inner doc)
+    Python: lines starting with # (any Python comment)
 
-def _collect_rust_files(repo_root: Path) -> list[Path]:
+    The `#` prefix is treated as a comment ONLY for .py files to avoid
+    false-positives from Rust attribute lines (#[test], #[cfg],
+    #[should_panic]). Rust source has approximately 3625 such `#[...]`
+    attribute lines — adding them to the scan unscoped would produce
+    massive false-positive noise.
+
+    Returning True means the line IS scanned; returning False means the
+    line is skipped.
     """
-    Collect test-scope Rust files:
+    if stripped.startswith("//"):
+        return True
+    if stripped.startswith("#") and suffix == ".py":
+        return True
+    return False
+
+
+def _collect_source_files(repo_root: Path) -> list[Path]:
+    """
+    Collect scanned source files:
       - tests/*.rs    (integration test files)
-      - src/**/*.rs   (may contain #[cfg(test)] modules)
+      - src/**/*.rs   (may contain #[cfg(test)] modules; explicit-intent redundancy)
+      - src/*.rs      (top-level src/ files; crosses directory separators under
+                       git's default pathspec matching, so this glob alone
+                       subsumes src/**/*.rs — both are kept for clarity)
+      - bin/*.py      (Python tooling scripts)
 
     Only tracked files are considered (git ls-files). Untracked files are
-    excluded so newly-added test files do not cause false failures before
+    excluded so newly-added source files do not cause false failures before
     their first commit.
     """
     try:
         result = subprocess.run(
-            ["git", "ls-files", "--", "tests/*.rs", "src/**/*.rs"],
+            ["git", "ls-files", "--", "tests/*.rs", "src/**/*.rs", "src/*.rs", "bin/*.py"],
             cwd=repo_root,
             capture_output=True,
             text=True,
@@ -487,7 +600,7 @@ def _collect_rust_files(repo_root: Path) -> list[Path]:
     resolved_root = repo_root.resolve()
     for line in result.stdout.splitlines():
         line = line.strip()
-        if line.endswith(".rs"):
+        if line.endswith(".rs") or line.endswith(".py"):
             p = (repo_root / line).resolve()
             # SEC-001: reject any path that escapes the repo root (e.g. absolute
             # paths or ../traversal components that git ls-files should never emit,
@@ -514,7 +627,7 @@ def scan_file(path: Path) -> list[tuple[int, str, str]]:
 
     for lineno, raw_line in enumerate(text.splitlines(), start=1):
         stripped = raw_line.strip()
-        if not _is_comment_line(stripped):
+        if not _is_comment_line(stripped, path.suffix):
             continue
         for label, pattern in _VIOLATION_PATTERNS:
             if pattern.search(stripped):
@@ -553,17 +666,17 @@ def main() -> int:
         print("ERROR: could not locate repo root (no .git or .factory/ found)", file=sys.stderr)
         return 2
 
-    rust_files = _collect_rust_files(repo_root)
-    if not rust_files:
+    source_files = _collect_source_files(repo_root)
+    if not source_files:
         print(
-            "ERROR: no tracked Rust files found; scan target may be wrong. "
+            "ERROR: no tracked source files found; scan target may be wrong. "
             "Verify the scan target in bin/check-green-doc-tense.",
             file=sys.stderr,
         )
         return 1
 
     total_violations = 0
-    for path in sorted(rust_files):
+    for path in sorted(source_files):
         rel = path.relative_to(repo_root)
         file_violations = scan_file(path)
         for lineno, content, label in file_violations:
@@ -574,7 +687,7 @@ def main() -> int:
     if total_violations > 0:
         print()
         print(
-            f"Found {total_violations} stale RED-phase comment(s) in test files "
+            f"Found {total_violations} stale RED-phase comment(s) in tracked source files "
             f"(DF-GREEN-DOC-TENSE-SWEEP)."
         )
         print(
@@ -588,7 +701,7 @@ def main() -> int:
         )
         return 1
 
-    print(f"PASS: no stale RED-phase comment headers found ({len(rust_files)} files scanned).")
+    print(f"PASS: no stale RED-phase comment headers found ({len(source_files)} files scanned).")
     return 0
 
 

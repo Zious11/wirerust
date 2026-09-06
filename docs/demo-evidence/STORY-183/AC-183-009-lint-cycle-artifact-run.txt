@@ -1,0 +1,68 @@
+
+test_tc1_missing_frontmatter:
+  [PASS] TC1: missing frontmatter → exit 1, exact rule-1 error message present
+
+test_tc2_empty_bcs_correct_path:
+  [PASS] TC2: empty bcs: at correct path → exit 0, PASS message emitted
+
+test_tc3_unresolvable_bc_id:
+  [PASS] TC3: unresolvable BC ID → exit 1, ID listed
+
+test_tc4_prose_bc_id_not_flagged:
+  [PASS] TC4: prose-only BC ID → exit 0 (not flagged)
+
+test_tc5_missing_bcs_key:
+  [PASS] TC5: missing bcs: key → exit 1, rule-1 error
+
+test_tc6_story_id_directory_mismatch:
+  [PASS] TC6: story_id mismatch → exit 1, both STORY-999 and STORY-158 named
+
+test_tc7_borrowed_bc_id:
+  [PASS] TC7: borrowed BC ID → exit 1, BC-2.11.036 listed
+
+test_tc8_no_wave_intermediate:
+  [PASS] TC8: no wave-NNN intermediate → exit 1, exact invalid-path error
+
+test_tc9_comment_interleaved_bcs:
+  [PASS] TC9: comment-interleaved bcs: → exit 1, post-comment BC-9.99.999 listed (not dropped)
+
+test_tc10_inline_comment_suffix_stripped:
+  [PASS] TC10: inline comment suffixes stripped → exit 0
+
+test_tc11_no_factory_cycles_ancestor:
+  [PASS] TC11: no .factory/cycles/ ancestor → exit 1, exact invalid-path error
+
+test_tc12_blank_line_interleaved_bcs:
+  [PASS] TC12: blank-line-interleaved bcs: → exit 1, post-blank BC-99.99.999 listed (not dropped)
+
+test_tc13_non_utf8_artifact:
+  [PASS] TC13: non-UTF-8 artifact → exit 2, controlled ERROR message (no traceback)
+
+test_tc14_duplicate_story_id_key:
+  [PASS] TC14: duplicate story_id: key → exit 1, exact duplicate-key error
+
+test_tc15_zero_indent_bcs_item:
+  [PASS] TC15: zero-indent bcs: item → exit 1, BC-9.99.999 listed (not dropped)
+
+test_tc16_wrapped_inline_list_bcs:
+  [PASS] TC16: wrapped inline bcs: list → exit 1, wrapped BC-9.99.999 listed (not dropped)
+
+test_tc17_exotic_frontmatter_construct:
+  [PASS] TC17: exotic construct (nested map) → exit 1, unsupported-syntax error (fail-closed)
+
+test_tc18_quoted_scalars_accepted:
+  [PASS] TC18: quoted story_id + bcs entry → exit 0 (quotes stripped)
+
+test_tc19_scalar_bcs_hard_fails:
+  [PASS] TC19: scalar bcs: → exit 1, scalar-bcs error (not per-character iteration)
+
+test_tc20_parent_story_with_hyphen_key:
+  [PASS] TC20: parent story with input-hash: → exit 0 (rule 7 reached)
+
+test_tc21_scalar_behavioral_contracts_hard_fails:
+  [PASS] TC21: scalar behavioral_contracts → exit 1, malformed-list error (not substring false-PASS)
+
+==================================================
+Results: 21 passed, 0 failed
+All tests passed.
+exit: 0
