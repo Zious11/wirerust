@@ -98,8 +98,10 @@ pub struct TpktHeader {
 /// `data` inputs (BC-2.20.004 invariant 3; AC-184-005). Full exhaustiveness is proven by
 /// the VP-048 Kani harness below (full proof run: STORY-194).
 pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
-    let _ = data;
-    todo!("STORY-184: implement TPKT header parse per BC-2.20.001-004")
+    if data.len() < 4 {
+        return None;
+    }
+    todo!("STORY-184: implement version/length checks per BC-2.20.002-004")
 }
 
 // ---------------------------------------------------------------------------
