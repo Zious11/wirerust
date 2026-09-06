@@ -104,7 +104,14 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
     if data[0] != 0x03 {
         return None;
     }
-    todo!("STORY-184: implement length-field decode per BC-2.20.003-004")
+    let length = u16::from_be_bytes([data[2], data[3]]);
+    if length < 4 {
+        return None;
+    }
+    Some(TpktHeader {
+        version: 0x03,
+        length,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -115,10 +122,10 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
 // obligation is VP-049 (STORY-185); the combined no-panic frame-walk loop is
 // VP-050/VP-055.
 //
-// Skeleton only — `parse_tpkt_header` currently `todo!()`s, so this harness cannot
-// pass yet. The full proof run targeting all four BC-2.20.001-004 outcomes is executed
-// in STORY-194, once the `todo!()`-free implementation lands (STORY-184 implementer
-// step).
+// `parse_tpkt_header` is now `todo!()`-free (STORY-184). This harness compiles and is
+// ready to run under `cargo kani`; the full VP-048 proof execution and evidence capture
+// targeting all four BC-2.20.001-004 outcomes is STORY-194's obligation (formal-verifier
+// step), per the module-level scope note above.
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
