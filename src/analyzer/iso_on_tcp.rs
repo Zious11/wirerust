@@ -101,7 +101,10 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
     if data.len() < 4 {
         return None;
     }
-    todo!("STORY-184: implement version/length checks per BC-2.20.002-004")
+    if data[0] != 0x03 {
+        return None;
+    }
+    todo!("STORY-184: implement length-field decode per BC-2.20.003-004")
 }
 
 // ---------------------------------------------------------------------------
