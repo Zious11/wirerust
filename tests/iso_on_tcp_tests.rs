@@ -24,8 +24,11 @@
 //! `todo!()` stub was replaced by the STORY-184 implementation of
 //! `parse_tpkt_header`. These tests are now GREEN.
 //!
-//! Canonical test vectors from BC-2.20.001-004 are used verbatim
-//! (DF-CANONICAL-FRAME-HOLDOUT-001).
+//! Canonical test vectors from BC-2.20.001-004 are used verbatim for the BC-conformance
+//! tests above. Separately, PER DF-CANONICAL-FRAME-HOLDOUT-001, the `test_rfc1006_s6_*`
+//! holdout tests below are authored independently of the BCs, derived directly from
+//! RFC 1006 §6 ("Packet Format") — that policy requires a spec-independent vector set,
+//! the opposite of reusing BC text verbatim.
 
 #![allow(non_snake_case)]
 
@@ -562,16 +565,45 @@ mod story_184 {
     // DF-CANONICAL-FRAME-HOLDOUT-001: independent RFC-1006-derived holdout vector(s).
     // Unlike every other vector in this file (which traces to this project's own
     // BC-2.20.001-004 text), the vectors below are derived directly from the RFC 1006
-    // spec document, independently of any BC.
+    // spec document, independently of any BC. RFC 1006 §6 ("Packet Format") defines the
+    // TPKT wire layout: octet 0 = version (0x03); octet 1 = reserved; octets 2-3 =
+    // big-endian TPKTLength INCLUDING the 4-byte header, RFC-stated range [7, 65535].
     // =========================================================================
 
-    /// Per RFC 1006 §5: octet 0 = version = 0x03; octet 1 = reserved; octets 2-3 =
-    /// big-endian TPKTLength INCLUDING the 4-byte header; minimum legal length = 4.
-    /// Derived from RFC 1006 §5, independently of BC-2.20.00x.
+    /// RFC-VALID holdout: the RFC 1006 §6 stated minimum legal TPKT packet length is 7
+    /// (4-byte header + 3-byte minimum COTP), NOT 4. This is the genuinely RFC-conformant
+    /// minimum-length vector.
     ///
     /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
     #[test]
-    fn test_rfc1006_s5_canonical_minimal_tpkt_holdout() {
+    fn test_rfc1006_s6_minimum_valid_length_holdout() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x07];
+        let result = parse_tpkt_header(data);
+        assert_eq!(
+            result,
+            Some(TpktHeader {
+                version: 0x03,
+                length: 7
+            }),
+            "RFC 1006 §6: minimum legal TPKT packet length = 7 (4-byte header + 3-byte \
+             minimum COTP)."
+        );
+    }
+
+    /// DOCUMENTED DIVERGENCE (not RFC conformance): wirerust intentionally accepts
+    /// length=4 (the TPKT header's own 4-byte structural floor), which is BELOW RFC 1006
+    /// §6's stated min=7. This is a deliberate layering choice per ADR-014: the TPKT layer
+    /// validates only structural framing; COTP-presence and semantic packet validity are
+    /// enforced by the COTP layer (SS-21, STORY-185+). A length-4 TPKT parses here but is
+    /// rejected downstream when the COTP parser receives 0 payload bytes.
+    ///
+    /// This test asserts wirerust's CURRENT lenient-framing behavior, not RFC conformance
+    /// -- do not read `Some(length:4)` here as an RFC-valid vector.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector);
+    /// ADR-014.
+    #[test]
+    fn test_rfc1006_s6_length_four_wirerust_divergence_holdout() {
         let data: &[u8] = &[0x03, 0x00, 0x00, 0x04];
         let result = parse_tpkt_header(data);
         assert_eq!(
@@ -580,19 +612,19 @@ mod story_184 {
                 version: 0x03,
                 length: 4
             }),
-            "RFC 1006 §5 minimal legal TPKT header (version=0x03, length=4, the 4-byte \
-             header with no payload) must be accepted"
+            "wirerust intentionally accepts length=4, below RFC 1006 §6's stated min=7 \
+             (documented layering divergence, ADR-014, not RFC conformance)"
         );
     }
 
-    /// Per RFC 1006 §5: a TPKT header declaring a length larger than the 4-byte header
+    /// Per RFC 1006 §6: a TPKT header declaring a length larger than the 4-byte header
     /// itself (here: header + 6 payload octets = 10 total) must decode `length` as the
     /// full big-endian TPKTLength value, independently of any payload byte contents.
-    /// Derived from RFC 1006 §5, independently of BC-2.20.00x.
+    /// Derived from RFC 1006 §6, independently of BC-2.20.00x.
     ///
     /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
     #[test]
-    fn test_rfc1006_s5_canonical_ten_byte_tpkt_holdout() {
+    fn test_rfc1006_s6_ten_byte_tpkt_holdout() {
         let data: &[u8] = &[0x03, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         let result = parse_tpkt_header(data);
         assert_eq!(
@@ -601,8 +633,29 @@ mod story_184 {
                 version: 0x03,
                 length: 10
             }),
-            "RFC 1006 §5 TPKT header declaring length=10 (4-byte header + 6 payload \
+            "RFC 1006 §6 TPKT header declaring length=10 (4-byte header + 6 payload \
              octets) must decode version=0x03, length=10"
+        );
+    }
+
+    /// Input-independence holdout (L2): exercises a length value absent from every
+    /// BC-2.20.00x vector table -- 0x0205 = 517 -- to cover more length-field bit
+    /// positions than any BC-derived vector does (BC vectors use only 0, 1, 2, 3, 4, 6,
+    /// 7, 10, and 65535).
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
+    #[test]
+    fn test_rfc1006_s6_wide_length_field_holdout() {
+        let data: &[u8] = &[0x03, 0x00, 0x02, 0x05];
+        let result = parse_tpkt_header(data);
+        assert_eq!(
+            result,
+            Some(TpktHeader {
+                version: 0x03,
+                length: 517
+            }),
+            "RFC 1006 §6 TPKT header with length=517 (0x0205), a bit pattern absent from \
+             any BC-2.20.00x vector, must decode version=0x03, length=517"
         );
     }
 

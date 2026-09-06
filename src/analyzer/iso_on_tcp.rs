@@ -97,8 +97,8 @@ pub struct TpktHeader {
 /// These four outcomes are jointly exhaustive and mutually exclusive by construction
 /// (BC-2.20.004 invariant 3; AC-184-005). Formalizing that partition is the VP-048 Kani
 /// obligation: the assertions are added and executed in STORY-194 (formal hardening); the
-/// `#[cfg(kani)]` skeleton below currently proves only no-panic/bounds-safety over
-/// symbolic input.
+/// `#[cfg(kani)]` skeleton below is scoped to check only no-panic/bounds-safety over
+/// symbolic input — its proof is executed in STORY-194 (not run in this story).
 pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
     if data.len() < 4 {
         return None;
@@ -107,6 +107,12 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
         return None;
     }
     let length = u16::from_be_bytes([data[2], data[3]]);
+    // Accept threshold is length >= 4 (the TPKT header's own 4-byte structural floor),
+    // NOT RFC 1006 §6's stated packet-length minimum of 7. This is a deliberate layering
+    // choice (ADR-014): this TPKT layer validates only structural framing; COTP-presence
+    // and semantic packet validity (the §6 min=7 floor) are enforced by the COTP layer
+    // (SS-21, STORY-185+). See `test_rfc1006_s6_length_four_wirerust_divergence_holdout`
+    // in `tests/iso_on_tcp_tests.rs` for the documented-divergence test.
     if length < 4 {
         return None;
     }

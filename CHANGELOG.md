@@ -18,7 +18,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   function — no `StreamAnalyzer` impl, no per-flow state — laying the framing
   groundwork ahead of the COTP header parser (STORY-185) and the S7comm PDU
   dissector (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof
-  (VP-048 harness; full proof execution deferred to STORY-194).
+  harness (VP-048; execution deferred to STORY-194).
 
 ## [0.13.3] - 2026-09-05
 
