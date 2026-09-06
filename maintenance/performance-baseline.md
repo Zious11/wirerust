@@ -1,28 +1,164 @@
 ---
 document_type: maintenance-performance-baseline
-sweep: 6-maint-2026-07-08
+sweep: 7-maint-2026-09-05
 producer: performance-engineer
 created: 2026-06-22
-last_updated: 2026-07-08
+last_updated: 2026-09-05
 branch: develop
-commit: b642c0f
-version: v0.11.5
+commit: 0b1ea806
+version: v0.13.3
 baseline_date: 2026-05-19
 baseline_source: .factory/maintenance/performance.md (maint-2026-06-17 recorded values)
-prior_sweep_date: 2026-06-22
-current_run_date: 2026-07-08
+prior_sweep_date: 2026-07-08
+current_run_date: 2026-09-05
 hardware_note: >
   Apple Silicon Mac, darwin 25.5.0. All measurements are wall-clock on the
   benchmark machine. Absolute µs values are not portable across hardware;
   only relative deltas (same machine, same branch) are meaningful for
   regression tracking.
-benchmark_command: cargo bench --bench pipeline
-rust_version: stable (v0.11.5)
+benchmark_command: cargo bench --bench pipeline && cargo bench --bench tls_fragmented
+rust_version: stable (rustc 1.98.1, cargo 1.98.1)
 criterion_version: "0.8"
 samples: 100 per benchmark
 ---
 
 # Performance Baseline — Running History
+
+---
+
+## maint-2026-09-05 (Sweep 7)
+
+**Commit:** 0b1ea806 (develop, v0.13.3)
+**Requested run:** maint-2026-09-05, Maintenance Sweep 5 (Performance Regression Detection).
+
+### Baseline-anchor discrepancy (flagged, not fabricated)
+
+The dispatch instructions for this sweep asked to compare against "the last recorded
+baseline ... from prior run maint-2026-07-21." **No `maint-2026-07-21` entry exists in
+this file, in `.factory/maintenance/`, or in this file's git history** (`git log
+--follow` on this path returns no results beyond the current tracked blob). The most
+recent entry actually recorded in this document is **Sweep 6 / maint-2026-07-08**
+(commit b642c0f, v0.11.5), which itself carried a **NOISE-SUSPECT** annotation (11–20
+severe outliers per 100 samples, wide CIs) and an explicit recommendation not to treat
+it as a clean regression comparator. No numbers for a "maint-2026-07-21" run are
+fabricated here; both real anchors below (Sweep 6 and the June-22 controlled re-run)
+are used instead, and this discrepancy should be raised with whoever scheduled this
+sweep.
+
+### Benchmarks found: YES
+
+Two `harness = false` criterion targets registered in `Cargo.toml`:
+`benches/pipeline.rs` (groups: `decode`, `summary`, `reassembly`; fixtures
+`segmented.pcap`, `tls.pcap`, `dns-remoteshell.pcap`) and `benches/tls_fragmented.rs`
+(`tls_fragmented/3-record-carry-drain`). Both were run via `cargo bench` (not
+fabricated — full criterion stdout captured for this run).
+
+### Results Table — vs Sweep 6 (2026-07-08, NOISE-SUSPECT anchor) and vs June-22 controlled anchor
+
+| Benchmark | Fixture | Jun-22 controlled anchor (µs) | Jul-08 Sweep 6 (µs, NOISE-SUSPECT) | Today 2026-09-05 (µs) | Today's outliers/100 | vs Jun-22 | vs Jul-08 | Verdict |
+|-----------|---------|-------------------------------|-------------------------------------|------------------------|----------------------|-----------|-----------|---------|
+| decode | segmented.pcap | 1.459 | 2.0145 | 1.4626 | 0 | +0.25% | -27.4% | NOISE (matches Jun-22 anchor) |
+| decode | tls.pcap | 3.369 | 4.3810 | 3.4387 | 6 (1 severe) | +2.07% | -21.5% | NOISE |
+| decode | dns-remoteshell.pcap | 4.840 | 5.9408 | 4.7362 | 8 (2 severe) | -2.14% | -20.3% | NOISE |
+| summary | segmented.pcap | 0.639 | 0.9003 | 0.6543 | 4 | +2.41% | -27.3% | NOISE |
+| summary | dns-remoteshell.pcap | 2.589 | 3.5304 | 2.6342 | 1 | +1.75% | -25.4% | NOISE |
+| reassembly | segmented.pcap | 5.858 | 8.8937 | 5.8572 | 4 | -0.01% | -34.1% | NOISE (essentially identical to Jun-22) |
+| reassembly | tls.pcap | 24.429 | 26.353 | 22.244 | 5 (1 severe) | -8.86% | -15.6% | NOISE (below 10% threshold either direction) |
+| tls_fragmented | 3-record-carry-drain | N/A (no clean anchor — Jul-08 was itself the noisy initial baseline) | 2.0662 | 1.5141 | 5 | N/A | -26.7% | No clean prior anchor; this run establishes the first low-noise baseline |
+
+Criterion's own stored-base verdicts from today's run (vs whatever was previously in
+`target/criterion/` on this machine, dated May-19/Jul-07 — not this document's anchors):
+- `decode/segmented.pcap`: No change detected (p=0.09)
+- `decode/tls.pcap`: Performance has improved (-8.4%, p<0.05)
+- `decode/dns-remoteshell.pcap`: Performance has improved (-15.1%, p<0.05)
+- `summary/segmented.pcap`: No change detected (p=0.44)
+- `summary/dns-remoteshell.pcap`: Performance has regressed (+2.6%, p<0.05) — well under the 10% WARNING threshold, informational only
+- `reassembly/segmented.pcap`: Performance has improved (-6.2%, p<0.05)
+- `reassembly/tls.pcap`: Performance has improved (-4.3%, p<0.05)
+- `tls_fragmented/3-record-carry-drain`: Performance has improved (-11.2%, p<0.05)
+
+### Interpretation
+
+**No regression >10% or >25% found against any anchor.** Every "vs Jul-08" delta is a
+large *improvement* (-15.6% to -34.1%), which is exactly what you'd expect if the
+Jul-08 numbers were noise-inflated (as that sweep's own report suspected) rather than
+evidence of two months of genuine speedups. The more trustworthy comparison is against
+the **June-22 controlled re-run** (machine quiescent, low outlier count, explicitly
+established as the reliable anchor): today's run lands within **±2.5%** of that anchor
+on 6 of 7 pipeline metrics, and `reassembly/tls.pcap` is *better* by 8.9% (still inside
+the informational NOISE band, not a flagged improvement/regression). Today's outlier
+counts (0–8 per 100, 0–2 severe) are also far lower than Jul-08's (11–20 per 100,
+7–16 severe), corroborating that this run — like Jun-22 — was captured on a quiescent
+machine and is a valid comparator; Jul-08 was not.
+
+**Conclusion: no regression >10% (WARNING) or >25% (CRITICAL) detected. The codebase's
+hot-path performance across STORY-150 → STORY-183 / v0.11.5 → v0.13.3 is stable and
+consistent with the June-22 controlled baseline.** `tls_fragmented` now has its first
+low-noise measurement (1.5141 µs, 5 outliers) and should be used as its baseline going
+forward in preference to the noisy Jul-08 initial value.
+
+### New Baseline Snapshot (recorded for next sweep)
+
+| Benchmark | Fixture | New baseline (µs) |
+|-----------|---------|--------------------|
+| decode | segmented.pcap | 1.4626 |
+| decode | tls.pcap | 3.4387 |
+| decode | dns-remoteshell.pcap | 4.7362 |
+| summary | segmented.pcap | 0.6543 |
+| summary | dns-remoteshell.pcap | 2.6342 |
+| reassembly | segmented.pcap | 5.8572 |
+| reassembly | tls.pcap | 22.244 |
+| tls_fragmented | 3-record-carry-drain | 1.5141 |
+
+### Build-health check (lightweight, no deep analysis)
+
+| Check | Result |
+|-------|--------|
+| `cargo build --release` | SUCCESS. 6.61s wall (incremental — dependency crates already built in `target/release`; only the `wirerust` crate itself recompiled. Not a clean-tree timing; recorded for trend only). |
+| `cargo test --all-targets` | SUCCESS. 94 test binaries, **2668 passed / 0 failed**, 5 ignored (all in `silent_resource_caps`, documented as intentionally slow/`--ignored`-gated MAX_MAP_ENTRIES/MAX_ARP_BINDINGS cap tests — not a gap). Total wall time ~part of the same invocation that smoke-ran both bench binaries in debug/1-iteration mode (not the criterion measurement run). |
+
+### NFR Compliance Matrix
+
+Same as prior sweeps — no per-packet latency NFR-NNN target exists in the NFR catalog
+to gate against; this sweep's numbers are informational/trend-tracking only.
+
+| NFR ID | Requirement | Validation Method | Measured | Verdict |
+|--------|-------------|------------------|----------|---------|
+| NFR-PERF-001 | Zero-copy slice path; one allocation per packet | Code review | Not re-validated this sweep (no allocation-path changes observed since last check) | N/A |
+| NFR-PERF-002 | Eager full-pcap load; RAM <= pcap_size * 1.5 | Load test with 1 GB pcap | Not measured — no 1 GB fixture | DEFERRED |
+| NFR-PERF-003 | O(1) dispatch via cache; 100% cache hit rate after first classification | Benchmark: 10,000-flow pcap | Not measured — no 10,000-flow fixture | DEFERRED |
+| NFR-PERF-004 | Overlap detection uses SIMD-friendly slice equality | cargo asm / LLVM IR inspection | Not validated this sweep | OPEN-DEBT |
+
+### Recommendations
+
+1. **No fix PR triggered.** No metric degraded >10% against either the Sweep-6 or
+   June-22 anchors.
+2. **Resolve the maint-2026-07-21 anchor discrepancy** with whoever scheduled this
+   sweep — no such baseline entry exists in this repo's history; confirm whether it
+   was recorded elsewhere (a different branch/artifact store) or the date is a
+   mis-reference to Jul-08 / Jun-22.
+3. **Retire Jul-08 (Sweep 6) as a regression comparator.** Its own report flagged it
+   NOISE-SUSPECT; this sweep confirms that suspicion (all deltas vs it are large
+   improvements with no plausible code-level cause). Use Jun-22 and this sweep
+   (Sep-05) as the reliable anchors going forward.
+4. **Adopt `tls_fragmented/3-record-carry-drain` = 1.5141 µs** as its first low-noise
+   baseline; the Jul-08 value (2.0662 µs, 15 severe outliers) should no longer be used
+   as a comparator.
+5. NFR-PERF-002/003 remain DEFERRED — no large fixtures exist to validate them
+   (unchanged from prior sweeps).
+
+### Sweep Metadata
+
+| Field | Value |
+|-------|-------|
+| Run date | 2026-09-05 |
+| Platform | darwin 25.5.0 (Apple Silicon, macOS 26.5.2, build 25F84) |
+| Rust toolchain | stable (rustc 1.98.1, cargo 1.98.1) |
+| Benchmark command | `cargo bench --bench pipeline` then `cargo bench --bench tls_fragmented` |
+| `cargo build --release` | SUCCESS, 6.61s (incremental) |
+| `cargo test --all-targets` | SUCCESS, 2668 passed / 0 failed / 5 ignored across 94 binaries |
+| Outliers this run | decode/segmented 0; decode/tls 6 (1 severe); decode/dns-remoteshell 8 (2 severe); summary/segmented 4; summary/dns-remoteshell 1; reassembly/segmented 4; reassembly/tls 5 (1 severe); tls_fragmented 5 |
+| Thermal state | Not explicitly controlled, but outlier counts are consistent with a quiescent machine (comparable to the Jun-22 controlled run, far below Jul-08's noise signature) |
 
 ---
 

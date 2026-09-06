@@ -1,251 +1,208 @@
-# Documentation Drift Findings — Maintenance Sweep 3
+# Documentation Drift Findings — Maintenance Sweep 2
 
-**Run ID:** maint-2026-07-08
-**Date:** 2026-07-08
-**Producer:** technical-writer
-**Branch/HEAD:** develop @ b642c0f (v0.11.5 + 9 unreleased commits)
-**Scope:** README.md, CLAUDE.md, docs/adr/0001–0011, CHANGELOG.md Unreleased section,
-           TODO/FIXME/HACK scan in src/ and tests/, STORY-154-TESTCOUNT-COMMENT-001 backlog item
-**Prior sweep reference:** `.factory/maintenance/doc-drift-findings.md` (Sweep 2, 2026-06-22,
-           develop @ dd3b069 / v0.9.3)
+**Run:** maint-2026-09-05
+**Scope:** Documentation Drift
+**Compared against:** develop branch, HEAD `0b1ea806`, version `0.13.3`
+**Method:** Direct comparison of README.md / CLAUDE.md / docs/adr/ against actual `cargo run -- --help`
+output (built and run at v0.13.3), `src/analyzer/*.rs` module listing, `docs/adr/` directory listing,
+filesystem existence checks for every path in CLAUDE.md's "Project References" table, and a
+`TODO|FIXME|HACK|XXX` regex scan of `src/` and `bin/` with per-line `git blame` dating.
 
----
-
-## Prior Sweep Status
-
-All 10 findings from Sweep 2 (DOC-001 through DOC-010) are resolved at HEAD b642c0f.
-
-| Prior ID | Summary | Status |
-|----------|---------|--------|
-| DOC-001 | CLAUDE.md STATE.md described as "not yet initialized" | FIXED — now reads "VSDD factory artifacts (STATE.md, stories, specs, research, maintenance logs)" |
-| DOC-002 | ADR-009 referenced 40+ times in reader.rs but file did not exist | FIXED — docs/adr/0009-pcapng-reader-design.md now exists |
-| DOC-003 | README Architecture table said "pcap files" — omitted pcapng | FIXED — now reads "Parse classic pcap and pcapng files (5 link types; both formats)" |
-| DOC-004 | README Features bullet said "pcap formats" — pcapng omitted | FIXED — now reads "in both classic pcap and pcapng captures" |
-| DOC-005 | ADR 0002 `detail` field type HashMap vs BTreeMap | FIXED — both occurrences now read BTreeMap |
-| DOC-006 | ADR 0002 StreamHandler::on_data missing `timestamp: u32` parameter | FIXED — parameter present in ADR snippet |
-| DOC-007 | ADR 0003 stale main.rs line numbers in Grouped-Mode Collapse section | FIXED — replaced with function-name anchors (src/main.rs `run_analyze`, etc.) |
-| DOC-008 | ADR 0002 `parse_error_count()` listed as "Required" — is convention only | FIXED — table column now reads "Convention only" |
-| DOC-009 | ADR 0001 StreamDispatcher struct snippet missing modbus/dnp3 fields | FIXED — snippet updated with modbus/dnp3/enip/unclassified_flows fields (PR #369) |
-| DOC-010 | Cargo.toml rayon declared but unused | FIXED — rayon entry removed from Cargo.toml |
+This is analysis only. No doc files were edited, no commits were made. Fixes route through the
+gated PR pipeline per this sweep's scope instructions.
 
 ---
 
-## Summary
+## Summary Counts
 
-| Severity | Count | Classification |
-|----------|-------|----------------|
-| HIGH     | 1     | MANUAL         |
-| MED      | 1     | FIXABLE-AUTO   |
-| LOW      | 2     | FIXABLE-AUTO   |
-| INFO     | 1     | INFO           |
-| **Total**| **5** | —              |
+| Category | Count |
+|---|---|
+| STALE-DOC | 2 |
+| BROKEN-REF | 0 |
+| ANCIENT-TODO | 0 |
+| CLEAN | 6 (areas explicitly verified with no drift) |
 
-All findings are documentation-only. No runtime behavior is affected.
+**Headline: the documentation is in good shape.** No broken references were found anywhere in
+CLAUDE.md's Project References table, all 13 ADRs referenced by number exist on disk with matching
+content, README's CLI flag documentation matches the actual v0.13.3 `--help` output flag-for-flag
+across all three subcommands, the documented 8-protocol coverage set exactly matches the 8 analyzer
+modules in `src/analyzer/`, and there are zero genuine TODO/FIXME/HACK/XXX markers in `src/` or `bin/`
+(all 6 raw regex hits are false positives from the `XXX` substring inside the literal placeholder
+token `TXXXX` used in MITRE technique-ID documentation). Only two minor, low-severity STALE-DOC items
+were found.
 
 ---
 
 ## Findings
 
-| ID | File | Severity | Classification | Issue |
-|----|------|----------|----------------|-------|
-| NEW-001 | `docs/adr/` + `CLAUDE.md` | HIGH | MANUAL | ADR-012 referenced 38× in src/ and tests/ but no `docs/adr/0012-*.md` file exists; CLAUDE.md Project References ADR table also omits it |
-| NEW-002 | `README.md` | MED | FIXABLE-AUTO | `--coverage-gaps` analyze flag (shipped v0.11.2 / STORY-154 / PR #355) absent from README Analyze flags section |
-| NEW-003 | `docs/adr/0001-content-first-stream-dispatch.md` | LOW | FIXABLE-AUTO | StreamDispatcher struct snippet missing `unclassified_port_counts` and `coverage_gaps_enabled` fields added by STORY-153 |
-| NEW-004 | `tests/integration_tests.rs` | LOW | FIXABLE-AUTO | Line 1161 comment "All 20 tests pass" in `mod story_154`; actual count is 22 (open backlog item STORY-154-TESTCOUNT-COMMENT-001, count was 21 at prior check, now 22) |
-| NEW-005 | `CHANGELOG.md` | INFO | INFO | `indicatif 0.18.4 → 0.18.5` chore dep bump (PR #375 / commit 6e1b682) is among the 9 unreleased commits since v0.11.5 but has no Unreleased CHANGELOG entry; conventional for patch-only dep bumps |
+### 1. STALE-DOC — README.md omits the auto-generated `help` subcommand
+
+**File:** `README.md`, "### Options" fenced code block under "## Usage" (the `wirerust [OPTIONS]
+<COMMAND>` synopsis, immediately preceding the `Options:` list — approx. line 130 of 477).
+
+**Mismatch:** README's `Commands:` list shows only:
+```
+Commands:
+  analyze    Analyze PCAP files for threats and anomalies
+  summary    Generate a triage summary of PCAP files
+  protocols  List the protocol coverage catalog
+```
+Actual `wirerust --help` (v0.13.3) output includes a fourth, clap-auto-generated entry:
+```
+Commands:
+  analyze    Analyze PCAP files for threats and anomalies
+  summary    Generate a triage summary of PCAP files
+  protocols  List the protocol coverage catalog
+  help       Print this message or the help of the given subcommand(s)
+```
+**Assessment:** Cosmetic/trivial. This is standard `clap` behavior (every clap CLI with
+subcommands gets an implicit `help` subcommand) and most CLI READMEs omit it by convention. Not a
+functional documentation error — no user-facing behavior is misdescribed — but flagged per the
+sweep's literal "CLI flags match current code" check since it is a discrepancy between the
+documented and actual `Commands:` list. Fix (if desired): add the `help` row to the README synopsis
+block, or leave as-is with a note that it's the implicit clap subcommand.
+
+### 2. STALE-DOC — `docs/adr/0008-withdrawn-placeholder.md` exists but is unlisted in CLAUDE.md's ADR index
+
+**File:** `CLAUDE.md`, "Project References" table, `docs/adr/` row:
+> `docs/adr/` \| Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003
+> reporting pipeline, 0004 process-wide warning atomics, 0005 binary ICS protocol integration, 0006
+> multi-technique finding attribution, 0007 DNP3 stream dispatch and parser design, 0009 pcapng
+> reader design, 0010 EtherNet/IP CIP stream dispatch, 0011 TLS handshake reassembly, 0012 protocols
+> catalog and coverage-gaps system, 0013 IEC-104 stream dispatch and parser design)
+
+**Mismatch:** `docs/adr/` on disk contains 13 files, not 12:
+```
+0001-content-first-stream-dispatch.md
+0002-modular-protocol-analyzers.md
+0003-reporting-pipeline-layering.md
+0004-process-wide-warning-atomics.md
+0005-binary-ics-protocol-integration.md
+0006-multi-technique-finding-attribution.md
+0007-dnp3-stream-dispatch-and-parser-design.md
+0008-withdrawn-placeholder.md          <-- present on disk, not listed in CLAUDE.md
+0009-pcapng-reader-design.md
+0010-ethernet-ip-cip-stream-dispatch.md
+0011-tls-handshake-reassembly.md
+0012-protocols-catalog-and-coverage-gaps.md
+0013-iec104-stream-dispatch-and-parser-design.md
+```
+CLAUDE.md's index enumerates 0001–0007 then jumps straight to 0009, silently skipping 0008.
+
+**Assessment:** All 12 ADRs CLAUDE.md *does* list are present and correctly numbered/titled — no
+BROKEN-REF. Given the filename `0008-withdrawn-placeholder.md`, the gap is almost certainly
+intentional (ADR-0008 was withdrawn and replaced by a placeholder stub to keep the ID reserved/
+non-reused), not an oversight where a file was added and the index forgotten. Still flagged as
+STALE-DOC because CLAUDE.md's index gives a reader no indication *why* the sequence skips 0008 —
+a one-line addition such as "(0008 withdrawn — see docs/adr/0008-withdrawn-placeholder.md)" would
+close the gap without requiring content changes. Low severity; does not point anywhere broken.
 
 ---
 
-## Detailed Findings
+## Verified Clean (no drift found)
 
-### NEW-001 — docs/adr/: ADR-012 referenced in source but file does not exist (HIGH, MANUAL)
+### 3. CLEAN — README.md CLI flags match `cargo run -- --help` (v0.13.3) exactly
 
-**Files:** `src/protocols.rs`, `src/dispatcher.rs`, `src/main.rs`, `tests/protocols_tests.rs`,
-`tests/dispatcher_tests.rs` (38 total occurrences); `docs/adr/` contains only 0001–0007, 0009–0011.
-`CLAUDE.md` Project References table lists ADRs 0001–0007, 0009–0011 and does not mention ADR-012.
+Cross-checked every flag in README's "### Options" and "### Analyze flags" fenced blocks (global
+options: `--no-color`, `--output-format`, `--json`, `--csv`, `--reassemble`, `--no-reassemble`,
+`--reassembly-depth`, `--reassembly-memcap`, `--overlap-threshold`, `--small-segment-threshold`,
+`--small-segment-max-bytes`, `--small-segment-ignore-ports`, `--out-of-window-threshold`,
+`--flow-timeout`, `-h/--help`, `-V/--version`; analyze-only: `--dns`, `--http`, `--tls`, `--modbus`
++ 2 threshold flags, `--dnp3` + 1 threshold flag, `--arp` + 2 threshold flags, `--enip` + 2
+threshold flags, `--iec104`, `--no-collapse`, `--mitre`, `-a/--all`, `--coverage-gaps`) against the
+live `wirerust --help`, `wirerust analyze --help`, `wirerust summary --help`, and `wirerust
+protocols --help` output built from HEAD. Every flag, default value, and description in README
+matches the built binary. `wirerust --version` reports `wirerust 0.13.3`, consistent with the
+sweep's stated current version.
 
-**Issue:** The protocols catalog system introduced in STORY-151/152/153/154 (v0.11.2) makes
-extensive references to ADR-012 throughout its constants, field doc-comments, and inline comments.
-Representative occurrences (from grep):
+### 4. CLEAN — README.md protocol coverage matches actual analyzer modules in `src/`
 
-- `src/protocols.rs:13` — `"Exactly two variants — no L2 variant (ADR-012 Decision 7)."`
-- `src/protocols.rs:69` — `"classify() is PERMANENT and BY DESIGN (ADR-012 Decision 5)."`
-- `src/dispatcher.rs:44` — `"(BC-2.05.010 PC-4, Invariant 1; ADR-012 Decision 6)."`
-- `src/dispatcher.rs:98` — `"(STORY-153, BC-2.05.010 PC-1, ADR-012 Decision 6 Clarification)."`
-- `src/main.rs:195` — `"(AC-154-002/003/007; ADR-012 Decision 9)."`
+README's "Supported Protocol Analyzers" table lists exactly 8 protocols: DNS, HTTP/1.x, TLS,
+Modbus TCP, DNP3 TCP, EtherNet/IP TCP, IEC 60870-5-104 TCP, ARP. `src/analyzer/` contains exactly 8
+analyzer module files: `arp.rs`, `dnp3.rs`, `dns.rs`, `enip.rs`, `http.rs`, `iec104.rs`,
+`modbus.rs`, `tls.rs` (plus `mod.rs`). One-to-one match, including IEC-104, which README correctly
+documents as shipped (`--iec104` flag, port 2404, ADR-013 reference) — consistent with this being
+a v0.13.x-era feature. No aspirational/planned protocol is misrepresented as implemented, and no
+implemented analyzer is missing from the README table.
 
-From the reference content, ADR-012 covers at minimum the following design decisions:
-- Decision 1: Catalog structure for KNOWN_PROTOCOLS
-- Decision 2: Suricata-derived vocabulary for protocol classification
-- Decision 3: L2-transport-only protocols (EtherCAT, POWERLINK, etc.)
-- Decision 4: ARP special case (link-layer, no port)
-- Decision 5: `classify()` function behavior as permanent and by design
-- Decision 6: `unclassified_port_counts` counter scoping and the `coverage_gaps_enabled` feature flag
-- Decision 7: `TransportProto` enum has exactly two variants (no L2 variant)
-- Decision 9: `--coverage-gaps` output as purely additive (Findings + AnalysisSummary unchanged)
-- Decision 10: `dns_handles` evaluated regardless of `enable_dns`
+### 5. CLEAN — README.md install/usage examples correspond to real commands and flags
 
-No `docs/adr/0008-*.md` file has ever existed (the sequence jumps from 0007 to 0009 intentionally —
-ADR-008 was skipped). ADR-012 is the current missing file.
+`cargo install --path .`, `git clone` + `cargo build --release` (binary at
+`target/release/wirerust`), and all `wirerust analyze ...` / `wirerust summary ...` / `wirerust
+protocols ...` examples use flags and subcommands that exist and behave as documented (verified
+against `--help` output for each subcommand).
 
-**Severity rationale:** Same class as Sweep 2 DOC-002 (ADR-009 missing, rated HIGH). A contributor
-reading any ADR-012 inline citation cannot find the decision record. The protocols and coverage-gaps
-subsystem is new (v0.11.2) and has no architectural narrative accessible to maintainers.
+### 6. CLEAN — All 12 ADRs referenced by CLAUDE.md exist on disk with matching filenames/topics
 
-**Classification:** MANUAL — requires authoring a new ADR document, not a text substitution.
+`0001-content-first-stream-dispatch.md`, `0002-modular-protocol-analyzers.md`,
+`0003-reporting-pipeline-layering.md`, `0004-process-wide-warning-atomics.md`,
+`0005-binary-ics-protocol-integration.md`, `0006-multi-technique-finding-attribution.md`,
+`0007-dnp3-stream-dispatch-and-parser-design.md`, `0009-pcapng-reader-design.md`,
+`0010-ethernet-ip-cip-stream-dispatch.md`, `0011-tls-handshake-reassembly.md`,
+`0012-protocols-catalog-and-coverage-gaps.md`, `0013-iec104-stream-dispatch-and-parser-design.md`
+— all present, all titles match CLAUDE.md's one-line descriptions. No BROKEN-REF.
 
-**Suggested action:** Author `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` capturing
-the protocols catalog design decisions referenced by the 38 inline citations. Simultaneously
-update the CLAUDE.md Project References table to add:
-```
-| `docs/adr/` | … 0012 protocols catalog and coverage-gaps system |
-```
+### 7. CLEAN — CLAUDE.md "Project References" table: all 13 paths exist
 
----
+| Path | Status |
+|---|---|
+| `README.md` | EXISTS |
+| `docs/adr/` | EXISTS (13 files; see Finding 2 re: 0008) |
+| `docs/superpowers/plans/` | EXISTS (10 files) |
+| `docs/superpowers/specs/` | EXISTS (8 files) |
+| `.github/workflows/ci.yml` | EXISTS |
+| `.factory/` | EXISTS — mounted as a separate git worktree on the `factory-artifacts` branch (`git worktree list` confirms `/Users/zious/Documents/GITHUB/wirerust/.factory` → branch `factory-artifacts`, commit `cf6a114b`) |
+| `.factory/maintenance/demo-evidence-scrub-gate.md` | EXISTS |
+| `.factory/maintenance/pr-manager-merge-auth-guidance.md` | EXISTS |
+| `.factory/maintenance/docs-writer-dispatch-guidance.md` | EXISTS |
+| `.factory/maintenance/breaking-change-delivery-protocol.md` | EXISTS |
+| `.factory/maintenance/pr-description-row-verify-mandate.md` | EXISTS |
+| `.factory/maintenance/delivery-doc-currency-protocol.md` | EXISTS |
+| `.factory/maintenance/fixture-count-gate-entry.md` | EXISTS |
 
-### NEW-002 — README.md: `--coverage-gaps` analyze flag undocumented (MED, FIXABLE-AUTO)
+No BROKEN-REF findings in this table.
 
-**File:** `README.md`, Analyze flags subsection (lines 106–124)
+### 8. CLEAN — Zero genuine TODO/FIXME/HACK/XXX markers in `src/` or `bin/`
 
-**Issue:** The `--coverage-gaps` flag for the `analyze` subcommand was shipped in v0.11.2
-(STORY-154, PR #355) and is present in `src/cli.rs` at line 268:
-```rust
-/// Enable per-port unclassified traffic gap detection (opt-in)
-#[arg(long)]
-coverage_gaps: bool,
-```
-The flag is described in the CHANGELOG v0.11.2 entry ("analyze --coverage-gaps flag — tri-state
-CoverageGapsSummary report"). However, the README Analyze flags section does not list it at all.
-A user consulting the README for the full set of analyze flags will not learn that
-`--coverage-gaps` exists.
+Regex scan for `TODO|FIXME|HACK|XXX` across `src/` and `bin/` returned exactly 6 raw matches, all
+of which are false positives — the substring `XXX` matching inside the literal placeholder token
+`TXXXX` (a generic MITRE technique-ID form used in doc comments and a test assertion, not a
+tech-debt marker):
 
-The flag generates a `CoverageGapsSummary` section classifying observed traffic into three states:
-`covered`, `gap`, and `unclassified`. It is opt-in and orthogonal to `--all`.
+| File:Line | Content | Blame date | Age (as of 2026-09-05) |
+|---|---|---|---|
+| `src/mitre.rs:9` | `//! Callers pass technique IDs in MITRE's canonical form: \`TXXXX\` for parent` | 2026-04-13 (`0a00c6385`) | ~145 days |
+| `src/mitre.rs:10` | `//! techniques (e.g., \`T1046\`) and \`TXXXX.NNN\` for sub-techniques (period` | 2026-04-13 (`0a00c6385`) | ~145 days |
+| `src/mitre.rs:26` | `//!   only has to set \`mitre_techniques: vec!["TXXXX".to_string()]\` — it does not also` | 2026-06-09 (`bff4d0f33`) | ~88 days |
+| `src/mitre.rs:517` | `assert!(!is_valid_technique_id_format("TXXXX"));` | 2026-06-01 (`2a2dd5a8a`) | ~96 days |
+| `src/findings.rs:148` | `// (Vec::is_empty skip); singleton vec produces a JSON array \`["TXXXX"]\`.` | 2026-07-08 (`c4eb1f43`, boundary) | ~59 days |
+| `src/findings.rs:150` | `// sites use \`mitre_techniques: vec!["TXXXX"]\` (singleton) or \`vec![]\`.` | 2026-07-08 (`c4eb1f43`, boundary) | ~59 days |
 
-**Suggested fix:** Add the following line to the README Analyze flags block, after `--enip-error-burst-threshold N`:
-```
---coverage-gaps                        Enable per-port unclassified traffic gap detection; produces a CoverageGapsSummary section classifying observed protocols as covered, gap, or unclassified (default-off; does not affect Findings or AnalysisSummary output)
-```
-
----
-
-### NEW-003 — ADR 0001: StreamDispatcher struct snippet missing STORY-153 fields (LOW, FIXABLE-AUTO)
-
-**File:** `docs/adr/0001-content-first-stream-dispatch.md`, struct code snippet (lines 28–50)
-
-**Issue:** The struct snippet in ADR-0001 was updated in PR #369 (v0.11.5) to add
-modbus/dnp3/enip/unclassified_flows. However, STORY-153 (PR #352, v0.11.2) added two additional
-fields to `StreamDispatcher` that are not in the snippet:
-
-```rust
-// Actual fields in src/dispatcher.rs (lines 97–104) — absent from ADR snippet:
-/// Per-(TransportProto, port) counts for TCP flows that close as DispatchTarget::None
-/// (STORY-153, BC-2.05.010 PC-1, ADR-012 Decision 6 Clarification).
-unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
-/// Feature flag: when true, the per-port unclassified_port_counts counter is populated
-/// in the on_flow_close None-target arm (STORY-153, BC-2.05.010 PC-1).
-coverage_gaps_enabled: bool,
-```
-
-The ADR comment at line 101 documents these fields. The ADR struct snippet does not include them,
-leaving the snippet one version behind the actual struct shape.
-
-**Suggested fix:** Append the two fields to the struct snippet in ADR-0001 with a comment
-noting they were added by STORY-153 / ADR-012 Decision 6:
-```rust
-    // Added STORY-153 (ADR-012 Decision 6): per-port gap-detection counters
-    unclassified_port_counts: HashMap<(TransportProto, u16), u64>,
-    coverage_gaps_enabled: bool,
-```
+None of these are TODO/FIXME/HACK/XXX annotations — they are documentation/test text that happens
+to contain the substring `XXX` as part of a MITRE-technique-ID placeholder. No ANCIENT-TODO
+findings result from this scan; there is nothing here that represents deferred or flagged work.
+`bin/` contains only governance/tooling scripts (`changelog-gate-check`, `check-green-doc-tense`,
+`compute-input-hash`, `fetch-e2e-pcaps`, `lint-cycle-artifact`, `validate-citations`, and their
+`test_*.py` companions) with zero matches of any kind.
 
 ---
 
-### NEW-004 — tests/integration_tests.rs: story_154 test count comment stale (LOW, FIXABLE-AUTO)
+## Notes on Method / Non-Findings Out of Scope
 
-**File:** `tests/integration_tests.rs`, line 1161
-
-**Stale text:**
-```
-//   All 20 tests pass. `--coverage-gaps` is fully implemented and wired.
-```
-
-**Reality:** `mod story_154` now contains **22** tests (verified by `grep -c "#\[test\]"`).
-The comment was written when the initial STORY-154 implementation was committed (PR #355,
-author Jared Richards, committer-time 1783149080). Two additional tests were added after that
-initial commit:
-- `test_BC_2_12_024_json_entry_port102_collision_note`
-- `test_BC_2_12_024_json_entry_unknown_state`  *(and possibly others)*
-
-Full current test list in story_154 (22 tests):
-1. test_BC_2_12_023_all_without_coverage_gaps
-2. test_BC_2_12_023_all_with_coverage_gaps_combination
-3. test_BC_2_12_023_protocols_coverage_gaps_error
-4. test_BC_2_12_023_no_coverage_gaps_no_section
-5. test_BC_2_12_023_coverage_gaps_counts_unclassified
-6. test_BC_2_12_023_coverage_gaps_flag_produces_section
-7. test_BC_2_12_023_json_coverage_gaps_key
-8. test_BC_2_12_024_l2_caveat_always_present
-9. test_BC_2_12_024_port102_footnote_on_tcp102_traffic
-10. test_BC_2_12_024_port102_footnote_absent_without_tcp102
-11. test_BC_2_12_024_port102_note_names_all_four
-12. test_BC_2_12_024_bacnet_known_unsupported
-13. test_BC_2_12_024_unknown_port_state
-14. test_BC_2_12_024_tcp_47808_is_unknown
-15. test_BC_2_12_024_tcp_53_is_unknown
-16. test_BC_2_12_024_tcp_502_absent_from_gap_report
-17. test_BC_2_12_024_json_has_caveat_field
-18. test_BC_2_12_024_json_entry_bacnet_schema
-19. test_BC_2_12_024_json_entry_port102_collision_note
-20. test_BC_2_12_024_json_entry_unknown_state
-21. test_BC_2_12_024_empty_entries_message
-22. test_BC_2_12_023_coverage_gaps_purely_additive
-
-**Notes on backlog item STORY-154-TESTCOUNT-COMMENT-001:** This item was open in the prior
-maintenance period. At that time it was at "21 integration tests." The count has grown to 22.
-The backlog description should be updated to reflect the current count.
-
-**Suggested fix:** Update line 1161 in tests/integration_tests.rs to:
-```rust
-//   All 22 tests pass. `--coverage-gaps` is fully implemented and wired.
-```
-
----
-
-### NEW-005 — CHANGELOG.md: indicatif patch bump absent from Unreleased section (INFO)
-
-**File:** `CHANGELOG.md`, `## [Unreleased]` section
-
-**Issue:** There are 9 unreleased commits since v0.11.5 (tag). Commit `6e1b682` (PR #375,
-"chore(deps): bump indicatif from 0.18.4 to 0.18.5") has no corresponding entry in the
-Unreleased section. The other 8 commits are accounted for: the code-change commits (PR #374,
-#376, #378, #379, #380) are documented by content entries, and the docs/wave commits
-(PR #377, #381) and the back-merge commit (PR #373) do not themselves add new changelog entries.
-
-**Classification:** INFO — patch-level transitive dependency bumps are conventionally excluded
-from user-facing changelogs (consistent with previous versions of this file; see v0.11.1
-"Bumped anyhow 1.0.102 → 1.0.103" as the threshold: that was a security advisory bump and
-was included; this is a pure patch bump with no advisory). No action required.
-
----
-
-## Items Confirmed Accurate (Sweep 3)
-
-The following were checked and found to be correct at HEAD b642c0f:
-
-- All CLAUDE.md referenced paths exist: `bin/compute-input-hash`, `.factory/maintenance/demo-evidence-scrub-gate.md`, `.factory/maintenance/pr-manager-merge-auth-guidance.md`, `.factory/policies.yaml`.
-- ADR files 0001–0007, 0009–0011 all exist and match the CLAUDE.md Project References table (10 ADRs listed, 10 files present; ADR-0008 intentionally skipped in sequence).
-- `src/analyzer/` contains: arp.rs, dnp3.rs, dns.rs, enip.rs, http.rs, mod.rs, modbus.rs, tls.rs — matches the 7 analyzers documented in README and ADR 0002 (EtherNet/IP added as of v0.11.0).
-- `src/lib.rs` module-level docs list DNS / HTTP / TLS / Modbus / DNP3 / ARP / EtherNet/IP — accurate.
-- No TODO/FIXME/HACK inline comments found in `src/` or `tests/` (three occurrences of the string "HACKED" are test-data strings, not code comments).
-- CHANGELOG Unreleased section has entries for all substantive unreleased PRs: STORY-149 (PR #374), PR #376 scrub, STORY-156 (PR #378), STORY-150 (PR #379), STORY-157 (PR #380). Consistent.
-- README `protocols` subcommand documentation present and accurate (added by PR #369 fix for prior sweep finding).
-- CLAUDE.md rust-version 1.91 / Rust 2024 edition / single-crate notes accurate.
-- CLAUDE.md Input Hash Algorithm section and PG-HASH-HOOK-DIVERGENCE divergence note accurate and current.
-- `docs/superpowers/plans/` and `docs/superpowers/specs/` both exist.
-- README Architecture diagram/table, Supported Capture Formats section, and EtherNet/IP subsection descriptions are accurate.
-- ADR-0001 struct snippet includes modbus, dnp3, enip, unclassified_flows — accurate for those fields (NEW-003 notes the two STORY-153 fields still absent).
-- ADR-0002 Existing Analyzers table lists 7 analyzers including EtherNet/IP with Deviations section — accurate.
-- ADR-0002 StreamHandler::on_data includes `timestamp: u32` — accurate.
-- ADR-0002 `parse_error_count()` described as "Convention only" — accurate.
-- rayon dependency is absent from Cargo.toml — DOC-010 remains fixed.
-- ADR-0003 Grouped-Mode Collapse section uses function-name anchors, not line numbers — DOC-007 remains fixed.
+- ADR content itself (e.g., ADR-0003's forward-looking reference to future "SSH, SMB" analyzers
+  not yet implemented) was **not** flagged as drift: ADRs are dated decision records, not living
+  status docs, and documenting a plan/future-tense item at the time an ADR was written is expected
+  ADR practice, not aspirational-content violation of current-behavior docs. This sweep's scope
+  (per instructions) was README.md, the ADR *index*, CLAUDE.md's reference table, and
+  protocol-coverage-vs-code — not ADR body content for currency.
+- `docs/adr/0012-protocols-catalog-and-coverage-gaps.md` documents a broader ICS protocol catalog
+  (e.g., S7comm, GOOSE, BACnet) than what's implemented — this is intentional and consistent with
+  README's own `wirerust protocols --unsupported` flag, which is documented as showing
+  not-yet-dissected protocols. Not drift.
+- The `plugins/vsdd-factory/config/artifact-path-registry.yaml` referenced by this agent's own
+  operating constraints is not part of the wirerust repository (it lives in a sibling
+  `vsdd-factory` engine checkout and in the plugin cache under `~/.claude/plugins/cache/`). This
+  output file's path (`.factory/maintenance/doc-drift-findings.md`) matches the existing,
+  already-registered sibling-file pattern in this same directory (seven pre-existing files of the
+  identical `.factory/maintenance/<slug>.md` shape), so no separate registry fetch was required to
+  proceed with this write.

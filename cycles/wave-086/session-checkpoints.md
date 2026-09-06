@@ -1814,3 +1814,17 @@ Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and
 - **Spec versions:** BC-INDEX v2.37 / VP-INDEX v2.47 / ARCH-INDEX v2.20 / PRD v1.59 / STORY-INDEX v4.21 / HS-INDEX v2.17 / dep-graph v3.12 / epics v2.3.
 - **Resume command:** `/vsdd-factory:next-step`
 - Status at eviction: COMPLETE (D-551) — full narrative preserved verbatim in the Decisions Log D-551 row in STATE.md; superseded by SESSION-WRAP-PAUSE-2026-09-05 checkpoint (pipeline PAUSED, session-wrap, D-552) in STATE.md.
+
+---
+
+## Archived Checkpoint — D-552 SESSION-WRAP-PAUSE-2026-09-05 (evicted at D-553, maint-2026-09-05)
+
+**D-552 SESSION-WRAP-PAUSE-2026-09-05 — factory paused at a clean released state. Wave-86 CLOSED + v0.13.3 RELEASED (main `46ebd6e3` / develop `0b1ea806`); `stories_delivered`=120; backlog empty. No in-flight work; no open worktrees. RESUME: `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.**
+
+- **Date:** 2026-09-05. Position: steady-state, wave-86 CLOSED + v0.13.3 RELEASED. NEXT = await human directive (new wave / maintenance sweep / discovery).
+- **Convergence counter:** N/A — no active convergence loop (wave-86 fully converged 3/3 story + 3/3 gate, released).
+- **In-flight work:** NONE — no stories mid-TDD, no open story PRs awaiting review/CI, no abandoned sub-agent steps. All wave-86 PRs merged (#460 STORY-182, #461 clippy gate-fix, #462 STORY-183, #463 release→main, #464 back-merge→develop). No worktrees.
+- **Pending human decisions / carry-forwards (none blocking):** PG-W84-012 (wire bin/test_lint_cycle_artifact.py + test_compute_input_hash.py into CI bin-selftest); DEP-SOAK-FOLLOWUP (15+ open Dependabot PRs #442-459 + ArcavenAE dtolnay-pin PR #451 + scorecard #449); ROUTE-W74-OBS-2; PR #407 governance; PERF-RERUN-001; DRIFT-TOOLCHAIN-ROLL-CLIPPY; DRIFT-e2e-sibling-harnesses; DRIFT-STORY183-INHERITED-PATTERN-DOC-COMMENTS; DRIFT-docstring-scan; DRIFT-stale-red-scrub; DRIFT-py-surface-outside-bin; STORY-INDEX-IN-INPUTS-CHURN. All tracked; suited to a maintenance sweep.
+- **WIP branch list:** none (all story/release/gate-fix worktrees + branches cleaned up).
+- **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
+- Status at eviction: COMPLETE (D-552) — full narrative preserved verbatim in the Decisions Log D-552 row in STATE.md; superseded by MAINTENANCE-SWEEP maint-2026-09-05 checkpoint (D-553) in STATE.md.

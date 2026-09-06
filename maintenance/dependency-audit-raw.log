@@ -1,103 +1,54 @@
-# maint-2026-07-09 raw scan — develop 716054a
-
-## cargo audit
+=== cargo audit (cargo-audit-audit 0.22.1) ===
+=== rustc: rustc 1.98.1 (48a229cea 2026-09-01) ===
+=== run timestamp: 2026-09-05T23:00:24Z ===
 
     Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
-      Loaded 1159 security advisories (from /Users/zious/.cargo/advisory-db)
+      Loaded 1239 security advisories (from /Users/zious/.cargo/advisory-db)
     Updating crates.io index
-    Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
+    Scanning Cargo.lock for vulnerabilities (175 crate dependencies)
 
-EXIT: 0
+=== cargo audit exit code: 0 ===
 
-## cargo deny check
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:34:6
-   │
-34 │     "0BSD",
-   │      ━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:25:6
-   │
-25 │     "Apache-2.0 WITH LLVM-exception",
-   │      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:26:6
-   │
-26 │     "BSD-2-Clause",
-   │      ━━━━━━━━━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:32:6
-   │
-32 │     "CC0-1.0",
-   │      ━━━━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:28:6
-   │
-28 │     "ISC",
-   │      ━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:33:6
-   │
-33 │     "MPL-2.0",
-   │      ━━━━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:30:6
-   │
-30 │     "Unicode-DFS-2016",
-   │      ━━━━━━━━━━━━━━━━ unmatched license allowance
-
-warning[license-not-encountered]: license was not encountered
-   ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:31:6
-   │
-31 │     "Zlib",
-   │      ━━━━ unmatched license allowance
-
+=== cargo deny check (cargo-deny 0.19.6) ===
 warning[duplicate]: found 2 duplicate entries for crate 'syn'
-    ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
-    │
-135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
-136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
+    ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:133:1
+    │  
+133 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
+134 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
     │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
-    │
+    │  
     ├ syn v1.0.109
       ├── derive-into-owned v0.2.0
       │   └── pcap-file v2.0.0
-      │       └── wirerust v0.11.5
+      │       └── wirerust v0.13.3
       └── nom-derive-impl v0.10.1
           └── nom-derive v0.10.1
               └── tls-parser v0.12.2
-                  └── wirerust v0.11.5 (*)
+                  └── wirerust v0.13.3 (*)
     ├ syn v2.0.117
       ├── clap_derive v4.6.1
       │   └── clap v4.6.1
       │       ├── criterion v0.8.2
-      │       │   └── (dev) wirerust v0.11.5
-      │       └── wirerust v0.11.5 (*)
+      │       │   └── (dev) wirerust v0.13.3
+      │       └── wirerust v0.13.3 (*)
       ├── num_enum_derive v0.7.6
       │   └── num_enum v0.7.6
       │       └── tls-parser v0.12.2
-      │           └── wirerust v0.11.5 (*)
+      │           └── wirerust v0.13.3 (*)
       ├── serde_derive v1.0.228
       │   └── serde v1.0.228
       │       ├── chrono v0.4.45
-      │       │   └── wirerust v0.11.5 (*)
+      │       │   └── wirerust v0.13.3 (*)
       │       ├── ciborium v0.2.2
       │       │   └── criterion v0.8.2 (*)
       │       ├── criterion v0.8.2 (*)
       │       ├── tinytemplate v1.2.1
       │       │   └── criterion v0.8.2 (*)
-      │       └── wirerust v0.11.5 (*)
+      │       └── wirerust v0.13.3 (*)
       ├── thiserror-impl v1.0.69
       │   └── thiserror v1.0.69
       │       └── pcap-file v2.0.0
-      │           └── wirerust v0.11.5 (*)
+      │           └── wirerust v0.13.3 (*)
       ├── wasm-bindgen-macro-support v0.2.117
       │   └── wasm-bindgen-macro v0.2.117
       │       └── wasm-bindgen v0.2.117
@@ -112,7 +63,7 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │           │   │       └── criterion v0.8.2 (*)
       │           │   └── web-time v1.1.0
       │           │       └── indicatif v0.18.6
-      │           │           └── wirerust v0.11.5 (*)
+      │           │           └── wirerust v0.13.3 (*)
       │           ├── plotters v0.3.7 (*)
       │           ├── web-sys v0.3.94 (*)
       │           └── web-time v1.1.0 (*)
@@ -121,20 +72,78 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │       └── iana-time-zone v0.1.65 (*)
       ├── windows-interface v0.59.3
       │   └── windows-core v0.62.2 (*)
-      └── zerocopy-derive v0.8.52
-          └── zerocopy v0.8.52
+      └── zerocopy-derive v0.8.54
+          └── zerocopy v0.8.54
               ├── half v2.7.1
               │   └── ciborium-ll v0.2.2
               │       └── ciborium v0.2.2 (*)
               └── ppv-lite86 v0.2.21
                   └── rand_chacha v0.9.0
                       └── proptest v1.11.0
-                          └── (dev) wirerust v0.11.5 (*)
+                          └── (dev) wirerust v0.13.3 (*)
 
 advisories ok, bans ok, licenses ok, sources ok
 
-EXIT: 0
+=== cargo deny check exit code: 0 ===
 
-## cargo outdated
-
-SKIPPED: cargo-outdated not installed
+=== cargo update --dry-run ===
+    Updating crates.io index
+     Locking 54 packages to latest Rust 1.91 compatible versions
+    Updating aho-corasick v1.1.4 -> v1.1.5
+    Updating android_system_properties v0.1.5 -> v0.1.6
+    Updating anyhow v1.0.103 -> v1.0.104
+    Updating bitflags v2.11.0 -> v2.13.1
+    Updating bstr v1.12.1 -> v1.13.1
+    Updating cc v1.2.58 -> v1.4.5
+    Updating clap v4.6.1 -> v4.6.6
+    Updating clap_builder v4.6.0 -> v4.6.6
+    Updating clap_derive v4.6.1 -> v4.6.4
+    Updating crossbeam-deque v0.8.7 -> v0.8.8
+    Updating crossbeam-epoch v0.9.20 -> v0.9.21
+    Updating crossbeam-utils v0.8.22 -> v0.8.23
+    Updating either v1.16.0 -> v1.18.0
+    Updating fastrand v2.3.0 -> v2.5.0
+    Updating find-msvc-tools v0.1.9 -> v0.1.12
+      Adding futures-core v0.3.34
+      Adding futures-task v0.3.34
+      Adding futures-util v0.3.34
+      Adding getrandom v0.4.3
+    Updating hybrid-array v0.4.13 -> v0.4.14
+    Updating indexmap v2.14.0 -> v2.14.2
+    Updating js-sys v0.3.94 -> v0.3.105
+    Updating libc v0.2.186 -> v0.2.189
+    Updating log v0.4.33 -> v0.4.34
+    Updating owo-colors v4.3.0 -> v4.4.0
+      Adding pin-project-lite v0.2.17
+    Updating portable-atomic v1.13.1 -> v1.15.0
+    Updating proc-macro2 v1.0.106 -> v1.0.107
+    Updating quote v1.0.45 -> v1.0.47
+      Adding r-efi v6.0.0
+    Updating rand v0.8.7 -> v0.8.8
+    Updating regex v1.12.3 -> v1.13.1
+    Updating regex-automata v0.4.14 -> v0.4.18
+    Updating serde v1.0.228 -> v1.0.229
+    Updating serde_core v1.0.228 -> v1.0.229
+    Updating serde_derive v1.0.228 -> v1.0.229
+    Updating serde_json v1.0.150 -> v1.0.151
+    Updating shlex v1.3.0 -> v2.0.1
+      Adding slab v0.4.12
+    Removing syn v2.0.117
+      Adding syn v2.0.119
+      Adding syn v3.0.5
+    Updating toml_edit v0.25.10+spec-1.1.0 -> v0.25.13+spec-1.1.0
+    Updating toml_parser v1.1.2+spec-1.1.0 -> v1.1.3+spec-1.1.0
+    Updating wasip2 v1.0.2+wasi-0.2.9 -> v1.0.4+wasi-0.2.12
+    Updating wasm-bindgen v0.2.117 -> v0.2.128
+    Updating wasm-bindgen-macro v0.2.117 -> v0.2.128
+    Updating wasm-bindgen-macro-support v0.2.117 -> v0.2.128
+    Updating wasm-bindgen-shared v0.2.117 -> v0.2.128
+    Updating web-sys v0.3.94 -> v0.3.105
+    Updating winnow v1.0.1 -> v1.0.4
+    Updating wit-bindgen v0.51.0 -> v0.57.1
+    Updating zerocopy v0.8.54 -> v0.8.56
+    Updating zerocopy-derive v0.8.54 -> v0.8.56
+    Updating zmij v1.0.21 -> v1.0.23
+note: pass `--verbose` to see 1 unchanged dependencies behind latest
+warning: not updating lockfile due to dry run
+cargo update --dry-run exit code: 0

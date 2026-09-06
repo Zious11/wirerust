@@ -1,298 +1,242 @@
 ---
 document_type: maintenance-sweep-output
-sweep: pattern-consistency
-sweep_id: maint-2026-07-08 / Sweep-3
-producer: code-reviewer
-develop_head: b642c0fdabfd6ae9f9ea8d1680b50662c5654e93
-date: 2026-07-08
+sweep: pattern-consistency+spec-coherence
+sweep_id: maint-2026-09-05 / Sweep-3+Sweep-7
+producer: consistency-validator
+develop_head: 0b1ea8064f821e8d1de3378a13ddd5aaf386aa42
+date: 2026-09-05
 ---
 
-# Pattern Consistency Findings — maint-2026-07-08
+# Maintenance Sweep Findings — maint-2026-09-05
 
-Run: **maint-2026-07-08**, Sweep 3.
-Scope: `src/` + `tests/`, codebase at `b642c0f` (develop).
-Clippy result: **CLEAN** (`cargo clippy --all-targets -- -D warnings`, 0 warnings).
+Run: **maint-2026-09-05**, Sweeps 3 (Pattern Consistency) + 7 (Spec Coherence).
+Scope A: `src/` (+ non-test call sites), codebase at `0b1ea806` (develop, v0.13.3).
+Scope B: `.factory/` worktree (factory-artifacts branch, currently `cf6a114b`), index-first.
+Analysis only — no source artifacts modified, nothing committed.
+
+Baseline gates confirmed clean: `cargo clippy --all-targets -- -D warnings` = 0 warnings;
+`cargo fmt --check` = clean.
+
+This file replaces the stale `maint-2026-07-08` run (develop `b642c0f`) in full.
 
 ---
 
 ## Summary Table
 
-| ID | Description | Severity | Classification |
-|----|-------------|----------|----------------|
-| PF-001 | Counter discipline: plain `+=` on u64/u32 diagnostic counters across all analyzer modules | MEDIUM | MANUAL |
-| PF-002 | dnp3.rs free-function naming: 4 functions lack the `dnp3_` module prefix | LOW | FIXABLE-AUTO |
-| PF-003 | enip.rs `check_t0814` lacks `enip_` module prefix used by peer functions | LOW | MANUAL |
-| PF-004 | Trait gap: `Dnp3Analyzer` and `EnipAnalyzer` do not implement `StreamHandler`/`StreamAnalyzer` | LOW | ARCH-REVIEW |
-| PF-005 | Error handling style: all analyzers consistent — no finding | — | INFO (CLEAN) |
-| PF-006 | Clippy gate | — | INFO (CLEAN) |
-| PF-007 | PG-HELP-PROVENANCE-CLI-DOC-001 (factory IDs in clap `///` doc-comments) | — | INFO (CLEAN) |
-| PF-008 | Wave-71 CR-001 (MINOR + 3 NITs): no standalone gate-level document; per-story NITs verified present | LOW | INFO |
+| ID | Section | Description | Classification |
+|----|---------|-------------|----------------|
+| PF-A-001 | A | `reporter/json.rs:81` bare `.unwrap()` vs `reporter/csv.rs` `.expect("…cannot fail")` convention | MANUAL-FIX (S) |
+| PF-A-002 | A | `reassembly/mod.rs:299,318,372,513,620` bare `.unwrap()` vs `enip.rs:798,996` justified `.expect()` convention | MANUAL-FIX (S) |
+| PF-A-003 | A | `iec104.rs:101` — `Iec104ParseError` enum defined, never returned (dead skeleton), diverges from repo-wide `Option<T>` parse-error convention | MANUAL-FIX (S) |
+| PF-A-004 | A | `ts` (dnp3.rs:397, iec104.rs:1260) vs `timestamp` (handler.rs trait family) parameter-naming inconsistency across analyzer families | MANUAL-FIX (S) / NIT |
+| PF-A-005 | A | `-W clippy::pedantic -W clippy::nursery` surfaces 2119 warnings beyond the `-D warnings` gate; dominant categories judgment-requiring: `missing_const_for_fn` (110), `must_use_candidate`+`must_use` (91+37), `struct_field_names` (76), `cast_possible_truncation` (18+10+7+6+6+5, binary-parser safety-relevant), `redundant_clone` (14, Family-B `.clone()` sites) | MANUAL-FIX (M) |
+| PF-A-006 | A | Subset of the same pedantic sweep is mechanically `cargo clippy --fix`-able if opted in: `cast_lossless` (~69), `uninlined_format_args` (35), `redundant_closure` (35) — not currently gated, no action required unless opted in | AUTO-FIXABLE |
+| PF-A-007 | A | Error-handling strategy overall: `Option<T>` convention for fallible parse paths (dnp3/enip/modbus/tls/http/iec104), `anyhow::Result`+typed error enums for I/O (reader.rs). No production `todo!()`/`unimplemented!()`; all remaining panic-family sites are `#[cfg(test)]`/`#[cfg(kani)]` or size-guarded infallible casts. | CLEAN |
+| PF-A-008 | A | Naming conventions old vs new modules: uniform `<Proto>Analyzer`/`<Proto>FlowState` trio + `on_data`/`on_flow_close`/`summarize` dispatch surface across tls/modbus/http/dnp3/enip/iec104; "analyzer" terminology consistent throughout | CLEAN |
+| PF-A-009 | A | Two documented dispatch families — `StreamHandler`/`StreamAnalyzer` trait family (http/tls/modbus, ADR-0001/0002/0011) vs inherent-method family (dnp3/enip/iec104, ADR-0005/0007/0010/0013) — split is explicitly specified in ADR-0005 lines 90-104, not an undocumented drift | CLEAN (not a violation) |
+| PF-A-010 | A | IEC-104 architecture parity vs dnp3/enip: same struct trio, same inherent `on_data`/`on_flow_close` signatures, same single-file module layout, same `#[cfg(kani)] mod kani_proofs` placement, same paired `*_analyzer_tests.rs`/`*_e2e_real_pcaps_tests.rs` test organization | CLEAN |
+| PF-A-011 | A | Import ordering vs `rustfmt.toml`: `cargo fmt --check` clean; grouping convention (std → external → crate::, alphabetized) applied uniformly old vs new modules (verified dnp3.rs, iec104.rs, enip.rs, tls.rs, http.rs, modbus.rs, reassembly/mod.rs, dispatcher.rs) | CLEAN |
+| SC-001 | B | STATE.md Drift Items `PG-W84-LOCAL-BATCH`, `PG-W85-003`, `PG-W85-005` still read "pending human story-approval gate" / cite STORY-182 v2.12 & STORY-183 v2.13 as not-yet-delivered — stale against current truth: D-546 (gate PASSED 2026-09-04), D-548 (STORY-182 DELIVERED, PR #460), D-549 (STORY-183 DELIVERED, PR #462), D-550 (WAVE-86 GATE CLOSED), D-551 (v0.13.3 RELEASED). 3 rows need their "Summary"/"Target" text updated to reflect delivery + release. | SPEC-DRIFT (effort S) |
+| SC-002 | B | Index version-claim verification: BC-INDEX (v2.37 ✓), VP-INDEX (v2.47 ✓), ARCH-INDEX (v2.20 ✓), STORY-INDEX (v4.23 ✓), epics.md (v2.3 ✓), stories/dependency-graph.md (v3.12 ✓) — all 6 claimed versions match actual frontmatter exactly. (Note: `specs/architecture/dependency-graph.md` is a separate architecture-section artifact at v1.6 — distinct scope, not the "dep-graph" referenced by the v3.12 claim, no conflict.) | CLEAN |
+| SC-003 | B | VP-INDEX self-consistency: `total_vps: 47` = kani(16)+proptest(22)+fuzz(3)+integration_unit(6) = 47; also = p0(9)+p1(32)+test_sufficient(6) = 47. Arithmetic holds both ways. | CLEAN |
+| SC-004 | B | BC coverage completeness: epics.md v2.3 `total_bcs: 380` (active) reconciles exactly against BC-INDEX v2.37's canonical derivation ("Total BCs on disk: 381. Active: 380.") — 0 unassigned, 0 double-assigned, 0 residual gap (per D-545/D-546 reconciliation). | CLEAN |
+| SC-005 | B | L1→L4 chain integrity: no `product-brief.md` exists at any path, but this is a documented brownfield-project exception — `specs/domain/domain-spec.md` frontmatter explicitly states no L1 brief exists and traces instead to the brownfield ingestion corpus (`wirerust-pass-8-deep-synthesis.md`); BC-INDEX correctly traces to `prd.md`; `specs/domain-spec/{assumptions,risk-register}.md` `traces_to: ../domain/domain-spec.md` resolves correctly. | CLEAN (documented exception) |
+| SC-006 | B | VP↔BC alignment spot check: VP-047 `source_bc` correctly extended with BC-2.19.029/030 (STORY-180 delivery, CV-008 RESOLVED, v2.47 modified-log) — new IEC-104 timed-command BCs propagated to VP-INDEX without drift. | CLEAN |
+| SC-007 | B | Remaining open Drift Items (`STORY-INDEX-IN-INPUTS-CHURN`, `DRIFT-docstring-scan`, `DRIFT-e2e-sibling-harnesses`, `DRIFT-stale-red-scrub`, `DRIFT-py-surface-outside-bin`, `DRIFT-TOOLCHAIN-ROLL-CLIPPY`, `DRIFT-STORY183-INHERITED-PATTERN-DOC-COMMENTS`) verified still accurately reflect current truth — no drift-of-the-drift-item found beyond SC-001. | CLEAN (verified accurate) |
+
+**Category counts (both sections combined):**
+
+| Classification | Count |
+|---|---|
+| AUTO-FIXABLE | 1 |
+| MANUAL-FIX | 5 |
+| ARCH-VIOLATION | 0 |
+| SPEC-DRIFT | 1 |
+| CLEAN | 11 |
+| **Total findings** | **18** |
+
+**By section:** Part A (Pattern Consistency) = 11 findings (1 AUTO-FIXABLE, 5 MANUAL-FIX, 0 ARCH-VIOLATION, 5 CLEAN). Part B (Spec Coherence) = 7 findings (1 SPEC-DRIFT, 6 CLEAN).
 
 ---
 
-## PF-001 — Counter Discipline (MANUAL)
+# Part A — Pattern Consistency
 
-**Description:**
-The house style established by SEC-003/SEC-004/SEC-007 and the open item REBIND-COUNT-SATURATING-001
-is `saturating_add` for all diagnostic counter increments. This style is consistently applied in
-`src/dispatcher.rs`, `src/reader.rs`, `src/reassembly/flow.rs`, and `src/reassembly/segment.rs`.
-However, all six protocol analyzer modules and `src/reassembly/lifecycle.rs` use plain `+=`.
+## PF-A-001 — Bare `.unwrap()` vs justified `.expect()` in reporters (MANUAL-FIX, S)
 
-The known open item REBIND-COUNT-SATURATING-001 calls out only `src/analyzer/arp.rs:856`
-(`entry.rebind_count`, type `u32`). This scan enumerates all additional sites.
+**Evidence:** `reporter/json.rs:81` — `serde_json::to_string_pretty(&output).unwrap()` (bare).
+`reporter/csv.rs:74,104,109,110` — same infallible-serialization class, but written as
+`.expect("… cannot fail")`.
 
-**Sites by file (plain `+=` on diagnostic counters, excluding cursor/index variables):**
+**Finding:** Both are genuinely infallible (in-memory buffer serialization), but the two reporter
+modules use opposite conventions for documenting *why*. `csv.rs`'s justified-`.expect()` style is
+the better pattern (self-documenting for future readers/Kani proof-writers).
 
-### `src/analyzer/dns.rs` — 2 sites
+**Remediation:** Change `json.rs:81` to `.expect("serde_json serialization of internal struct cannot fail")` to match `csv.rs`.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 72 | `self.query_count += 1` | `u64` |
-| 74 | `self.response_count += 1` | `u64` |
+## PF-A-002 — Bare `.unwrap()` vs justified `.expect()` after `HashMap` insert (MANUAL-FIX, S)
 
-### `src/analyzer/arp.rs` — 5 sites (line 856 is the known REBIND-COUNT-SATURATING-001 item)
+**Evidence:** `reassembly/mod.rs:299,318,372,513,620` — `self.flows.get_mut(key).unwrap()` (bare, all
+provably safe — key was just inserted). `enip.rs:798` — `.expect("just inserted")`; `enip.rs:996` —
+`.expect("flow exists: inserted above and not removed")`.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 467 | `self.frames_analyzed += 1` | `u64` |
-| 469 | `self.request_count += 1` | `u64` |
-| 470 | `self.reply_count += 1` | `u64` |
-| 471 | `self.other_opcode_count += 1` | `u64` |
-| 856 | `entry.rebind_count += 1` | `u32` (REBIND-COUNT-SATURATING-001) |
+**Finding:** Same "insert-then-get_mut" invariant-guard pattern, inconsistent justification style
+between the shared reassembly module and the enip analyzer.
 
-### `src/analyzer/tls.rs` — 6 sites
+**Remediation:** Add `.expect("just inserted")`-style messages to the 5 `reassembly/mod.rs` sites.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 486 | `self.handshakes_seen += 1` | `u64` |
-| 501 | `self.parse_errors += 1` | `u64` |
-| 710 | `self.parse_errors += 1` | `u64` |
-| 951 | `self.parse_errors += 1` | `u64` |
-| 1009 | `self.parse_errors += 1` | `u64` |
-| 1010 | `self.truncated_records += 1` | `u64` |
+## PF-A-003 — Dead `Iec104ParseError` enum skeleton (MANUAL-FIX, S)
 
-### `src/analyzer/enip.rs` — 4 sites
+**Evidence:** `iec104.rs:101` declares `pub enum Iec104ParseError` (single `Incomplete` variant,
+`pub` only so `dead_code` doesn't fire) but it is never returned — `parse_apci_header` (iec104.rs:461)
+and `parse_asdu` (iec104.rs:645) both use the repo-wide `Option<T>` convention like every other
+protocol analyzer.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 868 | `flow.malformed_in_window += 1` | `u64` |
-| 894 | `flow.malformed_in_window += 1` | `u64` |
-| 957 | `flow.malformed_in_window += 1` | `u64` |
-| 1346 | `flow.write_count_in_window += 1` | `u64` |
+**Finding:** This is the one BC-19/IEC-104 divergence from an otherwise clean, uniform
+`Option<T>`-across-all-analyzers error convention. Tracked for STORY-168 per the code comment.
 
-### `src/analyzer/dnp3.rs` — 25 sites
+**Remediation:** Either wire `Iec104ParseError` into the two parse functions' return types, or
+remove the unused skeleton until STORY-168 actually needs it.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 496 | `flow.parse_errors += 1` | `u64` |
-| 497 | `flow.malformed_in_window += 1` | `u64` |
-| 562 | `flow.parse_errors += 1` | `u64` |
-| 563 | `flow.malformed_in_window += 1` | `u64` |
-| 595 | `flow.parse_errors += 1` | `u64` |
-| 596 | `flow.malformed_in_window += 1` | `u64` |
-| 661 | `flow.parse_errors += 1` | `u64` |
-| 662 | `flow.malformed_in_window += 1` | `u64` |
-| 703 | `flow.parse_errors += 1` | `u64` |
-| 704 | `flow.malformed_in_window += 1` | `u64` |
-| 750 | `flow.parse_errors += 1` | `u64` |
-| 751 | `flow.malformed_in_window += 1` | `u64` |
-| 766 | `flow.frame_count += 1` | `u64` |
-| 786 | `self.master_addrs_dropped += 1` | `u64` |
-| 1020 | `flow.direct_operate_count += 1` | `u32` |
-| 1063 | `*dropped_findings += 1` | `u64` (via `&mut u64` param) |
-| 1122 | `*dropped_findings += 1` | `u64` |
-| 1127 | `flow.restart_event_count += 1` | `u64` |
-| 1173 | `*dropped_findings += 1` | `u64` |
-| 1223 | `flow.block_event_count += 1` | `u64` |
-| 1258 | `*dropped_findings += 1` | `u64` |
-| 1390 | `*dropped_findings += 1` | `u64` |
-| 1452 | `*dropped_findings += 1` | `u64` |
-| 1490 | `*dropped_findings += 1` | `u64` |
-| 1616 | `*dropped_findings += 1` | `u64` |
-| 1681 | `*dropped_findings += 1` | `u64` |
-| 1720 | `*dropped_findings += 1` | `u64` |
-| 1792 | `*dropped_findings += 1` | `u64` |
+## PF-A-004 — `ts` vs `timestamp` parameter naming (MANUAL-FIX, S / NIT)
 
-### `src/reassembly/lifecycle.rs` — 3 sites
+**Evidence:** `dnp3.rs:397`, `iec104.rs:1260` name the timestamp parameter `ts`; the
+`StreamHandler` trait family (`handler.rs`) names the equivalent parameter `timestamp`.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 166 | `self.stats.evictions += 1` | `u64` |
-| 183 | `self.stats.dropped_findings += 1` | `u64` |
-| 213 | `self.stats.dropped_findings += 1` | `u64` |
+**Finding:** Cosmetic-only naming drift between the inherent-dispatch family (binary-ICS
+protocols) and the trait-dispatch family. Does not affect behavior.
 
-### `src/dispatcher.rs` — 1 site
+**Remediation:** Low priority; align on `timestamp` at a convenient future touch of these files.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 477 | `self.unclassified_flows += 1` | `u64` |
+## PF-A-005 — Clippy pedantic/nursery lint drift beyond `-D warnings` (MANUAL-FIX, M)
 
-Note: The rest of `dispatcher.rs` (lines 371, 494, 715) already uses `saturating_add`. The line 477
-site is the lone outlier in an otherwise compliant file. The surrounding comment explicitly preserves
-the gating logic — the plain `+=` is not accidentally placed but was written before the saturating
-discipline was enforced.
+**Evidence:** `cargo clippy --all-targets -W clippy::pedantic -W clippy::nursery` → 2119 warnings.
+Representative non-test, judgment-requiring categories:
+- `missing_const_for_fn` (nursery, 110) — e.g. `dnp3.rs:1292,1947,1973,1993,2033,2050`
+- `must_use_candidate` + fn-level `must_use` (pedantic, 91+37)
+- `struct_field_names` repetition (pedantic, 76)
+- `cast_possible_truncation` (pedantic, 18+10+7+6+6+5) — e.g. `reader.rs:872`, `arp.rs:2312,4314,4467,4557` — safety-relevant in a binary-parser codebase, worth a targeted pass
+- `redundant_clone` (nursery, 14) — e.g. `tls.rs:1512` and the Family-B `FlowKey`-by-value clone
+  sites noted in PF-A-010
 
-**Also in `src/main.rs`:**
+**Finding:** The current `-D warnings` gate is intentionally scoped to default clippy lints (per
+CLAUDE.md). `doc_markdown` alone accounts for 1412 of the 2119 hits (missing code-span backticks in
+doc comments) — purely cosmetic noise, not worth gating on. `cast_possible_truncation` and
+`redundant_clone` are the two categories with genuine safety/efficiency value for this codebase.
 
-| Line | Expression | Field type |
-|------|-----------|------------|
-| 442 | `arp_analyzer.malformed_frames += 1` | `u64` (`ArpAnalyzer::malformed_frames`) |
-| 451 | `total_decode_errors += 1` | local `u64` var |
-| 837 | `total_decode_errors += 1` | local `u64` var |
+**Remediation:** Do **not** globally enable `clippy::pedantic`/`clippy::nursery` (noise-to-signal
+too low). Open a dedicated MANUAL-FIX PR that opts in narrowly to `clippy::cast_possible_truncation`
+and `clippy::redundant_clone` only, triaging each hit as either a genuine bounds issue (`try_from`/
+guard) or an intentional `#[allow(...)]` with a one-line rationale.
 
-**Total: ~48 plain `+=` sites on diagnostic counters** (excluding cursor/index usize vars and
-HashMap entry value increments).
+## PF-A-006 — Auto-fixable subset of the pedantic sweep (AUTO-FIXABLE)
 
-**Classification:** MANUAL — The change is mechanical (each `x += 1` → `x = x.saturating_add(1)`)
-but the scope (6 files, ~48 sites) warrants a dedicated PR with full test run. Some window counters
-(`malformed_in_window`, `write_count_in_window`) are reset per detection window; saturating semantics
-are still correct there (capped at u64::MAX rather than silently wrapping). No behavioral change
-expected in practice.
+**Evidence:** Within the same pedantic sweep: `cast_lossless` ("use `From`", ~69 hits across 5
+size classes), `uninlined_format_args` (35), `redundant_closure` (35, e.g. `http.rs:622`,
+`tls.rs:1039`, `decoder.rs:319`, `reassembly/flow.rs:163,173`, `reassembly/mod.rs:796`).
+
+**Finding:** These three categories are mechanically resolvable via `cargo clippy --fix
+--all-targets -- -W clippy::cast_lossless -W clippy::uninlined_format_args -W
+clippy::redundant_closure` with no manual judgment needed. No action required unless/until these
+lints are opted into the gate — flagged here purely as "if you do enable them, these three are
+free."
+
+## PF-A-007 through PF-A-011 — CLEAN
+
+- **PF-A-007 (error-handling overall):** `Option<T>` convention holds uniformly across
+  dnp3/enip/modbus/tls/http/iec104 parse paths; `anyhow::{Context,Result,anyhow}` + typed
+  `EpbDecodeError`/`ShbDecodeError` enums for pcapng reader I/O (`reader.rs:423,635`). No
+  production `todo!()`/`unimplemented!()` (the 2 grep hits at `tls.rs:1362`, `enip.rs:737` are in
+  comments). All panic-family call sites outside PF-A-001/002/003 are either `#[cfg(test)]`,
+  `#[cfg(kani)] mod kani_proofs`, or size-guarded infallible array-conversion casts
+  (`decoder.rs:429-435,505,536`; `main.rs:815,1294,1296`).
+- **PF-A-008 (naming conventions):** Uniform `<Proto>Analyzer`/`<Proto>FlowState` struct-trio +
+  `on_data`/`on_flow_close`/`summarize` dispatch surface across every stream-based analyzer;
+  packet-based `DnsAnalyzer`/`ArpAnalyzer` correctly drop `FlowState` (stateless/L2, by design).
+  "Analyzer" terminology used consistently; no stray "handler"/"processor"/"dissector" naming on
+  structs.
+- **PF-A-009 (two dispatch families, not a violation):** The `StreamHandler`/`StreamAnalyzer`
+  trait family (http/tls/modbus) vs the inherent-`on_data` family (dnp3/enip/iec104) split is
+  explicitly documented in ADR-0005 lines 90-104 and referenced again in ADR-0007/0010/0013. Not
+  undocumented drift.
+- **PF-A-010 (IEC-104 architecture parity):** iec104.rs mirrors dnp3.rs/enip.rs exactly — same
+  struct trio, same inherent `on_data`/`on_flow_close` signatures (dispatcher call sites
+  `dispatcher.rs:451,461,468,503,511,519`), same single-file module layout, same
+  `#[cfg(kani)] mod kani_proofs` placement (`iec104.rs:1553`), same paired
+  `iec104_analyzer_tests.rs`/`iec104_e2e_real_pcaps_tests.rs` test organization mirroring the enip
+  pair. One non-blocking architect note: by-value `FlowKey` in Family B forces a per-PDU
+  `.clone()` (clippy::pedantic `needless_pass_by_value` at `dnp3.rs:397`, `enip.rs:693,1607`,
+  `iec104.rs:1536`) — a documented tradeoff, folded into PF-A-005.
+- **PF-A-011 (import ordering):** `cargo fmt --check` clean; `rustfmt.toml` pins only
+  `edition=2024, max_width=100, use_field_init_shorthand, use_try_shorthand` (no
+  `group_imports`/`imports_granularity`, both nightly-unstable), so grouping is convention-only —
+  applied uniformly (std → external → `crate::`, alphabetized within groups) across old and new
+  modules alike (spot-checked `dnp3.rs:28-33`, `iec104.rs:47-53`, `enip.rs:202-207`, `tls.rs:16-31`,
+  `http.rs:14-21`, `modbus.rs:19-24`, `reassembly/mod.rs:44-55`, `dispatcher.rs:32-41`).
 
 ---
 
-## PF-002 — dnp3.rs Free-Function Naming Inconsistency (FIXABLE-AUTO)
+# Part B — Spec Coherence
 
-**Description:**
-`src/analyzer/dnp3.rs` has two groups of public free functions. Four carry a `dnp3_` module prefix;
-four do not:
+## SC-001 — Stale STATE.md Drift Item rows (SPEC-DRIFT, effort S)
 
-| Function | Has `dnp3_` prefix? |
-|----------|-------------------|
-| `parse_dnp3_dl_header` | Yes |
-| `is_valid_dnp3_frame_header` | Yes |
-| `classify_dnp3_fc` | Yes |
-| `compute_dnp3_frame_len` | Yes |
-| `transport_is_fir` | **No** |
-| `has_user_data` | **No** |
-| `is_broadcast_destination` | **No** |
-| `is_master_frame` | **No** |
+**Evidence:** `.factory/STATE.md` Drift Items table, rows `PG-W84-LOCAL-BATCH`, `PG-W85-003`,
+`PG-W85-005` — all three still read "**wave-86 story adversarial CONVERGED 3/3 (D-544, passes
+25/26/27); STORY-183 v2.13; pending human story-approval gate.**" and cite STORY-182 v2.12 /
+STORY-183 v2.13 as awaiting the story-approval gate.
 
-The un-prefixed names are ambiguous in isolation (`has_user_data` — which protocol? which field?)
-and break the module-prefix convention the file otherwise follows. The four functions are defined
-at lines 2052, 2065, 2085, 2102 respectively.
+**Current truth (STATE.md Decisions Log, same file):**
+- D-546 (2026-09-04): WAVE-86 HUMAN STORY-APPROVAL GATE PASSED
+- D-548 (2026-09-05): STORY-182 DELIVERED (PR #460, `35ffa135`)
+- D-549 (2026-09-05): STORY-183 DELIVERED (PR #462, `b273af21`)
+- D-550 (2026-09-05): WAVE-86 GATE CLOSED + S-7.02 CYCLE-CLOSE COMPLETE
+- D-551 (2026-09-05): v0.13.3 RELEASED (main `46ebd6e3`, back-merged to develop `0b1ea806`)
 
-**Classification:** FIXABLE-AUTO — rename to `dnp3_transport_is_fir`, `dnp3_has_user_data`,
-`dnp3_is_broadcast_destination`, `dnp3_is_master_frame`; update all call sites in the same file
-and in any tests. Requires a mechanical PR.
+**Finding:** These 3 Drift Item rows were not updated as the wave progressed from
+gate-approval → delivery → gate-close → release, even though 5 subsequent Decisions Log entries
+supersede their "pending" language. This is exactly the class of self-contradicting Drift Item row
+that D-544/D-545 previously caught and fixed for `PG-W84-LOCAL-BATCH`/`PG-W85-003`/`PG-W85-005`'s
+predecessor state — it has recurred one delivery cycle later.
 
----
+**Remediation (spec-steward/state-manager):** Update all 3 rows' "Summary" and "Target" columns to
+state STORY-182/183 DELIVERED, wave-86 gate CLOSED, and v0.13.3 RELEASED; mark
+`RESOLVED — archive at next compact` per the row style used for `DRIFT-BACKMERGE-SQUASH-001` and
+similar closed items.
 
-## PF-003 — enip.rs `check_t0814` Naming (MANUAL)
+## SC-002 through SC-007 — CLEAN
 
-**Description:**
-`src/analyzer/enip.rs:447` exports `pub fn check_t0814(...)`. All other public free functions
-in the same file use the `enip_` prefix: `parse_enip_header`, `classify_enip_command`,
-`is_valid_enip_frame`. The T0814 suffix is the MITRE ATT&CK for ICS threat-tag reference and
-is domain-specific, but the missing prefix makes the function opaque when read without module
-context.
-
-**Classification:** MANUAL — `check_t0814` may be intentionally named for the threat-tag
-reference (paralleling how Modbus uses the same pattern). Evaluate whether `enip_check_t0814`
-or `check_enip_t0814` better fits the domain convention before renaming. No auto-rename.
-
----
-
-## PF-004 — Trait Implementation Gap: EnipAnalyzer, Dnp3Analyzer (ARCH-REVIEW)
-
-**Description:**
-The stream-protocol trait hierarchy has a structural split:
-
-| Module | Implements `StreamHandler` | Implements `StreamAnalyzer` |
-|--------|--------------------------|----------------------------|
-| `HttpAnalyzer` | Yes | Yes |
-| `ModbusAnalyzer` | Yes | Yes |
-| `TlsAnalyzer` | Yes | Yes |
-| `Dnp3Analyzer` | **No** | **No** |
-| `EnipAnalyzer` | **No** | **No** |
-
-`Dnp3Analyzer` and `EnipAnalyzer` expose `on_data`, `on_flow_close`, and `summarize` as
-bare `impl` methods. The `StreamDispatcher` holds them as concrete `Option<Dnp3Analyzer>`
-and `Option<EnipAnalyzer>` fields accessed through typed accessor methods
-(`dnp3_analyzer()`, `take_dnp3_analyzer()`, `enip_analyzer()`, `take_enip_analyzer()`),
-rather than as `dyn StreamAnalyzer` trait objects.
-
-This is an intentional structural choice recorded in ADR-007 and ADR-010 (the concrete-field
-dispatch pattern). It is not a bug. It does mean the two newer analyzers cannot be used
-polymorphically alongside the older three, and adding a third concrete analyzer would require
-additional dispatcher fields and accessor methods rather than pushing a new item into a
-`Vec<Box<dyn StreamAnalyzer>>`.
-
-**Classification:** ARCH-REVIEW — document the decision boundary explicitly. If the
-factory ever needs 4+ ICS protocol analyzers with the same dispatch pattern, re-evaluate
-whether a unified trait-object approach is cheaper than N concrete fields. No code change
-required now; flag for the next ADR revision.
+- **SC-002 (index version-claim verification):** BC-INDEX `version: "2.37"` ✓, VP-INDEX
+  `version: "2.47"` ✓, ARCH-INDEX `version: "2.20"` ✓, STORY-INDEX `version: "4.23"` ✓, epics.md
+  `version: "2.3"` ✓, `stories/dependency-graph.md` `version: "3.12"` ✓ — all 6 claimed versions
+  match actual frontmatter exactly, zero stale-index-version-claims. (`specs/architecture/dependency-graph.md`
+  is a distinct architecture-section artifact at `version: "1.6"` — different scope, not in
+  conflict with the stories-side dep-graph claim.)
+- **SC-003 (VP↔BC / VP-INDEX self-consistency):** `total_vps: 47` = kani(16)+proptest(22)+fuzz(3)+
+  integration_unit(6) = 47, and = p0(9)+p1(32)+test_sufficient(6) = 47. Both arithmetic checks pass.
+- **SC-004 (BC coverage completeness):** epics.md v2.3 `total_bcs: 380` (active) reconciles exactly
+  against BC-INDEX v2.37's canonical derivation line ("Total BCs on disk: 381. Active: 380.") — 0
+  unassigned, 0 double-assigned, 0 residual gap, per the D-545/D-546 reconciliation burst.
+- **SC-005 (L1→L4 chain integrity):** No `product-brief.md` exists anywhere under `.factory/specs/`
+  — but this is a documented brownfield-project exception: `specs/domain/domain-spec.md`
+  frontmatter explicitly states no L1 brief exists for this project and traces instead to the
+  brownfield ingestion corpus (`traces_to: .factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`).
+  BC-INDEX correctly traces to `prd.md`; `specs/domain-spec/{assumptions,risk-register}.md`
+  `traces_to: ../domain/domain-spec.md` resolves correctly to `specs/domain/domain-spec.md`. Not a
+  defect.
+- **SC-006 (VP↔BC spot check / Story→BC mapping):** VP-047's `source_bc` set was correctly extended
+  with BC-2.19.029/030 in the v2.47 modified-log entry (CV-008 RESOLVED, tied to STORY-180 delivery
+  D-507) — new IEC-104 timed-command BCs propagated into the VP catalog without drift.
+- **SC-007 (remaining open Drift Items, verified still accurate):** `STORY-INDEX-IN-INPUTS-CHURN`,
+  `DRIFT-docstring-scan`, `DRIFT-e2e-sibling-harnesses`, `DRIFT-stale-red-scrub`,
+  `DRIFT-py-surface-outside-bin`, `DRIFT-TOOLCHAIN-ROLL-CLIPPY`,
+  `DRIFT-STORY183-INHERITED-PATTERN-DOC-COMMENTS` — all still open and their row text still
+  accurately reflects current truth; no drift-of-the-drift-item found beyond SC-001.
 
 ---
 
-## PF-005 — Error Handling Style (INFO — CLEAN)
+## Scope Note
 
-All seven protocol analyzer modules (`dns`, `arp`, `http`, `modbus`, `tls`, `enip`, `dnp3`) follow
-an identical error-handling pattern:
-
-- Trait methods (`analyze`, `on_data`, `on_flow_close`) return `Vec<Finding>` or `()` — no `Result`.
-- Protocol parse errors are handled inline: increment an error counter, continue or return empty.
-- No `anyhow`, `thiserror`, `bail!`, or `ensure!` in any analyzer code path.
-- `unwrap_or(default)` / `unwrap_or_else(...)` with safe defaults in production paths.
-- `.expect("invariant message")` is used in test code (inside `#[cfg(test)]` modules) where
-  panicking on assertion failure is correct behavior.
-
-This pattern is consistent across ALL modules, including the newest (`enip`, `dnp3`). No drift found.
-
----
-
-## PF-006 — Clippy (INFO — CLEAN)
-
-`cargo clippy --all-targets -- -D warnings` at `b642c0f`: **0 warnings, 0 errors.**
-
----
-
-## PF-007 — PG-HELP-PROVENANCE-CLI-DOC-001 (INFO — CLEAN)
-
-Grep for `///` doc-comment lines in `src/cli.rs` containing `BC-`, `VP-`, `SS-`, `ADR-`, `STORY-`:
-**0 matches.**
-
-All factory ID references in `src/` are in `//` inline comments (not visible in `--help` output),
-not in `///` doc-comments on clap-attributed fields. Specifically:
-- `src/cli.rs` — `//` references to BC-2.11.028, BC-2.14.023/024, BC-2.15.010/017/021,
-  BC-2.16.011/012/013, BC-2.17.020/023/026 are internal traceability anchors on struct fields,
-  not doc-comment text.
-- `src/decoder.rs`, `src/dispatcher.rs`, `src/protocols.rs` — `///` doc-comments on non-clap
-  types/functions do reference BC-/VP-/ADR- IDs, which is acceptable: they are internal API
-  documentation, not help text.
-
-PG-HELP-PROVENANCE-CLI-DOC-001: **no violation found.**
-
----
-
-## PF-008 — Wave-71 CR-001 (MINOR + 3 NITs) (INFO)
-
-**Finding source:** gate-summary.md Dimension (c): "Code Review | APPROVE | CR-001 MINOR + 3 NITs;
-all routed to maintenance/debt; 0 BLOCKING."
-
-**Gate-level code review artifact:** No standalone document was written to
-`cycles/wave-71/wave-gate/`. The directory contains only `gate-summary.md` and `demo-evidence/`.
-The 1 MINOR finding is not described in any stored file. This is a gap in the factory artifact
-protocol (wave-gate code review results should be persisted in a dedicated file).
-
-**3 NITs — verification (all still present):**
-
-The per-story PR reviews for wave-71 contain the following NITs (the gate reviewer's "3 NITs"
-appears to correspond to a subset of these four):
-
-| Source file | Location | NIT description | Still present? |
-|------------|----------|-----------------|----------------|
-| `code-delivery/STORY-156/pr-review.md:127` | `src/analyzer/arp.rs` `mod bc_2_16_016` | AC-004 test reproduces the 10,001-iteration D1 setup from AC-003 sibling; documented standalone justification. Consider shared fixture helper if a third pin lands. | **Yes** — test exists at `src/analyzer/arp.rs`, module `bc_2_16_016`. No action required. |
-| `code-delivery/STORY-156/pr-review.md:128` | `docs/demo-evidence/STORY-156/` | Error-path demo requires manual code injection/restore protocol. Acceptable as-is; protocol documented in `evidence-report.md`. | **Yes** — demo evidence committed; accepted as-is. No source change needed. |
-| `code-delivery/STORY-157/pr-review.md:70` | `bin/compute-input-hash` | `_INPUTS_INLINE_EMPTY_RE` does not match `inputs: [] # trailing comment`. Not in AC set; unusual in practice. | **Yes** — regex still present in `bin/compute-input-hash`. Not in AC scope; acceptable. |
-| `code-delivery/STORY-157/pr-review.md:71` | `bin/compute-input-hash` | `path.find(" #")` treats first ` #` as comment start; a path containing literal ` #` would be mis-truncated. YAML inline-comment convention; no such paths exist. | **Yes** — `path.find(" #")` still present. Acceptable per YAML convention. |
-
-**1 MINOR — verification:**
-The MINOR finding has no stored text. It was not captured in any per-story PR review (all three
-wave-71 PR reviews concluded with 0 MINOR or BLOCKING findings at the individual-story level).
-The MINOR may have originated in the gate-level aggregate code review pass, which was not
-written to disk.
-
-**Recommended follow-up:** Amend the factory artifact protocol to require that gate-level code
-review output be written to `cycles/wave-NNN/wave-gate/code-review.md` before the gate is
-closed (DF-VALIDATION-001-gated before filing as an issue; flag for STORY-158 or next sweep).
+This sweep was **index-first and sample-based** per the run instructions (INDEX files loaded;
+individual BC/VP/story detail files opened only where index inspection surfaced a question). It is
+not a full 80-criterion consistency-validator pass — ARCH-INDEX structural completeness (Criterion
+4/10) and exhaustive Story→BC reverse-coverage (Criteria 5, 27, 34) were spot-checked, not
+exhaustively walked. No dangling index→file references were found in the files sampled.
