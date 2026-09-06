@@ -82,6 +82,7 @@ Commands:
   analyze    Analyze PCAP files for threats and anomalies
   summary    Generate a triage summary of PCAP files
   protocols  List the protocol coverage catalog
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
       --no-color                           Disable colored output
