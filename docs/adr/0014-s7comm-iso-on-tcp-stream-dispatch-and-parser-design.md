@@ -421,9 +421,10 @@ T0836 (Modify Parameter, `Write Var 0x05` → `0x84`/`0x83`), T0858 (Change Oper
 restart PI-service string), T0888 (Remote System Information Discovery, Userdata
 `0x07`/CPU-group `0x04`/subfn `0x01` Read SZL, or Block-group `0x03`), T0846 (Remote
 System Discovery, multi-host TCP/102 sweep evidence only, not single-PDU), T0814 (Denial
-of Service, connection-flood/malformed-length burst thresholds), T1692.001 (Unauthorized
-Message: Command Message, successor to revoked T0855, any command from an unauthorized
-source).
+of Service, connection-flood/malformed-length burst thresholds — see Decision 8's
+carry-overflow reconciliation note for the carry-overflow trigger specifically),
+T1692.001 (Unauthorized Message: Command Message, successor to revoked T0855, any
+command from an unauthorized source).
 
 **Group-`0x03` block-function correction:** the Userdata (ROSCTR `0x07`) subfunction
 group table must read group `0x03` = **Block functions** (`0x01` List blocks, `0x02`
@@ -552,6 +553,21 @@ to the next `0x03` candidate (drop-and-rescan, not a permanent desync latch), an
 **one T0814 (Anomaly/Possible/Medium) per flow direction** via a dedicated per-direction
 carry-overflow dedup flag, distinct from the malformed-length dedup flag used for
 in-range TPKT-length validation failures.
+
+> **RECONCILIATION NOTE (2026-09-07, STORY-186 adversarial finding F-02; BC-2.20.014
+> v1.1):** A two-independent-pass STORY-186 adversarial gate found this carry-overflow
+> → T0814 branch **unreachable via the real `on_data` path**: BC-2.20.013's walk-first
+> frame extraction and BC-2.20.015's 1-byte resync both consume at least one byte of
+> input on every call, and the TPKT `length` field is u16-capped — so the residual
+> carry stashed back into `carry_c2s`/`carry_s2c` can never exceed 65,534 bytes, one
+> byte below `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535`. Per human ruling (Option B), this
+> paragraph describes a **defense-in-depth, unreachable-by-construction guard** —
+> retained against a future design regression that removed the walk-first/resync
+> per-call consumption guarantee — **not a live, observable runtime detection** under
+> the current design. Product-owner has amended BC-2.20.014 → v1.1 and BC-2.20.013 →
+> v1.1 accordingly. The paragraph above is left as-is as the guard's specified reaction
+> *if* it were ever reached; it must not be read as evidence that T0814 fires from carry
+> overflow in practice today.
 
 ### Decision 9: Pure-core free-fn design for verification amenability
 
