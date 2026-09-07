@@ -804,12 +804,10 @@ mod story_184 {
 /// top of this file, which applies crate-wide to this whole test binary.
 ///
 /// ## Provenance
-/// Authored Red-first as TDD stubs (STORY-185 `tdd_mode: strict`; BC-2.20.005-012)
-/// against the `todo!()` stub in `src/analyzer/iso_on_tcp.rs`'s `parse_cotp_header`.
-/// These tests are expected to fail (compile, then panic on the `todo!()`) until the
-/// STORY-185 implementer step replaces the stub body; Red Gate verification
-/// (BC-5.38.001) runs `cargo test --test iso_on_tcp_tests` and requires every test in
-/// this module to fail while the pre-existing `story_184` module continues to pass.
+/// Authored Red-first as TDD stubs (STORY-185 `tdd_mode: strict`; BC-2.20.005-012);
+/// the Red Gate was verified via `cargo test --test iso_on_tcp_tests` before the
+/// `todo!()` stub was replaced by the STORY-185 implementation of
+/// `parse_cotp_header`; these tests are now GREEN.
 ///
 /// ## Literal-avoidance note (BC-2.20.012 / AC-185-009)
 /// Per BC-2.20.012's frozen SS-20/SS-21 boundary, `protocol_id` is a raw, uninterpreted
