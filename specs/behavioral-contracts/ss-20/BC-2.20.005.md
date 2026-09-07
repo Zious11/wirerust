@@ -53,9 +53,15 @@ recognition paths are BC-2.20.007 through BC-2.20.011.
 3. The function is pure: no I/O, no global state mutation, no side effects.
 4. `S7commAnalyzer` (SS-21) treats this `None` as an incomplete-COTP-header condition:
    the already-accepted TPKT frame's bytes are stashed to the carry buffer to await
-   more data, mirroring the TPKT-level incomplete-frame handling in BC-2.20.013 (a TPKT
-   frame with `length == 4` — header-only — legitimately produces an empty
-   `tpkt_payload`, which also falls into this reject path).
+   more data, mirroring the TPKT-level incomplete-frame handling in BC-2.20.013. Per
+   BC-2.20.004's RFC-min-7 accept floor, `parse_tpkt_header` rejects `length < 7`, so
+   the smallest valid TPKT frame has `length == 7` and a 3-byte `tpkt_payload`
+   (`data[4..7]`) — never empty. A `tpkt_payload` shorter than 2 bytes reaching this
+   function therefore cannot originate from a legitimately-parsed header-only frame;
+   it can only arise from truncated/incomplete delivery, i.e. `data.len() < length`
+   at the TPKT layer (fewer bytes physically present than the frame's declared
+   `length`), which is exactly the carry-buffer condition this postcondition
+   describes.
 
 ## Invariants
 
@@ -70,15 +76,15 @@ recognition paths are BC-2.20.007 through BC-2.20.011.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `tpkt_payload.len() == 0` (a TPKT `length == 4` header-only frame) | Returns `None` — legitimately empty payload, not itself an error at the TPKT layer |
-| EC-002 | `tpkt_payload.len() == 1` (only the LI byte delivered so far) | Returns `None` |
+| EC-001 | `tpkt_payload.len() == 0` (zero bytes of the declared TPKT frame delivered past the 4-byte header so far) | Returns `None` — under BC-2.20.004's RFC-min-7 accept floor, the minimum valid TPKT frame has `length == 7` and thus a 3-byte `tpkt_payload`; an empty `tpkt_payload` here means the TCP segment was truncated before the declared `length` bytes arrived, not that a valid header-only frame was parsed |
+| EC-002 | `tpkt_payload.len() == 1` (only the LI byte delivered so far, out of a declared-`length`-7-or-greater frame still arriving) | Returns `None` |
 | EC-003 | `tpkt_payload.len() == 2` (exactly minimum) | Proceeds to TPDU-type recognition; see BC-2.20.006 through BC-2.20.011 |
 
 ## Canonical Test Vectors
 
 | Input (hex bytes) | Expected result | Category |
 |--------------------|----------------|---------|
-| `[]` (0 bytes) | `None` | reject: empty (TPKT header-only frame) |
+| `[]` (0 bytes) | `None` | reject: empty (truncated delivery — no valid TPKT frame has `length < 7`, so this cannot arise from a legitimately-parsed header-only frame) |
 | `[0x02]` (1 byte) | `None` | reject: one byte short |
 | `[0x02, 0xF0]` (2 bytes) | proceeds to TPDU-type/LI validation | accept-boundary — see BC-2.20.006/009 |
 
