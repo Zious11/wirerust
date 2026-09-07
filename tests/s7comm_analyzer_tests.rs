@@ -293,6 +293,23 @@ mod story_186 {
     /// extracting the CR frame normally (BC-2.20.014 postcondition 2's "fresh-start
     /// resync, not a permanent desync latch").
     ///
+    /// **BC-2.20.014 v1.1 (defense-in-depth reclassification, STORY-186 adversarial
+    /// gate F-02/F-03, human ruling 2026-09-07 — Option B):** this test exercises the
+    /// guard's mechanics via SYNTHETIC direct flow-state field injection
+    /// (`state.carry_c2s = vec![...]` above), **not** via `on_data` — the
+    /// `> 65,535`-byte residual seeded here is a state that is NOT reachable through
+    /// the real `on_data` data path. Under the current BC-2.20.013 walk-first +
+    /// BC-2.20.015 1-byte-resync design, the directional carry is bounded `<= 65,534`
+    /// bytes by construction for all traffic (BC-2.20.014 v1.1 Invariant 1) — this is
+    /// intentional and specified: the guard is retained as a structural
+    /// defense-in-depth safety net against a future design regression, and its
+    /// mechanics (clear-not-truncate, resync, one-T0814-per-direction) remain the
+    /// binding specification IF the guard is ever reached, which this direct-injection
+    /// harness exists solely to exercise in isolation (BC-2.20.014 v1.1 Canonical Test
+    /// Vectors, "over-bound, guard-mechanics (SYNTHETIC ...)"). See
+    /// `test_BC_2_20_014_overflow_unreachable_via_on_data` below for the positive proof
+    /// that this precondition is never reached by feeding bytes through `on_data`.
+    ///
     /// Traces: BC-2.20.014 postconditions 1, 3, 4; AC-186-005.
     #[test]
     fn test_BC_2_20_014_overflow_clear_resync_one_t0814_per_direction() {
@@ -369,6 +386,19 @@ mod story_186 {
     /// repeated emission, though the carry is still cleared and resync still occurs
     /// each time.
     ///
+    /// **BC-2.20.014 v1.1 (defense-in-depth reclassification):** like
+    /// `test_BC_2_20_014_overflow_clear_resync_one_t0814_per_direction` above, both
+    /// overflow events in this test are SYNTHETIC — directly injected onto
+    /// `state.carry_c2s` — not reachable via the real `on_data` data path. Under the
+    /// current walk-first (BC-2.20.013) + 1-byte-resync (BC-2.20.015) design the
+    /// directional carry is bounded `<= 65,534` bytes for all traffic (BC-2.20.014 v1.1
+    /// Invariant 1), so this `> 65,535` condition never arises through `on_data`. This
+    /// is intentional per the reconciled spec (STORY-186 v1.1, human ruling
+    /// 2026-09-07 — Option B: Defense-in-Depth): the dedup mechanics tested here remain
+    /// the binding specification for the guard's behavior IF it is ever reached under a
+    /// future design regression (BC-2.20.014 v1.1 Canonical Test Vectors, "repeated
+    /// over-bound, same direction (SYNTHETIC ...)").
+    ///
     /// Traces: BC-2.20.014 postcondition 3 dedup guard, edge case EC-004; AC-186-005.
     #[test]
     fn test_BC_2_20_014_repeated_overflow_dedup_same_direction() {
@@ -422,6 +452,18 @@ mod story_186 {
     /// edge case EC-005). A C2S overflow does not suppress a subsequent, independent
     /// S2C overflow on the same flow.
     ///
+    /// **BC-2.20.014 v1.1 (defense-in-depth reclassification):** both overflow events
+    /// in this test (C2S and S2C) are SYNTHETIC — directly injected onto
+    /// `state.carry_c2s`/`state.carry_s2c` — not reachable via the real `on_data` data
+    /// path. Under the current walk-first (BC-2.20.013) + 1-byte-resync (BC-2.20.015)
+    /// design the directional carry is bounded `<= 65,534` bytes for all traffic in
+    /// both directions (BC-2.20.014 v1.1 Invariant 1), so this `> 65,535` condition
+    /// never arises through `on_data` in either direction. This is intentional per the
+    /// reconciled spec (STORY-186 v1.1, human ruling 2026-09-07 — Option B:
+    /// Defense-in-Depth): the per-direction independence tested here remains the
+    /// binding specification for the guard's dedup mechanics IF it is ever reached
+    /// under a future design regression (BC-2.20.014 v1.1 Canonical Test Vectors).
+    ///
     /// Traces: BC-2.20.014 postcondition 4, edge case EC-005; AC-186-006.
     #[test]
     fn test_BC_2_20_014_overflow_dedup_independent_per_direction() {
@@ -464,6 +506,140 @@ mod story_186 {
             state.carry_overflow_reported_s2c,
             "carry_overflow_reported_s2c must now be set after the independent S2C \
              overflow (BC-2.20.014 EC-005)"
+        );
+    }
+
+    /// **NEW (BC-2.20.014 v1.1 / STORY-186 v1.1 AC-186-005 new positive assertion,
+    /// F-02 closure):** the positive, `on_data`-driven counterpart to the three
+    /// SYNTHETIC direct-injection tests above. Proves that the overflow precondition
+    /// (`residual.len() > 65,535`) is never reached when bytes are fed exclusively
+    /// through the real `on_data` entry point — never touching the `pub carry_c2s` /
+    /// `carry_s2c` fields directly — closing the adversarial F-02 concern that the
+    /// SYNTHETIC guard-mechanics tests could mask an unreachable/untested real-traffic
+    /// path.
+    ///
+    /// Two scenarios, both driven through `on_data` only:
+    ///
+    /// 1. **Garbage flood, single call:** one `on_data` call delivers 200,000 bytes of
+    ///    non-`0x03`-anchored `0xAA` garbage. The frame-walk's resync sub-routine
+    ///    (BC-2.20.015) drains this 1 byte at a time down to the deterministic 3-byte
+    ///    remainder before the call returns — it never accumulates toward the
+    ///    65,535-byte bound within a single call.
+    /// 2. **Garbage flood, split across many calls:** the same total garbage volume is
+    ///    redelivered in four separate 50,000-byte `on_data` calls on the same flow and
+    ///    direction. Because BC-2.20.015's resync drains un-anchored garbage below 4
+    ///    remaining bytes before *each* call's walk terminates, the ~3-byte remainder
+    ///    from call N is not compounded by call N+1's fresh 50,000 bytes into anything
+    ///    exceeding the bound — garbage never accumulates carry-to-carry across calls
+    ///    (BC-2.20.013 Reconciliation Note).
+    /// 3. **Dribbled, incomplete max-length frame:** a conformant TPKT frame declaring
+    ///    `length = 65,535` (the maximum representable value) is delivered one byte
+    ///    short of complete (65,534 of its 65,535 bytes), split across many small
+    ///    `on_data` calls (500 bytes at a time) so the legitimate residual grows
+    ///    incrementally, call by call, all the way up to the maximum legitimate
+    ///    single-frame residual (65,534 bytes) without ever exceeding
+    ///    `MAX_S7_ISO_ON_TCP_CARRY_BYTES` (65,535) — the walk-first residual bound
+    ///    (BC-2.20.013 Reconciliation Note) holds at every observation point along the
+    ///    way, not merely at the start and end.
+    ///
+    /// After every call in all three scenarios: zero T0814 findings are emitted, and
+    /// `carry_c2s.len() < MAX_S7_ISO_ON_TCP_CARRY_BYTES` (i.e. `<= 65,534`) holds —
+    /// the overflow guard's `> 65,535` precondition is never satisfied via the real
+    /// `on_data` data path (BC-2.20.014 v1.1 Invariant 1 / VP-050 reachability
+    /// property).
+    ///
+    /// Traces: BC-2.20.014 v1.1 Invariant 1, AC-186-005 (new positive assertion).
+    #[test]
+    fn test_BC_2_20_014_overflow_unreachable_via_on_data() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // --- Scenario 1: garbage flood delivered in one on_data call. ---
+        let flood = vec![0xAAu8; 200_000];
+        analyzer.on_data(flow_key.clone(), &flood, 0, Direction::ClientToServer);
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "a 200,000-byte non-0x03-anchored garbage flood delivered through on_data \
+             alone must never emit a T0814 — the resync sub-routine (BC-2.20.015) \
+             drains it to a sub-4-byte remainder within the same call, never \
+             approaching the 65,535-byte bound (BC-2.20.014 v1.1 Invariant 1)"
+        );
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.carry_c2s.len() < MAX_S7_ISO_ON_TCP_CARRY_BYTES,
+                "carry_c2s ({} bytes) must stay < MAX_S7_ISO_ON_TCP_CARRY_BYTES \
+                 (i.e. <= 65,534) after a single-call garbage flood driven via on_data \
+                 only",
+                state.carry_c2s.len()
+            );
+        }
+
+        // --- Scenario 2: the same total garbage volume redelivered across four
+        // separate on_data calls, to prove garbage never accumulates carry-to-carry
+        // across calls (BC-2.20.013 Reconciliation Note). ---
+        for _ in 0..4 {
+            let chunk = vec![0xAAu8; 50_000];
+            analyzer.on_data(flow_key.clone(), &chunk, 0, Direction::ClientToServer);
+
+            assert!(
+                analyzer.findings.is_empty(),
+                "no T0814 must ever be emitted while redelivering non-0x03-anchored \
+                 garbage across multiple on_data calls on the same flow/direction \
+                 (BC-2.20.014 v1.1 Invariant 1)"
+            );
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.carry_c2s.len() < MAX_S7_ISO_ON_TCP_CARRY_BYTES,
+                "carry_c2s ({} bytes) must stay < 65,535 (i.e. <= 65,534) after each \
+                 dribbled garbage on_data call — garbage never accumulates \
+                 carry-to-carry across calls",
+                state.carry_c2s.len()
+            );
+        }
+
+        // --- Scenario 3: a conformant length=65,535 TPKT frame delivered one byte
+        // short of complete, dribbled across many small on_data calls on a fresh flow,
+        // so the legitimate residual grows incrementally all the way up to the maximum
+        // single-frame residual (65,534 bytes) without ever exceeding the bound. ---
+        let flow_key_2 = FlowKey::new(
+            "127.0.0.1".parse().unwrap(),
+            1235,
+            "127.0.0.2".parse().unwrap(),
+            102,
+        );
+        let mut analyzer_2 = S7commAnalyzer::new();
+        let full_frame = max_length_frame(); // 65,535 bytes total (length field = 0xFFFF)
+        let incomplete = &full_frame[..full_frame.len() - 1]; // 65,534 bytes: one short
+        assert_eq!(incomplete.len(), MAX_S7_ISO_ON_TCP_CARRY_BYTES - 1);
+
+        for chunk in incomplete.chunks(500) {
+            analyzer_2.on_data(flow_key_2.clone(), chunk, 0, Direction::ClientToServer);
+
+            assert!(
+                analyzer_2.findings.is_empty(),
+                "dribbling a still-incomplete, conformant max-length-frame residual via \
+                 on_data must never emit a T0814, even as the residual grows \
+                 incrementally toward the maximum legitimate single-frame size \
+                 (BC-2.20.014 v1.1 Invariant 1 / EC-002)"
+            );
+            let state = analyzer_2.flows.get(&flow_key_2).unwrap();
+            assert!(
+                state.carry_c2s.len() < MAX_S7_ISO_ON_TCP_CARRY_BYTES,
+                "carry_c2s ({} bytes) must stay < 65,535 (i.e. <= 65,534) at every \
+                 observation point while dribbling the incomplete max-length frame via \
+                 on_data",
+                state.carry_c2s.len()
+            );
+        }
+        let final_state = analyzer_2.flows.get(&flow_key_2).unwrap();
+        assert_eq!(
+            final_state.carry_c2s.len(),
+            MAX_S7_ISO_ON_TCP_CARRY_BYTES - 1,
+            "after dribbling all 65,534 available bytes of the still-incomplete \
+             max-length frame, carry_c2s must hold exactly the maximum legitimate \
+             single-frame residual (65,534 bytes) with no overflow ever triggered"
         );
     }
 
@@ -733,9 +909,17 @@ mod story_186 {
 
         // Closing an unknown flow_key must be a no-op (BC-2.21.003 postcondition 4) —
         // must not panic, and must not disturb any other flow's state.
-        let other_key = flow_key_default();
+        //
+        // NOTE: `flow_key` (above) was just removed by the on_flow_close call, so
+        // re-inserting state under the *same* 4-tuple (`flow_key_default()`) here is
+        // deliberately re-creating a flow that shares `flow_key`'s identity — this is
+        // NOT a "different" flow for FlowKey-equality purposes, only a flow that
+        // happens to be tracked *after* the original's closure. It is named
+        // `reopened_flow_key` (not `other_key`) to make that byte-identity explicit and
+        // avoid the false impression that it exercises a distinct, second flow.
+        let reopened_flow_key = flow_key_default();
         {
-            let state = analyzer.flows.entry(other_key.clone()).or_default();
+            let state = analyzer.flows.entry(reopened_flow_key.clone()).or_default();
             state.carry_c2s = vec![0x11, 0x22];
         }
         let unknown_key = FlowKey::new(
@@ -746,10 +930,63 @@ mod story_186 {
         );
         analyzer.on_flow_close(unknown_key);
         assert_eq!(
-            analyzer.flows.get(&other_key).unwrap().carry_c2s,
+            analyzer.flows.get(&reopened_flow_key).unwrap().carry_c2s,
             vec![0x11, 0x22],
             "closing an unknown flow_key must not disturb any other tracked flow's state \
              (BC-2.21.003 postcondition 4 no-op)"
+        );
+    }
+
+    /// EC-002 (BC-2.21.003): `on_flow_close` is called twice for the SAME `FlowKey`
+    /// (defensive double-close, adversarial finding F-06). The first call removes the
+    /// flow's `S7commFlowState` and emits no finding (BC-2.21.003 postconditions 1-3);
+    /// the second call — against the same, now-already-removed `flow_key` — must be a
+    /// harmless no-op per postcondition 4's "does not exist for the FlowKey" path: it
+    /// must not panic, must not re-create state, and must not emit any finding. This is
+    /// distinct from `test_s7comm_on_flow_close_removes_state_discards_carry`'s
+    /// unknown-key no-op case above, which exercises a `flow_key` that was *never*
+    /// tracked in the first place, rather than one tracked-then-closed-then-closed-again.
+    ///
+    /// Traces: BC-2.21.003 postcondition 4, edge case EC-002.
+    #[test]
+    fn test_BC_2_21_003_double_close_same_flow_key_is_idempotent_no_op() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+        {
+            let state = analyzer.flows.entry(flow_key.clone()).or_default();
+            state.carry_c2s = vec![0x03, 0x00, 0x00, 0x0A];
+            state.carry_s2c = vec![0xAA, 0xAA];
+        }
+        assert!(
+            analyzer.flows.contains_key(&flow_key),
+            "precondition: flow state must exist before the first on_flow_close"
+        );
+
+        // First close: removes the state, emits no finding.
+        analyzer.on_flow_close(flow_key.clone());
+        assert!(
+            !analyzer.flows.contains_key(&flow_key),
+            "first on_flow_close must remove the flow's S7commFlowState \
+             (BC-2.21.003 postcondition 1)"
+        );
+        assert!(
+            analyzer.findings.is_empty(),
+            "first on_flow_close must not emit any finding (BC-2.21.003 postconditions \
+             2-3), even with non-empty carry buffers at closure"
+        );
+
+        // Second close on the SAME flow_key: idempotent no-op (BC-2.21.003 EC-002).
+        analyzer.on_flow_close(flow_key.clone());
+        assert!(
+            !analyzer.flows.contains_key(&flow_key),
+            "second on_flow_close on the same, already-removed flow_key must remain a \
+             no-op — state stays absent, it is not re-created (BC-2.21.003 \
+             postcondition 4 / EC-002 'second call is a no-op')"
+        );
+        assert!(
+            analyzer.findings.is_empty(),
+            "the second (double) close must not emit any finding either — a harmless \
+             no-op, not an error condition (BC-2.21.003 EC-002)"
         );
     }
 
