@@ -20,6 +20,19 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   dissector (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof
   harness (VP-048; execution deferred to STORY-194).
 
+### Fixed
+
+- Corrected stale `RFC 1006 §5` citations to `§6` ("Packet Format") in
+  `src/analyzer/iso_on_tcp.rs`'s module and `TpktHeader` doc comments, repointed
+  a dangling `tests/iso_on_tcp_tests.rs` proptest-oracle docstring reference
+  from a non-existent `test_rfc1006_s5_canonical_minimal_tpkt_holdout` name to
+  the actual `test_rfc1006_s6_minimum_valid_length_holdout` holdout (also
+  fixing its section number and "below" → "above" direction), and tightened
+  the VP-048 Kani harness docstring to note its `len <= 300` bound instead of
+  claiming "any length" (STORY-184, adversarial Pass 4 MEDIUM-1/MEDIUM-2,
+  DF-SIBLING-SWEEP-001). Citation/reference text only — no logic, test
+  assertions, or test names changed.
+
 ## [0.13.3] - 2026-09-05
 
 ### Changed

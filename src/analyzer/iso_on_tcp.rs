@@ -46,7 +46,7 @@
 //! - `s7`, `s7-comm`, `s7-client` crates (non-standard custom license grant)
 //! - Wireshark, Snap7, or libnodave source of any kind (GPL/LGPL — banned)
 //!
-//! This module is an original Rust implementation derived directly from RFC 1006 §5
+//! This module is an original Rust implementation derived directly from RFC 1006 §6
 //! (a freely implementable open specification). Zero lines are borrowed from any
 //! external implementation.
 
@@ -57,7 +57,7 @@
 /// Parsed TPKT (RFC 1006) header — the outer 4-byte framing layer present on every TCP
 /// segment carrying ISO-on-TCP traffic (S7comm, IEC 61850 MMS, ICCP/TASE.2 on TCP/102).
 ///
-/// The TPKT header occupies exactly 4 bytes on the wire (RFC 1006 §5):
+/// The TPKT header occupies exactly 4 bytes on the wire (RFC 1006 §6):
 /// - `version` (byte 0): always `0x03` for a valid TPKT packet.
 /// - *(reserved, byte 1)*: not surfaced by this struct — never validated by
 ///   `parse_tpkt_header` (BC-2.20.004 invariant 1).
@@ -68,7 +68,7 @@
 /// surfaced.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TpktHeader {
-    /// TPKT version byte; always `3` for a valid TPKT packet (RFC 1006 §5).
+    /// TPKT version byte; always `3` for a valid TPKT packet (RFC 1006 §6).
     pub version: u8,
     /// Total TPKT packet length in bytes, including this 4-byte header.
     /// Valid range on the accept path: `[4, 65535]`.
@@ -138,7 +138,8 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
 mod kani_proofs {
     use super::*;
 
-    /// VP-048: `parse_tpkt_header` must not panic for any input, of any length.
+    /// VP-048: `parse_tpkt_header` must not panic for any input, up to the bounded
+    /// length (`len <= 300`).
     #[kani::proof]
     fn verify_parse_tpkt_header_safety() {
         let len: usize = kani::any();

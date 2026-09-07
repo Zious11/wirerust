@@ -676,8 +676,8 @@ mod story_184 {
         /// same BC-2.20.001-004 spec text, neither guards against a shared logic error --
         /// e.g. endianness or boundary mistakes -- inherited from that spec text itself.
         /// Spec-independent grounding against such an error comes from
-        /// `test_rfc1006_s5_canonical_minimal_tpkt_holdout` below, whose vector is derived
-        /// directly from RFC 1006 §5 rather than from this project's BCs
+        /// `test_rfc1006_s6_minimum_valid_length_holdout` above, whose vector is derived
+        /// directly from RFC 1006 §6 rather than from this project's BCs
         /// (DF-CANONICAL-FRAME-HOLDOUT-001).
         fn oracle(data: &[u8]) -> Option<TpktHeader> {
             if data.len() < 4 {
