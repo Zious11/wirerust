@@ -921,10 +921,20 @@ mod story_185 {
     /// BC-2.20.006 invariant 2: no out-of-bounds index / panic for LI values spanning
     /// the full `u8` range, including the maximum LI value (255).
     ///
+    /// Truncation predicate (BC-2.20.006): `tpkt_payload.len() < 1 + LI`. Against the
+    /// fixed 3-byte buffer used here, that's `3 < 1 + LI`, i.e. genuinely truncating
+    /// exactly when `LI >= 3`. Every sampled LI below is `>= 3`, so each one truncates
+    /// and must return `None`: `0x03` is the exact boundary (`1+3=4 > 3`), and
+    /// `0x0A`/`0x7F`/`0xFE`/`0xFF` truncate by increasingly wide margins up to the max
+    /// `u8` value. (`0x01` is deliberately excluded from this sample: `1+1=2 <= 3` is
+    /// NOT truncated, so with TPDU-code `0xE0` it would classify as `Some(CotpHeader
+    /// { ConnectRequest, .. })` per BC-2.20.007 rather than `None` — asserting `None`
+    /// for it would be a wrong test, not a truncation invariant check.)
+    ///
     /// Traces: BC-2.20.006 invariant 2; AC-185-002.
     #[test]
     fn test_BC_2_20_006_invariant_no_panic_across_li_value_sample() {
-        for li in [0x01u8, 0x0A, 0x7F, 0xFE, 0xFF] {
+        for li in [0x03u8, 0x0A, 0x7F, 0xFE, 0xFF] {
             let data: [u8; 3] = [li, 0xE0, 0x00];
             let result = parse_cotp_header(&data);
             assert_eq!(
