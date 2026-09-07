@@ -19,10 +19,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   a standalone, protocol-agnostic pure-core free function — no
   `StreamAnalyzer` impl, no per-flow state — laying the framing groundwork
   ahead of the COTP header parser (STORY-185) and the S7comm PDU dissector
-  (STORY-186). Corrected stale `RFC 1006 §5` citations to `§6` ("Packet
-  Format") throughout the module and test doc comments. Includes a
-  `#[cfg(kani)]` no-panic safety proof harness (VP-048; execution deferred to
-  STORY-194).
+  (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof harness
+  (VP-048; execution deferred to STORY-194).
 
 ## [0.13.3] - 2026-09-05
 
