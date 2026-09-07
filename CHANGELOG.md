@@ -33,6 +33,29 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   no S7comm-specific interpretation of the extracted protocol-ID byte.
   Includes a `#[cfg(kani)]` no-panic safety proof harness (VP-049; execution
   deferred to STORY-194).
+- `S7commAnalyzer` (SS-21, `src/analyzer/s7comm.rs`, new module): the
+  effectful shell built on SS-20's stateless TPKT/COTP parsing library,
+  proving directional carry-buffer TPKT reassembly across TCP segment
+  boundaries. `S7commFlowState` holds the per-flow `carry_c2s`/`carry_s2c`
+  buffers (never merged) plus per-direction overflow-reported latches.
+  `on_data` implements walk-first, residual-bound frame extraction: it
+  appends incoming bytes to the directional carry, repeatedly calls
+  `iso_on_tcp::parse_tpkt_header`/`parse_cotp_header` to extract and dispatch
+  complete frames, advances the cursor, and stashes only the leftover
+  partial-frame residual back to carry — never an aggregate
+  `carry.len() + data.len()` pre-check (BC-2.20.013, STORY-186, ADR-014
+  Decision 8). A bad TPKT version byte triggers the shared 1-byte resync
+  sub-routine (BC-2.20.015), reused verbatim for both an ordinary mid-stream
+  reject and post-overflow resync. The residual carry is bounded by
+  `MAX_S7_ISO_ON_TCP_CARRY_BYTES = 65,535` (derived from TPKT's own `u16`
+  length maximum); exceeding it clears the carry and emits one T0814 finding
+  per direction (BC-2.20.014) — retained as a defense-in-depth guard against
+  future design regressions, since it is unreachable via `on_data` under the
+  current walk-first/resync design (BC-2.20.014 v1.1 Invariant 5).
+  `on_flow_close` removes a flow's `S7commFlowState` and discards any
+  carry bytes with no finding emitted (BC-2.21.003). Protocol-specific
+  dispatch on the extracted `protocol_id` is out of scope for this story
+  (STORY-187).
 
 ## [0.13.3] - 2026-09-05
 

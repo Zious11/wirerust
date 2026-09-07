@@ -147,8 +147,6 @@ impl S7commAnalyzer {
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
-        let timestamp = chrono::DateTime::from_timestamp(ts as i64, 0);
-
         // Collect frame-walk findings locally to avoid a borrow conflict between the
         // per-flow state entry (below) and `self.findings`.
         let mut local_findings: Vec<Finding> = Vec::new();
@@ -160,6 +158,30 @@ impl S7commAnalyzer {
             // directional carry ALONE, before the current delivery is appended and the
             // walk begins (walk-first, residual-bound semantics — BC-2.20.013
             // postcondition 2, invariant 1: no aggregate carry+delivery pre-check).
+            //
+            // DEFENSE-IN-DEPTH, NOT LIVE DETECTION (human ruling, Option B,
+            // 2026-09-07): under the current walk-first + 1-byte-resync + u16
+            // length-cap design, this branch is unreachable via `on_data`. The
+            // frame-walk loop below stashes at most a declared-but-incomplete TPKT
+            // frame to carry, and a TPKT `length` field is a `u16` (max 65,535 —
+            // `MAX_S7_ISO_ON_TCP_CARRY_BYTES`), so the residual can equal but never
+            // exceed the bound; a bad-version-byte reject resyncs 1 byte at a time
+            // rather than accumulating carry. BC-2.20.014 v1.1 formalizes this as
+            // Invariant 5: the directional carry is provably `<= 65,534` bytes
+            // on entry to `on_data` (strictly less than `MAX_S7_ISO_ON_TCP_CARRY_BYTES`,
+            // since a carry of exactly 65,535 would itself have been a complete,
+            // dispatchable frame on the walk that produced it), so `carry.len() >
+            // MAX_S7_ISO_ON_TCP_CARRY_BYTES` never evaluates true by construction.
+            //
+            // The check — and its placement at call-entry on the directional carry,
+            // reconciled as correct/equivalent per BC-2.20.014 v1.1 Invariant 5 — is
+            // retained anyway, guarding only against a *future* design regression
+            // (e.g. a change that stashes more than one incomplete frame's worth of
+            // bytes to carry, or relaxes the resync step size). It is intentionally
+            // not deleted: removing it would silently drop the safety net the next
+            // time this module's invariants change. Do not read `local_findings`
+            // ever containing a T0814 in this story's test suite as evidence the
+            // branch is live; it is not exercised by `on_data` today.
             {
                 let (carry, reported) = if direction == Direction::ClientToServer {
                     (&mut state.carry_c2s, &mut state.carry_overflow_reported_c2s)
@@ -171,7 +193,17 @@ impl S7commAnalyzer {
                     // residual has no reliable frame boundary to preserve.
                     carry.clear();
                     if !*reported {
+                        // T0814-emission branch — DEFENSE-IN-DEPTH, NOT LIVE DETECTION
+                        // (see the enclosing overflow-check comment above and
+                        // BC-2.20.014 v1.1 Invariant 5): unreachable via `on_data`
+                        // under the current walk-first/1-byte-resync/u16-length-cap
+                        // design, retained only against a future design regression.
+                        // The `chrono::DateTime` timestamp conversion is deferred to
+                        // this rare branch (rather than computed unconditionally at
+                        // the top of `on_data`) since it is otherwise-unreachable and
+                        // its only consumer is this `Finding`.
                         *reported = true;
+                        let timestamp = chrono::DateTime::from_timestamp(ts as i64, 0);
                         local_findings.push(Finding {
                             category: ThreatCategory::Anomaly,
                             verdict: Verdict::Possible,
