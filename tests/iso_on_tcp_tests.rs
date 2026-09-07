@@ -6,12 +6,13 @@
 //! - BC-2.20.001: `parse_tpkt_header` returns `None` for input shorter than 4 bytes.
 //! - BC-2.20.002: `parse_tpkt_header` returns `None` for version byte != 0x03 (also the
 //!   SS-20 resync anchor).
-//! - BC-2.20.003: `parse_tpkt_header` returns `None` for decoded length field < 4
-//!   (malformed, includes zero-length).
+//! - BC-2.20.003: `parse_tpkt_header` returns `None` for decoded length field < 7 (RFC
+//!   1006 §6's stated minimum packet length; malformed, includes zero-length and
+//!   header-only lengths 4-6).
 //! - BC-2.20.004: `parse_tpkt_header` returns `Some(TpktHeader)` for valid input (happy
-//!   path); reserved byte (`data[1]`) is never validated; `length == 65535` is a legal
-//!   accept; the four BC-2.20.001-004 outcomes are jointly exhaustive and mutually
-//!   exclusive (AC-184-005).
+//!   path); reserved byte (`data[1]`) is never validated; accept range is `[7, 65535]`;
+//!   `length == 65535` is a legal accept; the four BC-2.20.001-004 outcomes are jointly
+//!   exhaustive and mutually exclusive (AC-184-005).
 //!
 //! ## Test naming convention
 //! Tests follow `test_BC_S_SS_NNN_xxx()` for BC-traceable tests.
@@ -23,6 +24,12 @@
 //! was verified via `cargo test --test iso_on_tcp_tests` (BC-5.38.001) before the
 //! `todo!()` stub was replaced by the STORY-184 implementation of
 //! `parse_tpkt_header`. These tests are now GREEN.
+//!
+//! RFC 1006 §6 states the minimum legal TPKT packet length is 7 (4-byte TPKT header +
+//! 3-byte minimum COTP). `parse_tpkt_header`'s length-floor guard enforces this minimum
+//! directly (human ruling, re-opening this story from its earlier converged state, which
+//! had accepted length=4 as a documented layering divergence — that divergence has been
+//! retired; the implementation and every test below are now RFC-conformant).
 //!
 //! Canonical test vectors from BC-2.20.001-004 are used verbatim for the BC-conformance
 //! tests above. Separately, PER DF-CANONICAL-FRAME-HOLDOUT-001, the `test_rfc1006_s6_*`
@@ -188,7 +195,7 @@ mod story_184 {
 
     /// BC-2.20.002 postcondition 2: the length field is never decoded when the version
     /// byte is invalid — a bad version byte with a length field that would otherwise
-    /// decode as a legal `[4, 65535]` value must still return `None`.
+    /// decode as a legal `[7, 65535]` value must still return `None`.
     ///
     /// Uses length bytes `[0xFF, 0xFF]` (decodes to 65535, the maximum legal length) to
     /// prove the version check short-circuits before any length-based accept could occur.
@@ -225,7 +232,8 @@ mod story_184 {
     }
 
     // =========================================================================
-    // BC-2.20.003: parse_tpkt_header returns None for length field < 4
+    // BC-2.20.003: parse_tpkt_header returns None for length field < 7 (RFC 1006 §6
+    // minimum packet length)
     // AC-184-003
     // =========================================================================
 
@@ -234,7 +242,7 @@ mod story_184 {
     ///
     /// Canonical vector from BC-2.20.003: `[0x03, 0x00, 0x00, 0x00]` (length=0) -> None.
     /// Preconditions: data.len() >= 4, data[0] == 0x03 (version passes), decoded length
-    /// (0) < 4.
+    /// (0) < 7.
     ///
     /// Traces: BC-2.20.003 postconditions 1-2; AC-184-003; EC-001; canonical test vector.
     #[test]
@@ -278,11 +286,9 @@ mod story_184 {
         );
     }
 
-    /// BC-2.20.003 canonical vector: length=3 (one below minimum) returns None.
+    /// BC-2.20.003 canonical vector: length=3 returns None.
     ///
     /// Canonical vector from BC-2.20.003: `[0x03, 0x00, 0x00, 0x03]` (length=3) -> None.
-    /// This is the boundary immediately adjacent to the accept-path minimum (length=4,
-    /// BC-2.20.004 EC-001).
     ///
     /// Traces: BC-2.20.003 postcondition 1; AC-184-003; EC-003; canonical test vector.
     #[test]
@@ -291,22 +297,81 @@ mod story_184 {
         let result = parse_tpkt_header(data);
         assert!(
             result.is_none(),
-            "length=3 (below minimum) must return None (BC-2.20.003 canonical vector)"
+            "length=3 must return None (BC-2.20.003 canonical vector)"
         );
     }
 
-    /// BC-2.20.003 invariant: no overflow/panic for any `u16` length value below 4,
-    /// including the all-zero length-field byte pattern.
+    /// BC-2.20.003: length=4 (the TPKT header's own 4-byte structural floor, but below
+    /// RFC 1006 §6's stated minimum packet length of 7) returns None.
+    ///
+    /// A length=4 packet is header-only, with zero bytes of room for even a minimal COTP
+    /// PDU. RFC 1006 §6 states the minimum legal TPKT packet length is 7, so this is
+    /// rejected here, at the TPKT layer itself (human ruling; this story was re-opened
+    /// from its earlier converged state, which had accepted length=4 as a documented
+    /// layering divergence — that divergence is retired).
+    ///
+    /// Traces: BC-2.20.003 postcondition 1; AC-184-003.
+    #[test]
+    fn test_BC_2_20_003_returns_none_for_length_four_below_rfc_minimum() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x04];
+        let result = parse_tpkt_header(data);
+        assert!(
+            result.is_none(),
+            "length=4 (below RFC 1006 §6 minimum of 7) must return None (BC-2.20.003)"
+        );
+    }
+
+    /// BC-2.20.003: length=5 returns None.
+    ///
+    /// One byte of room for COTP — still below the RFC 1006 §6 minimum of 7.
+    ///
+    /// Traces: BC-2.20.003 postcondition 1; AC-184-003.
+    #[test]
+    fn test_BC_2_20_003_returns_none_for_length_five_below_rfc_minimum() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x05];
+        let result = parse_tpkt_header(data);
+        assert!(
+            result.is_none(),
+            "length=5 (below RFC 1006 §6 minimum of 7) must return None (BC-2.20.003)"
+        );
+    }
+
+    /// BC-2.20.003 boundary vector: length=6 (one below the RFC 1006 §6 minimum of 7)
+    /// returns None. Paired with `test_BC_2_20_004_valid_input_returns_some_header_length_7_canonical_vector`
+    /// (length=7 -> Some) as the genuine 6-vs-7 accept-floor boundary.
+    ///
+    /// Traces: BC-2.20.003 postcondition 1; AC-184-003; RFC 1006 §6 boundary.
+    #[test]
+    fn test_BC_2_20_003_returns_none_for_length_six_boundary_below_rfc_minimum() {
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x06];
+        let result = parse_tpkt_header(data);
+        assert!(
+            result.is_none(),
+            "length=6 (one below RFC 1006 §6 minimum of 7) must return None (BC-2.20.003, \
+             6-vs-7 boundary)"
+        );
+    }
+
+    /// BC-2.20.003 invariant: no overflow/panic for any `u16` length value below the RFC
+    /// 1006 §6 minimum of 7, including the all-zero length-field byte pattern.
     ///
     /// Traces: BC-2.20.003 invariant 2; AC-184-003; EC-005.
     #[test]
     fn test_BC_2_20_003_invariant_no_panic_across_sub_minimum_lengths() {
-        for length_bytes in [[0x00u8, 0x00], [0x00, 0x01], [0x00, 0x02], [0x00, 0x03]] {
+        for length_bytes in [
+            [0x00u8, 0x00],
+            [0x00, 0x01],
+            [0x00, 0x02],
+            [0x00, 0x03],
+            [0x00, 0x04],
+            [0x00, 0x05],
+            [0x00, 0x06],
+        ] {
             let data: [u8; 4] = [0x03, 0xAB, length_bytes[0], length_bytes[1]];
             let result = parse_tpkt_header(&data);
             assert!(
                 result.is_none(),
-                "length bytes {length_bytes:?} (decoded < 4) must return None (BC-2.20.003)"
+                "length bytes {length_bytes:?} (decoded < 7) must return None (BC-2.20.003)"
             );
         }
     }
@@ -316,31 +381,10 @@ mod story_184 {
     // AC-184-004
     // =========================================================================
 
-    /// BC-2.20.004 canonical vector: length=4 (exactly minimum, header-only TPKT packet).
-    ///
-    /// Canonical vector from BC-2.20.004 / BC-2.20.003 EC-004:
-    ///   `[0x03, 0x00, 0x00, 0x04]` -> `Some(TpktHeader { version: 3, length: 4 })`.
-    ///
-    /// Traces: BC-2.20.004 postconditions 1-3; AC-184-004; EC-001; canonical test vector.
-    #[test]
-    fn test_BC_2_20_004_valid_input_returns_some_header_length_4_canonical_vector() {
-        let data: &[u8] = &[0x03, 0x00, 0x00, 0x04];
-        let result = parse_tpkt_header(data);
-        let header = result.expect(
-            "length=4 (exact minimum) must return Some (BC-2.20.004 canonical vector, \
-             postcondition 1)",
-        );
-        assert_eq!(
-            header,
-            TpktHeader {
-                version: 3,
-                length: 4
-            },
-            "must decode version=3, length=4 exactly (BC-2.20.004 postcondition 1)"
-        );
-    }
-
-    /// BC-2.20.004 canonical vector: length=7 (minimal CR/CC-carrying frame).
+    /// BC-2.20.004 canonical vector: length=7 (exactly the RFC 1006 §6 minimum,
+    /// minimal CR/CC-carrying frame). This is the genuine RFC-conformant accept floor —
+    /// the 6-vs-7 boundary companion to `test_BC_2_20_003_returns_none_for_length_six_boundary_below_rfc_minimum`
+    /// (length=6 -> None).
     ///
     /// Canonical vector from BC-2.20.004 / BC-2.20.001:
     ///   `[0x03, 0x00, 0x00, 0x07]` -> `Some(TpktHeader { version: 3, length: 7 })`.
@@ -394,15 +438,15 @@ mod story_184 {
     /// non-zero reserved byte with an otherwise-identical header must parse identically to
     /// a zero reserved byte.
     ///
-    /// Compares `[0x03, 0x00, 0x00, 0x04]` (reserved=0x00) against
-    /// `[0x03, 0xFF, 0x00, 0x04]` (reserved=0xFF, EC-003): both must decode to the same
-    /// `TpktHeader { version: 3, length: 4 }`.
+    /// Compares `[0x03, 0x00, 0x00, 0x07]` (reserved=0x00) against
+    /// `[0x03, 0xFF, 0x00, 0x07]` (reserved=0xFF, EC-003): both must decode to the same
+    /// `TpktHeader { version: 3, length: 7 }`.
     ///
     /// Traces: BC-2.20.004 postcondition 2, invariant 1; AC-184-004; EC-003.
     #[test]
     fn test_BC_2_20_004_reserved_byte_nonzero_parses_identically_to_zero() {
-        let reserved_zero: &[u8] = &[0x03, 0x00, 0x00, 0x04];
-        let reserved_nonzero: &[u8] = &[0x03, 0xFF, 0x00, 0x04];
+        let reserved_zero: &[u8] = &[0x03, 0x00, 0x00, 0x07];
+        let reserved_nonzero: &[u8] = &[0x03, 0xFF, 0x00, 0x07];
 
         let header_zero = parse_tpkt_header(reserved_zero)
             .expect("reserved=0x00 header must parse (BC-2.20.004)");
@@ -418,9 +462,9 @@ mod story_184 {
             header_nonzero,
             TpktHeader {
                 version: 3,
-                length: 4
+                length: 7
             },
-            "non-zero reserved byte must still decode version=3, length=4 (BC-2.20.004)"
+            "non-zero reserved byte must still decode version=3, length=7 (BC-2.20.004)"
         );
     }
 
@@ -430,8 +474,9 @@ mod story_184 {
     /// Traces: BC-2.20.004 postcondition 1; AC-184-004; EC-005.
     #[test]
     fn test_BC_2_20_004_exact_length_match_no_trailing_bytes() {
-        // length = 6 (header + 2 payload bytes); data.len() == 6 exactly.
-        let data: &[u8] = &[0x03, 0x00, 0x00, 0x06, 0xAA, 0xBB];
+        // length = 7 (header + 3 payload bytes, the RFC 1006 §6 minimum); data.len() == 7
+        // exactly.
+        let data: &[u8] = &[0x03, 0x00, 0x00, 0x07, 0xAA, 0xBB, 0xCC];
         let result = parse_tpkt_header(data);
         let header =
             result.expect("exact-length-match input must return Some (BC-2.20.004 EC-005)");
@@ -439,9 +484,9 @@ mod story_184 {
             header,
             TpktHeader {
                 version: 3,
-                length: 6
+                length: 7
             },
-            "must decode version=3, length=6 with data.len() == length exactly (EC-005)"
+            "must decode version=3, length=7 with data.len() == length exactly (EC-005)"
         );
     }
 
@@ -530,16 +575,19 @@ mod story_184 {
             // decode, even when the length bytes would otherwise be maximally valid.
             (&[0x02, 0x00, 0xFF, 0xFF], None),
             (&[0x00, 0x00, 0x00, 0x04], None),
-            // Class C: bad length (BC-2.20.003) — fires once len >= 4 and version == 0x03.
+            // Class C: bad length (BC-2.20.003) — fires once len >= 4 and version == 0x03,
+            // for decoded length < 7 (RFC 1006 §6 minimum). Includes the 6-vs-7 boundary.
             (&[0x03, 0x00, 0x00, 0x00], None),
             (&[0x03, 0x00, 0x00, 0x03], None),
+            (&[0x03, 0x00, 0x00, 0x04], None),
+            (&[0x03, 0x00, 0x00, 0x06], None),
             // Class D: accept (BC-2.20.004) — len >= 4, version == 0x03, length in
-            // [4, 65535].
+            // [7, 65535].
             (
-                &[0x03, 0x00, 0x00, 0x04],
+                &[0x03, 0x00, 0x00, 0x07],
                 Some(TpktHeader {
                     version: 3,
-                    length: 4,
+                    length: 7,
                 }),
             ),
             (
@@ -571,8 +619,8 @@ mod story_184 {
     // =========================================================================
 
     /// RFC-VALID holdout: the RFC 1006 §6 stated minimum legal TPKT packet length is 7
-    /// (4-byte header + 3-byte minimum COTP), NOT 4. This is the genuinely RFC-conformant
-    /// minimum-length vector.
+    /// (4-byte header + 3-byte minimum COTP). `parse_tpkt_header` enforces exactly this
+    /// minimum, so this is the genuinely RFC-conformant minimum-length accept vector.
     ///
     /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
     #[test]
@@ -590,30 +638,19 @@ mod story_184 {
         );
     }
 
-    /// DOCUMENTED DIVERGENCE (not RFC conformance): wirerust intentionally accepts
-    /// length=4 (the TPKT header's own 4-byte structural floor), which is BELOW RFC 1006
-    /// §6's stated min=7. This is a deliberate layering choice per ADR-014: the TPKT layer
-    /// validates only structural framing; COTP-presence and semantic packet validity are
-    /// enforced by the COTP layer (SS-21, STORY-185+). A length-4 TPKT parses here but is
-    /// rejected downstream when the COTP parser receives 0 payload bytes.
+    /// RFC 1006 §6 states the minimum legal TPKT packet length is 7; length=4 is a
+    /// header-only packet (no room for even a minimal COTP PDU) and is below that
+    /// minimum, so it is rejected.
     ///
-    /// This test asserts wirerust's CURRENT lenient-framing behavior, not RFC conformance
-    /// -- do not read `Some(length:4)` here as an RFC-valid vector.
-    ///
-    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector);
-    /// ADR-014.
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC vector).
     #[test]
-    fn test_rfc1006_s6_length_four_wirerust_divergence_holdout() {
+    fn test_rfc1006_s6_length_four_below_minimum_returns_none() {
         let data: &[u8] = &[0x03, 0x00, 0x00, 0x04];
         let result = parse_tpkt_header(data);
         assert_eq!(
-            result,
-            Some(TpktHeader {
-                version: 0x03,
-                length: 4
-            }),
-            "wirerust intentionally accepts length=4, below RFC 1006 §6's stated min=7 \
-             (documented layering divergence, ADR-014, not RFC conformance)"
+            result, None,
+            "RFC 1006 §6 states min=7; length=4 (header-only, no room for COTP) is below \
+             the minimum and is rejected."
         );
     }
 
@@ -687,7 +724,7 @@ mod story_184 {
                 return None;
             }
             let length = u16::from_be_bytes([data[2], data[3]]);
-            if length < 4 {
+            if length < 7 {
                 return None;
             }
             Some(TpktHeader { version: 3, length })
@@ -723,7 +760,7 @@ mod story_184 {
                 reserved in any::<u8>(),
             ) {
                 let decoded = u16::from_be_bytes([len_hi, len_lo]);
-                prop_assume!(decoded >= 4);
+                prop_assume!(decoded >= 7);
                 let data = [0x03u8, reserved, len_hi, len_lo];
                 let result = parse_tpkt_header(&data);
                 prop_assert_eq!(

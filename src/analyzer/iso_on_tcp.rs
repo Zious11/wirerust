@@ -34,11 +34,12 @@
 //! ## Behavioral contracts
 //! - BC-2.20.001: `parse_tpkt_header` returns `None` for input shorter than 4 bytes.
 //! - BC-2.20.002: `parse_tpkt_header` returns `None` for version byte != 0x03.
-//! - BC-2.20.003: `parse_tpkt_header` returns `None` for decoded length field < 4
-//!   (malformed, includes zero-length).
+//! - BC-2.20.003: `parse_tpkt_header` returns `None` for decoded length field < 7
+//!   (RFC 1006 §6's stated minimum packet length; malformed, includes zero-length and
+//!   header-only lengths 4-6).
 //! - BC-2.20.004: `parse_tpkt_header` returns `Some(TpktHeader)` for valid input
-//!   (happy path); reserved byte (`data[1]`) is never validated; `length == 65535` is a
-//!   legal accept.
+//!   (happy path); reserved byte (`data[1]`) is never validated; accept range is
+//!   `[7, 65535]`; `length == 65535` is a legal accept.
 //!
 //! ## Architecture compliance (ADR-014 Decision 4 — licensing)
 //! Forbidden dependencies (BANNED/AVOID — licensing violation or unclear provenance):
@@ -62,7 +63,9 @@
 /// - *(reserved, byte 1)*: not surfaced by this struct — never validated by
 ///   `parse_tpkt_header` (BC-2.20.004 invariant 1).
 /// - `length` (bytes 2–3): big-endian `u16`, total TPKT packet length **including**
-///   this 4-byte header. Valid range on the accept path: `[4, 65535]`.
+///   this 4-byte header. Valid range on the accept path: `[7, 65535]` (RFC 1006 §6's
+///   stated minimum packet length is 7: a 4-byte TPKT header plus a 3-byte minimum
+///   COTP).
 ///
 /// Frozen per ADR-014 Decision 1 — exactly these two fields, no `reserved` field
 /// surfaced.
@@ -71,7 +74,8 @@ pub struct TpktHeader {
     /// TPKT version byte; always `3` for a valid TPKT packet (RFC 1006 §6).
     pub version: u8,
     /// Total TPKT packet length in bytes, including this 4-byte header.
-    /// Valid range on the accept path: `[4, 65535]`.
+    /// Valid range on the accept path: `[7, 65535]` (RFC 1006 §6 minimum packet
+    /// length = 7).
     pub length: u16,
 }
 
@@ -86,12 +90,16 @@ pub struct TpktHeader {
 ///
 /// # Returns
 ///
-/// - `None` if `data.len() < 4` (BC-2.20.001).
+/// - `None` if `data.len() < 4` (BC-2.20.001) — the structural read-guard: 4 bytes are
+///   needed just to read a TPKT header's fields off the wire, independent of RFC
+///   conformance.
 /// - `None` if `data[0] != 0x03` (BC-2.20.002); the length field is never decoded in
 ///   this case.
-/// - `None` if the big-endian `u16` decoded from `data[2..4]` is `< 4` (BC-2.20.003).
+/// - `None` if the big-endian `u16` decoded from `data[2..4]` is `< 7` (BC-2.20.003) —
+///   the RFC 1006 §6 length-floor: a valid TPKT packet's declared length must be at
+///   least 7 (4-byte TPKT header + 3-byte minimum COTP).
 /// - `Some(TpktHeader { version: 3, length })` otherwise, where `length` is exactly the
-///   big-endian `u16` decoded from `data[2..4]`, in `[4, 65535]` (BC-2.20.004). The
+///   big-endian `u16` decoded from `data[2..4]`, in `[7, 65535]` (BC-2.20.004). The
 ///   reserved byte at `data[1]` is never inspected.
 ///
 /// These four outcomes are jointly exhaustive and mutually exclusive by construction
@@ -107,13 +115,13 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
         return None;
     }
     let length = u16::from_be_bytes([data[2], data[3]]);
-    // Accept threshold is length >= 4 (the TPKT header's own 4-byte structural floor),
-    // NOT RFC 1006 §6's stated packet-length minimum of 7. This is a deliberate layering
-    // choice (ADR-014): this TPKT layer validates only structural framing; COTP-presence
-    // and semantic packet validity (the §6 min=7 floor) are enforced by the COTP layer
-    // (SS-21, STORY-185+). See `test_rfc1006_s6_length_four_wirerust_divergence_holdout`
-    // in `tests/iso_on_tcp_tests.rs` for the documented-divergence test.
-    if length < 4 {
+    // RFC 1006 §6 states the minimum legal TPKT packet length is 7 (4-byte TPKT header +
+    // 3-byte minimum COTP). This is distinct from the 4-byte structural read-guard above
+    // (data.len() < 4): that guard is about having enough bytes to READ a header at all,
+    // while this length-floor is about whether the packet's OWN DECLARED length is a
+    // valid TPKT/COTP packet per the RFC. A declared length of 4-6 is header-only (or
+    // near-header-only) with no room for even a minimal COTP PDU, and is rejected here.
+    if length < 7 {
         return None;
     }
     Some(TpktHeader {
