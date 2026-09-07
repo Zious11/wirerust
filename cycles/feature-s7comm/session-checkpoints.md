@@ -83,6 +83,21 @@ Prior checkpoints archived to `cycles/feature-iec104/session-checkpoints.md` and
 - **WIP branch list:** none.
 - **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
 
-**Superseded by:** D-561 F3 gate APPROVED, F4 OPENED checkpoint (current, see STATE.md). The human F3 completion gate noted as pending above was APPROVED this burst; STORY-184..194 promoted draft→ready; F4 delta-implementation OPENED (epic E-23, waves 87-97, beginning STORY-184).
+**Superseded by:** D-562 STORY-184 DELIVERED checkpoint (current, see STATE.md). F4 delta-implementation, noted as opened above, delivered its first story (STORY-184) this burst.
+
+---
+
+## Session Resume Checkpoint (2026-09-06) — D-561 F3 human completion gate APPROVED, F4 OPENED
+
+**D-561 F3 HUMAN COMPLETION GATE APPROVED, F4 OPENED — STORY-184..194 status draft→ready (11 stories). Canonical rehash cascade from spec-steward's BC-anchor backfill: all 62 feature-s7comm BC files + the 11 stories + cascade-caught STORY-151/STORY-173 rebaselined via bin/compute-input-hash --write; --scan confirms 11/11 + 62/62 MATCH, background-stale 22-story set unchanged. STORY-INDEX.md v4.24→v4.25 (status column only; totals unchanged 147/97/863). BC reverse-traceability consistency-audit M-1 CLOSED. develop=`97361cd4` (unchanged), main=`46ebd6e3` (unchanged), `stories_delivered`=120 (unchanged — 11 stories ready, not yet delivered). Pipeline IN-PROGRESS — F4 delta-implementation OPENED. RESUME: `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.**
+
+- **Date:** 2026-09-06. Position: mode=feature-s7comm, IN-PROGRESS; F1 APPROVED (D-557) + F2 COMPLETE + gate APPROVED (D-559); F3 incremental-stories COMPLETE + human gate APPROVED (D-560/D-561, epic E-23, waves 87-97); F4 delta-implementation OPENED (D-561); NEXT = F4 per-story TDD delivery beginning STORY-184 (wave 87).
+- **Convergence counter:** N/A — not in an adversarial/convergence loop (F4 per-story adversarial loops begin with the first story delivery, not yet dispatched).
+- **In-flight work:** none mid-TDD; no story worktrees; no code branch yet (factory-only). This burst promoted STORY-184..194 to ready and rebaselined the canonical input-hash cascade (62 BC files + 11 stories + STORY-151/173) triggered by spec-steward's BC-anchor backfill. Deferred human PRs unchanged from D-556: #451 (DEFERRED, DIRTY/conflicting + policy contradiction); #407 (`CHANGES_REQUESTED` posted, OPEN awaiting contributor response). ADR-014 + CLAUDE.md port-102 edit remain uncommitted/inert on the develop working tree (HELD for F4, F4-OBLIGATION-ADR014-CLAUDEMD carried forward).
+- **Pending human decisions / blockers:** none blocking F4 dispatch. #451 rebase + policy-contradiction resolution; #407 contributor response; ADR-014/CLAUDE.md F4-commit obligation (due at the first F4 implementation PR) — all carried forward, unaffected by this burst. STATE.md is ~118KB / NEEDS-COMPACT — a `/compact-state` pass is advisable before the next burst (not performed this burst).
+- **WIP branch list:** none.
+- **Resume command:** `/vsdd-factory:rehydrate-wave` then `/vsdd-factory:next-step`.
+
+**Superseded by:** D-562 STORY-184 DELIVERED checkpoint (current, see STATE.md). F4 per-story TDD delivery, noted as the next step above, delivered STORY-184 (PR #466, 7ce0db5c) this burst.
 
 ---
