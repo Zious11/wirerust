@@ -18,9 +18,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   accept range is `[7, 65535]` (BC-2.20.001-004, STORY-184, ADR-014). This is
   a standalone, protocol-agnostic pure-core free function — no
   `StreamAnalyzer` impl, no per-flow state — laying the framing groundwork
-  ahead of the COTP header parser (STORY-185) and the S7comm PDU dissector
-  (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof harness
-  (VP-048; execution deferred to STORY-194).
+  consumed by the COTP header parser below (STORY-185) ahead of the
+  S7comm PDU dissector (STORY-186). Includes a `#[cfg(kani)]` no-panic
+  safety proof harness (VP-048; execution deferred to STORY-194).
 - COTP (ISO 8073 / ITU-T X.224) TPDU header parsing: `parse_cotp_header` in
   `src/analyzer/iso_on_tcp.rs` parses the COTP Length-Indicator-prefixed TPDU
   header from the TPKT payload, classifying Connect Request, Connect Confirm,
