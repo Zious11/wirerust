@@ -21,15 +21,21 @@
 //! no global state mutation. This is a hard constraint for VP-048 Kani formal
 //! verification amenability (ADR-014 Decision 9).
 //!
-//! ## Scope of this story (STORY-184)
+//! ## Scope
 //!
-//! This story covers **only** the TPKT (RFC 1006) outer framing header:
-//! `TpktHeader` and `parse_tpkt_header`. COTP (ISO 8073 / ITU-T X.224) parsing —
-//! `CotpHeader`, `CotpTpduType`, `parse_cotp_header` — is explicitly out of scope here
-//! and is delivered by STORY-185 (VP-049). See ADR-014 Decision 9's scope note.
+//! - STORY-184 delivered the TPKT (RFC 1006) outer framing header: `TpktHeader` and
+//!   `parse_tpkt_header` (BC-2.20.001–004; VP-048).
+//! - STORY-185 adds the COTP (ISO 8073 / ITU-T X.224) inner TPDU header:
+//!   `CotpHeader`, `CotpTpduType`, `parse_cotp_header` (BC-2.20.005–012; VP-049). Note:
+//!   as of this story, `parse_cotp_header`'s body is a Red-Gate `todo!()` stub — the
+//!   implementation lands in this same story's implementer step; only the frozen types
+//!   and signature are final here.
 //!
 //! - `parse_tpkt_header` — 4-byte TPKT header parse; `None` on short/invalid input
 //!   (BC-2.20.001–004); VP-048 Kani target.
+//! - `parse_cotp_header` — COTP TPDU-type parse (CR/CC/DT) plus verbatim `protocol_id`
+//!   extraction; `None` on short/invalid/unrecognized input (BC-2.20.005–012); VP-049
+//!   Kani target.
 //!
 //! ## Behavioral contracts
 //! - BC-2.20.001: `parse_tpkt_header` returns `None` for input shorter than 4 bytes.
@@ -40,6 +46,20 @@
 //! - BC-2.20.004: `parse_tpkt_header` returns `Some(TpktHeader)` for valid input
 //!   (happy path); reserved byte (`data[1]`) is never validated; accept range is
 //!   `[7, 65535]`; `length == 65535` is a legal accept.
+//! - BC-2.20.005: `parse_cotp_header` returns `None` for input shorter than 2 bytes.
+//! - BC-2.20.006: `parse_cotp_header` returns `None` when the Length Indicator declares
+//!   more bytes than are present (LI-truncation).
+//! - BC-2.20.007: `parse_cotp_header` recognizes Connect Request (CR) TPDUs.
+//! - BC-2.20.008: `parse_cotp_header` recognizes Connect Confirm (CC) TPDUs.
+//! - BC-2.20.009: `parse_cotp_header` recognizes DT TPDUs with a non-empty payload and
+//!   extracts `protocol_id`.
+//! - BC-2.20.010: `parse_cotp_header` recognizes DT TPDUs with an empty payload
+//!   (`protocol_id: None`).
+//! - BC-2.20.011: `parse_cotp_header` returns `None` for an unrecognized TPDU-type
+//!   code (high nibble not in `{0xE0, 0xD0, 0xF0}`).
+//! - BC-2.20.012: `protocol_id` is extracted verbatim, never interpreted (frozen SS-20
+//!   to SS-21 boundary) — `parse_cotp_header` never compares the extracted byte against
+//!   any specific value.
 //!
 //! ## Architecture compliance (ADR-014 Decision 4 — licensing)
 //! Forbidden dependencies (BANNED/AVOID — licensing violation or unclear provenance):
@@ -131,6 +151,105 @@ pub fn parse_tpkt_header(data: &[u8]) -> Option<TpktHeader> {
 }
 
 // ---------------------------------------------------------------------------
+// COTP (ISO 8073 / ITU-T X.224) data types — STORY-185
+// ---------------------------------------------------------------------------
+//
+// Frozen interface (ADR-014 Decision 1, Decision 2 disambiguation table, Decision 9).
+// `iso_on_tcp.rs` (SS-20) performs zero interpretation of `protocol_id` — the
+// upper-layer-protocol disambiguation table (ADR-014 Decision 2) lives entirely in
+// `S7commAnalyzer` (SS-21), built starting in STORY-186/STORY-187.
+
+/// The three COTP (ISO 8073) TPDU types this parser discriminates.
+///
+/// Frozen per ADR-014 Decision 1 — exactly these 3 variants. This is deliberately not
+/// an exhaustive enumeration of all ISO 8073 TPDU codes (DR, DC, ED, AK, EA, RJ, ER, and
+/// others exist on the wire but are not modeled — BC-2.20.011 requires that any of
+/// those 13 remaining high-nibble values causes `parse_cotp_header` to return `None`
+/// rather than being force-fit into one of these three variants).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CotpTpduType {
+    /// CR — Connect Request. Session establishment; no upper-layer payload.
+    ConnectRequest,
+    /// CC — Connect Confirm. Session establishment; no upper-layer payload.
+    ConnectConfirm,
+    /// DT — Data Transfer. Carries an upper-layer payload, optionally prefixed by a
+    /// single protocol-ID byte (see [`CotpHeader::protocol_id`]).
+    DataTransfer,
+}
+
+/// Parsed COTP (ISO 8073 / ITU-T X.224) header, as extracted from the TPKT payload
+/// slice (i.e. `data[4..length]` from an already-accepted `TpktHeader`,
+/// BC-2.20.004's accept path).
+///
+/// Frozen per ADR-014 Decision 1 — exactly these three fields, no additional fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CotpHeader {
+    /// Which of the three modeled TPDU types this frame is.
+    pub tpdu_type: CotpTpduType,
+    /// The raw, uninterpreted protocol-ID byte immediately following the COTP
+    /// fixed-and-variable header, when present.
+    ///
+    /// `Some(byte)` only for a [`CotpTpduType::DataTransfer`] TPDU whose payload is
+    /// non-empty (BC-2.20.009); `None` for `ConnectRequest`/`ConnectConfirm` (no
+    /// upper-layer payload exists yet — BC-2.20.007, BC-2.20.008) or when the DT
+    /// payload is empty (BC-2.20.010).
+    ///
+    /// This byte is extracted **verbatim** — `parse_cotp_header` never compares it
+    /// against any specific value (BC-2.20.012, ADR-014 Decision 2). SS-21
+    /// (`S7commAnalyzer`) owns all disambiguation of this value.
+    pub protocol_id: Option<u8>,
+    /// Byte offset into `tpkt_payload` where the upper-layer payload begins
+    /// (`1 + LI`, where `LI` is the Length Indicator at `tpkt_payload[0]`).
+    pub payload_offset: usize,
+}
+
+// ---------------------------------------------------------------------------
+// COTP parse function — STORY-185
+// ---------------------------------------------------------------------------
+
+/// Parse a COTP (ISO 8073 / ITU-T X.224) TPDU header from `tpkt_payload`, the byte
+/// slice following an already-accepted 4-byte TPKT header.
+///
+/// Pure-core free function (ADR-014 Decision 9) — no I/O, no global state mutation,
+/// no side effects, deterministic. VP-049 Kani P0 target.
+///
+/// # Returns
+///
+/// - `None` if `tpkt_payload.len() < 2` (BC-2.20.005) — the minimum readable COTP
+///   prefix is the Length Indicator (LI, offset 0) plus the TPDU-code byte (offset 1).
+/// - `None` if `tpkt_payload.len() < 1 + LI` (BC-2.20.006) — the LI declares more
+///   bytes than are present (LI-truncation guard); no out-of-bounds index for any `u8`
+///   LI value, including `0`.
+/// - `Some(CotpHeader { tpdu_type: ConnectRequest, protocol_id: None, payload_offset })`
+///   if `tpkt_payload[1] & 0xF0 == 0xE0` (BC-2.20.007), where
+///   `payload_offset == 1 + LI`.
+/// - `Some(CotpHeader { tpdu_type: ConnectConfirm, protocol_id: None, payload_offset })`
+///   if `tpkt_payload[1] & 0xF0 == 0xD0` (BC-2.20.008), where
+///   `payload_offset == 1 + LI`.
+/// - `Some(CotpHeader { tpdu_type: DataTransfer, protocol_id: Some(tpkt_payload[payload_offset]),
+///   payload_offset })` if `tpkt_payload[1] & 0xF0 == 0xF0` and
+///   `tpkt_payload.len() > payload_offset` (BC-2.20.009) — `protocol_id` is the
+///   trailing byte, extracted verbatim.
+/// - `Some(CotpHeader { tpdu_type: DataTransfer, protocol_id: None, payload_offset })`
+///   if `tpkt_payload[1] & 0xF0 == 0xF0` and `tpkt_payload.len() == payload_offset`
+///   exactly (BC-2.20.010) — no out-of-bounds index at `tpkt_payload[payload_offset]`.
+/// - `None` for any other high-nibble value (BC-2.20.011) — the 13 remaining ISO 8073
+///   TPDU codes (DR, DC, ED, AK, EA, RJ, ER, and others) are never modeled and never
+///   force-fit into CR, CC, or DT.
+///
+/// These six outcomes are jointly exhaustive and mutually exclusive by construction
+/// over all 16 high-nibble values (BC-2.20.011 invariant 3; AC-185-008). Formalizing
+/// that partition, plus the `protocol_id` totality property (BC-2.20.012), is the
+/// VP-049 Kani obligation: the assertions are added and executed in STORY-194 (formal
+/// hardening); the `#[cfg(kani)]` skeleton below is scoped to check only
+/// no-panic/bounds-safety over symbolic input — its proof is executed in STORY-194
+/// (not run in this story).
+pub fn parse_cotp_header(tpkt_payload: &[u8]) -> Option<CotpHeader> {
+    let _ = tpkt_payload;
+    todo!("parse_cotp_header: implemented in STORY-185's implementer step (BC-2.20.005-012)")
+}
+
+// ---------------------------------------------------------------------------
 // VP-048 Kani proof — parse_tpkt_header safety (ADR-014 Decision 9)
 // ---------------------------------------------------------------------------
 //
@@ -158,5 +277,25 @@ mod kani_proofs {
         }
         // Must not panic for any input:
         let _ = parse_tpkt_header(&data);
+    }
+
+    /// VP-049: `parse_cotp_header` must not panic for any input, up to the bounded
+    /// length (`len <= 300`).
+    ///
+    /// SCOPE (this story): no-panic / bounds-safety only, mirroring the VP-048 harness
+    /// pattern above. The full VP-049 proof obligation — TPDU-type classification
+    /// exhaustiveness over all 16 high-nibble values (BC-2.20.011 invariant 3) and
+    /// protocol-ID-extraction totality over all 256 `u8` values (BC-2.20.012) — is
+    /// deferred to STORY-194 (formal hardening), per this story's Kani obligation note.
+    #[kani::proof]
+    fn verify_parse_cotp_header_safety() {
+        let len: usize = kani::any();
+        kani::assume(len <= 300);
+        let mut data = vec![0u8; len];
+        for b in data.iter_mut() {
+            *b = kani::any();
+        }
+        // Must not panic for any input, including the LI-truncation bounds check:
+        let _ = parse_cotp_header(&data);
     }
 }
