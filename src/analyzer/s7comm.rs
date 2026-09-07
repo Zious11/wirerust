@@ -45,8 +45,6 @@
 //! - BC-2.21.003: `on_flow_close` removes `S7commFlowState` and discards all carry
 //!   bytes; no finding is emitted for a flow closing with non-empty carry buffers.
 
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 
 use crate::analyzer::iso_on_tcp;
@@ -147,15 +145,123 @@ impl S7commAnalyzer {
     /// This story's dispatch on `CotpHeader::protocol_id` is a no-op placeholder —
     /// classification lands in STORY-187.
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
-        let _ = (flow_key, data, ts, direction);
-        todo!("BC-2.20.013/014/015: frame-walk loop, carry reassembly, overflow, resync")
+        use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+        let timestamp = chrono::DateTime::from_timestamp(ts as i64, 0);
+
+        // Collect frame-walk findings locally to avoid a borrow conflict between the
+        // per-flow state entry (below) and `self.findings`.
+        let mut local_findings: Vec<Finding> = Vec::new();
+
+        {
+            let state = self.flows.entry(flow_key).or_default();
+
+            // BC-2.20.014 precondition 2 / postconditions 1-4: overflow check on the
+            // directional carry ALONE, before the current delivery is appended and the
+            // walk begins (walk-first, residual-bound semantics — BC-2.20.013
+            // postcondition 2, invariant 1: no aggregate carry+delivery pre-check).
+            {
+                let (carry, reported) = if direction == Direction::ClientToServer {
+                    (&mut state.carry_c2s, &mut state.carry_overflow_reported_c2s)
+                } else {
+                    (&mut state.carry_s2c, &mut state.carry_overflow_reported_s2c)
+                };
+                if carry.len() > MAX_S7_ISO_ON_TCP_CARRY_BYTES {
+                    // Clear, not truncate (BC-2.20.014 invariant 2) — the oversized
+                    // residual has no reliable frame boundary to preserve.
+                    carry.clear();
+                    if !*reported {
+                        *reported = true;
+                        local_findings.push(Finding {
+                            category: ThreatCategory::Anomaly,
+                            verdict: Verdict::Possible,
+                            confidence: Confidence::Medium,
+                            summary: format!(
+                                "S7comm/ISO-on-TCP directional carry residual overflow: carry \
+                                 buffer exceeded MAX_S7_ISO_ON_TCP_CARRY_BYTES={MAX_S7_ISO_ON_TCP_CARRY_BYTES} \
+                                 — adversarial or non-conformant byte sequence; carry cleared \
+                                 and the walk resyncs on this delivery (T0814; BC-2.20.014)"
+                            ),
+                            evidence: vec![format!(
+                                "carry overflow (>{MAX_S7_ISO_ON_TCP_CARRY_BYTES}); carry cleared"
+                            )],
+                            mitre_techniques: vec!["T0814".to_string()],
+                            source_ip: None,
+                            timestamp,
+                            direction: Some(direction),
+                        });
+                    }
+                    // Carry is now cleared; the walk proceeds on the delivery alone
+                    // (fresh-start resync, not a permanent desync latch — BC-2.20.014
+                    // postcondition 2).
+                }
+            }
+
+            // BC-2.20.013 precondition 3: working = carry[direction] ++ incoming_data.
+            let mut working: Vec<u8> = if direction == Direction::ClientToServer {
+                std::mem::take(&mut state.carry_c2s)
+            } else {
+                std::mem::take(&mut state.carry_s2c)
+            };
+            working.extend_from_slice(data);
+
+            // Frame-walk loop (BC-2.20.013 postcondition 1). Runs unconditionally on
+            // the full working buffer — no aggregate byte-count bound is ever applied
+            // here; only the leftover residual stashed back to carry is bounded
+            // (BC-2.20.014), checked above at call entry.
+            let mut cursor = 0usize;
+            loop {
+                if working.len() - cursor < 4 {
+                    // Fewer than 4 bytes remain: cannot even attempt a TPKT header
+                    // read. Stash the remainder to carry below (BC-2.20.015
+                    // postcondition 3(b)).
+                    break;
+                }
+                match iso_on_tcp::parse_tpkt_header(&working[cursor..]) {
+                    Some(header) => {
+                        let total = header.length as usize;
+                        if working.len() - cursor >= total {
+                            // Complete TPKT frame: dispatch to parse_cotp_header and
+                            // advance past it (BC-2.20.013 postcondition 1a). This
+                            // story's protocol_id dispatch is a no-op placeholder —
+                            // classification lands in STORY-187.
+                            let frame = &working[cursor..cursor + total];
+                            let _ = iso_on_tcp::parse_cotp_header(&frame[4..]);
+                            cursor += total;
+                        } else {
+                            // Declared-but-incomplete: stash the entire partial frame
+                            // (including its parsed header) to carry (BC-2.20.013
+                            // postcondition 1b).
+                            break;
+                        }
+                    }
+                    None => {
+                        // Bad version byte (or a rejected length field, EC-005): resync
+                        // via the shared 1-byte-advance sub-routine (BC-2.20.015),
+                        // reused verbatim whether reached from an ordinary mid-stream
+                        // reject or the post-carry-overflow fresh-start walk above
+                        // (BC-2.20.015 invariant 3 / AC-186-008 — there is exactly one
+                        // resync implementation).
+                        cursor = Self::resync_one_byte(&working, cursor);
+                    }
+                }
+            }
+
+            let remainder = working[cursor..].to_vec();
+            if direction == Direction::ClientToServer {
+                state.carry_c2s = remainder;
+            } else {
+                state.carry_s2c = remainder;
+            }
+        }
+
+        self.findings.extend(local_findings);
     }
 
     /// Remove `flow_key`'s [`S7commFlowState`], discarding any carry bytes with no
     /// finding emitted (BC-2.21.003). A no-op if no state exists for `flow_key`.
     pub fn on_flow_close(&mut self, flow_key: FlowKey) {
-        let _ = flow_key;
-        todo!("BC-2.21.003: remove S7commFlowState, discard carry bytes, no finding")
+        self.flows.remove(&flow_key);
     }
 
     /// Shared 1-byte resync sub-routine (BC-2.20.015).
@@ -171,9 +277,13 @@ impl S7commAnalyzer {
     /// incomplete-frame path (BC-2.20.013).
     ///
     /// Returns the new cursor position.
-    #[allow(dead_code)]
     fn resync_one_byte(working: &[u8], cursor: usize) -> usize {
-        let _ = (working, cursor);
-        todo!("BC-2.20.015: advance exactly 1 byte per iteration, never 2")
+        let mut cursor = cursor;
+        while working.len() - cursor >= 4
+            && iso_on_tcp::parse_tpkt_header(&working[cursor..]).is_none()
+        {
+            cursor += 1;
+        }
+        cursor
     }
 }
