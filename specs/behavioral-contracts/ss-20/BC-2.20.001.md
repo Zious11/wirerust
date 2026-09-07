@@ -94,7 +94,7 @@ a read-guard failure (this BC); a decoded `length < 7` is a semantic-floor failu
 
 | Property | Proof Method (planned) |
 |----------|-------------------------|
-| `parse_tpkt_header(data)` returns `None` for all inputs with `len < 4`; never panics for any symbolic input up to a bounded length; for any returned `Some(h)`, `h.length` is in `[4, 65535]` with no integer overflow | Kani P0 (per ADR-014 Decision 9) — VP-NNN allocation deferred to the F2 INTEGRATE sub-burst (anticipated VP-048 range) |
+| `parse_tpkt_header(data)` returns `None` for all inputs with `len < 4`; never panics for any symbolic input up to a bounded length; for any returned `Some(h)`, `h.length` is in `[7, 65535]` with no integer overflow | Kani P0 (per ADR-014 Decision 9) — VP-NNN allocation deferred to the F2 INTEGRATE sub-burst (anticipated VP-048 range) |
 | No panic on arbitrary byte input at the `on_data` entry point (fuzz harness covering the TPKT→COTP→S7comm parse chain) | cargo-fuzz P1 (per ADR-014 Decision 9) — VP-NNN allocation deferred |
 
 ## Traceability
@@ -112,7 +112,7 @@ a read-guard failure (this BC); a decoded `length < 7` is a semantic-floor failu
 ## Related BCs
 
 - BC-2.20.002 — composes with (next rejection: version byte ≠ 0x03 when len ≥ 4)
-- BC-2.20.003 — composes with (length field < 4 rejection path)
+- BC-2.20.003 — composes with (length field < 7 rejection path)
 - BC-2.20.004 — composes with (accept path: `data.len() >= 4`, version valid, length valid)
 - BC-2.20.013 — depends on (carry-buffer stash behavior when this function returns `None` mid-walk)
 

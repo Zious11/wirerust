@@ -102,7 +102,7 @@ IEC-104's `0x68` start-byte resync anchor.
 ## Related BCs
 
 - BC-2.20.001 — composes with (length-reject path, evaluated before this check)
-- BC-2.20.003 — composes with (length field < 4 rejection path, evaluated after version passes)
+- BC-2.20.003 — composes with (length field < 7 rejection path, evaluated after version passes)
 - BC-2.20.004 — composes with (accept path)
 - BC-2.20.015 — depends on (resync anchor semantics reuse this exact version-byte check)
 

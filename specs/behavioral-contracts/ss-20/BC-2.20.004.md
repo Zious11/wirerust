@@ -70,7 +70,7 @@ accept path composing the three reject paths of BC-2.20.001/002/003.
    out in the F2 authoring scope) is a legal accept — see BC-2.20.014 for why this
    maximum coincides exactly with the carry-buffer ceiling.
 3. **Total ordering of the three reject paths**: BC-2.20.001 (too-short input),
-   BC-2.20.002 (bad version), and BC-2.20.003 (length `< 4`) together with this BC's
+   BC-2.20.002 (bad version), and BC-2.20.003 (length `< 7`) together with this BC's
    accept path are jointly exhaustive and mutually exclusive over all possible `data`
    inputs — every call to `parse_tpkt_header` falls into exactly one of these four BCs.
 

@@ -420,3 +420,7 @@ remains OPEN in F4 convergence — this is not a completion or phase-gate
 event.
 
 ---
+
+**Burst note (2026-09-06):** In-flight STORY-184 F4 adversarial remediation, partial-fix-regression sweep completion — not a phase transition, no D-number/phase change. The prior burst above applied the RFC-1006 §6 min-length 4→7 correction but left stale `< 4` / `[4,65535]` references in BC-2.20.001's VP-row and Related-BCs section, BC-2.20.002's Related-BCs section, and BC-2.20.004's Related-BCs prose (BC-2.20.003 was already fully correct); this burst closes that gap. Cascade rehash via `bin/compute-input-hash --write` (canonical tool only): STORY-184 and STORY-194 rewritten (both cite the amended BCs as inputs); BC files' own `input-hash` unchanged (`cf116b5`, confirmed no-op — inputs are ADR-014 + ARCH-INDEX.md, not the BC body). Post-sweep `--scan`: MATCH=125, STALE=22 — the 22-story background-stale set is unchanged.
+
+---

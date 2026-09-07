@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f1-delta-analysis.md
-input-hash: "24c7b1e"
+input-hash: "cd90b7f"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced (`todo!()` bodies + Red Gate density
