@@ -26,10 +26,7 @@
 //! - STORY-184 delivered the TPKT (RFC 1006) outer framing header: `TpktHeader` and
 //!   `parse_tpkt_header` (BC-2.20.001–004; VP-048).
 //! - STORY-185 adds the COTP (ISO 8073 / ITU-T X.224) inner TPDU header:
-//!   `CotpHeader`, `CotpTpduType`, `parse_cotp_header` (BC-2.20.005–012; VP-049). Note:
-//!   as of this story, `parse_cotp_header`'s body is a Red-Gate `todo!()` stub — the
-//!   implementation lands in this same story's implementer step; only the frozen types
-//!   and signature are final here.
+//!   `CotpHeader`, `CotpTpduType`, `parse_cotp_header` (BC-2.20.005–012; VP-049).
 //!
 //! - `parse_tpkt_header` — 4-byte TPKT header parse; `None` on short/invalid input
 //!   (BC-2.20.001–004); VP-048 Kani target.

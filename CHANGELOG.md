@@ -21,6 +21,18 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   ahead of the COTP header parser (STORY-185) and the S7comm PDU dissector
   (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof harness
   (VP-048; execution deferred to STORY-194).
+- COTP (ISO 8073 / ITU-T X.224) TPDU header parsing: `parse_cotp_header` in
+  `src/analyzer/iso_on_tcp.rs` parses the COTP Length-Indicator-prefixed TPDU
+  header from the TPKT payload, classifying Connect Request, Connect Confirm,
+  and Data Transfer TPDUs by TPDU-code high nibble and extracting the
+  verbatim, uninterpreted upper-layer protocol-ID byte from Data Transfer
+  payloads — returning `None` for under-length input, a truncated
+  Length-Indicator-declared header, or an unrecognized TPDU-code high nibble
+  (BC-2.20.005-012, STORY-185, ADR-014). Continues the standalone,
+  protocol-agnostic pure-core free-function design established in STORY-184 —
+  no S7comm-specific interpretation of the extracted protocol-ID byte.
+  Includes a `#[cfg(kani)]` no-panic safety proof harness (VP-049; execution
+  deferred to STORY-194).
 
 ## [0.13.3] - 2026-09-05
 
