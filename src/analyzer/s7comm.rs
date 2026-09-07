@@ -268,7 +268,7 @@ impl S7commAnalyzer {
                         }
                     }
                     None => {
-                        // Bad version byte (or a rejected length field, EC-005): resync
+                        // Bad version byte (or a rejected length field, EC-004): resync
                         // via the shared 1-byte-advance sub-routine (BC-2.20.015),
                         // reused verbatim whether reached from an ordinary mid-stream
                         // reject or the post-carry-overflow fresh-start walk above

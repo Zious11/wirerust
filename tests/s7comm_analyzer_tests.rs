@@ -245,11 +245,13 @@ mod story_186 {
     /// EC-001, invariant 1).
     ///
     /// `carry_c2s` is seeded with a complete, conformant 65,535-byte max-length TPKT
-    /// frame (the largest frame the TPKT `length` field can ever represent) — the
-    /// concrete illustration of invariant 1's claim that "any legitimately conformant
-    /// single-frame residual can never exceed this bound". `on_data` is then called
-    /// with an empty delivery. Since `65,535 > 65,535` is false, the overflow reaction
-    /// (clear + resync + T0814) must never fire.
+    /// frame (the largest frame the TPKT `length` field can ever represent). `on_data`
+    /// is then called with an empty delivery: since `65,535 > 65,535` is false, the
+    /// overflow check on entry does not fire, so the walk proceeds and extracts the
+    /// frame in full — `carry_c2s` ends this call EMPTY, not retained unchanged. What
+    /// the test actually verifies is the strict-`>` at-bound boundary itself: a
+    /// complete, at-bound input must never trip the overflow reaction (clear + resync
+    /// + T0814), which it confirms via empty findings and an unset overflow dedup flag.
     ///
     /// Traces: BC-2.20.014 precondition 2, invariant 1, edge case EC-001; AC-186-004.
     #[test]
