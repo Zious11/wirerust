@@ -33,7 +33,7 @@ inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
   - docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md
   - .factory/cycles/feature-s7comm/f1-delta-analysis.md
-input-hash: "a97f298"
+input-hash: "24c7b1e"
 ---
 
 > **tdd_mode:** `strict` — full TDD Iron Law enforced (`todo!()` bodies + Red Gate density
@@ -58,8 +58,8 @@ valid 4-byte TPKT header.
 |-------|-------|-----------|
 | BC-2.20.001 | `parse_tpkt_header` Returns None for Input Shorter Than 4 Bytes | Reject path: length < 4 |
 | BC-2.20.002 | `parse_tpkt_header` Returns None for Version Byte != 0x03 | Reject path: bad version byte (also the SS-20 resync anchor) |
-| BC-2.20.003 | `parse_tpkt_header` Returns None for Length Field < 4 (Malformed, Includes Zero-Length) | Reject path: declared length below the 4-byte header minimum |
-| BC-2.20.004 | `parse_tpkt_header` Returns Some(TpktHeader) for Valid Input (Happy Path) | Accept path: `TpktHeader { version: 3, length }`, `length` in `[4, 65535]` |
+| BC-2.20.003 | `parse_tpkt_header` Returns None for Length Field < 7 (Malformed, Includes Zero-Length) | Reject path: declared length below the RFC 1006 §6 minimum of 7 |
+| BC-2.20.004 | `parse_tpkt_header` Returns Some(TpktHeader) for Valid Input (Happy Path) | Accept path: `TpktHeader { version: 3, length }`, `length` in `[7, 65535]` |
 
 ## Acceptance Criteria
 
@@ -80,9 +80,10 @@ valid 4-byte TPKT header.
 - No panic for any `u8` value of `data[0]` (traces to BC-2.20.002 invariant 2)
 - **Test:** `test_BC_2_20_002_returns_none_for_version_0x04_off_by_one_canonical_vector`
 
-### AC-184-003: `parse_tpkt_header` returns None for decoded length < 4
+### AC-184-003: `parse_tpkt_header` returns None for decoded length < 7
 (traces to BC-2.20.003 postcondition 1)
-- Given `data.len() >= 4`, `data[0] == 0x03`, and `u16::from_be_bytes([data[2], data[3]]) < 4`
+- Given `data.len() >= 4`, `data[0] == 0x03`, and `u16::from_be_bytes([data[2], data[3]]) < 7`
+  (RFC 1006 §6 minimum)
 - When `parse_tpkt_header(data)` is called
 - Then returns `None`; no panic or overflow for any `u16` length value, including `0`
   (traces to BC-2.20.003 invariant 2)
@@ -90,7 +91,9 @@ valid 4-byte TPKT header.
 
 ### AC-184-004: `parse_tpkt_header` returns Some(TpktHeader) for valid input
 (traces to BC-2.20.004 postcondition 1)
-- Given `data.len() >= 4`, `data[0] == 0x03`, and the decoded `length` in `[4, 65535]`
+- Given `data.len() >= 4`, `data[0] == 0x03`, and the decoded `length` in `[7, 65535]`
+  (`7` is the RFC 1006 §6 minimum accept floor — the 4-byte TPKT header plus the 3-byte
+  minimum COTP unit that must follow it)
 - When `parse_tpkt_header(data)` is called
 - Then returns `Some(TpktHeader { version: 3, length })` where `length` is exactly the
   big-endian `u16` decoded from `data[2..4]`
@@ -98,7 +101,7 @@ valid 4-byte TPKT header.
   (traces to BC-2.20.004 invariant 1)
 - `length == 65535` (the maximum representable `u16`, the "oversized-length-field" edge
   case) is a legal accept (traces to BC-2.20.004 invariant 2)
-- **Test:** `test_BC_2_20_004_valid_input_returns_some_header_length_4_canonical_vector`
+- **Test:** `test_BC_2_20_004_valid_input_returns_some_header_length_7_canonical_vector`
 
 ### AC-184-005: The four `parse_tpkt_header` outcomes are jointly exhaustive and mutually exclusive
 (traces to BC-2.20.004 invariant 3)
@@ -187,7 +190,7 @@ ADR-014 Decision 9 scope note: this harness covers `parse_tpkt_header` only.
       pure-core free fn:
   - `data.len() < 4` guard -> `None` (BC-2.20.001)
   - version check `data[0] != 0x03` -> `None` (BC-2.20.002)
-  - decoded length `< 4` -> `None` (BC-2.20.003)
+  - decoded length `< 7` -> `None` (BC-2.20.003; RFC 1006 §6 minimum)
   - accept path -> `Some(TpktHeader { version: 3, length })` (BC-2.20.004)
 - [ ] Write `#[cfg(kani)]` block with `verify_parse_tpkt_header_safety` skeleton
 - [ ] Write unit tests: one per AC; named `test_BC_2_20_001_*` .. `test_BC_2_20_004_*`
@@ -206,8 +209,8 @@ ADR-014 Decision 9 scope note: this harness covers `parse_tpkt_header` only.
 | EC-003 | BC-2.20.002 | `data[0] == 0x00` | `None` |
 | EC-004 | BC-2.20.002 | `data[0] == 0x04` (off-by-one from the valid version) | `None` — no leniency |
 | EC-005 | BC-2.20.003 | decoded `length == 0` (all-zero length field, most degenerate case) | `None` |
-| EC-006 | BC-2.20.003 | decoded `length == 3` (one less than minimum) | `None` |
-| EC-007 | BC-2.20.004 | decoded `length == 4` (exactly minimum — header-only TPKT packet) | `Some(TpktHeader{version:3, length:4})` |
+| EC-006 | BC-2.20.003 | decoded `length == 6` (one below the RFC 1006 §6 minimum of 7) | `None` |
+| EC-007 | BC-2.20.004 | decoded `length == 7` (exactly the RFC 1006 §6 minimum — the smallest frame with room for a minimal COTP unit) | `Some(TpktHeader{version:3, length:7})` |
 | EC-008 | BC-2.20.004 | decoded `length == 65535` (maximum representable `u16`) | `Some(TpktHeader{version:3, length:65535})` — accepted; stresses the carry-buffer ceiling introduced in STORY-186 |
 | EC-009 | BC-2.20.004 | `data[1]` (reserved byte) is non-zero, e.g. `0xFF` | Accepted identically to `data[1] == 0x00` — reserved byte never validated |
 | EC-010 | BC-2.20.004 | `data.len() > length as usize` (a second frame follows immediately) | `parse_tpkt_header` still returns `Some` for the first `length` bytes; frame-walk advance is a STORY-186 concern, not this function's |

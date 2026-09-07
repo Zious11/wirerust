@@ -75,17 +75,17 @@ applied here to the TPKT version byte instead of IEC-104's `0x68` start byte.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Bytes `[0x01, 0x03, 0x00, 0x00, 0x04]` — a spurious `0x01` immediately followed by a valid frame starting at offset 1 | 1-byte advance finds the valid frame at offset 1; a 2-byte advance would have skipped it entirely (landing at offset 2, `0x00`) |
+| EC-001 | Bytes `[0x01, 0x03, 0x00, 0x00, 0x07]` — a spurious `0x01` immediately followed by a valid frame starting at offset 1 | 1-byte advance finds the valid frame at offset 1; a 2-byte advance would have skipped it entirely (landing at offset 2, `0x00`) |
 | EC-002 | A long run of non-`0x03` garbage bytes (e.g. 200 bytes) followed by a valid frame | The resync walk advances 1 byte at a time through all 200 garbage bytes before finding the valid frame; no upper limit on resync-walk iterations within a single `on_data` call other than the input length itself |
 | EC-003 | No `0x03` byte exists anywhere in the remaining input | The walk advances to the end of the input; the (now-empty or sub-4-byte) remainder is stashed to carry per BC-2.20.013's ordinary incomplete-frame path |
-| EC-004 | A `0x03` byte exists but is itself the start of a frame with an invalid length field (`< 4`, BC-2.20.003) | The resync walk finds this `0x03` and attempts `parse_tpkt_header`, which returns `None` again (different reject reason); the walk continues advancing 1 byte past this `0x03` as well — it does not get stuck retrying the same offset |
+| EC-004 | A `0x03` byte exists but is itself the start of a frame with an invalid length field (`< 7`, BC-2.20.003) | The resync walk finds this `0x03` and attempts `parse_tpkt_header`, which returns `None` again (different reject reason); the walk continues advancing 1 byte past this `0x03` as well — it does not get stuck retrying the same offset |
 
 ## Canonical Test Vectors
 
 | Scenario | Input | Expected Behavior | Category |
 |----------|-------|--------------------|---------|
-| Adjacent spurious-then-valid | `[0x01, 0x03, 0x00, 0x00, 0x04]` | Frame found at offset 1 (`Some(TpktHeader{version:3, length:4})`); 0 bytes lost | legit: minimal resync distance |
-| Long garbage run | `[0xAA; 50]` followed by `[0x03, 0x00, 0x00, 0x04]` | Frame found at offset 50; all 50 garbage bytes consumed one at a time | legit: extended resync |
+| Adjacent spurious-then-valid | `[0x01, 0x03, 0x00, 0x00, 0x07]` | Frame found at offset 1 (`Some(TpktHeader{version:3, length:7})`); 0 bytes lost | legit: minimal resync distance |
+| Long garbage run | `[0xAA; 50]` followed by `[0x03, 0x00, 0x00, 0x07]` | Frame found at offset 50; all 50 garbage bytes consumed one at a time | legit: extended resync |
 | No valid anchor present | `[0xAA; 10]` (no `0x03` anywhere) | Walk exhausts all 10 bytes; nothing stashed to carry beyond what's left after the walk (here, nothing, since none of the 10 bytes form a parseable ≥4-byte remainder containing `0x03`) | non-conformant: no frame found |
 
 ## Verification Properties

@@ -296,3 +296,127 @@ BC-2.20.001/002/003/004/014, factory-side only. STORY-184 remains OPEN
 in F4 convergence — this is not a completion or phase-gate event.
 
 ---
+
+## Burst: STORY-184 F4 In-Flight RFC 1006 §6 Min-Length=7 Rework, Human Ruling (2026-09-06)
+
+**Not a phase transition.** STORY-184 (F4, wave 87) is still mid-convergence —
+this burst records a factory-side spec rework directed by explicit human
+ruling (RFC 1006 §6's stated packet-length minimum of 7 supersedes the prior
+`>=4` structural-floor threshold). No D-number bump, no Phase Progress row
+change, no `current_step`/phase edit; the convergence streak resets and
+Pass 1 re-runs next against the reworked threshold. The worktree code/test/
+CHANGELOG changes for the same rework are committed separately on the
+develop story branch as `a23fb6ba` — out of scope for this factory-artifacts
+burst.
+
+**Parent-commit:** `1611dbd7f0b73e76331ff9c41bb1ed8eebf0462f` ("factory:
+STORY-184 adversarial remediation — AC-citation sync (P1) + RFC-1006 §6
+correction & length-floor divergence rationale (P3) + cascade rehash") — the
+factory-artifacts HEAD immediately prior to this burst's commit. Per
+TD-VSDD-053, the current factory-artifacts HEAD is `git -C .factory log -1`,
+not a string cited in this artifact going forward.
+
+**Adversary verdict:** N/A — this burst is not an adversarial-pass
+remediation. It records a direct human ruling that retires the prior BC-
+2.20.003/004 "intentional `>=4` vs RFC-min-7 layering divergence" rationale
+(itself documented in the immediately-preceding burst above) and replaces
+`parse_tpkt_header`'s accept floor with the RFC 1006 §6-conformant minimum
+of 7. STORY-184's own convergence loop (adversarial Pass 1 remediation) is
+unaffected by this note and continues in a subsequent pass.
+
+**Files touched (Dim-1): 5 unique files**
+
+- `.factory/specs/behavioral-contracts/ss-20/BC-2.20.001.md` — additive
+  clarifying note distinguishing the 4-byte `data.len() < 4` **structural
+  read-guard** (this BC) from the 7-byte decoded-length **semantic floor**
+  (BC-2.20.003/004). No precondition/postcondition change. `input-hash`
+  unchanged (`cf116b5`, confirmed no-op — see Rehash below).
+- `.factory/specs/behavioral-contracts/ss-20/BC-2.20.003.md` — title and
+  threshold `length < 4` → `length < 7`; "Rationale Note" section rewritten
+  from "intentional `>=4` vs RFC-min-7 divergence" to "RFC 1006 §6-conformant
+  minimum" (human ruling, 2026-09-06, retires the prior divergence rationale);
+  edge cases EC-003..EC-007 and canonical test vectors renumbered/updated for
+  the new `4`/`5`/`6` reject band and `7` accept floor; composes-with note for
+  BC-2.20.004 updated to `[7, 65535]`; architecture-anchor planned-code
+  fragment updated to `if length < 7`. `input-hash` unchanged (`cf116b5`,
+  confirmed no-op — see Rehash below).
+- `.factory/specs/behavioral-contracts/ss-20/BC-2.20.004.md` — accept-range
+  precondition/description `[4, 65535]` → `[7, 65535]`; "Rationale Note"
+  rewritten to "Accept Floor is RFC 1006 §6-Conformant" (human ruling,
+  2026-09-06); EC-001 and canonical test vectors updated to the `length == 7`
+  minimum (the former `length == 4` happy-path vector removed as it is now a
+  reject case). `input-hash` unchanged (`cf116b5`, confirmed no-op).
+- `.factory/specs/behavioral-contracts/ss-20/BC-2.20.015.md` — EC-001 and
+  canonical test vectors' example byte sequences updated from `length == 4`
+  to `length == 7` for consistency with the new floor (stale
+  example/citation fix only — no semantic change to this BC's own resync
+  contract). `input-hash` unchanged (`cf116b5`, confirmed no-op).
+- `.factory/stories/STORY-184.md` — AC-184-003/AC-184-004 threshold prose
+  `< 4`/`[4, 65535]` → `< 7`/`[7, 65535]` (RFC 1006 §6 minimum), AC-184-004
+  `**Test:**` citation repointed to
+  `test_BC_2_20_004_valid_input_returns_some_header_length_7_canonical_vector`,
+  BC-summary table and Dev Notes/EC-006/EC-007 threshold prose swept
+  consistently; `input-hash` cascade-rewritten `a97f298`→`24c7b1e` (BC content
+  changed, see Rehash below).
+
+**Rehash (canonical tool only, `bin/compute-input-hash --write`):**
+- `BC-2.20.001/003/004/015` own `input-hash` fields: verified via the
+  canonical tool — **unchanged (no-op)**. Each BC's `input-hash` is computed
+  from the raw bytes of its own declared `inputs:` (`docs/adr/0014-...md` +
+  `ARCH-INDEX.md`), not from the BC's own body text; editing the BC's own
+  prose/thresholds does not alter either input file's bytes, so all 4
+  recomputed to the same stored value (`cf116b5`) — confirmed, not rewritten.
+- `STORY-184.md`: `a97f298` → `24c7b1e` (BC-2.20.001/003/004 are listed as
+  its `inputs:`; their raw bytes changed, invalidating the story's hash).
+- Cascade sweep via `bin/compute-input-hash --scan`: identified `STORY-186.md`
+  (cites `BC-2.20.015.md` as input) and `STORY-194.md` (re-verification
+  anchor citing `BC-2.20.001.md` as input) as newly cascade-stale. Rehashed
+  both: `STORY-186.md` `ce86f8c` → `87f3feb`; `STORY-194.md` `0444185` →
+  `7e8e4cb`. No content change to either story — hash-only cascade
+  correction.
+- Note on tooling: `docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md`
+  is one of the `inputs:` for these BCs/stories but is HELD uncommitted on
+  develop pending the first F4 implementation PR (F4-OBLIGATION-ADR014-CLAUDEMD,
+  carried forward since D-559/D-561). Its bytes are already committed,
+  byte-identical, on the develop story branch (commit `886bd3af`). The hash
+  tool requires the file to exist at the resolved repo-root path to read it;
+  it was read transiently from that commit to compute the hashes above, then
+  removed — `git status --porcelain` on develop was verified clean before
+  and after, and no develop-branch file was added, staged, or committed by
+  this burst.
+
+**Post-rehash verification:** `bin/compute-input-hash --scan` re-run after
+all rewrites: `STORY-184.md`/`STORY-186.md`/`STORY-194.md` all report MATCH;
+MATCH=125, STALE=22 — the STALE set is byte-for-byte identical to the
+pre-existing 22-story background-stale set (`STORY-001..005`, `STORY-076..080`,
+`STORY-129`, `STORY-157..159`, `STORY-161`, `STORY-164..165`, `STORY-175..179`)
+— unchanged, none newly introduced, none accidentally rewritten.
+
+**Codifications:** None — this burst is a factory-spec threshold-correction
++ canonical-hash-rebaseline burst driven by direct human ruling, not a
+process-gap codification event. No new PG-* entries; no policy changes.
+
+**Dim-2 Attestation:** N/A — no shell gates applicable. This burst edits
+Markdown spec/story prose and frontmatter only; no compilation or test
+execution was performed as part of this burst (the corresponding code-side
+rework and its test run live on the develop story branch as `a23fb6ba`, out
+of scope here).
+
+**Dim-5 Attestation:** N/A — no WASM binary changes. This burst writes only
+`.factory/` artifacts.
+
+**Dim-6 Attestation:** N/A — no source code or develop-branch changes. This
+burst commits exclusively to the factory-artifacts branch. The transient
+ADR-014 read (see tooling note above) touched no tracked or untracked state
+on develop after cleanup.
+
+**Dim-7 Attestation:** N/A — no test suite changes from this burst. Canonical
+input-hash integrity re-verified via `bin/compute-input-hash --scan` (see
+Post-rehash verification above).
+
+**Closes:** N/A — no adversarial finding ID closed by this burst; it is a
+direct human ruling applied ahead of the next adversarial pass. STORY-184
+remains OPEN in F4 convergence — this is not a completion or phase-gate
+event.
+
+---

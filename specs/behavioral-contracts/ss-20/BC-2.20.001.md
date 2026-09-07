@@ -37,6 +37,15 @@ byte), reserved (1 byte), and length (2 bytes, big-endian). When `data.len() < 4
 function returns `None` immediately without accessing any bytes. This is the
 length-reject path; the accept path is BC-2.20.004.
 
+**Clarifying note (threshold disambiguation):** the `4` in this BC's title is a
+**structural read-guard** — the minimum number of bytes present in `data` needed to even
+read the four TPKT header fields (version, reserved, length) without an out-of-bounds
+access. It is unrelated to, and must not be conflated with, the **decoded-length semantic
+floor of `7`** enforced by BC-2.20.003/BC-2.20.004, which governs the numeric value found
+*inside* the length field once the header has been successfully read. `data.len() < 4` is
+a read-guard failure (this BC); a decoded `length < 7` is a semantic-floor failure
+(BC-2.20.003) that only applies once `data.len() >= 4` and the version byte is valid.
+
 ## Preconditions
 
 1. `data` is a `&[u8]` slice of reassembled, in-order TCP bytes for a flow classified

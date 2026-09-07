@@ -26,21 +26,31 @@ inputs:
 input-hash: "cf116b5"
 ---
 
-# BC-2.20.003: `parse_tpkt_header` Returns None for Length Field < 4 (Malformed, Includes Zero-Length)
+# BC-2.20.003: `parse_tpkt_header` Returns None for Length Field < 7 (Malformed, Includes Zero-Length)
 
 ## Description
 
 The TPKT `length` field (`data[2..4]`, big-endian `u16`) is defined by RFC 1006 §6 as
-"length of entire packet in octets, including packet header." Since the header itself
-is 4 bytes, no valid TPKT packet can declare a length smaller than 4 — a length of `0`,
-`1`, `2`, or `3` is structurally impossible and is rejected as malformed. This is the
-zero-length / degenerate-length edge case called out in the F2 authoring scope.
+"length of entire packet in octets, including packet header." RFC 1006 §6 additionally
+states the packet-length minimum as `7` — the 4-byte TPKT header plus the 3-byte minimum
+COTP unit that must follow it. No valid TPKT packet can declare a length smaller than 7;
+a length of `0`, `1`, `2`, `3`, `4`, `5`, or `6` is structurally impossible (either
+smaller than the header itself, or too small to carry any COTP unit) and is rejected as
+malformed. This is the zero-length / degenerate-length edge case called out in the F2
+authoring scope.
+
+**Clarifying note (threshold disambiguation):** do not conflate this BC's decoded-length
+semantic floor (`7`) with BC-2.20.001's `data.len() < 4` **structural read-guard**. The
+`4`-byte guard in BC-2.20.001 only concerns whether enough bytes are present to read the
+header fields at all; it is unchanged. This BC's `7` threshold concerns the numeric value
+*decoded from* the length field, evaluated only once the header has already been
+successfully read and the version byte validated.
 
 ## Preconditions
 
 1. `data.len() >= 4`.
 2. `data[0] == 0x03` (version check already passed — see BC-2.20.002).
-3. The big-endian `u16` decoded from `data[2..4]` is `< 4`.
+3. The big-endian `u16` decoded from `data[2..4]` is `< 7`.
 
 ## Postconditions
 
@@ -55,27 +65,27 @@ zero-length / degenerate-length edge case called out in the F2 authoring scope.
 
 ## Invariants
 
-1. **Minimum valid length is 4** — a TPKT packet with zero payload is still exactly
-   4 bytes (header only); no smaller value is ever legal.
+1. **Minimum valid length is 7** — per RFC 1006 §6, a valid TPKT packet must contain the
+   4-byte TPKT header plus at least a 3-byte minimum COTP unit; no smaller declared
+   length is ever legal.
 2. **No arithmetic overflow**: decoding `data[2..4]` as `u16::from_be_bytes` cannot
-   overflow (fixed 2-byte read); the subsequent `< 4` comparison is total over all
+   overflow (fixed 2-byte read); the subsequent `< 7` comparison is total over all
    `u16` values.
 3. **Independent of version check**: this function evaluates the length-field bound
    only after the version byte (BC-2.20.002) has already been confirmed `0x03`; the two
    checks are independent preconditions that must both pass for BC-2.20.004's accept path.
 
-### Rationale Note: `>= 4` Threshold vs. RFC 1006 §6's Stated `min=7`
+### Rationale Note: RFC 1006 §6-Conformant Minimum (`min=7`)
 
-RFC 1006 §6 states the TPKT packet-length minimum as `7` (the 4-byte TPKT header plus a
-3-byte minimum COTP unit). `parse_tpkt_header` deliberately validates against `>= 4`
-instead — the TPKT header's own structural floor — not the RFC's semantic packet-level
-minimum. This is an intentional ADR-014 layering choice: the TPKT layer (this function)
-validates only structural framing (does the 4-byte header fit, is the declared length at
-least large enough to contain the header it prefixes); COTP-presence and full semantic
-packet validity (the `min=7` floor) are enforced by the COTP layer (SS-21), which
-composes on top of this function's output. This divergence from RFC §6's `min=7` is
-intentional and documented here for traceability; it does not change the `>= 4`
-threshold or any postcondition of this BC.
+RFC 1006 §6 states the TPKT packet-length minimum as `7` (the 4-byte TPKT header plus the
+3-byte minimum COTP unit that must follow it). `parse_tpkt_header` validates the decoded
+length field against exactly this `< 7` threshold, so any declared length of `4`, `5`, or
+`6` — previously accepted under a prior `>= 4` structural-only floor — is now rejected.
+This threshold is RFC 1006 §6-conformant: it is no longer a deliberate cross-layer
+divergence from the RFC's stated packet-level minimum, and there is no remaining gap for
+the COTP layer (SS-21) to backstop at the length-floor level. (Human ruling,
+2026-09-06: the previous "≥4 vs RFC-min-7 layering divergence" rationale is retired and
+replaced by this note.)
 
 ## Edge Cases
 
@@ -83,9 +93,11 @@ threshold or any postcondition of this BC.
 |----|-------------|-------------------|
 | EC-001 | `length == 0` (zero-length) | Returns `None` — cannot be smaller than the header itself |
 | EC-002 | `length == 1` | Returns `None` |
-| EC-003 | `length == 3` (one less than minimum) | Returns `None` |
-| EC-004 | `length == 4` (exactly minimum — header-only packet, no COTP payload) | Proceeds to accept path; see BC-2.20.004 |
-| EC-005 | `length` bytes are `[0x00, 0x00]` (all-zero length field, most degenerate case) | Returns `None` |
+| EC-003 | `length == 4` (former structural floor under the prior `>= 4` rule — now rejected under RFC 1006 §6 `min=7`) | Returns `None` |
+| EC-004 | `length == 5` | Returns `None` |
+| EC-005 | `length == 6` (one less than the RFC-conformant minimum) | Returns `None` |
+| EC-006 | `length == 7` (exactly minimum — 4-byte TPKT header + 3-byte minimum COTP unit, RFC 1006 §6 conformant) | Proceeds to accept path; see BC-2.20.004 |
+| EC-007 | `length` bytes are `[0x00, 0x00]` (all-zero length field, most degenerate case) | Returns `None` |
 
 ## Canonical Test Vectors
 
@@ -93,14 +105,15 @@ threshold or any postcondition of this BC.
 |--------------------|----------------|---------|
 | `[0x03, 0x00, 0x00, 0x00]` (length=0) | `None` | reject: zero-length |
 | `[0x03, 0x00, 0x00, 0x01]` (length=1) | `None` | reject: below minimum |
-| `[0x03, 0x00, 0x00, 0x03]` (length=3) | `None` | reject: below minimum |
-| `[0x03, 0x00, 0x00, 0x04]` (length=4) | `Some(TpktHeader{version:3, length:4})` | accept: minimum valid — see BC-2.20.004 |
+| `[0x03, 0x00, 0x00, 0x04]` (length=4) | `None` | reject: below RFC-conformant minimum (formerly accepted under prior `>= 4` floor) |
+| `[0x03, 0x00, 0x00, 0x06]` (length=6) | `None` | reject: one below minimum |
+| `[0x03, 0x00, 0x00, 0x07]` (length=7) | `Some(TpktHeader{version:3, length:7})` | accept: minimum valid (RFC 1006 §6 `min=7`) — see BC-2.20.004 |
 
 ## Verification Properties
 
 | Property | Proof Method (planned) |
 |----------|-------------------------|
-| For all decoded `length < 4`, `parse_tpkt_header` returns `None`; no panic or overflow for any `u16` length value | Kani P0 (per ADR-014 Decision 9) — VP-NNN allocation deferred to the F2 INTEGRATE sub-burst |
+| For all decoded `length < 7`, `parse_tpkt_header` returns `None`; no panic or overflow for any `u16` length value | Kani P0 (per ADR-014 Decision 9) — VP-NNN allocation deferred to the F2 INTEGRATE sub-burst |
 
 ## Traceability
 
@@ -118,12 +131,12 @@ threshold or any postcondition of this BC.
 
 - BC-2.20.001 — composes with (length-reject-by-input-size path, evaluated before this check)
 - BC-2.20.002 — composes with (version-reject path, evaluated before this check)
-- BC-2.20.004 — composes with (accept path: length in `[4, 65535]`)
+- BC-2.20.004 — composes with (accept path: length in `[7, 65535]`)
 - BC-2.20.014 — depends on (resync/dedup machinery for malformed frames mid-walk)
 
 ## Architecture Anchors
 
-- `src/analyzer/iso_on_tcp.rs` (planned) — `fn parse_tpkt_header`: `let length = u16::from_be_bytes([data[2], data[3]]); if length < 4 { return None }`
+- `src/analyzer/iso_on_tcp.rs` (planned) — `fn parse_tpkt_header`: `let length = u16::from_be_bytes([data[2], data[3]]); if length < 7 { return None }`
 - `docs/adr/0014-s7comm-iso-on-tcp-stream-dispatch-and-parser-design.md §Decision 1` — TPKT length field: "total TPKT packet length including this 4-byte header"
 
 ## Story Anchor
