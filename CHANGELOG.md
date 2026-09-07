@@ -7,6 +7,21 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- S7comm ISO-on-TCP framing groundwork: `parse_tpkt_header` in the new
+  `src/analyzer/iso_on_tcp.rs` module parses the 4-byte RFC 1006 TPKT header
+  (version byte, big-endian `u16` total length), returning `None` for
+  under-length input, a non-`0x03` version byte (checked before length decode,
+  the SS-20 resync anchor), or a decoded length below RFC 1006 §6's stated
+  minimum packet length of 7 (4-byte TPKT header + 3-byte minimum COTP) —
+  accept range is `[7, 65535]` (BC-2.20.001-004, STORY-184, ADR-014). This is
+  a standalone, protocol-agnostic pure-core free function — no
+  `StreamAnalyzer` impl, no per-flow state — laying the framing groundwork
+  ahead of the COTP header parser (STORY-185) and the S7comm PDU dissector
+  (STORY-186). Includes a `#[cfg(kani)]` no-panic safety proof harness
+  (VP-048; execution deferred to STORY-194).
+
 ## [0.13.3] - 2026-09-05
 
 ### Changed
