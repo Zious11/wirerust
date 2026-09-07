@@ -245,8 +245,17 @@ pub struct CotpHeader {
 /// no-panic/bounds-safety over symbolic input — its proof is executed in STORY-194
 /// (not run in this story).
 pub fn parse_cotp_header(tpkt_payload: &[u8]) -> Option<CotpHeader> {
-    let _ = tpkt_payload;
-    todo!("parse_cotp_header: implemented in STORY-185's implementer step (BC-2.20.005-012)")
+    if tpkt_payload.len() < 2 {
+        return None;
+    }
+    let li = tpkt_payload[0] as usize;
+    if tpkt_payload.len() < 1 + li {
+        return None;
+    }
+    todo!(
+        "parse_cotp_header: TPDU-type classification implemented in a later \
+         STORY-185 TDD step (BC-2.20.007-012)"
+    )
 }
 
 // ---------------------------------------------------------------------------
