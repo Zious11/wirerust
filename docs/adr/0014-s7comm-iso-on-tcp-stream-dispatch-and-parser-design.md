@@ -741,7 +741,7 @@ critical caveat) remains out of scope until F4 (Decision 10).
 | T0816 | Device Restart/Shutdown | Decoded `0x28` restart PI-service | Pre-existing EMITTED (ENIP); add S7comm call-site |
 | T0888 | Remote System Information Discovery | Userdata `0x07`/`0x04`/`0x01` Read SZL; `0x07`/`0x03`/* block-list | Pre-existing EMITTED (Modbus); add S7comm call-site |
 | T0846 | Remote System Discovery | Multi-host TCP/102 sweep evidence only | Pre-existing EMITTED (ENIP); emit only on sweep evidence |
-| T0814 | Denial of Service | Connection flood; malformed-length burst threshold | Pre-existing EMITTED; add S7comm call-site |
+| T0814 | Denial of Service | Connection flood; malformed-length burst threshold | Pre-existing EMITTED; add S7comm call-site (the carry-overflow call-site specifically is defense-in-depth / unreachable-by-construction — see Decision 8's reconciliation note and BC-2.20.014 v1.1) |
 | T1692.001 | Unauthorized Message: Command Message | Any command from a source outside an allowlist | Pre-existing EMITTED; co-tag only with positive unauthorized-source evidence |
 
 CWE set: CWE-306 (no authentication — classic S7comm has none), CWE-319 (cleartext

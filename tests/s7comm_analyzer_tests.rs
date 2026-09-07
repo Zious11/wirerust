@@ -28,8 +28,9 @@
 //! ## Provenance
 //! Authored Red-first as TDD stubs (STORY-186 `tdd_mode: strict`) against the `todo!()`
 //! bodies of `S7commAnalyzer::on_data`, `S7commAnalyzer::on_flow_close`, and
-//! `S7commAnalyzer::resync_one_byte` in `src/analyzer/s7comm.rs`. These tests MUST fail
-//! (by panic, since the bodies are `todo!()`) until the STORY-186 implementation lands.
+//! `S7commAnalyzer::resync_one_byte` in `src/analyzer/s7comm.rs`. The `todo!()` bodies
+//! were replaced by the STORY-186 implementation (commit 34e9b435); these tests are
+//! now GREEN against the landed STORY-186 implementation.
 //! The two BC-2.20.016 static regression-guard tests are architectural/structural checks
 //! (per BC-2.20.016's own "Verification Properties" note: "verified by code-review
 //! inspection and the regression-guard greps ... not by a runtime proof harness") and are
