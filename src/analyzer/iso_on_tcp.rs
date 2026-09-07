@@ -252,10 +252,33 @@ pub fn parse_cotp_header(tpkt_payload: &[u8]) -> Option<CotpHeader> {
     if tpkt_payload.len() < 1 + li {
         return None;
     }
-    todo!(
-        "parse_cotp_header: TPDU-type classification implemented in a later \
-         STORY-185 TDD step (BC-2.20.007-012)"
-    )
+    let payload_offset = 1 + li;
+    let tpdu_code = tpkt_payload[1];
+    match tpdu_code & 0xF0 {
+        0xE0 => Some(CotpHeader {
+            tpdu_type: CotpTpduType::ConnectRequest,
+            protocol_id: None,
+            payload_offset,
+        }),
+        0xD0 => Some(CotpHeader {
+            tpdu_type: CotpTpduType::ConnectConfirm,
+            protocol_id: None,
+            payload_offset,
+        }),
+        0xF0 => {
+            let protocol_id = if tpkt_payload.len() > payload_offset {
+                Some(tpkt_payload[payload_offset])
+            } else {
+                None
+            };
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id,
+                payload_offset,
+            })
+        }
+        _ => None,
+    }
 }
 
 // ---------------------------------------------------------------------------
