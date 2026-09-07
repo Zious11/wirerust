@@ -773,3 +773,703 @@ mod story_184 {
         }
     }
 }
+
+/// Tests for STORY-185: S7comm COTP TPDU-Type Parser (pure-core free function).
+///
+/// Covers BC-2.20.005 through BC-2.20.012 and the edge cases enumerated in each BC.
+///
+/// ## Contract coverage
+/// - BC-2.20.005: `parse_cotp_header` returns `None` for input shorter than 2 bytes.
+/// - BC-2.20.006: `parse_cotp_header` returns `None` when the Length Indicator (LI)
+///   declares more header bytes than are present (LI-truncation).
+/// - BC-2.20.007: `parse_cotp_header` recognizes Connect Request (CR) TPDUs
+///   (`tpkt_payload[1] & 0xF0 == 0xE0`), `protocol_id: None`.
+/// - BC-2.20.008: `parse_cotp_header` recognizes Connect Confirm (CC) TPDUs
+///   (`tpkt_payload[1] & 0xF0 == 0xD0`), `protocol_id: None`.
+/// - BC-2.20.009: `parse_cotp_header` recognizes Data Transfer (DT) TPDUs
+///   (`tpkt_payload[1] & 0xF0 == 0xF0`) with a non-empty payload and extracts
+///   `protocol_id` verbatim.
+/// - BC-2.20.010: `parse_cotp_header` recognizes DT TPDUs with an empty payload
+///   (`protocol_id: None`).
+/// - BC-2.20.011: `parse_cotp_header` returns `None` for an unrecognized TPDU-type
+///   code (high nibble not in `{0xE0, 0xD0, 0xF0}`); never force-fit.
+/// - BC-2.20.012: `protocol_id` is extracted verbatim, never interpreted (frozen SS-20
+///   to SS-21 boundary) — `parse_cotp_header` never compares the extracted byte
+///   against any specific value.
+///
+/// ## Test naming convention
+/// Tests follow `test_BC_S_SS_NNN_xxx()` for BC-traceable tests, matching the
+/// AC-185-00x `**Test:**` citations in STORY-185.md. The non_snake_case lint fires on
+/// uppercase BC IDs — suppressed by the file-level `#![allow(non_snake_case)]` at the
+/// top of this file, which applies crate-wide to this whole test binary.
+///
+/// ## Provenance
+/// Authored Red-first as TDD stubs (STORY-185 `tdd_mode: strict`; BC-2.20.005-012)
+/// against the `todo!()` stub in `src/analyzer/iso_on_tcp.rs`'s `parse_cotp_header`.
+/// These tests are expected to fail (compile, then panic on the `todo!()`) until the
+/// STORY-185 implementer step replaces the stub body; Red Gate verification
+/// (BC-5.38.001) runs `cargo test --test iso_on_tcp_tests` and requires every test in
+/// this module to fail while the pre-existing `story_184` module continues to pass.
+///
+/// ## Literal-avoidance note (BC-2.20.012 / AC-185-009)
+/// Per BC-2.20.012's frozen SS-20/SS-21 boundary, `protocol_id` is a raw, uninterpreted
+/// byte at this layer — S7comm (`0x32`) / S7comm-plus (`0x72`) disambiguation belongs to
+/// SS-21 (`S7commAnalyzer`, STORY-186+), not to this module or its tests. This test
+/// module therefore deliberately never writes the literal byte values `0x32` or `0x72`,
+/// nor the strings "S7comm"/"S7comm-plus", anywhere in source text — the totality sweep
+/// below (`test_BC_2_20_012_protocol_id_extraction_totality`) still exercises those two
+/// byte *values* at runtime (they arise dynamically from a `0u8..=255u8` loop), without
+/// either value ever appearing as a literal token in this file.
+///
+/// ## Canonical test vectors and the independent ISO 8073 holdout
+/// Most vectors below are canonical test vectors copied verbatim from BC-2.20.005-012.
+/// Per DF-CANONICAL-FRAME-HOLDOUT-001, the `test_iso8073_rfc905_*` holdout tests near
+/// the end of this module are authored independently of this project's BCs, derived
+/// directly from RFC 905 ("ISO Transport Protocol Specification ISO DP 8073" — a
+/// freely accessible IETF mirror of the ISO Transport Protocol text that the project's
+/// own BCs cite as ISO 8073 / ITU-T X.224), fetched and cross-checked against this
+/// project's BC citations while drafting this file. Citations below reference specific
+/// RFC 905 section numbers and Table 8 ("TPDU code") verified directly against the
+/// fetched document text, not assumed from memory.
+//
+// Per DF-TEST-NAMESPACE-001: all STORY-185 tests are grouped inside a dedicated
+// `mod story_185` wrapper to prevent test-function name collisions with other
+// stories' BC-prefixed names (in particular, the pre-existing `mod story_184` above).
+mod story_185 {
+    use wirerust::analyzer::iso_on_tcp::{CotpHeader, CotpTpduType, parse_cotp_header};
+
+    // =========================================================================
+    // BC-2.20.005: parse_cotp_header returns None for input shorter than 2 bytes
+    // AC-185-001
+    // =========================================================================
+
+    /// BC-2.20.005 canonical vectors: empty slice and one-byte slice both return None.
+    ///
+    /// Canonical vectors from BC-2.20.005: `[]` (0 bytes) -> None; `[0x02]` (1 byte,
+    /// EC-002) -> None. Precondition: `tpkt_payload.len() < 2`. Postcondition 2: no
+    /// bytes accessed beyond the length check, no panic even for `len() == 0` (EC-001).
+    ///
+    /// Traces: BC-2.20.005 postconditions 1-3; AC-185-001; EC-001; EC-002; canonical
+    /// test vectors.
+    #[test]
+    fn test_BC_2_20_005_len_shorter_than_2_returns_none() {
+        let result_empty = parse_cotp_header(&[]);
+        assert_eq!(
+            result_empty, None,
+            "empty tpkt_payload must return None (BC-2.20.005 postcondition 1, EC-001)"
+        );
+
+        let result_one_byte = parse_cotp_header(&[0x02]);
+        assert_eq!(
+            result_one_byte, None,
+            "1-byte tpkt_payload must return None (BC-2.20.005 canonical vector, EC-002)"
+        );
+    }
+
+    /// BC-2.20.005 invariant: no panic for any 0- or 1-byte input, including all-zero
+    /// and all-0xFF content.
+    ///
+    /// Traces: BC-2.20.005 invariants 1-3; AC-185-001.
+    #[test]
+    fn test_BC_2_20_005_invariant_no_panic_across_short_inputs() {
+        let inputs: &[&[u8]] = &[&[], &[0x00], &[0xFF], &[0x02]];
+        for &data in inputs {
+            let result = parse_cotp_header(data);
+            assert_eq!(
+                result,
+                None,
+                "input of len {} must return None for len < 2 (BC-2.20.005)",
+                data.len()
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.20.006: parse_cotp_header returns None when LI declares more bytes than
+    // are present (LI-truncation)
+    // AC-185-002
+    // =========================================================================
+
+    /// BC-2.20.006 canonical vectors: LI declares more remaining header bytes than
+    /// `tpkt_payload` actually contains.
+    ///
+    /// Canonical vectors from BC-2.20.006: `[0x06, 0xE0, 0x00, 0x01]` (LI=6, only 3
+    /// bytes follow the LI octet; EC-001, truncated CR header) -> None; `[0x02, 0xF0]`
+    /// (LI=2, only 1 byte follows; EC-002, truncated DT header) -> None.
+    ///
+    /// Traces: BC-2.20.006 postconditions 1-2; AC-185-002; EC-001; EC-002; canonical
+    /// test vectors.
+    #[test]
+    fn test_BC_2_20_006_li_truncation_returns_none() {
+        let truncated_cr: &[u8] = &[0x06, 0xE0, 0x00, 0x01];
+        assert_eq!(
+            parse_cotp_header(truncated_cr),
+            None,
+            "LI=6 declaring 6 more bytes with only 3 present must return None \
+             (BC-2.20.006 canonical vector, EC-001)"
+        );
+
+        let truncated_dt: &[u8] = &[0x02, 0xF0];
+        assert_eq!(
+            parse_cotp_header(truncated_dt),
+            None,
+            "LI=2 declaring 2 more bytes with only 1 present must return None \
+             (BC-2.20.006 canonical vector, EC-002)"
+        );
+    }
+
+    /// BC-2.20.006 invariant 2: no out-of-bounds index / panic for LI values spanning
+    /// the full `u8` range, including the maximum LI value (255).
+    ///
+    /// Traces: BC-2.20.006 invariant 2; AC-185-002.
+    #[test]
+    fn test_BC_2_20_006_invariant_no_panic_across_li_value_sample() {
+        for li in [0x01u8, 0x0A, 0x7F, 0xFE, 0xFF] {
+            let data: [u8; 3] = [li, 0xE0, 0x00];
+            let result = parse_cotp_header(&data);
+            assert_eq!(
+                result, None,
+                "LI={li:#04x} declaring more bytes than the 3-byte input contains must \
+                 return None with no panic (BC-2.20.006 invariant 2)"
+            );
+        }
+    }
+
+    /// BC-2.20.006 EC-003: `LI == 0` is a degenerate but not-truncated case
+    /// (`1 + 0 <= len`) — the truncation check passes and classification proceeds. The
+    /// TPDU-code byte (`tpkt_payload[1]`) doubles as the sole payload byte at
+    /// `payload_offset == 1`, since the fixed header contributes zero further bytes.
+    ///
+    /// Traces: BC-2.20.006 EC-003; AC-185-002 (boundary case demonstrating the
+    /// truncation guard does not over-reject `LI == 0`).
+    #[test]
+    fn test_BC_2_20_006_li_zero_not_truncated_proceeds_to_classification() {
+        let data: &[u8] = &[0x00, 0xF0];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0xF0),
+                payload_offset: 1,
+            }),
+            "LI=0 must not be rejected as truncated; classification proceeds to DT \
+             recognition with payload_offset == 1 (BC-2.20.006 EC-003)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.20.007: parse_cotp_header recognizes Connect Request (CR) TPDU
+    // AC-185-003
+    // =========================================================================
+
+    /// BC-2.20.007 canonical vector: minimal CR TPDU (`LI == 6`).
+    ///
+    /// Canonical vector from BC-2.20.007: `[0x06, 0xE0, 0x00, 0x00, 0x00, 0x01, 0x00]`
+    /// (LI=6, CR, DST-REF=0x0000, SRC-REF=0x0001, class=0) ->
+    /// `Some(CotpHeader{tpdu_type: ConnectRequest, protocol_id: None, payload_offset: 7})`.
+    ///
+    /// Traces: BC-2.20.007 postconditions 1-2; AC-185-003; EC-004; canonical test vector.
+    #[test]
+    fn test_BC_2_20_007_connect_request_recognized() {
+        let data: &[u8] = &[0x06, 0xE0, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectRequest,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "minimal CR TPDU must decode to ConnectRequest, protocol_id: None, \
+             payload_offset: 7 (BC-2.20.007 canonical vector)"
+        );
+    }
+
+    /// BC-2.20.007 EC-002: a non-zero low nibble on the TPDU-code byte (`0xE1`) does
+    /// not affect CR recognition — only the high nibble is inspected.
+    ///
+    /// Traces: BC-2.20.007 invariant 2; AC-185-003; EC-002.
+    #[test]
+    fn test_BC_2_20_007_connect_request_nonzero_low_nibble_still_recognized() {
+        let data: &[u8] = &[0x06, 0xE1, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectRequest,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "TPDU-code 0xE1 (non-zero low nibble) must still be recognized as CR \
+             (BC-2.20.007 EC-002, high-nibble-only discrimination)"
+        );
+    }
+
+    /// BC-2.20.007 postcondition 3: `protocol_id` is unconditionally `None` for a CR
+    /// TPDU, even when bytes are present in `tpkt_payload` beyond the fixed CR header.
+    ///
+    /// Uses a trailing byte (`0xAB`) beyond `payload_offset` to prove that no
+    /// upper-layer-payload interpretation is ever attempted for CR.
+    ///
+    /// Traces: BC-2.20.007 postcondition 3; AC-185-003.
+    #[test]
+    fn test_BC_2_20_007_connect_request_protocol_id_none_even_with_trailing_bytes() {
+        let data: &[u8] = &[0x06, 0xE0, 0x00, 0x00, 0x00, 0x01, 0x00, 0xAB];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectRequest,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "protocol_id must remain None for CR even with a trailing byte present \
+             beyond the fixed CR header (BC-2.20.007 postcondition 3)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.20.008: parse_cotp_header recognizes Connect Confirm (CC) TPDU
+    // AC-185-004
+    // =========================================================================
+
+    /// BC-2.20.008 canonical vector: minimal CC TPDU (`LI == 6`).
+    ///
+    /// Canonical vector from BC-2.20.008: `[0x06, 0xD0, 0x00, 0x01, 0x00, 0x00, 0x00]`
+    /// (LI=6, CC, DST-REF=0x0001, SRC-REF=0x0000, class=0) ->
+    /// `Some(CotpHeader{tpdu_type: ConnectConfirm, protocol_id: None, payload_offset: 7})`.
+    ///
+    /// Traces: BC-2.20.008 postconditions 1-3; AC-185-004; EC-004; canonical test vector.
+    #[test]
+    fn test_BC_2_20_008_connect_confirm_recognized() {
+        let data: &[u8] = &[0x06, 0xD0, 0x00, 0x01, 0x00, 0x00, 0x00];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectConfirm,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "minimal CC TPDU must decode to ConnectConfirm, protocol_id: None, \
+             payload_offset: 7 (BC-2.20.008 canonical vector)"
+        );
+    }
+
+    /// BC-2.20.008 EC-002: a non-zero low nibble on the TPDU-code byte (`0xD1`) does
+    /// not affect CC recognition.
+    ///
+    /// Traces: BC-2.20.008 invariant 2; AC-185-004; EC-002.
+    #[test]
+    fn test_BC_2_20_008_connect_confirm_nonzero_low_nibble_still_recognized() {
+        let data: &[u8] = &[0x06, 0xD1, 0x00, 0x01, 0x00, 0x00, 0x00];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectConfirm,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "TPDU-code 0xD1 (non-zero low nibble) must still be recognized as CC \
+             (BC-2.20.008 EC-002, high-nibble-only discrimination)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.20.009: parse_cotp_header recognizes DT with non-empty payload and
+    // extracts protocol_id
+    // AC-185-005
+    // =========================================================================
+
+    /// BC-2.20.009 canonical-vector-shaped test (EC-004 variant): minimal DT TPDU
+    /// (`LI == 2`) with a non-`0x32`/`0x72` protocol-ID byte (`0x01`, simulating an
+    /// MMS/ICCP or otherwise-unrecognized upper-layer protocol), extracted verbatim.
+    ///
+    /// Per this test module's literal-avoidance note, the canonical `0x32`/`0x72`
+    /// vectors from BC-2.20.009's own table are not reproduced verbatim here (that
+    /// would place the literals `0x32`/`0x72` in this file); EC-004's `0x01` vector is
+    /// used instead, which is equally a canonical BC-2.20.009 test vector.
+    ///
+    /// Traces: BC-2.20.009 postconditions 1-3; AC-185-005; EC-004; canonical test vector.
+    #[test]
+    fn test_BC_2_20_009_dt_nonempty_payload_extracts_protocol_id() {
+        let data: &[u8] = &[0x02, 0xF0, 0x80, 0x01];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0x01),
+                payload_offset: 3,
+            }),
+            "minimal DT TPDU with a non-empty payload must extract protocol_id \
+             verbatim, payload_offset: 3 (BC-2.20.009 canonical vector, EC-004)"
+        );
+    }
+
+    /// BC-2.20.009 postcondition 2: `protocol_id` is exactly the byte at
+    /// `tpkt_payload[payload_offset]` — only the first trailing byte, never a later one,
+    /// regardless of how many further bytes follow.
+    ///
+    /// Traces: BC-2.20.009 postcondition 2; AC-185-005.
+    #[test]
+    fn test_BC_2_20_009_dt_protocol_id_is_first_trailing_byte_only() {
+        let data: &[u8] = &[0x02, 0xF0, 0x80, 0x01, 0x02, 0x03, 0x04];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0x01),
+                payload_offset: 3,
+            }),
+            "protocol_id must be exactly tpkt_payload[payload_offset] (0x01), never a \
+             later trailing byte (BC-2.20.009 postcondition 2)"
+        );
+    }
+
+    /// BC-2.20.009 / BC-2.20.012 boundary values: the protocol-ID byte is extracted
+    /// verbatim at both `u8` extremes (`0x00` and `0xFF`), with identical `tpdu_type`
+    /// and `payload_offset` across both.
+    ///
+    /// Traces: BC-2.20.009 postcondition 2; BC-2.20.012 EC-003, EC-004; AC-185-005.
+    #[test]
+    fn test_BC_2_20_009_dt_protocol_id_extracted_for_boundary_byte_values() {
+        let data_min: &[u8] = &[0x02, 0xF0, 0x80, 0x00];
+        assert_eq!(
+            parse_cotp_header(data_min),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0x00),
+                payload_offset: 3,
+            }),
+            "protocol-ID byte 0x00 (minimum u8) must be extracted verbatim \
+             (BC-2.20.012 EC-004)"
+        );
+
+        let data_max: &[u8] = &[0x02, 0xF0, 0x80, 0xFF];
+        assert_eq!(
+            parse_cotp_header(data_max),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0xFF),
+                payload_offset: 3,
+            }),
+            "protocol-ID byte 0xFF (maximum u8) must be extracted verbatim \
+             (BC-2.20.012 EC-003)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.20.010: parse_cotp_header recognizes DT with empty payload —
+    // protocol_id is None
+    // AC-185-006
+    // =========================================================================
+
+    /// BC-2.20.010 canonical vector: minimal DT TPDU (`LI == 2`) with zero trailing
+    /// payload bytes (`tpkt_payload.len() == payload_offset` exactly).
+    ///
+    /// Canonical vector from BC-2.20.010: `[0x02, 0xF0, 0x80]` (LI=2, DT, TPDU-NR=0x80,
+    /// no trailing payload byte) ->
+    /// `Some(CotpHeader{tpdu_type: DataTransfer, protocol_id: None, payload_offset: 3})`.
+    ///
+    /// Traces: BC-2.20.010 postconditions 1-2; AC-185-006; EC-001; canonical test vector.
+    #[test]
+    fn test_BC_2_20_010_dt_empty_payload_protocol_id_none() {
+        let data: &[u8] = &[0x02, 0xF0, 0x80];
+        let result = parse_cotp_header(data);
+        assert_eq!(
+            result,
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: None,
+                payload_offset: 3,
+            }),
+            "minimal DT TPDU with zero trailing payload bytes must return \
+             protocol_id: None, payload_offset: 3 (BC-2.20.010 canonical vector)"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.20.011: parse_cotp_header returns None for an unrecognized TPDU-type code
+    // AC-185-007, AC-185-008
+    // =========================================================================
+
+    /// BC-2.20.011 canonical vectors: DR, DC, ER, and all-zero TPDU-code bytes are
+    /// never force-fit into CR/CC/DT.
+    ///
+    /// Canonical vectors from BC-2.20.011: `[0x02, 0x80, 0x00]` (DR-shaped) -> None;
+    /// `[0x02, 0xC0, 0x00]` (DC-shaped) -> None; `[0x02, 0x70, 0x00]` (ER-shaped) ->
+    /// None; `[0x02, 0x00, 0x00]` (all-zero) -> None.
+    ///
+    /// Traces: BC-2.20.011 postconditions 1-2; AC-185-007; EC-001, EC-002, EC-003,
+    /// EC-004; canonical test vectors.
+    #[test]
+    fn test_BC_2_20_011_unrecognized_tpdu_type_returns_none() {
+        let cases: &[(&[u8], &str)] = &[
+            (&[0x02, 0x80, 0x00], "DR-shaped (0x8_)"),
+            (&[0x02, 0xC0, 0x00], "DC-shaped (0xC_)"),
+            (&[0x02, 0x70, 0x00], "ER-shaped (0x7_)"),
+            (&[0x02, 0x00, 0x00], "all-zero TPDU-code byte"),
+        ];
+        for (data, label) in cases {
+            assert_eq!(
+                parse_cotp_header(data),
+                None,
+                "{label} must return None, never force-fit into CR/CC/DT \
+                 (BC-2.20.011 canonical vector)"
+            );
+        }
+    }
+
+    /// AC-185-008 / BC-2.20.011 invariant 3: the four-way TPDU-type match is
+    /// exhaustive and non-overlapping over all 16 possible high-nibble values of
+    /// `tpkt_payload[1]`. Every input below shares the same shape (`LI = 2`, 3 bytes
+    /// total: LI, TPDU-code, one trailing byte) so that CR/CC (no payload check) and DT
+    /// (payload check against `payload_offset == 3`, exactly satisfied by this 3-byte
+    /// shape) all reach a defined, well-typed outcome; the remaining 13 nibble values
+    /// must all reject.
+    ///
+    /// This is a unit-level spot check, not exhaustive over all `&[u8]` shapes (that is
+    /// the VP-049 Kani obligation, deferred to STORY-194) — it exhaustively covers the
+    /// 16-value high-nibble domain for one fixed input shape.
+    ///
+    /// Traces: BC-2.20.011 invariant 3; AC-185-008.
+    #[test]
+    fn test_BC_2_20_011_tpdu_type_match_is_exhaustive() {
+        for nibble in 0x0u8..=0xF {
+            let code_byte = nibble << 4;
+            let data: [u8; 3] = [0x02, code_byte, 0x00];
+            let result = parse_cotp_header(&data);
+            let expected = match nibble {
+                0xE => Some(CotpHeader {
+                    tpdu_type: CotpTpduType::ConnectRequest,
+                    protocol_id: None,
+                    payload_offset: 3,
+                }),
+                0xD => Some(CotpHeader {
+                    tpdu_type: CotpTpduType::ConnectConfirm,
+                    protocol_id: None,
+                    payload_offset: 3,
+                }),
+                0xF => Some(CotpHeader {
+                    tpdu_type: CotpTpduType::DataTransfer,
+                    protocol_id: None,
+                    payload_offset: 3,
+                }),
+                _ => None,
+            };
+            assert_eq!(
+                result, expected,
+                "high nibble {nibble:#x} must classify to exactly one outcome \
+                 (AC-185-008, BC-2.20.011 invariant 3)"
+            );
+        }
+    }
+
+    // =========================================================================
+    // BC-2.20.012: protocol_id is extracted verbatim, never interpreted
+    // AC-185-009
+    // =========================================================================
+
+    /// BC-2.20.012 postconditions 1-2: the protocol-ID extraction is a total identity
+    /// mapping over every possible `u8` value — an exhaustive sweep over all 256
+    /// values, not a random sample, so this totality claim is fully covered rather than
+    /// probabilistically covered. `tpdu_type` and `payload_offset` must stay constant
+    /// across the entire sweep; only `protocol_id` varies with the input byte.
+    ///
+    /// This sweep necessarily also exercises the two byte values a downstream SS-21
+    /// disambiguation table would treat specially, but neither value is ever written as
+    /// a literal token in this file (see the file-level literal-avoidance note) — both
+    /// arise only at runtime from the `0u8..=255u8` loop bound.
+    ///
+    /// Traces: BC-2.20.012 postconditions 1-2; invariant 2; AC-185-009.
+    #[test]
+    fn test_BC_2_20_012_protocol_id_extraction_totality() {
+        for byte in 0u8..=255u8 {
+            let data: [u8; 4] = [0x02, 0xF0, 0x80, byte];
+            let result = parse_cotp_header(&data);
+            assert_eq!(
+                result,
+                Some(CotpHeader {
+                    tpdu_type: CotpTpduType::DataTransfer,
+                    protocol_id: Some(byte),
+                    payload_offset: 3,
+                }),
+                "protocol_id extraction must be the identity function for byte \
+                 {byte:#04x} (BC-2.20.012 postcondition 1, exhaustive 256-value sweep)"
+            );
+        }
+    }
+
+    /// BC-2.20.012 postcondition 3 / AC-185-009 static regression guard: the source
+    /// file must contain zero occurrences of the literals `0x32` or `0x72` anywhere —
+    /// these are the classic-S7comm and S7comm-plus protocol-ID values respectively,
+    /// and their interpretation belongs entirely to `S7commAnalyzer` (SS-21), never to
+    /// this module's parsing logic.
+    ///
+    /// This is a whole-file substring check (not scoped to excluding doc comments): as
+    /// of this story, `src/analyzer/iso_on_tcp.rs` contains zero occurrences of either
+    /// literal anywhere, including in doc comments, so a whole-file check is the
+    /// correct, unambiguous regression guard — a future doc comment introducing either
+    /// literal would itself be exactly the kind of drift this guard exists to catch.
+    ///
+    /// Traces: BC-2.20.012 postcondition 3; AC-185-009 (static regression-guard test).
+    #[test]
+    fn test_BC_2_20_012_static_regression_guard_no_hardcoded_protocol_literals() {
+        let source = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/analyzer/iso_on_tcp.rs"
+        ))
+        .expect("src/analyzer/iso_on_tcp.rs must be readable for the regression guard");
+
+        // Constructed via concatenation so this file itself never contains the literal
+        // substrings "0x32"/"0x72" as contiguous text either.
+        let classic_s7comm_literal = ["0x", "32"].concat();
+        let s7comm_plus_literal = ["0x", "72"].concat();
+
+        assert!(
+            !source.contains(&classic_s7comm_literal),
+            "src/analyzer/iso_on_tcp.rs must not contain the literal {classic_s7comm_literal} \
+             anywhere (BC-2.20.012 postcondition 3) — S7comm disambiguation belongs to SS-21"
+        );
+        assert!(
+            !source.contains(&s7comm_plus_literal),
+            "src/analyzer/iso_on_tcp.rs must not contain the literal {s7comm_plus_literal} \
+             anywhere (BC-2.20.012 postcondition 3) — S7comm-plus disambiguation belongs to SS-21"
+        );
+    }
+
+    // =========================================================================
+    // DF-CANONICAL-FRAME-HOLDOUT-001: independent ISO 8073 holdout vectors.
+    //
+    // Unlike every vector above (which traces to this project's own BC-2.20.005-012
+    // text), the vectors below are derived directly from RFC 905 ("ISO Transport
+    // Protocol Specification ISO DP 8073"), an IETF-published, freely accessible
+    // mirror of the ISO Transport Protocol specification text — fetched directly and
+    // cross-checked line-by-line while drafting this file, independently of this
+    // project's own BC citations to ISO 8073 / ITU-T X.224.
+    //
+    // Verified citations (RFC 905, section numbers and Table 8 read directly from the
+    // fetched document text):
+    //   - §13.2 "Structure": TPDUs contain, in order, the LI field, the fixed part,
+    //     the variable part (if present), then the data field.
+    //   - §13.2.1 "Length indicator field": LI occupies the first octet of the TPDU;
+    //     its value is "the header length in octets including parameters, but
+    //     excluding the length indicator field and user data, if any."
+    //   - §13.2.2.2 "TPDU code": contained in octet 2 of the header.
+    //   - Table 8 "TPDU code" (page 115): CR = `1110 xxxx` (clause 13.3), CC =
+    //     `1101 xxxx` (clause 13.4), DR = `1000 0000` (clause 13.5), DT = `1111 0000`
+    //     (clause 13.7).
+    //   - §13.7.1 "Structure", format (a) "Normal format for Classes 0 and 1": DT TPDU
+    //     = LI | DT code (octet 2) | TPDU-NR and EOT (octet 3) | User Data (octet 4+).
+    // =========================================================================
+
+    /// ISO 8073 holdout: Table 8's `1110 xxxx` CR code and `1101 xxxx` CC code both
+    /// reserve bits 4-1 (the low nibble) for CDT signaling, confirming (independently
+    /// of BC-2.20.007/008's own EC-002 vectors) that only the high nibble discriminates
+    /// TPDU type — using different low-nibble values than either BC's canonical
+    /// vectors.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC
+    /// vector); RFC 905 §13.2.2.2, Table 8.
+    #[test]
+    fn test_iso8073_rfc905_table8_cr_cc_low_nibble_is_free_holdout() {
+        let cr_data: &[u8] = &[0x06, 0xEF, 0x00, 0x00, 0x00, 0x01, 0x00];
+        assert_eq!(
+            parse_cotp_header(cr_data),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectRequest,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "RFC 905 Table 8: CR code is 1110 xxxx — low nibble 0xF must not prevent \
+             CR recognition"
+        );
+
+        let cc_data: &[u8] = &[0x06, 0xDA, 0x00, 0x01, 0x00, 0x00, 0x00];
+        assert_eq!(
+            parse_cotp_header(cc_data),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectConfirm,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "RFC 905 Table 8: CC code is 1101 xxxx — low nibble 0xA must not prevent \
+             CC recognition"
+        );
+    }
+
+    /// ISO 8073 holdout: Table 8's Disconnect Request (DR) code is the fixed octet
+    /// `1000 0000` (clause 13.5) — a TPDU type this project's `CotpTpduType` (frozen to
+    /// exactly 3 variants) deliberately does not model. `parse_cotp_header` must reject
+    /// it, not force-fit it to the "closest" recognized type.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC
+    /// vector); RFC 905 §13.2.2.2, Table 8, clause 13.5.
+    #[test]
+    fn test_iso8073_rfc905_table8_dr_code_not_modeled_holdout() {
+        let data: &[u8] = &[0x02, 0x80, 0x00];
+        assert_eq!(
+            parse_cotp_header(data),
+            None,
+            "RFC 905 Table 8: DR (Disconnect Request) code 1000 0000 is not one of the \
+             3 frozen CotpTpduType variants and must return None"
+        );
+    }
+
+    /// ISO 8073 holdout: RFC 905 §13.7.1 format (a) ("Normal format for Classes 0 and
+    /// 1") defines the DT TPDU's fixed part as exactly 2 octets — the DT code (octet 2)
+    /// and the combined TPDU-NR/EOT byte (octet 3) — so `LI == 2` and user data begins
+    /// at octet 4, i.e. `payload_offset == 1 + LI == 3`. This vector uses a distinct
+    /// TPDU-NR/EOT byte (`0xC0`) and a distinct user-data byte (`0x99`) from every
+    /// BC-2.20.009/010 canonical vector, to independently confirm the LI-to-
+    /// payload-offset arithmetic rather than reusing a BC-derived byte pattern.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC
+    /// vector); RFC 905 §13.2.1, §13.7.1 format (a).
+    #[test]
+    fn test_iso8073_rfc905_s13_7_1_dt_class0_normal_format_holdout() {
+        let data: &[u8] = &[0x02, 0xF0, 0xC0, 0x99];
+        assert_eq!(
+            parse_cotp_header(data),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::DataTransfer,
+                protocol_id: Some(0x99),
+                payload_offset: 3,
+            }),
+            "RFC 905 §13.7.1 format (a): class-0 DT fixed part is exactly 2 octets \
+             (DT code + TPDU-NR/EOT), so payload_offset == 1 + LI == 3 and the trailing \
+             byte is the verbatim protocol-ID"
+        );
+    }
+
+    /// ISO 8073 holdout: RFC 905 §13.2.1 states the LI value "shall be the header
+    /// length in octets including parameters, but excluding the length indicator field
+    /// and user data" — i.e. LI counts everything in the header *after* the LI octet
+    /// itself. This vector reconstructs a minimal CR TPDU (fixed part = TPDU-code +
+    /// 2-byte DST-REF + 2-byte SRC-REF + 1-byte class/options = 6 octets, so `LI == 6`)
+    /// using DST-REF/SRC-REF values distinct from BC-2.20.007's own canonical vector,
+    /// to independently confirm `payload_offset == 1 + LI` rather than reusing a
+    /// BC-derived byte pattern.
+    ///
+    /// Traces: DF-CANONICAL-FRAME-HOLDOUT-001 (spec-independent holdout, not a BC
+    /// vector); RFC 905 §13.2.1, §13.2 structure diagram, clause 13.3.
+    #[test]
+    fn test_iso8073_rfc905_s13_2_1_li_excludes_itself_holdout() {
+        let data: &[u8] = &[0x06, 0xE3, 0xAA, 0xBB, 0xCC, 0xDD, 0x00];
+        assert_eq!(
+            parse_cotp_header(data),
+            Some(CotpHeader {
+                tpdu_type: CotpTpduType::ConnectRequest,
+                protocol_id: None,
+                payload_offset: 7,
+            }),
+            "RFC 905 §13.2.1: LI=6 counts the 6 octets of the CR fixed part following \
+             the LI octet itself, so payload_offset == 1 + LI == 7, independent of the \
+             DST-REF/SRC-REF byte values chosen"
+        );
+    }
+}
