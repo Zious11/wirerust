@@ -615,18 +615,29 @@ impl S7commAnalyzer {
 
     /// BC-2.21.002 postcondition 6 / BC-2.21.001 edge case EC-002:
     /// sticky-first-classification-wins. On the first DT frame observed for a flow
-    /// (any `protocol_id` value, including `None`), `classified_protocol` is set
-    /// exactly once, per ADR-014 Decision 2's four-row disambiguation table:
-    /// `Some(0x32)` -> `Classic`, `Some(0x72)` -> `Plus`, anything else (including
-    /// `None`) -> `Unclassified`. Subsequent DT frames on the same flow never
-    /// overwrite it, even if their `protocol_id` differs.
+    /// whose `protocol_id` is `Some(byte)`, `classified_protocol` is set exactly
+    /// once, per ADR-014 Decision 2's four-row disambiguation table: `Some(0x32)` ->
+    /// `Classic`, `Some(0x72)` -> `Plus`, any other `Some(byte)` -> `Unclassified`.
+    /// Subsequent DT frames on the same flow never overwrite it, even if their
+    /// `protocol_id` differs.
+    ///
+    /// A `protocol_id: None` DT frame (empty payload, BC-2.20.010) carries NO
+    /// protocol evidence and never classifies -- it does not consume the flow's
+    /// "first DT frame" status, so classification remains deferred to a later DT
+    /// frame (if any) that carries `Some(byte)` (F-02 ruling, human-ratified
+    /// 2026-09-24, BC-2.21.002 postcondition 6 / edge case EC-004).
     fn classify_first_dt_frame(state: &mut S7commFlowState, protocol_id: Option<u8>) {
+        let Some(byte) = protocol_id else {
+            // No protocol evidence; leaves classified_protocol (and "first DT
+            // frame" status) untouched regardless of its current value (F-02).
+            return;
+        };
         if state.classified_protocol.is_some() {
             return;
         }
-        let protocol = match protocol_id {
-            Some(0x32) => S7Protocol::Classic,
-            Some(0x72) => S7Protocol::Plus,
+        let protocol = match byte {
+            0x32 => S7Protocol::Classic,
+            0x72 => S7Protocol::Plus,
             _ => S7Protocol::Unclassified,
         };
         state.classified_protocol = Some(protocol);
