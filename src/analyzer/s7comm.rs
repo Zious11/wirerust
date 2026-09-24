@@ -287,12 +287,12 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
 /// 2026-09-24).
 ///
 /// Pure-core free function: no I/O, no global state, no side effects.
-#[allow(
-    unused_variables,
-    reason = "stub body — Stub Architect scope, round 2 (F-14)"
-)]
 pub fn s7comm_bounds_ok(header: &S7commHeader, data_len: usize) -> bool {
-    todo!()
+    let declared_total = header
+        .header_len
+        .checked_add(header.param_length as usize)
+        .and_then(|sum| sum.checked_add(header.data_length as usize));
+    matches!(declared_total, Some(total) if data_len >= total)
 }
 
 // ---------------------------------------------------------------------------
@@ -679,29 +679,21 @@ impl S7commAnalyzer {
             return;
         };
 
-        // BC-2.21.009: the declared param_length/data_length are bounds-checked
-        // against the bytes actually remaining in `payload` before any
-        // parameter/data-block slice is ever constructed. Checked arithmetic
-        // (BC-2.21.009 invariant 1) — `header_len` (10 or 12) plus two `u16` values
-        // cannot overflow `usize` on any wirerust target, but the checked form makes
-        // that safety explicit rather than assumed, and the release profile's
-        // `overflow-checks = true` would otherwise panic on any future regression.
-        let declared_total = header
-            .header_len
-            .checked_add(header.param_length as usize)
-            .and_then(|sum| sum.checked_add(header.data_length as usize));
-
-        match declared_total {
-            Some(total) if payload.len() >= total => {
-                // Bounds check passes. Function-code/Userdata classification
-                // (BC-2.21.010 onward) is out of this story's scope (STORY-188/189).
-            }
-            _ => {
-                // Declared lengths exceed the bytes actually present (or, in the
-                // unreachable overflow case, `checked_add` returned `None`) — treated
-                // identically to a malformed header (BC-2.21.009 postcondition 2).
-                Self::report_malformed_header(state, direction, ts, findings);
-            }
+        // BC-2.21.009 / F-14: the declared param_length/data_length are
+        // bounds-checked against the bytes actually remaining in `payload` before
+        // any parameter/data-block slice is ever constructed. Delegates to the
+        // extracted pure helper [`s7comm_bounds_ok`] rather than re-inlining the
+        // checked-arithmetic comparison here, so this call site and the VP-051
+        // Kani harness share a single source of truth for the bounds decision.
+        if s7comm_bounds_ok(&header, payload.len()) {
+            // Bounds check passes. Function-code/Userdata classification
+            // (BC-2.21.010 onward) is out of this story's scope (STORY-188/189).
+        } else {
+            // Declared lengths exceed the bytes actually present (or, in the
+            // unreachable overflow case, the sum would have overflowed `usize`) —
+            // treated identically to a malformed header (BC-2.21.009
+            // postcondition 2).
+            Self::report_malformed_header(state, direction, ts, findings);
         }
     }
 
