@@ -32,7 +32,7 @@
 //! protocol classification (F-02), and classic S7comm (`0x32`) header dissection
 //! gated on the flow's sticky `classified_protocol == Classic` (F-12) are fully
 //! wired. The `Some(0x72)` (S7comm-plus) and unrecognized/`None`-`protocol_id`
-//! branches remain deliberate `todo!()`-free structural no-ops — their observable
+//! branches remain deliberate, panic-free structural no-ops — their observable
 //! behavior is STORY-190's scope.
 //!
 //! ## Behavioral contracts
