@@ -215,12 +215,60 @@ pub struct S7commHeader {
 ///   else `None` (BC-2.21.008).
 /// - `data[1] ∉ {0x01, 0x02, 0x03, 0x07}` -> `None`, no force-fit (BC-2.21.007).
 ///
-/// Stub only (STORY-187 Stub Architect phase) — `todo!()` body. The Red Gate test
-/// suite (`test_BC_2_21_004_*` through `test_BC_2_21_008_*`) is written against this
-/// signature and is expected to fail until the Implementer step fills it in.
 pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
-    let _ = data;
-    todo!("BC-2.21.004-008: classic S7comm common header parse")
+    // BC-2.21.004: 10-byte minimum guard. No bytes beyond this check are accessed
+    // for any data.len() in [0, 9].
+    if data.len() < 10 {
+        return None;
+    }
+    // BC-2.21.005: defensive re-check of the protocol-ID byte (caller-hygiene, not
+    // a wire-observable anomaly — no Finding is emitted for this path).
+    if data[0] != 0x32 {
+        return None;
+    }
+
+    let pdu_reference = u16::from_be_bytes([data[4], data[5]]);
+    let param_length = u16::from_be_bytes([data[6], data[7]]);
+    let data_length = u16::from_be_bytes([data[8], data[9]]);
+
+    match data[1] {
+        // BC-2.21.006: Job / Ack_Data / Userdata — common 10-byte header.
+        0x01 | 0x03 | 0x07 => {
+            let rosctr = match data[1] {
+                0x01 => Rosctr::Job,
+                0x03 => Rosctr::AckData,
+                0x07 => Rosctr::Userdata,
+                _ => unreachable!("data[1] is one of 0x01/0x03/0x07 in this match arm"),
+            };
+            Some(S7commHeader {
+                rosctr,
+                pdu_reference,
+                param_length,
+                data_length,
+                error_class: None,
+                error_code: None,
+                header_len: 10,
+            })
+        }
+        // BC-2.21.008: Ack requires 12 bytes (10-byte common header + error
+        // class/code).
+        0x02 => {
+            if data.len() < 12 {
+                return None;
+            }
+            Some(S7commHeader {
+                rosctr: Rosctr::Ack,
+                pdu_reference,
+                param_length,
+                data_length,
+                error_class: Some(data[10]),
+                error_code: Some(data[11]),
+                header_len: 12,
+            })
+        }
+        // BC-2.21.007: unrecognized ROSCTR byte — safe-reject, no force-fit.
+        _ => None,
+    }
 }
 
 // ---------------------------------------------------------------------------
