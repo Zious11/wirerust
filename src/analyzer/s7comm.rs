@@ -684,6 +684,19 @@ impl S7commAnalyzer {
         ts: u32,
         findings: &mut Vec<Finding>,
     ) {
+        // F-15: this function is only ever reached from the `Some(0x32)` DT arm
+        // above, whose `payload` is `&tpkt_payload[header.payload_offset..]` with
+        // `header.protocol_id == Some(tpkt_payload[header.payload_offset])`
+        // (BC-2.20.009) -- i.e. `payload[0]` is always the already-classified
+        // protocol-ID byte. Debug-only self-check of that call-site invariant;
+        // never a production-reachable panic (release builds omit this entirely).
+        debug_assert_eq!(
+            payload.first(),
+            Some(&0x32u8),
+            "dispatch_classic_s7comm must only be called with a payload beginning \
+             at the already-classified 0x32 protocol-ID byte"
+        );
+
         let Some(header) = parse_s7comm_header(payload) else {
             // BC-2.21.004/007/008: length-reject or unrecognized-ROSCTR — malformed
             // header, dedup-guarded T0814.
