@@ -565,16 +565,28 @@ impl S7commAnalyzer {
             Some(header) => match header.tpdu_type {
                 iso_on_tcp::CotpTpduType::ConnectRequest => {
                     // Session tracking only, no protocol classification
-                    // (BC-2.21.002 postcondition 2). `S7commFlowState` carries no
-                    // dedicated "CR observed, awaiting CC" field (AC-187-001's field
-                    // set is exhaustive), so a bare CR alone leaves
-                    // `session_established` untouched.
+                    // (BC-2.21.002 postcondition 2). Records/updates the pending
+                    // CR direction so a later CC on this flow can be tested for
+                    // direction-opposite-ness (F-01 ruling, BC-2.21.001
+                    // postcondition 1) -- a bare CR alone never sets
+                    // `session_established` itself.
+                    state.cr_observed_dir = Some(direction);
                 }
                 iso_on_tcp::CotpTpduType::ConnectConfirm => {
                     // A CC observed on this flow marks the session established
-                    // (BC-2.21.001 postcondition 1, AC-187-003). No protocol
-                    // classification occurs here (BC-2.21.002 postcondition 2).
-                    state.session_established = true;
+                    // ONLY when a CR was previously recorded in the OPPOSITE
+                    // direction (F-01 ruling, BC-2.21.001 postcondition 1,
+                    // AC-187-003). A CC with no prior CR, a CC before any CR
+                    // (out-of-order -- matching is forward-looking from the CR
+                    // only, never retroactive from the CC), or a CC in the SAME
+                    // direction as the recorded CR all leave `session_established`
+                    // untouched. No protocol classification occurs here
+                    // (BC-2.21.002 postcondition 2).
+                    if let Some(cr_dir) = state.cr_observed_dir {
+                        if cr_dir != direction {
+                            state.session_established = true;
+                        }
+                    }
                 }
                 iso_on_tcp::CotpTpduType::DataTransfer => {
                     Self::classify_first_dt_frame(state, header.protocol_id);
