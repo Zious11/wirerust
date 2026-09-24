@@ -23,14 +23,17 @@
 //!   `carry.len() + incoming_data.len()` pre-check may exist anywhere (anti-evasion,
 //!   mirrors IEC-104 F-172-001 / DNP3 F-B-002).
 //!
-//! ## Scope of this story (STORY-186)
+//! ## Scope
 //!
-//! This story proves TPKT/COTP frame extraction, carry-buffer reassembly, and
-//! 1-byte resync only. Protocol-specific dispatch on the extracted
-//! `CotpHeader::protocol_id` (the four-way protocol-ID dispatch contract) is
-//! **not** built here — that is STORY-187's scope. `on_data`'s frame-walk loop
-//! dispatches each extracted frame to `iso_on_tcp::parse_cotp_header` and then stops;
-//! it does not yet interpret `protocol_id`.
+//! STORY-186 proved TPKT/COTP frame extraction, carry-buffer reassembly, and
+//! 1-byte resync. STORY-187 builds on that: `on_data`'s frame-walk loop now
+//! interprets `CotpHeader::protocol_id` via the four-way dispatch (BC-2.21.002) —
+//! CR/CC opposite-direction session tracking (F-01), sticky first-`Some(byte)`-wins
+//! protocol classification (F-02), and classic S7comm (`0x32`) header dissection
+//! gated on the flow's sticky `classified_protocol == Classic` (F-12) are fully
+//! wired. The `Some(0x72)` (S7comm-plus) and unrecognized/`None`-`protocol_id`
+//! branches remain deliberate `todo!()`-free structural no-ops — their observable
+//! behavior is STORY-190's scope.
 //!
 //! ## Behavioral contracts
 //! - BC-2.20.013: TPKT frames spanning TCP segment boundaries are reassembled via
@@ -42,8 +45,26 @@
 //! - BC-2.20.016: frozen `iso_on_tcp.rs` module boundary — verified by this module's
 //!   consumer relationship (SS-21 imports SS-20's pure functions; SS-20 gains no
 //!   knowledge of SS-21).
+//! - BC-2.21.001: `S7commFlowState` owns TPKT/COTP carry buffers, S7comm
+//!   classification state (`classified_protocol`, `cr_observed_dir`,
+//!   `session_established`), and per-direction malformed-header dedup flags.
+//! - BC-2.21.002: `S7commAnalyzer::on_data` four-way dispatch on
+//!   `CotpHeader::protocol_id` — CR/CC session tracking, sticky
+//!   first-classification-wins, and the classic-dissection sticky-classification
+//!   gate (F-12).
 //! - BC-2.21.003: `on_flow_close` removes `S7commFlowState` and discards all carry
 //!   bytes; no finding is emitted for a flow closing with non-empty carry buffers.
+//! - BC-2.21.004: `parse_s7comm_header` returns `None` for input shorter than 10
+//!   bytes.
+//! - BC-2.21.005: `parse_s7comm_header` defensively rejects `data[0] != 0x32`.
+//! - BC-2.21.006: `parse_s7comm_header` extracts the common header fields (ROSCTR,
+//!   PDU reference, parameter/data length) for Job/Ack_Data/Userdata.
+//! - BC-2.21.007: `parse_s7comm_header` returns `None` for an unrecognized ROSCTR
+//!   byte, no force-fit.
+//! - BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes and
+//!   extracts `error_class`/`error_code`.
+//! - BC-2.21.009: declared `param_length`/`data_length` are bounds-checked (via the
+//!   pure [`s7comm_bounds_ok`] helper) before any parameter/data-block slice.
 
 use std::collections::HashMap;
 
@@ -315,14 +336,17 @@ pub fn s7comm_bounds_ok(header: &S7commHeader, data_len: usize) -> bool {
 /// frame-walk loop built on SS-20's pure parse functions.
 ///
 /// Not yet registered with the dispatcher (`DispatchTarget::S7comm` wiring is
-/// STORY-193's scope) — this story creates the analyzer and proves extraction,
-/// carry management, and resync in isolation.
+/// STORY-193's scope) — TPKT/COTP frame extraction, carry management, and resync
+/// are proven in isolation, and `protocol_id` dispatch (session tracking, sticky
+/// classification, and gated classic-header dissection) is wired on top of it.
 #[derive(Debug, Default)]
 pub struct S7commAnalyzer {
     /// Per-flow state, keyed by the canonical [`FlowKey`].
     pub flows: HashMap<FlowKey, S7commFlowState>,
-    /// Findings accumulated across all flows processed by this analyzer (e.g. the
-    /// T0814 carry-overflow finding, BC-2.20.014 postcondition 3).
+    /// Findings accumulated across all flows processed by this analyzer: the T0814
+    /// carry-overflow finding (BC-2.20.014 postcondition 3) and the T0814
+    /// malformed classic-S7comm-header finding (parse failure or bounds-check
+    /// failure, BC-2.21.004/007/008/009, F-11).
     pub findings: Vec<Finding>,
 }
 
@@ -354,8 +378,11 @@ impl S7commAnalyzer {
     ///    [`Self::resync_one_byte`]) advances the cursor and retries.
     /// 4. Whatever remains after the loop terminates is stashed to `carry[direction]`.
     ///
-    /// This story's dispatch on `CotpHeader::protocol_id` is a no-op placeholder —
-    /// classification lands in STORY-187.
+    /// Each extracted frame's `CotpHeader` is then routed through the BC-2.21.002
+    /// four-way dispatch (see [`Self::dispatch_cotp_frame`]): CR/CC frames update
+    /// session-tracking state, and Data Transfer frames drive sticky protocol
+    /// classification and, for classic (`0x32`) S7comm on a sticky-Classic flow,
+    /// header dissection via [`parse_s7comm_header`].
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
@@ -550,15 +577,22 @@ impl S7commAnalyzer {
     /// `tpkt_payload` is `frame[4..]` (the bytes `parse_cotp_header` was called on);
     /// `cotp` is that call's result.
     ///
-    /// Per this story's scope, the `Some(0x32)` classic branch is fully wired to
-    /// [`Self::dispatch_classic_s7comm`], and the CR/CC session-tracking branch
-    /// (BC-2.21.002 postcondition 2) updates `session_established` on CC. The
-    /// `None`-from-`parse_cotp_header` branch (unclassified-gap, BC-2.21.028) and the
-    /// `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027) remain
-    /// structural no-ops with no divergent/panicking body — their observable behavior
-    /// is STORY-190's scope, per this story's Tasks list. The sticky-first-classification assignment
-    /// (BC-2.21.002 postcondition 6) for DT frames is fully wired via
-    /// [`Self::classify_first_dt_frame`] (AC-187-005).
+    /// The CR/CC session-tracking branch (BC-2.21.002 postcondition 2) updates
+    /// `session_established` only on a CC observed in the direction OPPOSITE a
+    /// previously-recorded CR on this flow (F-01 ruling, BC-2.21.001
+    /// postcondition 1) — a bare CR, a CC with no prior CR, an out-of-order CC, and
+    /// a same-direction CC all leave it untouched. The sticky-first-classification
+    /// assignment (BC-2.21.002 postcondition 6) for DT frames is fully wired via
+    /// [`Self::classify_first_dt_frame`] (AC-187-005; a `protocol_id: None` DT
+    /// frame never classifies, F-02). The `Some(0x32)` classic branch is fully
+    /// wired to [`Self::dispatch_classic_s7comm`], but gated on the flow's STICKY
+    /// `classified_protocol == Some(Classic)` (F-12, BC-2.21.002 postcondition 3 /
+    /// invariant 4) — a flow already sticky-classified `Plus`/`Unclassified` is
+    /// never dissected, even on a later `0x32`-leading DT frame. The
+    /// `None`-from-`parse_cotp_header` branch (unclassified-gap, BC-2.21.028) and
+    /// the `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027)
+    /// remain structural no-ops with no divergent/panicking body — their
+    /// observable behavior is STORY-190's scope.
     fn dispatch_cotp_frame(
         state: &mut S7commFlowState,
         cotp: Option<iso_on_tcp::CotpHeader>,
