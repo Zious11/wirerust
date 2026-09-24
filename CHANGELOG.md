@@ -7,20 +7,6 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-
-- S7comm: corrected the `MAX_S7_ISO_ON_TCP_CARRY_BYTES` doc comment
-  (`src/analyzer/s7comm.rs`), which incorrectly claimed a residual of exactly
-  65,535 bytes from a still-incomplete frame was reachable via `on_data`. Under
-  walk-first framing (BC-2.20.013), a fully-available `length = 65,535` frame is
-  extracted as complete rather than stashed to carry, so the maximum carry
-  residual reachable via real traffic is 65,534 bytes; the carry-overflow guard
-  is defense-in-depth against a future design regression, not a live detection
-  path (BC-2.20.014 v1.2 Invariant 1 / EC-001 / EC-006). Added a live near-bound
-  carry reassembly test and relabeled the existing at-bound (65,535) carry test
-  as synthetic direct-field-injection, matching its actual reachability
-  (FIX-STORY186-ATBOUND-RELABEL).
-
 ### Added
 
 - S7comm ISO-on-TCP framing groundwork: `parse_tpkt_header` in the new
@@ -70,6 +56,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   carry bytes with no finding emitted (BC-2.21.003). Protocol-specific
   dispatch on the extracted `protocol_id` is out of scope for this story
   (STORY-187).
+
+### Fixed
+
+- S7comm: corrected the `MAX_S7_ISO_ON_TCP_CARRY_BYTES` doc comment
+  (`src/analyzer/s7comm.rs`), which incorrectly claimed a residual of exactly
+  65,535 bytes from a still-incomplete frame was reachable via `on_data`. Under
+  walk-first framing (BC-2.20.013), a fully-available `length = 65,535` frame is
+  extracted as complete rather than stashed to carry, so the maximum carry
+  residual reachable via real traffic is 65,534 bytes; the carry-overflow guard
+  is defense-in-depth against a future design regression, not a live detection
+  path (BC-2.20.014 v1.2 Invariant 1 / EC-001 / EC-006). Added live near-bound
+  carry reassembly tests and relabeled the existing at-bound (65,535) carry test
+  as synthetic direct-field-injection, matching its actual reachability
+  (FIX-STORY186-ATBOUND-RELABEL).
 
 ## [0.13.3] - 2026-09-05
 

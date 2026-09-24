@@ -175,7 +175,10 @@ impl S7commAnalyzer {
             // frame-walk loop below stashes at most a declared-but-incomplete TPKT
             // frame to carry, and a TPKT `length` field is a `u16` (max 65,535 —
             // `MAX_S7_ISO_ON_TCP_CARRY_BYTES`), so the residual can equal but never
-            // exceed the bound; a bad-version-byte reject resyncs 1 byte at a time
+            // exceed 65,534 — one byte short of that literal bound, since a residual
+            // of exactly 65,535 would itself have been a complete, dispatchable frame
+            // on the walk that produced it (walk-first framing, BC-2.20.014
+            // Invariant 1); a bad-version-byte reject resyncs 1 byte at a time
             // rather than accumulating carry. BC-2.20.014 v1.1 formalizes this as
             // Invariant 5: the directional carry is provably `<= 65,534` bytes
             // on entry to `on_data` (strictly less than `MAX_S7_ISO_ON_TCP_CARRY_BYTES`,

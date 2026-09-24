@@ -250,12 +250,14 @@ mod story_186 {
     /// field assignment, with a complete, conformant 65,535-byte max-length TPKT
     /// frame constructed by `max_length_frame()` — bypassing the `on_data` walk-first
     /// path entirely. Under the walk-first design (BC-2.20.013), a residual of
-    /// exactly 65,535 bytes is UNREALIZABLE via real `on_data` traffic: a residual
-    /// that large is itself a complete, dispatchable TPKT frame and would be
-    /// extracted by the walk, not stashed to carry (BC-2.20.014 v1.2 Invariant 1). No
-    /// on_data call sequence can ever produce this precondition; this test exists
-    /// purely to pin the guard's strict-`>` comparison operator at the literal
-    /// boundary value.
+    /// exactly 65,535 bytes is UNREALIZABLE via real `on_data` traffic: nothing the
+    /// walk actually stashes to carry can be longer than 65,534 bytes (a declared
+    /// `length = 65,535` frame that is fully available is extracted whole on the
+    /// walk, not stashed), so a 65,535-byte residual can only arise via this kind of
+    /// direct synthetic injection, never through real frame walking (BC-2.20.014
+    /// v1.2 Invariant 1). No on_data call sequence can ever produce this
+    /// precondition; this test exists purely to pin the guard's strict-`>`
+    /// comparison operator at the literal boundary value.
     ///
     /// `on_data` is then called with an empty delivery: since `65,535 > 65,535` is
     /// false, the overflow check on entry does not fire, so the walk proceeds and
