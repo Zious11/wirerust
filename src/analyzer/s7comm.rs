@@ -238,24 +238,36 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
     let data_length = u16::from_be_bytes([data[8], data[9]]);
 
     match data[1] {
-        // BC-2.21.006: Job / Ack_Data / Userdata — common 10-byte header.
-        0x01 | 0x03 | 0x07 => {
-            let rosctr = match data[1] {
-                0x01 => Rosctr::Job,
-                0x03 => Rosctr::AckData,
-                0x07 => Rosctr::Userdata,
-                _ => unreachable!("data[1] is one of 0x01/0x03/0x07 in this match arm"),
-            };
-            Some(S7commHeader {
-                rosctr,
-                pdu_reference,
-                param_length,
-                data_length,
-                error_class: None,
-                error_code: None,
-                header_len: 10,
-            })
-        }
+        // BC-2.21.006: Job / Ack_Data / Userdata — common 10-byte header. ROSCTR
+        // mapped directly in each outer match arm (F-16) — no inner re-match, no
+        // panic site anywhere in this pure parser.
+        0x01 => Some(S7commHeader {
+            rosctr: Rosctr::Job,
+            pdu_reference,
+            param_length,
+            data_length,
+            error_class: None,
+            error_code: None,
+            header_len: 10,
+        }),
+        0x03 => Some(S7commHeader {
+            rosctr: Rosctr::AckData,
+            pdu_reference,
+            param_length,
+            data_length,
+            error_class: None,
+            error_code: None,
+            header_len: 10,
+        }),
+        0x07 => Some(S7commHeader {
+            rosctr: Rosctr::Userdata,
+            pdu_reference,
+            param_length,
+            data_length,
+            error_class: None,
+            error_code: None,
+            header_len: 10,
+        }),
         // BC-2.21.008: Ack requires 12 bytes (10-byte common header + error
         // class/code).
         0x02 => {
