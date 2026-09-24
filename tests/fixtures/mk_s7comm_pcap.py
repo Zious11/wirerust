@@ -10,8 +10,9 @@ STORY-187 scope (ADR-014 Decision 7 item 1, "first use in this story"): this
 generator hand-crafts the COTP session-establishment handshake (Connect Request /
 Connect Confirm) plus a Setup Communication (function 0xF0) Job/Ack_Data PDU pair
 and one further minimal classic Job/Ack_Data PDU pair — deliberately synthetic,
-dedicated CC0/MIT, following the `mk_modbus_pcap.py` precedent exactly (pure-Python
-libpcap/Ethernet/IPv4/TCP builders, no external pcap-writing library).
+dedicated CC0/MIT, following the `mk_modbus_large_pcap.py` precedent (per ADR-014
+Decision 7's own citation) (pure-Python libpcap/Ethernet/IPv4/TCP builders, no
+external pcap-writing library).
 
 No official public Siemens specification exists for classic S7comm (ADR-014
 Decision 4) — the wire layout used here (TPKT/COTP framing, the 10-byte classic
@@ -22,9 +23,9 @@ Wireshark's dissector source, Snap7, or libnodave (all GPL/LGPL-tainted). Zero l
 are borrowed from any external implementation.
 
 `S7commAnalyzer` is not yet registered with the dispatcher (STORY-193's scope), so
-this fixture is not yet consumed by any CLI/E2E test in this story — it establishes
-the generator and a committed synthetic capture for that later wiring, per ADR-014
-Decision 7 item 1.
+this fixture is not yet consumed by any CLI/E2E test in this story — it exists to
+prove out the generator per this story's File Structure Requirements, establishing a
+committed synthetic capture for that later wiring (ADR-014 Decision 7 item 1).
 
 Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
   1. [t=1_717_100_000] Client→Server SYN (TCP handshake — no payload)
@@ -42,11 +43,6 @@ Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
      0x03, empty parameter/data blocks)
   10. [t=1_717_100_009] Client→Server FIN-ACK
 
-This fixture is not yet asserted against by any test in STORY-187 (the S7comm
-analyzer is not wired to the dispatcher until STORY-193) — it exists to prove out
-the generator per this story's File Structure Requirements, for consumption by a
-later story's E2E test.
-
 Usage:
   python3 tests/fixtures/mk_s7comm_pcap.py
   # Writes tests/fixtures/s7comm-setup-comm.pcap
@@ -56,7 +52,7 @@ import struct
 import os
 
 # ---------------------------------------------------------------------------
-# libpcap file format helpers (verbatim structure, mirrors mk_modbus_pcap.py)
+# libpcap file format helpers (verbatim structure, mirrors mk_modbus_large_pcap.py)
 # ---------------------------------------------------------------------------
 
 PCAP_MAGIC_LE = 0xA1B2C3D4  # little-endian native, microsecond timestamps
@@ -89,7 +85,7 @@ def pcap_packet_header(ts_sec: int, caplen: int) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# Ethernet / IP / TCP frame builders (mirrors mk_modbus_pcap.py)
+# Ethernet / IP / TCP frame builders (mirrors mk_modbus_large_pcap.py)
 # ---------------------------------------------------------------------------
 
 CLIENT_MAC = bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x66])
@@ -209,13 +205,14 @@ def cotp_cc(dst_ref: int = 0x0001, src_ref: int = 0x0001) -> bytes:
 
 def cotp_dt(upper_payload: bytes, tpdu_number: int = 0x00) -> bytes:
     """
-    COTP Data Transfer (DT), TPDU code high-nibble 0xF0, low nibble carries the
-    end-of-TSDU (EOT) bit (set here — every DT in this fixture is a complete,
-    unsegmented TSDU). Fixed part: LI, code|EOT = 2 bytes total (LI=1).
+    COTP Data Transfer (DT), standard ISO 8073 class-0 fixed part: LI (1) +
+    code (1, 0xF0) + TPDU-NR+EOT (1) — the code and TPDU-NR+EOT bytes are
+    SEPARATE octets (LI=2, counting both bytes that follow the LI byte itself),
+    not merged into a single byte. The end-of-TSDU (EOT) bit is bit 7 of the
+    TPDU-NR+EOT byte — set here, since every DT in this fixture is a complete,
+    unsegmented TSDU — with bits 0-6 carrying the 7-bit TPDU sequence number.
     """
-    li = 1
-    fixed = bytes([li, 0xF0 | (tpdu_number & 0x0F) | 0x80])
-    return fixed + upper_payload
+    return bytes([0x02, 0xF0, 0x80 | (tpdu_number & 0x7F)]) + upper_payload
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +294,7 @@ PSH_ACK = 0x018  # PSH=0x008 | ACK=0x010
 def build_pcap() -> bytes:
     packets = []
 
-    # Base timestamp: 2024-05-30 ~22:33:20 UTC (Unix epoch 1717100000)
+    # Base timestamp: 2024-05-30 20:13:20 UTC (Unix epoch 1717100000)
     t0 = 1_717_100_000
 
     client_seq = 5000
