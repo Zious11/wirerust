@@ -9,29 +9,29 @@ Extraction, Resync, and the Frozen SS-20/SS-21 Module Boundary
 `S7commAnalyzer` in `src/analyzer/s7comm.rs`) — there is no CLI subcommand or web UI
 surface for S7comm yet (dispatcher wiring to the CLI is deferred to STORY-193). The
 demonstration vehicle is this story's own test harness: `tests/s7comm_analyzer_tests.rs`
-(18 tests) is the executable proof of each acceptance criterion.
+(20 tests) is the executable proof of each acceptance criterion.
 **Recording tool:** VHS 0.11.0 (terminal recordings of `cargo test --test
 s7comm_analyzer_tests`, filtered per behavior group)
 
 ---
 
-## Full Test Suite: 18/18 PASS
+## Full Test Suite: 20/20 PASS
 
 Command:
 ```
 cargo test --test s7comm_analyzer_tests
 ```
 
-Result: **18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in ~4.6s**
-(the 3 VP-050 proptests account for essentially all of the wall-clock time; the 15
+Result: **20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in ~4.4s**
+(the 3 VP-050 proptests account for essentially all of the wall-clock time; the 17
 unit/regression-guard tests each finish in under a millisecond).
 
-Top-level artifact (all 18 tests, grouped by module, shown in one recording):
+Top-level artifact (all 20 tests, grouped by module, shown in one recording):
 
 | Artifact | Description |
 |----------|-------------|
-| `AC-ALL-18-green.gif` / `AC-ALL-18-green.webm` | Full `s7comm_analyzer_tests` suite — 18/18 green |
-| `AC-ALL-18-green.tape` | VHS script for the master suite run |
+| `AC-ALL-20-green.gif` / `AC-ALL-20-green.webm` | Full `s7comm_analyzer_tests` suite — 20/20 green |
+| `AC-ALL-20-green.tape` | VHS script for the master suite run |
 
 ---
 
@@ -42,7 +42,8 @@ Top-level artifact (all 18 tests, grouped by module, shown in one recording):
 | AC-186-001 | Frame-walk loop extracts every complete TPKT frame before any byte-count bound is applied; no aggregate carry+incoming pre-check exists | BC-2.20.013 PC-1, PC-2, Inv-1 | `test_BC_2_20_013_walk_first_no_aggregate_precheck` | `AC-001-003-carry-reassembly.gif/.webm` | PASS |
 | AC-186-002 | Adversarial burst with a complete frame at the head is never dropped despite 60,000 bytes of trailing garbage (anti-evasion) | BC-2.20.013 Inv-1 | `test_BC_2_20_013_adversarial_burst_head_frame_not_dropped` | `AC-001-003-carry-reassembly.gif/.webm` | PASS |
 | AC-186-003 | Split-frame reassembly across two `on_data` calls — header-only partial stashed, then completed and carry emptied | BC-2.20.013 EC-002 | `test_BC_2_20_013_split_frame_across_two_calls` | `AC-001-003-carry-reassembly.gif/.webm` | PASS |
-| AC-186-004 | Carry buffer bounded at 65,535 bytes; at-bound residual (`== 65,535`) is legitimate, not overflow — **LIVE, reachable via real `on_data` traffic** (comparison is strict `>`, not `>=`) | BC-2.20.014 Inv-1, EC-001 | `test_BC_2_20_014_at_bound_residual_no_overflow` | `AC-004-006-defense-in-depth.gif/.webm` | PASS |
+| AC-186-004(a) | Carry buffer bounded at 65,535 bytes; at-bound residual (`== 65,535`) is legitimate, not overflow — **[SYNTHETIC]** seeded via direct flow-state injection; UNREACHABLE via real `on_data` traffic (a residual that large is itself a complete, dispatchable frame the walk-first loop would extract, not stash) (comparison is strict `>`, not `>=`) | BC-2.20.014 Inv-1, EC-006 | `test_BC_2_20_014_at_bound_residual_no_overflow` | `AC-004-006-defense-in-depth.gif/.webm` | PASS |
+| AC-186-004(b) | Carry buffer near-bound residual (65,534 bytes, one byte short of the guard constant) — **LIVE, reachable via real `on_data` traffic**, delivered both progressively across multiple calls and in a single call; never triggers overflow, and completing the frame extracts it and empties the carry | BC-2.20.014 Inv-1, EC-001, EC-002 | `test_BC_2_20_014_live_near_bound_residual_reachable`, `test_BC_2_20_014_live_near_bound_residual_single_call` | `AC-004-006-defense-in-depth.gif/.webm` | PASS |
 | AC-186-005 | **[DEFENSE-IN-DEPTH, SYNTHETIC]** Carry-overflow guard mechanics — clear-not-truncate, resync, exactly one T0814 per direction, dedup on repeat — exercised via direct flow-state injection, not via `on_data`; **plus** the positive on_data-driven unreachability proof (200,000-byte garbage flood emits no T0814, carry stays ≤ 65,534) | BC-2.20.014 PC-1, PC-3, PC-4, EC-004 | `test_BC_2_20_014_overflow_clear_resync_one_t0814_per_direction`, `test_BC_2_20_014_repeated_overflow_dedup_same_direction`, `test_BC_2_20_014_overflow_unreachable_via_on_data` | `AC-004-006-defense-in-depth.gif/.webm` | PASS |
 | AC-186-006 | **[DEFENSE-IN-DEPTH, SYNTHETIC]** Overflow dedup flags are independent per direction (c2s dedup has no bearing on s2c) — guard mechanics via direct flow-state injection | BC-2.20.014 PC-4, EC-005 | `test_BC_2_20_014_overflow_dedup_independent_per_direction` | `AC-004-006-defense-in-depth.gif/.webm` | PASS |
 | AC-186-007 | Resync advances exactly 1 byte per iteration on a bad TPKT version byte, never 2 | BC-2.20.015 PC-1, Inv-1 | `test_BC_2_20_015_resync_advances_exactly_one_byte` | `AC-007-009-resync.gif/.webm` | PASS |
@@ -81,9 +82,21 @@ walk-first + BC-2.20.015 1-byte-resync design, because the TPKT `length` field i
 u16-capped — the directional carry is bounded `≤ 65,534` bytes by construction for both
 conformant and adversarial input. Consequently:
 
-- **AC-186-004** (the at-bound case, `residual.len() == 65,535`) is **LIVE** —
-  reachable via real `on_data` traffic — and is recorded exercising the actual
-  `on_data` walk-first path (`test_BC_2_20_014_at_bound_residual_no_overflow`).
+- **AC-186-004(a)** (the at-bound case, `residual.len() == 65,535`) is **SYNTHETIC** —
+  `test_BC_2_20_014_at_bound_residual_no_overflow` seeds `carry_c2s` by direct
+  flow-state field injection, bypassing the `on_data` walk-first path entirely. A
+  residual of exactly 65,535 bytes is itself a complete, dispatchable TPKT frame that
+  the walk-first loop would extract on sight, not stash to carry — so this precondition
+  is UNREACHABLE via real `on_data` traffic. The test exists purely to pin the guard's
+  strict-`>` (not `>=`) comparison at the literal boundary value.
+- **AC-186-004(b)** (the near-bound case, `residual.len() == 65,534` — one byte short of
+  the guard constant, and the actual maximum residual reachable via real traffic) is
+  **LIVE** — reachable via real `on_data` traffic — and is recorded exercising the
+  actual `on_data` walk-first path via two tests:
+  `test_BC_2_20_014_live_near_bound_residual_reachable` (progressive multi-call
+  accumulation, BC-2.20.014 EC-002) and
+  `test_BC_2_20_014_live_near_bound_residual_single_call` (single-call delivery,
+  BC-2.20.014 EC-001).
 - **AC-186-005/006** (the over-bound guard mechanics — clear-not-truncate, resync,
   one-T0814-per-direction, per-direction dedup independence) are recorded as
   **SYNTHETIC**: the tests directly construct/inject an oversized `carry_c2s`/`carry_s2c`
@@ -97,9 +110,25 @@ conformant and adversarial input. Consequently:
   T0814 for either direction and keeps carry bounded `≤ 65,534` at every observation
   point — confirming the guard's precondition is not reached by real traffic.
 
-All three recordings for this group are captured together in
+All recordings for this group are captured together in
 `AC-004-006-defense-in-depth.gif/.webm`, with the comment line in the recording itself
-distinguishing the LIVE case from the SYNTHETIC cases.
+distinguishing the SYNTHETIC at-bound case, the LIVE near-bound cases, and the
+SYNTHETIC over-bound guard-mechanics cases.
+
+> **Correction note (2026-09-24, FIX-STORY186-ATBOUND-RELABEL; STORY-186 v1.2 /
+> BC-2.20.014 v1.2):** This report previously labeled AC-186-004 (the at-bound,
+> `residual.len() == 65,535` case) as LIVE. That was incorrect: a 65,535-byte residual
+> is unrealizable via real `on_data` traffic under the walk-first design (it would be
+> extracted as a complete frame, never left in carry), so
+> `test_BC_2_20_014_at_bound_residual_no_overflow` is SYNTHETIC direct-flow-state
+> injection — split out as AC-186-004(a) above, using the same synthetic-injection
+> convention as AC-186-005/006. Two new tests,
+> `test_BC_2_20_014_live_near_bound_residual_reachable` and
+> `test_BC_2_20_014_live_near_bound_residual_single_call`, were added to cover the
+> genuinely LIVE, `on_data`-reachable case: the 65,534-byte near-bound residual,
+> labeled AC-186-004(b) above. The full test suite grew from 18 to 20 tests as a
+> result; the all-green recording was re-captured and renamed from
+> `AC-ALL-18-green.{tape,gif,webm}` to `AC-ALL-20-green.{tape,gif,webm}` to match.
 
 ---
 
@@ -121,12 +150,12 @@ top-level full-suite run:
 | Artifact | Behavior group | ACs covered |
 |----------|----------------|-------------|
 | `AC-001-003-carry-reassembly.gif/.webm` | Walk-first carry-buffer reassembly, adversarial-burst anti-evasion, split-frame reassembly (BC-2.20.013) | AC-186-001, 002, 003 |
-| `AC-004-006-defense-in-depth.gif/.webm` | Carry bound + defense-in-depth overflow guard (live at-bound + synthetic guard mechanics + positive unreachability) (BC-2.20.014) | AC-186-004, 005, 006 |
+| `AC-004-006-defense-in-depth.gif/.webm` | Carry bound + defense-in-depth overflow guard (synthetic at-bound + live near-bound + synthetic guard mechanics + positive unreachability) (BC-2.20.014) | AC-186-004(a), 004(b), 005, 006 |
 | `AC-007-009-resync.gif/.webm` | 1-byte resync, never 2; shared implementation; termination (BC-2.20.015) | AC-186-007, 008, 009 |
 | `AC-010-011-module-boundary.gif/.webm` | Frozen SS-20/SS-21 module boundary static regression guards (BC-2.20.016) | AC-186-010, 011 |
 | `AC-012-flow-close.gif/.webm` | Flow-close teardown + double-close idempotency (BC-2.21.003) | AC-186-012 |
 | `VP-050-proptests.gif/.webm` | VP-050 proptest obligation (3 harnesses) | VP-050 |
-| `AC-ALL-18-green.gif/.webm` | Full suite, all 18 tests | All 12 ACs + VP-050 |
+| `AC-ALL-20-green.gif/.webm` | Full suite, all 20 tests | All 12 ACs + VP-050 |
 
 VHS recording settings: `FontFamily "Menlo"`, `Theme "Dracula"`, `Shell "bash"`. No
 absolute filesystem path or custom shell prompt is ever typed into any recording — VHS's
@@ -143,8 +172,8 @@ worktree's absolute path.
 | `AC-001-003-carry-reassembly.gif` | AC-186-001, AC-186-002, AC-186-003 |
 | `AC-001-003-carry-reassembly.webm` | AC-186-001, AC-186-002, AC-186-003 |
 | `AC-001-003-carry-reassembly.tape` | VHS source for the above |
-| `AC-004-006-defense-in-depth.gif` | AC-186-004 (live), AC-186-005 (synthetic + positive unreachability), AC-186-006 (synthetic) |
-| `AC-004-006-defense-in-depth.webm` | AC-186-004, AC-186-005, AC-186-006 |
+| `AC-004-006-defense-in-depth.gif` | AC-186-004(a) (synthetic), AC-186-004(b) (live), AC-186-005 (synthetic + positive unreachability), AC-186-006 (synthetic) |
+| `AC-004-006-defense-in-depth.webm` | AC-186-004(a), AC-186-004(b), AC-186-005, AC-186-006 |
 | `AC-004-006-defense-in-depth.tape` | VHS source for the above |
 | `AC-007-009-resync.gif` | AC-186-007, AC-186-008, AC-186-009 |
 | `AC-007-009-resync.webm` | AC-186-007, AC-186-008, AC-186-009 |
@@ -158,9 +187,9 @@ worktree's absolute path.
 | `VP-050-proptests.gif` | VP-050 (3 proptest harnesses) |
 | `VP-050-proptests.webm` | VP-050 |
 | `VP-050-proptests.tape` | VHS source for the above |
-| `AC-ALL-18-green.gif` | All 12 ACs + VP-050 (top-level, full suite) |
-| `AC-ALL-18-green.webm` | All 12 ACs + VP-050 |
-| `AC-ALL-18-green.tape` | VHS source for the above |
+| `AC-ALL-20-green.gif` | All 12 ACs + VP-050 (top-level, full suite) |
+| `AC-ALL-20-green.webm` | All 12 ACs + VP-050 |
+| `AC-ALL-20-green.tape` | VHS source for the above |
 | `evidence-report.md` | Index (this file) |
 
 ---
@@ -189,3 +218,8 @@ could echo a working-directory path) was configured in any tape; VHS's own defau
 minimal `>` prompt is used throughout instead.
 
 Gate status: **PASSED** (2026-09-07).
+
+Re-verified (2026-09-24, FIX-STORY186-ATBOUND-RELABEL): gate command re-run against
+`docs/demo-evidence/STORY-186/` after re-recording `AC-004-006-defense-in-depth.*` and
+`AC-ALL-20-green.*` — **zero content matches**. `bin/check-green-doc-tense` also run
+repo-wide: **PASS** (no stale RED-phase comment headers found).
