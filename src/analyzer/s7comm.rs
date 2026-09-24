@@ -757,9 +757,8 @@ impl S7commAnalyzer {
             // unreachable overflow case, the sum would have overflowed `usize`) —
             // treated identically to a malformed header (BC-2.21.009
             // postcondition 2). F-11: report the declared-vs-available byte counts.
-            let declared = header.header_len as u64
-                + header.param_length as u64
-                + header.data_length as u64;
+            let declared =
+                header.header_len as u64 + header.param_length as u64 + header.data_length as u64;
             let reason = format!(
                 "declared param_length/data_length exceed available bytes: \
                  declared {declared} (header_len={} + param_length={} + data_length={}), \

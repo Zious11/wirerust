@@ -58,40 +58,44 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   (STORY-187).
 - S7comm classic (`0x32`) header parsing and four-way `protocol_id` dispatch
   (`src/analyzer/s7comm.rs`, STORY-187, ADR-014 Decisions 2/9): `S7commFlowState`
-  gains `session_established`, `classified_protocol: Option<S7Protocol>`, and the
+  gains `session_established`, `cr_observed_dir: Option<Direction>`,
+  `classified_protocol: Option<S7Protocol>`, and the
   `malformed_header_reported_c2s`/`_s2c` dedup flags (BC-2.21.001). `on_data`'s
-  frame dispatch now branches on `CotpHeader::protocol_id` — a Connect Confirm
-  (CC) marks `session_established`; the first Data Transfer (DT) frame observed
-  on a flow sets `classified_protocol` exactly once (`Some(0x32)` -> `Classic`,
-  `Some(0x72)` -> `Plus`, anything else including `None` -> `Unclassified`),
-  sticky for the life of the flow (BC-2.21.002). A new pure-core free function,
-  `parse_s7comm_header`, extracts the classic S7comm common header (ROSCTR, PDU
-  reference, parameter/data length, big-endian `u16` fields) for Job/Ack_Data/
-  Userdata ROSCTR values, and the 12-byte Ack-specific extension (error class/
-  code) for the Ack ROSCTR — returning `None` for under-length input, a
-  defensively-rechecked non-`0x32` protocol-ID byte, an unrecognized ROSCTR
-  byte, or a truncated Ack (BC-2.21.004-008). The caller-side bounds check
-  (`header_len + param_length + data_length <= payload.len()`, computed with
-  checked arithmetic) rejects declared lengths that exceed the bytes actually
-  present before any parameter/data-block slice is attempted (BC-2.21.009).
+  frame dispatch now branches on `CotpHeader::protocol_id` (BC-2.21.002): a
+  Connect Request (CR) records the pending direction, and a Connect Confirm (CC)
+  marks `session_established` only when observed in the direction OPPOSITE a
+  previously-recorded CR on the same flow — a bare CR, a CC with no prior CR, an
+  out-of-order CC, and a same-direction CC all leave it `false`. The first Data
+  Transfer (DT) frame carrying a `Some(byte)` `protocol_id` sets
+  `classified_protocol` exactly once (`Some(0x32)` -> `Classic`, `Some(0x72)` ->
+  `Plus`, any other `Some(byte)` -> `Unclassified`), sticky for the life of the
+  flow; a `protocol_id: None` DT frame carries no protocol evidence and never
+  classifies, deferring classification to a later `Some(byte)` DT frame if any.
+  A new pure-core free function, `parse_s7comm_header`, extracts the classic
+  S7comm common header (ROSCTR, PDU reference, parameter/data length,
+  big-endian `u16` fields) for Job/Ack_Data/Userdata ROSCTR values, and the
+  12-byte Ack-specific extension (error class/code) for the Ack ROSCTR —
+  returning `None` for under-length input, a defensively-rechecked non-`0x32`
+  protocol-ID byte, an unrecognized ROSCTR byte, or a truncated Ack
+  (BC-2.21.004-008). Classic dissection (`parse_s7comm_header` call) fires only
+  when the current DT frame's `protocol_id == Some(0x32)` AND the flow's
+  STICKY `classified_protocol == Some(Classic)` — a flow already
+  sticky-classified `Plus`/`Unclassified` by an earlier DT frame is never
+  dissected, even on a later `0x32`-leading frame, per ADR-014 Decision 2's
+  no-misattribution guarantee. The declared `param_length`/`data_length` are
+  bounds-checked against the bytes actually available via a new pure,
+  crate-visible helper, `s7comm_bounds_ok(header: &S7commHeader, data_len:
+  usize) -> bool` (BC-2.21.009), before any parameter/data-block slice is
+  attempted — the same helper the VP-051 Kani harness calls directly.
   Malformed-header conditions (parse failure or bounds-check failure) emit one
   T0814 (Anomaly/Possible/Medium) per flow direction, deduplicated via the new
-  dedup flags. The `Some(0x72)` (S7comm-plus) and unrecognized/`None`
-  `protocol_id` branches remain `todo!()`-free structural no-ops; their
-  observable behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
+  dedup flags, with evidence text stating the specific reject reason (too
+  short, unrecognized ROSCTR, truncated Ack, or declared-vs-available byte
+  counts). The `Some(0x72)` (S7comm-plus) and unrecognized/`None`
+  `protocol_id` branches remain panic-free structural no-ops; their observable
+  behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
   bounds-safety skeleton and a partial VP-053 proptest dispatch-totality
   skeleton (both execution-deferred to STORY-194).
-- S7comm (`src/analyzer/s7comm.rs`, STORY-187 round-2 stub additions for the
-  per-story adversarial pass 1 rulings, human-ratified 2026-09-24):
-  `S7commFlowState` gains `cr_observed_dir: Option<Direction>`, the
-  pending-CR-direction tracking field the F-01 opposite-direction CR/CC
-  matching rule (BC-2.21.001 postcondition 1) requires. A new pure,
-  crate-visible helper, `s7comm_bounds_ok(header: &S7commHeader, data_len:
-  usize) -> bool` (BC-2.21.009, F-14), is stubbed (`todo!()` body) ahead of
-  the implementer extracting the existing caller-side bounds check into it,
-  so both the VP-051 Kani harness and the test suite can call it directly.
-  No dispatch behavior changes in this round — `cr_observed_dir` is not yet
-  read or written, and `s7comm_bounds_ok` is not yet called from `on_data`.
 
 ### Fixed
 
