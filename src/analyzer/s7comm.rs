@@ -594,10 +594,10 @@ impl S7commAnalyzer {
                     // direction as the recorded CR all leave `session_established`
                     // untouched. No protocol classification occurs here
                     // (BC-2.21.002 postcondition 2).
-                    if let Some(cr_dir) = state.cr_observed_dir {
-                        if cr_dir != direction {
-                            state.session_established = true;
-                        }
+                    if let Some(cr_dir) = state.cr_observed_dir
+                        && cr_dir != direction
+                    {
+                        state.session_established = true;
                     }
                 }
                 iso_on_tcp::CotpTpduType::DataTransfer => {
@@ -699,8 +699,13 @@ impl S7commAnalyzer {
 
         let Some(header) = parse_s7comm_header(payload) else {
             // BC-2.21.004/007/008: length-reject or unrecognized-ROSCTR — malformed
-            // header, dedup-guarded T0814.
-            Self::report_malformed_header(state, direction, ts, findings);
+            // header, dedup-guarded T0814. F-11: the specific reject reason (and,
+            // where applicable, declared-vs-available byte counts) is classified
+            // separately for evidence purposes only -- it never influences the
+            // accept/reject decision itself, which remains `parse_s7comm_header`'s
+            // sole responsibility.
+            let reason = Self::classify_malformed_header_reason(payload);
+            Self::report_malformed_header(state, direction, ts, findings, &reason);
             return;
         };
 
@@ -717,8 +722,51 @@ impl S7commAnalyzer {
             // Declared lengths exceed the bytes actually present (or, in the
             // unreachable overflow case, the sum would have overflowed `usize`) —
             // treated identically to a malformed header (BC-2.21.009
-            // postcondition 2).
-            Self::report_malformed_header(state, direction, ts, findings);
+            // postcondition 2). F-11: report the declared-vs-available byte counts.
+            let declared = header.header_len as u64
+                + header.param_length as u64
+                + header.data_length as u64;
+            let reason = format!(
+                "declared param_length/data_length exceed available bytes: \
+                 declared {declared} (header_len={} + param_length={} + data_length={}), \
+                 available {} (BC-2.21.009)",
+                header.header_len,
+                header.param_length,
+                header.data_length,
+                payload.len()
+            );
+            Self::report_malformed_header(state, direction, ts, findings, &reason);
+        }
+    }
+
+    /// F-11: classifies *why* [`parse_s7comm_header`] rejected `payload`, purely to
+    /// produce specific T0814 evidence text -- this classification never affects
+    /// the accept/reject decision itself, which remains `parse_s7comm_header`'s
+    /// sole responsibility (this function is only ever called after that function
+    /// has already returned `None` for the same `payload`).
+    fn classify_malformed_header_reason(payload: &[u8]) -> String {
+        if payload.len() < 10 {
+            return format!(
+                "header too short: {} byte(s) available, 10 required (BC-2.21.004)",
+                payload.len()
+            );
+        }
+        if payload[0] != 0x32 {
+            // Unreachable via dispatch_classic_s7comm's only call site (guarded by
+            // the debug_assert_eq! in that function, F-15) -- retained as a
+            // defensive fallback so this classifier never panics or mis-labels a
+            // future, differently-guarded call site.
+            return format!(
+                "unexpected protocol-ID byte 0x{:02x} (expected 0x32, BC-2.21.005)",
+                payload[0]
+            );
+        }
+        match payload[1] {
+            0x02 => format!(
+                "truncated Ack header: {} byte(s) available, 12 required (BC-2.21.008)",
+                payload.len()
+            ),
+            other => format!("unrecognized ROSCTR byte 0x{other:02x} (BC-2.21.007)"),
         }
     }
 
@@ -729,11 +777,19 @@ impl S7commAnalyzer {
     /// (truncated Ack), and BC-2.21.009 (declared-length/available-bytes mismatch),
     /// since all four conditions answer the same question: "was this frame's S7comm
     /// header/declared structure internally consistent?"
+    ///
+    /// `reason` (F-11) is the specific, human-readable cause -- e.g. "header too
+    /// short: 4 byte(s) available, 10 required" or "declared param_length/
+    /// data_length exceed available bytes: declared 20, available 10" -- computed
+    /// by the caller via [`Self::classify_malformed_header_reason`] (parse
+    /// failures) or inline (bounds-check failure). It never influences dedup or
+    /// the T0814 emission decision, only the finding's summary/evidence text.
     fn report_malformed_header(
         state: &mut S7commFlowState,
         direction: Direction,
         ts: u32,
         findings: &mut Vec<Finding>,
+        reason: &str,
     ) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
@@ -752,11 +808,11 @@ impl S7commAnalyzer {
             category: ThreatCategory::Anomaly,
             verdict: Verdict::Possible,
             confidence: Confidence::Medium,
-            summary: "Malformed classic S7comm header: the header could not be parsed, \
-                      or its declared param_length/data_length exceed the bytes \
-                      actually present (T0814; BC-2.21.004/007/008/009)"
-                .to_string(),
-            evidence: vec!["classic S7comm header parse/bounds check failed".to_string()],
+            summary: format!(
+                "Malformed classic S7comm header: {reason} (T0814; \
+                 BC-2.21.004/007/008/009)"
+            ),
+            evidence: vec![reason.to_string()],
             mitre_techniques: vec!["T0814".to_string()],
             source_ip: None,
             timestamp,
