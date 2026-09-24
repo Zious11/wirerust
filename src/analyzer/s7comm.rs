@@ -592,8 +592,22 @@ impl S7commAnalyzer {
                     Self::classify_first_dt_frame(state, header.protocol_id);
                     match header.protocol_id {
                         Some(0x32) => {
-                            let payload = &tpkt_payload[header.payload_offset..];
-                            Self::dispatch_classic_s7comm(state, payload, direction, ts, findings);
+                            // F-12 gate (BC-2.21.002 postcondition 3 / invariant 4):
+                            // classic dissection fires only when the flow's STICKY
+                            // classified_protocol is (or, by this very frame's own
+                            // first-classification above, becomes) Classic — never
+                            // merely because the current frame's raw protocol_id
+                            // byte is 0x32. A flow already sticky-classified Plus or
+                            // Unclassified by an earlier DT frame must never fall
+                            // into classic dissection, even on a later 0x32-leading
+                            // frame (ADR-014 Decision 2 no-misattribution guarantee,
+                            // F-12 ruling, human-ratified 2026-09-24).
+                            if state.classified_protocol == Some(S7Protocol::Classic) {
+                                let payload = &tpkt_payload[header.payload_offset..];
+                                Self::dispatch_classic_s7comm(
+                                    state, payload, direction, ts, findings,
+                                );
+                            }
                         }
                         Some(0x72) => {
                             // S7comm-plus framing-only path (BC-2.21.024/025/026) —
