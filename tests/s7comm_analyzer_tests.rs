@@ -240,20 +240,36 @@ mod story_186 {
     // overflow triggers clear-and-resync with one T0814 per direction.
     // =========================================================================
 
-    /// AC-186-004: a residual at exactly the 65,535-byte bound is legitimate, not
-    /// overflow — the comparison is strict `>`, never `>=` (BC-2.20.014 edge case
-    /// EC-001, invariant 1).
+    /// AC-186-004(a): [SYNTHETIC, unreachable via `on_data`] a residual at exactly the
+    /// literal 65,535-byte bound is legitimate, not overflow — the comparison is
+    /// strict `>`, never `>=` (BC-2.20.014 edge case EC-006, invariant 1).
     ///
-    /// `carry_c2s` is seeded with a complete, conformant 65,535-byte max-length TPKT
-    /// frame (the largest frame the TPKT `length` field can ever represent). `on_data`
-    /// is then called with an empty delivery: since `65,535 > 65,535` is false, the
-    /// overflow check on entry does not fire, so the walk proceeds and extracts the
-    /// frame in full — `carry_c2s` ends this call EMPTY, not retained unchanged. What
-    /// the test actually verifies is the strict-`>` at-bound boundary itself: a
-    /// complete, at-bound input must never trip the overflow reaction (clear + resync
-    /// + T0814), which it confirms via empty findings and an unset overflow dedup flag.
+    /// **SYNTHETIC direct field injection (BC-2.20.014 v1.2 / STORY-186 v1.2
+    /// consistency audit finding #2 — same synthetic direct-flow-state-injection
+    /// labeling convention as AC-186-005/006):** `carry_c2s` is seeded, by direct
+    /// field assignment, with a complete, conformant 65,535-byte max-length TPKT
+    /// frame constructed by `max_length_frame()` — bypassing the `on_data` walk-first
+    /// path entirely. Under the walk-first design (BC-2.20.013), a residual of
+    /// exactly 65,535 bytes is UNREALIZABLE via real `on_data` traffic: a residual
+    /// that large is itself a complete, dispatchable TPKT frame and would be
+    /// extracted by the walk, not stashed to carry (BC-2.20.014 v1.2 Invariant 1). No
+    /// on_data call sequence can ever produce this precondition; this test exists
+    /// purely to pin the guard's strict-`>` comparison operator at the literal
+    /// boundary value.
     ///
-    /// Traces: BC-2.20.014 precondition 2, invariant 1, edge case EC-001; AC-186-004.
+    /// `on_data` is then called with an empty delivery: since `65,535 > 65,535` is
+    /// false, the overflow check on entry does not fire, so the walk proceeds and
+    /// extracts the frame in full — `carry_c2s` ends this call EMPTY, not retained
+    /// unchanged. What the test actually verifies is the strict-`>` at-bound boundary
+    /// itself: a complete, at-bound input must never trip the overflow reaction
+    /// (clear + resync + T0814), which it confirms via empty findings and an unset
+    /// overflow dedup flag.
+    ///
+    /// See `test_BC_2_20_014_live_near_bound_residual_reachable` below for the LIVE,
+    /// `on_data`-reachable counterpart at the actual maximum reachable residual
+    /// (65,534 bytes).
+    ///
+    /// Traces: BC-2.20.014 invariant 1, edge case EC-006; AC-186-004(a).
     #[test]
     fn test_BC_2_20_014_at_bound_residual_no_overflow() {
         assert_eq!(
@@ -273,13 +289,178 @@ mod story_186 {
         assert!(
             analyzer.findings.is_empty(),
             "a residual of exactly 65,535 bytes must NOT trigger the overflow reaction \
-             (comparison is strict '>', not '>='; BC-2.20.014 invariant 1, EC-001)"
+             (comparison is strict '>', not '>='; BC-2.20.014 invariant 1, EC-006)"
         );
         let state = analyzer.flows.get(&flow_key).unwrap();
         assert!(
             !state.carry_overflow_reported_c2s,
             "the carry-overflow dedup flag must remain unset when the bound is merely \
-             met, not exceeded (BC-2.20.014 EC-001)"
+             met, not exceeded (BC-2.20.014 EC-006)"
+        );
+    }
+
+    /// AC-186-004(b): [LIVE, reachable via real `on_data`] the actual maximum residual
+    /// reachable via real traffic — 65,534 bytes, one byte short of the guard
+    /// constant — never triggers overflow, and completing the frame with its final
+    /// byte extracts it and empties the carry.
+    ///
+    /// Driven ONLY through public `on_data` calls (no direct field injection for
+    /// setup, unlike `test_BC_2_20_014_at_bound_residual_no_overflow` above). A TPKT
+    /// frame declaring `length = 65,535` (`max_length_frame()`) is delivered minus its
+    /// final byte, split across multiple `on_data` calls as progressive accumulation
+    /// (BC-2.20.014 edge case EC-002): the directional carry grows call by call, and
+    /// at every observation point — including every intermediate accumulation step —
+    /// it must hold exactly the bytes delivered so far, never trip the overflow
+    /// reaction, and leave the overflow dedup flag unset. Once the final byte is then
+    /// delivered via a subsequent `on_data` call, the frame is complete and must be
+    /// extracted, leaving the carry empty.
+    ///
+    /// Since this story's frame-walk loop dispatches extracted frames to
+    /// `iso_on_tcp::parse_cotp_header` and discards the result (`let _ = ...` in
+    /// `S7commAnalyzer::on_data` — STORY-187 wires classification/findings from this
+    /// dispatch), `self.findings` in this story's scope can only ever contain the
+    /// BC-2.20.014 T0814 carry-overflow finding. Asserting `analyzer.findings.is_empty()`
+    /// after final-byte extraction is therefore already the precise
+    /// carry-overflow/T0814-absence assertion, not a weaker "no findings of any kind"
+    /// check that happens to coincide.
+    ///
+    /// See `test_BC_2_20_014_live_near_bound_residual_single_call` below for the
+    /// single-call variant of this same maximum-residual case (BC-2.20.014 edge case
+    /// EC-001).
+    ///
+    /// Traces: BC-2.20.014 invariant 1, edge case EC-001, edge case EC-002;
+    /// BC-2.20.013; AC-186-004(b); VP-050 clause (c) (REACHABLE-BOUND INVARIANT).
+    #[test]
+    fn test_BC_2_20_014_live_near_bound_residual_reachable() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        let full_frame = max_length_frame(); // 65,535 bytes total (length field = 0xFFFF)
+        let incomplete = &full_frame[..full_frame.len() - 1]; // 65,534 bytes: one short
+        assert_eq!(incomplete.len(), MAX_S7_ISO_ON_TCP_CARRY_BYTES - 1);
+
+        // Progressive multi-call accumulation (EC-002): deliver the 65,534-byte
+        // near-bound residual across several segments/on_data calls, checking the
+        // carry length, empty findings, and unset dedup flag at every step.
+        let mut delivered = 0usize;
+        for chunk in incomplete.chunks(20_000) {
+            analyzer.on_data(flow_key.clone(), chunk, 0, Direction::ClientToServer);
+            delivered += chunk.len();
+
+            assert!(
+                analyzer.findings.is_empty(),
+                "no finding may be emitted while progressively accumulating a still- \
+                 incomplete, conformant max-length-frame residual via on_data \
+                 (BC-2.20.014 invariant 1, edge case EC-002)"
+            );
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                delivered,
+                "carry_c2s must hold exactly the bytes delivered so far at every \
+                 intermediate accumulation step (BC-2.20.014 edge case EC-002)"
+            );
+            assert!(
+                !state.carry_overflow_reported_c2s,
+                "the carry-overflow dedup flag must remain unset at every intermediate \
+                 accumulation step, including the peak of 65,534 bytes (BC-2.20.014 \
+                 edge case EC-002)"
+            );
+        }
+        assert_eq!(
+            delivered,
+            MAX_S7_ISO_ON_TCP_CARRY_BYTES - 1,
+            "sanity: the full 65,534-byte near-bound residual must have been delivered \
+             across the progressive on_data calls above"
+        );
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                65_534,
+                "after all-but-the-final-byte has been delivered, carry_c2s must hold \
+                 exactly 65,534 bytes — the maximum residual reachable via real \
+                 on_data traffic (BC-2.20.014 invariant 1, edge case EC-001)"
+            );
+        }
+
+        // Deliver the final byte: the frame completes and must be extracted, leaving
+        // carry_c2s empty (BC-2.20.014 edge case EC-002's final-byte-completion step).
+        let final_byte = &full_frame[full_frame.len() - 1..];
+        analyzer.on_data(flow_key.clone(), final_byte, 0, Direction::ClientToServer);
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "completing the near-bound frame with its final byte must not emit a \
+             carry-overflow/T0814 finding — the only finding type reachable in this \
+             story's scope (BC-2.20.014 edge case EC-002)"
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "the completed 65,535-byte frame must be extracted in full once its final \
+             byte arrives, leaving carry_c2s empty (BC-2.20.014 edge case EC-002; \
+             BC-2.20.013 postcondition 1a)"
+        );
+        assert!(
+            !state.carry_overflow_reported_c2s,
+            "the overflow dedup flag must remain unset throughout — this near-bound \
+             residual never overflows at any point (BC-2.20.014 invariant 1)"
+        );
+    }
+
+    /// AC-186-004(b): [LIVE, reachable via real `on_data`] single-call variant of
+    /// `test_BC_2_20_014_live_near_bound_residual_reachable` above — the 65,534-byte
+    /// near-bound residual arrives in one `on_data` call rather than progressively
+    /// accumulated across several (BC-2.20.014 edge case EC-001).
+    ///
+    /// Traces: BC-2.20.014 invariant 1, edge case EC-001; AC-186-004(b).
+    #[test]
+    fn test_BC_2_20_014_live_near_bound_residual_single_call() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        let full_frame = max_length_frame(); // 65,535 bytes total (length field = 0xFFFF)
+        let incomplete = &full_frame[..full_frame.len() - 1]; // 65,534 bytes: one short
+
+        analyzer.on_data(flow_key.clone(), incomplete, 0, Direction::ClientToServer);
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "a single-call delivery of the 65,534-byte near-bound residual must not \
+             emit any finding (BC-2.20.014 invariant 1, edge case EC-001)"
+        );
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.carry_c2s.len(),
+                65_534,
+                "carry_c2s must hold exactly 65,534 bytes after this single-call \
+                 delivery — the maximum residual reachable via real on_data traffic \
+                 (BC-2.20.014 edge case EC-001)"
+            );
+            assert!(
+                !state.carry_overflow_reported_c2s,
+                "the carry-overflow dedup flag must remain unset (BC-2.20.014 edge \
+                 case EC-001)"
+            );
+        }
+
+        // Deliver the final byte: the frame completes and must be extracted, leaving
+        // carry_c2s empty.
+        let final_byte = &full_frame[full_frame.len() - 1..];
+        analyzer.on_data(flow_key.clone(), final_byte, 0, Direction::ClientToServer);
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "completing the near-bound frame with its final byte must not emit a \
+             carry-overflow/T0814 finding (BC-2.20.014 edge case EC-001)"
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.carry_c2s.is_empty(),
+            "the completed 65,535-byte frame must be extracted in full once its final \
+             byte arrives, leaving carry_c2s empty (BC-2.20.013 postcondition 1a)"
         );
     }
 
