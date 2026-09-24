@@ -514,20 +514,15 @@ impl S7commAnalyzer {
     /// `tpkt_payload` is `frame[4..]` (the bytes `parse_cotp_header` was called on);
     /// `cotp` is that call's result.
     ///
-    /// ANTI-PRECEDENT GUARD / stub-architect scope note: per this story's own Tasks
-    /// list, only the `Some(0x32)` classic branch is "fully wired" — it is routed to
-    /// [`Self::dispatch_classic_s7comm`], itself a `todo!()` stub pending the
-    /// Implementer step. The `None`-from-`parse_cotp_header` branch (unclassified-gap,
-    /// BC-2.21.028), the CR/CC session-tracking branch (BC-2.21.002 postcondition 2),
-    /// and the `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027,
-    /// STORY-190 scope) are deliberately left as `todo!()`-free structural no-ops here
-    /// — the story text calls for exactly this for the STORY-190-owned branches, and
-    /// the same treatment is extended to the CR/CC branch so this stub does not
-    /// regress STORY-186's already-green frame-extraction tests (`cr_frame_7()` is a
-    /// CR frame; `max_length_frame()` yields a `None` COTP parse). The
-    /// sticky-first-classification assignment (BC-2.21.002 postcondition 6) for DT
-    /// frames is a `todo!()` stub ([`Self::classify_first_dt_frame`]) — no existing
-    /// STORY-186 test sends a DT frame, so this does not regress Red Gate either.
+    /// Per this story's scope, the `Some(0x32)` classic branch is fully wired to
+    /// [`Self::dispatch_classic_s7comm`], and the CR/CC session-tracking branch
+    /// (BC-2.21.002 postcondition 2) updates `session_established` on CC. The
+    /// `None`-from-`parse_cotp_header` branch (unclassified-gap, BC-2.21.028) and the
+    /// `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027) remain
+    /// structural no-ops with no divergent/panicking body — their observable behavior
+    /// is STORY-190's scope, per this story's Tasks list. The sticky-first-classification assignment
+    /// (BC-2.21.002 postcondition 6) for DT frames is fully wired via
+    /// [`Self::classify_first_dt_frame`] (AC-187-005).
     fn dispatch_cotp_frame(
         state: &mut S7commFlowState,
         cotp: Option<iso_on_tcp::CotpHeader>,
@@ -566,14 +561,15 @@ impl S7commAnalyzer {
                         }
                         Some(0x72) => {
                             // S7comm-plus framing-only path (BC-2.21.024/025/026) —
-                            // completed structurally in STORY-190. todo!()-free
-                            // placeholder no-op per this story's Tasks list.
+                            // completed structurally in STORY-190. Deliberate
+                            // no-divergent-body placeholder no-op per this story's
+                            // Tasks list.
                         }
                         _ => {
                             // Unrecognized protocol_id, or an empty DT payload
                             // (protocol_id: None, BC-2.20.010) — unclassified gap
-                            // (BC-2.21.027). todo!()-free placeholder no-op per this
-                            // story's Tasks list.
+                            // (BC-2.21.027). Deliberate no-divergent-body placeholder
+                            // no-op per this story's Tasks list.
                         }
                     }
                 }
@@ -608,8 +604,6 @@ impl S7commAnalyzer {
     /// bounds failures emit one T0814 per flow direction via
     /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001).
     ///
-    /// Stub only (STORY-187 Stub Architect phase) — `todo!()` body. Red Gate targets:
-    /// `test_BC_2_21_002_classic_s7comm_dispatch`, `test_BC_2_21_009_*`.
     fn dispatch_classic_s7comm(
         state: &mut S7commFlowState,
         payload: &[u8],
@@ -617,13 +611,78 @@ impl S7commAnalyzer {
         ts: u32,
         findings: &mut Vec<Finding>,
     ) {
-        // Wired per BC-2.21.002 postcondition 3: `parse_s7comm_header` is called on
-        // the DT payload slice beginning at `payload_offset`. `parse_s7comm_header`
-        // is itself a `todo!()` pure-core stub (BC-2.21.004-008), so this call
-        // diverges until the Implementer step; the BC-2.21.009 bounds check that
-        // would follow a `Some(header)` result is not yet reachable/written here.
-        let _ = (state, direction, ts, findings);
-        let _header = parse_s7comm_header(payload);
-        todo!("BC-2.21.009: caller-side bounds check + malformed-header T0814 dedup emission")
+        let Some(header) = parse_s7comm_header(payload) else {
+            // BC-2.21.004/007/008: length-reject or unrecognized-ROSCTR — malformed
+            // header, dedup-guarded T0814.
+            Self::report_malformed_header(state, direction, ts, findings);
+            return;
+        };
+
+        // BC-2.21.009: the declared param_length/data_length are bounds-checked
+        // against the bytes actually remaining in `payload` before any
+        // parameter/data-block slice is ever constructed. Checked arithmetic
+        // (BC-2.21.009 invariant 1) — `header_len` (10 or 12) plus two `u16` values
+        // cannot overflow `usize` on any wirerust target, but the checked form makes
+        // that safety explicit rather than assumed, and the release profile's
+        // `overflow-checks = true` would otherwise panic on any future regression.
+        let declared_total = header
+            .header_len
+            .checked_add(header.param_length as usize)
+            .and_then(|sum| sum.checked_add(header.data_length as usize));
+
+        match declared_total {
+            Some(total) if payload.len() >= total => {
+                // Bounds check passes. Function-code/Userdata classification
+                // (BC-2.21.010 onward) is out of this story's scope (STORY-188/189).
+            }
+            _ => {
+                // Declared lengths exceed the bytes actually present (or, in the
+                // unreachable overflow case, `checked_add` returned `None`) — treated
+                // identically to a malformed header (BC-2.21.009 postcondition 2).
+                Self::report_malformed_header(state, direction, ts, findings);
+            }
+        }
+    }
+
+    /// Emits one T0814 (Anomaly/Possible/Medium) for a malformed classic S7comm
+    /// header/bounds condition, deduplicated per flow direction via
+    /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001 postcondition 1) — shared
+    /// by BC-2.21.004 (too-short), BC-2.21.007 (unrecognized ROSCTR), BC-2.21.008
+    /// (truncated Ack), and BC-2.21.009 (declared-length/available-bytes mismatch),
+    /// since all four conditions answer the same question: "was this frame's S7comm
+    /// header/declared structure internally consistent?"
+    fn report_malformed_header(
+        state: &mut S7commFlowState,
+        direction: Direction,
+        ts: u32,
+        findings: &mut Vec<Finding>,
+    ) {
+        use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+        let reported = if direction == Direction::ClientToServer {
+            &mut state.malformed_header_reported_c2s
+        } else {
+            &mut state.malformed_header_reported_s2c
+        };
+        if *reported {
+            return;
+        }
+        *reported = true;
+
+        let timestamp = chrono::DateTime::from_timestamp(ts as i64, 0);
+        findings.push(Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Possible,
+            confidence: Confidence::Medium,
+            summary: "Malformed classic S7comm header: the header could not be parsed, \
+                      or its declared param_length/data_length exceed the bytes \
+                      actually present (T0814; BC-2.21.004/007/008/009)"
+                .to_string(),
+            evidence: vec!["classic S7comm header parse/bounds check failed".to_string()],
+            mitre_techniques: vec!["T0814".to_string()],
+            source_ip: None,
+            timestamp,
+            direction: Some(direction),
+        });
     }
 }
