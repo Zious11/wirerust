@@ -544,14 +544,18 @@ impl S7commAnalyzer {
                 // force-fit into a recognized branch.
             }
             Some(header) => match header.tpdu_type {
-                iso_on_tcp::CotpTpduType::ConnectRequest
-                | iso_on_tcp::CotpTpduType::ConnectConfirm => {
+                iso_on_tcp::CotpTpduType::ConnectRequest => {
                     // Session tracking only, no protocol classification
-                    // (BC-2.21.002 postcondition 2). The full CR-then-matching-CC
-                    // `session_established` semantics (AC-187-003) are left
-                    // unimplemented in this stub-architecture pass — a structural
-                    // no-op, matching STORY-186's original placeholder behavior, so
-                    // `cr_frame_7()`-based STORY-186 tests remain green.
+                    // (BC-2.21.002 postcondition 2). `S7commFlowState` carries no
+                    // dedicated "CR observed, awaiting CC" field (AC-187-001's field
+                    // set is exhaustive), so a bare CR alone leaves
+                    // `session_established` untouched.
+                }
+                iso_on_tcp::CotpTpduType::ConnectConfirm => {
+                    // A CC observed on this flow marks the session established
+                    // (BC-2.21.001 postcondition 1, AC-187-003). No protocol
+                    // classification occurs here (BC-2.21.002 postcondition 2).
+                    state.session_established = true;
                 }
                 iso_on_tcp::CotpTpduType::DataTransfer => {
                     Self::classify_first_dt_frame(state, header.protocol_id);
@@ -580,27 +584,20 @@ impl S7commAnalyzer {
     /// BC-2.21.002 postcondition 6 / BC-2.21.001 edge case EC-002:
     /// sticky-first-classification-wins. On the first DT frame observed for a flow
     /// (any `protocol_id` value, including `None`), `classified_protocol` is set
-    /// exactly once; subsequent DT frames on the same flow never overwrite it, even
-    /// if their `protocol_id` differs.
-    ///
-    /// Stub only (STORY-187 Stub Architect phase) — deliberately left as a
-    /// `todo!()`-free no-op, NOT a `todo!()` stub, unlike this story's other new
-    /// logic. Rationale: this function is reached on *every* DT frame regardless of
-    /// `protocol_id` (BC-2.21.002 postcondition 6 applies uniformly to `Some(0x32)`,
-    /// `Some(0x72)`, `Some(other)`, and `None`), including via the pre-existing
-    /// STORY-186 `proptest_vp050_walk_first_residual_bound`/`_direction_isolation`
-    /// fuzz-style property tests (`tests/s7comm_analyzer_tests.rs`), which feed fully
-    /// unconstrained random bytes through `on_data` and — at the volumes those
-    /// proptests exercise via the walk-first resync loop's byte-by-byte scan — reach a
-    /// DT frame virtually every run. A `todo!()` body here panicked those two
-    /// pre-existing, already-green tests (see this story's stub-architect delivery
-    /// report). Leaving this a no-op keeps them green; `classified_protocol` simply
-    /// stays `None` until the Implementer step fills this in, which still correctly
-    /// fails (a clean assertion failure, not a panic) the new
-    /// `test_BC_2_21_002_sticky_first_classification` Red Gate test the test-writer
-    /// step will add.
+    /// exactly once, per ADR-014 Decision 2's four-row disambiguation table:
+    /// `Some(0x32)` -> `Classic`, `Some(0x72)` -> `Plus`, anything else (including
+    /// `None`) -> `Unclassified`. Subsequent DT frames on the same flow never
+    /// overwrite it, even if their `protocol_id` differs.
     fn classify_first_dt_frame(state: &mut S7commFlowState, protocol_id: Option<u8>) {
-        let _ = (&state.classified_protocol, protocol_id);
+        if state.classified_protocol.is_some() {
+            return;
+        }
+        let protocol = match protocol_id {
+            Some(0x32) => S7Protocol::Classic,
+            Some(0x72) => S7Protocol::Plus,
+            _ => S7Protocol::Unclassified,
+        };
+        state.classified_protocol = Some(protocol);
     }
 
     /// BC-2.21.002 postcondition 3: classic S7comm (`protocol_id == Some(0x32)`)
