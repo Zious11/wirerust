@@ -56,6 +56,31 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   carry bytes with no finding emitted (BC-2.21.003). Protocol-specific
   dispatch on the extracted `protocol_id` is out of scope for this story
   (STORY-187).
+- S7comm classic (`0x32`) header parsing and four-way `protocol_id` dispatch
+  (`src/analyzer/s7comm.rs`, STORY-187, ADR-014 Decisions 2/9): `S7commFlowState`
+  gains `session_established`, `classified_protocol: Option<S7Protocol>`, and the
+  `malformed_header_reported_c2s`/`_s2c` dedup flags (BC-2.21.001). `on_data`'s
+  frame dispatch now branches on `CotpHeader::protocol_id` — a Connect Confirm
+  (CC) marks `session_established`; the first Data Transfer (DT) frame observed
+  on a flow sets `classified_protocol` exactly once (`Some(0x32)` -> `Classic`,
+  `Some(0x72)` -> `Plus`, anything else including `None` -> `Unclassified`),
+  sticky for the life of the flow (BC-2.21.002). A new pure-core free function,
+  `parse_s7comm_header`, extracts the classic S7comm common header (ROSCTR, PDU
+  reference, parameter/data length, big-endian `u16` fields) for Job/Ack_Data/
+  Userdata ROSCTR values, and the 12-byte Ack-specific extension (error class/
+  code) for the Ack ROSCTR — returning `None` for under-length input, a
+  defensively-rechecked non-`0x32` protocol-ID byte, an unrecognized ROSCTR
+  byte, or a truncated Ack (BC-2.21.004-008). The caller-side bounds check
+  (`header_len + param_length + data_length <= payload.len()`, computed with
+  checked arithmetic) rejects declared lengths that exceed the bytes actually
+  present before any parameter/data-block slice is attempted (BC-2.21.009).
+  Malformed-header conditions (parse failure or bounds-check failure) emit one
+  T0814 (Anomaly/Possible/Medium) per flow direction, deduplicated via the new
+  dedup flags. The `Some(0x72)` (S7comm-plus) and unrecognized/`None`
+  `protocol_id` branches remain `todo!()`-free structural no-ops; their
+  observable behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
+  bounds-safety skeleton and a partial VP-053 proptest dispatch-totality
+  skeleton (both execution-deferred to STORY-194).
 
 ### Fixed
 
