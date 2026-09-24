@@ -80,13 +80,14 @@ pub const MAX_S7_ISO_ON_TCP_CARRY_BYTES: usize = 65_535;
 // Per-flow state
 // ---------------------------------------------------------------------------
 
-/// Minimal per-flow state for [`S7commAnalyzer`] — carry-buffer fields only.
+/// Per-flow state for [`S7commAnalyzer`] — carry-buffer fields (STORY-186) plus the
+/// S7comm classification state and malformed-header dedup flags this story
+/// (STORY-187) adds (BC-2.21.001).
 ///
-/// STORY-187 extends this struct with the classification/dedup fields its own
-/// scope requires. Per BC-2.20.016 postcondition 3, these carry buffers live here
-/// (SS-21) and nowhere else — no `IsoOnTcpFlowState` type exists anywhere in the
-/// tree, and `carry_c2s`/`carry_s2c` are never merged into a single shared buffer
-/// (directional isolation, BC-2.20.013 invariant 3).
+/// Per BC-2.20.016 postcondition 3, the carry buffers live here (SS-21) and nowhere
+/// else — no `IsoOnTcpFlowState` type exists anywhere in the tree, and
+/// `carry_c2s`/`carry_s2c` are never merged into a single shared buffer (directional
+/// isolation, BC-2.20.013 invariant 3).
 #[derive(Debug, Clone, Default)]
 pub struct S7commFlowState {
     /// Directional carry buffer for client-to-server bytes not yet resolved into a
@@ -103,6 +104,123 @@ pub struct S7commFlowState {
     /// server-to-client direction on this flow. Independent of
     /// `carry_overflow_reported_c2s` (BC-2.20.014 edge case EC-005).
     pub carry_overflow_reported_s2c: bool,
+    /// Set when a COTP CR (BC-2.20.007) is followed by a matching CC (BC-2.20.008) on
+    /// this flow (BC-2.21.001 postcondition 1). Classification of the upper-layer
+    /// protocol is deferred to the first DT frame regardless of this flag's value
+    /// (BC-2.21.002 postcondition 2).
+    pub session_established: bool,
+    /// Set exactly once, on the first DT frame observed for this flow (any
+    /// `protocol_id` value, including `None`) — sticky first-classification-wins
+    /// (BC-2.21.002 postcondition 6, BC-2.21.001 edge case EC-002). Remains `None`
+    /// until the first DT frame is observed.
+    pub classified_protocol: Option<S7Protocol>,
+    /// Set once a malformed classic S7comm header (BC-2.21.004/007/008/009) has been
+    /// reported for the client-to-server direction on this flow, so repeated
+    /// malformed-header conditions in this direction do not each emit a new T0814
+    /// finding. Distinct from `carry_overflow_reported_c2s` — the two dedup flags
+    /// track independent anomaly classes (BC-2.21.001 invariant 2).
+    pub malformed_header_reported_c2s: bool,
+    /// Set once a malformed classic S7comm header has been reported for the
+    /// server-to-client direction on this flow. Independent of
+    /// `malformed_header_reported_c2s` (BC-2.21.001 invariant 2).
+    pub malformed_header_reported_s2c: bool,
+}
+
+// ---------------------------------------------------------------------------
+// S7comm data model (STORY-187)
+// ---------------------------------------------------------------------------
+
+/// Which upper-layer protocol a flow's COTP DT frames have been classified as, per
+/// the `CotpHeader::protocol_id` four-way dispatch (BC-2.21.002, ADR-014 Decision 2).
+///
+/// `Plus` and `Unclassified` are populated by this story's dispatch skeleton but are
+/// not yet fully driven — full behavior for those two branches lands in STORY-190.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S7Protocol {
+    /// `protocol_id == Some(0x32)` — classic S7comm.
+    Classic,
+    /// `protocol_id == Some(0x72)` — S7comm-plus.
+    Plus,
+    /// `protocol_id` is `None` or any value other than `0x32`/`0x72` on a DT frame —
+    /// unclassified gap (BC-2.21.027).
+    Unclassified,
+}
+
+/// The four classic-S7comm ROSCTR ("Remote Operating Service Control") values this
+/// story models (BC-2.21.006/007/008), mirroring `CotpTpduType`'s
+/// exhaustive-but-bounded design (BC-2.20.011) — this is not exhaustive over all 256
+/// `u8` values by design (BC-2.21.007 invariant 2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rosctr {
+    /// `0x01` — Job (request).
+    Job,
+    /// `0x02` — Ack (bare acknowledgment; requires the 12-byte extended header,
+    /// BC-2.21.008).
+    Ack,
+    /// `0x03` — Ack_Data (response carrying a parameter/data block).
+    AckData,
+    /// `0x07` — Userdata.
+    Userdata,
+}
+
+/// Parsed classic S7comm (protocol-ID `0x32`) common header, as extracted by
+/// [`parse_s7comm_header`] (BC-2.21.004 through BC-2.21.008).
+///
+/// Frozen per ADR-014 Decision 9 item 3's pure-core free-fn design — this is the
+/// exact field set BC-2.21.006/008 define, no additional fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S7commHeader {
+    /// The ROSCTR value extracted from `data[1]`.
+    pub rosctr: Rosctr,
+    /// `u16::from_be_bytes([data[4], data[5]])` (BC-2.21.006 postcondition 2).
+    pub pdu_reference: u16,
+    /// `u16::from_be_bytes([data[6], data[7]])` (BC-2.21.006 postcondition 3). Not yet
+    /// validated against the actual remaining bytes in `data` — that is the caller's
+    /// BC-2.21.009 obligation.
+    pub param_length: u16,
+    /// `u16::from_be_bytes([data[8], data[9]])` (BC-2.21.006 postcondition 4). Not yet
+    /// validated against the actual remaining bytes in `data` — that is the caller's
+    /// BC-2.21.009 obligation.
+    pub data_length: u16,
+    /// `Some(data[10])` only when `rosctr == Ack`; `None` for every other ROSCTR value
+    /// (BC-2.21.008 postcondition 3).
+    pub error_class: Option<u8>,
+    /// `Some(data[11])` only when `rosctr == Ack`; `None` for every other ROSCTR value
+    /// (BC-2.21.008 postcondition 3).
+    pub error_code: Option<u8>,
+    /// `10` for Job/Ack_Data/Userdata (BC-2.21.006); `12` for Ack (BC-2.21.008).
+    pub header_len: usize,
+}
+
+// ---------------------------------------------------------------------------
+// Pure-core parser (STORY-187)
+// ---------------------------------------------------------------------------
+
+/// Parses the classic S7comm (protocol-ID `0x32`) common header from `data`, the COTP
+/// DT payload slice beginning **at** the already-classified protocol-ID byte
+/// (BC-2.21.004 precondition 1, `&tpkt_payload[payload_offset..]` from BC-2.20.009).
+///
+/// Pure-core free function (ADR-014 Decision 9 item 3) — no I/O, no global state
+/// mutation, no side effects, deterministic; MUST NOT read `S7commAnalyzer`'s flow
+/// state (this story's Forbidden Dependencies).
+///
+/// # Contract summary (BC-2.21.004 through BC-2.21.008)
+///
+/// - `data.len() < 10` -> `None` (BC-2.21.004).
+/// - `data[0] != 0x32` -> `None` (BC-2.21.005, defensive caller-hygiene guard).
+/// - `data[1] ∈ {0x01, 0x03, 0x07}` (Job/Ack_Data/Userdata) -> `Some(S7commHeader {
+///   .., error_class: None, error_code: None, header_len: 10 })` (BC-2.21.006).
+/// - `data[1] == 0x02` (Ack) -> requires `data.len() >= 12`; `Some(S7commHeader {
+///   .., error_class: Some(data[10]), error_code: Some(data[11]), header_len: 12 })`,
+///   else `None` (BC-2.21.008).
+/// - `data[1] ∉ {0x01, 0x02, 0x03, 0x07}` -> `None`, no force-fit (BC-2.21.007).
+///
+/// Stub only (STORY-187 Stub Architect phase) — `todo!()` body. The Red Gate test
+/// suite (`test_BC_2_21_004_*` through `test_BC_2_21_008_*`) is written against this
+/// signature and is expected to fail until the Implementer step fills it in.
+pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
+    let _ = data;
+    todo!("BC-2.21.004-008: classic S7comm common header parse")
 }
 
 // ---------------------------------------------------------------------------
@@ -266,12 +384,21 @@ impl S7commAnalyzer {
                     Some(header) => {
                         let total = header.length as usize;
                         if working.len() - cursor >= total {
-                            // Complete TPKT frame: dispatch to parse_cotp_header and
-                            // advance past it (BC-2.20.013 postcondition 1a). This
-                            // story's protocol_id dispatch is a no-op placeholder —
-                            // classification lands in STORY-187.
+                            // Complete TPKT frame: dispatch to parse_cotp_header, then
+                            // to this story's four-way protocol_id dispatch skeleton
+                            // (BC-2.21.002), and advance past it (BC-2.20.013
+                            // postcondition 1a).
                             let frame = &working[cursor..cursor + total];
-                            let _ = iso_on_tcp::parse_cotp_header(&frame[4..]);
+                            let tpkt_payload = &frame[4..];
+                            let cotp = iso_on_tcp::parse_cotp_header(tpkt_payload);
+                            Self::dispatch_cotp_frame(
+                                state,
+                                cotp,
+                                tpkt_payload,
+                                direction,
+                                ts,
+                                &mut local_findings,
+                            );
                             cursor += total;
                         } else {
                             // Declared-but-incomplete: stash the entire partial frame
@@ -330,5 +457,128 @@ impl S7commAnalyzer {
             cursor += 1;
         }
         cursor
+    }
+
+    /// BC-2.21.002 four-way dispatch on `parse_cotp_header`'s return value — the
+    /// single integration point between SS-20's frame extraction and SS-21's
+    /// protocol-specific dissection.
+    ///
+    /// `tpkt_payload` is `frame[4..]` (the bytes `parse_cotp_header` was called on);
+    /// `cotp` is that call's result.
+    ///
+    /// ANTI-PRECEDENT GUARD / stub-architect scope note: per this story's own Tasks
+    /// list, only the `Some(0x32)` classic branch is "fully wired" — it is routed to
+    /// [`Self::dispatch_classic_s7comm`], itself a `todo!()` stub pending the
+    /// Implementer step. The `None`-from-`parse_cotp_header` branch (unclassified-gap,
+    /// BC-2.21.028), the CR/CC session-tracking branch (BC-2.21.002 postcondition 2),
+    /// and the `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027,
+    /// STORY-190 scope) are deliberately left as `todo!()`-free structural no-ops here
+    /// — the story text calls for exactly this for the STORY-190-owned branches, and
+    /// the same treatment is extended to the CR/CC branch so this stub does not
+    /// regress STORY-186's already-green frame-extraction tests (`cr_frame_7()` is a
+    /// CR frame; `max_length_frame()` yields a `None` COTP parse). The
+    /// sticky-first-classification assignment (BC-2.21.002 postcondition 6) for DT
+    /// frames is a `todo!()` stub ([`Self::classify_first_dt_frame`]) — no existing
+    /// STORY-186 test sends a DT frame, so this does not regress Red Gate either.
+    fn dispatch_cotp_frame(
+        state: &mut S7commFlowState,
+        cotp: Option<iso_on_tcp::CotpHeader>,
+        tpkt_payload: &[u8],
+        direction: Direction,
+        ts: u32,
+        findings: &mut Vec<Finding>,
+    ) {
+        match cotp {
+            None => {
+                // Unclassified gap (BC-2.21.028): `parse_cotp_header` could not
+                // interpret this COTP payload. Routed to a STORY-190 placeholder
+                // no-op per this story's Tasks list — never counted as S7comm, never
+                // force-fit into a recognized branch.
+            }
+            Some(header) => match header.tpdu_type {
+                iso_on_tcp::CotpTpduType::ConnectRequest
+                | iso_on_tcp::CotpTpduType::ConnectConfirm => {
+                    // Session tracking only, no protocol classification
+                    // (BC-2.21.002 postcondition 2). The full CR-then-matching-CC
+                    // `session_established` semantics (AC-187-003) are left
+                    // unimplemented in this stub-architecture pass — a structural
+                    // no-op, matching STORY-186's original placeholder behavior, so
+                    // `cr_frame_7()`-based STORY-186 tests remain green.
+                }
+                iso_on_tcp::CotpTpduType::DataTransfer => {
+                    Self::classify_first_dt_frame(state, header.protocol_id);
+                    match header.protocol_id {
+                        Some(0x32) => {
+                            let payload = &tpkt_payload[header.payload_offset..];
+                            Self::dispatch_classic_s7comm(state, payload, direction, ts, findings);
+                        }
+                        Some(0x72) => {
+                            // S7comm-plus framing-only path (BC-2.21.024/025/026) —
+                            // completed structurally in STORY-190. todo!()-free
+                            // placeholder no-op per this story's Tasks list.
+                        }
+                        _ => {
+                            // Unrecognized protocol_id, or an empty DT payload
+                            // (protocol_id: None, BC-2.20.010) — unclassified gap
+                            // (BC-2.21.027). todo!()-free placeholder no-op per this
+                            // story's Tasks list.
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    /// BC-2.21.002 postcondition 6 / BC-2.21.001 edge case EC-002:
+    /// sticky-first-classification-wins. On the first DT frame observed for a flow
+    /// (any `protocol_id` value, including `None`), `classified_protocol` is set
+    /// exactly once; subsequent DT frames on the same flow never overwrite it, even
+    /// if their `protocol_id` differs.
+    ///
+    /// Stub only (STORY-187 Stub Architect phase) — deliberately left as a
+    /// `todo!()`-free no-op, NOT a `todo!()` stub, unlike this story's other new
+    /// logic. Rationale: this function is reached on *every* DT frame regardless of
+    /// `protocol_id` (BC-2.21.002 postcondition 6 applies uniformly to `Some(0x32)`,
+    /// `Some(0x72)`, `Some(other)`, and `None`), including via the pre-existing
+    /// STORY-186 `proptest_vp050_walk_first_residual_bound`/`_direction_isolation`
+    /// fuzz-style property tests (`tests/s7comm_analyzer_tests.rs`), which feed fully
+    /// unconstrained random bytes through `on_data` and — at the volumes those
+    /// proptests exercise via the walk-first resync loop's byte-by-byte scan — reach a
+    /// DT frame virtually every run. A `todo!()` body here panicked those two
+    /// pre-existing, already-green tests (see this story's stub-architect delivery
+    /// report). Leaving this a no-op keeps them green; `classified_protocol` simply
+    /// stays `None` until the Implementer step fills this in, which still correctly
+    /// fails (a clean assertion failure, not a panic) the new
+    /// `test_BC_2_21_002_sticky_first_classification` Red Gate test the test-writer
+    /// step will add.
+    fn classify_first_dt_frame(state: &mut S7commFlowState, protocol_id: Option<u8>) {
+        let _ = (&state.classified_protocol, protocol_id);
+    }
+
+    /// BC-2.21.002 postcondition 3: classic S7comm (`protocol_id == Some(0x32)`)
+    /// dissection entry point. Calls [`parse_s7comm_header`] on `payload` (the DT
+    /// payload slice beginning at `payload_offset`) and applies the BC-2.21.009
+    /// caller-side bounds check (`data.len() >= header_len + param_length +
+    /// data_length`) before any parameter/data-block slice — malformed headers and
+    /// bounds failures emit one T0814 per flow direction via
+    /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001).
+    ///
+    /// Stub only (STORY-187 Stub Architect phase) — `todo!()` body. Red Gate targets:
+    /// `test_BC_2_21_002_classic_s7comm_dispatch`, `test_BC_2_21_009_*`.
+    fn dispatch_classic_s7comm(
+        state: &mut S7commFlowState,
+        payload: &[u8],
+        direction: Direction,
+        ts: u32,
+        findings: &mut Vec<Finding>,
+    ) {
+        // Wired per BC-2.21.002 postcondition 3: `parse_s7comm_header` is called on
+        // the DT payload slice beginning at `payload_offset`. `parse_s7comm_header`
+        // is itself a `todo!()` pure-core stub (BC-2.21.004-008), so this call
+        // diverges until the Implementer step; the BC-2.21.009 bounds check that
+        // would follow a `Some(header)` result is not yet reachable/written here.
+        let _ = (state, direction, ts, findings);
+        let _header = parse_s7comm_header(payload);
+        todo!("BC-2.21.009: caller-side bounds check + malformed-header T0814 dedup emission")
     }
 }
