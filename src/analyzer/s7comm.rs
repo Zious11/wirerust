@@ -109,6 +109,12 @@ pub struct S7commFlowState {
     /// protocol is deferred to the first DT frame regardless of this flag's value
     /// (BC-2.21.002 postcondition 2).
     pub session_established: bool,
+    /// Records the direction of the most recently observed, not-yet-matched COTP CR
+    /// on this flow, so a later CC can be tested for direction-opposite-ness against
+    /// it (BC-2.21.001 postcondition 1's `cr_observed_dir` "at minimum" field
+    /// permission, F-01 ruling, human-ratified 2026-09-24). `None` until a CR has
+    /// been observed with no subsequent opposite-direction CC yet matching it.
+    pub cr_observed_dir: Option<Direction>,
     /// Set exactly once, on the first DT frame observed for this flow (any
     /// `protocol_id` value, including `None`) — sticky first-classification-wins
     /// (BC-2.21.002 postcondition 6, BC-2.21.001 edge case EC-002). Remains `None`
@@ -269,6 +275,24 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
         // BC-2.21.007: unrecognized ROSCTR byte — safe-reject, no force-fit.
         _ => None,
     }
+}
+
+/// BC-2.21.009 / F-14: pure, crate-visible caller-side bounds check — `true` iff
+/// `data_len >= header.header_len + header.param_length as usize + header.data_length
+/// as usize` (checked addition; the sum cannot overflow `usize` on any wirerust
+/// target, BC-2.21.009 invariant 1). Extracted as a standalone `pub fn` (rather than
+/// inlined at the `on_data` call site only) so the VP-051 Kani harness can call it
+/// directly, independent of the effectful `S7commAnalyzer::dispatch_classic_s7comm`
+/// call site (human ruling, STORY-187 per-story adversarial pass 1, F-14,
+/// 2026-09-24).
+///
+/// Pure-core free function: no I/O, no global state, no side effects.
+#[allow(
+    unused_variables,
+    reason = "stub body — Stub Architect scope, round 2 (F-14)"
+)]
+pub fn s7comm_bounds_ok(header: &S7commHeader, data_len: usize) -> bool {
+    todo!()
 }
 
 // ---------------------------------------------------------------------------

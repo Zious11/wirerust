@@ -81,6 +81,17 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   observable behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
   bounds-safety skeleton and a partial VP-053 proptest dispatch-totality
   skeleton (both execution-deferred to STORY-194).
+- S7comm (`src/analyzer/s7comm.rs`, STORY-187 round-2 stub additions for the
+  per-story adversarial pass 1 rulings, human-ratified 2026-09-24):
+  `S7commFlowState` gains `cr_observed_dir: Option<Direction>`, the
+  pending-CR-direction tracking field the F-01 opposite-direction CR/CC
+  matching rule (BC-2.21.001 postcondition 1) requires. A new pure,
+  crate-visible helper, `s7comm_bounds_ok(header: &S7commHeader, data_len:
+  usize) -> bool` (BC-2.21.009, F-14), is stubbed (`todo!()` body) ahead of
+  the implementer extracting the existing caller-side bounds check into it,
+  so both the VP-051 Kani harness and the test suite can call it directly.
+  No dispatch behavior changes in this round — `cr_observed_dir` is not yet
+  read or written, and `s7comm_bounds_ok` is not yet called from `on_data`.
 
 ### Fixed
 

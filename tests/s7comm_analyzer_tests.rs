@@ -1300,13 +1300,14 @@ mod story_186 {
 /// is deferred to STORY-190).
 ///
 /// ## Contract coverage
-/// - BC-2.21.001: `S7commFlowState` carries the full STORY-187 field set
-///   (`session_established`, `classified_protocol`, `malformed_header_reported_c2s`/
-///   `_s2c`), created lazily on first `on_data`, with the carry-overflow and
-///   malformed-header dedup flags tracked independently.
+/// - BC-2.21.001: `S7commFlowState` carries the full STORY-187 v1.1 field set
+///   (`session_established`, `cr_observed_dir`, `classified_protocol`,
+///   `malformed_header_reported_c2s`/`_s2c`), created lazily on first `on_data`, with
+///   the carry-overflow and malformed-header dedup flags tracked independently.
 /// - BC-2.21.002: `S7commAnalyzer::on_data`'s four-way dispatch on
 ///   `CotpHeader::protocol_id` — CR/CC session tracking (no classification), classic
-///   (`Some(0x32)`) dissection entry, and sticky first-classification-wins.
+///   (`Some(0x32)`) dissection entry gated on sticky classification, and sticky
+///   first-classification-wins over `Some(byte)`-only DT frames.
 /// - BC-2.21.004: `parse_s7comm_header` returns `None` for `data.len() < 10`.
 /// - BC-2.21.005: `parse_s7comm_header` defensively rejects `data[0] != 0x32`.
 /// - BC-2.21.006: `parse_s7comm_header` extracts the common header (Job/Ack_Data/
@@ -1315,26 +1316,35 @@ mod story_186 {
 /// - BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes and extracts
 ///   `error_class`/`error_code`.
 /// - BC-2.21.009: the caller-side `header_len + param_length + data_length` bounds
-///   check precedes any parameter/data-block slice.
+///   check precedes any parameter/data-block slice; extracted as the pure helper
+///   `s7comm_bounds_ok` (F-14).
 ///
 /// ## Test naming convention
 /// `test_BC_S_SS_NNN_xxx()`, matching `story_186`'s established convention in this
 /// file. `#![allow(non_snake_case)]` at the file top already covers this module.
 ///
 /// ## Provenance
-/// Authored Red-first as TDD stubs (STORY-187 `tdd_mode: strict`) against the
-/// `todo!()` bodies of `parse_s7comm_header` and
-/// `S7commAnalyzer::dispatch_classic_s7comm`, and the `todo!()`-free no-op stub of
-/// `S7commAnalyzer::classify_first_dt_frame` and the CR/CC session-tracking branch of
-/// `S7commAnalyzer::dispatch_cotp_frame`, all in `src/analyzer/s7comm.rs` (commit
-/// 3be2730a). Per DF-TEST-NAMESPACE-001, all STORY-187 tests are grouped inside a
-/// dedicated `mod story_187` wrapper.
+/// The original STORY-187 test suite originated Red-first (`tdd_mode: strict`)
+/// against `todo!()` bodies in `src/analyzer/s7comm.rs`; that original scope landed
+/// GREEN in commit 3be2730a and later commits. This module's round-2 addendum
+/// (2026-09-24) adds coverage for the human-ratified rulings from STORY-187's
+/// per-story adversarial pass 1 (F-01 opposite-direction CR/CC matching, F-02
+/// `protocol_id: None` never classifies, F-08 256-value ROSCTR totality, F-12 sticky
+/// classification gates re-dissection, F-14 bounded VP-051 Kani harness plus the
+/// `s7comm_bounds_ok` pure helper) — see STORY-187.md v1.1's Changelog for the full
+/// ruling list. Tests for rulings the current implementation does not yet honor
+/// (F-01/F-02/F-12/F-14) are new failing assertions pending that follow-up
+/// implementation work; tests documented as exercising already-correct behavior (the
+/// per-direction dedup and ROSCTR-totality additions) are regression-guard coverage,
+/// not new failing assertions. Per DF-TEST-NAMESPACE-001, all STORY-187 tests are
+/// grouped inside this dedicated `mod story_187` wrapper.
 ///
 /// Canonical test vectors from BC-2.21.004/005/006/007/008/009 are used verbatim
 /// (DF-CANONICAL-FRAME-HOLDOUT-001) where given.
 mod story_187 {
     use wirerust::analyzer::s7comm::{
         Rosctr, S7Protocol, S7commAnalyzer, S7commFlowState, S7commHeader, parse_s7comm_header,
+        s7comm_bounds_ok,
     };
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
@@ -1390,16 +1400,20 @@ mod story_187 {
         tpkt_frame(&cotp)
     }
 
-    /// A complete COTP DT frame with an EMPTY upper-layer payload (`protocol_id:
-    /// None`, BC-2.20.010) — the minimum legal DT frame: LI=1, DT code only, total TPKT
-    /// length = 4 + 2 = 6, one byte short of RFC 1006 §6's length-floor of 7. Per
-    /// BC-2.20.003 this is actually rejected by `parse_tpkt_header` (`length < 7`), so
-    /// an empty-payload DT frame is not directly constructible at the minimum TPKT
-    /// size; callers needing BC-2.20.010 coverage pad with a trailing filler byte
-    /// instead (kept out of `dt_frame`'s general-purpose contract).
-    #[allow(dead_code)]
+    /// A complete, genuinely constructible COTP DT frame with an EMPTY upper-layer
+    /// payload (`protocol_id: None`, BC-2.20.010): TPKT header `03 00 00 07` (version
+    /// 3, `length = 7`, exactly RFC 1006 §6's length-floor) followed by a 3-byte
+    /// class-0 COTP DT fixed part `02 F0 80` — `LI = 2`, code `0xF0`, TPDU-NR+EOT
+    /// `0x80` (EOT set, TPDU-NR 0). `payload_offset = 1 + LI = 3 == tpkt_payload.len()`
+    /// (`[0x02, 0xF0, 0x80]`, 3 bytes) exactly, so `parse_cotp_header` yields
+    /// `protocol_id: None` per BC-2.20.010's "no out-of-bounds index at
+    /// `tpkt_payload[payload_offset]`" rule — unlike the earlier revision of this
+    /// helper (which under-declared `LI = 1` and omitted the separate TPDU-NR+EOT
+    /// byte, making the resulting frame one byte short of the RFC 1006 §6 floor and
+    /// therefore rejected by `parse_tpkt_header` before ever reaching COTP dispatch),
+    /// this is a real, dispatchable minimum-legal DT frame (BC-187 round-2 F-03 fix).
     fn dt_frame_empty_payload() -> Vec<u8> {
-        tpkt_frame(&[0x01u8, 0xF0])
+        vec![0x03u8, 0x00, 0x00, 0x07, 0x02, 0xF0, 0x80]
     }
 
     /// A minimal classic S7comm common header for Job/Ack_Data/Userdata (10 bytes):
@@ -1472,13 +1486,13 @@ mod story_187 {
     /// newly classified flow with zero bytes delivered leaves every field at its
     /// documented default (BC-2.21.001's own canonical test vector).
     ///
-    /// NOTE (expected pass against the stub): this test exercises only the struct's
-    /// field defaults (`#[derive(Default)]`) and `on_data`'s pre-existing
-    /// STORY-186 lazy-creation/frame-walk logic on an EMPTY delivery — neither path
-    /// touches any `todo!()`-stubbed function (the frame-walk loop breaks immediately
-    /// for `data.len() < 4` remaining, before any COTP/S7comm dispatch is reached), so
-    /// this test is a legitimate, currently-green regression guard for AC-187-001's
-    /// field-set/default-value contract, not a Red Gate violation.
+    /// NOTE: this test exercises only the struct's field defaults
+    /// (`#[derive(Default)]`) and `on_data`'s lazy-creation/frame-walk logic on an
+    /// EMPTY delivery — the frame-walk loop breaks immediately for `data.len() < 4`
+    /// remaining, before any COTP/S7comm dispatch is reached — so this is a
+    /// regression guard for AC-187-001's field-set/default-value contract,
+    /// independent of the F-01/F-02/F-12 dispatch-behavior gaps this round-2 addendum
+    /// otherwise targets.
     ///
     /// Traces: BC-2.21.001 postcondition 1, Canonical Test Vectors row 1; AC-187-001.
     #[test]
@@ -1513,6 +1527,12 @@ mod story_187 {
             "session_established must default to false (BC-2.21.001 postcondition 1)"
         );
         assert_eq!(
+            state.cr_observed_dir, None,
+            "cr_observed_dir (the F-01 pending-CR-direction tracking field) must \
+             default to None -- no CR has been observed yet (BC-2.21.001 postcondition \
+             1, F-01 ruling, human-ratified 2026-09-24)"
+        );
+        assert_eq!(
             state.classified_protocol, None,
             "classified_protocol must default to None (BC-2.21.001 postcondition 1)"
         );
@@ -1530,11 +1550,10 @@ mod story_187 {
     /// a newly classified flow and stored in the analyzer's per-flow map, keyed by
     /// `FlowKey`.
     ///
-    /// NOTE (expected pass against the stub): same rationale as
-    /// `test_BC_2_21_001_flow_state_field_set` above — lazy creation via
-    /// `self.flows.entry(flow_key).or_default()` was already implemented in STORY-186
-    /// and is exercised here on an empty delivery that never reaches any
-    /// `todo!()`-stubbed dispatch path.
+    /// NOTE: same rationale as `test_BC_2_21_001_flow_state_field_set` above — lazy
+    /// creation via `self.flows.entry(flow_key).or_default()` originated in STORY-186
+    /// and is exercised here on an empty delivery that never reaches the COTP/S7comm
+    /// dispatch path this round-2 addendum otherwise targets.
     ///
     /// Traces: BC-2.21.001 postcondition 3; AC-187-002.
     #[test]
@@ -1559,9 +1578,9 @@ mod story_187 {
     /// EC-001 (BC-2.21.001): a flow that never sends any bytes before close never gets
     /// an `S7commFlowState` created — `on_flow_close` is a no-op for it.
     ///
-    /// NOTE (expected pass against the stub): a flow_key that `on_data` was never
-    /// called for cannot appear in `analyzer.flows` (a plain `HashMap` starts empty);
-    /// this is a structural guarantee, not stub-dependent behavior.
+    /// NOTE: a flow_key that `on_data` was never called for cannot appear in
+    /// `analyzer.flows` (a plain `HashMap` starts empty) — a structural guarantee
+    /// independent of any dispatch-logic behavior.
     ///
     /// Traces: BC-2.21.001 edge case EC-001.
     #[test]
@@ -1629,6 +1648,13 @@ mod story_187 {
     /// `session_established`; no protocol classification occurs (classification is
     /// deferred to the first DT frame).
     ///
+    /// v1.1 F-01 consistency note: this test's CR (c2s) then CC (s2c) sequence is
+    /// already the F-01 opposite-direction "matching CC" case, so it does not
+    /// conflict with the v1.1 opposite-direction-CR->CC ruling; it remains a valid
+    /// positive case and is not renamed, alongside the new, more explicitly-named
+    /// `test_BC_2_21_001_cr_then_opposite_cc_sets_session_established` below (which
+    /// additionally covers the negative F-01 cases this test does not).
+    ///
     /// Traces: BC-2.21.002 postcondition 2; AC-187-003.
     #[test]
     fn test_BC_2_21_002_cr_cc_updates_session_no_classification() {
@@ -1656,17 +1682,142 @@ mod story_187 {
         );
     }
 
+    // =========================================================================
+    // AC-187-003 (v1.1, F-01): session_established is set ONLY by a CC observed in
+    // the direction OPPOSITE a previously-observed CR on the same flow. CR-only,
+    // CC-only (no prior CR), CC-before-CR, and same-direction CC must all leave
+    // session_established false (human ruling, STORY-187 per-story adversarial pass
+    // 1, F-01, 2026-09-24; BC-2.21.001 postcondition 1, edge cases EC-004..EC-007).
+    // =========================================================================
+
+    /// AC-187-003 positive case: CR observed in direction A (c2s), then CC observed
+    /// in direction B (s2c), opposite of A -- session_established becomes true.
+    ///
+    /// Traces: BC-2.21.001 postcondition 1, Canonical Test Vectors row 2; AC-187-003.
+    #[test]
+    fn test_BC_2_21_001_cr_then_opposite_cc_sets_session_established() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), &cc_frame(), 1, Direction::ServerToClient);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            state.session_established,
+            "a CC observed in the direction opposite a previously-observed CR must set \
+             session_established (F-01 ruling, BC-2.21.001 postcondition 1)"
+        );
+    }
+
+    /// AC-187-003 negative case (a): a CR is observed, with no CC ever following on
+    /// this flow (CR-only) -- session_established must remain false.
+    ///
+    /// Traces: BC-2.21.001 postcondition 1, edge case EC-007 (repeated-CR shape
+    /// degenerates to CR-only when no CC ever arrives); AC-187-003.
+    #[test]
+    fn test_BC_2_21_001_cr_only_session_not_established() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            !state.session_established,
+            "a CR with no CC ever following must leave session_established false \
+             (F-01 ruling; a CR alone never sets the flag)"
+        );
+    }
+
+    /// AC-187-003 negative case (b): the flow's first observed COTP frame is a CC,
+    /// with no prior CR (CC-only, e.g. a mid-flow capture start) --
+    /// session_established must remain false: a CC with no preceding CR cannot
+    /// "match" anything.
+    ///
+    /// Traces: BC-2.21.001 edge case EC-004; AC-187-003.
+    #[test]
+    fn test_BC_2_21_001_cc_only_no_prior_cr_session_not_established() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        analyzer.on_data(flow_key.clone(), &cc_frame(), 0, Direction::ServerToClient);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            !state.session_established,
+            "a CC observed with no prior CR on this flow must leave \
+             session_established false (F-01 ruling, BC-2.21.001 edge case EC-004)"
+        );
+    }
+
+    /// AC-187-003 negative case (c): a CC is observed BEFORE any CR (out-of-order
+    /// arrival) -- session_established must remain false when the CC arrives, and a
+    /// CR that subsequently arrives (in either direction) does not retroactively set
+    /// it from the earlier CC: matching is forward-looking from the CR only.
+    ///
+    /// Traces: BC-2.21.001 edge case EC-005; AC-187-003.
+    #[test]
+    fn test_BC_2_21_001_cc_before_cr_session_not_established() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // CC arrives first (s2c), then a CR arrives afterward (c2s) -- opposite
+        // direction of the CC, which per F-01 is still not a retroactive match.
+        analyzer.on_data(flow_key.clone(), &cc_frame(), 0, Direction::ServerToClient);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                !state.session_established,
+                "session_established must remain false immediately after an \
+                 out-of-order CC with no CR yet observed (BC-2.21.001 edge case EC-005)"
+            );
+        }
+
+        analyzer.on_data(flow_key.clone(), &cr_frame(), 1, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            !state.session_established,
+            "a CR arriving AFTER an out-of-order CC must not retroactively set \
+             session_established from that earlier CC -- matching is forward-looking \
+             from the CR only, never backward-looking from the CC (F-01 ruling, \
+             BC-2.21.001 edge case EC-005)"
+        );
+    }
+
+    /// AC-187-003 negative case (d): a CR is observed in direction A, then a CC is
+    /// observed also in direction A (same direction, not opposite) --
+    /// session_established must remain false: a same-direction CC is never
+    /// "matching."
+    ///
+    /// Traces: BC-2.21.001 edge case EC-006, Canonical Test Vectors row 3; AC-187-003.
+    #[test]
+    fn test_BC_2_21_001_same_direction_cc_session_not_established() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), &cc_frame(), 1, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert!(
+            !state.session_established,
+            "a CC observed in the SAME direction as the flow's already-observed CR \
+             must leave session_established false (F-01 ruling, BC-2.21.001 edge case \
+             EC-006, Canonical Test Vectors row 3)"
+        );
+    }
+
     /// EC-001 (BC-2.21.002): a flow that observes only CR/CC frames, never a DT frame,
     /// leaves `classified_protocol` as `None` for the flow's lifetime; no dissection of
     /// any kind occurs.
     ///
-    /// NOTE (expected pass against the stub): `classify_first_dt_frame` is only ever
-    /// invoked from the `DataTransfer` arm of `dispatch_cotp_frame`'s match -- a flow
-    /// that sends only CR/CC frames never reaches that arm at all, in the current stub
-    /// AND in the correct final implementation alike. This test asserts the absence of
-    /// a code path being taken, which already holds true structurally; it is a
-    /// legitimate regression guard for AC-187's CR/CC-only edge case, not a Red Gate
-    /// violation.
+    /// NOTE: `classify_first_dt_frame` is only ever invoked from the `DataTransfer`
+    /// arm of `dispatch_cotp_frame`'s match -- a flow that sends only CR/CC frames
+    /// never reaches that arm at all, structurally, regardless of the F-01/F-02/F-12
+    /// dispatch-behavior gaps this round-2 addendum otherwise targets. This is a
+    /// regression guard for AC-187's CR/CC-only edge case.
     ///
     /// Traces: BC-2.21.002 edge case EC-001.
     #[test]
@@ -1685,17 +1836,18 @@ mod story_187 {
         );
     }
 
-    /// AC-187-004: a DT frame with `protocol_id: Some(0x32)` dispatches to classic
-    /// S7comm dissection -- `parse_s7comm_header` is called on the slice beginning at
-    /// `payload_offset`. Exercised end-to-end via a minimal, fully valid Job PDU
-    /// (empty parameter/data blocks, BC-2.21.006 EC-001 shape): once implemented, this
-    /// must produce no malformed-header finding at all (the header parses cleanly and
-    /// the BC-2.21.009 bounds check passes trivially for `param_length == data_length
-    /// == 0`).
+    /// AC-187-004 (v1.1): a DT frame with `protocol_id: Some(0x32)` dispatches to
+    /// classic S7comm dissection -- `parse_s7comm_header` is called on the slice
+    /// beginning at `payload_offset`, and after dispatch
+    /// `S7commFlowState.classified_protocol == Some(S7Protocol::Classic)`. Exercised
+    /// end-to-end via a minimal, fully valid Job PDU (empty parameter/data blocks,
+    /// BC-2.21.006 EC-001 shape): this produces no malformed-header finding at all
+    /// (the header parses cleanly and the BC-2.21.009 bounds check passes trivially
+    /// for `param_length == data_length == 0`).
     ///
     /// Traces: BC-2.21.002 postcondition 3; AC-187-004.
     #[test]
-    fn test_BC_2_21_002_classic_s7comm_dispatch() {
+    fn test_BC_2_21_002_classic_s7comm_dispatch_asserts_classified_protocol_classic() {
         let mut analyzer = S7commAnalyzer::new();
         let flow_key = flow_key_default();
 
@@ -1706,14 +1858,80 @@ mod story_187 {
         assert!(
             analyzer.findings.is_empty(),
             "a well-formed, fully-parseable classic Job PDU with empty parameter/data \
-             blocks must not emit any malformed-header finding once parse_s7comm_header \
-             and the BC-2.21.009 bounds check are correctly wired (BC-2.21.002 \
+             blocks must not emit any malformed-header finding (BC-2.21.002 \
              postcondition 3)"
         );
         let state = analyzer.flows.get(&flow_key).unwrap();
         assert!(
             !state.malformed_header_reported_c2s,
             "a well-formed classic Job PDU must not trip the malformed-header dedup flag"
+        );
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "after a Some(0x32) DT frame is dispatched, classified_protocol must be \
+             Some(S7Protocol::Classic) (AC-187-004, BC-2.21.002 postcondition 3)"
+        );
+    }
+
+    /// AC-187-004 (v1.1): a malformed (too-short, `data.len() < 10`) `0x32`-leading DT
+    /// frame arriving on a flow whose sticky `classified_protocol` is ALREADY
+    /// `Some(S7Protocol::Classic)` (established by an earlier, well-formed `0x32` DT
+    /// frame) emits exactly one T0814 for the malformed-header condition -- not more
+    /// than one, and not zero. Distinct from
+    /// `test_BC_2_21_004_len_shorter_than_10_returns_none_and_emits_t0814_once`, which
+    /// exercises the malformed frame as the flow's FIRST DT frame; here the flow is
+    /// already Classic-classified before the malformed frame arrives.
+    ///
+    /// Traces: BC-2.21.002 postcondition 3, BC-2.21.004 postcondition 4; AC-187-004.
+    #[test]
+    fn test_BC_2_21_002_malformed_0x32_frame_on_classic_flow_emits_exactly_one_t0814() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // First: a well-formed classic Job PDU establishes Some(Classic).
+        let good_header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        let good_frame = dt_frame(&good_header);
+        analyzer.on_data(flow_key.clone(), &good_frame, 0, Direction::ClientToServer);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol,
+                Some(S7Protocol::Classic),
+                "precondition: the flow must already be sticky-classified Classic \
+                 before the malformed frame below arrives"
+            );
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "precondition: no findings yet"
+        );
+
+        // Second: a malformed (too-short) 0x32-leading DT frame on the SAME
+        // already-Classic-classified flow.
+        let malformed_frame = dt_frame(&[0x32]);
+        analyzer.on_data(
+            flow_key.clone(),
+            &malformed_frame,
+            1,
+            Direction::ClientToServer,
+        );
+
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "a malformed 0x32-leading DT frame on an already-Classic-classified flow \
+             must emit exactly one T0814 -- not more than one, and not zero \
+             (AC-187-004, BC-2.21.004 postcondition 4)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "classified_protocol must remain Classic across the malformed frame -- \
+             classification is sticky and unaffected by a later malformed-header \
+             condition"
         );
     }
 
@@ -1793,6 +2011,217 @@ mod story_187 {
     }
 
     // =========================================================================
+    // AC-187-005 (v1.1, F-02): a DT frame whose protocol_id is None carries no
+    // protocol evidence and never classifies -- it does not consume the flow's
+    // "first DT frame" status. Classification remains deferred to a later DT frame
+    // (if any) that carries Some(byte) (human ruling, STORY-187 per-story
+    // adversarial pass 1, F-02, 2026-09-24; BC-2.21.002 postconditions 5-6, edge
+    // case EC-004; BC-2.21.001 postcondition 1).
+    // =========================================================================
+
+    /// AC-187-005: a flow's first DT frame carries `protocol_id: None` (empty
+    /// payload, via the genuinely-constructible `dt_frame_empty_payload()` helper) --
+    /// `classified_protocol` remains `None` after it. A second DT frame on the same
+    /// flow then carries `protocol_id: Some(0x32)` (a fully valid classic Job PDU) --
+    /// THIS frame is the one that sets `classified_protocol =
+    /// Some(S7Protocol::Classic)` and is dissected (since `classified_protocol` was
+    /// still unset at the moment this frame was dispatched).
+    ///
+    /// Traces: BC-2.21.002 postcondition 6, edge case EC-004; BC-2.21.001 edge case
+    /// EC-004 (parallel "no protocol evidence" framing); AC-187-005.
+    #[test]
+    fn test_BC_2_21_002_none_protocol_id_dt_first_then_0x32_dt_classifies_classic() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // First DT frame: protocol_id None (empty upper-layer payload).
+        analyzer.on_data(
+            flow_key.clone(),
+            &dt_frame_empty_payload(),
+            0,
+            Direction::ClientToServer,
+        );
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol, None,
+                "a protocol_id: None DT frame carries no protocol evidence and must \
+                 NOT classify the flow, even as the flow's first DT frame (F-02 \
+                 ruling, BC-2.21.002 postcondition 6)"
+            );
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "a protocol_id: None DT frame must not itself emit any finding"
+        );
+
+        // Second DT frame: protocol_id Some(0x32), a fully valid classic Job PDU.
+        let header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        let second = dt_frame(&header);
+        analyzer.on_data(flow_key.clone(), &second, 1, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "the SECOND DT frame (the first to carry Some(byte)) must be the one that \
+             sets classified_protocol -- classification was still deferred after the \
+             first, None-protocol_id frame (F-02 ruling, BC-2.21.002 postcondition 6, \
+             edge case EC-004)"
+        );
+        assert!(
+            analyzer.findings.is_empty(),
+            "the well-formed classic Job PDU that classifies the flow must not itself \
+             emit any malformed-header finding"
+        );
+    }
+
+    /// AC-187-005: two DT frames with different `protocol_id` values arrive
+    /// back-to-back within a SINGLE `on_data` call (mirrors BC-2.20.013's
+    /// multi-frame walk) -- `classified_protocol`'s first-write-wins rule applies
+    /// across the pair in arrival order: the first frame within the delivery sets
+    /// it, the second does not overwrite it, even though the frame-walk loop
+    /// dispatches both within the same `on_data` invocation.
+    ///
+    /// Traces: BC-2.21.002 edge case EC-003; AC-187-005.
+    #[test]
+    fn test_BC_2_21_002_two_frames_one_delivery_first_write_wins() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // First frame: protocol_id Some(0x72) (Plus). Second frame, concatenated in
+        // the SAME delivery: protocol_id Some(0x32), a fully valid classic Job PDU.
+        let mut delivery = dt_frame(&[0x72]);
+        let classic_header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        delivery.extend_from_slice(&dt_frame(&classic_header));
+
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Plus),
+            "within a single on_data delivery carrying two DT frames, the FIRST \
+             frame's protocol_id (Some(0x72) -> Plus) must set classified_protocol; \
+             the second frame (Some(0x32)) must not overwrite it -- first-write-wins \
+             applies within a delivery, not merely across separate on_data calls \
+             (BC-2.21.002 edge case EC-003)"
+        );
+    }
+
+    // =========================================================================
+    // AC-187-012 (v1.1, F-12): classic S7comm dissection is gated on the flow's
+    // STICKY classified_protocol == Classic, never on the current frame's raw
+    // protocol_id byte alone. A 0x32-leading DT frame on a flow already
+    // sticky-classified Plus or Unclassified by an earlier DT frame is NOT
+    // dissected -- no parse_s7comm_header call, no finding (human ruling, STORY-187
+    // per-story adversarial pass 1, F-12, 2026-09-24; BC-2.21.002 postcondition 3,
+    // invariant 4, edge case EC-005).
+    // =========================================================================
+
+    /// AC-187-012: a flow's first DT frame carries `protocol_id: Some(0x72)`, sticky
+    /// classifying it `Some(S7Protocol::Plus)`. A LATER DT frame on the same flow
+    /// carries `protocol_id: Some(0x32)` with a MALFORMED (too-short) classic-S7comm
+    /// payload -- per the F-12 sticky gate, it must NOT be dissected at all: no
+    /// `parse_s7comm_header` call is ever made, so NO finding of any kind is emitted
+    /// (deliberately not a well-formed payload here: a well-formed `0x32` payload
+    /// would emit zero findings regardless of whether the gate is correctly wired,
+    /// since a successful parse never raises a T0814 either way -- only a MALFORMED
+    /// payload distinguishes "correctly gated, never dissected" from "incorrectly
+    /// ungated, dissected and rejected as malformed"). `classified_protocol` remains
+    /// `Some(Plus)`.
+    ///
+    /// Also covers the parallel Unclassified case (first DT frame `Some(0x99)`, an
+    /// unrecognized byte) in the same test, per BC-2.21.002 edge case EC-005's
+    /// framing ("a flow sticky-classified Plus/Unclassified must never fall into
+    /// classic dissection").
+    ///
+    /// Traces: BC-2.21.002 postcondition 3, invariant 4, edge case EC-005; AC-187-012.
+    #[test]
+    fn test_BC_2_21_002_0x32_dt_frame_not_dissected_when_sticky_classified_plus_or_unclassified() {
+        // Malformed classic-S7comm payload (too short: data.len() == 1 inside
+        // parse_s7comm_header) -- see the doc comment above for why the negative
+        // case must use a malformed, not well-formed, payload.
+        let malformed_classic = vec![0x32u8];
+
+        // --- Plus-classified flow. ---
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(
+                flow_key.clone(),
+                &dt_frame(&[0x72]),
+                0,
+                Direction::ClientToServer,
+            );
+            {
+                let state = analyzer.flows.get(&flow_key).unwrap();
+                assert_eq!(state.classified_protocol, Some(S7Protocol::Plus));
+            }
+
+            let later = dt_frame(&malformed_classic);
+            analyzer.on_data(flow_key.clone(), &later, 1, Direction::ClientToServer);
+
+            assert!(
+                analyzer.findings.is_empty(),
+                "a later, MALFORMED 0x32-leading DT frame on an already-Plus-classified \
+                 flow must emit NO finding at all -- the gate must prevent \
+                 parse_s7comm_header from ever being called for it, so the malformed \
+                 payload never reaches the malformed-header T0814 path either (F-12 \
+                 ruling, BC-2.21.002 postcondition 3, edge case EC-005)"
+            );
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol,
+                Some(S7Protocol::Plus),
+                "classified_protocol must remain Some(Plus) -- a flow, once \
+                 classified, is never re-interpreted under a different protocol's \
+                 parser (F-12 ruling, ADR-014 Decision 2 no-misattribution guarantee)"
+            );
+            assert!(
+                !state.malformed_header_reported_c2s,
+                "the malformed-header dedup flag must NOT be set -- the gated frame \
+                 was never passed to parse_s7comm_header at all (F-12 ruling)"
+            );
+        }
+
+        // --- Unclassified-classified flow. ---
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(
+                flow_key.clone(),
+                &dt_frame(&[0x99]),
+                0,
+                Direction::ClientToServer,
+            );
+            {
+                let state = analyzer.flows.get(&flow_key).unwrap();
+                assert_eq!(state.classified_protocol, Some(S7Protocol::Unclassified));
+            }
+
+            let later = dt_frame(&malformed_classic);
+            analyzer.on_data(flow_key.clone(), &later, 1, Direction::ClientToServer);
+
+            assert!(
+                analyzer.findings.is_empty(),
+                "a later, MALFORMED 0x32-leading DT frame on an already- \
+                 Unclassified-classified flow must emit NO finding at all (F-12 \
+                 ruling, BC-2.21.002 edge case \
+                 EC-005 / STORY-187 story-level EC-009)"
+            );
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol,
+                Some(S7Protocol::Unclassified),
+                "classified_protocol must remain Some(Unclassified) (F-12 ruling)"
+            );
+        }
+    }
+
+    // =========================================================================
     // BC-2.21.004: `parse_s7comm_header` returns None for input shorter than 10 bytes.
     // =========================================================================
 
@@ -1856,6 +2285,56 @@ mod story_187 {
             "a second malformed-length occurrence on the same flow direction must NOT \
              emit an additional T0814 -- the dedup flag suppresses re-emission \
              (BC-2.21.004 edge case EC-004)"
+        );
+    }
+
+    /// AC-187-006 (v1.1): per-direction dedup verified independently for the s2c
+    /// direction -- a c2s malformed-length occurrence and an independent s2c
+    /// malformed-length occurrence on the SAME flow must each emit their own T0814
+    /// (two total), and a REPEATED s2c occurrence must not emit a third.
+    ///
+    /// Traces: BC-2.21.004 postcondition 4, edge case EC-004; BC-2.21.001 invariant 2
+    /// (per-direction dedup independence); AC-187-006.
+    #[test]
+    fn test_BC_2_21_004_len_shorter_than_10_emits_t0814_once_s2c() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+        let frame = dt_frame(&[0x32]); // data.len() == 1 inside parse_s7comm_header
+
+        // c2s malformed occurrence.
+        analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "the first c2s malformed-length occurrence must emit one T0814"
+        );
+
+        // First s2c malformed occurrence -- independent of the c2s dedup flag.
+        analyzer.on_data(flow_key.clone(), &frame, 1, Direction::ServerToClient);
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "the first s2c malformed-length occurrence must emit its OWN T0814, \
+             independently of the c2s direction's dedup flag already being set \
+             (BC-2.21.001 invariant 2)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.malformed_header_reported_s2c,
+                "malformed_header_reported_s2c must be set after the first s2c \
+                 occurrence"
+            );
+        }
+
+        // A repeated s2c occurrence must not re-emit.
+        analyzer.on_data(flow_key.clone(), &frame, 2, Direction::ServerToClient);
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "a repeated s2c malformed-length occurrence must NOT emit a third T0814 \
+             (BC-2.21.004 edge case EC-004, s2c direction)"
         );
     }
 
@@ -2049,6 +2528,113 @@ mod story_187 {
         );
     }
 
+    /// AC-187-009 (v1.1): per-direction dedup verified independently for the s2c
+    /// direction, using an unrecognized-ROSCTR malformed condition (BC-2.21.007)
+    /// rather than BC-2.21.004's too-short condition -- mirrors
+    /// `test_BC_2_21_004_len_shorter_than_10_emits_t0814_once_s2c`'s c2s-then-s2c
+    /// pattern.
+    ///
+    /// Traces: BC-2.21.007 postcondition 3; AC-187-009.
+    #[test]
+    fn test_BC_2_21_007_unrecognized_rosctr_emits_t0814_once_s2c() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+        let unrecognized = dt_frame(&[0x32, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00]);
+
+        // c2s malformed occurrence.
+        analyzer.on_data(
+            flow_key.clone(),
+            &unrecognized,
+            0,
+            Direction::ClientToServer,
+        );
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "the first c2s unrecognized-ROSCTR occurrence must emit one T0814"
+        );
+
+        // First s2c malformed occurrence -- independent of the c2s dedup flag.
+        analyzer.on_data(
+            flow_key.clone(),
+            &unrecognized,
+            1,
+            Direction::ServerToClient,
+        );
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "the first s2c unrecognized-ROSCTR occurrence must emit its OWN T0814, \
+             independently of the c2s direction's dedup flag already being set"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(state.malformed_header_reported_s2c);
+        }
+
+        // A repeated s2c occurrence must not re-emit.
+        analyzer.on_data(
+            flow_key.clone(),
+            &unrecognized,
+            2,
+            Direction::ServerToClient,
+        );
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "a repeated s2c unrecognized-ROSCTR occurrence must NOT emit a third \
+             T0814"
+        );
+    }
+
+    /// AC-187-009 (v1.1, F-08): joint ROSCTR-byte totality across
+    /// BC-2.21.006/007/008, exhaustively over all 256 possible `data[1]` byte
+    /// values. For a bare 10-byte header (no trailing bytes beyond the common
+    /// header), `parse_s7comm_header` returns `Some` iff `data[1] ∈ {0x01, 0x03,
+    /// 0x07}` (0x02/Ack needs the additional 2 bytes, so it is `None` at exactly 10
+    /// bytes). For a 12-byte header (the Ack minimum), it returns `Some` iff
+    /// `data[1] ∈ {0x01, 0x02, 0x03, 0x07}` -- every recognized ROSCTR value, now
+    /// including Ack. Every other byte value returns `None` at both lengths, and no
+    /// value panics.
+    ///
+    /// Traces: BC-2.21.007 postconditions 1-2, Canonical Test Vectors;
+    /// BC-2.21.006/008 (joint totality); AC-187-009.
+    #[test]
+    fn proptest_bc_2_21_007_rosctr_byte_totality_over_all_256_values() {
+        for rosctr in 0u8..=255u8 {
+            // 10-byte (bare common-header-length) case.
+            let data10 = classic_header_bytes(rosctr, 1, 0, 0);
+            assert_eq!(data10.len(), 10);
+            let result10 = parse_s7comm_header(&data10);
+            let expected10_some = matches!(rosctr, 0x01 | 0x03 | 0x07);
+            assert_eq!(
+                result10.is_some(),
+                expected10_some,
+                "rosctr={rosctr:#04x}, len=10: parse_s7comm_header must return Some \
+                 iff rosctr is one of the three common-header ROSCTR values \
+                 (0x01/0x03/0x07) -- 0x02 (Ack) requires 12 bytes and every other \
+                 byte is unrecognized (BC-2.21.006/007/008 joint totality)"
+            );
+
+            // 12-byte (Ack-minimum-length) case: 0x02 becomes recognized too.
+            let mut data12 = data10.clone();
+            data12.push(0x00); // error_class
+            data12.push(0x00); // error_code
+            assert_eq!(data12.len(), 12);
+            let result12 = parse_s7comm_header(&data12);
+            let expected12_some = matches!(rosctr, 0x01 | 0x02 | 0x03 | 0x07);
+            assert_eq!(
+                result12.is_some(),
+                expected12_some,
+                "rosctr={rosctr:#04x}, len=12: parse_s7comm_header must return Some \
+                 iff rosctr is one of all four recognized ROSCTR values \
+                 (0x01/0x02/0x03/0x07) -- every other byte remains unrecognized \
+                 (BC-2.21.006/007/008 joint totality)"
+            );
+        }
+    }
+
     // =========================================================================
     // BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes.
     // =========================================================================
@@ -2127,7 +2713,7 @@ mod story_187 {
     /// bytes actually remaining (canonical vector `2 / 0 / 1` -- one byte short) is
     /// treated as malformed: one T0814 per flow direction (sharing the dedup flag with
     /// BC-2.21.004/007/008), and no out-of-bounds slice is ever attempted (proven
-    /// indirectly here by the absence of a panic once implemented).
+    /// indirectly here by the absence of a panic).
     ///
     /// Traces: BC-2.21.009 postconditions 1-2, Canonical Test Vectors; AC-187-011.
     #[test]
@@ -2155,6 +2741,99 @@ mod story_187 {
             state.malformed_header_reported_c2s,
             "malformed_header_reported_c2s must be set (BC-2.21.009 postcondition 2 \
              shares the dedup flag with BC-2.21.004/007/008)"
+        );
+    }
+
+    /// AC-187-011 (v1.1): per-direction dedup verified independently for the s2c
+    /// direction, using a bounds-check (declared-length-exceeds-available-bytes)
+    /// malformed condition (BC-2.21.009) -- mirrors the c2s-then-s2c pattern used by
+    /// `test_BC_2_21_004_len_shorter_than_10_emits_t0814_once_s2c` and
+    /// `test_BC_2_21_007_unrecognized_rosctr_emits_t0814_once_s2c`.
+    ///
+    /// Traces: BC-2.21.009 postcondition 2; AC-187-011.
+    #[test]
+    fn test_BC_2_21_009_bounds_check_dedup_s2c() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        let mut header = classic_header_bytes(0x01, 0x0001, 0x0002, 0x0000);
+        header.push(0xAA); // only 1 of the declared 2 parameter bytes present
+        let frame = dt_frame(&header);
+
+        // c2s bounds-check-failure occurrence.
+        analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "the first c2s bounds-check-failure occurrence must emit one T0814"
+        );
+
+        // First s2c bounds-check-failure occurrence -- independent of the c2s dedup
+        // flag.
+        analyzer.on_data(flow_key.clone(), &frame, 1, Direction::ServerToClient);
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "the first s2c bounds-check-failure occurrence must emit its OWN T0814, \
+             independently of the c2s direction's dedup flag already being set"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(state.malformed_header_reported_s2c);
+        }
+
+        // A repeated s2c occurrence must not re-emit.
+        analyzer.on_data(flow_key.clone(), &frame, 2, Direction::ServerToClient);
+        assert_eq!(
+            analyzer.findings.len(),
+            2,
+            "a repeated s2c bounds-check-failure occurrence must NOT emit a third \
+             T0814"
+        );
+    }
+
+    /// F-14 / AC-187-011: the extracted pure helper `s7comm_bounds_ok` (BC-2.21.009)
+    /// must agree with `dispatch_classic_s7comm`'s bounds decision: it returns `true`
+    /// exactly when `data_len >= header.header_len + header.param_length as usize +
+    /// header.data_length as usize`, callable directly (independent of the effectful
+    /// `on_data` call site) so the VP-051 Kani harness can exercise it too.
+    ///
+    /// Traces: BC-2.21.009 postcondition 1, invariant 1; STORY-187 VP-051 Kani
+    /// Obligation note (F-14).
+    #[test]
+    fn test_BC_2_21_009_s7comm_bounds_ok_helper_matches_bounds_decision() {
+        // Exact match: header_len=10, param_length=2, data_length=0, data_len=12.
+        let header = parse_s7comm_header(&classic_header_bytes(0x01, 1, 2, 0))
+            .expect("10-byte common header must parse");
+        assert!(
+            s7comm_bounds_ok(&header, 12),
+            "data_len == header_len + param_length + data_length exactly must pass \
+             (BC-2.21.009 Canonical Test Vectors row 1)"
+        );
+        assert!(
+            !s7comm_bounds_ok(&header, 11),
+            "data_len one byte short of the declared total must fail \
+             (BC-2.21.009 Canonical Test Vectors row 2)"
+        );
+
+        // Empty parameter/data blocks: trivially passes at data_len == header_len.
+        let empty_header = parse_s7comm_header(&classic_header_bytes(0x01, 1, 0, 0))
+            .expect("10-byte common header with empty blocks must parse");
+        assert!(
+            s7comm_bounds_ok(&empty_header, 10),
+            "param_length == data_length == 0 with data_len == header_len exactly \
+             must pass trivially (BC-2.21.009 edge case EC-001)"
+        );
+
+        // Overflow-free at maximum u16 values: must return false, never panic.
+        let max_header = parse_s7comm_header(&classic_header_bytes(0x01, 1, 0xFFFF, 0xFFFF))
+            .expect("10-byte common header must parse regardless of declared lengths");
+        assert!(
+            !s7comm_bounds_ok(&max_header, 10),
+            "maximum-representable declared param_length/data_length against a bare \
+             10-byte data_len must cleanly fail, never panic (BC-2.21.009 invariant 1, \
+             STORY-187 Edge Case EC-007)"
         );
     }
 
@@ -2237,9 +2916,9 @@ mod story_187 {
     }
 
     // =========================================================================
-    // VP-051 (Kani P0, skeleton): S7comm Header Bounds-Before-Slice Safety.
-    // Traces BC-2.21.004, BC-2.21.009. Full proof execution deferred to STORY-194
-    // (formal-hardening) per this story's VP-051 Kani Obligation note.
+    // VP-051 (Kani P0, skeleton, v1.1 / F-14): S7comm Header Bounds-Before-Slice
+    // Safety. Traces BC-2.21.004, BC-2.21.009. Full proof execution deferred to
+    // STORY-194 (formal-hardening) per this story's VP-051 Kani Obligation note.
     // =========================================================================
 
     /// `#[cfg(kani)]` skeleton, compiled only under `cargo kani` -- under a normal
@@ -2249,58 +2928,112 @@ mod story_187 {
     /// VP-048/VP-049 harnesses). Located in this test file per STORY-187's own File
     /// Structure Requirements table (`tests/s7comm_analyzer_tests.rs` MODIFY: "+
     /// VP-051 Kani skeleton"), rather than inside `src/analyzer/s7comm.rs`, since
-    /// `parse_s7comm_header` is `pub` and fully exercisable from the test crate.
+    /// `parse_s7comm_header` and `s7comm_bounds_ok` are both `pub` and fully
+    /// exercisable from the test crate.
+    ///
+    /// v1.1 (F-14, human-ratified 2026-09-24): rewritten to use BOUNDED symbolic
+    /// input -- a fixed-size `[u8; 16]` array via `kani::any()` plus an
+    /// assumed-bounded `len <= 16` -- rather than an unbounded `Vec<u8>`, and to
+    /// assert the non-vacuous properties VP-051's Kani Obligation note requires
+    /// (`len < 10` implies `None`; `Some` implies `header_len ∈ {10, 12}` and
+    /// `data.len() >= header_len`; `error_class.is_some() == (rosctr == Ack)`,
+    /// identically for `error_code`). Also exercises `s7comm_bounds_ok`, the pure
+    /// crate-visible helper BC-2.21.009's caller-side bounds check was extracted
+    /// into for exactly this purpose.
     #[cfg(kani)]
     mod vp051_kani {
-        use wirerust::analyzer::s7comm::parse_s7comm_header;
+        use wirerust::analyzer::s7comm::{Rosctr, parse_s7comm_header, s7comm_bounds_ok};
 
         /// VP-051: `parse_s7comm_header` must not panic for any input up to a bounded
-        /// length, including every `data.len() < 10` case (BC-2.21.004) and the
-        /// `data[0] != 0x32` defensive-reject case (BC-2.21.005). Also proves the
-        /// BC-2.21.009 arithmetic-safety half of VP-051's obligation: for any `Some`
-        /// result, `header_len + param_length + data_length` (each summed as `u128`
-        /// to make the no-overflow check itself trivially safe to state) never exceeds
-        /// `usize::MAX` on any wirerust target -- `header_len` is 10 or 12,
-        /// `param_length`/`data_length` are each bounded by `u16::MAX` (65,535), so the
-        /// sum is bounded well within `usize::MAX` on both 32-bit and 64-bit targets.
+        /// length (a fixed-size `[u8; 16]` array, `len <= 16`), including every
+        /// `data.len() < 10` case (BC-2.21.004) and the `data[0] != 0x32`
+        /// defensive-reject case (BC-2.21.005).
         ///
-        /// The analyzer-side call-site bounds check itself
-        /// (`S7commAnalyzer::dispatch_classic_s7comm`, a private fn) is exercised by
-        /// this file's `test_BC_2_21_009_*` integration tests above, not by this Kani
-        /// harness directly (it is not `pub`, so not reachable from the test crate for
-        /// symbolic execution) -- STORY-194 re-verifies the full obligation once that
-        /// bounds check is wired.
+        /// Non-vacuous per DF-KANI-NONVACUITY-001: `kani::cover!` checks below fail
+        /// verification unless BOTH the `None` and `Some` return paths, and both the
+        /// `header_len == 10` and `header_len == 12` shapes, are actually reachable
+        /// from the bounded symbolic input -- a vacuous harness that never reaches one
+        /// of these paths cannot pass.
         #[kani::proof]
         fn verify_parse_s7comm_header_bounds_safety() {
+            let data: [u8; 16] = kani::any();
             let len: usize = kani::any();
-            kani::assume(len <= 300);
-            let mut data = vec![0u8; len];
-            for b in data.iter_mut() {
-                *b = kani::any();
-            }
+            kani::assume(len <= 16);
+            let slice = &data[..len];
 
-            // Must not panic for any input (BC-2.21.004/005/006/007/008 guards).
-            let result = parse_s7comm_header(&data);
+            // Must not panic for any bounded input (BC-2.21.004/005/006/007/008
+            // guards).
+            let result = parse_s7comm_header(slice);
 
-            if let Some(header) = result {
-                let bound = header.header_len as u128
-                    + header.param_length as u128
-                    + header.data_length as u128;
+            // Non-vacuous assertion 1 (BC-2.21.004 postcondition 1): len < 10 implies
+            // None.
+            if len < 10 {
                 assert!(
-                    bound <= usize::MAX as u128,
-                    "VP-051 / BC-2.21.009 invariant 1: header_len + param_length + \
-                     data_length must never overflow usize"
+                    result.is_none(),
+                    "VP-051 / BC-2.21.004 postcondition 1: data.len() < 10 must always \
+                     return None"
                 );
             }
+
+            if let Some(header) = result {
+                // Non-vacuous assertion 2: header_len is always 10 or 12, and the
+                // input slice is always at least that long.
+                assert!(
+                    header.header_len == 10 || header.header_len == 12,
+                    "VP-051: header_len must be exactly 10 or 12"
+                );
+                assert!(
+                    slice.len() >= header.header_len,
+                    "VP-051 / BC-2.21.009: a Some(header) result's own header_len must \
+                     never exceed the input slice's length"
+                );
+
+                // Non-vacuous assertion 3 (BC-2.21.008 postcondition 3): error_class/
+                // error_code are Some iff rosctr == Ack, identically for both fields.
+                assert_eq!(
+                    header.error_class.is_some(),
+                    header.rosctr == Rosctr::Ack,
+                    "VP-051 / BC-2.21.008 postcondition 3: error_class.is_some() must \
+                     equal (rosctr == Ack)"
+                );
+                assert_eq!(
+                    header.error_code.is_some(),
+                    header.rosctr == Rosctr::Ack,
+                    "VP-051 / BC-2.21.008 postcondition 3: error_code.is_some() must \
+                     equal (rosctr == Ack)"
+                );
+
+                // F-14: also exercise the extracted BC-2.21.009 pure helper directly,
+                // independent of the effectful on_data call site -- must not panic for
+                // any bounded data_len.
+                let _ = s7comm_bounds_ok(&header, slice.len());
+
+                // NON-VACUITY: both header_len shapes must be reachable.
+                kani::cover!(header.header_len == 10);
+                kani::cover!(header.header_len == 12);
+                kani::cover!(header.rosctr == Rosctr::Ack);
+            }
+
+            // NON-VACUITY: both the None and Some return paths must be reachable from
+            // the bounded symbolic input.
+            kani::cover!(result.is_none());
+            kani::cover!(result.is_some());
         }
     }
 
     // =========================================================================
-    // VP-053 (proptest P0, PARTIAL skeleton): `protocol_id` Four-Way Dispatch
-    // Totality and Unclassified Never-Force-Fit. Traces BC-2.21.002, BC-2.21.027,
-    // BC-2.21.028. This story wires the CR/CC and Some(0x32) branches fully;
-    // Some(0x72)/Some(other) route to a todo!()-free structural no-op completed in
+    // VP-053 (proptest P0, PARTIAL skeleton, v1.1 / F-02): `protocol_id` Four-Way
+    // Dispatch Totality and Unclassified Never-Force-Fit. Traces BC-2.21.002,
+    // BC-2.21.027, BC-2.21.028. This story wires the CR/CC and Some(0x32) branches
+    // fully; Some(0x72)/Some(other) route to a structural no-op completed in
     // STORY-190. The full non-vacuous run is deferred to STORY-194.
+    //
+    // v1.1 (F-14/VP-INDEX.md v2.51's "Sticky-Classification Gating" reword,
+    // human-ratified 2026-09-24): the strategy now generates `protocol_id: None` as
+    // its OWN distinct case (`Option<u8>`, not a bare `u8`), rather than only
+    // implicitly via absence -- the property under test ("protocol_id: None does not
+    // participate in sticky first-classification", F-02) is untestable unless the
+    // strategy can generate it explicitly alongside Some(0x32)/Some(0x72)/Some(other).
     // =========================================================================
 
     mod vp053 {
@@ -2326,37 +3059,61 @@ mod story_187 {
             frame
         }
 
-        /// Builds a complete DT frame carrying `byte` as `protocol_id`. When `byte ==
-        /// 0x32`, a fully valid minimal classic Job header (empty parameter/data
+        /// Generates `protocol_id` as `Option<u8>`, an explicit, equally-weighted
+        /// case split between `None` (empty DT payload, no protocol evidence, F-02)
+        /// and `Some(byte)` (any of the 256 possible protocol-ID byte values) --
+        /// rather than `None` arising only implicitly/by absence.
+        fn protocol_id_strategy() -> impl Strategy<Value = Option<u8>> {
+            prop_oneof![Just(None), any::<u8>().prop_map(Some)]
+        }
+
+        /// Builds a complete DT frame carrying `protocol_id`. When `protocol_id ==
+        /// Some(0x32)`, a fully valid minimal classic Job header (empty parameter/data
         /// blocks) follows, so that VP-053's dispatch-TOTALITY property is exercised
         /// independently of BC-2.21.004-009's header-parse REJECTION paths (those are
-        /// this file's dedicated `test_BC_2_21_004/007/008/009_*` tests).
-        fn dt_frame_for_protocol_id(byte: u8) -> Vec<u8> {
-            let mut upper_payload = vec![byte];
-            if byte == 0x32 {
-                upper_payload
-                    .extend_from_slice(&[0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]);
-            }
-            let mut cotp = vec![0x01u8, 0xF0];
-            cotp.extend_from_slice(&upper_payload);
+        /// this file's dedicated `test_BC_2_21_004/007/008/009_*` tests). When
+        /// `protocol_id == None`, the COTP fixed part uses the genuinely-constructible
+        /// class-0 DT shape (`LI=2`, code `0xF0`, TPDU-NR+EOT `0x80`, no upper-layer
+        /// bytes at all) -- `payload_offset == tpkt_payload.len()` exactly, matching
+        /// BC-2.20.010's `protocol_id: None` case (mirrors the fix applied to this
+        /// file's top-level `dt_frame_empty_payload()` helper, F-03).
+        fn dt_frame_for_protocol_id(protocol_id: Option<u8>) -> Vec<u8> {
+            let cotp = match protocol_id {
+                Some(0x32) => {
+                    let mut cotp = vec![0x01u8, 0xF0, 0x32];
+                    cotp.extend_from_slice(&[0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]);
+                    cotp
+                }
+                Some(byte) => vec![0x01u8, 0xF0, byte],
+                None => vec![0x02u8, 0xF0, 0x80],
+            };
             tpkt_frame(&cotp)
         }
 
         proptest! {
-            /// VP-053 (partial skeleton): for any `protocol_id` byte value, the first
-            /// DT frame observed on a fresh flow must classify it exactly per
-            /// BC-2.21.002's four-way table: `0x32` -> `Classic`, `0x72` -> `Plus`,
-            /// any other byte -> `Unclassified` -- and a `S7commFlowState` must always
-            /// be created (BC-2.21.001 postcondition 3), regardless of `protocol_id`.
+            /// VP-053 (partial skeleton, v1.1): for any `protocol_id` (`None` or
+            /// `Some(byte)`), the first DT frame observed on a fresh flow must
+            /// classify it exactly per BC-2.21.002's four-way table: `Some(0x32)` ->
+            /// `Classic`, `Some(0x72)` -> `Plus`, any other `Some(byte)` ->
+            /// `Unclassified`, and `None` -> NO classification at all (`None` stays
+            /// `None`, F-02) -- and a `S7commFlowState` must always be created
+            /// (BC-2.21.001 postcondition 3), regardless of `protocol_id`.
+            ///
+            /// Sticky-gating (F-12) is NOT re-exercised in this single-frame-per-flow
+            /// skeleton -- it is covered by the dedicated
+            /// `test_BC_2_21_002_0x32_dt_frame_not_dissected_when_sticky_classified_plus_or_unclassified`
+            /// test above; extending this proptest to a multi-frame-per-flow
+            /// sequence is deferred to STORY-194's full non-vacuous run alongside the
+            /// Some(0x72)/Some(other) dissection completeness deferred to STORY-190.
             #[test]
             fn proptest_vp053_protocol_id_dispatch_totality(
-                protocol_id_byte in any::<u8>(),
+                protocol_id in protocol_id_strategy(),
                 salt in any::<u16>(),
             ) {
                 let mut analyzer = S7commAnalyzer::new();
                 let flow_key = flow_key_for(salt);
 
-                let frame = dt_frame_for_protocol_id(protocol_id_byte);
+                let frame = dt_frame_for_protocol_id(protocol_id);
                 analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
 
                 let state = analyzer.flows.get(&flow_key).expect(
@@ -2364,18 +3121,20 @@ mod story_187 {
                      on_data call regardless of protocol_id (BC-2.21.001 postcondition 3)"
                 );
 
-                let expected = match protocol_id_byte {
-                    0x32 => S7Protocol::Classic,
-                    0x72 => S7Protocol::Plus,
-                    _ => S7Protocol::Unclassified,
+                let expected = match protocol_id {
+                    Some(0x32) => Some(S7Protocol::Classic),
+                    Some(0x72) => Some(S7Protocol::Plus),
+                    Some(_) => Some(S7Protocol::Unclassified),
+                    None => None,
                 };
                 prop_assert_eq!(
                     state.classified_protocol,
-                    Some(expected),
-                    "VP-053 LOAD-BEARING property: the first DT frame's protocol_id \
-                     must classify the flow exactly per BC-2.21.002's four-way table \
-                     -- protocol_id_byte={:#04x}",
-                    protocol_id_byte
+                    expected,
+                    "VP-053 LOAD-BEARING property (v1.1, F-02): the first DT frame's \
+                     protocol_id must classify the flow exactly per BC-2.21.002's \
+                     four-way table, with protocol_id: None carrying NO protocol \
+                     evidence and never classifying -- protocol_id={:?}",
+                    protocol_id
                 );
             }
         }
@@ -2393,6 +3152,7 @@ mod story_187 {
             carry_overflow_reported_c2s: false,
             carry_overflow_reported_s2c: false,
             session_established: false,
+            cr_observed_dir: None,
             classified_protocol: None,
             malformed_header_reported_c2s: false,
             malformed_header_reported_s2c: false,
