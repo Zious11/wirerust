@@ -188,6 +188,47 @@ the analyzer is load-bearing for correctness, not merely defense-in-depth. Contr
 with IEC-104's `is_valid_iec104_frame` (ADR-013 Decision 1), which only rejects garbage
 and never re-routes to a *different* named protocol.
 
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-01/F-02/F-12):**
+> Three human rulings refine this Decision's disambiguation table and dispatch gating,
+> effective for BC-2.21.001/002/004/005/008/009 (product-owner is amending these
+> contracts in parallel; this note tracks the architectural ruling, not the BC text
+> itself — do not treat this note as a substitute for the amended BCs):
+>
+> - **F-01 (session establishment is directional-paired, not any-CC).**
+>   `session_established` is set only by a CC TPDU observed in the direction *opposite*
+>   a previously-observed CR on the same flow — not by any CC regardless of CR history,
+>   as an unqualified reading of the table's `None (CR/CC TPDU)` row could suggest. A
+>   `pending-CR`-shaped field on `S7commFlowState` (tracking which direction issued the
+>   outstanding, not-yet-confirmed CR) is a permitted implementation detail to express
+>   this pairing; the field is not required to be named that, only to exist in some
+>   equivalent form.
+> - **F-02 (`protocol_id: None` never classifies).** A DT-TPDU with `protocol_id: None`
+>   (an empty upper-layer payload — Decision 1's `CotpHeader::protocol_id` doc comment)
+>   does **not** participate in sticky first-classification. `classified_protocol`
+>   remains unset until the first DT-TPDU carrying `Some(byte)` is observed; only that
+>   frame's byte drives the three-way `0x32 -> Classic` / `0x72 -> Plus` / other
+>   `-> Unclassified` assignment, sticky thereafter. This narrows the table's `None
+>   (CR/CC TPDU)` row: "defer classification until the first DT frame arrives" must be
+>   read as "until the first DT frame *carrying a protocol-ID byte* arrives" — an
+>   empty-payload DT frame is treated the same as "not yet arrived," not as a
+>   classifying event in its own right.
+> - **F-12 (classic dissection gated on sticky classification, not per-frame
+>   `protocol_id`).** Classic S7comm header dissection — `parse_s7comm_header`, its
+>   bounds check, and malformed-header T0814 emission — runs only when the flow's
+>   *sticky* `classified_protocol` is `Classic`, not merely when the current DT frame's
+>   `protocol_id == Some(0x32)`. This is this Decision's own no-misattribution guarantee
+>   ("a COTP DT-TPDU ... must never be misattributed to S7comm") applied symmetrically at
+>   the flow level: first-classification-wins (BC-2.21.002 postcondition 6) must govern
+>   *every* frame on the flow, not just the classifying one — a flow sticky-classified
+>   `Plus` or `Unclassified` must not fall into classic dissection even if a later,
+>   individual frame happens to carry a `0x32` protocol-ID byte (e.g. a malformed or
+>   adversarial frame on an already-classified flow).
+>
+> These rulings refine Decision 2's disambiguation table and analyzer-side gating; they
+> do not change this Decision's dispatcher-level conclusion (single
+> `DispatchTarget::S7comm` rule, in-analyzer disambiguation, VP-004 six-step obligation
+> unaffected).
+
 **VP-004 six-step atomic obligation** (mirrors ADR-013 Decision 9, ADR-010 Decision 1),
 to be executed in the same commit:
 
@@ -592,6 +633,28 @@ branch totality (Decision 2's four-way match must be exhaustive over all `u8` va
 and directional carry-buffer isolation (mirrors VP-045/VP-046). cargo-fuzz P1 for the
 combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary byte input
 (mirrors VP-047).
+
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-14):**
+> VP-INDEX.md registers **VP-051** as a Kani P0 target for `parse_s7comm_header`,
+> superseding item 3's original tool-selection text above ("cargo-fuzz candidate ...
+> rather than Kani, mirroring VP-047's IEC-104 treatment of `parse_asdu`"). On review,
+> `parse_s7comm_header` fits the same Kani-tractability profile as the two SS-20
+> header-parse functions (item 1/2 above) rather than `parse_asdu`'s profile: a fixed
+> 10-or-12-byte header, `Option`-returning, no internal loop over caller-supplied
+> length — the caller-side bounds check against `param_length`/`data_length`
+> (BC-2.21.009) is `dispatch_classic_s7comm`'s responsibility, not
+> `parse_s7comm_header`'s, which keeps the parse function itself loop-free and small
+> enough for model checking. VP-051's Kani harness MUST be **non-vacuous** per
+> DF-KANI-NONVACUITY-001 (a harness whose input constraints admit no cases is not a
+> proof — it must be checked to actually exercise both the `Some` and `None` return
+> paths) and MUST use **bounded input / unwind**: a fixed-size symbolic byte array
+> (`kani::any()` over a bounded-length slice, not unbounded `Vec<u8>`) with an explicit
+> unwind/loop bound, matching `parse_tpkt_header`/`parse_cotp_header`'s existing harness
+> shape (item 1/2). cargo-fuzz remains in scope, unchanged, for the *combined*
+> TPKT→COTP→S7comm parse chain's no-panic property (this item's closing sentence above);
+> it is no longer the sole verification tool for `parse_s7comm_header` in isolation —
+> Kani and cargo-fuzz are complementary here (proof of the isolated header parse plus
+> fuzzing of the full chain), not alternatives.
 
 **VP numbering is explicitly deferred to product-owner** at F2 BC/VP authoring (this ADR
 does not register new VP-NNN IDs; VP-004 and VP-007 are pre-existing obligations being
