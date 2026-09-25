@@ -199,8 +199,10 @@ and never re-routes to a *different* named protocol.
 >   `session_established` is set only by a CC TPDU observed in the direction *opposite*
 >   a previously-observed CR on the same flow — not by any CC regardless of CR history,
 >   as an unqualified reading of the table's `None (CR/CC TPDU)` row could suggest. A
->   `pending-CR`-shaped field on `S7commFlowState` (tracking which direction issued the
->   outstanding, not-yet-confirmed CR) is a permitted implementation detail to express
+>   `pending-CR`-shaped field on `S7commFlowState` (tracking the direction of the most
+>   recently observed CR — overwritten by each subsequent CR, not cleared on a matching
+>   CC, since `session_established` transitions monotonically and no postcondition reads
+>   this field after that transition) is a permitted implementation detail to express
 >   this pairing; the field is not required to be named that, only to exist in some
 >   equivalent form.
 > - **F-02 (`protocol_id: None` never classifies).** A DT-TPDU with `protocol_id: None`
