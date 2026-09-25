@@ -701,7 +701,7 @@ combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary by
 > `src/s7comm-protocol.pac`, declares separate records for `ROSCTR_ACK` (`0x02`) and
 > `ROSCTR_ACK_Data` (`0x03`), each embedding an `S7Comm_Error` record of two `uint8`
 > fields (`error_class`, `error_code`) immediately after the four 2-byte header fields,
-> with no such record for Job/User_Data — as reviewed 2026-09-24; gimasi/python-snap7
+> with no such record for Job/User_Data — as reviewed 2026-09-24; gijzelaerr/python-snap7
 > (MIT), `snap7/s7protocol.py`, function `parse_response`, documents in comment that ACK
 > and ACK_DATA carry a 12-byte header with `error_class`/`error_code` as separate bytes
 > at offsets 10 and 11, versus a 10-byte USERDATA header — as reviewed 2026-09-24.
