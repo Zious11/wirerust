@@ -3891,6 +3891,142 @@ mod story_187 {
         );
     }
 
+    /// cargo-mutants (27.1.0) survivor kill: `dispatch_classic_s7comm`'s
+    /// declared-vs-available evidence computation (`declared = header.header_len as
+    /// u64 + header.param_length as u64 + header.data_length as u64;`, F-11) had no
+    /// test asserting the exact numeric `declared`/`available` values it renders
+    /// into the T0814 evidence text, so three arithmetic mutations at that line
+    /// survived: `+` -> `*` on the first `+` (`header_len * param_length +
+    /// data_length`, giving 35 for this test's inputs instead of 18), `+` -> `-` on
+    /// the second `+` (`header_len + param_length - data_length`, giving 8), and `+`
+    /// -> `*` on the second `+` (`header_len + param_length * data_length`, giving
+    /// 25). All three mutants still fail the bounds check and still emit one T0814
+    /// (the boolean accept/reject decision comes from `s7comm_bounds_ok`, which is
+    /// untouched by these mutations) -- only the evidence text's numbers differ, so
+    /// asserting the exact `declared 18 (header_len=10 + param_length=3 +
+    /// data_length=5)` / `available 12` substrings is required to distinguish
+    /// correct behavior from all three surviving mutants (35, 8, 25).
+    ///
+    /// Job header (`rosctr = 0x01`, `header_len = 10`): `param_length = 3`,
+    /// `data_length = 5` -> declared total `10 + 3 + 5 = 18`; the frame's classic
+    /// S7comm payload (the bytes passed to `dispatch_classic_s7comm`) is exactly 12
+    /// bytes (the 10-byte header plus 2 trailing bytes), 6 short of the declared 18,
+    /// so the bounds check fails and exactly one T0814 is emitted with `available ==
+    /// 12`.
+    ///
+    /// Traces: BC-2.21.009 postcondition 2, F-11; AC-187-011.
+    #[test]
+    fn test_BC_2_21_009_bounds_failure_evidence_reports_declared_and_available() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // Job header: header_len=10, param_length=3, data_length=5 -> declared 18.
+        let mut header = classic_header_bytes(0x01, 0x0001, 0x0003, 0x0005);
+        header.extend_from_slice(&[0xAA, 0xBB]); // only 2 trailing bytes -> 12 total
+        assert_eq!(
+            header.len(),
+            12,
+            "test setup: 10-byte header + 2 trailing bytes"
+        );
+        let frame = dt_frame(&header);
+
+        analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "a Job header declaring a total of 18 bytes against only 12 available \
+             must emit exactly one malformed-header T0814 (BC-2.21.009 postcondition 2)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+        assert!(
+            analyzer.findings[0]
+                .evidence
+                .iter()
+                .any(|e| e.contains(
+                    "declared 18 (header_len=10 + param_length=3 + data_length=5)"
+                )),
+            "evidence must report the correct declared total (18) and its exact \
+             header_len/param_length/data_length breakdown -- distinguishes the \
+             correct `+`/`+` computation from the surviving `*`/`+` mutant (35), got \
+             {:?}",
+            analyzer.findings[0].evidence
+        );
+        assert!(
+            analyzer.findings[0]
+                .evidence
+                .iter()
+                .any(|e| e.contains("available 12 (BC-2.21.009)")),
+            "evidence must report the correct available byte count (12) -- \
+             distinguishes the correct `+`/`+` computation from the surviving \
+             `+`/`-` mutant (8) and `+`/`*` mutant (25), got {:?}",
+            analyzer.findings[0].evidence
+        );
+    }
+
+    /// Companion to
+    /// `test_BC_2_21_009_bounds_failure_evidence_reports_declared_and_available`
+    /// above, using the Ack_Data (`header_len = 12`) variant rather than Job
+    /// (`header_len = 10`) -- confirms the declared/available evidence text is
+    /// correct across BOTH `header_len` bases (2026-09-24 canonical-frame holdout
+    /// ruling, DF-CANONICAL-FRAME-HOLDOUT-001), not merely coincidentally correct for
+    /// the 10-byte common-header case.
+    ///
+    /// Ack_Data header (`rosctr = 0x03`, `header_len = 12`): `param_length = 3`,
+    /// `data_length = 5` -> declared total `12 + 3 + 5 = 20`; the frame's classic
+    /// S7comm payload is exactly 14 bytes (the 12-byte header plus 2 trailing
+    /// bytes), 6 short of the declared 20, so the bounds check fails and exactly one
+    /// T0814 is emitted with `available == 14`.
+    ///
+    /// Traces: BC-2.21.009 postcondition 2, F-11; AC-187-011.
+    #[test]
+    fn test_BC_2_21_009_bounds_failure_evidence_ack_data_header_len_12() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // Ack_Data header: header_len=12, param_length=3, data_length=5 -> declared 20.
+        let mut header = ack_data_header_bytes(0x0001, 0x0003, 0x0005, 0x00, 0x00);
+        header.extend_from_slice(&[0xAA, 0xBB]); // only 2 trailing bytes -> 14 total
+        assert_eq!(
+            header.len(),
+            14,
+            "test setup: 12-byte header + 2 trailing bytes"
+        );
+        let frame = dt_frame(&header);
+
+        analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "an Ack_Data header declaring a total of 20 bytes against only 14 \
+             available must emit exactly one malformed-header T0814 (BC-2.21.009 \
+             postcondition 2)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+        assert!(
+            analyzer.findings[0]
+                .evidence
+                .iter()
+                .any(|e| e.contains(
+                    "declared 20 (header_len=12 + param_length=3 + data_length=5)"
+                )),
+            "evidence must report the correct declared total (20) and its exact \
+             header_len/param_length/data_length breakdown for the header_len=12 \
+             (Ack_Data) case, got {:?}",
+            analyzer.findings[0].evidence
+        );
+        assert!(
+            analyzer.findings[0]
+                .evidence
+                .iter()
+                .any(|e| e.contains("available 14 (BC-2.21.009)")),
+            "evidence must report the correct available byte count (14) for the \
+             header_len=12 (Ack_Data) case, got {:?}",
+            analyzer.findings[0].evidence
+        );
+    }
+
     /// P12-F-1: `pdu_reference`, `param_length`, and `data_length` are each decoded
     /// via `u16::from_be_bytes` (big-endian) -- never `from_le_bytes`. Uses
     /// byte-asymmetric values (each field's high byte != its low byte, and all three
