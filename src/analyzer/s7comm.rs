@@ -830,9 +830,10 @@ impl S7commAnalyzer {
     /// header/bounds condition, deduplicated per flow direction via
     /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001 postcondition 1) — shared
     /// by BC-2.21.004 (too-short), BC-2.21.007 (unrecognized ROSCTR), BC-2.21.008
-    /// (truncated Ack), and BC-2.21.009 (declared-length/available-bytes mismatch),
-    /// since all four conditions answer the same question: "was this frame's S7comm
-    /// header/declared structure internally consistent?"
+    /// (truncated Ack, truncated Ack_Data), and BC-2.21.009 (declared-length/
+    /// available-bytes mismatch), since all five conditions answer the same
+    /// question: "was this frame's S7comm header/declared structure internally
+    /// consistent?"
     ///
     /// `reason` (F-11) is the specific, human-readable cause -- e.g. "header too
     /// short: 4 byte(s) available, 10 required" or "declared param_length/
