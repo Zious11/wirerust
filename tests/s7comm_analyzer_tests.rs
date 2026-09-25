@@ -1359,7 +1359,7 @@ mod story_186 {
 /// "DISCREPANCY -- EXPECTED TO FAIL" Ack_Data assertions are now split into their own
 /// `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data` test,
 /// asserting the corrected (not discrepant) 12-byte shape as ordinary, non-vacuous
-/// GREEN-gate assertions once the implementation catches up. Per DF-TEST-NAMESPACE-001,
+/// GREEN-gate assertions against the current implementation. Per DF-TEST-NAMESPACE-001,
 /// all STORY-187 tests are grouped inside this dedicated `mod story_187` wrapper.
 ///
 /// Canonical test vectors from BC-2.21.004/005/006/007/008/009 are used verbatim
@@ -1447,7 +1447,7 @@ mod story_187 {
         vec![0x03u8, 0x00, 0x00, 0x07, 0x02, 0xF0, 0x80]
     }
 
-    /// A minimal classic S7comm common header for Job/Ack_Data/Userdata (10 bytes):
+    /// A minimal classic S7comm common header for Job/Userdata (10 bytes):
     /// `[0x32, rosctr, 0x00, 0x00, pdu_ref(2 BE), param_len(2 BE), data_len(2 BE)]`.
     fn classic_header_bytes(rosctr: u8, pdu_ref: u16, param_len: u16, data_len: u16) -> Vec<u8> {
         let mut v = vec![0x32u8, rosctr, 0x00, 0x00];
@@ -2476,11 +2476,15 @@ mod story_187 {
         let mut analyzer = S7commAnalyzer::new();
         let flow_key = flow_key_default();
 
+        // Ack_Data is the server's response frame, so it is fed as ServerToClient
+        // (the response direction) -- corrected from an earlier revision that fed
+        // it as ClientToServer; classification and the findings assertion are
+        // direction-independent, so this does not change what the test proves.
         analyzer.on_data(
             flow_key.clone(),
             &ACK_DATA_FRAME,
             0,
-            Direction::ClientToServer,
+            Direction::ServerToClient,
         );
 
         assert!(
@@ -3169,9 +3173,14 @@ mod story_187 {
     /// is exactly 10 bytes, and separately a variant whose total payload length is
     /// exactly 11 bytes (both one and two bytes short of the 12-byte Ack minimum),
     /// must each cause `parse_s7comm_header` to return `None` and emit exactly one
-    /// T0814 `Finding` with evidence text identifying the reason as "truncated Ack"
-    /// (distinct from the "header too short" and "unrecognized ROSCTR" reasons).
-    /// Each case uses a fresh analyzer/flow, so no priming frame is needed: the
+    /// T0814 `Finding` with evidence text identifying the reason as "truncated Ack
+    /// header" -- the exact string `classify_malformed_header_reason` produces for
+    /// `data[1] == 0x02` (distinct from the "header too short", "unrecognized
+    /// ROSCTR", and "truncated Ack_Data header" reasons; per pass-3 F-29, the
+    /// assertion below uses the full "truncated Ack header" substring rather than
+    /// the shorter "truncated Ack" prefix, which is also a substring of
+    /// "truncated Ack_Data header" and so would not actually distinguish the two
+    /// reasons). Each case uses a fresh analyzer/flow, so no priming frame is needed: the
     /// frame's own `protocol_id: Some(0x32)` sticky-classifies the flow Classic on
     /// this very frame (AC-187-004's "or, by this very frame's own
     /// first-classification, becomes" clause), and dissection then proceeds.
@@ -3196,7 +3205,7 @@ mod story_187 {
                  (AC-187-010, BC-2.21.008 postcondition 1)"
             );
             assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
-            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack");
+            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack header");
         }
 
         // 11-byte case: one byte short of the 12-byte Ack minimum.
@@ -3216,7 +3225,7 @@ mod story_187 {
                  (AC-187-010, BC-2.21.008 postcondition 1)"
             );
             assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
-            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack");
+            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack header");
         }
     }
 
