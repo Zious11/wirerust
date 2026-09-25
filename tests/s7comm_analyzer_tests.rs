@@ -1998,9 +1998,9 @@ mod story_187 {
             Some(Direction::ClientToServer),
             "the repeated CR must not clear or corrupt the pending CR direction -- \
              cr_observed_dir must still reflect the (shared) direction A after the \
-             second CR (F-22 ruling, BC-2.21.001 edge case EC-007's \"reflects the \
-             most recent CR (or first-observed value)\" permission is satisfied \
-             identically by either choice since both CRs share direction A)"
+             second CR (F-22 ruling, BC-2.21.001 v1.4+ EC-007's deterministic \
+             most-recent-CR-wins overwrite rule; both CRs share direction A, so the \
+             overwrite is unobservable in this vector but the rule still applies)"
         );
     }
 
@@ -3124,6 +3124,15 @@ mod story_187 {
         );
         assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
         assert_reason_specific_evidence(&analyzer.findings[1], "unrecognized ROSCTR");
+        assert_eq!(
+            analyzer.findings[1].timestamp,
+            DateTime::from_timestamp(1i64, 0),
+            "the s2c finding's timestamp must equal chrono::DateTime::from_timestamp(ts \
+             as i64, 0) for the NON-ZERO ts=1 this on_data call used -- the exact \
+             conversion report_malformed_header performs in src/analyzer/s7comm.rs \
+             (P14-F-5b) -- got {:?}",
+            analyzer.findings[1].timestamp
+        );
         {
             let state = analyzer.flows.get(&flow_key).unwrap();
             assert!(state.malformed_header_reported_s2c);
@@ -3609,6 +3618,15 @@ mod story_187 {
         );
         assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
         assert_reason_specific_evidence(&analyzer.findings[1], "exceed available bytes");
+        assert_eq!(
+            analyzer.findings[1].timestamp,
+            DateTime::from_timestamp(1i64, 0),
+            "the s2c finding's timestamp must equal chrono::DateTime::from_timestamp(ts \
+             as i64, 0) for the NON-ZERO ts=1 this on_data call used -- the exact \
+             conversion report_malformed_header performs in src/analyzer/s7comm.rs \
+             (P14-F-5b) -- got {:?}",
+            analyzer.findings[1].timestamp
+        );
         {
             let state = analyzer.flows.get(&flow_key).unwrap();
             assert!(state.malformed_header_reported_s2c);
@@ -3779,6 +3797,7 @@ mod story_187 {
                  (AC-187-011)"
             );
             assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+            assert_reason_specific_evidence(&analyzer.findings[0], "exceed available bytes");
         }
 
         // 13 bytes total: same Ack header, this time WITH the declared parameter
