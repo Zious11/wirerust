@@ -308,7 +308,11 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
             if data.len() < 12 {
                 return None;
             }
-            let rosctr = if data[1] == 0x02 { Rosctr::Ack } else { Rosctr::AckData };
+            let rosctr = if data[1] == 0x02 {
+                Rosctr::Ack
+            } else {
+                Rosctr::AckData
+            };
             Some(S7commHeader {
                 rosctr,
                 pdu_reference,
