@@ -42,8 +42,8 @@
 //! The two BC-2.20.016 static regression-guard tests are architectural/structural checks
 //! (per BC-2.20.016's own "Verification Properties" note: "verified by code-review
 //! inspection and the regression-guard greps ... not by a runtime proof harness") and are
-//! expected to be green immediately, since the frozen module boundary is already
-//! satisfied by the current `iso_on_tcp.rs` / `s7comm.rs` stub — they exist here as
+//! expected to be green immediately, since the frozen SS-20 module boundary is
+//! already satisfied by the current implementation — they exist here as
 //! permanent drift guards, not as Red Gate behavioral tests.
 //!
 //! Canonical test vectors from the BCs are used verbatim (DF-CANONICAL-FRAME-HOLDOUT-001)
@@ -975,7 +975,7 @@ mod story_186 {
     // These are static/structural regression-guard tests (grep-equivalent), per
     // BC-2.20.016's own "Verification Properties" note: verified by code-review
     // inspection and static greps, not a runtime proof harness. They are expected to
-    // already be green (the frozen boundary is satisfied by the current stub) and
+    // already be green (satisfied by the frozen SS-20 module boundary) and
     // exist here as permanent drift guards against a future violation.
     // =========================================================================
 
@@ -1371,9 +1371,18 @@ mod story_186 {
 /// all STORY-187 tests are grouped inside this dedicated `mod story_187` wrapper.
 ///
 /// Canonical test vectors from BC-2.21.004/005/006/007/008/009 are used verbatim
-/// where the BCs themselves specify them — these are ordinary, internally-authored
-/// regression vectors and do NOT satisfy policy DF-CANONICAL-FRAME-HOLDOUT-001's
-/// independent-sourcing requirement (their byte values ARE derived from this
+/// where the BCs themselves specify them, EXCEPT where a test's own doc comment
+/// notes a deliberate substitution -- e.g. P12-F-2's non-zero error-byte
+/// substitution in the BC-2.21.008 Ack/Ack_Data 12-byte happy-path assertions
+/// (`test_BC_2_21_008_ack_rosctr_12_byte_minimum_and_error_fields`,
+/// `test_BC_2_21_008_ack_data_12_byte_header_and_error_fields`), which use the
+/// canonical vector's SHAPE with distinct error bytes 0x81/0x04 substituted for
+/// the canonical `Some(0)`/`Some(0)` error fields so a mutation cannot hide behind
+/// a same-value pair; `test_BC_2_21_008_canonical_ack_vector_verbatim` below covers
+/// the canonical Ack vector's own bytes unmodified. These are ordinary,
+/// internally-authored regression vectors and do NOT satisfy policy
+/// DF-CANONICAL-FRAME-HOLDOUT-001's independent-sourcing requirement (their
+/// byte values ARE derived from this
 /// project's own BCs, by design — the opposite of what that policy requires). Only
 /// `test_BC_2_21_006_canonical_setup_communication_job_frame_on_data` and
 /// `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data` (F-19,
@@ -1555,6 +1564,29 @@ mod story_187 {
              contain {expected_substring:?} (F-21 reason-specific evidence \
              requirement, distinguishing the BC-2.21.004/007/008/009 malformed-header \
              conditions from each other) -- got {:?}",
+            finding.evidence
+        );
+        // P20-F-3: `report_malformed_header` (src/analyzer/s7comm.rs ~873-877) always
+        // formats `summary` as `format!("Malformed classic S7comm header: {reason} \
+        // (T0814; BC-2.21.004/007/008/009)")` using the SAME `reason` string it pushes
+        // into `evidence` as `vec![reason.to_string()]` -- so `summary` is guaranteed
+        // non-empty and to contain each `evidence` entry verbatim. Assert only that
+        // guarantee, not any BC-specific wording beyond it.
+        assert!(
+            !finding.summary.is_empty(),
+            "malformed classic-S7comm-header finding's summary must not be empty"
+        );
+        assert!(
+            finding
+                .evidence
+                .iter()
+                .all(|e| finding.summary.contains(e.as_str())),
+            "malformed classic-S7comm-header finding's summary must mention the same \
+             reason text as its evidence (report_malformed_header formats summary as \
+             \"Malformed classic S7comm header: {{reason}} ...\" using the identical \
+             reason string as evidence[0], src/analyzer/s7comm.rs ~873-877) -- \
+             summary={:?}, evidence={:?}",
+            finding.summary,
             finding.evidence
         );
     }
@@ -3107,7 +3139,12 @@ mod story_187 {
             1,
             "the first c2s unrecognized-ROSCTR occurrence must emit one T0814"
         );
-        assert_reason_specific_evidence(&analyzer.findings[0], "unrecognized ROSCTR");
+        // P20-F-2: assert the exact rendered byte, not just the generic substring --
+        // `unrecognized` frame's data[1] == 0x00, and
+        // classify_malformed_header_reason's `other => format!("unrecognized ROSCTR
+        // byte 0x{other:02x} (BC-2.21.007)")` arm (src/analyzer/s7comm.rs) renders
+        // that as "unrecognized ROSCTR byte 0x00".
+        assert_reason_specific_evidence(&analyzer.findings[0], "unrecognized ROSCTR byte 0x00");
 
         // First s2c malformed occurrence -- independent of the c2s dedup flag.
         analyzer.on_data(
@@ -3123,7 +3160,7 @@ mod story_187 {
              independently of the c2s direction's dedup flag already being set"
         );
         assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
-        assert_reason_specific_evidence(&analyzer.findings[1], "unrecognized ROSCTR");
+        assert_reason_specific_evidence(&analyzer.findings[1], "unrecognized ROSCTR byte 0x00");
         assert_eq!(
             analyzer.findings[1].timestamp,
             DateTime::from_timestamp(1i64, 0),
@@ -3241,8 +3278,14 @@ mod story_187 {
     // =========================================================================
 
     /// AC-187-010: the three BC-2.21.008 canonical Ack test vectors -- 10 bytes
-    /// (`None`, truncated), 11 bytes (`None`, truncated), 12 bytes (`Some`, exact
+    /// (`None`, truncated) and 11 bytes (`None`, truncated) use the BC's canonical
+    /// bytes verbatim; the 12-byte case uses the BC-2.21.008 canonical-vector SHAPE
+    /// with distinct error bytes 0x81/0x04 substituted (P12-F-2) for the canonical
+    /// vector's `Some(0)`/`Some(0)` error fields -- not the verbatim canonical bytes
+    /// -- so a mutation cannot hide behind a same-value pair (`Some`, exact
     /// structural equality including `error_class`/`error_code`).
+    /// `test_BC_2_21_008_canonical_ack_vector_verbatim` below covers the canonical
+    /// vector's own bytes unmodified.
     ///
     /// Traces: BC-2.21.008 postconditions 1-2, Canonical Test Vectors; AC-187-010.
     #[test]
@@ -3284,10 +3327,50 @@ mod story_187 {
                 error_code: Some(0x04),
                 header_len: 12,
             }),
-            "12-byte Ack (canonical vector, minimal happy path) must extract the exact \
-             expected S7commHeader with error_class == data[10] == Some(0x81) and \
-             error_code == data[11] == Some(0x04) -- distinct values (P12-F-2) so an \
-             offset swap or a hard-coded Some(0) is caught"
+            "12-byte Ack (BC-2.21.008 canonical-vector SHAPE with distinct error bytes \
+             0x81/0x04 substituted (P12-F-2) -- not the verbatim canonical bytes -- \
+             minimal happy path) must extract the exact expected S7commHeader with \
+             error_class == data[10] == Some(0x81) and error_code == data[11] == \
+             Some(0x04) -- distinct values (P12-F-2) so an offset swap or a \
+             hard-coded Some(0) is caught"
+        );
+    }
+
+    /// P19-F-1 remediation: `test_BC_2_21_008_ack_rosctr_12_byte_minimum_and_error_fields`
+    /// above substitutes distinct, non-zero error bytes (0x81/0x04, per P12-F-2) into
+    /// the 12-byte Ack happy-path vector rather than using the BC-2.21.008 canonical
+    /// vector's own `Some(0)`/`Some(0)` error fields verbatim -- a deliberate
+    /// mutation-catching improvement, but it leaves no test in this file that directly
+    /// parses BC-2.21.008's canonical Ack row (Canonical Test Vectors table, line 174
+    /// of the BC file) with its bytes unmodified. This test closes that gap: it parses
+    /// the exact canonical-vector bytes `32 02 00 00 00 01 00 00 00 00 00 00` verbatim
+    /// -- no byte substituted -- and asserts the exact `S7commHeader` the BC specifies,
+    /// including `error_class: Some(0)` and `error_code: Some(0)`.
+    ///
+    /// Traces: BC-2.21.008 postcondition 2, Canonical Test Vectors (Ack 12-byte happy-
+    /// path row); AC-187-010.
+    #[test]
+    fn test_BC_2_21_008_canonical_ack_vector_verbatim() {
+        // BC-2.21.008 Canonical Test Vectors table, Ack 12-byte happy-path row,
+        // verbatim -- no byte substituted.
+        let bytes = [
+            0x32u8, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert_eq!(
+            parse_s7comm_header(&bytes),
+            Some(S7commHeader {
+                rosctr: Rosctr::Ack,
+                pdu_reference: 1,
+                param_length: 0,
+                data_length: 0,
+                error_class: Some(0),
+                error_code: Some(0),
+                header_len: 12,
+            }),
+            "BC-2.21.008 canonical Ack vector (verbatim, no byte substituted) must \
+             produce Some({{rosctr: Ack, error_class: Some(0), error_code: Some(0), \
+             header_len: 12}}) exactly as the BC's Canonical Test Vectors table \
+             specifies"
         );
     }
 
@@ -3296,9 +3379,13 @@ mod story_187 {
     /// `test_BC_2_21_008_ack_rosctr_12_byte_minimum_and_error_fields` above, for
     /// Ack_Data (`0x03`) instead of Ack (`0x02`) -- both ROSCTR values require the
     /// SAME 12-byte header shape. Uses BC-2.21.008's own Ack_Data canonical test
-    /// vectors: 10 bytes (`None`, truncated), 11 bytes (`None`, truncated), and the
-    /// cnblogs-sourced Setup Communication response header slice at 12 bytes
-    /// (`Some`, exact structural equality including `error_class`/`error_code`).
+    /// vectors: 10 bytes (`None`, truncated) and 11 bytes (`None`, truncated) use the
+    /// canonical bytes verbatim; the 12-byte case uses the BC-2.21.008 canonical-vector
+    /// SHAPE (the cnblogs-sourced Setup Communication response header slice) with
+    /// distinct error bytes 0x81/0x04 substituted (P12-F-2) for the canonical vector's
+    /// `Some(0)`/`Some(0)` error fields -- not the verbatim canonical/cnblogs bytes --
+    /// so a mutation cannot hide behind a same-value pair (`Some`, exact structural
+    /// equality including `error_class`/`error_code`).
     ///
     /// Traces: BC-2.21.008 postconditions 1-2, Canonical Test Vectors; AC-187-010.
     #[test]
@@ -3324,11 +3411,12 @@ mod story_187 {
              byte short"
         );
 
-        // 12 bytes exactly: the cnblogs Setup Communication response header slice
-        // (BC-2.21.008's canonical happy-path Ack_Data vector) -- built via the
-        // ack_data_header_bytes helper for structural equality with a distinct set
-        // of field values (pdu_reference/param_length) than the 10/11-byte vectors
-        // above.
+        // 12 bytes exactly: the BC-2.21.008 canonical-vector SHAPE (the cnblogs Setup
+        // Communication response header slice) with distinct error bytes 0x81/0x04
+        // substituted (P12-F-2) -- not the verbatim canonical/cnblogs bytes, which
+        // carry Some(0)/Some(0) -- built via the ack_data_header_bytes helper for
+        // structural equality with a distinct set of field values (pdu_reference/
+        // param_length) than the 10/11-byte vectors above.
         // Distinct, non-zero error_class/error_code (0x81/0x04, per P12-F-2) --
         // mirrors the Ack-rosctr test's rationale above.
         let twelve = ack_data_header_bytes(0xFFFF, 8, 0, 0x81, 0x04);
@@ -3344,11 +3432,13 @@ mod story_187 {
                 error_code: Some(0x04),
                 header_len: 12,
             }),
-            "12-byte Ack_Data (BC-2.21.008 canonical vector, Setup Communication \
-             response shape) must extract the exact expected S7commHeader with \
-             error_class == data[10] == Some(0x81), error_code == data[11] == \
-             Some(0x04), and header_len == 12 (DF-CANONICAL-FRAME-HOLDOUT-001; \
-             P12-F-2: distinct values catch an offset swap or a hard-coded Some(0))"
+            "12-byte Ack_Data (BC-2.21.008 canonical-vector SHAPE, Setup Communication \
+             response shape, with distinct error bytes 0x81/0x04 substituted \
+             (P12-F-2) -- not the verbatim canonical/cnblogs bytes) must extract the \
+             exact expected S7commHeader with error_class == data[10] == Some(0x81), \
+             error_code == data[11] == Some(0x04), and header_len == 12 \
+             (DF-CANONICAL-FRAME-HOLDOUT-001; P12-F-2: distinct values catch an \
+             offset swap or a hard-coded Some(0))"
         );
     }
 
@@ -3580,6 +3670,19 @@ mod story_187 {
             state.malformed_header_reported_c2s,
             "malformed_header_reported_c2s must be set (BC-2.21.009 postcondition 2 \
              shares the dedup flag with BC-2.21.004/007/008)"
+        );
+
+        // P19-F-2 (AC-187-011): a second c2s delivery of the SAME malformed frame
+        // must NOT re-emit -- the malformed_header_reported_c2s flag set above must
+        // suppress a repeat occurrence of this specific bounds-check-failure reason
+        // on the same direction, exactly like the other four malformed-header
+        // conditions (BC-2.21.004/007/008) already verify for themselves elsewhere.
+        analyzer.on_data(flow_key.clone(), &frame, 1, Direction::ClientToServer);
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "a repeated c2s bounds-check-failure occurrence of the same malformed \
+             frame must NOT emit a second T0814 (BC-2.21.009 postcondition 2 dedup)"
         );
     }
 
