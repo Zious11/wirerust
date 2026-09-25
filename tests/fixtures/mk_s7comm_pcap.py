@@ -19,15 +19,20 @@ Decision 4) — the wire layout used here (TPKT/COTP framing, the classic S7comm
 common header — 10 bytes for Job (0x01)/Userdata (0x07), 12 bytes for Ack
 (0x02)/Ack_Data (0x03) per the 2026-09-24 canonical-frame holdout ruling,
 DF-CANONICAL-FRAME-HOLDOUT-001 — and the Setup Communication parameter block) is
-derived from free-to-read prose/behavioral sources only (Wireshark wiki prose,
-Kleinmann & Wool 2014, the Orange-Cyberdefense awesome-industrial-protocols
-catalog) — never from Wireshark's dissector source, Snap7, or libnodave (all
-GPL/LGPL-tainted). Zero lines are borrowed from any external implementation.
+derived from free-to-read prose/behavioral sources only (cnblogs,
+https://www.cnblogs.com/crcce-dncs/p/10659087.html — primary; Yiqisoft,
+https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html; and the Inductive Automation
+KB, with Kleinmann & Wool 2014 as prose corroboration only) — never from
+Wireshark's dissector source, Snap7, or libnodave (all GPL/LGPL-tainted). Zero
+lines are borrowed from any external implementation.
 
-`S7commAnalyzer` is not yet registered with the dispatcher (STORY-193's scope), so
-this fixture is not yet consumed by any CLI/E2E test in this story — it exists to
-prove out the generator per this story's File Structure Requirements, establishing a
-committed synthetic capture for that later wiring (ADR-014 Decision 7 item 1).
+This fixture is consumed by
+`test_BC_2_21_002_setup_comm_fixture_pcap_well_formed_no_findings` in
+`tests/s7comm_analyzer_tests.rs` — an end-to-end regression check that reads the
+committed capture, feeds every packet's TCP payload through
+`S7commAnalyzer::on_data`, and asserts the well-formed session yields zero
+findings, `session_established == true`, and `classified_protocol ==
+Some(S7Protocol::Classic)`.
 
 Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
   1. [t=1_717_100_000] Client→Server SYN (TCP handshake — no payload)

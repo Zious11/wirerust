@@ -1,9 +1,17 @@
 //! Tests for STORY-186: S7comm ISO-on-TCP Carry-Buffer Reassembly, Walk-First Frame
-//! Extraction, Resync, and the Frozen SS-20/SS-21 Module Boundary.
+//! Extraction, Resync, and the Frozen SS-20/SS-21 Module Boundary; and for STORY-187:
+//! S7comm Flow State Completion, Four-Way `protocol_id` Dispatch Skeleton, and
+//! `parse_s7comm_header` Pure-Core Parser.
 //!
-//! Covers BC-2.20.013, BC-2.20.014, BC-2.20.015, BC-2.20.016, BC-2.21.003, and the
+//! Covers BC-2.20.013, BC-2.20.014, BC-2.20.015, BC-2.20.016, BC-2.21.003, the
 //! VP-050 proptest obligation (walk-first residual bound, direction isolation, 1-byte
-//! resync advance).
+//! resync advance) (STORY-186); and BC-2.21.001, BC-2.21.002, BC-2.21.004 through
+//! BC-2.21.009, the VP-051 Kani skeleton, the VP-053 proptest skeleton, the
+//! independently-sourced canonical-frame holdout tests required by policy
+//! DF-CANONICAL-FRAME-HOLDOUT-001, and the committed-fixture pcap end-to-end test
+//! (`test_BC_2_21_002_setup_comm_fixture_pcap_well_formed_no_findings`) (STORY-187).
+//! Each story's tests are grouped in their own `mod story_186` / `mod story_187`
+//! wrapper below, each with its own module-level doc comment giving full detail.
 //!
 //! ## Contract coverage
 //! - BC-2.20.013: TPKT frames spanning TCP segment boundaries are reassembled via
@@ -1526,8 +1534,10 @@ mod story_187 {
 
     /// F-21: asserts a malformed classic-S7comm-header T0814 finding's evidence text
     /// contains `expected_substring` -- the reason-specific evidence requirement that
-    /// distinguishes the three (four, counting the BC-2.21.009 bounds-check failure)
-    /// malformed-header conditions sharing the `malformed_header_reported_c2s`/`_s2c`
+    /// distinguishes the five (too short; unrecognized ROSCTR; truncated Ack;
+    /// truncated Ack_Data; declared lengths exceed available, the BC-2.21.009
+    /// bounds-check failure) malformed-header conditions sharing the
+    /// `malformed_header_reported_c2s`/`_s2c`
     /// dedup flag from the emitted `Finding` alone. Matched against
     /// `classify_malformed_header_reason`'s / `dispatch_classic_s7comm`'s exact
     /// reason strings in `src/analyzer/s7comm.rs`.
