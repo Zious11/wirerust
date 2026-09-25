@@ -58,11 +58,12 @@
 //!   bytes.
 //! - BC-2.21.005: `parse_s7comm_header` defensively rejects `data[0] != 0x32`.
 //! - BC-2.21.006: `parse_s7comm_header` extracts the common header fields (ROSCTR,
-//!   PDU reference, parameter/data length) for Job/Ack_Data/Userdata.
+//!   PDU reference, parameter/data length) for Job/Userdata (10-byte header).
 //! - BC-2.21.007: `parse_s7comm_header` returns `None` for an unrecognized ROSCTR
 //!   byte, no force-fit.
-//! - BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes and
-//!   extracts `error_class`/`error_code`.
+//! - BC-2.21.008: `parse_s7comm_header` for ROSCTR ∈ {Ack, Ack_Data} requires 12
+//!   bytes and extracts `error_class`/`error_code` (2026-09-24 canonical-frame
+//!   holdout ruling, DF-CANONICAL-FRAME-HOLDOUT-001).
 //! - BC-2.21.009: declared `param_length`/`data_length` are bounds-checked (via the
 //!   pure [`s7comm_bounds_ok`] helper) before any parameter/data-block slice.
 
@@ -130,16 +131,23 @@ pub struct S7commFlowState {
     /// protocol is deferred to the first DT frame regardless of this flag's value
     /// (BC-2.21.002 postcondition 2).
     pub session_established: bool,
-    /// Records the direction of the most recently observed, not-yet-matched COTP CR
-    /// on this flow, so a later CC can be tested for direction-opposite-ness against
-    /// it (BC-2.21.001 postcondition 1's `cr_observed_dir` "at minimum" field
-    /// permission, F-01 ruling, human-ratified 2026-09-24). `None` until a CR has
-    /// been observed with no subsequent opposite-direction CC yet matching it.
+    /// Records the direction of the most recently observed COTP CR on this flow
+    /// (overwritten by each subsequent CR), so a later CC can be tested for
+    /// direction-opposite-ness against it (BC-2.21.001 postcondition 1's
+    /// `cr_observed_dir` "at minimum" field permission, F-01 ruling, human-ratified
+    /// 2026-09-24). `None` until the first CR is observed on this flow. Once set, it
+    /// is never cleared by a matching opposite-direction CC — `dispatch_cotp_frame`'s
+    /// `ConnectConfirm` arm only sets `session_established` and never writes back to
+    /// this field, so it continues to reflect the most recent CR even after a
+    /// successful CR/CC match.
     pub cr_observed_dir: Option<Direction>,
-    /// Set exactly once, on the first DT frame observed for this flow (any
-    /// `protocol_id` value, including `None`) — sticky first-classification-wins
-    /// (BC-2.21.002 postcondition 6, BC-2.21.001 edge case EC-002). Remains `None`
-    /// until the first DT frame is observed.
+    /// Set at most once, on the first DT frame observed for this flow whose
+    /// `protocol_id` is `Some(byte)` — sticky first-classification-wins
+    /// (BC-2.21.002 postcondition 6, BC-2.21.001 edge case EC-002). A `protocol_id:
+    /// None` DT frame carries no protocol evidence and never consumes "first DT
+    /// frame" status (F-02 ruling, human-ratified 2026-09-24) — this field remains
+    /// `None` until a DT frame with `Some(byte)` is observed, however many
+    /// `protocol_id: None` DT frames precede it.
     pub classified_protocol: Option<S7Protocol>,
     /// Set once a malformed classic S7comm header (BC-2.21.004/007/008/009) has been
     /// reported for the client-to-server direction on this flow, so repeated
@@ -168,8 +176,10 @@ pub enum S7Protocol {
     Classic,
     /// `protocol_id == Some(0x72)` — S7comm-plus.
     Plus,
-    /// `protocol_id` is `None` or any value other than `0x32`/`0x72` on a DT frame —
-    /// unclassified gap (BC-2.21.027).
+    /// `protocol_id` is `Some(byte)` for a byte other than `0x32`/`0x72` on a DT
+    /// frame — unclassified gap (BC-2.21.027). A `protocol_id: None` DT frame never
+    /// classifies at all (F-02 ruling) and is never represented by this variant —
+    /// see [`S7commFlowState::classified_protocol`].
     Unclassified,
 }
 
@@ -184,7 +194,9 @@ pub enum Rosctr {
     /// `0x02` — Ack (bare acknowledgment; requires the 12-byte extended header,
     /// BC-2.21.008).
     Ack,
-    /// `0x03` — Ack_Data (response carrying a parameter/data block).
+    /// `0x03` — Ack_Data (response carrying a parameter/data block; also requires
+    /// the 12-byte extended header, BC-2.21.008, 2026-09-24 canonical-frame holdout
+    /// ruling DF-CANONICAL-FRAME-HOLDOUT-001).
     AckData,
     /// `0x07` — Userdata.
     Userdata,
@@ -263,9 +275,11 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
     let data_length = u16::from_be_bytes([data[8], data[9]]);
 
     match data[1] {
-        // BC-2.21.006: Job / Ack_Data / Userdata — common 10-byte header. ROSCTR
-        // mapped directly in each outer match arm (F-16) — no inner re-match, no
-        // panic site anywhere in this pure parser.
+        // BC-2.21.006: Job / Userdata — common 10-byte header (Ack_Data moved to the
+        // 12-byte Ack/Ack_Data group below per the 2026-09-24 canonical-frame
+        // holdout ruling, DF-CANONICAL-FRAME-HOLDOUT-001). ROSCTR mapped directly in
+        // each outer match arm (F-16) — no inner re-match, no panic site anywhere in
+        // this pure parser.
         0x01 => Some(S7commHeader {
             rosctr: Rosctr::Job,
             pdu_reference,
