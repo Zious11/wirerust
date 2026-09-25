@@ -73,10 +73,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   classifies, deferring classification to a later `Some(byte)` DT frame if any.
   A new pure-core free function, `parse_s7comm_header`, extracts the classic
   S7comm common header (ROSCTR, PDU reference, parameter/data length,
-  big-endian `u16` fields) for Job/Ack_Data/Userdata ROSCTR values, and the
-  12-byte Ack-specific extension (error class/code) for the Ack ROSCTR —
-  returning `None` for under-length input, a defensively-rechecked non-`0x32`
-  protocol-ID byte, an unrecognized ROSCTR byte, or a truncated Ack
+  big-endian `u16` fields) for Job/Userdata ROSCTR values (10-byte header), and
+  the 12-byte Ack/Ack_Data extension (error class/code) for BOTH the Ack AND
+  Ack_Data ROSCTR values (2026-09-24 canonical-frame holdout ruling,
+  DF-CANONICAL-FRAME-HOLDOUT-001 — a real-world Ack_Data/Setup-Communication-
+  response parameter block only aligns at byte 12, not byte 10) — returning
+  `None` for under-length input, a defensively-rechecked non-`0x32`
+  protocol-ID byte, an unrecognized ROSCTR byte, or a truncated Ack/Ack_Data
   (BC-2.21.004-008). Classic dissection (`parse_s7comm_header` call) fires only
   when the current DT frame's `protocol_id == Some(0x32)` AND the flow's
   STICKY `classified_protocol == Some(Classic)` — a flow already
@@ -90,8 +93,9 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   Malformed-header conditions (parse failure or bounds-check failure) emit one
   T0814 (Anomaly/Possible/Medium) per flow direction, deduplicated via the new
   dedup flags, with evidence text stating the specific reject reason (too
-  short, unrecognized ROSCTR, truncated Ack, or declared-vs-available byte
-  counts). The `Some(0x72)` (S7comm-plus) and unrecognized/`None`
+  short, unrecognized ROSCTR, truncated Ack, truncated Ack_Data, or
+  declared-vs-available byte counts). The `Some(0x72)` (S7comm-plus) and
+  unrecognized/`None`
   `protocol_id` branches remain panic-free structural no-ops; their observable
   behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
   bounds-safety skeleton and a partial VP-053 proptest dispatch-totality
