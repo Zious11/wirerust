@@ -1589,6 +1589,21 @@ mod story_187 {
             finding.summary,
             finding.evidence
         );
+        // P23-F-2 (NIT): `report_malformed_header` (src/analyzer/s7comm.rs
+        // ~868-871) always formats `summary` with the fixed literal prefix
+        // "Malformed classic S7comm header:" ahead of the interpolated
+        // `{reason}` -- pin that exact prefix so a wording drift or a
+        // reordering of the format string is caught here, not just the
+        // presence of the reason substring elsewhere.
+        assert!(
+            finding
+                .summary
+                .starts_with("Malformed classic S7comm header:"),
+            "malformed classic-S7comm-header finding's summary must start with the \
+             fixed literal prefix \"Malformed classic S7comm header:\" \
+             (report_malformed_header, src/analyzer/s7comm.rs) -- got {:?}",
+            finding.summary
+        );
     }
 
     // =========================================================================
@@ -5024,6 +5039,19 @@ mod story_187 {
                     "precondition: the opposite-direction CC must establish the \
                      session first"
                 );
+                // P23-F-1 (BC-2.21.001 PC1): the `ConnectConfirm` arm only ever
+                // READS `cr_observed_dir` to decide whether to set
+                // `session_established` -- it never clears it, even on the
+                // establishing (matching) CC. Kills a mutant that adds
+                // `state.cr_observed_dir = None;` inside the `ConnectConfirm`
+                // match arm.
+                assert_eq!(
+                    state.cr_observed_dir,
+                    Some(Direction::ClientToServer),
+                    "cr_observed_dir must still record the original CR direction \
+                     after the establishing CC -- it is never cleared on a \
+                     matching CC (P23-F-1, BC-2.21.001 PC1)"
+                );
             }
 
             analyzer.on_data(flow_key.clone(), &cc_frame(), 2, Direction::ClientToServer);
@@ -5061,6 +5089,21 @@ mod story_187 {
                 "a further CR arriving AFTER session_established is already true \
                  must leave it true -- the ConnectRequest arm never reads or writes \
                  session_established (P14-F-3)"
+            );
+            // P23-F-1 (BC-2.21.001 PC1): the `ConnectRequest` arm unconditionally
+            // overwrites `cr_observed_dir` with the new frame's direction -- it is
+            // NOT guarded on `session_established`. Kills a mutant that guards the
+            // arm with `if !state.session_established { state.cr_observed_dir =
+            // Some(direction); }`: under that mutant, this later CR(s2c) would be
+            // silently dropped (session_established is already true) and
+            // cr_observed_dir would remain stuck at the original
+            // `Some(ClientToServer)` instead of being overwritten.
+            assert_eq!(
+                state.cr_observed_dir,
+                Some(Direction::ServerToClient),
+                "cr_observed_dir must be overwritten by the later CR(s2c) even \
+                 though session_established is already true -- the ConnectRequest \
+                 arm is unconditional (P23-F-1, BC-2.21.001 PC1)"
             );
         }
     }
