@@ -2387,7 +2387,8 @@ mod story_187 {
     /// These publicly posted wire-capture byte examples are used here strictly as
     /// TEST-VECTOR SOURCES, as permitted by the ADR-014 Decision 4 reconciliation
     /// note (2026-09-24, DF-CANONICAL-FRAME-HOLDOUT-001); parser design and field
-    /// semantics continue to derive only from Decision 4's original prose sources.
+    /// semantics continue to derive from Decision 4's prose sources and permitted
+    /// design references, never from these wire-capture test vectors.
     ///
     /// Traces: BC-2.21.002 postcondition 3, BC-2.21.006; AC-187-013.
     #[test]
@@ -2454,10 +2455,18 @@ mod story_187 {
     /// **Corroborating sources** (same field layout -- an Ack_Data Setup
     /// Communication response ALSO carries Error Class (`data[10]`) / Error Code
     /// (`data[11]`), with the parameter block starting at `data[12]`, exactly as
-    /// documented in BC-2.21.008's Canonical Test Vectors):
+    /// documented in BC-2.21.008's Canonical Test Vectors -- these are byte-level
+    /// TEST-VECTOR corroboration only):
     /// - Yiqisoft blog (2023-03-22), <https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html>
     /// - Inductive Automation Support KB, "Loggers - Device Connections: Siemens"
-    /// - Kleinmann & Wool 2014 (prose)
+    ///
+    /// **Field-semantics grounding** (separate from the test-vector corroboration
+    /// above; see ADR-014 Decision 4 / Decision 9 notes for the full citations):
+    /// Kleinmann & Wool 2014 (JDFSL 9(2), Fig. 2) is a PROSE source attesting the
+    /// Ack_Data (`0x03`) 12-byte header only. The Ack (`0x02`) 12-byte layout and the
+    /// 1-byte `error_class`/`error_code` split rest on Decision 4's PERMITTED DESIGN
+    /// REFERENCES -- cisagov/icsnpp-s7comm and gijzelaerr/python-snap7 (kprovost/libs7comm
+    /// consistent in aggregate) -- not on Kleinmann & Wool, which does not attest Ack.
     ///
     /// ## Resolution of the round-3 discrepancy (DO NOT relitigate by relaxing
     /// ## assertions)
@@ -2479,7 +2488,9 @@ mod story_187 {
     /// These publicly posted wire-capture byte examples are used here strictly as
     /// TEST-VECTOR SOURCES, as permitted by the ADR-014 Decision 4 reconciliation
     /// note (2026-09-24, DF-CANONICAL-FRAME-HOLDOUT-001); parser design and field
-    /// semantics continue to derive only from Decision 4's original prose sources.
+    /// semantics continue to derive from Decision 4's prose sources and permitted
+    /// design references (see the field-semantics grounding note above), never from
+    /// these wire-capture test vectors.
     ///
     /// Traces: BC-2.21.002 postcondition 3, BC-2.21.008 postconditions 1-2;
     /// AC-187-013.
@@ -3643,10 +3654,11 @@ mod story_187 {
         /// - `header.header_len == 12` iff `rosctr ∈ {Ack, AckData}`, else `10`
         ///   (BC-2.21.006 postcondition 1 / BC-2.21.008 postcondition 2).
         /// - When `rosctr ∈ {Ack, AckData}`: `error_class == Some(slice[10])` and
-        ///   `error_code == Some(slice[11])` (BC-2.21.008 postcondition 3).
+        ///   `error_code == Some(slice[11])` (BC-2.21.008 postcondition 2 -- exact
+        ///   byte values; presence alone is postcondition 3).
         /// - `rosctr` maps exactly from `slice[1]`: `0x01 -> Job`, `0x02 -> Ack`,
         ///   `0x03 -> AckData`, `0x07 -> Userdata` (BC-2.21.006 postcondition 1 /
-        ///   BC-2.21.007).
+        ///   BC-2.21.007 postcondition 1 -- the recognized-ROSCTR set).
         /// - `pdu_reference`, `param_length`, `data_length` equal the big-endian reads
         ///   of `slice[4..6]`, `slice[6..8]`, `slice[8..10]` respectively
         ///   (BC-2.21.006 postcondition 2/3/4).
@@ -3728,42 +3740,47 @@ mod story_187 {
                      header_len must be 12 iff rosctr is Ack or AckData, else 10"
                 );
 
-                // Positive assertion (pass-6 F-47, BC-2.21.008 postcondition 3): when
+                // Positive assertion (pass-6 F-47, BC-2.21.008 postcondition 2): when
                 // the extended header is present, error_class/error_code carry the
-                // EXACT byte values from slice[10]/slice[11], not merely Some(_).
+                // EXACT byte values from slice[10]/slice[11], not merely Some(_) --
+                // postcondition 3 covers presence alone; the exact-value equality
+                // asserted here is postcondition 2.
                 if is_ack_or_ack_data {
                     assert_eq!(
                         header.error_class,
                         Some(slice[10]),
-                        "VP-051 / BC-2.21.008 postcondition 3: error_class must equal \
+                        "VP-051 / BC-2.21.008 postcondition 2: error_class must equal \
                          Some(slice[10]) for Ack/AckData"
                     );
                     assert_eq!(
                         header.error_code,
                         Some(slice[11]),
-                        "VP-051 / BC-2.21.008 postcondition 3: error_code must equal \
+                        "VP-051 / BC-2.21.008 postcondition 2: error_code must equal \
                          Some(slice[11]) for Ack/AckData"
                     );
                 }
 
                 // Positive assertion (pass-6 F-47, BC-2.21.006 postcondition 1 /
-                // BC-2.21.007): rosctr must map EXACTLY from slice[1] -- 0x01 -> Job,
-                // 0x02 -> Ack, 0x03 -> AckData, 0x07 -> Userdata. No other slice[1]
-                // value reaches this Some(header) branch (BC-2.21.007 safe-reject).
+                // BC-2.21.007 postcondition 1): rosctr must map EXACTLY from slice[1]
+                // -- 0x01 -> Job, 0x02 -> Ack, 0x03 -> AckData, 0x07 -> Userdata (the
+                // BC-2.21.007 postcondition 1 recognized-ROSCTR set). No other
+                // slice[1] value reaches this Some(header) branch (BC-2.21.007
+                // safe-reject).
                 let expected_rosctr = match slice[1] {
                     0x01 => Rosctr::Job,
                     0x02 => Rosctr::Ack,
                     0x03 => Rosctr::AckData,
                     0x07 => Rosctr::Userdata,
                     other => panic!(
-                        "VP-051 / BC-2.21.007: unexpected slice[1] = {other:#x} reached \
-                         a Some(header) result; only 0x01/0x02/0x03/0x07 may produce Some"
+                        "VP-051 / BC-2.21.007 postcondition 1: unexpected slice[1] = \
+                         {other:#x} reached a Some(header) result; only \
+                         0x01/0x02/0x03/0x07 may produce Some"
                     ),
                 };
                 assert_eq!(
                     header.rosctr, expected_rosctr,
-                    "VP-051 / BC-2.21.006 postcondition 1: rosctr must map exactly from \
-                     slice[1]"
+                    "VP-051 / BC-2.21.006 postcondition 1 / BC-2.21.007 postcondition 1: \
+                     rosctr must map exactly from slice[1]"
                 );
 
                 // Positive assertion (pass-6 F-47, BC-2.21.006 postcondition 2/3/4):
