@@ -841,8 +841,10 @@ impl S7commAnalyzer {
     /// consistent?"
     ///
     /// `reason` (F-11) is the specific, human-readable cause -- e.g. "header too
-    /// short: 4 byte(s) available, 10 required" or "declared param_length/
-    /// data_length exceed available bytes: declared 20, available 10" -- computed
+    /// short: 4 byte(s) available, 10 required" or (for header_len=10,
+    /// param_length=3, data_length=5, available=12) "declared param_length/
+    /// data_length exceed available bytes: declared 18 (header_len=10 +
+    /// param_length=3 + data_length=5), available 12 (BC-2.21.009)" -- computed
     /// by the caller via [`Self::classify_malformed_header_reason`] (parse
     /// failures) or inline (bounds-check failure). It never influences dedup or
     /// the T0814 emission decision, only the finding's summary/evidence text.

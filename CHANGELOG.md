@@ -99,7 +99,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   `protocol_id` branches remain panic-free structural no-ops; their observable
   behavior is STORY-190's scope. Includes a `#[cfg(kani)]` VP-051
   bounds-safety skeleton and a VP-053 dispatch-totality proptest (runs under
-  `cargo test`; the full VP-053 obligation and VP-051 Kani harness execution
+  `cargo test`; the full non-vacuous VP-051 Kani run (both harnesses,
+  `--fail-uncoverable`, deliberate-flip check) and the full VP-053 obligation
   are deferred to STORY-194).
 
 ### Fixed
