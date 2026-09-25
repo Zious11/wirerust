@@ -431,6 +431,34 @@ this is materially lower-risk than any effort touching S7comm-plus authenticatio
 TLS. No external S7/COTP/TPKT crate appears in `Cargo.toml`/`Cargo.lock` — original Rust
 parser only, zero lines borrowed, following the ADR-013 Decision 7 precedent exactly.
 
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 per-story adversarial pass 5, F-40,
+> HUMAN RULING):** Decision 4's allowed-source list above is **amended, not rewritten**
+> by this note — the original decision text and table stand as-is; this note adds a new,
+> narrowly-scoped permission on top of it. Publicly posted **wire-capture byte examples**
+> — observed on-the-wire frame bytes appearing in public documentation, blog posts, or
+> vendor knowledge-base pages — are **PERMITTED AS TEST-VECTOR SOURCES ONLY**, satisfying
+> `DF-CANONICAL-FRAME-HOLDOUT-001`. This permission is version-agnostic (it does not turn
+> on any particular wirerust or ADR version) and strictly test-vector-scoped: parser
+> design and field semantics continue to derive **only** from Decision 4's original prose
+> sources (the Wireshark wiki page, Kleinmann & Wool 2014, the Orange-Cyberdefense
+> catalog) and the "Permitted design references" list above — this ruling does not add to
+> or relax that list. Code from the banned/GPL dissectors (Wireshark
+> `packet-s7comm.c`/`packet-s7comm_plus.c`, Snap7, libnodave) and the AVOID-list crates
+> (`s7`/`s7-comm`/`s7-client`, `rusty-cotp`/`rusty-tpkt`/`tpkt`/`copt`) remains excluded
+> in full — this ruling does not touch the code-provenance ban. Rationale: observed wire
+> bytes are protocol facts (what a real device put on the wire), not copyrighted source
+> expression; using them as test-vector inputs/expected-outputs is categorically
+> different from copying dissector code. Three sources are currently used under this
+> test-vector-only permission (see BC-2.21.008's Canonical Test Vectors and ADR-014
+> Decision 9's canonical-frame holdout notes for concrete usage):
+> 1. cnblogs, "西门子S7通讯协议引用整理" (primary):
+>    <https://www.cnblogs.com/crcce-dncs/p/10659087.html>
+> 2. Yiqisoft (2023-03-22): <https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html> — the
+>    cited bytes are output **produced by** the `gos7` library (observed wire/library
+>    output only; no `gos7` source code was read, copied, or used as a design
+>    reference).
+> 3. Inductive Automation Knowledge Base, "Loggers - Device Connections: Siemens".
+
 ### Decision 5: MITRE ATT&CK for ICS technique set — 3 new IDs, 8 reused, tactic-variant ruling
 
 Per `.factory/research/s7comm-mitre-ics-tagging.md` (live technique-page verification,
@@ -685,6 +713,16 @@ combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary by
 > path), BC-2.21.008 and BC-2.21.009 to match; see each BC's `modified:` history.
 > This note tracks the architectural ruling, not the BC text itself — do not treat
 > this note as a substitute for the amended BCs.
+
+> **NOTE (2026-09-24, STORY-187 per-story adversarial pass 5, F-39 secondary):** this
+> item's "proptest P1 for the protocol-ID branch totality" sentence (above, Decision 9's
+> Tool-selection paragraph) is superseded on phase — VP-INDEX.md registers **VP-053** as
+> a proptest **P0** target (not P1) for this property, load-bearing because a
+> protocol-ID-branch classification defect would misattribute or force-fit traffic onto
+> the wrong protocol (never-force-fit unclassified-gap handling, port-102 four-way
+> collision). VP-INDEX.md is the phase-assignment source of truth; this note is
+> version-agnostic and does not change VP-053's tool (proptest), module
+> (`analyzer/s7comm.rs`), or property text — phase only.
 
 **VP numbering is explicitly deferred to product-owner** at F2 BC/VP authoring (this ADR
 does not register new VP-NNN IDs; VP-004 and VP-007 are pre-existing obligations being
