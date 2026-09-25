@@ -1834,6 +1834,72 @@ mod story_187 {
             "a CC observed with no prior CR on this flow must leave \
              session_established false (F-01 ruling, BC-2.21.001 edge case EC-004)"
         );
+        assert_eq!(
+            state.cr_observed_dir, None,
+            "a CC with no prior CR must never populate cr_observed_dir -- only a CR \
+             frame writes this field, and none has been observed on this flow \
+             (P11-F-3, BC-2.21.001 edge case EC-004)"
+        );
+    }
+
+    /// P12-F-1: `cr_observed_dir` reflects the MOST RECENT CR on the flow, not the
+    /// first -- a subsequent CR in a different direction overwrites the field
+    /// (`dispatch_cotp_frame`'s `ConnectRequest` arm always writes
+    /// `state.cr_observed_dir = Some(direction)`, unconditionally, never guarded by
+    /// "only if unset"). Verified both ways: a CC opposite the MOST RECENT CR sets
+    /// `session_established`, and a CC matching the MOST RECENT CR's direction (which
+    /// happens to be the SAME direction as the now-stale first CR) does not.
+    ///
+    /// Traces: BC-2.21.001 postcondition 1's "most recently observed COTP CR"
+    /// framing; F-01 ruling.
+    #[test]
+    fn test_BC_2_21_001_most_recent_cr_direction_wins() {
+        // CR(c2s), CR(s2c), CC(c2s) -- the MOST RECENT CR is s2c, and c2s is opposite
+        // it, so session_established must become true. Under a (buggy)
+        // first-CR-wins implementation, cr_observed_dir would still read Some(c2s)
+        // after the second CR, making this CC SAME-direction (not opposite),
+        // leaving session_established false -- the two implementations disagree
+        // here.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 1, Direction::ServerToClient);
+            analyzer.on_data(flow_key.clone(), &cc_frame(), 2, Direction::ClientToServer);
+
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.session_established,
+                "a CC opposite the MOST RECENT CR's direction (s2c) must set \
+                 session_established, even though it matches the FIRST CR's \
+                 direction (c2s) -- most-recent-CR-wins, not first-CR-wins \
+                 (P12-F-1, BC-2.21.001 postcondition 1)"
+            );
+        }
+
+        // CR(c2s), CR(s2c), CC(s2c) -- the MOST RECENT CR is s2c, and this CC is
+        // SAME-direction, so session_established must remain false. Under a
+        // first-CR-wins implementation, cr_observed_dir would still read Some(c2s),
+        // making this CC opposite-direction and incorrectly setting
+        // session_established true -- the two implementations disagree here too.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 1, Direction::ServerToClient);
+            analyzer.on_data(flow_key.clone(), &cc_frame(), 2, Direction::ServerToClient);
+
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                !state.session_established,
+                "a CC in the SAME direction as the MOST RECENT CR (s2c) must leave \
+                 session_established false, even though it is OPPOSITE the FIRST \
+                 CR's direction (c2s) -- most-recent-CR-wins, not first-CR-wins \
+                 (P12-F-1, BC-2.21.001 postcondition 1)"
+            );
+        }
     }
 
     /// AC-187-003 negative case (c): a CC is observed BEFORE any CR (out-of-order
@@ -2340,6 +2406,115 @@ mod story_187 {
                 "classified_protocol must remain Some(Unclassified) (F-12 ruling)"
             );
         }
+    }
+
+    // =========================================================================
+    // P12-F-3: dissection must be bounded to the CURRENT TPKT frame's own payload
+    // (`&frame[4..]`, `frame == &working[cursor..cursor + total]`) -- never to
+    // `&working[cursor + 4..]`, which would (with no upper bound) leak bytes from
+    // any SUBSEQUENT frame present later in the same `working` buffer/delivery into
+    // the current frame's `tpkt_payload`/COTP-payload/S7comm-payload slice.
+    // =========================================================================
+
+    /// P12-F-3: a single `on_data` delivery contains TWO complete, back-to-back TPKT
+    /// frames: first a DT frame whose classic S7comm Job header declares
+    /// `param_length == 2` but has ZERO parameter bytes actually present WITHIN ITS
+    /// OWN TPKT frame (the frame's declared TPKT `length` covers exactly the 10-byte
+    /// common header, nothing more); second, a complete COTP CR frame.
+    ///
+    /// Under the correct implementation, the DT frame's dissection is bounded to its
+    /// own frame -- `payload.len() == 10`, so `s7comm_bounds_ok` correctly fails
+    /// (`declared_total == 12 > 10`) and exactly one T0814 is emitted. Under the
+    /// `tpkt_payload = &working[cursor + 4..]` mutation (no upper bound), the DT
+    /// frame's `tpkt_payload` would instead extend all the way to the end of
+    /// `working`, absorbing the entire trailing CR frame's 7 bytes into what should
+    /// have been a 10-byte payload -- `payload.len()` would become 17, which
+    /// incorrectly PASSES the bounds check (`17 >= 12`), so the mutant emits ZERO
+    /// findings instead of one.
+    ///
+    /// Traces: BC-2.21.009 postcondition 2; BC-2.20.013 postcondition 1a (frame
+    /// boundary discipline).
+    #[test]
+    fn test_BC_2_21_009_dissection_bounded_to_own_tpkt_frame() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // Job header (exactly 10 bytes, no trailing parameter/data bytes) declaring
+        // param_length=2, data_length=0 -- so the DT frame's own TPKT-declared
+        // length covers only these 10 bytes, none of the (falsely) declared 2
+        // parameter bytes.
+        let header = classic_header_bytes(0x01, 0x0001, 0x0002, 0x0000);
+        assert_eq!(header.len(), 10);
+        let mut delivery = dt_frame(&header);
+        delivery.extend_from_slice(&cr_frame());
+
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
+
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "the DT frame's bounds-check failure (param_length=2 declared, 0 bytes \
+             present WITHIN ITS OWN FRAME) must emit exactly one T0814, undiminished \
+             by the trailing CR frame present later in the same delivery (P12-F-3)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+        assert_reason_specific_evidence(&analyzer.findings[0], "exceed available bytes");
+
+        // The trailing CR frame must still have been walked and dispatched normally
+        // (session-tracking state updated), confirming the cursor advanced correctly
+        // past the DT frame using its OWN declared TPKT length, not consumed by an
+        // over-wide tpkt_payload slice.
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.cr_observed_dir,
+            Some(Direction::ClientToServer),
+            "the trailing CR frame must still be walked and dispatched (its own \
+             cr_observed_dir side effect observed), confirming the cursor advanced \
+             past the DT frame by exactly its own declared TPKT length (P12-F-3)"
+        );
+    }
+
+    /// P12-F-3 (mirror case): a single `on_data` delivery contains a DT frame with an
+    /// EMPTY upper-layer payload (`protocol_id: None`, via `dt_frame_empty_payload()`
+    /// -- `payload_offset == tpkt_payload.len()` exactly, within its OWN frame),
+    /// immediately followed by a complete CR frame in the SAME delivery.
+    ///
+    /// Under the correct implementation, the DT frame's `tpkt_payload` is bounded to
+    /// its own 3-byte COTP fixed part, so `header.protocol_id` correctly evaluates to
+    /// `None` (no byte exists at `payload_offset` within this frame) and
+    /// `classified_protocol` stays `None` (F-02: a `None`-protocol_id DT frame never
+    /// classifies). Under the `tpkt_payload = &working[cursor + 4..]` mutation, the
+    /// DT frame's `tpkt_payload` would instead leak into the trailing CR frame's
+    /// bytes, so `tpkt_payload[payload_offset]` would read the CR frame's leading
+    /// TPKT version byte (`0x03`) instead of being out-of-bounds -- producing
+    /// `protocol_id: Some(0x03)`, which classifies the flow `Unclassified` instead of
+    /// leaving it `None`.
+    ///
+    /// Traces: BC-2.21.002 postcondition 6; BC-2.20.010 (`protocol_id: None` no
+    /// out-of-bounds read); BC-2.20.013 postcondition 1a (frame boundary discipline).
+    #[test]
+    fn test_BC_2_21_002_empty_dt_followed_by_frame_same_delivery_stays_unclassified() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        let mut delivery = dt_frame_empty_payload();
+        delivery.extend_from_slice(&cr_frame());
+
+        analyzer.on_data(flow_key.clone(), &delivery, 0, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol, None,
+            "a protocol_id: None DT frame (empty payload WITHIN ITS OWN FRAME) \
+             followed by a trailing CR frame in the same delivery must leave \
+             classified_protocol at None -- the DT frame's protocol_id evaluation \
+             must never read into the trailing frame's bytes (P12-F-3, F-02)"
+        );
+        assert!(
+            analyzer.findings.is_empty(),
+            "neither the empty-payload DT frame nor the trailing CR frame emits any \
+             finding"
+        );
     }
 
     // =========================================================================
@@ -3052,7 +3227,12 @@ mod story_187 {
         );
 
         // 12 bytes exactly: complete Ack (built via the ack_header_bytes helper).
-        let twelve = ack_header_bytes(1, 0, 0, 0x00, 0x00);
+        // Uses DISTINCT, non-zero error_class/error_code values (0x81/0x04, per
+        // P12-F-2) rather than Some(0)/Some(0) -- a same-value pair cannot
+        // distinguish a correct data[10]/data[11] extraction from a mutation that
+        // swaps the two offsets, or from a mutation that hard-codes `Some(0)` for
+        // either field.
+        let twelve = ack_header_bytes(1, 0, 0, 0x81, 0x04);
         assert_eq!(twelve.len(), 12);
         assert_eq!(
             parse_s7comm_header(&twelve),
@@ -3061,12 +3241,14 @@ mod story_187 {
                 pdu_reference: 1,
                 param_length: 0,
                 data_length: 0,
-                error_class: Some(0),
-                error_code: Some(0),
+                error_class: Some(0x81),
+                error_code: Some(0x04),
                 header_len: 12,
             }),
             "12-byte Ack (canonical vector, minimal happy path) must extract the exact \
-             expected S7commHeader with error_class/error_code Some(0)"
+             expected S7commHeader with error_class == data[10] == Some(0x81) and \
+             error_code == data[11] == Some(0x04) -- distinct values (P12-F-2) so an \
+             offset swap or a hard-coded Some(0) is caught"
         );
     }
 
@@ -3108,7 +3290,9 @@ mod story_187 {
         // ack_data_header_bytes helper for structural equality with a distinct set
         // of field values (pdu_reference/param_length) than the 10/11-byte vectors
         // above.
-        let twelve = ack_data_header_bytes(0xFFFF, 8, 0, 0x00, 0x00);
+        // Distinct, non-zero error_class/error_code (0x81/0x04, per P12-F-2) --
+        // mirrors the Ack-rosctr test's rationale above.
+        let twelve = ack_data_header_bytes(0xFFFF, 8, 0, 0x81, 0x04);
         assert_eq!(twelve.len(), 12);
         assert_eq!(
             parse_s7comm_header(&twelve),
@@ -3117,14 +3301,15 @@ mod story_187 {
                 pdu_reference: 0xFFFF,
                 param_length: 8,
                 data_length: 0,
-                error_class: Some(0),
-                error_code: Some(0),
+                error_class: Some(0x81),
+                error_code: Some(0x04),
                 header_len: 12,
             }),
             "12-byte Ack_Data (BC-2.21.008 canonical vector, Setup Communication \
              response shape) must extract the exact expected S7commHeader with \
-             error_class/error_code Some(0) and header_len == 12 \
-             (DF-CANONICAL-FRAME-HOLDOUT-001)"
+             error_class == data[10] == Some(0x81), error_code == data[11] == \
+             Some(0x04), and header_len == 12 (DF-CANONICAL-FRAME-HOLDOUT-001; \
+             P12-F-2: distinct values catch an offset swap or a hard-coded Some(0))"
         );
     }
 
@@ -3602,6 +3787,142 @@ mod story_187 {
         );
     }
 
+    /// P12-F-1: unlike every other BC-2.21.009 `on_data` test in this module (which
+    /// all use `data_length == 0` and vary `param_length`), this test holds
+    /// `param_length == 0` fixed and overruns exclusively on `data_length` -- the
+    /// declared 2 data bytes are only partially (1 byte) or exactly (2 bytes)
+    /// present, with NO parameter bytes at all. A mutation that drops
+    /// `header.data_length` from `s7comm_bounds_ok`'s summed total (leaving only
+    /// `header_len + param_length`) would compute `declared_total == 10` here
+    /// instead of the correct `12`, so the 1-trailing-byte case (`data_len == 11 >=
+    /// 10`) would incorrectly PASS the bounds check and emit zero findings --
+    /// diverging from this test's expectation of exactly one T0814.
+    ///
+    /// Traces: BC-2.21.009 postcondition 1 (declared total includes data_length).
+    #[test]
+    fn test_BC_2_21_009_data_length_overrun_on_data_emits_t0814() {
+        // 1 of the declared 2 data bytes present -> bounds check fails, one T0814.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            let mut header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0002);
+            header.push(0xAA); // only 1 of the declared 2 data bytes present
+            let frame = dt_frame(&header);
+            analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+
+            assert_eq!(
+                analyzer.findings.len(),
+                1,
+                "declared data_length exceeding the actually-available bytes (with \
+                 param_length == 0) must emit exactly one malformed-header T0814 \
+                 (P12-F-1, BC-2.21.009 postcondition 1)"
+            );
+            assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+            assert_reason_specific_evidence(&analyzer.findings[0], "exceed available bytes");
+        }
+
+        // Both declared data bytes present -> bounds check passes, no finding.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            let mut header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0002);
+            header.extend_from_slice(&[0xAA, 0xBB]); // exactly the declared 2 data bytes
+            let frame = dt_frame(&header);
+            analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+
+            assert!(
+                analyzer.findings.is_empty(),
+                "an exact declared-data_length-to-available-bytes match (with \
+                 param_length == 0) must pass the bounds check cleanly, with no \
+                 malformed-header finding (P12-F-1)"
+            );
+        }
+    }
+
+    /// P12-F-1: direct `s7comm_bounds_ok` assertions isolating `data_length`'s
+    /// contribution to the summed bound -- `header_len == 10`, `param_length == 0`,
+    /// `data_length == 2`. Kills the same "drop data_length from the sum" mutation
+    /// as the `on_data`-level test above, without going through `on_data` or
+    /// `parse_s7comm_header` at all. Also covers a MIXED `param_length ==
+    /// 3`/`data_length == 2` case, so a mutation that reads `data_length` but drops
+    /// `param_length` (or vice versa) is caught too.
+    ///
+    /// Traces: BC-2.21.009 postcondition 1, invariant 1.
+    #[test]
+    fn test_BC_2_21_009_s7comm_bounds_ok_data_length_only_overrun() {
+        let header = S7commHeader {
+            rosctr: Rosctr::Job,
+            pdu_reference: 0,
+            param_length: 0,
+            data_length: 2,
+            error_class: None,
+            error_code: None,
+            header_len: 10,
+        };
+        assert!(
+            !s7comm_bounds_ok(&header, 11),
+            "header_len(10) + param_length(0) + data_length(2) == 12 > data_len(11) \
+             must fail -- if data_length were dropped from the sum, declared_total \
+             would be 10 and data_len(11) would incorrectly pass (P12-F-1)"
+        );
+        assert!(
+            s7comm_bounds_ok(&header, 12),
+            "header_len(10) + param_length(0) + data_length(2) == 12 == data_len(12) \
+             must pass the bounds check exactly (P12-F-1)"
+        );
+
+        // Mixed case: both param_length and data_length are non-zero and distinct.
+        let mixed = S7commHeader {
+            param_length: 3,
+            data_length: 2,
+            ..header
+        };
+        assert!(
+            !s7comm_bounds_ok(&mixed, 14),
+            "header_len(10) + param_length(3) + data_length(2) == 15 > data_len(14) \
+             must fail (P12-F-1 mixed case)"
+        );
+        assert!(
+            s7comm_bounds_ok(&mixed, 15),
+            "header_len(10) + param_length(3) + data_length(2) == 15 == data_len(15) \
+             must pass exactly (P12-F-1 mixed case)"
+        );
+    }
+
+    /// P12-F-1: `pdu_reference`, `param_length`, and `data_length` are each decoded
+    /// via `u16::from_be_bytes` (big-endian) -- never `from_le_bytes`. Uses
+    /// byte-asymmetric values (each field's high byte != its low byte, and all three
+    /// fields are pairwise distinct) so that a mutation swapping big-endian for
+    /// little-endian decoding on ANY one of the three fields produces a different
+    /// value than expected, and is caught.
+    ///
+    /// `0x0102` decoded little-endian would read as `0x0201`; `0x0304`
+    /// little-endian as `0x0403`; `0x0506` little-endian as `0x0605` -- all three
+    /// diverge from the correct big-endian values asserted below.
+    ///
+    /// Traces: BC-2.21.006 postconditions 2-4.
+    #[test]
+    fn test_BC_2_21_006_byte_asymmetric_big_endian_decode() {
+        let data = classic_header_bytes(0x01, 0x0102, 0x0304, 0x0506);
+        assert_eq!(data.len(), 10);
+
+        let parsed = parse_s7comm_header(&data).expect("valid Job header must parse");
+        assert_eq!(
+            parsed.pdu_reference, 0x0102,
+            "pdu_reference (data[4..6]) must be decoded big-endian (P12-F-1)"
+        );
+        assert_eq!(
+            parsed.param_length, 0x0304,
+            "param_length (data[6..8]) must be decoded big-endian (P12-F-1)"
+        );
+        assert_eq!(
+            parsed.data_length, 0x0506,
+            "data_length (data[8..10]) must be decoded big-endian (P12-F-1)"
+        );
+    }
+
     // =========================================================================
     // VP-051 (Kani P0, skeleton, v1.1 / F-14): S7comm Header Bounds-Before-Slice
     // Safety. Traces BC-2.21.004, BC-2.21.006, BC-2.21.007, BC-2.21.008, BC-2.21.009.
@@ -4009,6 +4330,27 @@ mod story_187 {
                      protocol_id must classify the flow exactly per BC-2.21.002's \
                      four-way table, with protocol_id: None carrying NO protocol \
                      evidence and never classifying -- protocol_id={:?}",
+                    protocol_id
+                );
+
+                // P11-F-4: `dt_frame_for_protocol_id` never generates a MALFORMED
+                // classic-S7comm payload -- the `Some(0x32)` branch always builds a
+                // complete, well-formed 10-byte Job header with empty
+                // parameter/data blocks (verified above the `proptest!` block), and
+                // every other `protocol_id` value (`None`, `Some(0x72)`,
+                // `Some(other)`) never reaches `dispatch_classic_s7comm` at all (the
+                // F-12 gate only fires for `Some(0x32)`). So across every value this
+                // strategy can generate, zero findings must ever be emitted --
+                // scoped to this proptest's single-frame-per-flow generator only,
+                // not a general claim about all possible classic S7comm frames.
+                prop_assert!(
+                    analyzer.findings.is_empty(),
+                    "VP-053: this strategy generates only a well-formed classic Job \
+                     header (protocol_id Some(0x32)) or frames that never reach \
+                     classic dissection at all -- no scenario this generator can \
+                     produce should ever emit a finding, but got {:?} for \
+                     protocol_id={:?}",
+                    analyzer.findings,
                     protocol_id
                 );
             }
