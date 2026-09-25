@@ -191,8 +191,9 @@ and never re-routes to a *different* named protocol.
 > **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-01/F-02/F-12):**
 > Three human rulings refine this Decision's disambiguation table and dispatch gating,
 > effective for BC-2.21.001/002/004/005/008/009 (product-owner has amended these
-> contracts to v1.1; this note tracks the architectural ruling, not the BC text
-> itself — do not treat this note as a substitute for the amended BCs):
+> contracts to match; see each BC's `modified:` history; this note tracks the
+> architectural ruling, not the BC text itself — do not treat this note as a
+> substitute for the amended BCs):
 >
 > - **F-01 (session establishment is directional-paired, not any-CC).**
 >   `session_established` is set only by a CC TPDU observed in the direction *opposite*
@@ -679,11 +680,11 @@ combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary by
 > header). Mirrored in `.factory/specs/verification-properties/VP-INDEX.md`,
 > `.factory/specs/architecture/verification-architecture.md`, and
 > `.factory/specs/architecture/verification-coverage-matrix.md` (architect burst, same
-> date). Product-owner amended BC-2.21.004 (v1.3), BC-2.21.006 (v1.2), BC-2.21.008
-> (v1.3), BC-2.21.009 (v1.1), and BC-2.21.007 (v1.1, pass-3 F-27: length-conditional
-> accept rule, BC-2.21.008 linked as the Ack/Ack_Data accept path) to match; this
-> note tracks the architectural ruling, not the BC text itself — do not treat this
-> note as a substitute for the amended BCs.
+> date). Product-owner amended BC-2.21.004, BC-2.21.006, BC-2.21.007
+> (length-conditional accept rule; BC-2.21.008 linked as the Ack/Ack_Data accept
+> path), BC-2.21.008 and BC-2.21.009 to match; see each BC's `modified:` history.
+> This note tracks the architectural ruling, not the BC text itself — do not treat
+> this note as a substitute for the amended BCs.
 
 **VP numbering is explicitly deferred to product-owner** at F2 BC/VP authoring (this ADR
 does not register new VP-NNN IDs; VP-004 and VP-007 are pre-existing obligations being
