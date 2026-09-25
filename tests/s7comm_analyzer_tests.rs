@@ -3636,6 +3636,21 @@ mod story_187 {
         /// `data.len() < 10` case (BC-2.21.004) and the `data[0] != 0x32`
         /// defensive-reject case (BC-2.21.005).
         ///
+        /// `Some(header)` positive assertions (pass-6 F-47): beyond the header_len
+        /// shape check, the `Some` branch now asserts the full field-mapping contract
+        /// so header_len is linked to ROSCTR by an `assert_eq!`, not merely by a
+        /// `kani::cover!`:
+        /// - `header.header_len == 12` iff `rosctr ∈ {Ack, AckData}`, else `10`
+        ///   (BC-2.21.006 postcondition 1 / BC-2.21.008 postcondition 2).
+        /// - When `rosctr ∈ {Ack, AckData}`: `error_class == Some(slice[10])` and
+        ///   `error_code == Some(slice[11])` (BC-2.21.008 postcondition 3).
+        /// - `rosctr` maps exactly from `slice[1]`: `0x01 -> Job`, `0x02 -> Ack`,
+        ///   `0x03 -> AckData`, `0x07 -> Userdata` (BC-2.21.006 postcondition 1 /
+        ///   BC-2.21.007).
+        /// - `pdu_reference`, `param_length`, `data_length` equal the big-endian reads
+        ///   of `slice[4..6]`, `slice[6..8]`, `slice[8..10]` respectively
+        ///   (BC-2.21.006 postcondition 2/3/4).
+        ///
         /// Non-vacuous per DF-KANI-NONVACUITY-001 (F-24 wording correction,
         /// human-ratified 2026-09-24): the `kani::cover!` checks below record whether
         /// BOTH the `None` and `Some` return paths, and both the `header_len == 10`
@@ -3700,6 +3715,78 @@ mod story_187 {
                     is_ack_or_ack_data,
                     "VP-051 / BC-2.21.008 postcondition 3: error_code.is_some() must \
                      equal (rosctr == Ack || rosctr == AckData)"
+                );
+
+                // Positive assertion (pass-6 F-47, BC-2.21.006 postcondition 1 /
+                // BC-2.21.008 postcondition 2): header_len is LINKED to ROSCTR by an
+                // assert_eq!, not merely observed via kani::cover! below -- 12 iff
+                // Ack/AckData, else 10.
+                assert_eq!(
+                    header.header_len,
+                    if is_ack_or_ack_data { 12 } else { 10 },
+                    "VP-051 / BC-2.21.006 postcondition 1 / BC-2.21.008 postcondition 2: \
+                     header_len must be 12 iff rosctr is Ack or AckData, else 10"
+                );
+
+                // Positive assertion (pass-6 F-47, BC-2.21.008 postcondition 3): when
+                // the extended header is present, error_class/error_code carry the
+                // EXACT byte values from slice[10]/slice[11], not merely Some(_).
+                if is_ack_or_ack_data {
+                    assert_eq!(
+                        header.error_class,
+                        Some(slice[10]),
+                        "VP-051 / BC-2.21.008 postcondition 3: error_class must equal \
+                         Some(slice[10]) for Ack/AckData"
+                    );
+                    assert_eq!(
+                        header.error_code,
+                        Some(slice[11]),
+                        "VP-051 / BC-2.21.008 postcondition 3: error_code must equal \
+                         Some(slice[11]) for Ack/AckData"
+                    );
+                }
+
+                // Positive assertion (pass-6 F-47, BC-2.21.006 postcondition 1 /
+                // BC-2.21.007): rosctr must map EXACTLY from slice[1] -- 0x01 -> Job,
+                // 0x02 -> Ack, 0x03 -> AckData, 0x07 -> Userdata. No other slice[1]
+                // value reaches this Some(header) branch (BC-2.21.007 safe-reject).
+                let expected_rosctr = match slice[1] {
+                    0x01 => Rosctr::Job,
+                    0x02 => Rosctr::Ack,
+                    0x03 => Rosctr::AckData,
+                    0x07 => Rosctr::Userdata,
+                    other => panic!(
+                        "VP-051 / BC-2.21.007: unexpected slice[1] = {other:#x} reached \
+                         a Some(header) result; only 0x01/0x02/0x03/0x07 may produce Some"
+                    ),
+                };
+                assert_eq!(
+                    header.rosctr, expected_rosctr,
+                    "VP-051 / BC-2.21.006 postcondition 1: rosctr must map exactly from \
+                     slice[1]"
+                );
+
+                // Positive assertion (pass-6 F-47, BC-2.21.006 postcondition 2/3/4):
+                // pdu_reference/param_length/data_length are exactly the big-endian
+                // reads of slice[4..6]/[6..8]/[8..10] -- the common fields are always
+                // present and unaffected by header_len shape.
+                assert_eq!(
+                    header.pdu_reference,
+                    u16::from_be_bytes([slice[4], slice[5]]),
+                    "VP-051 / BC-2.21.006 postcondition 2: pdu_reference must equal \
+                     u16::from_be_bytes([slice[4], slice[5]])"
+                );
+                assert_eq!(
+                    header.param_length,
+                    u16::from_be_bytes([slice[6], slice[7]]),
+                    "VP-051 / BC-2.21.006 postcondition 3: param_length must equal \
+                     u16::from_be_bytes([slice[6], slice[7]])"
+                );
+                assert_eq!(
+                    header.data_length,
+                    u16::from_be_bytes([slice[8], slice[9]]),
+                    "VP-051 / BC-2.21.006 postcondition 4: data_length must equal \
+                     u16::from_be_bytes([slice[8], slice[9]])"
                 );
 
                 // F-14: also exercise the extracted BC-2.21.009 pure helper directly,
