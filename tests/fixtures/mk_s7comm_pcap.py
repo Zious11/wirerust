@@ -15,12 +15,14 @@ Decision 7's own citation) (pure-Python libpcap/Ethernet/IPv4/TCP builders, no
 external pcap-writing library).
 
 No official public Siemens specification exists for classic S7comm (ADR-014
-Decision 4) — the wire layout used here (TPKT/COTP framing, the 10-byte classic
-S7comm common header, the Setup Communication parameter block) is derived from
-free-to-read prose/behavioral sources only (Wireshark wiki prose, Kleinmann & Wool
-2014, the Orange-Cyberdefense awesome-industrial-protocols catalog) — never from
-Wireshark's dissector source, Snap7, or libnodave (all GPL/LGPL-tainted). Zero lines
-are borrowed from any external implementation.
+Decision 4) — the wire layout used here (TPKT/COTP framing, the classic S7comm
+common header — 10 bytes for Job (0x01)/Userdata (0x07), 12 bytes for Ack
+(0x02)/Ack_Data (0x03) per the 2026-09-24 canonical-frame holdout ruling,
+DF-CANONICAL-FRAME-HOLDOUT-001 — and the Setup Communication parameter block) is
+derived from free-to-read prose/behavioral sources only (Wireshark wiki prose,
+Kleinmann & Wool 2014, the Orange-Cyberdefense awesome-industrial-protocols
+catalog) — never from Wireshark's dissector source, Snap7, or libnodave (all
+GPL/LGPL-tainted). Zero lines are borrowed from any external implementation.
 
 `S7commAnalyzer` is not yet registered with the dispatcher (STORY-193's scope), so
 this fixture is not yet consumed by any CLI/E2E test in this story — it exists to
@@ -221,15 +223,27 @@ def cotp_dt(upper_payload: bytes, tpdu_number: int = 0x00) -> bytes:
 
 S7_PROTOCOL_ID = 0x32
 ROSCTR_JOB = 0x01
+ROSCTR_ACK = 0x02
 ROSCTR_ACK_DATA = 0x03
 
 
-def s7comm_pdu(rosctr: int, pdu_reference: int, parameter: bytes, data: bytes) -> bytes:
+def s7comm_pdu(
+    rosctr: int,
+    pdu_reference: int,
+    parameter: bytes,
+    data: bytes,
+    error_class: int = 0x00,
+    error_code: int = 0x00,
+) -> bytes:
     """
-    Classic S7comm common header (BC-2.21.006): Protocol ID (1) + ROSCTR (1) +
-    Reserved (2, always 0x0000 here) + PDU Reference (2 BE) + Parameter Length
-    (2 BE) + Data Length (2 BE), followed by the parameter and data blocks
-    verbatim.
+    Classic S7comm common header. Per the 2026-09-24 canonical-frame holdout
+    ruling (DF-CANONICAL-FRAME-HOLDOUT-001, BC-2.21.006/BC-2.21.008): Job (0x01)
+    and Userdata (0x07) use the 10-byte common header — Protocol ID (1) + ROSCTR
+    (1) + Reserved (2, always 0x0000 here) + PDU Reference (2 BE) + Parameter
+    Length (2 BE) + Data Length (2 BE); Ack (0x02) and Ack_Data (0x03) use a
+    12-byte header — the same 10 bytes plus Error Class (1) + Error Code (1) —
+    with the parameter block starting at byte 12, not byte 10. `error_class`/
+    `error_code` are ignored for Job/Userdata (no such fields exist there).
     """
     header = struct.pack(
         "!BBHHHH",
@@ -240,6 +254,8 @@ def s7comm_pdu(rosctr: int, pdu_reference: int, parameter: bytes, data: bytes) -
         len(parameter),
         len(data),
     )
+    if rosctr in (ROSCTR_ACK, ROSCTR_ACK_DATA):
+        header += bytes([error_class & 0xFF, error_code & 0xFF])
     return header + parameter + data
 
 
@@ -254,7 +270,13 @@ def setup_communication_request(pdu_reference: int) -> bytes:
 
 
 def setup_communication_response(pdu_reference: int) -> bytes:
-    """Setup Communication Ack_Data response — same 8-byte parameter shape."""
+    """
+    Setup Communication Ack_Data response — same 8-byte parameter shape, now
+    correctly emitted with the 12-byte Ack_Data header (error_class=0x00,
+    error_code=0x00), matching the canonical cnblogs Ack_Data layout used by
+    `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data`
+    (parameter block at byte 12, per DF-CANONICAL-FRAME-HOLDOUT-001).
+    """
     parameter = struct.pack("!BBHHH", 0xF0, 0x00, 0x0001, 0x0001, 0x01E0)
     return s7comm_pdu(ROSCTR_ACK_DATA, pdu_reference, parameter, b"")
 
@@ -271,7 +293,11 @@ def minimal_job_pdu(pdu_reference: int) -> bytes:
 
 
 def minimal_ack_data_pdu(pdu_reference: int) -> bytes:
-    """The matching minimal classic Ack_Data response, also empty blocks."""
+    """
+    The matching minimal classic Ack_Data response, also empty parameter/data
+    blocks — a 12-byte Ack_Data header (error_class=0x00, error_code=0x00) per
+    DF-CANONICAL-FRAME-HOLDOUT-001; NOT a 10-byte header.
+    """
     return s7comm_pdu(ROSCTR_ACK_DATA, pdu_reference, b"", b"")
 
 
