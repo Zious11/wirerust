@@ -419,6 +419,13 @@ behavioral* sources only: the Wireshark **wiki** page (prose, not the dissector 
 Kleinmann & Wool 2014, and the Orange-Cyberdefense `awesome-industrial-protocols`
 catalog.
 
+> [Note, 2026-09-24: the "only" above is read together with the "Permitted design
+> references" list immediately below — those BSD/MIT-licensed sources also ground
+> field-level structural detail (e.g. the Ack/Ack_Data 12-byte header and
+> error_class/error_code byte split), design reference only, no code copied. See the
+> F-40 reconciliation note and Decision 9's canonical-frame note below for the specific
+> field this applies to.]
+
 **Permitted design references (no verbatim code copy, design reference only):**
 - `cisagov/icsnpp-s7comm` (BSD-3-Clause)
 - `kprovost/libs7comm` (BSD-2-Clause)
@@ -968,10 +975,13 @@ for `parse_tpkt_header`/`parse_cotp_header`/`parse_s7comm_header` at F2 BC/VP au
 - **RFC 1006** (IETF, STD 35) — TPKT framing structure and length-field semantics.
 - **ITU-T X.224 ≡ ISO/IEC 8073:1997** — COTP TPDU types (CR/CC/DT), Length Indicator
   field.
-- **S7comm classic protocol structure** — free-to-read prose/behavioral sources only
-  (Wireshark S7comm wiki page, Kleinmann & Wool 2014, Orange-Cyberdefense
-  `awesome-industrial-protocols`); no GPL/LGPL source consulted as an implementation
-  template (Decision 4).
+- **S7comm classic protocol structure** — prose/behavioral sources (Wireshark S7comm
+  wiki page, Kleinmann & Wool 2014, Orange-Cyberdefense `awesome-industrial-protocols`)
+  and the Decision 4 permitted design references (`cisagov/icsnpp-s7comm`,
+  `kprovost/libs7comm`, `python-snap7` — design reference only, no code copied); public
+  wire-capture bytes used as test vectors only, not field-semantics grounding (Decision 4
+  F-40 reconciliation note, 2026-09-24); no GPL/LGPL source consulted as an
+  implementation template (Decision 4).
 - **Feature cycle:** `feature-s7comm` — this ADR governs the S7comm/ISO-on-TCP
   subsystems (SS-20, SS-21) delivered in that cycle.
 - **F1/F2 research (this cycle):**
