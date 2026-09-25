@@ -3604,8 +3604,9 @@ mod story_187 {
 
     // =========================================================================
     // VP-051 (Kani P0, skeleton, v1.1 / F-14): S7comm Header Bounds-Before-Slice
-    // Safety. Traces BC-2.21.004, BC-2.21.009. Full proof execution deferred to
-    // STORY-194 (formal-hardening) per this story's VP-051 Kani Obligation note.
+    // Safety. Traces BC-2.21.004, BC-2.21.006, BC-2.21.007, BC-2.21.008, BC-2.21.009.
+    // Full proof execution deferred to STORY-194 (formal-hardening) per this
+    // story's VP-051 Kani Obligation note.
     // =========================================================================
 
     /// `#[cfg(kani)]` skeleton, compiled only under `cargo kani` -- under a normal
@@ -3707,8 +3708,8 @@ mod story_187 {
                     "VP-051 / BC-2.21.004 postcondition 1 / BC-2.21.008 postcondition 1: \
                      a Some(header) result's own header_len must never exceed the input \
                      slice's length -- this is the parser's own length guard (>= 10 for \
-                     Job/Userdata/unrecognized-ROSCTR rejection, >= 12 for Ack/Ack_Data), \
-                     not BC-2.21.009's caller-side param_length/data_length bounds check"
+                     Job/Userdata, >= 12 for Ack/Ack_Data), not BC-2.21.009's caller-side \
+                     param_length/data_length bounds check"
                 );
 
                 // Non-vacuous assertion 3 (BC-2.21.008 postcondition 3, corrected
