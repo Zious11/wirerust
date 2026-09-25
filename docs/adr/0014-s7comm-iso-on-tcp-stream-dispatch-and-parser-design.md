@@ -190,8 +190,8 @@ and never re-routes to a *different* named protocol.
 
 > **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-01/F-02/F-12):**
 > Three human rulings refine this Decision's disambiguation table and dispatch gating,
-> effective for BC-2.21.001/002/004/005/008/009 (product-owner is amending these
-> contracts in parallel; this note tracks the architectural ruling, not the BC text
+> effective for BC-2.21.001/002/004/005/008/009 (product-owner has amended these
+> contracts to v1.1; this note tracks the architectural ruling, not the BC text
 > itself — do not treat this note as a substitute for the amended BCs):
 >
 > - **F-01 (session establishment is directional-paired, not any-CC).**
@@ -655,6 +655,33 @@ combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary by
 > it is no longer the sole verification tool for `parse_s7comm_header` in isolation —
 > Kani and cargo-fuzz are complementary here (proof of the isolated header parse plus
 > fuzzing of the full chain), not alternatives.
+
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 canonical-frame holdout):** A
+> human-ratified ruling on real captured Setup Communication traffic corrects this
+> item's "10-or-12-byte header" framing, which implicitly limited the 12-byte/
+> error-field case to `rosctr == Ack` alone. **Both** ROSCTR `0x02` (Ack) **and** `0x03`
+> (Ack_Data) carry the 12-byte header with `error_class = data[10]`,
+> `error_code = data[11]`; Job (`0x01`) and Userdata (`0x07`) remain the 10-byte
+> header with no error fields. Evidence: a real Setup Communication Ack_Data frame —
+> `32 03 00 00 FF FF 00 08 00 00 00 00 F0 00 00 01 00 01 00 F0` (cnblogs,
+> <https://www.cnblogs.com/crcce-dncs/p/10659087.html>) — whose parameter block
+> (`F0 00 ...`, Setup Communication function `0xF0`) begins at byte 12, not byte 10;
+> corroborated by independent secondary sources (Yiqisoft S7comm protocol notes;
+> Inductive Automation Knowledge Base). `parse_s7comm_header`'s `header_len` selection
+> is therefore `12` when `rosctr ∈ {Ack, AckData}`, `10` otherwise.
+>
+> This corrects VP-051's non-vacuity obligation (F-14, above) in lockstep: the
+> harness's Some/None deliberate-flip check must assert
+> `error_class.is_some() == (rosctr == Ack || rosctr == AckData)`, **not**
+> `error_class.is_some() == (rosctr == Ack)` — a harness written against the latter,
+> narrower formula would vacuously pass a `header_len`/`error_class` mismatch on every
+> Ack_Data input (12-byte frame incorrectly parsed with a 10-byte, no-error-fields
+> header). Mirrored in `.factory/specs/verification-properties/VP-INDEX.md`,
+> `.factory/specs/architecture/verification-architecture.md`, and
+> `.factory/specs/architecture/verification-coverage-matrix.md` (architect burst, same
+> date). Product-owner is amending BC-2.21.006/007/008/009 in parallel to match; this
+> note tracks the architectural ruling, not the BC text itself — do not treat this note
+> as a substitute for the amended BCs.
 
 **VP numbering is explicitly deferred to product-owner** at F2 BC/VP authoring (this ADR
 does not register new VP-NNN IDs; VP-004 and VP-007 are pre-existing obligations being
