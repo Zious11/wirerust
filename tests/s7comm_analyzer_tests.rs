@@ -2384,6 +2384,11 @@ mod story_187 {
     /// BCs, ADR-014, or any other project artifact -- they are copied verbatim from
     /// the primary source cited above.
     ///
+    /// These publicly posted wire-capture byte examples are used here strictly as
+    /// TEST-VECTOR SOURCES, as permitted by the ADR-014 Decision 4 reconciliation
+    /// note (2026-09-24, DF-CANONICAL-FRAME-HOLDOUT-001); parser design and field
+    /// semantics continue to derive only from Decision 4's original prose sources.
+    ///
     /// Traces: BC-2.21.002 postcondition 3, BC-2.21.006; AC-187-013.
     #[test]
     fn test_BC_2_21_006_canonical_setup_communication_job_frame_on_data() {
@@ -2470,6 +2475,11 @@ mod story_187 {
     /// (`error_class`/`error_code`) to BOTH `rosctr == Ack` (`0x02`) AND
     /// `rosctr == AckData` (`0x03`) -- the assertions below are ordinary, load-bearing
     /// GREEN-gate assertions, not a documented discrepancy.
+    ///
+    /// These publicly posted wire-capture byte examples are used here strictly as
+    /// TEST-VECTOR SOURCES, as permitted by the ADR-014 Decision 4 reconciliation
+    /// note (2026-09-24, DF-CANONICAL-FRAME-HOLDOUT-001); parser design and field
+    /// semantics continue to derive only from Decision 4's original prose sources.
     ///
     /// Traces: BC-2.21.002 postcondition 3, BC-2.21.008 postconditions 1-2;
     /// AC-187-013.
@@ -2698,8 +2708,8 @@ mod story_187 {
     }
 
     // =========================================================================
-    // BC-2.21.006: `parse_s7comm_header` extracts the common header (Job/Ack_Data/
-    // Userdata happy path).
+    // BC-2.21.006: `parse_s7comm_header` extracts the common header (Job/Userdata
+    // happy path; Ack/Ack_Data -> BC-2.21.008).
     // =========================================================================
 
     /// AC-187-008: the two BC-2.21.006 canonical test vectors (Job, Userdata) each

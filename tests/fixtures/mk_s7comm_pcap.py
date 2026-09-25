@@ -18,13 +18,18 @@ No official public Siemens specification exists for classic S7comm (ADR-014
 Decision 4) — the wire layout used here (TPKT/COTP framing, the classic S7comm
 common header — 10 bytes for Job (0x01)/Userdata (0x07), 12 bytes for Ack
 (0x02)/Ack_Data (0x03) per the 2026-09-24 canonical-frame holdout ruling,
-DF-CANONICAL-FRAME-HOLDOUT-001 — and the Setup Communication parameter block) is
-derived from free-to-read prose/behavioral sources only (cnblogs,
-https://www.cnblogs.com/crcce-dncs/p/10659087.html — primary; Yiqisoft,
-https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html; and the Inductive Automation
-KB, with Kleinmann & Wool 2014 as prose corroboration only) — never from
-Wireshark's dissector source, Snap7, or libnodave (all GPL/LGPL-tainted). Zero
-lines are borrowed from any external implementation.
+DF-CANONICAL-FRAME-HOLDOUT-001 — and the Setup Communication parameter block)
+has its field semantics and parser design derived only from ADR-014 Decision
+4's original prose sources (the Wireshark wiki page, Kleinmann & Wool 2014,
+and the Orange-Cyberdefense `awesome-industrial-protocols` catalog) — never
+from Wireshark's dissector source, Snap7, or libnodave (all GPL/LGPL-tainted).
+The 12-byte Ack/Ack_Data layout ruling and the canonical byte examples used as
+test vectors are additionally corroborated by publicly posted wire-capture
+sources (cnblogs, https://www.cnblogs.com/crcce-dncs/p/10659087.html —
+primary; Yiqisoft, https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html; and the
+Inductive Automation KB), permitted as test-vector sources only by the
+ADR-014 Decision 4 reconciliation note (2026-09-24, DF-CANONICAL-FRAME-
+HOLDOUT-001). Zero lines are borrowed from any external implementation.
 
 This fixture is consumed by
 `test_BC_2_21_002_setup_comm_fixture_pcap_well_formed_no_findings` in
