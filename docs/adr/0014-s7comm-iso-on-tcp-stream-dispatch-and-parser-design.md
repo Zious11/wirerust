@@ -188,6 +188,50 @@ the analyzer is load-bearing for correctness, not merely defense-in-depth. Contr
 with IEC-104's `is_valid_iec104_frame` (ADR-013 Decision 1), which only rejects garbage
 and never re-routes to a *different* named protocol.
 
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-01/F-02/F-12):**
+> Three human rulings refine this Decision's disambiguation table and dispatch gating,
+> effective for BC-2.21.001/002 (product-owner has amended these two contracts to
+> match; see each BC's `modified:` history; this note tracks the architectural
+> ruling, not the BC text itself — do not treat this note as a substitute for the
+> amended BCs):
+>
+> - **F-01 (session establishment is directional-paired, not any-CC).**
+>   `session_established` is set only by a CC TPDU observed in the direction *opposite*
+>   a previously-observed CR on the same flow — not by any CC regardless of CR history,
+>   as an unqualified reading of the table's `None (CR/CC TPDU)` row could suggest. A
+>   `pending-CR`-shaped field on `S7commFlowState` (tracking the direction of the most
+>   recently observed CR — overwritten by each subsequent CR, not cleared on a matching
+>   CC, since `session_established` transitions monotonically and no postcondition reads
+>   this field after that transition) is a permitted implementation detail to express
+>   this pairing; the field is not required to be named that, only to exist in some
+>   equivalent form.
+> - **F-02 (`protocol_id: None` never classifies).** A DT-TPDU with `protocol_id: None`
+>   (an empty upper-layer payload — Decision 1's `CotpHeader::protocol_id` doc comment)
+>   does **not** participate in sticky first-classification. `classified_protocol`
+>   remains unset until the first DT-TPDU carrying `Some(byte)` is observed; only that
+>   frame's byte drives the three-way `0x32 -> Classic` / `0x72 -> Plus` / other
+>   `-> Unclassified` assignment, sticky thereafter. This narrows the table's `None
+>   (CR/CC TPDU)` row: "defer classification until the first DT frame arrives" must be
+>   read as "until the first DT frame *carrying a protocol-ID byte* arrives" — an
+>   empty-payload DT frame is treated the same as "not yet arrived," not as a
+>   classifying event in its own right.
+> - **F-12 (classic dissection gated on sticky classification, not per-frame
+>   `protocol_id`).** Classic S7comm header dissection — `parse_s7comm_header`, its
+>   bounds check, and malformed-header T0814 emission — runs only when the flow's
+>   *sticky* `classified_protocol` is `Classic`, not merely when the current DT frame's
+>   `protocol_id == Some(0x32)`. This is this Decision's own no-misattribution guarantee
+>   ("a COTP DT-TPDU ... must never be misattributed to S7comm") applied symmetrically at
+>   the flow level: first-classification-wins (BC-2.21.002 postcondition 6) must govern
+>   *every* frame on the flow, not just the classifying one — a flow sticky-classified
+>   `Plus` or `Unclassified` must not fall into classic dissection even if a later,
+>   individual frame happens to carry a `0x32` protocol-ID byte (e.g. a malformed or
+>   adversarial frame on an already-classified flow).
+>
+> These rulings refine Decision 2's disambiguation table and analyzer-side gating; they
+> do not change this Decision's dispatcher-level conclusion (single
+> `DispatchTarget::S7comm` rule, in-analyzer disambiguation, VP-004 six-step obligation
+> unaffected).
+
 **VP-004 six-step atomic obligation** (mirrors ADR-013 Decision 9, ADR-010 Decision 1),
 to be executed in the same commit:
 
@@ -377,6 +421,13 @@ behavioral* sources only: the Wireshark **wiki** page (prose, not the dissector 
 Kleinmann & Wool 2014, and the Orange-Cyberdefense `awesome-industrial-protocols`
 catalog.
 
+> [Note, 2026-09-24: the "only" above is read together with the "Permitted design
+> references" list immediately below — those BSD/MIT-licensed sources also ground
+> field-level structural detail (e.g. the Ack/Ack_Data 12-byte header and
+> error_class/error_code byte split), design reference only, no code copied. See the
+> F-40 reconciliation note and Decision 9's canonical-frame note below for the specific
+> field this applies to.]
+
 **Permitted design references (no verbatim code copy, design reference only):**
 - `cisagov/icsnpp-s7comm` (BSD-3-Clause)
 - `kprovost/libs7comm` (BSD-2-Clause)
@@ -388,6 +439,34 @@ for interoperability is legally distinct from copying copyrighted source express
 this is materially lower-risk than any effort touching S7comm-plus authentication or
 TLS. No external S7/COTP/TPKT crate appears in `Cargo.toml`/`Cargo.lock` — original Rust
 parser only, zero lines borrowed, following the ADR-013 Decision 7 precedent exactly.
+
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 per-story adversarial pass 5, F-40,
+> HUMAN RULING):** Decision 4's allowed-source list above is **amended, not rewritten**
+> by this note — the original decision text and table stand as-is; this note adds a new,
+> narrowly-scoped permission on top of it. Publicly posted **wire-capture byte examples**
+> — observed on-the-wire frame bytes appearing in public documentation, blog posts, or
+> vendor knowledge-base pages — are **PERMITTED AS TEST-VECTOR SOURCES ONLY**, satisfying
+> `DF-CANONICAL-FRAME-HOLDOUT-001`. This permission is version-agnostic (it does not turn
+> on any particular wirerust or ADR version) and strictly test-vector-scoped: parser
+> design and field semantics continue to derive **only** from Decision 4's original prose
+> sources (the Wireshark wiki page, Kleinmann & Wool 2014, the Orange-Cyberdefense
+> catalog) and the "Permitted design references" list above — this ruling does not add to
+> or relax that list. Code from the banned/GPL dissectors (Wireshark
+> `packet-s7comm.c`/`packet-s7comm_plus.c`, Snap7, libnodave) and the AVOID-list crates
+> (`s7`/`s7-comm`/`s7-client`, `rusty-cotp`/`rusty-tpkt`/`tpkt`/`copt`) remains excluded
+> in full — this ruling does not touch the code-provenance ban. Rationale: observed wire
+> bytes are protocol facts (what a real device put on the wire), not copyrighted source
+> expression; using them as test-vector inputs/expected-outputs is categorically
+> different from copying dissector code. Three sources are currently used under this
+> test-vector-only permission (see BC-2.21.008's Canonical Test Vectors and ADR-014
+> Decision 9's canonical-frame holdout notes for concrete usage):
+> 1. cnblogs, "西门子S7通讯协议引用整理" (primary):
+>    <https://www.cnblogs.com/crcce-dncs/p/10659087.html>
+> 2. Yiqisoft (2023-03-22): <https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html> — the
+>    cited bytes are output **produced by** the `gos7` library (observed wire/library
+>    output only; no `gos7` source code was read, copied, or used as a design
+>    reference).
+> 3. Inductive Automation Knowledge Base, "Loggers - Device Connections: Siemens".
 
 ### Decision 5: MITRE ATT&CK for ICS technique set — 3 new IDs, 8 reused, tactic-variant ruling
 
@@ -592,6 +671,94 @@ branch totality (Decision 2's four-way match must be exhaustive over all `u8` va
 and directional carry-buffer isolation (mirrors VP-045/VP-046). cargo-fuzz P1 for the
 combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary byte input
 (mirrors VP-047).
+
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-14):**
+> VP-INDEX.md registers **VP-051** as a Kani P0 target for `parse_s7comm_header`,
+> superseding item 3's original tool-selection text above ("cargo-fuzz candidate ...
+> rather than Kani, mirroring VP-047's IEC-104 treatment of `parse_asdu`"). On review,
+> `parse_s7comm_header` fits the same Kani-tractability profile as the two SS-20
+> header-parse functions (item 1/2 above) rather than `parse_asdu`'s profile: a fixed
+> 10-or-12-byte header, `Option`-returning, no internal loop over caller-supplied
+> length — the caller-side bounds check against `param_length`/`data_length`
+> (BC-2.21.009) is `dispatch_classic_s7comm`'s responsibility, not
+> `parse_s7comm_header`'s, which keeps the parse function itself loop-free and small
+> enough for model checking. VP-051's Kani harness MUST be **non-vacuous** per
+> DF-KANI-NONVACUITY-001 (a harness whose input constraints admit no cases is not a
+> proof — it must be checked to actually exercise both the `Some` and `None` return
+> paths) and MUST use **bounded input / unwind**: a fixed-size symbolic byte array
+> (`kani::any()` over a bounded-length slice, not unbounded `Vec<u8>`) with an explicit
+> unwind/loop bound, matching `parse_tpkt_header`/`parse_cotp_header`'s existing harness
+> shape (item 1/2). cargo-fuzz remains in scope, unchanged, for the *combined*
+> TPKT→COTP→S7comm parse chain's no-panic property (this item's closing sentence above);
+> it is no longer the sole verification tool for `parse_s7comm_header` in isolation —
+> Kani and cargo-fuzz are complementary here (proof of the isolated header parse plus
+> fuzzing of the full chain), not alternatives.
+
+> **RECONCILIATION NOTE (2026-09-24, STORY-187 canonical-frame holdout):** A
+> human-ratified ruling on real captured Setup Communication traffic corrects this
+> item's "10-or-12-byte header" framing, which implicitly limited the 12-byte/
+> error-field case to `rosctr == Ack` alone. **Both** ROSCTR `0x02` (Ack) **and** `0x03`
+> (Ack_Data) carry the 12-byte header with `error_class = data[10]`,
+> `error_code = data[11]`; Job (`0x01`) and Userdata (`0x07`) remain the 10-byte
+> header with no error fields. Field-semantics grounding (permitted sources per Decision
+> 4 / the F-40 reconciliation note above — prose sources and design references only, no
+> wire-capture bytes): Kleinmann & Wool 2014 (JDFSL 9(2), §3.2, Figure 2, p.41) documents
+> a 2-byte error block labeled "Error Code - only for ROSCTR 3", establishing the
+> Ack_Data (`0x03`) 12-byte header (the authors observed only ROSCTR 1 and 3 traffic, so
+> Ack (`0x02`) is not independently attested there). The permitted design references
+> corroborate this and extend it to Ack: cisagov/icsnpp-s7comm (BSD-3-Clause),
+> `src/s7comm-protocol.pac`, declares separate records for `ROSCTR_ACK` (`0x02`) and
+> `ROSCTR_ACK_Data` (`0x03`), each embedding an `S7Comm_Error` record of two `uint8`
+> fields (`error_class`, `error_code`) immediately after the four 2-byte header fields,
+> with no such record for Job/User_Data — as reviewed 2026-09-24; gijzelaerr/python-snap7
+> (MIT), `snap7/s7protocol.py`, function `parse_response`, documents in comment that ACK
+> and ACK_DATA carry a 12-byte header with `error_class`/`error_code` as separate bytes
+> at offsets 10 and 11, versus a 10-byte USERDATA header — as reviewed 2026-09-24.
+> kprovost/libs7comm (BSD-2-Clause), `src/lib/s7comm_types.h` and `s7comm.c`, is
+> consistent in aggregate: message types 2 and 3 carry 2 extra bytes, modeled there as a
+> single 16-bit "result" field rather than the two discrete error_class/error_code bytes
+> — as reviewed 2026-09-24. `parse_s7comm_header`'s `header_len` selection is therefore
+> `12` when `rosctr ∈ {Ack, AckData}`, `10` otherwise, with `error_class = data[10]`,
+> `error_code = data[11]`.
+>
+> Caveat: icsnpp-s7comm, python-snap7, and libs7comm are reverse-engineered,
+> community-maintained implementations, not a Siemens specification — Siemens has not
+> published the classic S7comm wire format. This grounding is version-agnostic; it does
+> not turn on any particular wirerust or ADR version.
+>
+> Canonical-frame test vectors (PERMITTED AS TEST-VECTOR SOURCES ONLY per the F-40
+> Decision 4 reconciliation note above — not used for field-semantics grounding): a real
+> Setup Communication Ack_Data frame —
+> `32 03 00 00 FF FF 00 08 00 00 00 00 F0 00 00 01 00 01 00 F0` (cnblogs,
+> <https://www.cnblogs.com/crcce-dncs/p/10659087.html>) — whose parameter block
+> (`F0 00 ...`, Setup Communication function `0xF0`) begins at byte 12, not byte 10, is
+> the frame that surfaced this defect; corroborated by independent secondary test-vector
+> sources (Yiqisoft S7comm protocol notes; Inductive Automation Knowledge Base).
+>
+> This corrects VP-051's non-vacuity obligation (F-14, above) in lockstep: the
+> harness's Some/None deliberate-flip check must assert
+> `error_class.is_some() == (rosctr == Ack || rosctr == AckData)`, **not**
+> `error_class.is_some() == (rosctr == Ack)` — a harness written against the latter,
+> narrower formula would vacuously pass a `header_len`/`error_class` mismatch on every
+> Ack_Data input (12-byte frame incorrectly parsed with a 10-byte, no-error-fields
+> header). Mirrored in `.factory/specs/verification-properties/VP-INDEX.md`,
+> `.factory/specs/architecture/verification-architecture.md`, and
+> `.factory/specs/architecture/verification-coverage-matrix.md` (architect burst, same
+> date). Product-owner amended BC-2.21.004, BC-2.21.006, BC-2.21.007
+> (length-conditional accept rule; BC-2.21.008 linked as the Ack/Ack_Data accept
+> path), BC-2.21.008 and BC-2.21.009 to match; see each BC's `modified:` history.
+> This note tracks the architectural ruling, not the BC text itself — do not treat
+> this note as a substitute for the amended BCs.
+
+> **NOTE (2026-09-24, STORY-187 per-story adversarial pass 5, F-39 secondary):** this
+> item's "proptest P1 for the protocol-ID branch totality" sentence (above, Decision 9's
+> Tool-selection paragraph) is superseded on phase — VP-INDEX.md registers **VP-053** as
+> a proptest **P0** target (not P1) for this property, load-bearing because a
+> protocol-ID-branch classification defect would misattribute or force-fit traffic onto
+> the wrong protocol (never-force-fit unclassified-gap handling, port-102 four-way
+> collision). VP-INDEX.md is the phase-assignment source of truth; this note is
+> version-agnostic and does not change VP-053's tool (proptest), module
+> (`analyzer/s7comm.rs`), or property text — phase only.
 
 **VP numbering is explicitly deferred to product-owner** at F2 BC/VP authoring (this ADR
 does not register new VP-NNN IDs; VP-004 and VP-007 are pre-existing obligations being
@@ -810,10 +977,13 @@ for `parse_tpkt_header`/`parse_cotp_header`/`parse_s7comm_header` at F2 BC/VP au
 - **RFC 1006** (IETF, STD 35) — TPKT framing structure and length-field semantics.
 - **ITU-T X.224 ≡ ISO/IEC 8073:1997** — COTP TPDU types (CR/CC/DT), Length Indicator
   field.
-- **S7comm classic protocol structure** — free-to-read prose/behavioral sources only
-  (Wireshark S7comm wiki page, Kleinmann & Wool 2014, Orange-Cyberdefense
-  `awesome-industrial-protocols`); no GPL/LGPL source consulted as an implementation
-  template (Decision 4).
+- **S7comm classic protocol structure** — prose/behavioral sources (Wireshark S7comm
+  wiki page, Kleinmann & Wool 2014, Orange-Cyberdefense `awesome-industrial-protocols`)
+  and the Decision 4 permitted design references (`cisagov/icsnpp-s7comm`,
+  `kprovost/libs7comm`, `python-snap7` — design reference only, no code copied); public
+  wire-capture bytes used as test vectors only, not field-semantics grounding (Decision 4
+  F-40 reconciliation note, 2026-09-24); no GPL/LGPL source consulted as an
+  implementation template (Decision 4).
 - **Feature cycle:** `feature-s7comm` — this ADR governs the S7comm/ISO-on-TCP
   subsystems (SS-20, SS-21) delivered in that cycle.
 - **F1/F2 research (this cycle):**
