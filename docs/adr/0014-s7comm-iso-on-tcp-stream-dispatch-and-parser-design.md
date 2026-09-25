@@ -190,10 +190,10 @@ and never re-routes to a *different* named protocol.
 
 > **RECONCILIATION NOTE (2026-09-24, STORY-187 adversarial pass 1; F-01/F-02/F-12):**
 > Three human rulings refine this Decision's disambiguation table and dispatch gating,
-> effective for BC-2.21.001/002/004/005/008/009 (product-owner has amended these
-> contracts to match; see each BC's `modified:` history; this note tracks the
-> architectural ruling, not the BC text itself — do not treat this note as a
-> substitute for the amended BCs):
+> effective for BC-2.21.001/002 (product-owner has amended these two contracts to
+> match; see each BC's `modified:` history; this note tracks the architectural
+> ruling, not the BC text itself — do not treat this note as a substitute for the
+> amended BCs):
 >
 > - **F-01 (session establishment is directional-paired, not any-CC).**
 >   `session_established` is set only by a CC TPDU observed in the direction *opposite*
