@@ -691,13 +691,40 @@ combined TPKT→COTP→S7comm parse chain's no-panic property under arbitrary by
 > error-field case to `rosctr == Ack` alone. **Both** ROSCTR `0x02` (Ack) **and** `0x03`
 > (Ack_Data) carry the 12-byte header with `error_class = data[10]`,
 > `error_code = data[11]`; Job (`0x01`) and Userdata (`0x07`) remain the 10-byte
-> header with no error fields. Evidence: a real Setup Communication Ack_Data frame —
+> header with no error fields. Field-semantics grounding (permitted sources per Decision
+> 4 / the F-40 reconciliation note above — prose sources and design references only, no
+> wire-capture bytes): Kleinmann & Wool 2014 (JDFSL 9(2), §3.2, Figure 2, p.41) documents
+> a 2-byte error block labeled "Error Code - only for ROSCTR 3", establishing the
+> Ack_Data (`0x03`) 12-byte header (the authors observed only ROSCTR 1 and 3 traffic, so
+> Ack (`0x02`) is not independently attested there). The permitted design references
+> corroborate this and extend it to Ack: cisagov/icsnpp-s7comm (BSD-3-Clause),
+> `src/s7comm-protocol.pac`, declares separate records for `ROSCTR_ACK` (`0x02`) and
+> `ROSCTR_ACK_Data` (`0x03`), each embedding an `S7Comm_Error` record of two `uint8`
+> fields (`error_class`, `error_code`) immediately after the four 2-byte header fields,
+> with no such record for Job/User_Data — as reviewed 2026-09-24; gimasi/python-snap7
+> (MIT), `snap7/s7protocol.py`, function `parse_response`, documents in comment that ACK
+> and ACK_DATA carry a 12-byte header with `error_class`/`error_code` as separate bytes
+> at offsets 10 and 11, versus a 10-byte USERDATA header — as reviewed 2026-09-24.
+> kprovost/libs7comm (BSD-2-Clause), `src/lib/s7comm_types.h` and `s7comm.c`, is
+> consistent in aggregate: message types 2 and 3 carry 2 extra bytes, modeled there as a
+> single 16-bit "result" field rather than the two discrete error_class/error_code bytes
+> — as reviewed 2026-09-24. `parse_s7comm_header`'s `header_len` selection is therefore
+> `12` when `rosctr ∈ {Ack, AckData}`, `10` otherwise, with `error_class = data[10]`,
+> `error_code = data[11]`.
+>
+> Caveat: icsnpp-s7comm, python-snap7, and libs7comm are reverse-engineered,
+> community-maintained implementations, not a Siemens specification — Siemens has not
+> published the classic S7comm wire format. This grounding is version-agnostic; it does
+> not turn on any particular wirerust or ADR version.
+>
+> Canonical-frame test vectors (PERMITTED AS TEST-VECTOR SOURCES ONLY per the F-40
+> Decision 4 reconciliation note above — not used for field-semantics grounding): a real
+> Setup Communication Ack_Data frame —
 > `32 03 00 00 FF FF 00 08 00 00 00 00 F0 00 00 01 00 01 00 F0` (cnblogs,
 > <https://www.cnblogs.com/crcce-dncs/p/10659087.html>) — whose parameter block
-> (`F0 00 ...`, Setup Communication function `0xF0`) begins at byte 12, not byte 10;
-> corroborated by independent secondary sources (Yiqisoft S7comm protocol notes;
-> Inductive Automation Knowledge Base). `parse_s7comm_header`'s `header_len` selection
-> is therefore `12` when `rosctr ∈ {Ack, AckData}`, `10` otherwise.
+> (`F0 00 ...`, Setup Communication function `0xF0`) begins at byte 12, not byte 10, is
+> the frame that surfaced this defect; corroborated by independent secondary test-vector
+> sources (Yiqisoft S7comm protocol notes; Inductive Automation Knowledge Base).
 >
 > This corrects VP-051's non-vacuity obligation (F-14, above) in lockstep: the
 > harness's Some/None deliberate-flip check must assert
