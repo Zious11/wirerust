@@ -1310,11 +1310,12 @@ mod story_186 {
 ///   first-classification-wins over `Some(byte)`-only DT frames.
 /// - BC-2.21.004: `parse_s7comm_header` returns `None` for `data.len() < 10`.
 /// - BC-2.21.005: `parse_s7comm_header` defensively rejects `data[0] != 0x32`.
-/// - BC-2.21.006: `parse_s7comm_header` extracts the common header (Job/Ack_Data/
-///   Userdata happy path).
+/// - BC-2.21.006: `parse_s7comm_header` extracts the common header (Job/Userdata
+///   happy path only, as of the round-4 canonical-frame holdout ruling below —
+///   Ack_Data moved to BC-2.21.008).
 /// - BC-2.21.007: `parse_s7comm_header` returns `None` for an unrecognized ROSCTR byte.
-/// - BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes and extracts
-///   `error_class`/`error_code`.
+/// - BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack AND Ack_Data (0x02/0x03) both
+///   require 12 bytes and extract `error_class`/`error_code`.
 /// - BC-2.21.009: the caller-side `header_len + param_length + data_length` bounds
 ///   check precedes any parameter/data-block slice; extracted as the pure helper
 ///   `s7comm_bounds_ok` (F-14).
@@ -1340,24 +1341,37 @@ mod story_186 {
 ///
 /// This module's round-3 addendum (per-story adversarial pass 2, STORY-187.md v1.2)
 /// adds: the AC-187-013 canonical, independently-sourced classic S7comm frame test
-/// required by policy DF-CANONICAL-FRAME-HOLDOUT-001 (F-19) — which surfaces a
-/// genuine spec/implementation discrepancy over the Ack_Data (`0x03`) header length
-/// (see that test's own doc comment); reason-specific malformed-header evidence-text
-/// assertions and additional Ack/bounds `on_data`-level coverage (F-21); a fifth
-/// AC-187-003 negative case, repeated same-direction CR (F-22); and the VP-051
-/// bounds-check-half Kani skeleton plus a non-vacuity wording correction (F-18/F-24).
-/// Per DF-TEST-NAMESPACE-001, all STORY-187 tests are grouped inside this dedicated
-/// `mod story_187` wrapper.
+/// required by policy DF-CANONICAL-FRAME-HOLDOUT-001 (F-19) — which originally
+/// surfaced a genuine spec/implementation discrepancy over the Ack_Data (`0x03`)
+/// header length (see the round-4 note below for its resolution); reason-specific
+/// malformed-header evidence-text assertions and additional Ack/bounds
+/// `on_data`-level coverage (F-21); a fifth AC-187-003 negative case, repeated
+/// same-direction CR (F-22); and the VP-051 bounds-check-half Kani skeleton plus a
+/// non-vacuity wording correction (F-18/F-24).
+///
+/// This module's round-4 addendum (STORY-187.md v1.3, the 2026-09-24 canonical-frame
+/// holdout human ruling, DF-CANONICAL-FRAME-HOLDOUT-001) resolves the round-3
+/// discrepancy: ROSCTR `0x02` (Ack) AND `0x03` (Ack_Data) BOTH require the 12-byte
+/// header (`error_class = data[10]`, `error_code = data[11]`, `header_len == 12`);
+/// Job (`0x01`)/Userdata (`0x07`) remain 10-byte with no error fields; a truncated
+/// Ack_Data frame (10 or 11 bytes) returns `None`, exactly like a truncated Ack. The
+/// former `test_BC_2_21_006_canonical_setup_communication_job_frame_on_data`
+/// "DISCREPANCY -- EXPECTED TO FAIL" Ack_Data assertions are now split into their own
+/// `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data` test,
+/// asserting the corrected (not discrepant) 12-byte shape as ordinary, non-vacuous
+/// GREEN-gate assertions once the implementation catches up. Per DF-TEST-NAMESPACE-001,
+/// all STORY-187 tests are grouped inside this dedicated `mod story_187` wrapper.
 ///
 /// Canonical test vectors from BC-2.21.004/005/006/007/008/009 are used verbatim
 /// where the BCs themselves specify them — these are ordinary, internally-authored
 /// regression vectors and do NOT satisfy policy DF-CANONICAL-FRAME-HOLDOUT-001's
 /// independent-sourcing requirement (their byte values ARE derived from this
 /// project's own BCs, by design — the opposite of what that policy requires). Only
-/// `test_BC_2_21_006_canonical_setup_communication_job_frame_on_data` (F-19,
-/// AC-187-013) satisfies DF-CANONICAL-FRAME-HOLDOUT-001 — its byte sequence is
-/// sourced independently of this project's BCs/ADR-014, per that test's own doc
-/// comment.
+/// `test_BC_2_21_006_canonical_setup_communication_job_frame_on_data` and
+/// `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data` (F-19,
+/// AC-187-013) satisfy DF-CANONICAL-FRAME-HOLDOUT-001 — their byte sequences are
+/// sourced independently of this project's BCs/ADR-014, per those tests' own doc
+/// comments.
 mod story_187 {
     use wirerust::analyzer::s7comm::{
         Rosctr, S7Protocol, S7commAnalyzer, S7commFlowState, S7commHeader, parse_s7comm_header,
@@ -1453,6 +1467,25 @@ mod story_187 {
         error_code: u8,
     ) -> Vec<u8> {
         let mut v = classic_header_bytes(0x02, pdu_ref, param_len, data_len);
+        v.push(error_class);
+        v.push(error_code);
+        v
+    }
+
+    /// A minimal classic S7comm Ack_Data (0x03) header (12 bytes): the 10-byte common
+    /// header plus `error_class`/`error_code` — same shape as `ack_header_bytes`
+    /// above, per the 2026-09-24 canonical-frame holdout ruling
+    /// (DF-CANONICAL-FRAME-HOLDOUT-001): Ack_Data requires the SAME 12-byte header as
+    /// Ack, not the plain 10-byte common header the pre-ruling (v1.0/v1.1)
+    /// implementation assumed.
+    fn ack_data_header_bytes(
+        pdu_ref: u16,
+        param_len: u16,
+        data_len: u16,
+        error_class: u8,
+        error_code: u8,
+    ) -> Vec<u8> {
+        let mut v = classic_header_bytes(0x03, pdu_ref, param_len, data_len);
         v.push(error_class);
         v.push(error_code);
         v
@@ -2306,8 +2339,11 @@ mod story_187 {
 
     /// AC-187-013 / F-19 / policy DF-CANONICAL-FRAME-HOLDOUT-001: a canonical,
     /// INDEPENDENTLY-SOURCED classic S7comm Setup Communication (function code
-    /// `0xF0`) Job request and its Ack_Data response, wrapped in real ISO-on-TCP
-    /// framing (RFC 1006 TPKT header + standard class-0 COTP DT `02 F0 80`).
+    /// `0xF0`) Job request, wrapped in real ISO-on-TCP framing (RFC 1006 TPKT
+    /// header + standard class-0 COTP DT `02 F0 80`). Its companion Ack_Data
+    /// response frame is covered by
+    /// `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data`
+    /// below (split out per STORY-187 v1.3's per-BC test naming).
     ///
     /// **Primary source** (byte sequence taken verbatim): cnblogs,
     /// "西门子S7通讯协议引用整理" ("Siemens S7 Communication Protocol Reference
@@ -2338,40 +2374,6 @@ mod story_187 {
     /// BCs, ADR-014, or any other project artifact -- they are copied verbatim from
     /// the primary source cited above.
     ///
-    /// ## Discrepancy exposed by this test (DO NOT "fix" by relaxing assertions)
-    ///
-    /// The primary source's Ack_Data response byte layout is only self-consistent
-    /// under a 12-byte Ack_Data header -- i.e. `rosctr == AckData` carrying
-    /// `error_class`/`error_code` at `data[10]`/`data[11]`, with the
-    /// Setup-Communication response parameter block (`F0 00 00 01 00 01 00 F0`:
-    /// function code `0xF0` + reserved + max-AMQ-calling + max-AMQ-called +
-    /// PDU-length, exactly matching the declared `param_length == 8`) beginning at
-    /// byte 12. Decoding the header as the bare 10-byte common-header shape (this
-    /// project's current implementation) would instead read the parameter block as
-    /// starting at byte 10 (`00 00 F0 00 00 01 00 01`), which does NOT begin with a
-    /// valid Setup-Communication function code and is not a coherent parameter block.
-    ///
-    /// This project's BC-2.21.008 / `parse_s7comm_header` extends the header to 12
-    /// bytes (with `error_class`/`error_code`) ONLY for `rosctr == Ack` (`0x02`);
-    /// `rosctr == AckData` (`0x03`) is routed through the common 10-byte path with
-    /// `error_class`/`error_code: None`, `header_len: 10` (see
-    /// `src/analyzer/s7comm.rs`'s `parse_s7comm_header`, the `0x03` match arm). The
-    /// assertions below for the Ack_Data frame's direct `parse_s7comm_header` call
-    /// intentionally assert the REAL-WORLD (12-byte, error-fields-populated) shape
-    /// per the canonical source, NOT the current implementation's shape -- **this
-    /// test is EXPECTED TO FAIL against the current implementation** until
-    /// BC-2.21.008 (or a follow-up BC) is amended to extend the 12-byte-header rule
-    /// to `AckData` as well as `Ack`. This is a genuine spec/implementation
-    /// discrepancy surfaced by policy DF-CANONICAL-FRAME-HOLDOUT-001's
-    /// cross-validation mandate, not a test bug -- do NOT paper over it by asserting
-    /// the implementation's current (10-byte, no-error-fields) behavior instead.
-    ///
-    /// The `on_data`-level assertions below (classified_protocol, no findings) are
-    /// UNAFFECTED by this discrepancy and are expected to PASS regardless: the
-    /// BC-2.21.009 bounds check (`header_len + param_length + data_length <=
-    /// data.len()`) holds under EITHER header-length interpretation for this
-    /// specific frame (10+8+0=18, or 12+8+0=20, both <= the 20-byte S7 payload).
-    ///
     /// Traces: BC-2.21.002 postcondition 3, BC-2.21.006; AC-187-013.
     #[test]
     fn test_BC_2_21_006_canonical_setup_communication_job_frame_on_data() {
@@ -2382,30 +2384,17 @@ mod story_187 {
             0x03, 0x00, 0x00, 0x19, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0xFF, 0xFF, 0x00,
             0x08, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x07, 0x80,
         ];
-        // Canonical Setup Communication Ack_Data response (27 bytes total),
-        // verbatim from the same primary source.
-        const ACK_DATA_FRAME: [u8; 27] = [
-            0x03, 0x00, 0x00, 0x1B, 0x02, 0xF0, 0x80, 0x32, 0x03, 0x00, 0x00, 0xFF, 0xFF, 0x00,
-            0x08, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0xF0,
-        ];
 
-        // --- on_data-level assertions: both frames dispatch cleanly. ---
+        // --- on_data-level assertions: the Job frame dispatches cleanly. ---
         let mut analyzer = S7commAnalyzer::new();
         let flow_key = flow_key_default();
 
         analyzer.on_data(flow_key.clone(), &JOB_FRAME, 0, Direction::ClientToServer);
-        analyzer.on_data(
-            flow_key.clone(),
-            &ACK_DATA_FRAME,
-            1,
-            Direction::ServerToClient,
-        );
 
         assert!(
             analyzer.findings.is_empty(),
-            "the canonical Setup Communication Job + Ack_Data frame pair must produce \
-             no findings -- both frames are well-formed under the current bounds \
-             check regardless of the header-length discrepancy documented above \
+            "the canonical Setup Communication Job request frame must produce no \
+             findings -- it is well-formed under the BC-2.21.009 bounds check \
              (AC-187-013)"
         );
         let state = analyzer.flows.get(&flow_key).unwrap();
@@ -2416,11 +2405,9 @@ mod story_187 {
              flow Classic (AC-187-013, BC-2.21.002 postcondition 3)"
         );
 
-        // --- Direct parse_s7comm_header assertions on the isolated S7 slices. ---
+        // --- Direct parse_s7comm_header assertion on the isolated S7 slice. ---
         // TPKT (4 bytes) + COTP DT fixed part (3 bytes) = 7-byte prefix.
         let job_s7 = &JOB_FRAME[7..];
-        let ack_data_s7 = &ACK_DATA_FRAME[7..];
-
         let job_header =
             parse_s7comm_header(job_s7).expect("canonical Job header must parse (AC-187-013)");
         assert_eq!(job_header.rosctr, Rosctr::Job);
@@ -2434,36 +2421,113 @@ mod story_187 {
         assert_eq!(job_header.header_len, 10);
         assert_eq!(job_header.error_class, None);
         assert_eq!(job_header.error_code, None);
+    }
 
+    /// AC-187-013 / F-19 / canonical-frame holdout ruling
+    /// (DF-CANONICAL-FRAME-HOLDOUT-001, human-ratified 2026-09-24): the companion
+    /// canonical, independently-sourced classic S7comm Setup Communication
+    /// **Ack_Data (`0x03`) response** frame, wrapped in the same RFC 1006 TPKT +
+    /// standard class-0 COTP DT (`02 F0 80`) framing as
+    /// `test_BC_2_21_006_canonical_setup_communication_job_frame_on_data` above.
+    ///
+    /// **Primary source** (byte sequence taken verbatim): cnblogs,
+    /// "西门子S7通讯协议引用整理" ("Siemens S7 Communication Protocol Reference
+    /// Compilation"), <https://www.cnblogs.com/crcce-dncs/p/10659087.html> -- full
+    /// 27-byte frame `03 00 00 1B 02 F0 80 32 03 00 00 FF FF 00 08 00 00 00 00 F0
+    /// 00 00 01 00 01 00 F0`.
+    ///
+    /// **Corroborating sources** (same field layout -- an Ack_Data Setup
+    /// Communication response ALSO carries Error Class (`data[10]`) / Error Code
+    /// (`data[11]`), with the parameter block starting at `data[12]`, exactly as
+    /// documented in BC-2.21.008's Canonical Test Vectors):
+    /// - Yiqisoft blog (2023-03-22), <https://www.yiqisoft.cn/blogs/IoT-Gateway/363.html>
+    /// - Inductive Automation Support KB, "Loggers - Device Connections: Siemens"
+    /// - Kleinmann & Wool 2014 (prose)
+    ///
+    /// ## Resolution of the round-3 discrepancy (DO NOT relitigate by relaxing
+    /// ## assertions)
+    ///
+    /// The primary source's Ack_Data response byte layout is only self-consistent
+    /// under a 12-byte Ack_Data header -- i.e. `rosctr == AckData` carrying
+    /// `error_class`/`error_code` at `data[10]`/`data[11]`, with the
+    /// Setup-Communication response parameter block (`F0 00 00 01 00 01 00 F0`:
+    /// function code `0xF0` + reserved + max-AMQ-calling + max-AMQ-called +
+    /// PDU-length, exactly matching the declared `param_length == 8`) beginning at
+    /// byte 12. This round-3 discrepancy (an earlier revision of this test asserted
+    /// this same 12-byte shape as "EXPECTED TO FAIL") is now the RATIFIED,
+    /// human-ratified behavior per DF-CANONICAL-FRAME-HOLDOUT-001 (2026-09-24):
+    /// BC-2.21.008 / `parse_s7comm_header` extends the 12-byte header
+    /// (`error_class`/`error_code`) to BOTH `rosctr == Ack` (`0x02`) AND
+    /// `rosctr == AckData` (`0x03`) -- the assertions below are ordinary, load-bearing
+    /// GREEN-gate assertions, not a documented discrepancy.
+    ///
+    /// Traces: BC-2.21.002 postcondition 3, BC-2.21.008 postconditions 1-2;
+    /// AC-187-013.
+    #[test]
+    fn test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data() {
+        // Canonical Setup Communication Ack_Data response (27 bytes total),
+        // verbatim from the cnblogs primary source cited above.
+        const ACK_DATA_FRAME: [u8; 27] = [
+            0x03, 0x00, 0x00, 0x1B, 0x02, 0xF0, 0x80, 0x32, 0x03, 0x00, 0x00, 0xFF, 0xFF, 0x00,
+            0x08, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0xF0,
+        ];
+
+        // --- on_data-level assertions: the Ack_Data frame dispatches cleanly. ---
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        analyzer.on_data(
+            flow_key.clone(),
+            &ACK_DATA_FRAME,
+            0,
+            Direction::ClientToServer,
+        );
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "the canonical Setup Communication Ack_Data response frame must produce \
+             no findings -- it is well-formed under the corrected 12-byte-header \
+             BC-2.21.009 bounds check (AC-187-013)"
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "the canonical Ack_Data frame's protocol_id (0x32) must sticky-classify \
+             the flow Classic (AC-187-013, BC-2.21.002 postcondition 3)"
+        );
+
+        // --- Direct parse_s7comm_header assertion on the isolated S7 slice. ---
+        // TPKT (4 bytes) + COTP DT fixed part (3 bytes) = 7-byte prefix.
+        let ack_data_s7 = &ACK_DATA_FRAME[7..];
         let ack_data_header = parse_s7comm_header(ack_data_s7)
             .expect("canonical Ack_Data header must parse (AC-187-013)");
         assert_eq!(ack_data_header.rosctr, Rosctr::AckData);
-        assert_eq!(ack_data_header.pdu_reference, 0xFFFF);
+        assert_eq!(
+            ack_data_header.pdu_reference, 0xFFFF,
+            "PDU reference is client-chosen (0xFFFF in the primary source's example) \
+             -- not a protocol constant"
+        );
         assert_eq!(ack_data_header.param_length, 8);
         assert_eq!(ack_data_header.data_length, 0);
-        // REAL-WORLD (canonical-source) shape -- see the discrepancy note above.
-        // EXPECTED TO FAIL against the current implementation, which treats
-        // AckData (0x03) as a 10-byte header with no error fields.
         assert_eq!(
             ack_data_header.header_len, 12,
-            "DISCREPANCY (DF-CANONICAL-FRAME-HOLDOUT-001): the canonical source's \
-             Ack_Data response parameter block only aligns at byte 12, implying a \
-             12-byte Ack_Data header per real-world S7comm framing -- but this \
-             project's BC-2.21.008 / parse_s7comm_header currently extends the \
-             12-byte header only to rosctr == Ack (0x02), not AckData (0x03); see \
-             this test's doc comment"
+            "Ack_Data (0x03) requires the 12-byte header per the 2026-09-24 \
+             canonical-frame holdout ruling (DF-CANONICAL-FRAME-HOLDOUT-001) -- the \
+             real-world parameter block only aligns at byte 12, not byte 10 (the \
+             superseded v1.0/v1.1 assumption)"
         );
         assert_eq!(
             ack_data_header.error_class,
             Some(0x00),
-            "DISCREPANCY (DF-CANONICAL-FRAME-HOLDOUT-001): see the header_len \
-             assertion above"
+            "error_class must be extracted from data[10] for Ack_Data \
+             (BC-2.21.008 postcondition 2, DF-CANONICAL-FRAME-HOLDOUT-001)"
         );
         assert_eq!(
             ack_data_header.error_code,
             Some(0x00),
-            "DISCREPANCY (DF-CANONICAL-FRAME-HOLDOUT-001): see the header_len \
-             assertion above"
+            "error_code must be extracted from data[11] for Ack_Data \
+             (BC-2.21.008 postcondition 2, DF-CANONICAL-FRAME-HOLDOUT-001)"
         );
     }
 
@@ -2624,9 +2688,15 @@ mod story_187 {
     // Userdata happy path).
     // =========================================================================
 
-    /// AC-187-008: the three BC-2.21.006 canonical test vectors (Job, Ack_Data,
-    /// Userdata) each extract the exact expected `S7commHeader` -- full structural
-    /// equality, not merely `is_some()`.
+    /// AC-187-008: the two BC-2.21.006 canonical test vectors (Job, Userdata) each
+    /// extract the exact expected `S7commHeader` -- full structural equality, not
+    /// merely `is_some()`. Ack_Data (`0x03`) is NOT part of this BC's happy path as
+    /// of the 2026-09-24 canonical-frame holdout ruling
+    /// (DF-CANONICAL-FRAME-HOLDOUT-001) -- it now requires the 12-byte header
+    /// covered by BC-2.21.008 (see
+    /// `test_BC_2_21_008_ack_data_12_byte_header_and_error_fields`); a 10-byte
+    /// Ack_Data header is truncated and returns `None` (BC-2.21.006 v1.1's
+    /// Canonical Test Vectors note).
     ///
     /// Traces: BC-2.21.006 postconditions 1-5, Canonical Test Vectors; AC-187-008.
     #[test]
@@ -2647,22 +2717,6 @@ mod story_187 {
             "canonical Job vector must extract the exact expected S7commHeader"
         );
 
-        // Ack_Data with response data: 32 03 00 00 00 01 00 02 00 04
-        let ack_data = [0x32u8, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x04];
-        assert_eq!(
-            parse_s7comm_header(&ack_data),
-            Some(S7commHeader {
-                rosctr: Rosctr::AckData,
-                pdu_reference: 1,
-                param_length: 2,
-                data_length: 4,
-                error_class: None,
-                error_code: None,
-                header_len: 10,
-            }),
-            "canonical Ack_Data vector must extract the exact expected S7commHeader"
-        );
-
         // Userdata: 32 07 00 00 00 05 00 08 00 00
         let userdata = [0x32u8, 0x07, 0x00, 0x00, 0x00, 0x05, 0x00, 0x08, 0x00, 0x00];
         assert_eq!(
@@ -2677,6 +2731,18 @@ mod story_187 {
                 header_len: 10,
             }),
             "canonical Userdata vector must extract the exact expected S7commHeader"
+        );
+
+        // Ack_Data at 10 bytes (the pre-ruling v1.0/v1.1 "happy path" shape) is now
+        // truncated -- it requires the 12-byte header (BC-2.21.008).
+        let ack_data_10_bytes = [0x32u8, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x04];
+        assert_eq!(
+            parse_s7comm_header(&ack_data_10_bytes),
+            None,
+            "a 10-byte Ack_Data header must return None -- Ack_Data (0x03) is no \
+             longer part of BC-2.21.006's 10-byte happy-path group as of the \
+             2026-09-24 canonical-frame holdout ruling (DF-CANONICAL-FRAME-HOLDOUT-001); \
+             see BC-2.21.008 for the 12-byte Ack_Data shape"
         );
     }
 
@@ -2838,55 +2904,91 @@ mod story_187 {
         );
     }
 
-    /// AC-187-009 (v1.1, F-08): joint ROSCTR-byte totality across
-    /// BC-2.21.006/007/008, exhaustively over all 256 possible `data[1]` byte
-    /// values. For a bare 10-byte header (no trailing bytes beyond the common
-    /// header), `parse_s7comm_header` returns `Some` iff `data[1] ∈ {0x01, 0x03,
-    /// 0x07}` (0x02/Ack needs the additional 2 bytes, so it is `None` at exactly 10
-    /// bytes). For a 12-byte header (the Ack minimum), it returns `Some` iff
-    /// `data[1] ∈ {0x01, 0x02, 0x03, 0x07}` -- every recognized ROSCTR value, now
-    /// including Ack. Every other byte value returns `None` at both lengths, and no
+    /// AC-187-009 (v1.1, F-08): `parse_s7comm_header` returns `Some` iff `data[1]` is
+    /// one of the four recognized ROSCTR values (`0x01`/`0x02`/`0x03`/`0x07`),
+    /// exhaustively verified over all 256 possible `data[1]` byte values at a
+    /// length (12 bytes) sufficient for EVERY recognized ROSCTR, including the
+    /// Ack/Ack_Data 12-byte minimum -- i.e. this test isolates BC-2.21.007's own
+    /// "recognized vs. unrecognized ROSCTR" concern from BC-2.21.006/008's
+    /// length-conditional concern (covered separately by
+    /// `proptest_bc_2_21_006_008_some_iff_rosctr_and_length_conditional` below). No
     /// value panics.
     ///
-    /// Traces: BC-2.21.007 postconditions 1-2, Canonical Test Vectors;
-    /// BC-2.21.006/008 (joint totality); AC-187-009.
+    /// Traces: BC-2.21.007 postconditions 1-2, Canonical Test Vectors; AC-187-009.
     #[test]
     fn proptest_bc_2_21_007_rosctr_byte_totality_over_all_256_values() {
         for rosctr in 0u8..=255u8 {
-            // 10-byte (bare common-header-length) case.
-            let data10 = classic_header_bytes(rosctr, 1, 0, 0);
-            assert_eq!(data10.len(), 10);
-            let result10 = parse_s7comm_header(&data10);
-            let expected10_some = matches!(rosctr, 0x01 | 0x03 | 0x07);
+            let mut data = classic_header_bytes(rosctr, 1, 0, 0);
+            data.push(0x00); // error_class (only consumed when rosctr is Ack/AckData)
+            data.push(0x00); // error_code
+            assert_eq!(data.len(), 12);
+            let result = parse_s7comm_header(&data);
+            let expected_some = matches!(rosctr, 0x01 | 0x02 | 0x03 | 0x07);
             assert_eq!(
-                result10.is_some(),
-                expected10_some,
-                "rosctr={rosctr:#04x}, len=10: parse_s7comm_header must return Some \
-                 iff rosctr is one of the three common-header ROSCTR values \
-                 (0x01/0x03/0x07) -- 0x02 (Ack) requires 12 bytes and every other \
-                 byte is unrecognized (BC-2.21.006/007/008 joint totality)"
-            );
-
-            // 12-byte (Ack-minimum-length) case: 0x02 becomes recognized too.
-            let mut data12 = data10.clone();
-            data12.push(0x00); // error_class
-            data12.push(0x00); // error_code
-            assert_eq!(data12.len(), 12);
-            let result12 = parse_s7comm_header(&data12);
-            let expected12_some = matches!(rosctr, 0x01 | 0x02 | 0x03 | 0x07);
-            assert_eq!(
-                result12.is_some(),
-                expected12_some,
+                result.is_some(),
+                expected_some,
                 "rosctr={rosctr:#04x}, len=12: parse_s7comm_header must return Some \
-                 iff rosctr is one of all four recognized ROSCTR values \
-                 (0x01/0x02/0x03/0x07) -- every other byte remains unrecognized \
-                 (BC-2.21.006/007/008 joint totality)"
+                 iff rosctr is one of the four recognized ROSCTR values \
+                 (0x01/0x02/0x03/0x07) -- every other byte is unrecognized \
+                 regardless of length (BC-2.21.007 postconditions 1-2), verified \
+                 across all 256 possible u8 values"
             );
         }
     }
 
+    /// AC-187-009 / F-08 (corrected 2026-09-24 per the canonical-frame holdout
+    /// ruling, DF-CANONICAL-FRAME-HOLDOUT-001): the joint, LENGTH-CONDITIONAL
+    /// totality across BC-2.21.006/007/008, exhaustively over all 256 possible
+    /// `data[1]` byte values AND a representative span of lengths
+    /// (`[9, 10, 11, 12, 13]`, straddling both the 10-byte Job/Userdata minimum and
+    /// the 12-byte Ack/Ack_Data minimum). `parse_s7comm_header(data)` returns
+    /// `Some` **iff** (`data[1] ∈ {0x01, 0x07}` and `data.len() >= 10`) **or**
+    /// (`data[1] ∈ {0x02, 0x03}` and `data.len() >= 12`) -- i.e. Ack_Data (`0x03`)
+    /// is grouped with Ack (`0x02`) under the 12-byte minimum, NOT with Job/Userdata
+    /// under the 10-byte minimum (the superseded v1.0/v1.1/v1.2 assumption). Every
+    /// other `data[1]` byte value returns `None` at every length, and no value
+    /// panics.
+    ///
+    /// Traces: BC-2.21.006 postcondition 1, BC-2.21.007 postconditions 1-2,
+    /// BC-2.21.008 postconditions 1-2; AC-187-009.
+    #[test]
+    fn proptest_bc_2_21_006_008_some_iff_rosctr_and_length_conditional() {
+        for rosctr in 0u8..=255u8 {
+            for len in 9usize..=13usize {
+                let mut data = classic_header_bytes(rosctr, 1, 0, 0); // 10 bytes
+                if len < data.len() {
+                    data.truncate(len);
+                } else {
+                    while data.len() < len {
+                        data.push(0x00);
+                    }
+                }
+                assert_eq!(data.len(), len);
+
+                let result = parse_s7comm_header(&data);
+                let job_or_userdata = matches!(rosctr, 0x01 | 0x07);
+                let ack_or_ack_data = matches!(rosctr, 0x02 | 0x03);
+                let expected_some =
+                    (len >= 10 && job_or_userdata) || (len >= 12 && ack_or_ack_data);
+                assert_eq!(
+                    result.is_some(),
+                    expected_some,
+                    "rosctr={rosctr:#04x}, len={len}: parse_s7comm_header must return \
+                     Some iff (rosctr in {{0x01, 0x07}} and len>=10) or (rosctr in \
+                     {{0x02, 0x03}} and len>=12) -- length-conditional joint totality \
+                     across BC-2.21.006/007/008, corrected 2026-09-24 per the \
+                     canonical-frame holdout ruling (DF-CANONICAL-FRAME-HOLDOUT-001): \
+                     Ack_Data (0x03) is grouped with Ack (0x02) under the 12-byte \
+                     minimum, not with Job/Userdata under the 10-byte minimum"
+                );
+            }
+        }
+    }
+
     // =========================================================================
-    // BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack requires 12 bytes.
+    // BC-2.21.008: `parse_s7comm_header` for ROSCTR=Ack (0x02) AND Ack_Data (0x03)
+    // both require 12 bytes (2026-09-24 canonical-frame holdout ruling,
+    // DF-CANONICAL-FRAME-HOLDOUT-001).
     // =========================================================================
 
     /// AC-187-010: the three BC-2.21.008 canonical Ack test vectors -- 10 bytes
@@ -2933,24 +3035,132 @@ mod story_187 {
         );
     }
 
+    /// AC-187-010 (2026-09-24 canonical-frame holdout ruling,
+    /// DF-CANONICAL-FRAME-HOLDOUT-001): the mirror-image test of
+    /// `test_BC_2_21_008_ack_rosctr_12_byte_minimum_and_error_fields` above, for
+    /// Ack_Data (`0x03`) instead of Ack (`0x02`) -- both ROSCTR values require the
+    /// SAME 12-byte header shape. Uses BC-2.21.008's own Ack_Data canonical test
+    /// vectors: 10 bytes (`None`, truncated), 11 bytes (`None`, truncated), and the
+    /// cnblogs-sourced Setup Communication response header slice at 12 bytes
+    /// (`Some`, exact structural equality including `error_class`/`error_code`).
+    ///
+    /// Traces: BC-2.21.008 postconditions 1-2, Canonical Test Vectors; AC-187-010.
+    #[test]
+    fn test_BC_2_21_008_ack_data_12_byte_header_and_error_fields() {
+        // 10 bytes: common header only, no error class/code -- truncated Ack_Data.
+        let ten = [0x32u8, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(
+            parse_s7comm_header(&ten),
+            None,
+            "10-byte Ack_Data (BC-2.21.008 canonical vector) must return None -- \
+             truncated (DF-CANONICAL-FRAME-HOLDOUT-001: Ack_Data is NOT a \
+             10-byte-only ROSCTR)"
+        );
+
+        // 11 bytes: one byte short of the 12-byte Ack_Data minimum.
+        let eleven = [
+            0x32u8, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert_eq!(
+            parse_s7comm_header(&eleven),
+            None,
+            "11-byte Ack_Data (BC-2.21.008 canonical vector) must return None -- one \
+             byte short"
+        );
+
+        // 12 bytes exactly: the cnblogs Setup Communication response header slice
+        // (BC-2.21.008's canonical happy-path Ack_Data vector) -- built via the
+        // ack_data_header_bytes helper for structural equality with a distinct set
+        // of field values (pdu_reference/param_length) than the 10/11-byte vectors
+        // above.
+        let twelve = ack_data_header_bytes(0xFFFF, 8, 0, 0x00, 0x00);
+        assert_eq!(twelve.len(), 12);
+        assert_eq!(
+            parse_s7comm_header(&twelve),
+            Some(S7commHeader {
+                rosctr: Rosctr::AckData,
+                pdu_reference: 0xFFFF,
+                param_length: 8,
+                data_length: 0,
+                error_class: Some(0),
+                error_code: Some(0),
+                header_len: 12,
+            }),
+            "12-byte Ack_Data (BC-2.21.008 canonical vector, Setup Communication \
+             response shape) must extract the exact expected S7commHeader with \
+             error_class/error_code Some(0) and header_len == 12 \
+             (DF-CANONICAL-FRAME-HOLDOUT-001)"
+        );
+    }
+
+    /// AC-187-010 (2026-09-24 canonical-frame holdout ruling,
+    /// DF-CANONICAL-FRAME-HOLDOUT-001), BC-2.21.008 edge cases EC-005/EC-006: a
+    /// dedicated, direct-call regression test isolating the truncated-Ack_Data
+    /// `None` behavior at exactly 10 and 11 bytes -- distinct from the full
+    /// canonical-vector-plus-happy-path coverage in
+    /// `test_BC_2_21_008_ack_data_12_byte_header_and_error_fields` above.
+    ///
+    /// Traces: BC-2.21.008 postcondition 1, edge cases EC-005/EC-006; AC-187-010.
+    #[test]
+    fn test_BC_2_21_008_truncated_ack_data_returns_none() {
+        // EC-005: data[1] == 0x03 (Ack_Data), data.len() == 10 (only the common
+        // header present).
+        let ten = ack_data_header_bytes(1, 0, 0, 0x00, 0x00);
+        let ten_truncated = &ten[..10];
+        assert_eq!(
+            parse_s7comm_header(ten_truncated),
+            None,
+            "a 10-byte Ack_Data header (only the common header present) must return \
+             None (BC-2.21.008 edge case EC-005)"
+        );
+
+        // EC-006: data[1] == 0x03 (Ack_Data), data.len() == 11 (one byte short of
+        // the 12-byte minimum).
+        let eleven = ack_data_header_bytes(1, 0, 0, 0x00, 0x00);
+        let eleven_truncated = &eleven[..11];
+        assert_eq!(
+            parse_s7comm_header(eleven_truncated),
+            None,
+            "an 11-byte Ack_Data header (one byte short of the 12-byte minimum) must \
+             return None (BC-2.21.008 edge case EC-006)"
+        );
+    }
+
     /// BC-2.21.008 postcondition 3: `error_class`/`error_code` are `Some` ONLY when
-    /// `rosctr == Ack` -- cross-checked here against a non-Ack (Job) header, which
-    /// must have both fields `None` (already asserted structurally within
-    /// `test_BC_2_21_006_common_header_field_extraction`'s Job case; restated here as
-    /// its own dedicated, BC-2.21.008-scoped assertion for direct traceability).
+    /// `rosctr ∈ {Ack, AckData}` -- cross-checked here against Job AND Userdata
+    /// headers, both of which must have both fields `None` (the Job case is already
+    /// asserted structurally within `test_BC_2_21_006_common_header_field_extraction`;
+    /// restated here, alongside Userdata, as a dedicated, BC-2.21.008-scoped
+    /// assertion for direct traceability). Renamed from
+    /// `test_BC_2_21_008_error_fields_none_for_non_ack_rosctr` per the 2026-09-24
+    /// canonical-frame holdout ruling (DF-CANONICAL-FRAME-HOLDOUT-001) -- the old
+    /// name's "non-Ack" framing is now misleading, since Ack_Data (also
+    /// "non-Ack") no longer has `None` error fields.
     ///
     /// Traces: BC-2.21.008 postcondition 3, invariant 2.
     #[test]
-    fn test_BC_2_21_008_error_fields_none_for_non_ack_rosctr() {
+    fn test_BC_2_21_008_error_fields_none_for_job_and_userdata_rosctr() {
         let job = [0x32u8, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00];
-        let header = parse_s7comm_header(&job).expect("valid Job header must parse");
+        let job_header = parse_s7comm_header(&job).expect("valid Job header must parse");
         assert_eq!(
-            header.error_class, None,
-            "error_class must be None for a non-Ack ROSCTR (BC-2.21.008 postcondition 3)"
+            job_header.error_class, None,
+            "error_class must be None for Job (BC-2.21.008 postcondition 3)"
         );
         assert_eq!(
-            header.error_code, None,
-            "error_code must be None for a non-Ack ROSCTR (BC-2.21.008 postcondition 3)"
+            job_header.error_code, None,
+            "error_code must be None for Job (BC-2.21.008 postcondition 3)"
+        );
+
+        let userdata = [0x32u8, 0x07, 0x00, 0x00, 0x00, 0x05, 0x00, 0x08, 0x00, 0x00];
+        let userdata_header =
+            parse_s7comm_header(&userdata).expect("valid Userdata header must parse");
+        assert_eq!(
+            userdata_header.error_class, None,
+            "error_class must be None for Userdata (BC-2.21.008 postcondition 3)"
+        );
+        assert_eq!(
+            userdata_header.error_code, None,
+            "error_code must be None for Userdata (BC-2.21.008 postcondition 3)"
         );
     }
 
@@ -3007,6 +3217,64 @@ mod story_187 {
             );
             assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
             assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack");
+        }
+    }
+
+    /// AC-187-010 (2026-09-24 canonical-frame holdout ruling,
+    /// DF-CANONICAL-FRAME-HOLDOUT-001): the mirror-image `on_data`-level test of
+    /// `test_BC_2_21_008_truncated_ack_on_data_emits_t0814_once` above, for
+    /// Ack_Data (`0x03`) instead of Ack (`0x02`) -- a 10-byte and, separately, an
+    /// 11-byte Ack_Data DT frame must each emit exactly one T0814 `Finding` with
+    /// evidence text identifying the reason as "truncated Ack_Data", DISTINCT from
+    /// the "truncated Ack" reason (the assertion below requires the evidence to
+    /// contain the full "truncated Ack_Data" substring, so an implementation that
+    /// mistakenly reused the plain "truncated Ack" string for this ROSCTR would
+    /// fail this test). Each case uses a fresh analyzer/flow: the frame's own
+    /// `protocol_id: Some(0x32)` sticky-classifies the flow Classic on this very
+    /// frame (AC-187-004's "or, by this very frame's own first-classification,
+    /// becomes" clause), and dissection then proceeds.
+    ///
+    /// Traces: BC-2.21.008 postcondition 1, edge cases EC-005/EC-006; AC-187-010.
+    #[test]
+    fn test_BC_2_21_008_truncated_ack_data_on_data_emits_t0814_once() {
+        // 10-byte case: the bare common header only (rosctr = 0x03, Ack_Data) --
+        // two bytes short of the 12-byte Ack_Data minimum.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+            let ten = classic_header_bytes(0x03, 1, 0, 0);
+            assert_eq!(ten.len(), 10);
+            let frame = dt_frame(&ten);
+            analyzer.on_data(flow_key, &frame, 0, Direction::ClientToServer);
+
+            assert_eq!(
+                analyzer.findings.len(),
+                1,
+                "a 10-byte Ack_Data (rosctr=0x03) DT frame must emit exactly one \
+                 T0814 (AC-187-010, BC-2.21.008 postcondition 1)"
+            );
+            assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack_Data");
+        }
+
+        // 11-byte case: one byte short of the 12-byte Ack_Data minimum.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+            let mut eleven = classic_header_bytes(0x03, 1, 0, 0);
+            eleven.push(0x00);
+            assert_eq!(eleven.len(), 11);
+            let frame = dt_frame(&eleven);
+            analyzer.on_data(flow_key, &frame, 0, Direction::ClientToServer);
+
+            assert_eq!(
+                analyzer.findings.len(),
+                1,
+                "an 11-byte Ack_Data (rosctr=0x03) DT frame must emit exactly one \
+                 T0814 (AC-187-010, BC-2.21.008 postcondition 1)"
+            );
+            assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+            assert_reason_specific_evidence(&analyzer.findings[0], "truncated Ack_Data");
         }
     }
 
@@ -3227,8 +3495,13 @@ mod story_187 {
     /// verified both via `on_data` (12 bytes total -- the declared 1-byte parameter
     /// is ABSENT -> T0814; 13 bytes -- the declared byte PRESENT -> clean) and via
     /// direct `s7comm_bounds_ok` assertions, to verify the check correctly
-    /// incorporates the Ack-specific `header_len == 12` base rather than assuming
-    /// the 10-byte Job/Ack_Data/Userdata default.
+    /// incorporates the Ack/Ack_Data-specific `header_len == 12` base rather than
+    /// assuming the 10-byte Job/Userdata default (corrected 2026-09-24 per the
+    /// canonical-frame holdout ruling, DF-CANONICAL-FRAME-HOLDOUT-001 -- Ack_Data is
+    /// no longer assumed to use the 10-byte default; this test exercises the
+    /// `header_len == 12` mechanism via `rosctr == Ack`, which is shared identically
+    /// with `rosctr == AckData` since both flow through the same
+    /// `parse_s7comm_header` match arm and the same `s7comm_bounds_ok` helper).
     ///
     /// Traces: BC-2.21.009 postcondition 2; AC-187-011.
     #[test]
@@ -3310,10 +3583,21 @@ mod story_187 {
     /// assumed-bounded `len <= 16` -- rather than an unbounded `Vec<u8>`, and to
     /// assert the non-vacuous properties VP-051's Kani Obligation note requires
     /// (`len < 10` implies `None`; `Some` implies `header_len ∈ {10, 12}` and
-    /// `data.len() >= header_len`; `error_class.is_some() == (rosctr == Ack)`,
-    /// identically for `error_code`). Also exercises `s7comm_bounds_ok`, the pure
-    /// crate-visible helper BC-2.21.009's caller-side bounds check was extracted
-    /// into for exactly this purpose.
+    /// `data.len() >= header_len`; `error_class.is_some() == (rosctr == Ack ||
+    /// rosctr == AckData)`, identically for `error_code`). Also exercises
+    /// `s7comm_bounds_ok`, the pure crate-visible helper BC-2.21.009's caller-side
+    /// bounds check was extracted into for exactly this purpose.
+    ///
+    /// v1.3 (round 4, human-ratified 2026-09-24, canonical-frame holdout ruling
+    /// DF-CANONICAL-FRAME-HOLDOUT-001): the non-vacuous assertion 3 below was
+    /// corrected from the narrower `error_class.is_some() == (rosctr == Ack)` to
+    /// `(rosctr == Ack || rosctr == AckData)` -- the narrower form would vacuously
+    /// PASS a `header_len`/`error_class` mismatch on every Ack_Data input (an
+    /// Ack_Data header with `header_len == 12` but `error_class == None` would
+    /// satisfy the narrower equation, since `rosctr == Ack` is `false` for
+    /// `AckData` too), silently hiding exactly the kind of bug this harness exists
+    /// to catch. `header_len` selection is `12` when `rosctr ∈ {Ack, AckData}` and
+    /// `10` otherwise (Job, Userdata).
     #[cfg(kani)]
     mod vp051_kani {
         use wirerust::analyzer::s7comm::{Rosctr, parse_s7comm_header, s7comm_bounds_ok};
@@ -3368,19 +3652,25 @@ mod story_187 {
                      never exceed the input slice's length"
                 );
 
-                // Non-vacuous assertion 3 (BC-2.21.008 postcondition 3): error_class/
-                // error_code are Some iff rosctr == Ack, identically for both fields.
+                // Non-vacuous assertion 3 (BC-2.21.008 postcondition 3, corrected
+                // 2026-09-24 per DF-CANONICAL-FRAME-HOLDOUT-001): error_class/
+                // error_code are Some iff rosctr is Ack OR AckData, identically for
+                // both fields -- NOT the narrower (rosctr == Ack) alone, which would
+                // vacuously pass a header_len/error_class mismatch on every Ack_Data
+                // input.
+                let is_ack_or_ack_data =
+                    header.rosctr == Rosctr::Ack || header.rosctr == Rosctr::AckData;
                 assert_eq!(
                     header.error_class.is_some(),
-                    header.rosctr == Rosctr::Ack,
+                    is_ack_or_ack_data,
                     "VP-051 / BC-2.21.008 postcondition 3: error_class.is_some() must \
-                     equal (rosctr == Ack)"
+                     equal (rosctr == Ack || rosctr == AckData)"
                 );
                 assert_eq!(
                     header.error_code.is_some(),
-                    header.rosctr == Rosctr::Ack,
+                    is_ack_or_ack_data,
                     "VP-051 / BC-2.21.008 postcondition 3: error_code.is_some() must \
-                     equal (rosctr == Ack)"
+                     equal (rosctr == Ack || rosctr == AckData)"
                 );
 
                 // F-14: also exercise the extracted BC-2.21.009 pure helper directly,
@@ -3388,10 +3678,12 @@ mod story_187 {
                 // any bounded data_len.
                 let _ = s7comm_bounds_ok(&header, slice.len());
 
-                // NON-VACUITY: both header_len shapes must be reachable.
+                // NON-VACUITY: both header_len shapes, and both Ack and AckData, must
+                // be reachable.
                 kani::cover!(header.header_len == 10);
                 kani::cover!(header.header_len == 12);
                 kani::cover!(header.rosctr == Rosctr::Ack);
+                kani::cover!(header.rosctr == Rosctr::AckData);
             }
 
             // NON-VACUITY: both the None and Some return paths must be reachable from
