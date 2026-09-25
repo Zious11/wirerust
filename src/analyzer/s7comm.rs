@@ -607,10 +607,11 @@ impl S7commAnalyzer {
     /// `classified_protocol == Some(Classic)` (F-12, BC-2.21.002 postcondition 3 /
     /// invariant 4) — a flow already sticky-classified `Plus`/`Unclassified` is
     /// never dissected, even on a later `0x32`-leading DT frame. The
-    /// `None`-from-`parse_cotp_header` branch (unclassified-gap, BC-2.21.028) and
-    /// the `Some(0x72)`/`Some(other)`/`None`-protocol_id DT branches (BC-2.21.027)
-    /// remain structural no-ops with no divergent/panicking body — their
-    /// observable behavior is STORY-190's scope.
+    /// `None`-from-`parse_cotp_header` branch (unclassified-gap, BC-2.21.028), the
+    /// `Some(0x72)` DT branch (S7comm-plus framing-only path, BC-2.21.024/025/026,
+    /// STORY-190 scope), and the `Some(other)`/`None`-protocol_id DT branches
+    /// (unclassified gap, BC-2.21.027) remain structural no-ops with no
+    /// divergent/panicking body — their observable behavior is STORY-190's scope.
     fn dispatch_cotp_frame(
         state: &mut S7commFlowState,
         cotp: Option<iso_on_tcp::CotpHeader>,
@@ -806,7 +807,11 @@ impl S7commAnalyzer {
             // Unreachable via dispatch_classic_s7comm's only call site (guarded by
             // the debug_assert_eq! in that function, F-15) -- retained as a
             // defensive fallback so this classifier never panics or mis-labels a
-            // future, differently-guarded call site.
+            // future, differently-guarded call site. Because this call site
+            // guarantees payload[0] == 0x32, this branch never actually executes
+            // today, so BC-2.21.005 postcondition 3 (no Finding emitted for a
+            // direct, non-dispatch-gated reject) is not violated in practice --
+            // the string it would produce is unreachable, not observed.
             return format!(
                 "unexpected protocol-ID byte 0x{:02x} (expected 0x32, BC-2.21.005)",
                 payload[0]
