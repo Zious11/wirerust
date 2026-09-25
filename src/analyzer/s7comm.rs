@@ -209,13 +209,16 @@ pub struct S7commHeader {
     /// validated against the actual remaining bytes in `data` — that is the caller's
     /// BC-2.21.009 obligation.
     pub data_length: u16,
-    /// `Some(data[10])` only when `rosctr == Ack`; `None` for every other ROSCTR value
-    /// (BC-2.21.008 postcondition 3).
+    /// `Some(data[10])` only when `rosctr ∈ {Ack, AckData}`; `None` for Job/Userdata
+    /// (BC-2.21.008 postcondition 3, 2026-09-24 canonical-frame holdout ruling
+    /// DF-CANONICAL-FRAME-HOLDOUT-001).
     pub error_class: Option<u8>,
-    /// `Some(data[11])` only when `rosctr == Ack`; `None` for every other ROSCTR value
-    /// (BC-2.21.008 postcondition 3).
+    /// `Some(data[11])` only when `rosctr ∈ {Ack, AckData}`; `None` for Job/Userdata
+    /// (BC-2.21.008 postcondition 3, 2026-09-24 canonical-frame holdout ruling
+    /// DF-CANONICAL-FRAME-HOLDOUT-001).
     pub error_code: Option<u8>,
-    /// `10` for Job/Ack_Data/Userdata (BC-2.21.006); `12` for Ack (BC-2.21.008).
+    /// `10` for Job/Userdata (BC-2.21.006); `12` for Ack/Ack_Data (BC-2.21.008,
+    /// 2026-09-24 canonical-frame holdout ruling DF-CANONICAL-FRAME-HOLDOUT-001).
     pub header_len: usize,
 }
 
@@ -231,15 +234,16 @@ pub struct S7commHeader {
 /// mutation, no side effects, deterministic; MUST NOT read `S7commAnalyzer`'s flow
 /// state (this story's Forbidden Dependencies).
 ///
-/// # Contract summary (BC-2.21.004 through BC-2.21.008)
+/// # Contract summary (BC-2.21.004 through BC-2.21.008; Ack_Data grouping per the
+/// 2026-09-24 canonical-frame holdout ruling, DF-CANONICAL-FRAME-HOLDOUT-001)
 ///
 /// - `data.len() < 10` -> `None` (BC-2.21.004).
 /// - `data[0] != 0x32` -> `None` (BC-2.21.005, defensive caller-hygiene guard).
-/// - `data[1] ∈ {0x01, 0x03, 0x07}` (Job/Ack_Data/Userdata) -> `Some(S7commHeader {
-///   .., error_class: None, error_code: None, header_len: 10 })` (BC-2.21.006).
-/// - `data[1] == 0x02` (Ack) -> requires `data.len() >= 12`; `Some(S7commHeader {
-///   .., error_class: Some(data[10]), error_code: Some(data[11]), header_len: 12 })`,
-///   else `None` (BC-2.21.008).
+/// - `data[1] ∈ {0x01, 0x07}` (Job/Userdata) -> `Some(S7commHeader { ..,
+///   error_class: None, error_code: None, header_len: 10 })` (BC-2.21.006).
+/// - `data[1] ∈ {0x02, 0x03}` (Ack/Ack_Data) -> requires `data.len() >= 12`;
+///   `Some(S7commHeader { .., error_class: Some(data[10]), error_code:
+///   Some(data[11]), header_len: 12 })`, else `None` (BC-2.21.008).
 /// - `data[1] ∉ {0x01, 0x02, 0x03, 0x07}` -> `None`, no force-fit (BC-2.21.007).
 ///
 pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
@@ -271,15 +275,6 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
             error_code: None,
             header_len: 10,
         }),
-        0x03 => Some(S7commHeader {
-            rosctr: Rosctr::AckData,
-            pdu_reference,
-            param_length,
-            data_length,
-            error_class: None,
-            error_code: None,
-            header_len: 10,
-        }),
         0x07 => Some(S7commHeader {
             rosctr: Rosctr::Userdata,
             pdu_reference,
@@ -289,14 +284,19 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
             error_code: None,
             header_len: 10,
         }),
-        // BC-2.21.008: Ack requires 12 bytes (10-byte common header + error
-        // class/code).
-        0x02 => {
+        // BC-2.21.008 (2026-09-24 canonical-frame holdout ruling,
+        // DF-CANONICAL-FRAME-HOLDOUT-001): Ack AND Ack_Data both require the
+        // 12-byte extended header (10-byte common header + error class/code) — a
+        // real-world Ack_Data (Setup Communication response) parameter block only
+        // aligns at byte 12, not byte 10. Ack_Data is grouped here with Ack, not
+        // with Job/Userdata's 10-byte group above.
+        0x02 | 0x03 => {
             if data.len() < 12 {
                 return None;
             }
+            let rosctr = if data[1] == 0x02 { Rosctr::Ack } else { Rosctr::AckData };
             Some(S7commHeader {
-                rosctr: Rosctr::Ack,
+                rosctr,
                 pdu_reference,
                 param_length,
                 data_length,
@@ -797,6 +797,11 @@ impl S7commAnalyzer {
         match payload[1] {
             0x02 => format!(
                 "truncated Ack header: {} byte(s) available, 12 required (BC-2.21.008)",
+                payload.len()
+            ),
+            0x03 => format!(
+                "truncated Ack_Data header: {} byte(s) available, 12 required \
+                 (BC-2.21.008, DF-CANONICAL-FRAME-HOLDOUT-001)",
                 payload.len()
             ),
             other => format!("unrecognized ROSCTR byte 0x{other:02x} (BC-2.21.007)"),
