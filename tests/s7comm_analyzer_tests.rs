@@ -1381,6 +1381,7 @@ mod story_186 {
 /// sourced independently of this project's BCs/ADR-014, per those tests' own doc
 /// comments.
 mod story_187 {
+    use chrono::DateTime;
     use wirerust::analyzer::s7comm::{
         Rosctr, S7Protocol, S7commAnalyzer, S7commFlowState, S7commHeader, parse_s7comm_header,
         s7comm_bounds_ok,
@@ -1521,9 +1522,12 @@ mod story_187 {
             "malformed classic-S7comm-header T0814 must have Confidence::Medium \
              (BC-2.21.004 postcondition 4)"
         );
-        assert!(
-            finding.mitre_techniques.iter().any(|t| t == "T0814"),
-            "malformed classic-S7comm-header finding must cite T0814"
+        assert_eq!(
+            finding.mitre_techniques,
+            vec!["T0814".to_string()],
+            "malformed classic-S7comm-header finding's mitre_techniques (Vec<String>, \
+             src/findings.rs) must be EXACTLY the single-element vec![\"T0814\"] -- not \
+             merely contain it among other entries (P14-F-5a)"
         );
         assert_eq!(
             finding.direction,
@@ -1719,6 +1723,13 @@ mod story_187 {
             "malformed_header_reported_c2s must independently become true from the \
              genuine on_data-driven malformed-header condition (BC-2.21.001 invariant 2)"
         );
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "the SYNTHETIC pre-set carry_overflow_reported_c2s flag must not itself \
+             emit a finding, and the genuine malformed-header condition must emit \
+             exactly one T0814 -- not zero, not more than one (P14-F-5c)"
+        );
     }
 
     // =========================================================================
@@ -1851,7 +1862,7 @@ mod story_187 {
     /// happens to be the SAME direction as the now-stale first CR) does not.
     ///
     /// Traces: BC-2.21.001 postcondition 1's "most recently observed COTP CR"
-    /// framing; F-01 ruling.
+    /// framing; F-01 ruling; BC-2.21.001 EC-008, EC-009 (P13-F-2).
     #[test]
     fn test_BC_2_21_001_most_recent_cr_direction_wins() {
         // CR(c2s), CR(s2c), CC(c2s) -- the MOST RECENT CR is s2c, and c2s is opposite
@@ -2777,9 +2788,11 @@ mod story_187 {
         let flow_key = flow_key_default();
 
         // Payload = just the protocol-ID byte -> data.len() == 1 inside
-        // parse_s7comm_header, well under the 10-byte minimum.
+        // parse_s7comm_header, well under the 10-byte minimum. A NON-ZERO ts
+        // (424242) is used so the timestamp assertion below cannot vacuously pass
+        // against chrono's zero-epoch default (P14-F-5b).
         let frame = dt_frame(&[0x32]);
-        analyzer.on_data(flow_key.clone(), &frame, 0, Direction::ClientToServer);
+        analyzer.on_data(flow_key.clone(), &frame, 424_242, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.findings.len(),
@@ -2789,6 +2802,14 @@ mod story_187 {
         );
         assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
         assert_reason_specific_evidence(&analyzer.findings[0], "header too short");
+        assert_eq!(
+            analyzer.findings[0].timestamp,
+            DateTime::from_timestamp(424_242i64, 0),
+            "the finding's timestamp must equal chrono::DateTime::from_timestamp(ts as \
+             i64, 0) -- the exact conversion report_malformed_header performs in \
+             src/analyzer/s7comm.rs (P14-F-5b) -- got {:?}",
+            analyzer.findings[0].timestamp
+        );
         {
             let state = analyzer.flows.get(&flow_key).unwrap();
             assert!(
@@ -2841,6 +2862,15 @@ mod story_187 {
         );
         assert_malformed_header_t0814(&analyzer.findings[1], Direction::ServerToClient);
         assert_reason_specific_evidence(&analyzer.findings[1], "header too short");
+        assert_eq!(
+            analyzer.findings[1].timestamp,
+            DateTime::from_timestamp(1i64, 0),
+            "the s2c finding's timestamp must equal chrono::DateTime::from_timestamp(ts \
+             as i64, 0) for the NON-ZERO ts=1 this on_data call used -- the exact \
+             conversion report_malformed_header performs in src/analyzer/s7comm.rs \
+             (P14-F-5b) -- got {:?}",
+            analyzer.findings[1].timestamp
+        );
         {
             let state = analyzer.flows.get(&flow_key).unwrap();
             assert!(
@@ -4083,7 +4113,7 @@ mod story_187 {
     /// (`len < 10` implies `None`; `Some` implies `header_len ∈ {10, 12}` and
     /// `data.len() >= header_len`; `error_class.is_some() == (rosctr == Ack ||
     /// rosctr == AckData)`, identically for `error_code`). Also exercises
-    /// `s7comm_bounds_ok`, the pure crate-visible helper BC-2.21.009's caller-side
+    /// `s7comm_bounds_ok`, the pure, public (`pub fn`) helper BC-2.21.009's caller-side
     /// bounds check was extracted into for exactly this purpose.
     ///
     /// v1.3 (round 4, human-ratified 2026-09-24, canonical-frame holdout ruling
@@ -4685,6 +4715,340 @@ mod story_187 {
             Some(S7Protocol::Classic),
             "the fixture's classic S7comm (protocol_id 0x32) DT frames must \
              sticky-classify the flow Classic (BC-2.21.002 postcondition 3)"
+        );
+    }
+
+    // =========================================================================
+    // Pass-14 test-adequacy additions (P14-F-1 through P14-F-4, P13-F-4b).
+    // =========================================================================
+
+    /// P14-F-1: a flow already sticky-classified Classic (via a well-formed Job DT
+    /// frame) receives THREE further DT frames whose `protocol_id` is NOT
+    /// `Some(0x32)` -- `Some(0x72)` (Plus-shaped), `Some(0x99)` carrying bytes that
+    /// would otherwise parse as a well-formed classic Job header if mis-dissected
+    /// starting at their own first byte (proving the gate keys on `protocol_id`, not
+    /// on payload shape), and a `protocol_id: None` empty-payload DT frame. None of
+    /// the three may reach `dispatch_classic_s7comm` -- the `Some(0x32)` match arm in
+    /// `dispatch_cotp_frame` (BC-2.21.002) is the ONLY route into classic dissection,
+    /// so a non-`0x32` `protocol_id` must never emit a finding, must never flip
+    /// `malformed_header_reported_c2s`, and must never disturb the flow's sticky
+    /// `classified_protocol`.
+    ///
+    /// Kills a wrong implementation that widens the classic-dissection gate to fire
+    /// on every DT frame once a flow is sticky-classified Classic (i.e. hoists the
+    /// `if state.classified_protocol == Some(S7Protocol::Classic)` check outside the
+    /// `Some(0x32)` match arm instead of leaving it inside that arm) -- under that
+    /// mutant, the `Some(0x72)`/`Some(0x99)`/`None`-protocol_id frames below would
+    /// each be handed to `dispatch_classic_s7comm`, whose `payload.first() ==
+    /// Some(&0x32)` `debug_assert_eq!` (F-15, src/analyzer/s7comm.rs) panics for
+    /// every one of them under `cargo test`'s debug profile -- itself a test failure.
+    ///
+    /// Traces: BC-2.21.002 postcondition 3, invariant 4.
+    #[test]
+    fn test_BC_2_21_002_non_0x32_dt_frame_on_classic_flow_not_dissected() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // Establish sticky Classic via a well-formed Job PDU.
+        let good_header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        let good_frame = dt_frame(&good_header);
+        analyzer.on_data(flow_key.clone(), &good_frame, 0, Direction::ClientToServer);
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol,
+                Some(S7Protocol::Classic),
+                "precondition: the flow must already be sticky-classified Classic"
+            );
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "precondition: no findings yet"
+        );
+
+        // Three further DT frames, none with protocol_id Some(0x32).
+        analyzer.on_data(
+            flow_key.clone(),
+            &dt_frame(&[0x72]),
+            1,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            flow_key.clone(),
+            &dt_frame(&[0x99, 0x01, 0, 0, 0, 1, 0, 0, 0, 0]),
+            2,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            flow_key.clone(),
+            &dt_frame_empty_payload(),
+            3,
+            Direction::ClientToServer,
+        );
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "no non-0x32 DT frame on an already-Classic flow may ever emit a finding \
+             (P14-F-1, BC-2.21.002 postcondition 3 / invariant 4) -- got {:?}",
+            analyzer.findings
+        );
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "classified_protocol must remain Classic -- untouched by non-0x32 DT \
+             frames (P14-F-1)"
+        );
+        assert!(
+            !state.malformed_header_reported_c2s,
+            "malformed_header_reported_c2s must remain false -- no non-0x32 DT frame \
+             may ever reach dispatch_classic_s7comm (P14-F-1)"
+        );
+    }
+
+    /// P14-F-2: a COTP TPDU whose code high-nibble is `0x80` -- not in `{0xE0, 0xD0,
+    /// 0xF0}` -- causes `parse_cotp_header` to return `None` (its `_ => None` catch-
+    /// all arm, src/analyzer/iso_on_tcp.rs). Routed through `dispatch_cotp_frame`'s
+    /// `None` arm (the unclassified-gap placeholder): no CR/CC session-tracking
+    /// write, no protocol classification, no finding. A subsequent, well-formed
+    /// classic Job DT frame on the SAME flow then classifies normally -- the earlier
+    /// unparseable COTP frame leaves no residual state behind.
+    ///
+    /// Traces: BC-2.21.002 postcondition 1 (`None`-from-`parse_cotp_header`
+    /// unclassified gap).
+    #[test]
+    fn test_BC_2_21_002_unparseable_cotp_does_not_classify() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // TPDU code 0x80 -- high nibble 0x80 & 0xF0 == 0x80, not in {0xE0, 0xD0,
+        // 0xF0} -- parse_cotp_header returns None.
+        let unparseable = tpkt_frame(&[0x01, 0x80, 0x32, 0x01, 0, 0, 0, 1, 0, 0, 0, 0]);
+        analyzer.on_data(flow_key.clone(), &unparseable, 0, Direction::ClientToServer);
+
+        {
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert_eq!(
+                state.classified_protocol, None,
+                "an unparseable COTP frame must never classify the flow (P14-F-2, \
+                 BC-2.21.002 postcondition 1)"
+            );
+            assert!(
+                !state.session_established,
+                "an unparseable COTP frame must never set session_established (P14-F-2)"
+            );
+            assert_eq!(
+                state.cr_observed_dir, None,
+                "an unparseable COTP frame must never populate cr_observed_dir \
+                 (P14-F-2)"
+            );
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "an unparseable COTP frame must never emit any finding (P14-F-2)"
+        );
+
+        // A well-formed classic Job DT frame on the SAME flow, afterward, classifies
+        // normally -- the unparseable frame left no residual state.
+        let header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        let good_frame = dt_frame(&header);
+        analyzer.on_data(flow_key.clone(), &good_frame, 1, Direction::ClientToServer);
+
+        let state = analyzer.flows.get(&flow_key).unwrap();
+        assert_eq!(
+            state.classified_protocol,
+            Some(S7Protocol::Classic),
+            "a subsequent well-formed classic Job DT frame must classify Classic \
+             normally after an earlier unparseable COTP frame (P14-F-2)"
+        );
+        assert!(
+            analyzer.findings.is_empty(),
+            "the well-formed classic Job PDU must not itself emit any finding"
+        );
+    }
+
+    /// P14-F-3: once `session_established` becomes true, no subsequent CR/CC
+    /// activity on the flow may ever set it back to false -- monotonic latch
+    /// semantics. Two sequences, each establishing the flag via an opposite-
+    /// direction CC and then exercising further CR/CC traffic that must leave it
+    /// unchanged: (a) CR(c2s), CC(s2c) [establishes], CC(c2s) [same-direction as the
+    /// still-recorded CR, per F-01 a non-match -- must not clear the flag]; (b)
+    /// CR(c2s), CC(s2c) [establishes], CR(s2c) [overwrites `cr_observed_dir` --
+    /// `dispatch_cotp_frame`'s `ConnectRequest` arm never reads or writes
+    /// `session_established`, so this must not clear it either].
+    ///
+    /// Kills a wrong implementation that uses assignment-form
+    /// (`state.session_established = cr_dir != direction;`) in the `ConnectConfirm`
+    /// arm instead of the guarded `if cr_dir != direction { state.session_established
+    /// = true; }` form -- under that mutant, sequence (a)'s final same-direction CC
+    /// (`cr_dir == c2s == direction`) evaluates `cr_dir != direction` to `false` and
+    /// UNCONDITIONALLY assigns `session_established = false`, flipping the flag back
+    /// off and failing this test.
+    ///
+    /// Traces: BC-2.21.001 postcondition 1.
+    #[test]
+    fn test_BC_2_21_001_session_established_is_monotonic() {
+        // (a) CR(c2s), CC(s2c), CC(c2s) -- still true.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &cc_frame(), 1, Direction::ServerToClient);
+            {
+                let state = analyzer.flows.get(&flow_key).unwrap();
+                assert!(
+                    state.session_established,
+                    "precondition: the opposite-direction CC must establish the \
+                     session first"
+                );
+            }
+
+            analyzer.on_data(flow_key.clone(), &cc_frame(), 2, Direction::ClientToServer);
+
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.session_established,
+                "a same-direction CC arriving AFTER session_established is already \
+                 true must leave it true -- monotonic latch, not a re-evaluated \
+                 condition (P14-F-3)"
+            );
+        }
+
+        // (b) CR(c2s), CC(s2c), CR(s2c) -- still true.
+        {
+            let mut analyzer = S7commAnalyzer::new();
+            let flow_key = flow_key_default();
+
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+            analyzer.on_data(flow_key.clone(), &cc_frame(), 1, Direction::ServerToClient);
+            {
+                let state = analyzer.flows.get(&flow_key).unwrap();
+                assert!(
+                    state.session_established,
+                    "precondition: the opposite-direction CC must establish the \
+                     session first"
+                );
+            }
+
+            analyzer.on_data(flow_key.clone(), &cr_frame(), 2, Direction::ServerToClient);
+
+            let state = analyzer.flows.get(&flow_key).unwrap();
+            assert!(
+                state.session_established,
+                "a further CR arriving AFTER session_established is already true \
+                 must leave it true -- the ConnectRequest arm never reads or writes \
+                 session_established (P14-F-3)"
+            );
+        }
+    }
+
+    /// P14-F-4 (P13-F-4a): a classic S7comm payload of EXACTLY 9 bytes (`32 01 00 00
+    /// 00 01 00 00 00`) -- one byte short of the 10-byte common-header minimum -- on
+    /// an already-Classic-classified flow must emit exactly one T0814 whose evidence
+    /// contains the exact string "header too short: 9" (the specific byte count
+    /// `classify_malformed_header_reason` reports, distinguishing this from the
+    /// existing 1-byte-payload malformed-header tests elsewhere in this module).
+    ///
+    /// Kills a wrong implementation that changes `classify_malformed_header_reason`'s
+    /// `payload.len() < 10` guard to `payload.len() < 9` (F-11's evidence-text
+    /// classifier, src/analyzer/s7comm.rs) -- under that mutant, this exact 9-byte
+    /// payload no longer takes the "header too short" branch (`9 < 9` is `false`); it
+    /// falls through to `match payload[1]` with `payload[1] == 0x01` (Job), which is
+    /// not one of the `0x02`/`0x03` arms, so it takes the `other =>` catch-all and
+    /// reports "unrecognized ROSCTR byte 0x01" instead -- the evidence-substring
+    /// assertion below then fails. (The reject DECISION itself is unaffected by this
+    /// mutant -- `parse_s7comm_header`'s own `data.len() < 10` guard is untouched --
+    /// so only the evidence TEXT changes, which is exactly what this test targets.)
+    ///
+    /// Traces: BC-2.21.004 postcondition 4; F-11.
+    #[test]
+    fn test_BC_2_21_004_nine_byte_payload_on_data_too_short_evidence() {
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+
+        // Establish sticky Classic via a well-formed Job PDU first.
+        let good_header = classic_header_bytes(0x01, 0x0001, 0x0000, 0x0000);
+        let good_frame = dt_frame(&good_header);
+        analyzer.on_data(flow_key.clone(), &good_frame, 0, Direction::ClientToServer);
+        assert!(
+            analyzer.findings.is_empty(),
+            "precondition: no findings yet"
+        );
+
+        // Exactly 9 bytes: [0x32, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00].
+        let nine: [u8; 9] = [0x32, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
+        let frame = dt_frame(&nine);
+        analyzer.on_data(flow_key.clone(), &frame, 1, Direction::ClientToServer);
+
+        assert_eq!(
+            analyzer.findings.len(),
+            1,
+            "a 9-byte classic-S7comm payload must emit exactly one T0814 (P14-F-4, \
+             BC-2.21.004 postcondition 4)"
+        );
+        assert_malformed_header_t0814(&analyzer.findings[0], Direction::ClientToServer);
+        assert_reason_specific_evidence(&analyzer.findings[0], "header too short: 9");
+    }
+
+    /// P13-F-4b (BC-2.21.008 EC-007): an Ack_Data (`0x03`) header with NON-ZERO
+    /// `error_class`/`error_code` (`0x81`/`0x04`) AND a non-empty parameter block --
+    /// `param_length == 2` with exactly 2 trailing parameter bytes present --
+    /// verified two ways: (1) a direct `parse_s7comm_header` call returns `Some` with
+    /// `header_len == 12` and the exact expected error bytes (structural equality,
+    /// mirroring `test_BC_2_21_008_ack_data_12_byte_header_and_error_fields` above but
+    /// additionally exercising a non-empty trailing parameter block); (2) fed through
+    /// `on_data` on a (self-classifying, `protocol_id: Some(0x32)`) flow, the SAME
+    /// bytes -- with bounds satisfied (`header_len(12) + param_length(2) +
+    /// data_length(0) == 14 == payload.len()`) -- emit NO finding at all, since a
+    /// non-zero `error_class`/`error_code` and a present parameter block are both
+    /// fully within BC-2.21.008/BC-2.21.009's contract, not malformed-header
+    /// conditions.
+    ///
+    /// Traces: BC-2.21.008 postconditions 1-2, edge case EC-007.
+    #[test]
+    fn test_BC_2_21_008_ack_data_nonzero_error_fields_with_parameter_block() {
+        // 12-byte Ack_Data header + 2 parameter bytes = 14 bytes total.
+        let mut payload = ack_data_header_bytes(0x0007, 2, 0, 0x81, 0x04);
+        assert_eq!(payload.len(), 12);
+        payload.push(0xAA);
+        payload.push(0xBB);
+        assert_eq!(payload.len(), 14);
+
+        // (1) Direct parse.
+        let header = parse_s7comm_header(&payload).expect(
+            "a well-formed 12-byte Ack_Data header with a trailing parameter block \
+             must parse (BC-2.21.008 EC-007)",
+        );
+        assert_eq!(
+            header,
+            S7commHeader {
+                rosctr: Rosctr::AckData,
+                pdu_reference: 0x0007,
+                param_length: 2,
+                data_length: 0,
+                error_class: Some(0x81),
+                error_code: Some(0x04),
+                header_len: 12,
+            },
+            "the exact expected S7commHeader (BC-2.21.008 EC-007) -- header_len must \
+             remain 12 regardless of the trailing parameter block's presence, since \
+             header_len describes the FIXED header only"
+        );
+
+        // (2) Via on_data on a (self-classifying) flow -- bounds satisfied, so no
+        // finding.
+        let mut analyzer = S7commAnalyzer::new();
+        let flow_key = flow_key_default();
+        let frame = dt_frame(&payload);
+        analyzer.on_data(flow_key, &frame, 0, Direction::ClientToServer);
+
+        assert!(
+            analyzer.findings.is_empty(),
+            "a well-formed Ack_Data header with non-zero error fields and a bounds- \
+             satisfying trailing parameter block must not emit any finding (P13-F-4b, \
+             BC-2.21.008 EC-007) -- got {:?}",
+            analyzer.findings
         );
     }
 }
