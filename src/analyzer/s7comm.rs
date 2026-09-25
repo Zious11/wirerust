@@ -328,7 +328,7 @@ pub fn parse_s7comm_header(data: &[u8]) -> Option<S7commHeader> {
     }
 }
 
-/// BC-2.21.009 / F-14: pure, crate-visible caller-side bounds check — `true` iff
+/// BC-2.21.009 / F-14: pure, public (`pub fn`) caller-side bounds check — `true` iff
 /// `data_len >= header.header_len + header.param_length as usize + header.data_length
 /// as usize` (checked addition; the sum cannot overflow `usize` on any wirerust
 /// target, BC-2.21.009 invariant 1). Extracted as a standalone `pub fn` (rather than

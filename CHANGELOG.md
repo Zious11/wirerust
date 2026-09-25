@@ -87,7 +87,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   dissected, even on a later `0x32`-leading frame, per ADR-014 Decision 2's
   no-misattribution guarantee. The declared `param_length`/`data_length` are
   bounds-checked against the bytes actually available via a new pure,
-  crate-visible helper, `s7comm_bounds_ok(header: &S7commHeader, data_len:
+  public (`pub fn`) helper, `s7comm_bounds_ok(header: &S7commHeader, data_len:
   usize) -> bool` (BC-2.21.009), before any parameter/data-block slice is
   attempted — the same helper the VP-051 Kani harness calls directly.
   Malformed-header conditions (parse failure or bounds-check failure) emit one
