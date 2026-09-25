@@ -3704,8 +3704,11 @@ mod story_187 {
                 );
                 assert!(
                     slice.len() >= header.header_len,
-                    "VP-051 / BC-2.21.009: a Some(header) result's own header_len must \
-                     never exceed the input slice's length"
+                    "VP-051 / BC-2.21.004 postcondition 1 / BC-2.21.008 postcondition 1: \
+                     a Some(header) result's own header_len must never exceed the input \
+                     slice's length -- this is the parser's own length guard (>= 10 for \
+                     Job/Userdata/unrecognized-ROSCTR rejection, >= 12 for Ack/Ack_Data), \
+                     not BC-2.21.009's caller-side param_length/data_length bounds check"
                 );
 
                 // Non-vacuous assertion 3 (BC-2.21.008 postcondition 3, corrected

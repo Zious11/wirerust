@@ -24,8 +24,11 @@ PROSE sources (the Wireshark wiki page, Kleinmann & Wool 2014, and the
 Orange-Cyberdefense `awesome-industrial-protocols` catalog) together with
 Decision 4's PERMITTED DESIGN REFERENCES (cisagov/icsnpp-s7comm,
 kprovost/libs7comm, gijzelaerr/python-snap7) — never from Wireshark's
-dissector source, Snap7, or libnodave (all GPL/LGPL-tainted). Kleinmann &
-Wool 2014 attests the Ack_Data (0x03) 12-byte header only; the Ack (0x02)
+dissector source, Snap7 (the C++ library), or libnodave (all GPL/LGPL-tainted).
+Snap7 (the C++ library) is distinct from gijzelaerr/python-snap7 (a permitted
+Python binding/wrapper listed above); the two are not interchangeable, and
+this exclusion refers only to the former. Kleinmann & Wool 2014 attests the
+Ack_Data (0x03) 12-byte header only; the Ack (0x02)
 12-byte layout and the 1-byte error_class/error_code split it shares with
 Ack_Data rest on cisagov/icsnpp-s7comm and gijzelaerr/python-snap7
 (kprovost/libs7comm consistent in aggregate) — see Decision 4/Decision 9's
