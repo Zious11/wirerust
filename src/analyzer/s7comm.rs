@@ -235,6 +235,101 @@ pub struct S7commHeader {
 }
 
 // ---------------------------------------------------------------------------
+// Job/Ack_Data function-code classification surface (STORY-188 stubs)
+// ---------------------------------------------------------------------------
+
+/// S7 memory-area code decoded from a Write Var first address item
+/// (BC-2.21.012). `0x80` DirectPeripheral, `0x81` Inputs, `0x82` Outputs,
+/// `0x83` Markers, `0x84` DataBlock, `0x85` InstanceDb, `0x1C` Counters,
+/// `0x1D` Timers; any other byte is `Unrecognized(byte)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S7AreaCode {
+    /// `0x80`.
+    DirectPeripheral,
+    /// `0x81`.
+    Inputs,
+    /// `0x82`.
+    Outputs,
+    /// `0x83`.
+    Markers,
+    /// `0x84`.
+    DataBlock,
+    /// `0x85`.
+    InstanceDb,
+    /// `0x1C`.
+    Counters,
+    /// `0x1D`.
+    Timers,
+    /// Any other byte (also the `0xFF` placeholder when the item descriptor is
+    /// unreadable, BC-2.21.012 postcondition 3).
+    Unrecognized(u8),
+}
+
+/// PI-service decoded from a PLC Control (FC `0x28`) parameter block (BC-2.21.015).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlcControlService {
+    /// `"P_PROGRAM"`.
+    ProgramStart,
+    /// `"_INSE"`.
+    BlockActivate,
+    /// `"_DELE"`.
+    BlockDelete,
+    /// `"_GARB"`.
+    MemoryCompress,
+    /// `"_MODU"`.
+    RamToRom,
+    /// Unreadable/truncated or non-matching service string.
+    Unrecognized,
+}
+
+/// Classification of a Job/Ack_Data function-code byte (BC-2.21.010 through
+/// BC-2.21.017). STORY-189 extends this enum with the `Userdata(..)` arm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S7ClassicFunction {
+    /// FC `0xF0` (BC-2.21.010).
+    SetupCommunication,
+    /// FC `0x04` (BC-2.21.011).
+    ReadVar,
+    /// FC `0x05` with first-item area code (BC-2.21.012).
+    WriteVar(S7AreaCode),
+    /// FC `0x1A` (BC-2.21.013).
+    RequestDownload,
+    /// FC `0x1B` (BC-2.21.013).
+    DownloadBlock,
+    /// FC `0x1C` (BC-2.21.013).
+    DownloadEnded,
+    /// FC `0x1D` (BC-2.21.014).
+    StartUpload,
+    /// FC `0x1E` (BC-2.21.014).
+    Upload,
+    /// FC `0x1F` (BC-2.21.014).
+    EndUpload,
+    /// FC `0x28` with decoded PI-service (BC-2.21.015).
+    PlcControl(PlcControlService),
+    /// FC `0x29` (BC-2.21.016).
+    PlcStop,
+    /// Any other FC byte, raw value preserved (BC-2.21.017).
+    Unrecognized(u8),
+    /// `param_length == 0`: no FC byte present (BC-2.21.017).
+    NoParameterBlock,
+}
+
+/// Pure-core classifier over the Job/Ack_Data function-code byte at
+/// `data[header_len]` (BC-2.21.010 through BC-2.21.017). Total over all `u8`
+/// values plus the `param_length == 0` case; emits no findings and reads no flow
+/// state.
+///
+/// TODO(STORY-188): STUB -- implementation lands after the Red Gate.
+#[allow(unused_variables)]
+pub fn classify_job_ack_function(
+    data: &[u8],
+    header_len: usize,
+    param_length: u16,
+) -> S7ClassicFunction {
+    todo!("STORY-188: classify_job_ack_function")
+}
+
+// ---------------------------------------------------------------------------
 // Pure-core parser (STORY-187)
 // ---------------------------------------------------------------------------
 
