@@ -4496,20 +4496,16 @@ mod story_187 {
                  false-reject"
             );
 
-            if expected {
-                // A symbolic buffer of length data_len -- the hypothetical full
-                // delivery. When the bounds check passes, the parameter/data
-                // sub-slice access must always succeed.
-                let full: Vec<u8> = vec![0u8; data_len];
-                let param_data_end =
-                    header.header_len + header.param_length as usize + header.data_length as usize;
-                assert!(
-                    full.get(header.header_len..param_data_end).is_some(),
-                    "VP-051 F-18: when s7comm_bounds_ok is true, the parameter/data \
-                     sub-slice access data.get(header_len..header_len+param_length+ \
-                     data_length) must be Some(..), never None, never a panic"
-                );
-            }
+            // PRF-005 (STORY-188 carry-forward): the former
+            // `vec![0u8; data_len].get(header_len..param_data_end).is_some()`
+            // assertion here only re-proved `Vec::get`'s own contract and exercised
+            // none of this crate's parameter/data-block slicing. The real
+            // "bounds-ok => parameter-block slicing is safe" obligation is now proven
+            // by `story_188::vp052_kani::verify_classify_job_ack_function_param_slicing_safe`,
+            // which drives the production parameter-block slicing performed by
+            // `classify_job_ack_function` (data[header_len..header_len+param_length])
+            // under `s7comm_bounds_ok`. This harness keeps the exact-equality proof
+            // of `s7comm_bounds_ok` itself above.
 
             // NON-VACUITY (F-18, DF-KANI-NONVACUITY-001): both the bounds-ok-true and
             // bounds-ok-false outcomes must be reachable under the symbolic inputs,
@@ -5215,5 +5211,1022 @@ mod story_187 {
              BC-2.21.008 EC-007) -- got {:?}",
             analyzer.findings
         );
+    }
+}
+
+// =============================================================================
+// STORY-188: S7comm Job/Ack_Data Function-Code Classification.
+//
+// Covers BC-2.21.008 (postcondition 4 only: Ack/Ack_Data error_class/error_code
+// consumption + logging), BC-2.21.010 .. BC-2.21.017, the VP-052 proptest
+// (FC totality sub-part) and the VP-054 proptest (Download/Upload structural
+// disjointness), and the PRF-005 Kani retarget.
+//
+// Authored Red-first against the `todo!()` stub of `classify_job_ack_function`
+// and the not-yet-wired `on_data` Ack error logging (AC-188-010).
+//
+// Observation surface for AC-188-010: this project's established diagnostic
+// channel is `eprintln!` to stderr (ADR-0004). The analyzer's stderr output is
+// therefore observed by re-executing this test binary as a child process
+// (stdin = null, per-run timeout) that drives `S7commAnalyzer::on_data`, then
+// inspecting the child's captured stderr. The contract pinned here is minimal:
+// one stderr line per Ack/Ack_Data frame that contains the literal field names
+// `error_class` and `error_code` each followed by the observed byte value
+// (`0x81`-style hex or decimal). No line containing `error_class` may be
+// produced for Job/Userdata frames.
+//
+// Wire layouts used (ADR-014 Decision 4: public wire-capture / prose-derived
+// layouts only, no copied dissector code):
+// - Write Var parameter block: FC 0x05, item count, then a 12-byte S7ANY item
+//   (0x12, 0x0A, 0x10 syntax-id, transport, count(2), db(2), AREA, addr(3)), so
+//   the first item's area byte is at parameter offset 10.
+// - PLC Control parameter block: FC 0x28, 7 fixed bytes (00*6, 0xFD), block-arg
+//   length (u16 BE), block args, service-name length (1), service-name ASCII.
+// =============================================================================
+mod story_188 {
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
+
+    use wirerust::analyzer::s7comm::{
+        PlcControlService, S7AreaCode, S7ClassicFunction, S7commAnalyzer, classify_job_ack_function,
+    };
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    use S7ClassicFunction as F;
+
+    // ---------------------------------------------------------------------
+    // Frame builders
+    // ---------------------------------------------------------------------
+
+    fn flow_key_default() -> FlowKey {
+        FlowKey::new(
+            "127.0.0.1".parse().unwrap(),
+            1234,
+            "127.0.0.2".parse().unwrap(),
+            102,
+        )
+    }
+
+    fn tpkt_frame(cotp_payload: &[u8]) -> Vec<u8> {
+        let len = (4 + cotp_payload.len()) as u16;
+        let mut f = vec![0x03u8, 0x00, (len >> 8) as u8, (len & 0xFF) as u8];
+        f.extend_from_slice(cotp_payload);
+        f
+    }
+
+    fn cr_frame() -> Vec<u8> {
+        tpkt_frame(&[0x01, 0xE0, 0x00])
+    }
+
+    fn cc_frame() -> Vec<u8> {
+        tpkt_frame(&[0x01, 0xD0, 0x00])
+    }
+
+    fn dt_frame(upper: &[u8]) -> Vec<u8> {
+        let mut cotp = vec![0x01u8, 0xF0];
+        cotp.extend_from_slice(upper);
+        tpkt_frame(&cotp)
+    }
+
+    const ROSCTR_JOB: u8 = 0x01;
+    const ROSCTR_ACK: u8 = 0x02;
+    const ROSCTR_ACK_DATA: u8 = 0x03;
+
+    /// Builds a full classic S7comm PDU (starting at the 0x32 byte). Returns
+    /// `(pdu, header_len, param_length)`. Ack/Ack_Data use the 12-byte header with
+    /// `err = (error_class, error_code)`; Job uses the 10-byte header.
+    fn build_pdu(
+        rosctr: u8,
+        err: (u8, u8),
+        param: &[u8],
+        data_block: &[u8],
+    ) -> (Vec<u8>, usize, u16) {
+        let mut v = vec![0x32u8, rosctr, 0x00, 0x00, 0x00, 0x01];
+        v.extend_from_slice(&(param.len() as u16).to_be_bytes());
+        v.extend_from_slice(&(data_block.len() as u16).to_be_bytes());
+        let mut header_len = 10;
+        if rosctr == ROSCTR_ACK || rosctr == ROSCTR_ACK_DATA {
+            v.push(err.0);
+            v.push(err.1);
+            header_len = 12;
+        }
+        v.extend_from_slice(param);
+        v.extend_from_slice(data_block);
+        (v, header_len, param.len() as u16)
+    }
+
+    /// Classifies `param`/`data_block` under BOTH `Job` (header_len 10) and
+    /// `AckData` (header_len 12, with non-FC-looking error bytes 0xEE/0xEE so a
+    /// classifier that reads `data[10]` instead of `data[header_len]` is caught).
+    /// Returns `[job_result, ack_data_result]`.
+    fn classify_both(param: &[u8], data_block: &[u8]) -> [S7ClassicFunction; 2] {
+        let (job, jh, jp) = build_pdu(ROSCTR_JOB, (0, 0), param, data_block);
+        let (ack, ah, ap) = build_pdu(ROSCTR_ACK_DATA, (0xEE, 0xEE), param, data_block);
+        [
+            classify_job_ack_function(&job, jh, jp),
+            classify_job_ack_function(&ack, ah, ap),
+        ]
+    }
+
+    fn assert_both(param: &[u8], data_block: &[u8], expected: S7ClassicFunction, ctx: &str) {
+        let [job, ack_data] = classify_both(param, data_block);
+        assert_eq!(job, expected, "{ctx}: Job (header_len 10)");
+        assert_eq!(ack_data, expected, "{ctx}: AckData (header_len 12)");
+    }
+
+    /// 12-byte S7ANY item descriptor with the given area byte at item offset 8.
+    fn s7any_item(area: u8) -> Vec<u8> {
+        vec![
+            0x12, 0x0A, 0x10, 0x02, 0x00, 0x01, 0x00, 0x00, area, 0x00, 0x00, 0x00,
+        ]
+    }
+
+    /// Write Var parameter block: FC 0x05, 1 item, S7ANY item with `area`.
+    fn write_var_param(area: u8) -> Vec<u8> {
+        let mut p = vec![0x05u8, 0x01];
+        p.extend(s7any_item(area));
+        p
+    }
+
+    /// PLC Control parameter block (see module comment for the layout).
+    fn plc_control_param(service: &[u8], block_args: &[u8]) -> Vec<u8> {
+        let mut p = vec![0x28u8, 0, 0, 0, 0, 0, 0, 0xFD];
+        p.extend_from_slice(&(block_args.len() as u16).to_be_bytes());
+        p.extend_from_slice(block_args);
+        p.push(service.len() as u8);
+        p.extend_from_slice(service);
+        p
+    }
+
+    /// Classifies a PLC Control parameter block that has been cut to `keep` bytes
+    /// of parameter block; the cut-off remainder stays available in the data
+    /// block, proving the decode is bounded by `param_length`, not by `data.len()`.
+    fn classify_plc_control_cut(param: &[u8], keep: usize) -> [S7ClassicFunction; 2] {
+        classify_both(&param[..keep], &param[keep..])
+    }
+
+    // ---------------------------------------------------------------------
+    // Child-process stderr observation (AC-188-010)
+    // ---------------------------------------------------------------------
+
+    const CHILD_VAR: &str = "WIRERUST_STORY188_CHILD_SCENARIO";
+
+    fn in_child_mode() -> bool {
+        std::env::var_os(CHILD_VAR).is_some()
+    }
+
+    /// Parent mode: re-executes this test binary running exactly `test_path` with
+    /// `CHILD_VAR` set, stdin = null, a 60 s timeout, and returns the child's
+    /// stderr (asserting the child exited successfully). Child mode (variable
+    /// matches): runs `scenario` and returns `None`.
+    fn child_stderr(test_path: &str, scenario: fn()) -> Option<String> {
+        if std::env::var(CHILD_VAR).ok().as_deref() == Some(test_path) {
+            scenario();
+            return None;
+        }
+        let exe = std::env::current_exe().expect("current_exe");
+        let mut cmd = Command::new(exe);
+        cmd.args([test_path, "--exact", "--nocapture", "--test-threads=1"]);
+        cmd.envs([(CHILD_VAR, test_path)]);
+        let mut child = cmd
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn child test process");
+        let mut stderr = child.stderr.take().expect("child stderr pipe");
+        let reader = std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _ = stderr.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).into_owned()
+        });
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let status = loop {
+            match child.try_wait().expect("try_wait") {
+                Some(st) => break st,
+                None => {
+                    if Instant::now() > deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        panic!("child scenario `{test_path}` timed out after 60s");
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+            }
+        };
+        let text = reader.join().expect("stderr reader thread");
+        assert!(
+            status.success(),
+            "child scenario `{test_path}` failed ({status}); stderr:\n{text}"
+        );
+        Some(text)
+    }
+
+    /// True iff `line` contains `key` followed (after separators) by a token equal
+    /// to `value` as `0x..` hex (any case) or decimal.
+    fn field_value_matches(line: &str, key: &str, value: u8) -> bool {
+        let Some(pos) = line.find(key) else {
+            return false;
+        };
+        let rest = line[pos + key.len()..].trim_start_matches(|c: char| !c.is_ascii_alphanumeric());
+        let tok: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric())
+            .collect::<String>()
+            .to_ascii_lowercase();
+        tok == format!("0x{value:02x}") || tok == value.to_string()
+    }
+
+    fn error_lines(stderr: &str) -> Vec<&str> {
+        stderr
+            .lines()
+            .filter(|l| l.contains("error_class"))
+            .collect()
+    }
+
+    fn assert_error_line(line: &str, class: u8, code: u8) {
+        assert!(
+            field_value_matches(line, "error_class", class),
+            "log line must report error_class={class:#04x}: {line:?}"
+        );
+        assert!(
+            field_value_matches(line, "error_code", code),
+            "log line must report error_code={code:#04x}: {line:?}"
+        );
+    }
+
+    /// Feeds CR, CC, then each `(direction, pdu)` as its own DT frame into a fresh
+    /// analyzer; asserts no finding is ever emitted (BC-2.21.008 PC4 / BC-2.21.017
+    /// PC3: logging and classification emit no `Finding`).
+    fn drive_session(pdus: &[(Direction, Vec<u8>)]) {
+        let mut analyzer = S7commAnalyzer::new();
+        let key = flow_key_default();
+        analyzer.on_data(key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &cc_frame(), 0, Direction::ServerToClient);
+        for (dir, pdu) in pdus {
+            analyzer.on_data(key.clone(), &dt_frame(pdu), 1, *dir);
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "well-formed Job/Ack/Ack_Data frames must emit no Finding: {:?}",
+            analyzer.findings
+        );
+    }
+
+    fn setup_comm_param() -> Vec<u8> {
+        vec![0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x03, 0xC0]
+    }
+
+    // ---------------------------------------------------------------------
+    // AC-188-001 .. AC-188-008: unit tests
+    // ---------------------------------------------------------------------
+
+    /// AC-188-001: FC 0xF0 -> SetupCommunication for Job and AckData; no further
+    /// parameter bytes interpreted (a bare `[0xF0]` and a garbage-trailed block
+    /// classify identically).
+    /// Traces: BC-2.21.010 postconditions 1-3.
+    #[test]
+    fn test_BC_2_21_010_setup_communication_classified() {
+        assert_both(
+            &setup_comm_param(),
+            &[],
+            F::SetupCommunication,
+            "full setup comm",
+        );
+        assert_both(&[0xF0], &[], F::SetupCommunication, "bare FC byte");
+        assert_both(
+            &[0xF0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+            &[],
+            F::SetupCommunication,
+            "arbitrary trailing parameter bytes are not interpreted",
+        );
+    }
+
+    /// AC-188-002: FC 0x04 -> ReadVar, never WriteVar, no area decode.
+    /// Traces: BC-2.21.011 postconditions 1-2 (canonical vectors Job/0x04, AckData/0x04).
+    #[test]
+    fn test_BC_2_21_011_read_var_classified_no_area_decode() {
+        let mut p = vec![0x04u8, 0x01];
+        p.extend(s7any_item(0x84));
+        assert_both(&p, &[], F::ReadVar, "read var with S7ANY item");
+        assert_both(&[0x04], &[], F::ReadVar, "bare read var");
+    }
+
+    /// AC-188-003: FC 0x05 -> WriteVar(area) for the 8 named areas plus
+    /// unrecognized bytes (EC-001: 0xFF; BC EC-002: 0x86; canonical 0x9A);
+    /// unreadable descriptor -> WriteVar(Unrecognized(0xFF)) placeholder, never a
+    /// reject; multi-item uses first item only; decode bounded by param_length.
+    /// Traces: BC-2.21.012 postconditions 1-4, EC-001/002/003, canonical vectors.
+    #[test]
+    fn test_BC_2_21_012_write_var_area_code_extraction() {
+        let table: [(u8, S7AreaCode); 8] = [
+            (0x80, S7AreaCode::DirectPeripheral),
+            (0x81, S7AreaCode::Inputs),
+            (0x82, S7AreaCode::Outputs),
+            (0x83, S7AreaCode::Markers),
+            (0x84, S7AreaCode::DataBlock),
+            (0x85, S7AreaCode::InstanceDb),
+            (0x1C, S7AreaCode::Counters),
+            (0x1D, S7AreaCode::Timers),
+        ];
+        for (byte, area) in table {
+            assert_both(
+                &write_var_param(byte),
+                &[0x00, 0x04, 0x00, 0x08, 0x2A],
+                F::WriteVar(area),
+                &format!("area byte {byte:#04x}"),
+            );
+        }
+        for byte in [0xFFu8, 0x86, 0x9A, 0x00] {
+            assert_both(
+                &write_var_param(byte),
+                &[],
+                F::WriteVar(S7AreaCode::Unrecognized(byte)),
+                &format!("unrecognized area byte {byte:#04x} (no force-fit)"),
+            );
+        }
+
+        // Postcondition 3 / EC-003: undeterminable area -> WriteVar, placeholder 0xFF.
+        let placeholder = F::WriteVar(S7AreaCode::Unrecognized(0xFF));
+        assert_both(&[0x05], &[], placeholder, "bare FC, no item at all");
+        assert_both(
+            &[0x05, 0x01, 0x12, 0x0A, 0x10],
+            &[],
+            placeholder,
+            "truncated item",
+        );
+        let mut bad_syntax = write_var_param(0x82);
+        bad_syntax[4] = 0x11; // non-S7ANY syntax id
+        assert_both(
+            &bad_syntax,
+            &[],
+            placeholder,
+            "non-S7ANY syntax id not decoded",
+        );
+
+        // Decode is bounded by param_length: the complete item sits in the data
+        // block, past param_length, and must not be read as parameter bytes.
+        let full = write_var_param(0x82);
+        assert_both(
+            &full[..5],
+            &full[5..],
+            placeholder,
+            "item bytes beyond param_length",
+        );
+
+        // Postcondition 4: multi-item block -> first item's area only.
+        let mut multi = vec![0x05u8, 0x02];
+        multi.extend(s7any_item(0x82));
+        multi.extend(s7any_item(0x84));
+        assert_both(
+            &multi,
+            &[],
+            F::WriteVar(S7AreaCode::Outputs),
+            "first item only",
+        );
+    }
+
+    /// AC-188-003 / VP-052: every u8 area byte maps to exactly one `S7AreaCode`
+    /// (8 named + Unrecognized(byte) passthrough), no gaps, no force-fit.
+    /// Traces: BC-2.21.012 invariant 1.
+    mod area_exhaustive {
+        use super::*;
+        use proptest::prelude::*;
+
+        fn expected_area(b: u8) -> S7AreaCode {
+            match b {
+                0x80 => S7AreaCode::DirectPeripheral,
+                0x81 => S7AreaCode::Inputs,
+                0x82 => S7AreaCode::Outputs,
+                0x83 => S7AreaCode::Markers,
+                0x84 => S7AreaCode::DataBlock,
+                0x85 => S7AreaCode::InstanceDb,
+                0x1C => S7AreaCode::Counters,
+                0x1D => S7AreaCode::Timers,
+                other => S7AreaCode::Unrecognized(other),
+            }
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(2000))]
+            #[test]
+            fn test_BC_2_21_012_write_var_area_code_exhaustive_over_all_u8(
+                area in any::<u8>(),
+                db in proptest::collection::vec(any::<u8>(), 0..8),
+            ) {
+                let param = write_var_param(area);
+                let [job, ack_data] = classify_both(&param, &db);
+                prop_assert_eq!(job, F::WriteVar(expected_area(area)));
+                prop_assert_eq!(ack_data, F::WriteVar(expected_area(area)));
+            }
+        }
+    }
+
+    /// AC-188-004: Download triad 0x1A/0x1B/0x1C classified independently,
+    /// never as an Upload variant; EC-002: consecutive RequestDownload frames are
+    /// each classified independently (no cross-frame state).
+    /// Traces: BC-2.21.013 postconditions 1-4.
+    #[test]
+    fn test_BC_2_21_013_download_triad_classified_independently() {
+        let cases = [
+            (0x1Au8, F::RequestDownload),
+            (0x1B, F::DownloadBlock),
+            (0x1C, F::DownloadEnded),
+        ];
+        for (fc, expected) in cases {
+            assert_both(&[fc], &[], expected, &format!("download FC {fc:#04x}"));
+            assert_both(
+                &[fc, 0x01, 0x02, 0x03, 0x04],
+                &[0xAA, 0xBB],
+                expected,
+                &format!("download FC {fc:#04x} with trailing block bytes (no block decode)"),
+            );
+        }
+        // EC-002: two RequestDownload frames back to back, no DownloadEnded between.
+        let first = classify_both(&[0x1A], &[]);
+        let second = classify_both(&[0x1A], &[]);
+        assert_eq!(first, [F::RequestDownload, F::RequestDownload]);
+        assert_eq!(second, [F::RequestDownload, F::RequestDownload]);
+    }
+
+    /// AC-188-005: Upload triad 0x1D/0x1E/0x1F classified; disjoint from Download.
+    /// Traces: BC-2.21.014 postconditions 1-4, EC-003 (no collapsed 0x1A..=0x1F range).
+    #[test]
+    fn test_BC_2_21_014_upload_triad_classified_disjoint_from_download() {
+        let cases = [
+            (0x1Du8, F::StartUpload),
+            (0x1E, F::Upload),
+            (0x1F, F::EndUpload),
+        ];
+        let download = [F::RequestDownload, F::DownloadBlock, F::DownloadEnded];
+        for (fc, expected) in cases {
+            assert_both(&[fc], &[], expected, &format!("upload FC {fc:#04x}"));
+            let [job, ack] = classify_both(&[fc, 0x09], &[]);
+            assert!(!download.contains(&job) && !download.contains(&ack));
+        }
+        // Boundary neighbours: 0x19 and 0x20 are outside the triads.
+        assert_both(
+            &[0x19],
+            &[],
+            F::Unrecognized(0x19),
+            "just below Download triad",
+        );
+        assert_both(
+            &[0x20],
+            &[],
+            F::Unrecognized(0x20),
+            "just above Upload triad",
+        );
+    }
+
+    /// AC-188-006: PLC Control (0x28) with PI-service decode: one case per named
+    /// string plus the unrecognized fallback.
+    /// Traces: BC-2.21.015 postconditions 1-4, EC-001..EC-005 (BC).
+    #[test]
+    fn test_BC_2_21_015_plc_control_service_string_decode() {
+        let named: [(&[u8], &[u8], PlcControlService); 5] = [
+            (b"P_PROGRAM", &[], PlcControlService::ProgramStart),
+            (
+                b"_INSE",
+                &[0x01, 0x00, 0x30, 0x42, 0x30, 0x30, 0x30, 0x30, 0x31, 0x41],
+                PlcControlService::BlockActivate,
+            ),
+            (
+                b"_DELE",
+                &[0x01, 0x00, 0x30, 0x42, 0x30, 0x30, 0x30, 0x30, 0x31, 0x41],
+                PlcControlService::BlockDelete,
+            ),
+            (b"_GARB", &[], PlcControlService::MemoryCompress),
+            (b"_MODU", &[], PlcControlService::RamToRom),
+        ];
+        for (name, args, svc) in named {
+            assert_both(
+                &plc_control_param(name, args),
+                &[],
+                F::PlcControl(svc),
+                &format!("service {}", String::from_utf8_lossy(name)),
+            );
+        }
+        assert_both(
+            &plc_control_param(b"_XXXX", &[]),
+            &[],
+            F::PlcControl(PlcControlService::Unrecognized),
+            "unknown service string",
+        );
+        assert_both(
+            &plc_control_param(b"P_PROGRAX", &[]),
+            &[],
+            F::PlcControl(PlcControlService::Unrecognized),
+            "near-miss service string",
+        );
+    }
+
+    /// AC-188-006: truncated / case-variant / prefix service strings are
+    /// `Unrecognized` (never a reject, no partial-prefix matching, no case-folding).
+    /// Traces: BC-2.21.015 postcondition 3, EC-006/007/008 (BC), EC-005 (story).
+    #[test]
+    fn test_BC_2_21_015_plc_control_truncated_and_case_variants_unrecognized() {
+        let unrec = F::PlcControl(PlcControlService::Unrecognized);
+
+        // EC-006 (BC): "_INS" (length prefix 4, no final byte) -- no prefix match.
+        assert_both(&plc_control_param(b"_INS", &[]), &[], unrec, "_INS prefix");
+        // EC-007 (BC): case variant.
+        assert_both(
+            &plc_control_param(b"p_program", &[]),
+            &[],
+            unrec,
+            "lowercase",
+        );
+        assert_both(
+            &plc_control_param(b"_inse", &[]),
+            &[],
+            unrec,
+            "lowercase _inse",
+        );
+        // EC-008 (BC): parameter block holds only the FC byte -> no service string.
+        assert_both(&[0x28], &[], unrec, "bare FC 0x28");
+        assert_both(
+            &[0x28, 0, 0, 0, 0, 0, 0, 0xFD],
+            &[],
+            unrec,
+            "no service-length byte",
+        );
+
+        // EC-005 (story): the parameter block is cut mid-service-string while the
+        // remaining bytes stay present in the data block.
+        let full = plc_control_param(b"P_PROGRAM", &[]);
+        for keep in [full.len() - 1, full.len() - 4, 11] {
+            let [job, ack] = classify_plc_control_cut(&full, keep);
+            assert_eq!(job, unrec, "cut at {keep}: Job");
+            assert_eq!(ack, unrec, "cut at {keep}: AckData");
+        }
+
+        // Length prefix claims more bytes than the parameter block holds.
+        let mut lying = plc_control_param(b"_INSE", &[]);
+        let idx = lying.len() - 6; // the service-length byte
+        lying[idx] = 9;
+        assert_both(&lying, &[], unrec, "length prefix exceeds available bytes");
+    }
+
+    /// AC-188-006: EC-004 (story): `"P_PROGRAM"` followed by additional undecoded
+    /// trailing parameter bytes is still `PlcControl(ProgramStart)`.
+    /// Traces: BC-2.21.015 postcondition 2, EC-004 (story).
+    #[test]
+    fn test_BC_2_21_015_plc_control_trailing_bytes_after_service_string() {
+        let mut p = plc_control_param(b"P_PROGRAM", &[]);
+        p.extend_from_slice(&[0x01, 0x02, 0x03, 0xFF]);
+        assert_both(
+            &p,
+            &[],
+            F::PlcControl(PlcControlService::ProgramStart),
+            "trailing bytes after P_PROGRAM",
+        );
+    }
+
+    /// AC-188-007: FC 0x29 -> PlcStop, no further decode.
+    /// Traces: BC-2.21.016 postconditions 1-2.
+    #[test]
+    fn test_BC_2_21_016_plc_stop_classified() {
+        assert_both(&[0x29], &[], F::PlcStop, "bare PLC stop");
+        assert_both(
+            &[0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x50, 0x5F],
+            &[],
+            F::PlcStop,
+            "PLC stop with trailing (undecoded) bytes",
+        );
+    }
+
+    /// AC-188-008: unrecognized FC -> Unrecognized(fc) preserving the byte
+    /// (EC-006: 0x00 with param_length 1; BC EC-002: 0x06; BC EC-004: 0xFF);
+    /// param_length == 0 -> NoParameterBlock, distinct from Unrecognized, even if
+    /// the data block begins with a byte that would be a named FC; emits no Finding.
+    /// Traces: BC-2.21.017 postconditions 1-3, invariant 2, EC-001..EC-004.
+    #[test]
+    fn test_BC_2_21_017_unrecognized_fc_and_empty_parameter_block() {
+        for fc in [0x00u8, 0x06, 0xFF, 0x03, 0x2A, 0x27, 0xF1, 0xEF] {
+            assert_both(&[fc], &[], F::Unrecognized(fc), &format!("FC {fc:#04x}"));
+        }
+        // param_length == 0 -> NoParameterBlock, regardless of what follows.
+        assert_both(&[], &[], F::NoParameterBlock, "empty param, empty data");
+        assert_both(
+            &[],
+            &[0xF0, 0x04, 0x05],
+            F::NoParameterBlock,
+            "empty param, data block starting with a named FC byte",
+        );
+        assert_ne!(F::NoParameterBlock, F::Unrecognized(0x00));
+
+        // No Finding at this layer for either case (through the public surface).
+        drive_session(&[
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &[0x06], &[]).0,
+            ),
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK_DATA, (0, 0), &[], &[]).0,
+            ),
+        ]);
+    }
+
+    // ---------------------------------------------------------------------
+    // AC-188-009 / VP-052 (FC totality sub-part) and AC-188-005 / VP-054
+    // ---------------------------------------------------------------------
+
+    /// Oracle for the FC match, independent of the implementation's structure.
+    fn fc_outcome_ok(fc: u8, r: S7ClassicFunction) -> bool {
+        match fc {
+            0xF0 => r == F::SetupCommunication,
+            0x04 => r == F::ReadVar,
+            0x05 => matches!(r, F::WriteVar(_)),
+            0x1A => r == F::RequestDownload,
+            0x1B => r == F::DownloadBlock,
+            0x1C => r == F::DownloadEnded,
+            0x1D => r == F::StartUpload,
+            0x1E => r == F::Upload,
+            0x1F => r == F::EndUpload,
+            0x28 => matches!(r, F::PlcControl(_)),
+            0x29 => r == F::PlcStop,
+            other => r == F::Unrecognized(other),
+        }
+    }
+
+    /// AC-188-009 (deterministic companion to the VP-052 proptest): every one of
+    /// the 256 FC byte values, under both header lengths, yields exactly the
+    /// oracle outcome and never `NoParameterBlock`; `param_length == 0` always
+    /// yields `NoParameterBlock`.
+    /// Traces: BC-2.21.017 invariant 1.
+    #[test]
+    fn test_BC_2_21_017_fc_classification_total_over_all_256_values() {
+        for fc in 0u8..=255 {
+            let [job, ack] = classify_both(&[fc], &[]);
+            assert!(fc_outcome_ok(fc, job), "Job fc {fc:#04x} -> {job:?}");
+            assert!(fc_outcome_ok(fc, ack), "AckData fc {fc:#04x} -> {ack:?}");
+        }
+        assert_both(&[], &[], F::NoParameterBlock, "param_length == 0");
+    }
+
+    mod vp052 {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(2000))]
+
+            /// AC-188-009 / VP-052 (FC totality sub-part, skeleton; full run in
+            /// STORY-194): for any FC byte, any trailing parameter bytes and any
+            /// data block, exactly one BC-2.21.010..017 outcome applies, and
+            /// `NoParameterBlock` appears iff `param_length == 0`.
+            #[test]
+            fn proptest_vp052_fc_classification_totality(
+                fc in any::<u8>(),
+                trailing in proptest::collection::vec(any::<u8>(), 0..40),
+                data_block in proptest::collection::vec(any::<u8>(), 0..8),
+                empty_param in proptest::bool::weighted(0.1),
+            ) {
+                if empty_param {
+                    let [job, ack] = classify_both(&[], &data_block);
+                    prop_assert_eq!(job, F::NoParameterBlock);
+                    prop_assert_eq!(ack, F::NoParameterBlock);
+                } else {
+                    let mut param = vec![fc];
+                    param.extend_from_slice(&trailing);
+                    let [job, ack] = classify_both(&param, &data_block);
+                    prop_assert!(fc_outcome_ok(fc, job), "Job fc {:#04x} -> {:?}", fc, job);
+                    prop_assert!(fc_outcome_ok(fc, ack), "AckData fc {:#04x} -> {:?}", fc, ack);
+                    prop_assert_ne!(job, F::NoParameterBlock);
+                    prop_assert_ne!(ack, F::NoParameterBlock);
+                }
+            }
+        }
+    }
+
+    mod vp054 {
+        use super::*;
+        use proptest::prelude::*;
+
+        fn is_download(r: S7ClassicFunction) -> bool {
+            matches!(r, F::RequestDownload | F::DownloadBlock | F::DownloadEnded)
+        }
+
+        fn is_upload(r: S7ClassicFunction) -> bool {
+            matches!(r, F::StartUpload | F::Upload | F::EndUpload)
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(2000))]
+
+            /// AC-188-005 / VP-054 (skeleton; full run in STORY-194): over every
+            /// FC byte, a Download variant is produced iff fc in 0x1A..=0x1C, an
+            /// Upload variant iff fc in 0x1D..=0x1F, mapped one-to-one in order;
+            /// no Download FC is ever an Upload variant and vice versa
+            /// (regression guard for a collapsed 0x1A..=0x1F range, EC-003).
+            #[test]
+            fn proptest_vp054_download_upload_structural_disjointness(
+                fc in any::<u8>(),
+                trailing in proptest::collection::vec(any::<u8>(), 0..16),
+            ) {
+                let mut param = vec![fc];
+                param.extend_from_slice(&trailing);
+                let [job, ack] = classify_both(&param, &[]);
+                for r in [job, ack] {
+                    prop_assert_eq!(is_download(r), (0x1A..=0x1C).contains(&fc));
+                    prop_assert_eq!(is_upload(r), (0x1D..=0x1F).contains(&fc));
+                    prop_assert!(!(is_download(r) && is_upload(r)));
+                    match fc {
+                        0x1A => prop_assert_eq!(r, F::RequestDownload),
+                        0x1B => prop_assert_eq!(r, F::DownloadBlock),
+                        0x1C => prop_assert_eq!(r, F::DownloadEnded),
+                        0x1D => prop_assert_eq!(r, F::StartUpload),
+                        0x1E => prop_assert_eq!(r, F::Upload),
+                        0x1F => prop_assert_eq!(r, F::EndUpload),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // AC-188-010: Ack / Ack_Data error_class / error_code consumed and logged
+    // ---------------------------------------------------------------------
+
+    fn scenario_ack_with_error() {
+        drive_session(&[
+            // A Job first: it carries no error fields and must not be logged.
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
+            ),
+            // Ack (0x02): 12-byte header, no parameter block, error 0x81/0x04.
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK, (0x81, 0x04), &[], &[]).0,
+            ),
+        ]);
+    }
+
+    /// AC-188-010: `on_data` logs the observed Ack `error_class`/`error_code`
+    /// (0x81/0x04); the preceding Job frame produces no such line; no Finding.
+    /// Traces: BC-2.21.008 postcondition 4 (Ack).
+    #[test]
+    fn test_BC_2_21_008_ack_error_class_code_consumed_and_logged() {
+        let Some(stderr) = child_stderr(
+            "story_188::test_BC_2_21_008_ack_error_class_code_consumed_and_logged",
+            scenario_ack_with_error,
+        ) else {
+            return;
+        };
+        let lines = error_lines(&stderr);
+        assert_eq!(
+            lines.len(),
+            1,
+            "exactly one error_class log line expected (Ack only; the Job frame must \
+             not be logged); stderr:\n{stderr}"
+        );
+        assert_error_line(lines[0], 0x81, 0x04);
+        assert!(lines[0].contains("error_code"));
+    }
+
+    fn scenario_ack_data_with_error() {
+        drive_session(&[
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
+            ),
+            // Ack_Data (0x03): 12-byte header, parameter block at data[12], error 0x81/0x04.
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]).0,
+            ),
+        ]);
+    }
+
+    /// AC-188-010 / EC-008: Ack_Data error fields (0x81/0x04) are logged; the
+    /// populated error pair does not suppress FC classification, which reads the
+    /// parameter block at `data[header_len] == data[12]` (not `data[10]`).
+    /// Traces: BC-2.21.008 postcondition 4 (Ack_Data, v1.2), EC-008 (story),
+    /// BC-2.21.010 (independent FC classification).
+    #[test]
+    fn test_BC_2_21_008_ack_data_error_class_code_consumed_and_logged() {
+        // Direct classification (parent mode only): the 12-byte Ack_Data frame with
+        // non-zero error bytes still classifies its parameter block at data[12].
+        if !in_child_mode() {
+            let (pdu, hl, pl) = build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]);
+            assert_eq!(hl, 12);
+            assert_eq!(
+                classify_job_ack_function(&pdu, hl, pl),
+                F::SetupCommunication,
+                "EC-008: error fields must not suppress/alter FC classification"
+            );
+            // Error bytes that look like named FCs must not be read as the FC.
+            let (pdu, hl, pl) = build_pdu(ROSCTR_ACK_DATA, (0x28, 0x29), &[0x04], &[]);
+            assert_eq!(classify_job_ack_function(&pdu, hl, pl), F::ReadVar);
+        }
+
+        let Some(stderr) = child_stderr(
+            "story_188::test_BC_2_21_008_ack_data_error_class_code_consumed_and_logged",
+            scenario_ack_data_with_error,
+        ) else {
+            return;
+        };
+        let lines = error_lines(&stderr);
+        assert_eq!(
+            lines.len(),
+            1,
+            "exactly one error_class log line expected (Ack_Data only); stderr:\n{stderr}"
+        );
+        assert_error_line(lines[0], 0x81, 0x04);
+        assert!(lines[0].contains("error_code"));
+    }
+
+    fn scenario_zero_errors() {
+        drive_session(&[
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK, (0x00, 0x00), &[], &[]).0,
+            ),
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK_DATA, (0x00, 0x00), &setup_comm_param(), &[]).0,
+            ),
+        ]);
+    }
+
+    /// AC-188-010 / EC-007: a zero error class/code is logged exactly like any
+    /// other value, for both Ack and Ack_Data (not flagged, not suppressed).
+    /// Traces: BC-2.21.008 EC-004, story EC-007.
+    #[test]
+    fn test_BC_2_21_008_zero_error_class_code_logged_for_ack_and_ack_data() {
+        let Some(stderr) = child_stderr(
+            "story_188::test_BC_2_21_008_zero_error_class_code_logged_for_ack_and_ack_data",
+            scenario_zero_errors,
+        ) else {
+            return;
+        };
+        let lines = error_lines(&stderr);
+        assert_eq!(
+            lines.len(),
+            2,
+            "one zero-valued error_class line per Ack and Ack_Data frame; stderr:\n{stderr}"
+        );
+        for line in lines {
+            assert_error_line(line, 0x00, 0x00);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Committed-fixture end-to-end (tests/fixtures/s7comm-fc-classification.pcap,
+    // generated by tests/fixtures/mk_s7comm_pcap.py)
+    // ---------------------------------------------------------------------
+
+    /// `(direction, tcp_payload, timestamp)` for every payload-bearing packet in
+    /// the fixture (Ethernet/IPv4/TCP, destination port 102 = client-to-server).
+    fn fixture_payloads() -> Vec<(Direction, Vec<u8>, u32)> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/s7comm-fc-classification.pcap");
+        let source = wirerust::reader::PcapSource::from_file(&path)
+            .expect("committed s7comm-fc-classification.pcap must parse");
+        let mut out = Vec::new();
+        for packet in &source.packets {
+            let f = &packet.data;
+            let ihl = usize::from(f[14] & 0x0F) * 4;
+            let tcp = 14 + ihl;
+            let dst_port = u16::from_be_bytes([f[tcp + 2], f[tcp + 3]]);
+            let payload_start = tcp + usize::from(f[tcp + 12] >> 4) * 4;
+            let ip_total = usize::from(u16::from_be_bytes([f[16], f[17]]));
+            let end = (14 + ip_total).min(f.len());
+            if payload_start >= end {
+                continue;
+            }
+            let dir = if dst_port == 102 {
+                Direction::ClientToServer
+            } else {
+                Direction::ServerToClient
+            };
+            out.push((dir, f[payload_start..end].to_vec(), packet.timestamp_secs));
+        }
+        out
+    }
+
+    fn scenario_fixture_through_on_data() {
+        let mut analyzer = S7commAnalyzer::new();
+        let key = flow_key_default();
+        for (dir, payload, ts) in fixture_payloads() {
+            analyzer.on_data(key.clone(), &payload, ts, dir);
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "fixture is well-formed; classification/logging must emit no Finding: {:?}",
+            analyzer.findings
+        );
+    }
+
+    /// End-to-end over the committed fixture: (1) every S7comm PDU's function code
+    /// classifies as expected; (2) driving the whole capture through `on_data`
+    /// logs the error pair of each of the three Ack/Ack_Data frames (a zero pair on
+    /// the Setup Communication response, 0x81/0x04 on the Ack and the Ack_Data) and
+    /// emits no Finding.
+    /// Traces: AC-188-001..010, BC-2.21.008 postcondition 4, BC-2.21.010..017.
+    #[test]
+    fn test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end() {
+        use wirerust::analyzer::s7comm::parse_s7comm_header;
+
+        if !in_child_mode() {
+            let mut got = Vec::new();
+            for (_, payload, _) in fixture_payloads() {
+                // Skip COTP CR/CC (LI=6 fixed part) -- only DT (02 F0 80) frames carry S7comm.
+                if payload.len() < 8 || payload[5] != 0xF0 {
+                    continue;
+                }
+                let pdu = &payload[7..];
+                let header = parse_s7comm_header(pdu).expect("fixture PDU header must parse");
+                got.push(classify_job_ack_function(
+                    pdu,
+                    header.header_len,
+                    header.param_length,
+                ));
+            }
+            let expected = vec![
+                F::SetupCommunication,
+                F::SetupCommunication,
+                F::ReadVar,
+                F::WriteVar(S7AreaCode::Outputs),
+                F::RequestDownload,
+                F::DownloadBlock,
+                F::DownloadEnded,
+                F::StartUpload,
+                F::Upload,
+                F::EndUpload,
+                F::PlcControl(PlcControlService::ProgramStart),
+                F::PlcStop,
+                F::NoParameterBlock,
+                F::SetupCommunication,
+            ];
+            assert_eq!(got, expected, "fixture FC sequence");
+        }
+
+        let Some(stderr) = child_stderr(
+            "story_188::test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end",
+            scenario_fixture_through_on_data,
+        ) else {
+            return;
+        };
+        let lines = error_lines(&stderr);
+        assert_eq!(
+            lines.len(),
+            3,
+            "three Ack/Ack_Data frames; stderr:\n{stderr}"
+        );
+        assert_error_line(lines[0], 0x00, 0x00);
+        assert_error_line(lines[1], 0x81, 0x04);
+        assert_error_line(lines[2], 0x81, 0x04);
+    }
+
+    // ---------------------------------------------------------------------
+    // PRF-005 (carry-forward): Kani harness over the REAL parameter-block slicing
+    // performed by `classify_job_ack_function` (retargets the former
+    // `vec![0u8; n].get(..)` assertion in story_187::vp051_kani, which only
+    // re-proved `Vec::get`). Compiled only under `cargo kani`.
+    // ---------------------------------------------------------------------
+
+    #[cfg(kani)]
+    mod vp052_kani {
+        use wirerust::analyzer::s7comm::{
+            S7ClassicFunction, classify_job_ack_function, parse_s7comm_header, s7comm_bounds_ok,
+        };
+
+        /// For any <= 32-byte symbolic buffer whose header parses and passes
+        /// `s7comm_bounds_ok`, `classify_job_ack_function` (which slices the
+        /// parameter block at `data[header_len..header_len + param_length]`) never
+        /// panics, and returns `NoParameterBlock` iff `param_length == 0`.
+        #[kani::proof]
+        fn verify_classify_job_ack_function_param_slicing_safe() {
+            let data: [u8; 32] = kani::any();
+            let len: usize = kani::any();
+            kani::assume(len <= 32);
+            let slice = &data[..len];
+
+            let Some(header) = parse_s7comm_header(slice) else {
+                return;
+            };
+            if !s7comm_bounds_ok(&header, len) {
+                return;
+            }
+
+            let result = classify_job_ack_function(slice, header.header_len, header.param_length);
+            if header.param_length == 0 {
+                assert!(result == S7ClassicFunction::NoParameterBlock);
+            } else {
+                assert!(result != S7ClassicFunction::NoParameterBlock);
+            }
+
+            kani::cover!(header.param_length == 0);
+            kani::cover!(header.param_length >= 1);
+            kani::cover!(matches!(result, S7ClassicFunction::WriteVar(_)));
+            kani::cover!(matches!(result, S7ClassicFunction::PlcControl(_)));
+        }
     }
 }

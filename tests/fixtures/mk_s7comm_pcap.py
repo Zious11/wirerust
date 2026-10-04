@@ -322,6 +322,97 @@ def minimal_ack_data_pdu(pdu_reference: int) -> bytes:
 
 
 # ---------------------------------------------------------------------------
+# STORY-188: Job/Ack_Data function-code classification frames (synthetic,
+# CC0/MIT; field layout from ADR-014 Decision 4's permitted prose/design
+# references only -- no copied dissector code).
+# ---------------------------------------------------------------------------
+
+
+def s7any_item(area: int, db_number: int = 0, address: int = 0) -> bytes:
+    """
+    One 12-byte S7ANY address-item descriptor: var-spec 0x12, length 0x0A,
+    syntax-id 0x10 (S7ANY), transport size (1), element count (2 BE),
+    DB number (2 BE), area code (1), 3-byte bit address. The area-code byte is
+    at item offset 8, i.e. parameter-block offset 10 for a first item.
+    """
+    return struct.pack(
+        "!BBBBHHB", 0x12, 0x0A, 0x10, 0x02, 0x0001, db_number, area
+    ) + address.to_bytes(3, "big")
+
+
+def read_var_job(pdu_reference: int, area: int = 0x84) -> bytes:
+    return s7comm_pdu(ROSCTR_JOB, pdu_reference, bytes([0x04, 0x01]) + s7any_item(area), b"")
+
+
+def write_var_job(pdu_reference: int, area: int) -> bytes:
+    parameter = bytes([0x05, 0x01]) + s7any_item(area)
+    data = bytes([0x00, 0x04, 0x00, 0x08, 0x2A])  # 1 data item, transport 0x04, 8 bits, value
+    return s7comm_pdu(ROSCTR_JOB, pdu_reference, parameter, data)
+
+
+def simple_fc_job(pdu_reference: int, fc: int) -> bytes:
+    """Job whose parameter block is the bare function-code byte (download/upload triads, PLC Stop)."""
+    return s7comm_pdu(ROSCTR_JOB, pdu_reference, bytes([fc]), b"")
+
+
+def plc_control_job(pdu_reference: int, service: bytes, block_args: bytes = b"") -> bytes:
+    """
+    PLC Control (0x28) Job: FC (1) + 7 fixed bytes (00*6 + 0xFD) +
+    block-argument length (2 BE) + block arguments + service-name length (1) +
+    service-name ASCII.
+    """
+    parameter = (
+        bytes([0x28, 0, 0, 0, 0, 0, 0, 0xFD])
+        + struct.pack("!H", len(block_args))
+        + block_args
+        + bytes([len(service)])
+        + service
+    )
+    return s7comm_pdu(ROSCTR_JOB, pdu_reference, parameter, b"")
+
+
+def ack_with_error(pdu_reference: int, error_class: int, error_code: int) -> bytes:
+    """Ack (0x02): 12-byte header, no parameter block, non-zero error pair."""
+    return s7comm_pdu(ROSCTR_ACK, pdu_reference, b"", b"", error_class, error_code)
+
+
+def ack_data_with_error_and_parameter(
+    pdu_reference: int, error_class: int, error_code: int
+) -> bytes:
+    """
+    Ack_Data (0x03): 12-byte header, non-zero error pair AND a Setup
+    Communication parameter block at data[12] (BC-2.21.008 EC-007/EC-008).
+    """
+    parameter = struct.pack("!BBHHH", 0xF0, 0x00, 0x0001, 0x0001, 0x01E0)
+    return s7comm_pdu(ROSCTR_ACK_DATA, pdu_reference, parameter, b"", error_class, error_code)
+
+
+def build_fc_classification_pcap() -> bytes:
+    """
+    tests/fixtures/s7comm-fc-classification.pcap: every STORY-188 function code
+    on one well-formed flow, plus an Ack and an Ack_Data frame carrying the
+    non-zero error pair 0x81/0x04 (AC-188-010).
+    """
+    pdus = [
+        (True, setup_communication_request(0x0001)),
+        (False, setup_communication_response(0x0001)),
+        (True, read_var_job(0x0002)),
+        (True, write_var_job(0x0003, 0x82)),
+        (True, simple_fc_job(0x0004, 0x1A)),
+        (True, simple_fc_job(0x0005, 0x1B)),
+        (True, simple_fc_job(0x0006, 0x1C)),
+        (True, simple_fc_job(0x0007, 0x1D)),
+        (True, simple_fc_job(0x0008, 0x1E)),
+        (True, simple_fc_job(0x0009, 0x1F)),
+        (True, plc_control_job(0x000A, b"P_PROGRAM")),
+        (True, simple_fc_job(0x000B, 0x29)),
+        (False, ack_with_error(0x000B, 0x81, 0x04)),
+        (False, ack_data_with_error_and_parameter(0x0001, 0x81, 0x04)),
+    ]
+    return _build_capture(pdus)
+
+
+# ---------------------------------------------------------------------------
 # TCP flag constants
 # ---------------------------------------------------------------------------
 SYN = 0x002
@@ -338,6 +429,23 @@ PSH_ACK = 0x018  # PSH=0x008 | ACK=0x010
 
 
 def build_pcap() -> bytes:
+    """tests/fixtures/s7comm-setup-comm.pcap (STORY-187) -- byte-for-byte unchanged."""
+    return _build_capture(
+        [
+            (True, setup_communication_request(0x0001)),
+            (False, setup_communication_response(0x0001)),
+            (True, minimal_job_pdu(0x0002)),
+            (False, minimal_ack_data_pdu(0x0002)),
+        ]
+    )
+
+
+def _build_capture(s7_pdus) -> bytes:
+    """
+    Shared capture builder: TCP handshake, COTP CR/CC, then one DT-wrapped
+    classic S7comm PDU per `(client_to_server, pdu)` entry in `s7_pdus` (one TCP
+    segment each, t0+5+i), then a client FIN-ACK.
+    """
     packets = []
 
     # Base timestamp: 2024-05-30 20:13:20 UTC (Unix epoch 1717100000)
@@ -402,22 +510,14 @@ def build_pcap() -> bytes:
     # --- Packet 5: COTP Connect Confirm ---
     send(False, tpkt_frame(cotp_cc()), 4)
 
-    # --- Packet 6: Setup Communication request (Job) ---
-    send(True, tpkt_frame(cotp_dt(setup_communication_request(0x0001))), 5)
-
-    # --- Packet 7: Setup Communication response (Ack_Data) ---
-    send(False, tpkt_frame(cotp_dt(setup_communication_response(0x0001))), 6)
-
-    # --- Packet 8: minimal classic Job PDU (empty parameter/data blocks) ---
-    send(True, tpkt_frame(cotp_dt(minimal_job_pdu(0x0002))), 7)
-
-    # --- Packet 9: minimal classic Ack_Data PDU (empty parameter/data blocks) ---
-    send(False, tpkt_frame(cotp_dt(minimal_ack_data_pdu(0x0002))), 8)
+    # --- Packets 6..: one DT-wrapped S7comm PDU per entry ---
+    for i, (c2s, pdu) in enumerate(s7_pdus):
+        send(c2s, tpkt_frame(cotp_dt(pdu)), 5 + i)
 
     # --- Packet 10: Client->Server FIN-ACK ---
     packets.append(
         (
-            t0 + 9,
+            t0 + 5 + len(s7_pdus),
             build_frame(
                 CLIENT_MAC, SERVER_MAC, CLIENT_IP, SERVER_IP,
                 CLIENT_PORT, SERVER_PORT, client_seq, server_seq, FIN_ACK, b"",
@@ -443,3 +543,9 @@ if __name__ == "__main__":
     print("    minimal Job/Ack_Data pair + FIN-ACK)")
     print("  - Port 102 (ISO-on-TCP / S7comm)")
     print(f"  - Timestamps: {1_717_100_000} .. {1_717_100_009} (Unix epoch, 2024-05-30)")
+
+    fc_path = os.path.join(script_dir, "s7comm-fc-classification.pcap")
+    fc_data = build_fc_classification_pcap()
+    with open(fc_path, "wb") as f:
+        f.write(fc_data)
+    print(f"Wrote {len(fc_data)} bytes to {fc_path}")
