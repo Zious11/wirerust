@@ -9,6 +9,22 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- S7comm function-code classification: `classify_job_ack_function` in
+  `src/analyzer/s7comm.rs` is a pure, total classifier over the Job/Ack_Data
+  parameter-block function-code byte, returning `S7ClassicFunction` (Setup
+  Communication, Read Var, Write Var with first-item `S7AreaCode`, the
+  Download and Upload triads, PLC Control with a byte-exact `PlcControlService`
+  decode, PLC Stop, `Unrecognized(fc)`, and `NoParameterBlock`). All reads are
+  bounded by `param_length`, so no decode reads into the data block
+  (BC-2.21.010-017, VP-052, VP-054, STORY-188). `S7commAnalyzer` also records
+  each bounds-valid Ack/Ack_Data `error_class`/`error_code` pair in a bounded, arrival-ordered
+  record (`ack_error_observations()`, capped at `MAX_S7_ACK_ERROR_OBSERVATIONS`
+  with a saturating `ack_error_observations_dropped()` count), each recorded
+  observation carries the frame's `pdu_reference`, and a per-(ROSCTR, error
+  class, error code) count map (`ack_error_counts()`, at most 131,072 keys)
+  counts every recorded pair, including those beyond the list cap, so a
+  non-zero error is never lost. No finding or stderr output is emitted for it
+  (BC-2.21.008 postcondition 4).
 - S7comm ISO-on-TCP framing groundwork: `parse_tpkt_header` in the new
   `src/analyzer/iso_on_tcp.rs` module parses the 4-byte RFC 1006 TPKT header
   (version byte, big-endian `u16` total length), returning `None` for

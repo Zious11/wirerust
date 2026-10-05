@@ -31,9 +31,14 @@
 //! CR/CC opposite-direction session tracking (F-01), sticky first-`Some(byte)`-wins
 //! protocol classification (F-02), and classic S7comm (`0x32`) header dissection
 //! gated on the flow's sticky `classified_protocol == Classic` (F-12) are fully
-//! wired. The `Some(0x72)` (S7comm-plus) and unrecognized/`None`-`protocol_id`
-//! branches remain deliberate, panic-free structural no-ops — their observable
-//! behavior is STORY-190's scope.
+//! wired. STORY-188 adds, for bounds-checked frames, Job/Ack_Data function-code
+//! classification ([`classify_job_ack_function`], BC-2.21.010-017; the per-frame
+//! result is not yet consumed, see STORY-191/192) and the Ack/Ack_Data error
+//! record: a bounded, arrival-ordered list of [`S7AckErrorObservation`] (with
+//! `pdu_reference`) plus an exact [`S7AckErrorKey`] count map covering every
+//! recorded observation (BC-2.21.008 postcondition 4). The `Some(0x72)` (S7comm-plus)
+//! and unrecognized/`None`-`protocol_id` branches remain deliberate, panic-free
+//! structural no-ops — their observable behavior is STORY-190's scope.
 //!
 //! ## Behavioral contracts
 //! - BC-2.20.013: TPKT frames spanning TCP segment boundaries are reassembled via
@@ -66,6 +71,11 @@
 //!   holdout ruling, DF-CANONICAL-FRAME-HOLDOUT-001).
 //! - BC-2.21.009: declared `param_length`/`data_length` are bounds-checked (via the
 //!   pure [`s7comm_bounds_ok`] helper) before any parameter/data-block slice.
+//! - BC-2.21.010-017: [`classify_job_ack_function`] maps the Job/Ack_Data
+//!   function-code byte (Setup Communication, Read/Write Var with first-item area,
+//!   download/upload family, PLC Control with PI-service, PLC Stop, unrecognized,
+//!   no parameter block) to [`S7ClassicFunction`]; pure, bounded to the parameter
+//!   block, no findings.
 
 use std::collections::HashMap;
 
@@ -97,6 +107,47 @@ use crate::reassembly::handler::Direction;
 /// retained as defense-in-depth against a future design regression, not as a
 /// currently-live detection path.
 pub const MAX_S7_ISO_ON_TCP_CARRY_BYTES: usize = 65_535;
+
+/// Maximum number of [`S7AckErrorObservation`] records retained by one
+/// [`S7commAnalyzer`] (analyzer-wide, not per-flow). Observations beyond this cap
+/// are counted in [`S7commAnalyzer::ack_error_observations_dropped`] instead of
+/// stored, bounding memory on adversarial or long captures (ADR-0004: no per-packet
+/// stderr flooding; BC-2.21.008 postcondition 4, AC-188-010).
+pub const MAX_S7_ACK_ERROR_OBSERVATIONS: usize = 1024;
+
+/// Histogram key for Ack/Ack_Data error pairs: one entry per distinct
+/// (ROSCTR, `error_class`, `error_code`) triple (F-07).
+///
+/// The map keyed by this type ([`S7commAnalyzer::ack_error_counts`]) is bounded by
+/// construction: ROSCTR is one of 2 values (`Ack`, `AckData`) and each error byte
+/// has 256 values, so it holds at most 2 x 256 x 256 = 131,072 keys. It exists so
+/// that a non-zero error observed after the ordered observation list reaches
+/// [`MAX_S7_ACK_ERROR_OBSERVATIONS`] is never lost: every recorded observation is
+/// counted here, including those beyond the list cap.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct S7AckErrorKey {
+    /// ROSCTR of the frame.
+    pub rosctr: Rosctr,
+    /// Header byte 10.
+    pub error_class: u8,
+    /// Header byte 11.
+    pub error_code: u8,
+}
+
+/// One observed `error_class` / `error_code` pair from an Ack (0x02) or Ack_Data
+/// (0x03) classic S7comm header (BC-2.21.008 postcondition 4). Zero values are
+/// recorded like any other value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S7AckErrorObservation {
+    /// PDU reference of the frame (header bytes 4-5, F-07).
+    pub pdu_reference: u16,
+    /// The ROSCTR of the frame the pair was read from (`Ack` or `AckData`).
+    pub rosctr: Rosctr,
+    /// Header byte 10.
+    pub error_class: u8,
+    /// Header byte 11.
+    pub error_code: u8,
+}
 
 // ---------------------------------------------------------------------------
 // Per-flow state
@@ -187,7 +238,7 @@ pub enum S7Protocol {
 /// story models (BC-2.21.006/007/008), mirroring `CotpTpduType`'s
 /// exhaustive-but-bounded design (BC-2.20.011) — this is not exhaustive over all 256
 /// `u8` values by design (BC-2.21.007 invariant 2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Rosctr {
     /// `0x01` — Job (request).
     Job,
@@ -232,6 +283,199 @@ pub struct S7commHeader {
     /// `10` for Job/Userdata (BC-2.21.006); `12` for Ack/Ack_Data (BC-2.21.008,
     /// 2026-09-24 canonical-frame holdout ruling DF-CANONICAL-FRAME-HOLDOUT-001).
     pub header_len: usize,
+}
+
+// ---------------------------------------------------------------------------
+// Job/Ack_Data function-code classification surface (STORY-188)
+// ---------------------------------------------------------------------------
+
+/// S7 memory-area code decoded from a Write Var first address item
+/// (BC-2.21.012). `0x80` DirectPeripheral, `0x81` Inputs, `0x82` Outputs,
+/// `0x83` Markers, `0x84` DataBlock, `0x85` InstanceDb, `0x1C` Counters,
+/// `0x1D` Timers; any other byte is `Unrecognized(byte)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S7AreaCode {
+    /// `0x80`.
+    DirectPeripheral,
+    /// `0x81`.
+    Inputs,
+    /// `0x82`.
+    Outputs,
+    /// `0x83`.
+    Markers,
+    /// `0x84`.
+    DataBlock,
+    /// `0x85`.
+    InstanceDb,
+    /// `0x1C`.
+    Counters,
+    /// `0x1D`.
+    Timers,
+    /// Any other byte (also the `0xFF` placeholder when the item descriptor is
+    /// unreadable, BC-2.21.012 postcondition 3).
+    Unrecognized(u8),
+}
+
+/// PI-service decoded from a PLC Control (FC `0x28`) parameter block (BC-2.21.015).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlcControlService {
+    /// `"P_PROGRAM"`.
+    ProgramStart,
+    /// `"_INSE"`.
+    BlockActivate,
+    /// `"_DELE"`.
+    BlockDelete,
+    /// `"_GARB"`.
+    MemoryCompress,
+    /// `"_MODU"`.
+    RamToRom,
+    /// Unreadable/truncated or non-matching service string.
+    Unrecognized,
+}
+
+/// Classification of a Job/Ack_Data function-code byte (BC-2.21.010 through
+/// BC-2.21.017). STORY-189 extends this enum with the `Userdata(..)` arm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S7ClassicFunction {
+    /// FC `0xF0` (BC-2.21.010).
+    SetupCommunication,
+    /// FC `0x04` (BC-2.21.011).
+    ReadVar,
+    /// FC `0x05` with first-item area code (BC-2.21.012).
+    WriteVar(S7AreaCode),
+    /// FC `0x1A` (BC-2.21.013).
+    RequestDownload,
+    /// FC `0x1B` (BC-2.21.013).
+    DownloadBlock,
+    /// FC `0x1C` (BC-2.21.013).
+    DownloadEnded,
+    /// FC `0x1D` (BC-2.21.014).
+    StartUpload,
+    /// FC `0x1E` (BC-2.21.014).
+    Upload,
+    /// FC `0x1F` (BC-2.21.014).
+    EndUpload,
+    /// FC `0x28` with decoded PI-service (BC-2.21.015).
+    PlcControl(PlcControlService),
+    /// FC `0x29` (BC-2.21.016). Carries no decoded payload.
+    ///
+    /// PLC Stop's wire layout differs from PLC Control (0x28): 5 reserved bytes,
+    /// no `0xFD` marker and no `u16` block-argument length. The 0x28 layout is
+    /// therefore never applied to 0x29; only the FC byte is classified.
+    PlcStop,
+    /// Any other FC byte, raw value preserved (BC-2.21.017).
+    Unrecognized(u8),
+    /// `param_length == 0`: no FC byte present (BC-2.21.017). Also returned
+    /// defensively when the parameter block cannot be sliced out of the input
+    /// (overflowing or out-of-range `header_len + param_length`); that case is
+    /// unreachable behind [`s7comm_bounds_ok`].
+    NoParameterBlock,
+}
+
+/// Pure-core classifier over the Job/Ack_Data function-code byte at
+/// `data[header_len]` (BC-2.21.010 through BC-2.21.017). Total over all `u8`
+/// values plus the `param_length == 0` case; emits no findings and reads no flow
+/// state.
+///
+/// The parameter block is `data[header_len..header_len + param_length]`; every
+/// byte read is bounds-checked against that sub-slice (never against `data.len()`),
+/// so decoders read only the `param` sub-slice (story_188 truncation/boundary tests).
+/// A block that cannot be sliced out of `data` (caller bounds-check violated) yields
+/// `NoParameterBlock`; panic-freedom on bounds-ok inputs is VP-051.
+pub fn classify_job_ack_function(
+    data: &[u8],
+    header_len: usize,
+    param_length: u16,
+) -> S7ClassicFunction {
+    if param_length == 0 {
+        return S7ClassicFunction::NoParameterBlock;
+    }
+    let Some(end) = header_len.checked_add(param_length as usize) else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    let Some(param) = data.get(header_len..end) else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    let Some(&fc) = param.first() else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    match fc {
+        0xF0 => S7ClassicFunction::SetupCommunication,
+        0x04 => S7ClassicFunction::ReadVar,
+        0x05 => S7ClassicFunction::WriteVar(decode_write_var_area(param)),
+        0x1A => S7ClassicFunction::RequestDownload,
+        0x1B => S7ClassicFunction::DownloadBlock,
+        0x1C => S7ClassicFunction::DownloadEnded,
+        0x1D => S7ClassicFunction::StartUpload,
+        0x1E => S7ClassicFunction::Upload,
+        0x1F => S7ClassicFunction::EndUpload,
+        0x28 => S7ClassicFunction::PlcControl(decode_plc_control_service(param)),
+        // PLC Stop (0x29): layout differs from PLC Control (5 reserved bytes, no
+        // 0xFD, no u16 block-arg length), so decode_plc_control_service is
+        // deliberately NOT applied here; the FC byte alone classifies it.
+        0x29 => S7ClassicFunction::PlcStop,
+        other => S7ClassicFunction::Unrecognized(other),
+    }
+}
+
+/// Maps an S7 memory-area byte to [`S7AreaCode`] (BC-2.21.012 invariant 1).
+fn area_code_from_byte(byte: u8) -> S7AreaCode {
+    match byte {
+        0x80 => S7AreaCode::DirectPeripheral,
+        0x81 => S7AreaCode::Inputs,
+        0x82 => S7AreaCode::Outputs,
+        0x83 => S7AreaCode::Markers,
+        0x84 => S7AreaCode::DataBlock,
+        0x85 => S7AreaCode::InstanceDb,
+        0x1C => S7AreaCode::Counters,
+        0x1D => S7AreaCode::Timers,
+        other => S7AreaCode::Unrecognized(other),
+    }
+}
+
+/// Decodes the first S7ANY item's area byte from a Write Var parameter block
+/// (`param[0] == 0x05`). Layout: FC, item count, then the 12-byte item
+/// `[0x12, len, syntax_id, transport, count(2), db(2), area, addr(3)]`, so the
+/// syntax id is at offset 4 and the area byte at offset 10. Any shortfall or a
+/// non-S7ANY syntax id (`!= 0x10`) yields the `Unrecognized(0xFF)` placeholder
+/// (BC-2.21.012 postcondition 3); only the first item is decoded (postcondition 4).
+///
+/// Accepted collision (F-09): `WriteVar(S7AreaCode::Unrecognized(0xFF))` is shared
+/// by a genuine `0xFF` area byte and the not-decoded case; BC-2.21.012
+/// postcondition 3 mandates this placeholder, so the two are indistinguishable.
+fn decode_write_var_area(param: &[u8]) -> S7AreaCode {
+    const NOT_DECODED: S7AreaCode = S7AreaCode::Unrecognized(0xFF);
+    // FC + count + 12-byte item.
+    if param.len() < 14 || param.get(4) != Some(&0x10) {
+        return NOT_DECODED;
+    }
+    param
+        .get(10)
+        .map_or(NOT_DECODED, |&b| area_code_from_byte(b))
+}
+
+/// Decodes the PI-service name from a PLC Control parameter block
+/// (`param[0] == 0x28`). Layout: FC, 6 reserved bytes, `0xFD`, `u16` BE
+/// block-argument length, the block arguments, a 1-byte service-name length, then
+/// the service string. Byte-exact match only; every shortfall is `Unrecognized`
+/// (BC-2.21.015 postconditions 2-3).
+fn decode_plc_control_service(param: &[u8]) -> PlcControlService {
+    let decode = || -> Option<PlcControlService> {
+        let args_len = u16::from_be_bytes([*param.get(8)?, *param.get(9)?]) as usize;
+        let name_len_at = 10usize.checked_add(args_len)?;
+        let name_len = *param.get(name_len_at)? as usize;
+        let name_start = name_len_at.checked_add(1)?;
+        let name = param.get(name_start..name_start.checked_add(name_len)?)?;
+        Some(match name {
+            b"P_PROGRAM" => PlcControlService::ProgramStart,
+            b"_INSE" => PlcControlService::BlockActivate,
+            b"_DELE" => PlcControlService::BlockDelete,
+            b"_GARB" => PlcControlService::MemoryCompress,
+            b"_MODU" => PlcControlService::RamToRom,
+            _ => PlcControlService::Unrecognized,
+        })
+    };
+    decode().unwrap_or(PlcControlService::Unrecognized)
 }
 
 // ---------------------------------------------------------------------------
@@ -366,14 +610,43 @@ pub struct S7commAnalyzer {
     /// malformed classic-S7comm-header finding (parse failure or bounds-check
     /// failure, BC-2.21.004/007/008/009, F-11).
     pub findings: Vec<Finding>,
+    /// Analyzer-wide, arrival-ordered, bounded record of Ack/Ack_Data error pairs
+    /// (capped at [`MAX_S7_ACK_ERROR_OBSERVATIONS`]).
+    ack_error_observations: Vec<S7AckErrorObservation>,
+    /// Observations beyond the cap (saturating).
+    ack_error_observations_dropped: u64,
+    /// Exact per-(ROSCTR, error class, error code) counts of every recorded
+    /// observation, including those beyond the list cap. Bounded by construction
+    /// (at most 131,072 keys, see [`S7AckErrorKey`]); counters saturate.
+    ack_error_counts: std::collections::BTreeMap<S7AckErrorKey, u64>,
 }
 
 impl S7commAnalyzer {
+    /// Ack/Ack_Data error observations in arrival order, up to
+    /// [`MAX_S7_ACK_ERROR_OBSERVATIONS`].
+    pub fn ack_error_observations(&self) -> &[S7AckErrorObservation] {
+        &self.ack_error_observations
+    }
+
+    /// Exact per-key counts of every recorded Ack/Ack_Data error observation
+    /// (zeros included), regardless of the observation-list cap (F-07).
+    pub fn ack_error_counts(&self) -> &std::collections::BTreeMap<S7AckErrorKey, u64> {
+        &self.ack_error_counts
+    }
+
+    /// Saturating count of observations dropped beyond the cap.
+    pub fn ack_error_observations_dropped(&self) -> u64 {
+        self.ack_error_observations_dropped
+    }
+
     /// Construct a new, empty `S7commAnalyzer`.
     pub fn new() -> Self {
         Self {
             flows: HashMap::new(),
             findings: Vec::new(),
+            ack_error_observations: Vec::new(),
+            ack_error_observations_dropped: 0,
+            ack_error_counts: std::collections::BTreeMap::new(),
         }
     }
 
@@ -389,24 +662,25 @@ impl S7commAnalyzer {
     ///    `iso_on_tcp::parse_tpkt_header(&working[cursor..])`: a complete frame
     ///    (`Some(header)` and enough trailing bytes) is extracted and dispatched to
     ///    `iso_on_tcp::parse_cotp_header`, `cursor` advances by `header.length`, and
-    ///    the loop continues; a declared-but-incomplete frame or a `None` result
-    ///    breaks the loop.
-    /// 3. On a bad-version-byte reject (or immediately after a carry-overflow clear),
-    ///    the shared 1-byte resync sub-routine (BC-2.20.015; see
-    ///    [`Self::resync_one_byte`]) advances the cursor and retries.
+    ///    the loop continues; a declared-but-incomplete frame or `None` breaks the loop.
+    /// 3. On a bad-version-byte reject (or after a carry-overflow clear), the shared 1-byte
+    ///    resync (BC-2.20.015; see [`Self::resync_one_byte`]) advances the cursor and retries.
     /// 4. Whatever remains after the loop terminates is stashed to `carry[direction]`.
     ///
-    /// Each extracted frame's `CotpHeader` is then routed through the BC-2.21.002
-    /// four-way dispatch (see [`Self::dispatch_cotp_frame`]): CR/CC frames update
-    /// session-tracking state, and Data Transfer frames drive sticky protocol
-    /// classification and, for classic (`0x32`) S7comm on a sticky-Classic flow,
-    /// header dissection via [`parse_s7comm_header`].
+    /// Each extracted frame's `CotpHeader` is routed through the BC-2.21.002 four-way
+    /// dispatch (see [`Self::dispatch_cotp_frame`]): CR/CC frames update session state;
+    /// Data Transfer frames drive sticky classification and, for classic (`0x32`) S7comm
+    /// on a sticky-Classic flow, header dissection via [`parse_s7comm_header`]. After the
+    /// BC-2.21.009 bounds check, Ack/Ack_Data error pairs are recorded (bounded list +
+    /// count map) and Job/Ack_Data parameter blocks are FC-classified (classification-only
+    /// placeholder, consumed by STORY-191/192).
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
         // Collect frame-walk findings locally to avoid a borrow conflict between the
         // per-flow state entry (below) and `self.findings`.
         let mut local_findings: Vec<Finding> = Vec::new();
+        let mut local_acks: Vec<S7AckErrorObservation> = Vec::new();
 
         {
             let state = self.flows.entry(flow_key).or_default();
@@ -527,6 +801,7 @@ impl S7commAnalyzer {
                                 direction,
                                 ts,
                                 &mut local_findings,
+                                &mut local_acks,
                             );
                             cursor += total;
                         } else {
@@ -557,6 +832,30 @@ impl S7commAnalyzer {
         }
 
         self.findings.extend(local_findings);
+        self.record_ack_error_observations(local_acks);
+    }
+
+    /// Appends `observed` to the bounded analyzer-wide record, in arrival order,
+    /// up to [`MAX_S7_ACK_ERROR_OBSERVATIONS`]; the remainder increments the
+    /// saturating dropped counter. Every observation, capped or not, increments
+    /// its saturating [`S7AckErrorKey`] count (BC-2.21.008 postcondition 4,
+    /// AC-188-010, F-07).
+    fn record_ack_error_observations(&mut self, observed: Vec<S7AckErrorObservation>) {
+        for observation in observed {
+            let key = S7AckErrorKey {
+                rosctr: observation.rosctr,
+                error_class: observation.error_class,
+                error_code: observation.error_code,
+            };
+            let count = self.ack_error_counts.entry(key).or_insert(0);
+            *count = count.saturating_add(1);
+            if self.ack_error_observations.len() < MAX_S7_ACK_ERROR_OBSERVATIONS {
+                self.ack_error_observations.push(observation);
+            } else {
+                self.ack_error_observations_dropped =
+                    self.ack_error_observations_dropped.saturating_add(1);
+            }
+        }
     }
 
     /// Remove `flow_key`'s [`S7commFlowState`], discarding any carry bytes with no
@@ -619,6 +918,7 @@ impl S7commAnalyzer {
         direction: Direction,
         ts: u32,
         findings: &mut Vec<Finding>,
+        acks: &mut Vec<S7AckErrorObservation>,
     ) {
         match cotp {
             None => {
@@ -670,7 +970,7 @@ impl S7commAnalyzer {
                             if state.classified_protocol == Some(S7Protocol::Classic) {
                                 let payload = &tpkt_payload[header.payload_offset..];
                                 Self::dispatch_classic_s7comm(
-                                    state, payload, direction, ts, findings,
+                                    state, payload, direction, ts, findings, acks,
                                 );
                             }
                         }
@@ -727,15 +1027,16 @@ impl S7commAnalyzer {
     /// payload slice beginning at `payload_offset`) and applies the BC-2.21.009
     /// caller-side bounds check (`data.len() >= header_len + param_length +
     /// data_length`) before any parameter/data-block slice — malformed headers and
-    /// bounds failures emit one T0814 per flow direction via
-    /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001).
-    ///
+    /// bounds failures emit one T0814 per flow direction via `malformed_header_reported_*`
+    /// (BC-2.21.001). On bounds pass, Ack/Ack_Data error pairs are recorded (bounded list +
+    /// count map) and Job/Ack_Data param blocks FC-classified (placeholder, STORY-191/192).
     fn dispatch_classic_s7comm(
         state: &mut S7commFlowState,
         payload: &[u8],
         direction: Direction,
         ts: u32,
         findings: &mut Vec<Finding>,
+        acks: &mut Vec<S7AckErrorObservation>,
     ) {
         // F-15: this function is only ever reached from the `Some(0x32)` DT arm
         // above, whose `payload` is `&tpkt_payload[header.payload_offset..]` with
@@ -769,8 +1070,30 @@ impl S7commAnalyzer {
         // checked-arithmetic comparison here, so this call site and the VP-051
         // Kani harness share a single source of truth for the bounds decision.
         if s7comm_bounds_ok(&header, payload.len()) {
-            // Bounds check passes. Function-code/Userdata classification
-            // (BC-2.21.010 onward) is out of this story's scope (STORY-188/189).
+            // Bounds check passes (BC-2.21.009): the parameter block is safe to
+            // slice. Ack/Ack_Data error pairs are recorded (BC-2.21.008 PC4), and
+            // Job/Ack_Data parameter blocks are FC-classified (BC-2.21.010-017).
+            // Bare Ack frames carry no parameter block and are not FC-classified;
+            // Userdata is STORY-189's scope.
+            match header.rosctr {
+                Rosctr::Job => {
+                    // Classification-only (STORY-188 B1 scope): the per-frame value
+                    // is a deliberate placeholder with no consumer yet. STORY-191
+                    // (download-session correlation) and STORY-192 (cross-flow
+                    // correlation) consume it; no state is kept here.
+                    let _classified_function =
+                        classify_job_ack_function(payload, header.header_len, header.param_length);
+                }
+                Rosctr::AckData => {
+                    Self::record_ack_error(acks, &header);
+                    // Classification-only placeholder, as for Job above:
+                    // consumed by STORY-191 / STORY-192, not stored here.
+                    let _classified_function =
+                        classify_job_ack_function(payload, header.header_len, header.param_length);
+                }
+                Rosctr::Ack => Self::record_ack_error(acks, &header),
+                Rosctr::Userdata => {}
+            }
         } else {
             // Declared lengths exceed the bytes actually present (or, in the
             // unreachable overflow case, the sum would have overflowed `usize`) —
@@ -788,6 +1111,20 @@ impl S7commAnalyzer {
                 payload.len()
             );
             Self::report_malformed_header(state, direction, ts, findings, &reason);
+        }
+    }
+
+    /// Pushes the Ack/Ack_Data `error_class`/`error_code` pair (zeros included)
+    /// onto the per-call observation buffer (BC-2.21.008 postcondition 4). A header
+    /// whose error fields are `None` (Job/Userdata) records nothing.
+    fn record_ack_error(acks: &mut Vec<S7AckErrorObservation>, header: &S7commHeader) {
+        if let (Some(error_class), Some(error_code)) = (header.error_class, header.error_code) {
+            acks.push(S7AckErrorObservation {
+                pdu_reference: header.pdu_reference,
+                rosctr: header.rosctr,
+                error_class,
+                error_code,
+            });
         }
     }
 
