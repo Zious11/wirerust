@@ -255,7 +255,7 @@ pub struct S7commHeader {
 }
 
 // ---------------------------------------------------------------------------
-// Job/Ack_Data function-code classification surface (STORY-188 stubs)
+// Job/Ack_Data function-code classification surface (STORY-188)
 // ---------------------------------------------------------------------------
 
 /// S7 memory-area code decoded from a Write Var first address item
@@ -339,14 +339,97 @@ pub enum S7ClassicFunction {
 /// values plus the `param_length == 0` case; emits no findings and reads no flow
 /// state.
 ///
-/// TODO(STORY-188): STUB -- implementation lands after the Red Gate.
-#[allow(unused_variables)]
+///
+/// The parameter block is `data[header_len..header_len + param_length]`; every
+/// byte read is bounds-checked against that sub-slice (never against `data.len()`),
+/// so no decode can read into the data block (VP-052). A block that cannot be
+/// sliced out of `data` (caller bounds-check violated) yields `NoParameterBlock`
+/// rather than panicking.
 pub fn classify_job_ack_function(
     data: &[u8],
     header_len: usize,
     param_length: u16,
 ) -> S7ClassicFunction {
-    todo!("STORY-188: classify_job_ack_function")
+    if param_length == 0 {
+        return S7ClassicFunction::NoParameterBlock;
+    }
+    let Some(end) = header_len.checked_add(param_length as usize) else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    let Some(param) = data.get(header_len..end) else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    let Some(&fc) = param.first() else {
+        return S7ClassicFunction::NoParameterBlock;
+    };
+    match fc {
+        0xF0 => S7ClassicFunction::SetupCommunication,
+        0x04 => S7ClassicFunction::ReadVar,
+        0x05 => S7ClassicFunction::WriteVar(decode_write_var_area(param)),
+        0x1A => S7ClassicFunction::RequestDownload,
+        0x1B => S7ClassicFunction::DownloadBlock,
+        0x1C => S7ClassicFunction::DownloadEnded,
+        0x1D => S7ClassicFunction::StartUpload,
+        0x1E => S7ClassicFunction::Upload,
+        0x1F => S7ClassicFunction::EndUpload,
+        0x28 => S7ClassicFunction::PlcControl(decode_plc_control_service(param)),
+        0x29 => S7ClassicFunction::PlcStop,
+        other => S7ClassicFunction::Unrecognized(other),
+    }
+}
+
+/// Maps an S7 memory-area byte to [`S7AreaCode`] (BC-2.21.012 invariant 1).
+fn area_code_from_byte(byte: u8) -> S7AreaCode {
+    match byte {
+        0x80 => S7AreaCode::DirectPeripheral,
+        0x81 => S7AreaCode::Inputs,
+        0x82 => S7AreaCode::Outputs,
+        0x83 => S7AreaCode::Markers,
+        0x84 => S7AreaCode::DataBlock,
+        0x85 => S7AreaCode::InstanceDb,
+        0x1C => S7AreaCode::Counters,
+        0x1D => S7AreaCode::Timers,
+        other => S7AreaCode::Unrecognized(other),
+    }
+}
+
+/// Decodes the first S7ANY item's area byte from a Write Var parameter block
+/// (`param[0] == 0x05`). Layout: FC, item count, then the 12-byte item
+/// `[0x12, len, syntax_id, transport, count(2), db(2), area, addr(3)]`, so the
+/// syntax id is at offset 4 and the area byte at offset 10. Any shortfall or a
+/// non-S7ANY syntax id (`!= 0x10`) yields the `Unrecognized(0xFF)` placeholder
+/// (BC-2.21.012 postcondition 3); only the first item is decoded (postcondition 4).
+fn decode_write_var_area(param: &[u8]) -> S7AreaCode {
+    const NOT_DECODED: S7AreaCode = S7AreaCode::Unrecognized(0xFF);
+    // FC + count + 12-byte item.
+    if param.len() < 14 || param.get(4) != Some(&0x10) {
+        return NOT_DECODED;
+    }
+    param.get(10).map_or(NOT_DECODED, |&b| area_code_from_byte(b))
+}
+
+/// Decodes the PI-service name from a PLC Control parameter block
+/// (`param[0] == 0x28`). Layout: FC, 6 reserved bytes, `0xFD`, `u16` BE
+/// block-argument length, the block arguments, a 1-byte service-name length, then
+/// the service string. Byte-exact match only; every shortfall is `Unrecognized`
+/// (BC-2.21.015 postconditions 2-3).
+fn decode_plc_control_service(param: &[u8]) -> PlcControlService {
+    let decode = || -> Option<PlcControlService> {
+        let args_len = u16::from_be_bytes([*param.get(8)?, *param.get(9)?]) as usize;
+        let name_len_at = 10usize.checked_add(args_len)?;
+        let name_len = *param.get(name_len_at)? as usize;
+        let name_start = name_len_at.checked_add(1)?;
+        let name = param.get(name_start..name_start.checked_add(name_len)?)?;
+        Some(match name {
+            b"P_PROGRAM" => PlcControlService::ProgramStart,
+            b"_INSE" => PlcControlService::BlockActivate,
+            b"_DELE" => PlcControlService::BlockDelete,
+            b"_GARB" => PlcControlService::MemoryCompress,
+            b"_MODU" => PlcControlService::RamToRom,
+            _ => PlcControlService::Unrecognized,
+        })
+    };
+    decode().unwrap_or(PlcControlService::Unrecognized)
 }
 
 // ---------------------------------------------------------------------------
