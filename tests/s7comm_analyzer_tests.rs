@@ -4460,9 +4460,9 @@ mod story_187 {
         /// declared `param_length`/`data_length` are checked against. Proves
         /// `s7comm_bounds_ok` returns EXACTLY the right answer (the equality
         /// asserted directly, both directions, not merely one direction of an
-        /// implication) and that a `true` result implies the resulting
-        /// parameter/data sub-slice access is always `Some(..)`, never `None` and
-        /// never a construct that could panic.
+        /// implication). The former "`true` implies sub-slice access is `Some(..)`"
+        /// assertion was removed by STORY-188 (PRF-005); the slicing obligation is
+        /// now discharged by `story_188::vp051_kani::verify_classify_job_ack_function_param_slicing_safe`.
         ///
         /// Bounded per the VP-051 Kani Obligation note's own justification:
         /// `data_len <= u16::MAX as usize * 3` represents any hypothetical
@@ -6561,5 +6561,30 @@ mod story_188 {
             kani::cover!(matches!(result, S7ClassicFunction::WriteVar(_)));
             kani::cover!(matches!(result, S7ClassicFunction::PlcControl(_)));
         }
+    }
+
+    /// Traces BC-2.21.017 EC-005; AC-188-008 defensive bullet; STORY-188 EC-012.
+    ///
+    /// Pins the defensive `NoParameterBlock` return of `classify_job_ack_function`
+    /// when the parameter block cannot be sliced from `data` (offset arithmetic
+    /// overflows, or the block end exceeds `data.len()`). The VP-051 Kani harness
+    /// returns early unless `s7comm_bounds_ok`, so it does not cover this path.
+    #[test]
+    fn test_BC_2_21_017_unsliceable_parameter_block_returns_no_parameter_block() {
+        // End (12 + 5 = 17) exceeds data.len() (12).
+        assert_eq!(
+            classify_job_ack_function(&[0x32; 12], 12, 5),
+            S7ClassicFunction::NoParameterBlock
+        );
+        // header_len + param_length overflows usize.
+        assert_eq!(
+            classify_job_ack_function(&[0x05], usize::MAX, 1),
+            S7ClassicFunction::NoParameterBlock
+        );
+        // Partial: header present, block only partly delivered (12 + 3 = 15 > 14).
+        assert_eq!(
+            classify_job_ack_function(&[0x32; 14], 12, 3),
+            S7ClassicFunction::NoParameterBlock
+        );
     }
 }
