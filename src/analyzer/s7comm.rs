@@ -405,7 +405,9 @@ fn decode_write_var_area(param: &[u8]) -> S7AreaCode {
     if param.len() < 14 || param.get(4) != Some(&0x10) {
         return NOT_DECODED;
     }
-    param.get(10).map_or(NOT_DECODED, |&b| area_code_from_byte(b))
+    param
+        .get(10)
+        .map_or(NOT_DECODED, |&b| area_code_from_byte(b))
 }
 
 /// Decodes the PI-service name from a PLC Control parameter block
@@ -1011,19 +1013,13 @@ impl S7commAnalyzer {
             // Userdata is STORY-189's scope.
             match header.rosctr {
                 Rosctr::Job => {
-                    let _function = classify_job_ack_function(
-                        payload,
-                        header.header_len,
-                        header.param_length,
-                    );
+                    let _function =
+                        classify_job_ack_function(payload, header.header_len, header.param_length);
                 }
                 Rosctr::AckData => {
                     Self::record_ack_error(acks, &header);
-                    let _function = classify_job_ack_function(
-                        payload,
-                        header.header_len,
-                        header.param_length,
-                    );
+                    let _function =
+                        classify_job_ack_function(payload, header.header_len, header.param_length);
                 }
                 Rosctr::Ack => Self::record_ack_error(acks, &header),
                 Rosctr::Userdata => {}
