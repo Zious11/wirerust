@@ -514,7 +514,8 @@ def _build_capture(s7_pdus) -> bytes:
     for i, (c2s, pdu) in enumerate(s7_pdus):
         send(c2s, tpkt_frame(cotp_dt(pdu)), 5 + i)
 
-    # --- Packet 10: Client->Server FIN-ACK ---
+    # --- Final packet (number 6 + len(s7_pdus); 10 for the 4-PDU setup-comm
+    # capture): Client->Server FIN-ACK ---
     packets.append(
         (
             t0 + 5 + len(s7_pdus),

@@ -4501,7 +4501,7 @@ mod story_187 {
             // assertion here only re-proved `Vec::get`'s own contract and exercised
             // none of this crate's parameter/data-block slicing. The real
             // "bounds-ok => parameter-block slicing is safe" obligation is now proven
-            // by `story_188::vp052_kani::verify_classify_job_ack_function_param_slicing_safe`,
+            // by `story_188::vp051_kani::verify_classify_job_ack_function_param_slicing_safe`,
             // which drives the production parameter-block slicing performed by
             // `classify_job_ack_function` (data[header_len..header_len+param_length])
             // under `s7comm_bounds_ok`. This harness keeps the exact-equality proof
@@ -5223,17 +5223,25 @@ mod story_187 {
 // disjointness), and the PRF-005 Kani retarget.
 //
 // Authored Red-first against the `todo!()` stub of `classify_job_ack_function`
-// and the not-yet-wired `on_data` Ack error logging (AC-188-010).
+// and the not-yet-wired `on_data` Ack error recording (AC-188-010).
 //
-// Observation surface for AC-188-010: this project's established diagnostic
-// channel is `eprintln!` to stderr (ADR-0004). The analyzer's stderr output is
-// therefore observed by re-executing this test binary as a child process
-// (stdin = null, per-run timeout) that drives `S7commAnalyzer::on_data`, then
-// inspecting the child's captured stderr. The contract pinned here is minimal:
-// one stderr line per Ack/Ack_Data frame that contains the literal field names
-// `error_class` and `error_code` each followed by the observed byte value
-// (`0x81`-style hex or decimal). No line containing `error_class` may be
-// produced for Job/Userdata frames.
+// Observation surface for AC-188-010 (human rulings 2026-10-04): the analyzer
+// records Ack/Ack_Data error pairs ANALYZER-SIDE, with no stderr / eprintln! /
+// child-process channel. Two surfaces are pinned:
+//   - `ack_error_observations()`: an arrival-ordered record, bounded at
+//     `MAX_S7_ACK_ERROR_OBSERVATIONS`, each entry carrying `pdu_reference`,
+//     `rosctr`, `error_class`, `error_code`; overflow is counted by
+//     `ack_error_observations_dropped()`.
+//   - `ack_error_counts()`: an exact per-`S7AckErrorKey` (rosctr, class, code)
+//     histogram of EVERY recorded observation, including those beyond the list
+//     cap (so a late distinct non-zero pair is never lost; counts saturate at
+//     u64::MAX). Zero pairs are counted like any other (EC-004/EC-007).
+// Job/Userdata frames record nothing, and a frame failing the BC-2.21.009 bounds
+// check records nothing (it is treated identically to a malformed header and
+// yields the T0814 malformed finding instead).
+// Provenance: an earlier revision of this module pinned a stderr line observed
+// via a re-executed child process; that contract was superseded by the
+// 2026-10-04 human rulings (bounded analyzer-side record, then the histogram).
 //
 // Wire layouts used (ADR-014 Decision 4: public wire-capture / prose-derived
 // layouts only, no copied dissector code):
@@ -5245,8 +5253,9 @@ mod story_187 {
 // =============================================================================
 mod story_188 {
     use wirerust::analyzer::s7comm::{
-        MAX_S7_ACK_ERROR_OBSERVATIONS, PlcControlService, Rosctr, S7AckErrorObservation,
-        S7AreaCode, S7ClassicFunction, S7commAnalyzer, classify_job_ack_function,
+        MAX_S7_ACK_ERROR_OBSERVATIONS, PlcControlService, Rosctr, S7AckErrorKey,
+        S7AckErrorObservation, S7AreaCode, S7ClassicFunction, S7commAnalyzer,
+        classify_job_ack_function, parse_s7comm_header, s7comm_bounds_ok,
     };
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
@@ -5364,8 +5373,19 @@ mod story_188 {
         classify_both(&param[..keep], &param[keep..])
     }
 
+    /// Observation literal for frames built by `build_pdu` (PDU reference 0x0001).
     fn obs(rosctr: Rosctr, error_class: u8, error_code: u8) -> S7AckErrorObservation {
+        obs_ref(1, rosctr, error_class, error_code)
+    }
+
+    fn obs_ref(
+        pdu_reference: u16,
+        rosctr: Rosctr,
+        error_class: u8,
+        error_code: u8,
+    ) -> S7AckErrorObservation {
         S7AckErrorObservation {
+            pdu_reference,
             rosctr,
             error_class,
             error_code,
@@ -6098,6 +6118,349 @@ mod story_188 {
     }
 
     // ---------------------------------------------------------------------
+    // PASS-1 REMEDIATION (2026-10-04): F-02 boundary, F-06 pin, F-07 histogram
+    // ---------------------------------------------------------------------
+
+    /// F-02: Write Var descriptor length boundary. The item decode needs the full
+    /// 14-byte block (FC + count + 12-byte item); lengths 11, 12, 13 have the area
+    /// byte present at offset 10 but a truncated address, and must yield the
+    /// `Unrecognized(0xFF)` placeholder (never the decoded area); length 14 decodes.
+    /// The cut-off remainder stays in the data block to prove `param_length` bounds
+    /// the decode. Traces: BC-2.21.012 postcondition 3.
+    #[test]
+    fn test_BC_2_21_012_write_var_descriptor_length_boundary_11_12_13_14() {
+        let full = write_var_param(0x84);
+        assert_eq!(full.len(), 14);
+        let placeholder = F::WriteVar(S7AreaCode::Unrecognized(0xFF));
+        for keep in [11usize, 12, 13] {
+            assert_eq!(full[10], 0x84, "area byte is at offset 10");
+            let [job, ack] = classify_both(&full[..keep], &full[keep..]);
+            assert_eq!(job, placeholder, "Job, param_length {keep}");
+            assert_eq!(ack, placeholder, "AckData, param_length {keep}");
+        }
+        assert_both(
+            &full,
+            &[],
+            F::WriteVar(S7AreaCode::DataBlock),
+            "param_length 14 decodes the area",
+        );
+    }
+
+    /// F-06: an Ack_Data frame with a non-zero error pair whose declared
+    /// data_length exceeds the bytes present fails BC-2.21.009 bounds: it yields
+    /// the T0814 malformed finding and records NO ack-error observation (neither
+    /// the list nor the histogram). Traces: BC-2.21.008 PC4 + BC-2.21.009 PC2
+    /// ("treated identically to a malformed header").
+    #[test]
+    fn test_BC_2_21_008_bounds_failing_ack_data_records_no_ack_error_observation() {
+        let (mut pdu, _, _) = build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]);
+        // Header: [0x32, rosctr, red(2), pdu_ref(2), param_len(2), data_len(2), ec, ecode]
+        let param_len = u16::from_be_bytes([pdu[6], pdu[7]]);
+        assert_eq!(param_len as usize, setup_comm_param().len());
+        pdu[8] = 0x00;
+        pdu[9] = 0x20; // data_length = 32, but no data block follows
+        let mut analyzer = S7commAnalyzer::new();
+        let key = flow_key_default();
+        analyzer.on_data(key.clone(), &cr_frame(), 0, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &cc_frame(), 0, Direction::ServerToClient);
+        analyzer.on_data(key, &dt_frame(&pdu), 1, Direction::ServerToClient);
+        assert_eq!(analyzer.findings.len(), 1, "{:?}", analyzer.findings);
+        assert!(
+            analyzer.findings[0]
+                .evidence
+                .iter()
+                .any(|e| e.contains("declared param_length/data_length exceed")),
+            "{:?}",
+            analyzer.findings[0].evidence
+        );
+        assert!(analyzer.ack_error_observations().is_empty());
+        assert_eq!(analyzer.ack_error_observations_dropped(), 0);
+        assert!(analyzer.ack_error_counts().is_empty());
+    }
+
+    fn key(rosctr: Rosctr, error_class: u8, error_code: u8) -> S7AckErrorKey {
+        S7AckErrorKey {
+            rosctr,
+            error_class,
+            error_code,
+        }
+    }
+
+    /// Overwrites the PDU reference (header bytes 4-5) of a built PDU.
+    fn with_pdu_ref(mut pdu: Vec<u8>, pdu_ref: u16) -> Vec<u8> {
+        pdu[4..6].copy_from_slice(&pdu_ref.to_be_bytes());
+        pdu
+    }
+
+    /// F-07: exact per-(rosctr, class, code) counts for mixed Ack / Ack_Data /
+    /// zero frames; Job frames never counted. Traces: BC-2.21.008 PC4, EC-004/007.
+    #[test]
+    fn test_BC_2_21_008_ack_error_counts_exact_for_mixed_frames() {
+        let ack = |c, e| build_pdu(ROSCTR_ACK, (c, e), &[], &[]).0;
+        let ackd = |c, e| build_pdu(ROSCTR_ACK_DATA, (c, e), &setup_comm_param(), &[]).0;
+        let job = build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0;
+        let s = Direction::ServerToClient;
+        let analyzer = drive_session(&[
+            (Direction::ClientToServer, job.clone()),
+            (s, ack(0, 0)),
+            (s, ack(0, 0)),
+            (s, ack(0x81, 0x04)),
+            (s, ackd(0x81, 0x04)),
+            (s, ackd(0x81, 0x04)),
+            (s, ackd(0x81, 0x04)),
+            (s, ackd(0, 0)),
+            (Direction::ClientToServer, job),
+        ]);
+        let got: Vec<(S7AckErrorKey, u64)> = analyzer
+            .ack_error_counts()
+            .iter()
+            .map(|(k, v)| (*k, *v))
+            .collect();
+        let mut want = vec![
+            (key(Rosctr::Ack, 0, 0), 2u64),
+            (key(Rosctr::Ack, 0x81, 0x04), 1),
+            (key(Rosctr::AckData, 0, 0), 1),
+            (key(Rosctr::AckData, 0x81, 0x04), 3),
+        ];
+        want.sort();
+        assert_eq!(got, want, "Job frames must contribute no key");
+    }
+
+    /// F-07 regression: after the list cap is reached, a late DISTINCT non-zero
+    /// pair is still counted in the histogram (count 1) even though its list entry
+    /// is dropped; histogram total == cap + N; list len == cap; dropped == N.
+    #[test]
+    fn test_BC_2_21_008_ack_error_histogram_counts_beyond_list_cap() {
+        const EXTRA: usize = 3;
+        let ack = |c, e| {
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK, (c, e), &[], &[]).0,
+            )
+        };
+        let mut pdus: Vec<(Direction, Vec<u8>)> = (0..MAX_S7_ACK_ERROR_OBSERVATIONS)
+            .map(|_| ack(0, 0))
+            .collect();
+        pdus.push(ack(0x81, 0x04)); // first frame past the cap, distinct non-zero
+        pdus.push(ack(0, 0));
+        pdus.push(ack(0, 0));
+        let analyzer = drive_session(&pdus);
+        assert_eq!(
+            analyzer.ack_error_observations().len(),
+            MAX_S7_ACK_ERROR_OBSERVATIONS
+        );
+        assert_eq!(analyzer.ack_error_observations_dropped(), EXTRA as u64);
+        assert!(
+            analyzer
+                .ack_error_observations()
+                .iter()
+                .all(|o| o.error_class == 0 && o.error_code == 0),
+            "the late 0x81/0x04 list entry is dropped by the cap"
+        );
+        let counts = analyzer.ack_error_counts();
+        assert_eq!(
+            counts.get(&key(Rosctr::Ack, 0x81, 0x04)),
+            Some(&1),
+            "late distinct pair must survive in the histogram"
+        );
+        assert_eq!(
+            counts.get(&key(Rosctr::Ack, 0, 0)),
+            Some(&(MAX_S7_ACK_ERROR_OBSERVATIONS as u64 + 2))
+        );
+        assert_eq!(
+            counts.values().sum::<u64>(),
+            (MAX_S7_ACK_ERROR_OBSERVATIONS + EXTRA) as u64
+        );
+    }
+
+    /// F-07: each retained observation carries the PDU reference parsed from its
+    /// own header.
+    #[test]
+    fn test_BC_2_21_008_ack_error_observation_captures_pdu_reference() {
+        let analyzer = drive_session(&[
+            (
+                Direction::ServerToClient,
+                with_pdu_ref(build_pdu(ROSCTR_ACK, (0x81, 0x04), &[], &[]).0, 0x1234),
+            ),
+            (
+                Direction::ServerToClient,
+                with_pdu_ref(
+                    build_pdu(ROSCTR_ACK_DATA, (0, 0), &setup_comm_param(), &[]).0,
+                    0xBEEF,
+                ),
+            ),
+        ]);
+        assert_eq!(
+            analyzer.ack_error_observations(),
+            &[
+                obs_ref(0x1234, Rosctr::Ack, 0x81, 0x04),
+                obs_ref(0xBEEF, Rosctr::AckData, 0, 0),
+            ]
+        );
+    }
+
+    /// F-07: Job-only traffic yields an empty histogram.
+    #[test]
+    fn test_BC_2_21_008_job_frames_contribute_no_histogram_key() {
+        let analyzer = drive_session(&[(
+            Direction::ClientToServer,
+            build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
+        )]);
+        assert!(analyzer.ack_error_counts().is_empty());
+    }
+
+    // ---------------------------------------------------------------------
+    // F-01 canonical sub-group (DF-CANONICAL-FRAME-HOLDOUT-001): VERBATIM public
+    // wire-capture byte sequences, used as TEST VECTORS ONLY per ADR-014
+    // Decision 4 (+ F-40 reconciliation, 2026-09-24). Field semantics are NOT
+    // derived from these bytes. Research record:
+    // .factory/research/s7comm-canonical-fc-vectors.md. Retrieved 2026-10-04.
+    // ---------------------------------------------------------------------
+    mod canonical {
+        use super::*;
+
+        /// Strips TPKT(4) + COTP DT(`02 F0 80`) and returns the S7 PDU starting
+        /// at the 0x32 byte.
+        fn s7_pdu(frame: &[u8]) -> &[u8] {
+            assert_eq!(&frame[..2], &[0x03, 0x00], "TPKT version/reserved");
+            assert_eq!(frame[2..4], (frame.len() as u16).to_be_bytes(), "TPKT len");
+            assert_eq!(&frame[4..7], &[0x02, 0xF0, 0x80], "COTP DT");
+            &frame[7..]
+        }
+
+        /// Parses, bounds-checks and classifies the S7 PDU of `frame`.
+        fn classify_frame(frame: &[u8]) -> S7ClassicFunction {
+            let pdu = s7_pdu(frame);
+            let header = parse_s7comm_header(pdu).expect("canonical frame header parses");
+            assert!(s7comm_bounds_ok(&header, pdu.len()), "bounds ok");
+            classify_job_ack_function(pdu, header.header_len, header.param_length)
+        }
+
+        /// Feeds `frame` (full TPKT/COTP) through `on_data`: no findings, and
+        /// returns the analyzer for further assertions.
+        fn on_data_clean(frame: &[u8], dir: Direction) -> S7commAnalyzer {
+            let mut analyzer = S7commAnalyzer::new();
+            analyzer.on_data(flow_key_default(), frame, 0, dir);
+            assert!(
+                analyzer.findings.is_empty(),
+                "canonical frame must be well-formed: {:?}",
+                analyzer.findings
+            );
+            analyzer
+        }
+
+        // Source: https://www.cnblogs.com/crcce-dncs/p/10659087.html, Setup
+        // Communication Ack_Data response (as already used in story_187). Test
+        // vector only (ADR-014 Decision 4). Retrieved 2026-10-04.
+        const SETUP_COMM_ACK_DATA: [u8; 27] = [
+            0x03, 0x00, 0x00, 0x1B, 0x02, 0xF0, 0x80, 0x32, 0x03, 0x00, 0x00, 0xFF, 0xFF, 0x00,
+            0x08, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0xF0,
+        ];
+
+        // Source: https://www.cnblogs.com/crcce-dncs/p/10659087.html, section
+        // "Write Demo 1" (DB10 Word18). Test vector only (ADR-014 Decision 4).
+        // Retrieved 2026-10-04.
+        const WRITE_DB: [u8; 37] = [
+            0x03, 0x00, 0x00, 0x25, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0x00, 0x05, 0x00,
+            0x0E, 0x00, 0x06, 0x05, 0x01, 0x12, 0x0A, 0x10, 0x02, 0x00, 0x02, 0x00, 0x0A, 0x84,
+            0x00, 0x00, 0x90, 0x00, 0x04, 0x00, 0x10, 0xFF, 0xFE,
+        ];
+
+        // Source: same page, section "Write Demo 3" (Output0). Test vector only
+        // (ADR-014 Decision 4). Retrieved 2026-10-04.
+        const WRITE_OUTPUTS: [u8; 36] = [
+            0x03, 0x00, 0x00, 0x24, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00,
+            0x0E, 0x00, 0x05, 0x05, 0x01, 0x12, 0x0A, 0x10, 0x02, 0x00, 0x01, 0x00, 0x01, 0x82,
+            0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x08, 0x04,
+        ];
+
+        // Source: same page, section "Read Demo 1" (DB10). Test vector only
+        // (ADR-014 Decision 4). Retrieved 2026-10-04.
+        const READ_DB: [u8; 31] = [
+            0x03, 0x00, 0x00, 0x1F, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0x00, 0x1C, 0x00,
+            0x0E, 0x00, 0x00, 0x04, 0x01, 0x12, 0x0A, 0x10, 0x02, 0x00, 0x11, 0x00, 0x0A, 0x84,
+            0x00, 0x00, 0x98,
+        ];
+
+        // Source: https://www.cnblogs.com/ZHIZRL/p/18184553, section "PLC Run"
+        // (service P_PROGRAM). Test vector only (ADR-014 Decision 4). Retrieved
+        // 2026-10-04.
+        const PLC_RUN: [u8; 37] = [
+            0x03, 0x00, 0x00, 0x25, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x14, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFD, 0x00, 0x00, 0x09,
+            0x50, 0x5F, 0x50, 0x52, 0x4F, 0x47, 0x52, 0x41, 0x4D,
+        ];
+
+        // Source: https://www.cnblogs.com/ZHIZRL/p/18184553, section "PLC Stop".
+        // NOTE the 0x29 layout differs from 0x28 (5 reserved bytes, no 0xFD, no
+        // u16 block-length). Test vector only (ADR-014 Decision 4). Retrieved
+        // 2026-10-04.
+        const PLC_STOP: [u8; 33] = [
+            0x03, 0x00, 0x00, 0x21, 0x02, 0xF0, 0x80, 0x32, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x10, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x50, 0x5F, 0x50, 0x52,
+            0x4F, 0x47, 0x52, 0x41, 0x4D,
+        ];
+
+        /// Canonical Setup Communication Ack_Data response classifies as
+        /// SetupCommunication via parse -> bounds -> classify at header_len 12.
+        #[test]
+        fn test_BC_2_21_010_canonical_setup_communication_ack_data_classified() {
+            let pdu = s7_pdu(&SETUP_COMM_ACK_DATA);
+            let h = parse_s7comm_header(pdu).unwrap();
+            assert_eq!(h.rosctr, Rosctr::AckData);
+            assert_eq!(h.header_len, 12);
+            assert_eq!(classify_frame(&SETUP_COMM_ACK_DATA), F::SetupCommunication);
+            let a = on_data_clean(&SETUP_COMM_ACK_DATA, Direction::ServerToClient);
+            assert_eq!(
+                a.ack_error_observations(),
+                &[obs_ref(0xFFFF, Rosctr::AckData, 0, 0)],
+                "canonical response carries a zero error pair"
+            );
+        }
+
+        #[test]
+        fn test_BC_2_21_012_canonical_write_var_db_classified() {
+            assert_eq!(
+                classify_frame(&WRITE_DB),
+                F::WriteVar(S7AreaCode::DataBlock)
+            );
+            let a = on_data_clean(&WRITE_DB, Direction::ClientToServer);
+            assert!(a.ack_error_observations().is_empty(), "Job records nothing");
+        }
+
+        #[test]
+        fn test_BC_2_21_012_canonical_write_var_outputs_classified() {
+            assert_eq!(
+                classify_frame(&WRITE_OUTPUTS),
+                F::WriteVar(S7AreaCode::Outputs)
+            );
+            let a = on_data_clean(&WRITE_OUTPUTS, Direction::ClientToServer);
+            assert!(a.ack_error_observations().is_empty());
+        }
+
+        #[test]
+        fn test_BC_2_21_011_canonical_read_var_db_classified() {
+            assert_eq!(classify_frame(&READ_DB), F::ReadVar);
+            on_data_clean(&READ_DB, Direction::ClientToServer);
+        }
+
+        #[test]
+        fn test_BC_2_21_015_canonical_plc_control_p_program_classified() {
+            assert_eq!(
+                classify_frame(&PLC_RUN),
+                F::PlcControl(PlcControlService::ProgramStart)
+            );
+            on_data_clean(&PLC_RUN, Direction::ClientToServer);
+        }
+
+        #[test]
+        fn test_BC_2_21_014_canonical_plc_stop_classified() {
+            assert_eq!(classify_frame(&PLC_STOP), F::PlcStop);
+            on_data_clean(&PLC_STOP, Direction::ClientToServer);
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // PRF-005 (carry-forward): Kani harness over the REAL parameter-block slicing
     // performed by `classify_job_ack_function` (retargets the former
     // `vec![0u8; n].get(..)` assertion in story_187::vp051_kani, which only
@@ -6105,7 +6468,7 @@ mod story_188 {
     // ---------------------------------------------------------------------
 
     #[cfg(kani)]
-    mod vp052_kani {
+    mod vp051_kani {
         use wirerust::analyzer::s7comm::{
             S7ClassicFunction, classify_job_ack_function, parse_s7comm_header, s7comm_bounds_ok,
         };

@@ -105,11 +105,24 @@ pub const MAX_S7_ISO_ON_TCP_CARRY_BYTES: usize = 65_535;
 /// stderr flooding; BC-2.21.008 postcondition 4, AC-188-010).
 pub const MAX_S7_ACK_ERROR_OBSERVATIONS: usize = 1024;
 
+/// Histogram key for Ack/Ack_Data error pairs (F-07 STUB).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct S7AckErrorKey {
+    /// ROSCTR of the frame.
+    pub rosctr: Rosctr,
+    /// Header byte 10.
+    pub error_class: u8,
+    /// Header byte 11.
+    pub error_code: u8,
+}
+
 /// One observed `error_class` / `error_code` pair from an Ack (0x02) or Ack_Data
 /// (0x03) classic S7comm header (BC-2.21.008 postcondition 4). Zero values are
 /// recorded like any other value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S7AckErrorObservation {
+    /// PDU reference of the frame (header bytes 4-5, F-07).
+    pub pdu_reference: u16,
     /// The ROSCTR of the frame the pair was read from (`Ack` or `AckData`).
     pub rosctr: Rosctr,
     /// Header byte 10.
@@ -207,7 +220,7 @@ pub enum S7Protocol {
 /// story models (BC-2.21.006/007/008), mirroring `CotpTpduType`'s
 /// exhaustive-but-bounded design (BC-2.20.011) — this is not exhaustive over all 256
 /// `u8` values by design (BC-2.21.007 invariant 2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Rosctr {
     /// `0x01` — Job (request).
     Job,
@@ -571,6 +584,8 @@ pub struct S7commAnalyzer {
     ack_error_observations: Vec<S7AckErrorObservation>,
     /// Observations beyond the cap (saturating).
     ack_error_observations_dropped: u64,
+    /// STUB (F-07).
+    ack_error_counts: std::collections::BTreeMap<S7AckErrorKey, u64>,
 }
 
 impl S7commAnalyzer {
@@ -578,6 +593,11 @@ impl S7commAnalyzer {
     /// [`MAX_S7_ACK_ERROR_OBSERVATIONS`].
     pub fn ack_error_observations(&self) -> &[S7AckErrorObservation] {
         &self.ack_error_observations
+    }
+
+    /// STUB (F-07): exact per-key counts; implementer populates.
+    pub fn ack_error_counts(&self) -> &std::collections::BTreeMap<S7AckErrorKey, u64> {
+        &self.ack_error_counts
     }
 
     /// Saturating count of observations dropped beyond the cap.
@@ -592,6 +612,7 @@ impl S7commAnalyzer {
             findings: Vec::new(),
             ack_error_observations: Vec::new(),
             ack_error_observations_dropped: 0,
+            ack_error_counts: std::collections::BTreeMap::new(),
         }
     }
 
@@ -1050,6 +1071,7 @@ impl S7commAnalyzer {
     fn record_ack_error(acks: &mut Vec<S7AckErrorObservation>, header: &S7commHeader) {
         if let (Some(error_class), Some(error_code)) = (header.error_class, header.error_code) {
             acks.push(S7AckErrorObservation {
+                pdu_reference: 0, // STUB (F-07): implementer populates from header
                 rosctr: header.rosctr,
                 error_class,
                 error_code,
