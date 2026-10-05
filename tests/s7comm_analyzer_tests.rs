@@ -5453,10 +5453,10 @@ mod story_188 {
     }
 
     /// AC-188-003: FC 0x05 -> WriteVar(area) for the 8 named areas plus
-    /// unrecognized bytes (EC-001: 0xFF; BC EC-002: 0x86; canonical 0x9A);
+    /// unrecognized bytes (story EC-001: 0xFF; BC EC-002: 0x86; canonical 0x9A);
     /// unreadable descriptor -> WriteVar(Unrecognized(0xFF)) placeholder, never a
     /// reject; multi-item uses first item only; decode bounded by param_length.
-    /// Traces: BC-2.21.012 postconditions 1-4, EC-001/002/003, canonical vectors.
+    /// Traces: BC-2.21.012 postconditions 1-4, BC EC-001/002/003, canonical vectors.
     #[test]
     fn test_BC_2_21_012_write_var_area_code_extraction() {
         let table: [(u8, S7AreaCode); 8] = [
@@ -5486,7 +5486,7 @@ mod story_188 {
             );
         }
 
-        // Postcondition 3 / EC-003: undeterminable area -> WriteVar, placeholder 0xFF.
+        // Postcondition 3 / BC EC-003: undeterminable area -> WriteVar, placeholder 0xFF.
         let placeholder = F::WriteVar(S7AreaCode::Unrecognized(0xFF));
         assert_both(&[0x05], &[], placeholder, "bare FC, no item at all");
         assert_both(
@@ -5563,7 +5563,7 @@ mod story_188 {
     }
 
     /// AC-188-004: Download triad 0x1A/0x1B/0x1C classified independently,
-    /// never as an Upload variant; EC-002: consecutive RequestDownload frames are
+    /// never as an Upload variant; story EC-002: consecutive RequestDownload frames are
     /// each classified independently (no cross-frame state).
     /// Traces: BC-2.21.013 postconditions 1-4.
     #[test]
@@ -5590,7 +5590,7 @@ mod story_188 {
     }
 
     /// AC-188-005: Upload triad 0x1D/0x1E/0x1F classified; disjoint from Download.
-    /// Traces: BC-2.21.014 postconditions 1-4, EC-003 (no collapsed 0x1A..=0x1F range).
+    /// Traces: BC-2.21.014 postconditions 1-4, STORY-188 EC-003 (no collapsed 0x1A..=0x1F range).
     #[test]
     fn test_BC_2_21_014_upload_triad_classified_disjoint_from_download() {
         let cases = [
@@ -5737,10 +5737,10 @@ mod story_188 {
     }
 
     /// AC-188-008: unrecognized FC -> Unrecognized(fc) preserving the byte
-    /// (EC-006: 0x00 with param_length 1; BC EC-002: 0x06; BC EC-004: 0xFF);
+    /// (story EC-006: 0x00 with param_length 1; BC EC-002: 0x06; BC EC-004: 0xFF);
     /// param_length == 0 -> NoParameterBlock, distinct from Unrecognized, even if
     /// the data block begins with a byte that would be a named FC; emits no Finding.
-    /// Traces: BC-2.21.017 postconditions 1-3, invariant 2, EC-001..EC-004.
+    /// Traces: BC-2.21.017 postconditions 1-3, invariant 2, BC EC-001..EC-004.
     #[test]
     fn test_BC_2_21_017_unrecognized_fc_and_empty_parameter_block() {
         for fc in [0x00u8, 0x06, 0xFF, 0x03, 0x2A, 0x27, 0xF1, 0xEF] {
@@ -5860,7 +5860,7 @@ mod story_188 {
             /// FC byte, a Download variant is produced iff fc in 0x1A..=0x1C, an
             /// Upload variant iff fc in 0x1D..=0x1F, mapped one-to-one in order;
             /// no Download FC is ever an Upload variant and vice versa
-            /// (regression guard for a collapsed 0x1A..=0x1F range, EC-003).
+            /// (regression guard for a collapsed 0x1A..=0x1F range, STORY-188 EC-003).
             #[test]
             fn proptest_vp054_download_upload_structural_disjointness(
                 fc in any::<u8>(),
@@ -5916,7 +5916,7 @@ mod story_188 {
         assert_eq!(analyzer.ack_error_observations_dropped(), 0);
     }
 
-    /// AC-188-010 / EC-008: Ack_Data error fields (0x81/0x04) are recorded; the
+    /// AC-188-010 / story EC-008: Ack_Data error fields (0x81/0x04) are recorded; the
     /// populated error pair does not suppress FC classification, which reads the
     /// parameter block at `data[header_len] == data[12]` (not `data[10]`).
     /// Traces: BC-2.21.008 postcondition 4 (Ack_Data, v1.2), EC-008 (story),
@@ -5949,7 +5949,7 @@ mod story_188 {
         assert_eq!(analyzer.ack_error_observations_dropped(), 0);
     }
 
-    /// AC-188-010 / EC-007: a zero error class/code is recorded exactly like any
+    /// AC-188-010 / story EC-007: a zero error class/code is recorded exactly like any
     /// other value, for both Ack and Ack_Data (not flagged, not suppressed).
     /// Traces: BC-2.21.008 EC-004, story EC-007.
     #[test]
@@ -6251,7 +6251,7 @@ mod story_188 {
     }
 
     /// F-07: exact per-(rosctr, class, code) counts for mixed Ack / Ack_Data /
-    /// zero frames; Job frames never counted. Traces: BC-2.21.008 PC4, EC-004/007.
+    /// zero frames; Job frames never counted. Traces: BC-2.21.008 PC4, BC EC-004, story EC-007.
     #[test]
     fn test_BC_2_21_008_ack_error_counts_exact_for_mixed_frames() {
         let ack = |c, e| build_pdu(ROSCTR_ACK, (c, e), &[], &[]).0;
