@@ -379,9 +379,9 @@ pub enum S7ClassicFunction {
 ///
 /// The parameter block is `data[header_len..header_len + param_length]`; every
 /// byte read is bounds-checked against that sub-slice (never against `data.len()`),
-/// so no decode can read into the data block (VP-051). A block that cannot be
-/// sliced out of `data` (caller bounds-check violated) yields `NoParameterBlock`
-/// rather than panicking.
+/// so decoders read only the `param` sub-slice (story_188 truncation/boundary tests).
+/// A block that cannot be sliced out of `data` (caller bounds-check violated) yields
+/// `NoParameterBlock`; panic-freedom on bounds-ok inputs is VP-051.
 pub fn classify_job_ack_function(
     data: &[u8],
     header_len: usize,
@@ -1027,9 +1027,9 @@ impl S7commAnalyzer {
     /// payload slice beginning at `payload_offset`) and applies the BC-2.21.009
     /// caller-side bounds check (`data.len() >= header_len + param_length +
     /// data_length`) before any parameter/data-block slice — malformed headers and
-    /// bounds failures emit one T0814 per flow direction via
-    /// `malformed_header_reported_c2s`/`_s2c` (BC-2.21.001).
-    ///
+    /// bounds failures emit one T0814 per flow direction via `malformed_header_reported_*`
+    /// (BC-2.21.001). On bounds pass, Ack/Ack_Data error pairs are recorded (bounded list +
+    /// count map) and Job/Ack_Data param blocks FC-classified (placeholder, STORY-191/192).
     fn dispatch_classic_s7comm(
         state: &mut S7commFlowState,
         payload: &[u8],

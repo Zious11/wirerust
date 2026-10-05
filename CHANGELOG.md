@@ -17,7 +17,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   decode, PLC Stop, `Unrecognized(fc)`, and `NoParameterBlock`). All reads are
   bounded by `param_length`, so no decode reads into the data block
   (BC-2.21.010-017, VP-052, VP-054, STORY-188). `S7commAnalyzer` also records
-  each Ack/Ack_Data `error_class`/`error_code` pair in a bounded, arrival-ordered
+  each bounds-valid Ack/Ack_Data `error_class`/`error_code` pair in a bounded, arrival-ordered
   record (`ack_error_observations()`, capped at `MAX_S7_ACK_ERROR_OBSERVATIONS`
   with a saturating `ack_error_observations_dropped()` count), each recorded
   observation carries the frame's `pdu_reference`, and a per-(ROSCTR, error
