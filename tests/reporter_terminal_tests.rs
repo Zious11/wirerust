@@ -3999,7 +3999,7 @@ mod story_120 {
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
         let a = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
         let b = a; // Copy
-        let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
+        let c = a; // Copy (Clone is implied; .clone() on a Copy type trips clone_on_copy)
         assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
         assert_eq!(a, c, "PartialEq + Eq: Grouped == cloned Grouped");
         let _ = format!("{a:?}"); // Debug — would panic if not implemented
@@ -4329,7 +4329,7 @@ mod story_122 {
         );
 
         // Clone semantics.
-        let gc2 = Clone::clone(&grouped_collapsed);
+        let gc2 = grouped_collapsed;
         assert_eq!(
             grouped_collapsed, gc2,
             "AC-001: Clone + PartialEq: {gc2:?} == clone"
