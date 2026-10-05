@@ -36,9 +36,9 @@
 //! result is not yet consumed, see STORY-191/192) and the Ack/Ack_Data error
 //! record: a bounded, arrival-ordered list of [`S7AckErrorObservation`] (with
 //! `pdu_reference`) plus an exact [`S7AckErrorKey`] count map covering every
-//! recorded observation (BC-2.21.008 postcondition 4). The `Some(0x72)` (S7comm-plus) and unrecognized/`None`-`protocol_id`
-//! branches remain deliberate, panic-free structural no-ops — their observable
-//! behavior is STORY-190's scope.
+//! recorded observation (BC-2.21.008 postcondition 4). The `Some(0x72)` (S7comm-plus)
+//! and unrecognized/`None`-`protocol_id` branches remain deliberate, panic-free
+//! structural no-ops — their observable behavior is STORY-190's scope.
 //!
 //! ## Behavioral contracts
 //! - BC-2.20.013: TPKT frames spanning TCP segment boundaries are reassembled via
