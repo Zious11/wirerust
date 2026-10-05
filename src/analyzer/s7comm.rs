@@ -98,6 +98,26 @@ use crate::reassembly::handler::Direction;
 /// currently-live detection path.
 pub const MAX_S7_ISO_ON_TCP_CARRY_BYTES: usize = 65_535;
 
+/// Maximum number of [`S7AckErrorObservation`] records retained by one
+/// [`S7commAnalyzer`] (analyzer-wide, not per-flow). Observations beyond this cap
+/// are counted in [`S7commAnalyzer::ack_error_observations_dropped`] instead of
+/// stored, bounding memory on adversarial or long captures (ADR-0004: no per-packet
+/// stderr flooding; BC-2.21.008 postcondition 4, AC-188-010).
+pub const MAX_S7_ACK_ERROR_OBSERVATIONS: usize = 1024;
+
+/// One observed `error_class` / `error_code` pair from an Ack (0x02) or Ack_Data
+/// (0x03) classic S7comm header (BC-2.21.008 postcondition 4). Zero values are
+/// recorded like any other value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S7AckErrorObservation {
+    /// The ROSCTR of the frame the pair was read from (`Ack` or `AckData`).
+    pub rosctr: Rosctr,
+    /// Header byte 10.
+    pub error_class: u8,
+    /// Header byte 11.
+    pub error_code: u8,
+}
+
 // ---------------------------------------------------------------------------
 // Per-flow state
 // ---------------------------------------------------------------------------
@@ -461,14 +481,32 @@ pub struct S7commAnalyzer {
     /// malformed classic-S7comm-header finding (parse failure or bounds-check
     /// failure, BC-2.21.004/007/008/009, F-11).
     pub findings: Vec<Finding>,
+    /// Analyzer-wide, arrival-ordered, bounded record of Ack/Ack_Data error pairs
+    /// (capped at [`MAX_S7_ACK_ERROR_OBSERVATIONS`]).
+    ack_error_observations: Vec<S7AckErrorObservation>,
+    /// Observations beyond the cap (saturating).
+    ack_error_observations_dropped: u64,
 }
 
 impl S7commAnalyzer {
+    /// Ack/Ack_Data error observations in arrival order, up to
+    /// [`MAX_S7_ACK_ERROR_OBSERVATIONS`]. STUB: nothing records yet.
+    pub fn ack_error_observations(&self) -> &[S7AckErrorObservation] {
+        &self.ack_error_observations
+    }
+
+    /// Saturating count of observations dropped beyond the cap. STUB: always 0.
+    pub fn ack_error_observations_dropped(&self) -> u64 {
+        self.ack_error_observations_dropped
+    }
+
     /// Construct a new, empty `S7commAnalyzer`.
     pub fn new() -> Self {
         Self {
             flows: HashMap::new(),
             findings: Vec::new(),
+            ack_error_observations: Vec::new(),
+            ack_error_observations_dropped: 0,
         }
     }
 

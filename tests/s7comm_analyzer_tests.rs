@@ -5244,12 +5244,9 @@ mod story_187 {
 //   length (u16 BE), block args, service-name length (1), service-name ASCII.
 // =============================================================================
 mod story_188 {
-    use std::io::Read;
-    use std::process::{Command, Stdio};
-    use std::time::{Duration, Instant};
-
     use wirerust::analyzer::s7comm::{
-        PlcControlService, S7AreaCode, S7ClassicFunction, S7commAnalyzer, classify_job_ack_function,
+        MAX_S7_ACK_ERROR_OBSERVATIONS, PlcControlService, Rosctr, S7AckErrorObservation,
+        S7AreaCode, S7ClassicFunction, S7commAnalyzer, classify_job_ack_function,
     };
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
@@ -5367,100 +5364,18 @@ mod story_188 {
         classify_both(&param[..keep], &param[keep..])
     }
 
-    // ---------------------------------------------------------------------
-    // Child-process stderr observation (AC-188-010)
-    // ---------------------------------------------------------------------
-
-    const CHILD_VAR: &str = "WIRERUST_STORY188_CHILD_SCENARIO";
-
-    fn in_child_mode() -> bool {
-        std::env::var_os(CHILD_VAR).is_some()
-    }
-
-    /// Parent mode: re-executes this test binary running exactly `test_path` with
-    /// `CHILD_VAR` set, stdin = null, a 60 s timeout, and returns the child's
-    /// stderr (asserting the child exited successfully). Child mode (variable
-    /// matches): runs `scenario` and returns `None`.
-    fn child_stderr(test_path: &str, scenario: fn()) -> Option<String> {
-        if std::env::var(CHILD_VAR).ok().as_deref() == Some(test_path) {
-            scenario();
-            return None;
+    fn obs(rosctr: Rosctr, error_class: u8, error_code: u8) -> S7AckErrorObservation {
+        S7AckErrorObservation {
+            rosctr,
+            error_class,
+            error_code,
         }
-        let exe = std::env::current_exe().expect("current_exe");
-        let mut cmd = Command::new(exe);
-        cmd.args([test_path, "--exact", "--nocapture", "--test-threads=1"]);
-        cmd.envs([(CHILD_VAR, test_path)]);
-        let mut child = cmd
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("spawn child test process");
-        let mut stderr = child.stderr.take().expect("child stderr pipe");
-        let reader = std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            let _ = stderr.read_to_end(&mut buf);
-            String::from_utf8_lossy(&buf).into_owned()
-        });
-        let deadline = Instant::now() + Duration::from_secs(60);
-        let status = loop {
-            match child.try_wait().expect("try_wait") {
-                Some(st) => break st,
-                None => {
-                    if Instant::now() > deadline {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                        panic!("child scenario `{test_path}` timed out after 60s");
-                    }
-                    std::thread::sleep(Duration::from_millis(20));
-                }
-            }
-        };
-        let text = reader.join().expect("stderr reader thread");
-        assert!(
-            status.success(),
-            "child scenario `{test_path}` failed ({status}); stderr:\n{text}"
-        );
-        Some(text)
-    }
-
-    /// True iff `line` contains `key` followed (after separators) by a token equal
-    /// to `value` as `0x..` hex (any case) or decimal.
-    fn field_value_matches(line: &str, key: &str, value: u8) -> bool {
-        let Some(pos) = line.find(key) else {
-            return false;
-        };
-        let rest = line[pos + key.len()..].trim_start_matches(|c: char| !c.is_ascii_alphanumeric());
-        let tok: String = rest
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric())
-            .collect::<String>()
-            .to_ascii_lowercase();
-        tok == format!("0x{value:02x}") || tok == value.to_string()
-    }
-
-    fn error_lines(stderr: &str) -> Vec<&str> {
-        stderr
-            .lines()
-            .filter(|l| l.contains("error_class"))
-            .collect()
-    }
-
-    fn assert_error_line(line: &str, class: u8, code: u8) {
-        assert!(
-            field_value_matches(line, "error_class", class),
-            "log line must report error_class={class:#04x}: {line:?}"
-        );
-        assert!(
-            field_value_matches(line, "error_code", code),
-            "log line must report error_code={code:#04x}: {line:?}"
-        );
     }
 
     /// Feeds CR, CC, then each `(direction, pdu)` as its own DT frame into a fresh
     /// analyzer; asserts no finding is ever emitted (BC-2.21.008 PC4 / BC-2.21.017
-    /// PC3: logging and classification emit no `Finding`).
-    fn drive_session(pdus: &[(Direction, Vec<u8>)]) {
+    /// PC3: recording and classification emit no `Finding`). Returns the analyzer.
+    fn drive_session(pdus: &[(Direction, Vec<u8>)]) -> S7commAnalyzer {
         let mut analyzer = S7commAnalyzer::new();
         let key = flow_key_default();
         analyzer.on_data(key.clone(), &cr_frame(), 0, Direction::ClientToServer);
@@ -5473,6 +5388,7 @@ mod story_188 {
             "well-formed Job/Ack/Ack_Data frames must emit no Finding: {:?}",
             analyzer.findings
         );
+        analyzer
     }
 
     fn setup_comm_param() -> Vec<u8> {
@@ -5953,9 +5869,13 @@ mod story_188 {
     // AC-188-010: Ack / Ack_Data error_class / error_code consumed and logged
     // ---------------------------------------------------------------------
 
-    fn scenario_ack_with_error() {
-        drive_session(&[
-            // A Job first: it carries no error fields and must not be logged.
+    /// AC-188-010: `on_data` records the observed Ack `error_class`/`error_code`
+    /// (0x81/0x04) in the analyzer-side record; the preceding Job frame records
+    /// nothing; no Finding. Traces: BC-2.21.008 postcondition 4 (Ack).
+    #[test]
+    fn test_BC_2_21_008_ack_error_class_code_consumed_and_logged() {
+        let analyzer = drive_session(&[
+            // A Job first: it carries no error fields and must not be recorded.
             (
                 Direction::ClientToServer,
                 build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
@@ -5966,84 +5886,53 @@ mod story_188 {
                 build_pdu(ROSCTR_ACK, (0x81, 0x04), &[], &[]).0,
             ),
         ]);
-    }
-
-    /// AC-188-010: `on_data` logs the observed Ack `error_class`/`error_code`
-    /// (0x81/0x04); the preceding Job frame produces no such line; no Finding.
-    /// Traces: BC-2.21.008 postcondition 4 (Ack).
-    #[test]
-    fn test_BC_2_21_008_ack_error_class_code_consumed_and_logged() {
-        let Some(stderr) = child_stderr(
-            "story_188::test_BC_2_21_008_ack_error_class_code_consumed_and_logged",
-            scenario_ack_with_error,
-        ) else {
-            return;
-        };
-        let lines = error_lines(&stderr);
         assert_eq!(
-            lines.len(),
-            1,
-            "exactly one error_class log line expected (Ack only; the Job frame must \
-             not be logged); stderr:\n{stderr}"
+            analyzer.ack_error_observations(),
+            &[obs(Rosctr::Ack, 0x81, 0x04)],
+            "exactly one Ack observation (the Job frame must not be recorded)"
         );
-        assert_error_line(lines[0], 0x81, 0x04);
-        assert!(lines[0].contains("error_code"));
+        assert_eq!(analyzer.ack_error_observations_dropped(), 0);
     }
 
-    fn scenario_ack_data_with_error() {
-        drive_session(&[
-            (
-                Direction::ClientToServer,
-                build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
-            ),
-            // Ack_Data (0x03): 12-byte header, parameter block at data[12], error 0x81/0x04.
-            (
-                Direction::ServerToClient,
-                build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]).0,
-            ),
-        ]);
-    }
-
-    /// AC-188-010 / EC-008: Ack_Data error fields (0x81/0x04) are logged; the
+    /// AC-188-010 / EC-008: Ack_Data error fields (0x81/0x04) are recorded; the
     /// populated error pair does not suppress FC classification, which reads the
     /// parameter block at `data[header_len] == data[12]` (not `data[10]`).
     /// Traces: BC-2.21.008 postcondition 4 (Ack_Data, v1.2), EC-008 (story),
     /// BC-2.21.010 (independent FC classification).
     #[test]
     fn test_BC_2_21_008_ack_data_error_class_code_consumed_and_logged() {
-        // Direct classification (parent mode only): the 12-byte Ack_Data frame with
-        // non-zero error bytes still classifies its parameter block at data[12].
-        if !in_child_mode() {
-            let (pdu, hl, pl) = build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]);
-            assert_eq!(hl, 12);
-            assert_eq!(
-                classify_job_ack_function(&pdu, hl, pl),
-                F::SetupCommunication,
-                "EC-008: error fields must not suppress/alter FC classification"
-            );
-            // Error bytes that look like named FCs must not be read as the FC.
-            let (pdu, hl, pl) = build_pdu(ROSCTR_ACK_DATA, (0x28, 0x29), &[0x04], &[]);
-            assert_eq!(classify_job_ack_function(&pdu, hl, pl), F::ReadVar);
-        }
-
-        let Some(stderr) = child_stderr(
-            "story_188::test_BC_2_21_008_ack_data_error_class_code_consumed_and_logged",
-            scenario_ack_data_with_error,
-        ) else {
-            return;
-        };
-        let lines = error_lines(&stderr);
+        let (pdu, hl, pl) = build_pdu(ROSCTR_ACK_DATA, (0x81, 0x04), &setup_comm_param(), &[]);
+        assert_eq!(hl, 12);
         assert_eq!(
-            lines.len(),
-            1,
-            "exactly one error_class log line expected (Ack_Data only); stderr:\n{stderr}"
+            classify_job_ack_function(&pdu, hl, pl),
+            F::SetupCommunication,
+            "EC-008: error fields must not suppress/alter FC classification"
         );
-        assert_error_line(lines[0], 0x81, 0x04);
-        assert!(lines[0].contains("error_code"));
+        // Error bytes that look like named FCs must not be read as the FC.
+        let (pdu2, hl2, pl2) = build_pdu(ROSCTR_ACK_DATA, (0x28, 0x29), &[0x04], &[]);
+        assert_eq!(classify_job_ack_function(&pdu2, hl2, pl2), F::ReadVar);
+
+        let analyzer = drive_session(&[
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
+            ),
+            (Direction::ServerToClient, pdu),
+        ]);
+        assert_eq!(
+            analyzer.ack_error_observations(),
+            &[obs(Rosctr::AckData, 0x81, 0x04)],
+            "exactly one Ack_Data observation"
+        );
+        assert_eq!(analyzer.ack_error_observations_dropped(), 0);
     }
 
-    fn scenario_zero_errors() {
-        drive_session(&[
+    /// AC-188-010 / EC-007: a zero error class/code is recorded exactly like any
+    /// other value, for both Ack and Ack_Data (not flagged, not suppressed).
+    /// Traces: BC-2.21.008 EC-004, story EC-007.
+    #[test]
+    fn test_BC_2_21_008_zero_error_class_code_logged_for_ack_and_ack_data() {
+        let analyzer = drive_session(&[
             (
                 Direction::ServerToClient,
                 build_pdu(ROSCTR_ACK, (0x00, 0x00), &[], &[]).0,
@@ -6053,28 +5942,59 @@ mod story_188 {
                 build_pdu(ROSCTR_ACK_DATA, (0x00, 0x00), &setup_comm_param(), &[]).0,
             ),
         ]);
+        assert_eq!(
+            analyzer.ack_error_observations(),
+            &[obs(Rosctr::Ack, 0, 0), obs(Rosctr::AckData, 0, 0)]
+        );
     }
 
-    /// AC-188-010 / EC-007: a zero error class/code is logged exactly like any
-    /// other value, for both Ack and Ack_Data (not flagged, not suppressed).
-    /// Traces: BC-2.21.008 EC-004, story EC-007.
+    /// AC-188-010: Job frames record nothing (they carry no error fields).
+    /// Traces: BC-2.21.008 postcondition 4 (scope: Ack/Ack_Data only).
     #[test]
-    fn test_BC_2_21_008_zero_error_class_code_logged_for_ack_and_ack_data() {
-        let Some(stderr) = child_stderr(
-            "story_188::test_BC_2_21_008_zero_error_class_code_logged_for_ack_and_ack_data",
-            scenario_zero_errors,
-        ) else {
-            return;
-        };
-        let lines = error_lines(&stderr);
+    fn test_BC_2_21_008_job_frames_record_no_ack_error_observation() {
+        let analyzer = drive_session(&[
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &setup_comm_param(), &[]).0,
+            ),
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_JOB, (0, 0), &[0x04], &[]).0,
+            ),
+            // Anchor: an Ack in the same session IS recorded, so an always-empty
+            // record cannot satisfy this test.
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK, (0x05, 0x06), &[], &[]).0,
+            ),
+        ]);
         assert_eq!(
-            lines.len(),
-            2,
-            "one zero-valued error_class line per Ack and Ack_Data frame; stderr:\n{stderr}"
+            analyzer.ack_error_observations(),
+            &[obs(Rosctr::Ack, 0x05, 0x06)]
         );
-        for line in lines {
-            assert_error_line(line, 0x00, 0x00);
+    }
+
+    /// AC-188-010 (bounded memory): cap + N Ack frames yield exactly
+    /// `MAX_S7_ACK_ERROR_OBSERVATIONS` retained observations, the first `cap` in
+    /// arrival order, and `dropped == N`.
+    #[test]
+    fn test_BC_2_21_008_ack_error_observations_bounded_by_cap_with_dropped_count() {
+        const EXTRA: usize = 7;
+        let pdus: Vec<(Direction, Vec<u8>)> = (0..MAX_S7_ACK_ERROR_OBSERVATIONS + EXTRA)
+            .map(|i| {
+                (
+                    Direction::ServerToClient,
+                    build_pdu(ROSCTR_ACK, ((i >> 8) as u8, (i & 0xFF) as u8), &[], &[]).0,
+                )
+            })
+            .collect();
+        let analyzer = drive_session(&pdus);
+        let got = analyzer.ack_error_observations();
+        assert_eq!(got.len(), MAX_S7_ACK_ERROR_OBSERVATIONS);
+        for (i, o) in got.iter().enumerate() {
+            assert_eq!(*o, obs(Rosctr::Ack, (i >> 8) as u8, (i & 0xFF) as u8));
         }
+        assert_eq!(analyzer.ack_error_observations_dropped(), EXTRA as u64);
     }
 
     // ---------------------------------------------------------------------
@@ -6111,30 +6031,17 @@ mod story_188 {
         out
     }
 
-    fn scenario_fixture_through_on_data() {
-        let mut analyzer = S7commAnalyzer::new();
-        let key = flow_key_default();
-        for (dir, payload, ts) in fixture_payloads() {
-            analyzer.on_data(key.clone(), &payload, ts, dir);
-        }
-        assert!(
-            analyzer.findings.is_empty(),
-            "fixture is well-formed; classification/logging must emit no Finding: {:?}",
-            analyzer.findings
-        );
-    }
-
     /// End-to-end over the committed fixture: (1) every S7comm PDU's function code
     /// classifies as expected; (2) driving the whole capture through `on_data`
-    /// logs the error pair of each of the three Ack/Ack_Data frames (a zero pair on
-    /// the Setup Communication response, 0x81/0x04 on the Ack and the Ack_Data) and
-    /// emits no Finding.
+    /// records the error pair of each of the three Ack/Ack_Data frames, in order (a
+    /// zero pair on the Setup Communication response, 0x81/0x04 on the Ack and the
+    /// Ack_Data), and emits no Finding.
     /// Traces: AC-188-001..010, BC-2.21.008 postcondition 4, BC-2.21.010..017.
     #[test]
     fn test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end() {
         use wirerust::analyzer::s7comm::parse_s7comm_header;
 
-        if !in_child_mode() {
+        {
             let mut got = Vec::new();
             for (_, payload, _) in fixture_payloads() {
                 // Skip COTP CR/CC (LI=6 fixed part) -- only DT (02 F0 80) frames carry S7comm.
@@ -6168,21 +6075,26 @@ mod story_188 {
             assert_eq!(got, expected, "fixture FC sequence");
         }
 
-        let Some(stderr) = child_stderr(
-            "story_188::test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end",
-            scenario_fixture_through_on_data,
-        ) else {
-            return;
-        };
-        let lines = error_lines(&stderr);
-        assert_eq!(
-            lines.len(),
-            3,
-            "three Ack/Ack_Data frames; stderr:\n{stderr}"
+        let mut analyzer = S7commAnalyzer::new();
+        let key = flow_key_default();
+        for (dir, payload, ts) in fixture_payloads() {
+            analyzer.on_data(key.clone(), &payload, ts, dir);
+        }
+        assert!(
+            analyzer.findings.is_empty(),
+            "fixture is well-formed; classification/recording must emit no Finding: {:?}",
+            analyzer.findings
         );
-        assert_error_line(lines[0], 0x00, 0x00);
-        assert_error_line(lines[1], 0x81, 0x04);
-        assert_error_line(lines[2], 0x81, 0x04);
+        assert_eq!(
+            analyzer.ack_error_observations(),
+            &[
+                obs(Rosctr::AckData, 0x00, 0x00),
+                obs(Rosctr::Ack, 0x81, 0x04),
+                obs(Rosctr::AckData, 0x81, 0x04),
+            ],
+            "three Ack/Ack_Data frames in capture order"
+        );
+        assert_eq!(analyzer.ack_error_observations_dropped(), 0);
     }
 
     // ---------------------------------------------------------------------
