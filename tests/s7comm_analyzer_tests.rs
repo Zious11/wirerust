@@ -6089,7 +6089,7 @@ mod story_188 {
     /// records the error pair of each of the three Ack/Ack_Data frames, in order (a
     /// zero pair on the Setup Communication response, 0x81/0x04 on the Ack and the
     /// Ack_Data), and emits no Finding.
-    /// Traces: AC-188-001..010, BC-2.21.008 postcondition 4, BC-2.21.010..017.
+    /// Traces: AC-188-001..011, BC-2.21.008 postcondition 4, BC-2.21.010..017.
     #[test]
     fn test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end() {
         use wirerust::analyzer::s7comm::parse_s7comm_header;

@@ -303,7 +303,7 @@ def setup_communication_response(pdu_reference: int) -> bytes:
     correctly emitted with the 12-byte Ack_Data header (error_class=0x00,
     error_code=0x00), matching the canonical cnblogs Ack_Data layout used by
     `test_BC_2_21_008_canonical_ack_data_setup_communication_response_on_data`
-    (parameter block at byte 12, per DF-CANONICAL-FRAME-HOLDOUT-001).
+    (parameter block at byte 12, per DF-CANONICAL-FRAME-HOLDOUT-001). Zero pair + parameter block: BC-2.21.008 EC-008.
     """
     parameter = struct.pack("!BBHHH", 0xF0, 0x00, 0x0001, 0x0001, 0x01E0)
     return s7comm_pdu(ROSCTR_ACK_DATA, pdu_reference, parameter, b"")
@@ -389,7 +389,7 @@ def ack_data_with_error_and_parameter(
 ) -> bytes:
     """
     Ack_Data (0x03): 12-byte header, non-zero error pair AND a Setup
-    Communication parameter block at data[12] (BC-2.21.008 EC-007/EC-008).
+    Communication parameter block at data[12] (BC-2.21.008 EC-007).
     """
     parameter = struct.pack("!BBHHH", 0xF0, 0x00, 0x0001, 0x0001, 0x01E0)
     return s7comm_pdu(ROSCTR_ACK_DATA, pdu_reference, parameter, b"", error_class, error_code)
