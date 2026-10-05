@@ -6085,11 +6085,11 @@ mod story_188 {
     }
 
     /// End-to-end over the committed fixture: (1) every S7comm PDU's function code
-    /// classifies as expected; (2) driving the whole capture through `on_data`
-    /// records the error pair of each of the three Ack/Ack_Data frames, in order (a
-    /// zero pair on the Setup Communication response, 0x81/0x04 on the Ack and the
-    /// Ack_Data), and emits no Finding.
-    /// Traces: AC-188-001..011, BC-2.21.008 postcondition 4, BC-2.21.010..017.
+    /// classifies as expected; (2) driving the whole capture through `on_data` records
+    /// the error pair of each Ack/Ack_Data frame, in order, and emits no Finding.
+    /// Traces: AC-188-001, 002, 003 (Outputs area only), 004, 005, 006, 007, 008 (Ack
+    /// frame -> NoParameterBlock), 010; BC-2.21.008 PC4, BC-2.21.010..016. Does NOT
+    /// exercise AC-188-009 (totality sweep) or AC-188-011 (canonical vectors).
     #[test]
     fn test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end() {
         use wirerust::analyzer::s7comm::parse_s7comm_header;
