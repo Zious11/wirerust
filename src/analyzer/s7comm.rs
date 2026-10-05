@@ -379,7 +379,7 @@ pub enum S7ClassicFunction {
 ///
 /// The parameter block is `data[header_len..header_len + param_length]`; every
 /// byte read is bounds-checked against that sub-slice (never against `data.len()`),
-/// so no decode can read into the data block (VP-052). A block that cannot be
+/// so no decode can read into the data block (VP-051). A block that cannot be
 /// sliced out of `data` (caller bounds-check violated) yields `NoParameterBlock`
 /// rather than panicking.
 pub fn classify_job_ack_function(
