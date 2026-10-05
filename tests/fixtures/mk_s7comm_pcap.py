@@ -42,7 +42,7 @@ ADR-014 Decision 4 reconciliation note (2026-09-24, DF-CANONICAL-FRAME-
 HOLDOUT-001); Kleinmann & Wool 2014 is a prose field-semantics source, not a
 test-vector source. Zero lines are borrowed from any external implementation.
 
-This fixture is consumed by
+The setup-comm capture (s7comm-setup-comm.pcap) is consumed by
 `test_BC_2_21_002_setup_comm_fixture_pcap_well_formed_no_findings` in
 `tests/s7comm_analyzer_tests.rs` — an end-to-end regression check that reads the
 committed capture, feeds every packet's TCP payload through
@@ -50,7 +50,7 @@ committed capture, feeds every packet's TCP payload through
 findings, `session_established == true`, and `classified_protocol ==
 Some(S7Protocol::Classic)`.
 
-Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
+Packet sequence of s7comm-setup-comm.pcap (all timestamps in seconds, realistic 2024-era epoch values):
   1. [t=1_717_100_000] Client→Server SYN (TCP handshake — no payload)
   2. [t=1_717_100_001] Server→Client SYN-ACK
   3. [t=1_717_100_002] Client→Server ACK (handshake complete)
@@ -65,6 +65,12 @@ Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
   9. [t=1_717_100_008] Server→Client: minimal classic Ack_Data PDU (ROSCTR=Ack_Data
      0x03, empty parameter/data blocks)
   10. [t=1_717_100_009] Client→Server FIN-ACK
+
+The function-code classification capture (s7comm-fc-classification.pcap, STORY-188)
+is consumed by `test_BC_2_21_010_fc_classification_fixture_pcap_end_to_end`. Its
+14-PDU S7comm sequence is: Job Setup Communication -> Ack_Data (setup response),
+then Jobs 2..11 (one per classified function code), an Ack with reference 11, and
+a final Ack_Data.
 
 Usage:
   python3 tests/fixtures/mk_s7comm_pcap.py

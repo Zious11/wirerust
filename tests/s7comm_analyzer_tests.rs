@@ -5888,7 +5888,7 @@ mod story_188 {
     }
 
     // ---------------------------------------------------------------------
-    // AC-188-010: Ack / Ack_Data error_class / error_code consumed and logged
+    // AC-188-010: Ack / Ack_Data error_class / error_code consumed and recorded
     // ---------------------------------------------------------------------
 
     /// AC-188-010: `on_data` records the observed Ack `error_class`/`error_code`
