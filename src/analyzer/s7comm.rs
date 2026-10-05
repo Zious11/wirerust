@@ -662,18 +662,18 @@ impl S7commAnalyzer {
     ///    `iso_on_tcp::parse_tpkt_header(&working[cursor..])`: a complete frame
     ///    (`Some(header)` and enough trailing bytes) is extracted and dispatched to
     ///    `iso_on_tcp::parse_cotp_header`, `cursor` advances by `header.length`, and
-    ///    the loop continues; a declared-but-incomplete frame or a `None` result
-    ///    breaks the loop.
-    /// 3. On a bad-version-byte reject (or immediately after a carry-overflow clear),
-    ///    the shared 1-byte resync sub-routine (BC-2.20.015; see
-    ///    [`Self::resync_one_byte`]) advances the cursor and retries.
+    ///    the loop continues; a declared-but-incomplete frame or `None` breaks the loop.
+    /// 3. On a bad-version-byte reject (or after a carry-overflow clear), the shared 1-byte
+    ///    resync (BC-2.20.015; see [`Self::resync_one_byte`]) advances the cursor and retries.
     /// 4. Whatever remains after the loop terminates is stashed to `carry[direction]`.
     ///
-    /// Each extracted frame's `CotpHeader` is then routed through the BC-2.21.002
-    /// four-way dispatch (see [`Self::dispatch_cotp_frame`]): CR/CC frames update
-    /// session-tracking state, and Data Transfer frames drive sticky protocol
-    /// classification and, for classic (`0x32`) S7comm on a sticky-Classic flow,
-    /// header dissection via [`parse_s7comm_header`].
+    /// Each extracted frame's `CotpHeader` is routed through the BC-2.21.002 four-way
+    /// dispatch (see [`Self::dispatch_cotp_frame`]): CR/CC frames update session state;
+    /// Data Transfer frames drive sticky classification and, for classic (`0x32`) S7comm
+    /// on a sticky-Classic flow, header dissection via [`parse_s7comm_header`]. After the
+    /// BC-2.21.009 bounds check, Ack/Ack_Data error pairs are recorded (bounded list +
+    /// count map) and Job/Ack_Data parameter blocks are FC-classified (classification-only
+    /// placeholder, consumed by STORY-191/192).
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         use crate::findings::{Confidence, ThreatCategory, Verdict};
 
