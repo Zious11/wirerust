@@ -573,12 +573,12 @@ pub struct S7commAnalyzer {
 
 impl S7commAnalyzer {
     /// Ack/Ack_Data error observations in arrival order, up to
-    /// [`MAX_S7_ACK_ERROR_OBSERVATIONS`]. STUB: nothing records yet.
+    /// [`MAX_S7_ACK_ERROR_OBSERVATIONS`].
     pub fn ack_error_observations(&self) -> &[S7AckErrorObservation] {
         &self.ack_error_observations
     }
 
-    /// Saturating count of observations dropped beyond the cap. STUB: always 0.
+    /// Saturating count of observations dropped beyond the cap.
     pub fn ack_error_observations_dropped(&self) -> u64 {
         self.ack_error_observations_dropped
     }
@@ -623,6 +623,7 @@ impl S7commAnalyzer {
         // Collect frame-walk findings locally to avoid a borrow conflict between the
         // per-flow state entry (below) and `self.findings`.
         let mut local_findings: Vec<Finding> = Vec::new();
+        let mut local_acks: Vec<S7AckErrorObservation> = Vec::new();
 
         {
             let state = self.flows.entry(flow_key).or_default();
@@ -743,6 +744,7 @@ impl S7commAnalyzer {
                                 direction,
                                 ts,
                                 &mut local_findings,
+                                &mut local_acks,
                             );
                             cursor += total;
                         } else {
@@ -773,6 +775,21 @@ impl S7commAnalyzer {
         }
 
         self.findings.extend(local_findings);
+        self.record_ack_error_observations(local_acks);
+    }
+
+    /// Appends `observed` to the bounded analyzer-wide record, in arrival order,
+    /// up to [`MAX_S7_ACK_ERROR_OBSERVATIONS`]; the remainder only increments the
+    /// saturating dropped counter (BC-2.21.008 postcondition 4, AC-188-010).
+    fn record_ack_error_observations(&mut self, observed: Vec<S7AckErrorObservation>) {
+        for observation in observed {
+            if self.ack_error_observations.len() < MAX_S7_ACK_ERROR_OBSERVATIONS {
+                self.ack_error_observations.push(observation);
+            } else {
+                self.ack_error_observations_dropped =
+                    self.ack_error_observations_dropped.saturating_add(1);
+            }
+        }
     }
 
     /// Remove `flow_key`'s [`S7commFlowState`], discarding any carry bytes with no
@@ -835,6 +852,7 @@ impl S7commAnalyzer {
         direction: Direction,
         ts: u32,
         findings: &mut Vec<Finding>,
+        acks: &mut Vec<S7AckErrorObservation>,
     ) {
         match cotp {
             None => {
@@ -886,7 +904,7 @@ impl S7commAnalyzer {
                             if state.classified_protocol == Some(S7Protocol::Classic) {
                                 let payload = &tpkt_payload[header.payload_offset..];
                                 Self::dispatch_classic_s7comm(
-                                    state, payload, direction, ts, findings,
+                                    state, payload, direction, ts, findings, acks,
                                 );
                             }
                         }
@@ -952,6 +970,7 @@ impl S7commAnalyzer {
         direction: Direction,
         ts: u32,
         findings: &mut Vec<Finding>,
+        acks: &mut Vec<S7AckErrorObservation>,
     ) {
         // F-15: this function is only ever reached from the `Some(0x32)` DT arm
         // above, whose `payload` is `&tpkt_payload[header.payload_offset..]` with
@@ -985,8 +1004,30 @@ impl S7commAnalyzer {
         // checked-arithmetic comparison here, so this call site and the VP-051
         // Kani harness share a single source of truth for the bounds decision.
         if s7comm_bounds_ok(&header, payload.len()) {
-            // Bounds check passes. Function-code/Userdata classification
-            // (BC-2.21.010 onward) is out of this story's scope (STORY-188/189).
+            // Bounds check passes (BC-2.21.009): the parameter block is safe to
+            // slice. Ack/Ack_Data error pairs are recorded (BC-2.21.008 PC4), and
+            // Job/Ack_Data parameter blocks are FC-classified (BC-2.21.010-017).
+            // Bare Ack frames carry no parameter block and are not FC-classified;
+            // Userdata is STORY-189's scope.
+            match header.rosctr {
+                Rosctr::Job => {
+                    let _function = classify_job_ack_function(
+                        payload,
+                        header.header_len,
+                        header.param_length,
+                    );
+                }
+                Rosctr::AckData => {
+                    Self::record_ack_error(acks, &header);
+                    let _function = classify_job_ack_function(
+                        payload,
+                        header.header_len,
+                        header.param_length,
+                    );
+                }
+                Rosctr::Ack => Self::record_ack_error(acks, &header),
+                Rosctr::Userdata => {}
+            }
         } else {
             // Declared lengths exceed the bytes actually present (or, in the
             // unreachable overflow case, the sum would have overflowed `usize`) —
@@ -1004,6 +1045,19 @@ impl S7commAnalyzer {
                 payload.len()
             );
             Self::report_malformed_header(state, direction, ts, findings, &reason);
+        }
+    }
+
+    /// Pushes the Ack/Ack_Data `error_class`/`error_code` pair (zeros included)
+    /// onto the per-call observation buffer (BC-2.21.008 postcondition 4). A header
+    /// whose error fields are `None` (Job/Userdata) records nothing.
+    fn record_ack_error(acks: &mut Vec<S7AckErrorObservation>, header: &S7commHeader) {
+        if let (Some(error_class), Some(error_code)) = (header.error_class, header.error_code) {
+            acks.push(S7AckErrorObservation {
+                rosctr: header.rosctr,
+                error_class,
+                error_code,
+            });
         }
     }
 
