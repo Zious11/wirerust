@@ -6109,12 +6109,37 @@ mod story_188 {
             analyzer.ack_error_observations(),
             &[
                 obs(Rosctr::AckData, 0x00, 0x00),
-                obs(Rosctr::Ack, 0x81, 0x04),
+                obs_ref(11, Rosctr::Ack, 0x81, 0x04),
                 obs(Rosctr::AckData, 0x81, 0x04),
             ],
             "three Ack/Ack_Data frames in capture order"
         );
         assert_eq!(analyzer.ack_error_observations_dropped(), 0);
+        let counts: Vec<(S7AckErrorKey, u64)> = analyzer
+            .ack_error_counts()
+            .iter()
+            .map(|(k, v)| (*k, *v))
+            .collect();
+        let ek = |rosctr, error_class, error_code| S7AckErrorKey {
+            rosctr,
+            error_class,
+            error_code,
+        };
+        for (k, n) in [
+            (ek(Rosctr::AckData, 0x00, 0x00), 1u64),
+            (ek(Rosctr::Ack, 0x81, 0x04), 1),
+            (ek(Rosctr::AckData, 0x81, 0x04), 1),
+        ] {
+            assert!(
+                counts.contains(&(k, n)),
+                "missing count {k:?}={n}: {counts:?}"
+            );
+        }
+        assert_eq!(
+            counts.len(),
+            3,
+            "exactly three distinct ack-error keys: {counts:?}"
+        );
     }
 
     // ---------------------------------------------------------------------
