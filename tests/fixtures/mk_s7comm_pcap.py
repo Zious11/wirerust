@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-mk_s7comm_pcap.py — Generate tests/fixtures/s7comm-setup-comm.pcap
+mk_s7comm_pcap.py — Generate tests/fixtures/s7comm-setup-comm.pcap and
+tests/fixtures/s7comm-fc-classification.pcap
 
-Produces a minimal libpcap (.pcap) file with classic magic (0xa1b2c3d4,
+Produces minimal libpcap (.pcap) files with classic magic (0xa1b2c3d4,
 little-endian) and link-type 1 (Ethernet) containing a classic S7comm (protocol-ID
 0x32) session over ISO-on-TCP (TPKT/COTP) on TCP/102.
 
@@ -67,7 +68,8 @@ Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
 
 Usage:
   python3 tests/fixtures/mk_s7comm_pcap.py
-  # Writes tests/fixtures/s7comm-setup-comm.pcap
+  # Writes BOTH tests/fixtures/s7comm-setup-comm.pcap and
+  # tests/fixtures/s7comm-fc-classification.pcap
 """
 
 import struct
@@ -305,9 +307,9 @@ def minimal_job_pdu(pdu_reference: int) -> bytes:
     """
     A minimal classic Job PDU with empty parameter/data blocks — the
     BC-2.21.006 EC-001 shape (`param_length == 0`, `data_length == 0`).
-    Function-code classification (Groups 3/4) is out of this story's scope
-    (STORY-188/189); this PDU exists only to exercise the header-level
-    Job/Ack_Data pairing this fixture models.
+    Function-code classification is STORY-188 (see the fc-classification
+    capture below) and Userdata classification is STORY-189; this PDU
+    exists only to exercise the header-level Job/Ack_Data pairing this fixture models.
     """
     return s7comm_pdu(ROSCTR_JOB, pdu_reference, b"", b"")
 

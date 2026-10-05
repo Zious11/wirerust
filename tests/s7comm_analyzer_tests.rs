@@ -5218,7 +5218,8 @@ mod story_187 {
 // STORY-188: S7comm Job/Ack_Data Function-Code Classification.
 //
 // Covers BC-2.21.008 (postcondition 4 only: Ack/Ack_Data error_class/error_code
-// consumption + logging), BC-2.21.010 .. BC-2.21.017, the VP-052 proptest
+// consumption into the bounded record + count map (human ruling R1, 2026-10-04: no
+// logging)), BC-2.21.010 .. BC-2.21.017, the VP-052 proptest
 // (FC totality sub-part) and the VP-054 proptest (Download/Upload structural
 // disjointness), and the PRF-005 Kani retarget.
 //
@@ -5299,6 +5300,7 @@ mod story_188 {
     const ROSCTR_JOB: u8 = 0x01;
     const ROSCTR_ACK: u8 = 0x02;
     const ROSCTR_ACK_DATA: u8 = 0x03;
+    const ROSCTR_USERDATA: u8 = 0x07;
 
     /// Builds a full classic S7comm PDU (starting at the 0x32 byte). Returns
     /// `(pdu, header_len, param_length)`. Ack/Ack_Data use the 12-byte header with
@@ -5524,7 +5526,7 @@ mod story_188 {
         );
     }
 
-    /// AC-188-003 / VP-052: every u8 area byte maps to exactly one `S7AreaCode`
+    /// AC-188-003 / BC-2.21.012 Invariant 1 (no VP): every u8 area byte maps to exactly one `S7AreaCode`
     /// (8 named + Unrecognized(byte) passthrough), no gaps, no force-fit.
     /// Traces: BC-2.21.012 invariant 1.
     mod area_exhaustive {
@@ -5992,6 +5994,37 @@ mod story_188 {
             analyzer.ack_error_observations(),
             &[obs(Rosctr::Ack, 0x05, 0x06)]
         );
+    }
+
+    /// AC-188-010: Userdata (ROSCTR 0x07) frames record nothing (10-byte header, no
+    /// error fields; the `Rosctr::Userdata` arm of the dispatcher is a no-op for
+    /// STORY-188). An Ack anchor in the same session proves recording is live, and
+    /// the count map holds only the anchor key.
+    /// Traces: BC-2.21.008 postcondition 4 (scope: Ack/Ack_Data only), PC3 header shape.
+    #[test]
+    fn test_BC_2_21_008_userdata_frames_record_no_ack_error_observation() {
+        let userdata_hdr_only = build_pdu(ROSCTR_USERDATA, (0, 0), &[], &[]);
+        assert_eq!(userdata_hdr_only.1, 10, "Userdata uses the 10-byte header");
+        let analyzer = drive_session(&[
+            (Direction::ClientToServer, userdata_hdr_only.0),
+            (
+                Direction::ClientToServer,
+                build_pdu(ROSCTR_USERDATA, (0, 0), &[0x00, 0x01, 0x12], &[]).0,
+            ),
+            (
+                Direction::ServerToClient,
+                build_pdu(ROSCTR_ACK, (0x05, 0x06), &[], &[]).0,
+            ),
+        ]);
+        assert_eq!(
+            analyzer.ack_error_observations(),
+            &[obs(Rosctr::Ack, 0x05, 0x06)],
+            "only the Ack anchor is recorded; Userdata frames are not"
+        );
+        assert_eq!(analyzer.ack_error_observations_dropped(), 0);
+        let counts = analyzer.ack_error_counts();
+        assert_eq!(counts.len(), 1, "count map holds only the anchor key");
+        assert_eq!(counts.values().copied().sum::<u64>(), 1);
     }
 
     /// AC-188-010 (bounded memory): cap + N Ack frames yield exactly
