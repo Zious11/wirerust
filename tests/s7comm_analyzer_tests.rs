@@ -6479,7 +6479,7 @@ mod story_188 {
         }
 
         #[test]
-        fn test_BC_2_21_014_canonical_plc_stop_classified() {
+        fn test_BC_2_21_016_canonical_plc_stop_classified() {
             assert_eq!(classify_frame(&PLC_STOP), F::PlcStop);
             on_data_clean(&PLC_STOP, Direction::ClientToServer);
         }
